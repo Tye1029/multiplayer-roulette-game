@@ -7,7 +7,7 @@ const [
   runtimeSource,
   calibrationSource,
   bootstrapSource,
-  turnOrientationSource,
+  gunFacingSource,
   injectorSource,
   packageSource,
   htmlSource,
@@ -17,7 +17,7 @@ const [
   read('assets/roulette/lamp.js'),
   read('assets/roulette/lamp-calibration.js'),
   read('assets/roulette/lamp-bootstrap.js'),
-  read('assets/roulette/turn-orientation.js'),
+  read('assets/roulette/gun-facing.js'),
   read('scripts/inject-lamp-assets.mjs'),
   read('package.json'),
   read('lamp-calibration.html'),
@@ -30,7 +30,7 @@ vm.runInContext(configSource, sandbox, { filename: 'lamp-config.js' });
 new vm.Script(runtimeSource, { filename: 'lamp.js' });
 new vm.Script(calibrationSource, { filename: 'lamp-calibration.js' });
 new vm.Script(bootstrapSource, { filename: 'lamp-bootstrap.js' });
-new vm.Script(turnOrientationSource, { filename: 'turn-orientation.js' });
+new vm.Script(gunFacingSource, { filename: 'gun-facing.js' });
 
 const api = sandbox.window.RouletteLampConfig;
 if (!api) throw new Error('RouletteLampConfig was not exported');
@@ -57,7 +57,7 @@ for (const required of [
   '/assets/roulette/lamp-config.js?v=16',
   '/assets/roulette/lamp.js?v=16',
   '/assets/roulette/lamp-bootstrap.js?v=16',
-  '/assets/roulette/turn-orientation.js?v=5',
+  '/assets/roulette/gun-facing.js?v=1',
   'rrLampCriticalHide',
   'MODULAR_LAMP_ASSETS_START',
   'MODULAR_LAMP_ASSETS_END'
@@ -66,11 +66,12 @@ for (const required of [
 }
 
 for (const forbidden of [
+  'turn-orientation',
   'gun-turn-animation',
   'gun-animation-test',
   'data-shot-revision'
 ]) {
-  if (injectorSource.includes(forbidden)) throw new Error(`Build injector still contains a temporary gun hook: ${forbidden}`);
+  if (injectorSource.includes(forbidden)) throw new Error(`Build injector still contains an obsolete gun hook: ${forbidden}`);
 }
 
 for (const required of [
@@ -130,78 +131,55 @@ if (injectorSource.includes('.rr126-swing { visibility: hidden')) {
 
 for (const required of [
   "const GAME_SELECTOR = '[data-roulette-game]'",
-  "const GUN_SELECTOR = '.rr-gun-motion'",
-  "const OWNER_ATTRIBUTE = 'data-rr-turn-owner'",
-  "const READY_ATTRIBUTE = 'data-rr-turn-ready'",
-  'const LARGE_ROTATION_DEGREES = 90',
-  'const MEDIA_TAGS = new Set',
-  'let pivotDirty = true',
-  'rotate: 180deg !important',
-  'transition: rotate 780ms',
-  'transform-box: border-box !important',
-  'transform-origin: var(--rr-turn-origin-x, 50%) var(--rr-turn-origin-y, 50%)',
-  '/^YOUR TURN[.!]?$/',
-  '/\\bHAS THE REVOLVER\\b/',
+  "const MOTION_SELECTOR = '.rr-gun-motion'",
+  "const ROTOR_ATTRIBUTE = 'data-rr-gun-facing-rotor'",
   'ownerFromData',
   'ownerFromVisibleStatus',
-  'rotationFromTransform',
-  'cancelLegacyFlip',
-  'gun.getAnimations()',
-  'animation.effect?.target !== gun',
-  'rotationFromTransform(frame.transform) >= LARGE_ROTATION_DEGREES',
-  'if (isLargeTransformFlip) animation.cancel()',
-  'measureVisibleArtworkPivot',
-  "gun.style.setProperty('transition', 'none', 'important')",
-  "gun.style.setProperty('rotate', '0deg', 'important')",
-  'gun.getBoundingClientRect()',
-  'const measuredOriginX = centerX - gunRect.left',
-  'const measuredOriginY = centerY - gunRect.top',
-  'Number.isFinite(measuredOriginX)',
-  'Number.isFinite(measuredOriginY)',
-  "gun.style.setProperty('--rr-turn-origin-x'",
-  "gun.style.setProperty('--rr-turn-origin-y'",
-  'restoreInlineProperty',
-  'if (!gunChanged && !ownerChanged && !pivotDirty) return',
-  'pivotDirty = false',
-  'pivotDirty = true',
-  'const previousOwner = lastOwner',
-  'const ownerChanged = owner !== previousOwner',
-  'animateReplacementFromPreviousOwner',
-  'root.setAttribute(OWNER_ATTRIBUTE, previousOwner)',
-  'lastOwner === nextOwner',
-  "gameRoot.setAttribute(OWNER_ATTRIBUTE, owner)",
-  "gameRoot.addEventListener('animationstart'",
-  "gameRoot.addEventListener('transitionrun'",
-  "window.addEventListener('resize', () => {",
+  'findLowestCommonAncestor',
+  'findGunRotor',
+  'setFacing',
+  'angleForOwner',
+  'owner === OWNER_OPPONENT ? 180 : 0',
+  "rotor.style.setProperty('rotate'",
+  "rotor.style.setProperty('transform-origin', '50% 50%'",
+  'facingAnimation = rotor.animate(',
+  'duration: 720',
+  'const ownerChanged = owner !== lastOwner',
+  'if (!motionChanged && !rotorChanged && !ownerChanged) return',
+  'Boolean(previousOwner && ownerChanged)',
   'gameObserver.observe(gameRoot',
   'pageObserver.observe(document.body || document.documentElement'
 ]) {
-  if (!turnOrientationSource.includes(required)) {
-    throw new Error(`Turn orientation implementation missing ${required}`);
+  if (!gunFacingSource.includes(required)) {
+    throw new Error(`Clean gun-facing implementation missing ${required}`);
   }
 }
 
 for (const forbidden of [
-  'Math.max(0, Math.min(gunRect.width',
-  'Math.max(0, Math.min(gunRect.height',
+  'getBoundingClientRect',
+  'measureVisibleArtworkPivot',
+  'rotationFromTransform',
+  'cancelLegacyFlip',
+  '--rr-turn-origin',
+  'translate:',
+  "style.setProperty('translate'",
+  'transform-box',
+  'setInterval(',
   'fetch(',
   'XMLHttpRequest',
   'WebSocket',
   'EventSource',
   'sendBeacon',
-  'setInterval(',
-  '.animate(',
   'playRecoil',
   'data-shot-revision',
   'lastShotNumber',
   'shotsFired',
   '/.netlify/functions/',
   'localStorage',
-  'sessionStorage',
-  'transform: rotate('
+  'sessionStorage'
 ]) {
-  if (turnOrientationSource.includes(forbidden)) {
-    throw new Error(`Turn orientation must remain deterministic and state-neutral: ${forbidden}`);
+  if (gunFacingSource.includes(forbidden)) {
+    throw new Error(`Gun facing must remain simple and state-neutral: ${forbidden}`);
   }
 }
 
@@ -215,19 +193,20 @@ if (packageJson.scripts?.['clean:lamp']) {
 }
 
 await access(new URL('../assets/roulette/decor/lamp-1.png', import.meta.url));
-await access(new URL('../assets/roulette/turn-orientation.js', import.meta.url));
+await access(new URL('../assets/roulette/gun-facing.js', import.meta.url));
 
 async function requireMissing(filePath) {
   try {
     await access(new URL(`../${filePath}`, import.meta.url));
-    throw new Error(`Temporary gun diagnostic file still exists: ${filePath}`);
+    throw new Error(`Obsolete diagnostic or gun patch file still exists: ${filePath}`);
   } catch (error) {
-    if (error.message === `Temporary gun diagnostic file still exists: ${filePath}`) throw error;
+    if (error.message === `Obsolete diagnostic or gun patch file still exists: ${filePath}`) throw error;
     if (error.code !== 'ENOENT') throw error;
   }
 }
 
 for (const filePath of [
+  'assets/roulette/turn-orientation.js',
   'assets/roulette/gun-turn-animation.js',
   'assets/roulette/gun-animation-test.js',
   'assets/roulette/gun-animation-test.css',
@@ -244,4 +223,4 @@ if (!bootstrapSource.includes("params.has('lampCalibration')") || !bootstrapSour
   throw new Error('Normal-page lamp bootstrap is not isolated from calibration mode');
 }
 
-console.log(`Validation passed: ${keys.length}/${keys.length} lamp controls bound; the opponent-facing gun uses an unclamped visible-artwork pivot and remains on-screen after resize.`);
+console.log(`Validation passed: ${keys.length}/${keys.length} lamp controls bound; one clean gun-facing animation rotates only the visible gun group.`);
