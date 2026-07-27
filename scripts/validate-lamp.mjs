@@ -83,7 +83,7 @@ for (const forbidden of [
 
 for (const required of [
   '/assets/roulette/decor/lamp-1.png',
-  "styleAsset = '/assets/roulette/lamp.css?v=16'",
+  "styleAsset = '/assets/roulette/lamp.css?v=17'",
   'applyLightingVariables',
   '--rr-cal-light-background',
   '--rr-light-track-distance',
