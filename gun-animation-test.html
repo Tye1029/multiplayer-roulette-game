@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>Roulette Gun Animation Test</title>
+  <link rel="stylesheet" href="/assets/roulette/gun-animation-test.css?v=1">
+  <script src="/assets/roulette/gun-turn-animation.js?v=2" defer></script>
+  <script src="/assets/roulette/gun-animation-test.js?v=1" defer></script>
+</head>
+<body>
+  <main class="test-shell" data-roulette-game data-current-turn="local">
+    <header class="test-header">
+      <p class="eyebrow">ISOLATED VISUAL TEST</p>
+      <h1>Local + Opponent Gun Sequence</h1>
+      <p>This page does not create a game, contact multiplayer functions, alter balances, or write gameplay state.</p>
+    </header>
+
+    <section class="scene" aria-label="Gun animation test scene">
+      <div class="player player-local" data-turn="local">
+        <strong>You</strong>
+        <span>Local player</span>
+      </div>
+
+      <div class="gun-stage">
+        <div class="rr-gun-motion" id="testGun" aria-label="Test revolver">
+          <div class="revolver">
+            <div class="barrel"></div>
+            <div class="sight"></div>
+            <div class="frame"></div>
+            <div class="cylinder"><span></span></div>
+            <div class="trigger-guard"></div>
+            <div class="trigger"></div>
+            <div class="hammer"></div>
+            <div class="grip"></div>
+            <div class="muzzle-flash" aria-hidden="true"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="player player-opponent" data-turn="opponent">
+        <strong>Opponent</strong>
+        <span>Remote player</span>
+      </div>
+
+      <div class="status-card">
+        <span class="status-label">Sequence status</span>
+        <strong id="sequenceStatus" class="status-message">Preparing test…</strong>
+      </div>
+    </section>
+
+    <section class="diagnostics" aria-live="polite">
+      <div>
+        <span>Overall</span>
+        <strong id="overallResult" class="result pending">RUNNING</strong>
+      </div>
+      <div>
+        <span>Turn rotations detected</span>
+        <strong id="turnCount">0</strong>
+      </div>
+      <div>
+        <span>Recoils detected</span>
+        <strong id="recoilCount">0</strong>
+      </div>
+      <div>
+        <span>Current step</span>
+        <strong id="currentStep">Startup</strong>
+      </div>
+    </section>
+
+    <section class="controls" aria-label="Test controls">
+      <button type="button" id="toggleLoop">Pause automatic loop</button>
+      <button type="button" data-test-action="local-turn">Your turn</button>
+      <button type="button" data-test-action="local-fire">You fire</button>
+      <button type="button" data-test-action="opponent-turn">Opponent turn</button>
+      <button type="button" data-test-action="opponent-fire">Opponent fires</button>
+      <button type="button" id="resetTest">Reset diagnostics</button>
+    </section>
+
+    <ol id="testLog" class="test-log" aria-label="Animation test log"></ol>
+  </main>
+</body>
+</html>
