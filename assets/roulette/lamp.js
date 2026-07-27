@@ -7,7 +7,7 @@
   }
 
   const lampAsset = '/assets/roulette/decor/lamp-1.png';
-  const styleAsset = '/assets/roulette/lamp.css?v=9';
+  const styleAsset = '/assets/roulette/lamp.css?v=10';
   const styleMarker = 'rrLampExternalStyles';
   const imageId = 'rrLampPng';
 
