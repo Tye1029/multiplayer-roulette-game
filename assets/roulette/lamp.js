@@ -5,13 +5,12 @@
   if (!configApi) throw new Error('lamp-config.js must load before lamp.js');
 
   const lampAsset = '/assets/roulette/decor/lamp-1.png';
-  const styleAsset = '/assets/roulette/lamp.css?v=12';
+  const styleAsset = '/assets/roulette/lamp.css?v=13';
   const styleMarker = 'rrLampExternalStyles';
   const imageId = 'rrLampPng';
   const overlayRootId = 'rrLampVisualOverlayRoot';
-  const trackedLightId = 'rrLampTrackedLight';
-  const roomOverlayId = 'rrRoomDarknessOverlay';
   const gunGlintId = 'rrGunGlintOverlay';
+  const staleOverlayIds = ['rrLampTrackedLight', 'rrRoomDarknessOverlay'];
 
   function ensureStyles(doc) {
     let link = doc.getElementById(styleMarker);
@@ -21,7 +20,7 @@
       link.rel = 'stylesheet';
       doc.head.append(link);
     }
-    if (!link.href.includes('lamp.css?v=12')) link.href = styleAsset;
+    if (!link.href.includes('lamp.css?v=13')) link.href = styleAsset;
     return link;
   }
 
@@ -32,9 +31,26 @@
       swing: doc.querySelector('.rr126-swing'),
       chain: doc.querySelector('.rr126-chain'),
       legacyLight: doc.querySelector('.rr130-table-illumination'),
-      table: doc.querySelector('.rr-table'),
       gun: doc.querySelector('.rr-gun-motion')
     };
+  }
+
+  function revealNewLamp(swing, image) {
+    const reveal = () => {
+      swing.dataset.rrLampReady = 'true';
+      image.style.setProperty('visibility', 'visible', 'important');
+      image.style.setProperty('opacity', '1', 'important');
+    };
+
+    if (image.complete && image.naturalWidth > 0) {
+      reveal();
+    } else {
+      swing.dataset.rrLampReady = 'false';
+      image.addEventListener('load', reveal, { once: true });
+      image.addEventListener('error', () => {
+        swing.dataset.rrLampReady = 'false';
+      }, { once: true });
+    }
   }
 
   function ensureLampImage(doc, swing) {
@@ -45,21 +61,30 @@
       image.alt = '';
       image.decoding = 'async';
       image.draggable = false;
+      image.style.setProperty('visibility', 'hidden', 'important');
       swing.append(image);
     }
-    if (!image.src.includes('/lamp-1.png')) image.src = lampAsset;
+
+    if (!image.src.includes('/lamp-1.png')) {
+      swing.dataset.rrLampReady = 'false';
+      image.src = lampAsset;
+    }
 
     for (const oldImage of swing.querySelectorAll(`img:not(#${imageId})`)) {
-      oldImage.style.setProperty('display', 'none', 'important');
+      oldImage.remove();
     }
     for (const oldPart of swing.querySelectorAll(
       '[class*="lamp-body"],[class*="lamp-shade"],[class*="shade-art"],[class*="underside"]'
     )) {
-      if (oldPart !== image && !oldPart.contains(image)) {
-        oldPart.style.setProperty('display', 'none', 'important');
-      }
+      if (oldPart !== image && !oldPart.contains(image)) oldPart.remove();
     }
+
+    revealNewLamp(swing, image);
     return image;
+  }
+
+  function removeStaleOverlays(doc) {
+    for (const id of staleOverlayIds) doc.getElementById(id)?.remove();
   }
 
   function ensureOverlayRoot(doc) {
@@ -73,11 +98,11 @@
     return root;
   }
 
-  function ensureOverlay(doc, root, id) {
-    let overlay = doc.getElementById(id);
+  function ensureGunGlint(doc, root) {
+    let overlay = doc.getElementById(gunGlintId);
     if (!overlay) {
       overlay = doc.createElement('div');
-      overlay.id = id;
+      overlay.id = gunGlintId;
       root.append(overlay);
     } else if (overlay.parentElement !== root) {
       root.append(overlay);
@@ -94,11 +119,13 @@
       if (overlay) setImportant(overlay, 'display', 'none');
       return false;
     }
+
     const rect = target.getBoundingClientRect();
     if (!rect.width || !rect.height) {
       setImportant(overlay, 'display', 'none');
       return false;
     }
+
     setImportant(overlay, 'display', 'block');
     setImportant(overlay, 'left', `${rect.left - paddingX}px`);
     setImportant(overlay, 'top', `${rect.top - paddingY}px`);
@@ -108,25 +135,22 @@
   }
 
   function applyGunGlint(scene, cfg, gunGlint) {
-    if (!scene.gun || !gunGlint) {
+    if (!scene.gun || !gunGlint || cfg.gunGleam <= 0) {
       if (gunGlint) setImportant(gunGlint, 'display', 'none');
-      return false;
+      return Boolean(scene.gun && gunGlint);
     }
 
     const glint = Math.max(0, cfg.gunGleam);
     const rect = scene.gun.getBoundingClientRect();
-    const paddingX = rect.width * 0.04;
-    const paddingY = rect.height * 0.08;
-    const mounted = syncOverlayRect(gunGlint, scene.gun, paddingX, paddingY);
+    const mounted = syncOverlayRect(gunGlint, scene.gun, rect.width * 0.03, rect.height * 0.05);
     if (!mounted) return false;
 
-    const color = `hsla(${cfg.lightHue},${Math.max(55, cfg.lightSaturation)}%,88%,${Math.min(0.95, 0.12 + glint * 0.5)})`;
-    setImportant(gunGlint, 'opacity', `${Math.min(0.9, glint * 0.62)}`);
+    const color = `hsla(${cfg.lightHue},${Math.max(55, cfg.lightSaturation)}%,90%,${Math.min(0.72, 0.08 + glint * 0.38)})`;
+    setImportant(gunGlint, 'opacity', `${Math.min(0.55, glint * 0.42)}`);
     setImportant(
       gunGlint,
       'background',
-      `linear-gradient(102deg,transparent 0 38%,${color} 48%,transparent 58%),` +
-        `radial-gradient(circle at 58% 35%,${color} 0 2%,transparent 13%)`
+      `radial-gradient(ellipse 42% 26% at 58% 35%,${color} 0 4%,transparent 70%)`
     );
     return true;
   }
@@ -137,6 +161,7 @@
     }
 
     ensureStyles(doc);
+    removeStaleOverlays(doc);
     const cfg = configApi.normalize(rawConfig);
     const scene = queryScene(doc);
 
@@ -152,9 +177,7 @@
 
     const image = ensureLampImage(doc, scene.swing);
     const overlayRoot = ensureOverlayRoot(doc);
-    const trackedLight = ensureOverlay(doc, overlayRoot, trackedLightId);
-    const roomOverlay = ensureOverlay(doc, overlayRoot, roomOverlayId);
-    const gunGlint = ensureOverlay(doc, overlayRoot, gunGlintId);
+    const gunGlint = ensureGunGlint(doc, overlayRoot);
 
     setImportant(scene.swing, 'left', `${cfg.lampX}%`);
     setImportant(scene.swing, 'top', `calc(20% + ${cfg.lampY}px)`);
@@ -192,27 +215,26 @@
       scene.rig.style.setProperty('--rr-lamp-y', `${cfg.lampY}px`);
     }
 
-    const tableRect = scene.table?.getBoundingClientRect();
-    const tablePaddingX = tableRect ? tableRect.width * 0.08 : 0;
-    const tablePaddingY = tableRect ? tableRect.height * 0.08 : 0;
-    const lightMounted = syncOverlayRect(trackedLight, scene.table, tablePaddingX, tablePaddingY);
-    if (lightMounted) {
+    let lightMounted = false;
+    if (scene.legacyLight) {
+      lightMounted = true;
       const centerColor = `hsla(${cfg.lightHue},${cfg.lightSaturation}%,88%,${Math.min(1, cfg.strength)})`;
       const midColor = `hsla(${cfg.lightHue},${Math.max(0, cfg.lightSaturation - 8)}%,58%,${Math.min(0.88, cfg.strength * 0.58)})`;
       const edgeColor = `hsla(${cfg.lightHue},${Math.max(0, cfg.lightSaturation - 22)}%,30%,${Math.min(0.45, cfg.strength * 0.2)})`;
-      trackedLight.style.setProperty('--rr-light-track-positive', `${cfg.track}%`);
-      trackedLight.style.setProperty('--rr-light-track-negative', `${-cfg.track}%`);
-      setImportant(trackedLight, 'animation-duration', `${cfg.trackSpeed}s`);
+      scene.legacyLight.style.setProperty('--rr-light-track-positive', `${cfg.track}%`);
+      scene.legacyLight.style.setProperty('--rr-light-track-negative', `${-cfg.track}%`);
+      setImportant(scene.legacyLight, 'display', 'block');
+      setImportant(scene.legacyLight, 'opacity', '1');
+      setImportant(scene.legacyLight, 'animation-duration', `${cfg.trackSpeed}s`);
       setImportant(
-        trackedLight,
+        scene.legacyLight,
         'background',
         `radial-gradient(ellipse ${cfg.spreadX}% ${cfg.spreadY}% at ${cfg.lightX}% ${cfg.lightY}%,` +
           `${centerColor} 0,${midColor} 38%,${edgeColor} 68%,transparent 94%)`
       );
     }
 
-    const roomMounted = syncOverlayRect(roomOverlay, scene.game);
-    if (roomMounted) setImportant(roomOverlay, 'opacity', `${cfg.wallDark}`);
+    scene.game.style.setProperty('--rr-room-darkness', `${cfg.wallDark}`);
     const gunMounted = applyGunGlint(scene, cfg, gunGlint);
 
     const targets = {
@@ -230,16 +252,16 @@
       chainStretch: scene.chain,
       swing: scene.swing,
       speed: scene.swing,
-      lightHue: lightMounted ? trackedLight : null,
-      lightSaturation: lightMounted ? trackedLight : null,
-      lightX: lightMounted ? trackedLight : null,
-      lightY: lightMounted ? trackedLight : null,
-      spreadX: lightMounted ? trackedLight : null,
-      spreadY: lightMounted ? trackedLight : null,
-      strength: lightMounted ? trackedLight : null,
-      track: lightMounted ? trackedLight : null,
-      trackSpeed: lightMounted ? trackedLight : null,
-      wallDark: roomMounted ? roomOverlay : null,
+      lightHue: lightMounted ? scene.legacyLight : null,
+      lightSaturation: lightMounted ? scene.legacyLight : null,
+      lightX: lightMounted ? scene.legacyLight : null,
+      lightY: lightMounted ? scene.legacyLight : null,
+      spreadX: lightMounted ? scene.legacyLight : null,
+      spreadY: lightMounted ? scene.legacyLight : null,
+      strength: lightMounted ? scene.legacyLight : null,
+      track: lightMounted ? scene.legacyLight : null,
+      trackSpeed: lightMounted ? scene.legacyLight : null,
+      wallDark: scene.game,
       gunGleam: gunMounted ? gunGlint : null
     };
 
@@ -249,8 +271,6 @@
       image,
       scene,
       overlayRoot,
-      trackedLight,
-      roomOverlay,
       gunGlint,
       targets,
       connectedCount,
@@ -273,7 +293,7 @@
     const onResize = () => run();
     view.addEventListener?.('resize', onResize, { passive: true });
     run();
-    timer = view.setInterval(run, 750);
+    timer = view.setInterval(run, 1000);
 
     return () => {
       stopped = true;
