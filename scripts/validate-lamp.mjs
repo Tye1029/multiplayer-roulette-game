@@ -32,8 +32,6 @@ vm.runInContext(configSource, sandbox, { filename: 'lamp-config.js' });
 new vm.Script(runtimeSource, { filename: 'lamp.js' });
 new vm.Script(calibrationSource, { filename: 'lamp-calibration.js' });
 new vm.Script(bootstrapSource, { filename: 'lamp-bootstrap.js' });
-new vm.Script(injectorSource, { filename: 'inject-lamp-assets.mjs' });
-new vm.Script(cleanupSource, { filename: 'clean-legacy-lamp-assets.mjs' });
 
 const api = sandbox.window.RouletteLampConfig;
 if (!api) throw new Error('RouletteLampConfig was not exported');
