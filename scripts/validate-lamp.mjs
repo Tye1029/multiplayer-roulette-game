@@ -7,6 +7,7 @@ const [
   runtimeSource,
   calibrationSource,
   bootstrapSource,
+  turnOrientationSource,
   injectorSource,
   packageSource,
   htmlSource,
@@ -16,6 +17,7 @@ const [
   read('assets/roulette/lamp.js'),
   read('assets/roulette/lamp-calibration.js'),
   read('assets/roulette/lamp-bootstrap.js'),
+  read('assets/roulette/turn-orientation.js'),
   read('scripts/inject-lamp-assets.mjs'),
   read('package.json'),
   read('lamp-calibration.html'),
@@ -28,6 +30,7 @@ vm.runInContext(configSource, sandbox, { filename: 'lamp-config.js' });
 new vm.Script(runtimeSource, { filename: 'lamp.js' });
 new vm.Script(calibrationSource, { filename: 'lamp-calibration.js' });
 new vm.Script(bootstrapSource, { filename: 'lamp-bootstrap.js' });
+new vm.Script(turnOrientationSource, { filename: 'turn-orientation.js' });
 
 const api = sandbox.window.RouletteLampConfig;
 if (!api) throw new Error('RouletteLampConfig was not exported');
@@ -54,6 +57,7 @@ for (const required of [
   '/assets/roulette/lamp-config.js?v=16',
   '/assets/roulette/lamp.js?v=16',
   '/assets/roulette/lamp-bootstrap.js?v=16',
+  '/assets/roulette/turn-orientation.js?v=1',
   'rrLampCriticalHide',
   'MODULAR_LAMP_ASSETS_START',
   'MODULAR_LAMP_ASSETS_END'
@@ -64,8 +68,6 @@ for (const required of [
 for (const forbidden of [
   'gun-turn-animation',
   'gun-animation-test',
-  '.rr-gun-motion',
-  'data-current-turn',
   'data-shot-revision'
 ]) {
   if (injectorSource.includes(forbidden)) throw new Error(`Build injector still contains a temporary gun hook: ${forbidden}`);
@@ -126,6 +128,50 @@ if (injectorSource.includes('.rr126-swing { visibility: hidden')) {
   throw new Error('Critical CSS still hides the whole lamp rig during firing rerenders');
 }
 
+for (const required of [
+  "const GAME_SELECTOR = '[data-roulette-game]'",
+  "const GUN_SELECTOR = '.rr-gun-motion'",
+  "const OWNER_ATTRIBUTE = 'data-rr-turn-owner'",
+  "const READY_ATTRIBUTE = 'data-rr-turn-ready'",
+  'rotate: 180deg !important',
+  'transition: rotate 780ms',
+  '/^YOUR TURN[.!]?$/',
+  '/\\bHAS THE REVOLVER\\b/',
+  'ownerFromData',
+  'ownerFromVisibleStatus',
+  'const ownerChanged = owner !== lastOwner',
+  'if (!gunChanged && !ownerChanged) return',
+  "gameRoot.setAttribute(OWNER_ATTRIBUTE, owner)",
+  'gameObserver.observe(gameRoot',
+  'pageObserver.observe(document.body || document.documentElement'
+]) {
+  if (!turnOrientationSource.includes(required)) {
+    throw new Error(`Turn orientation implementation missing ${required}`);
+  }
+}
+
+for (const forbidden of [
+  'fetch(',
+  'XMLHttpRequest',
+  'WebSocket',
+  'EventSource',
+  'sendBeacon',
+  'setInterval(',
+  '.animate(',
+  'playRecoil',
+  'data-shot-revision',
+  'lastShotNumber',
+  'shotsFired',
+  '/.netlify/functions/',
+  'localStorage',
+  'sessionStorage',
+  'transform: rotate('
+]) {
+  if (turnOrientationSource.includes(forbidden)) {
+    throw new Error(`Turn orientation must remain deterministic and state-neutral: ${forbidden}`);
+  }
+}
+
 const packageJson = JSON.parse(packageSource);
 const buildCommand = packageJson.scripts?.build || '';
 if (buildCommand !== "node scripts/inject-lamp-assets.mjs && npm run validate:lamp && echo 'Static Netlify site - validation complete'") {
@@ -136,6 +182,7 @@ if (packageJson.scripts?.['clean:lamp']) {
 }
 
 await access(new URL('../assets/roulette/decor/lamp-1.png', import.meta.url));
+await access(new URL('../assets/roulette/turn-orientation.js', import.meta.url));
 
 async function requireMissing(filePath) {
   try {
@@ -164,4 +211,4 @@ if (!bootstrapSource.includes("params.has('lampCalibration')") || !bootstrapSour
   throw new Error('Normal-page lamp bootstrap is not isolated from calibration mode');
 }
 
-console.log(`Validation passed: ${keys.length}/${keys.length} lamp controls bound; temporary gun diagnostics are removed and original gameplay animations are untouched.`);
+console.log(`Validation passed: ${keys.length}/${keys.length} lamp controls bound; turn ownership rotates the real gun exactly once per owner change.`);
