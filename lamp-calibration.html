@@ -7,112 +7,355 @@
 <style>
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000}
 iframe{border:0;width:100%;height:100%;display:block}
-#toggle{position:fixed;right:10px;top:150px;z-index:9;padding:12px 15px;border:2px solid #f2a13b;border-radius:12px;background:#1a120c;color:#ffd695;font:800 14px system-ui}
-#panel{display:none;position:fixed;right:8px;top:205px;z-index:10;width:min(370px,calc(100vw - 16px));max-height:calc(100vh - 220px);overflow:auto;box-sizing:border-box;padding:14px;border:2px solid #b96c24;border-radius:14px;background:#0c0907f7;color:#eee;font:13px system-ui}
-#panel.open{display:block}.row{display:grid;grid-template-columns:118px 1fr 48px;gap:8px;align-items:center;margin:9px 0}.row input{width:100%}output{color:#ffbd66;text-align:right}
-button.action{margin:5px;padding:8px 10px;border:1px solid #a86225;border-radius:8px;background:#332116;color:#ffe1aa;font-weight:800}
-#status{position:fixed;left:8px;bottom:8px;z-index:11;background:#111d;color:#ffd695;border:1px solid #b96c24;border-radius:8px;padding:7px 10px;font:700 12px system-ui}
+#toggle{position:fixed;right:10px;top:142px;z-index:20;padding:12px 15px;border:2px solid #f2a13b;border-radius:12px;background:#1a120c;color:#ffd695;font:800 14px system-ui}
+#panel{display:none;position:fixed;right:8px;top:198px;z-index:21;width:min(390px,calc(100vw - 16px));max-height:calc(100vh - 212px);overflow:auto;box-sizing:border-box;padding:14px;border:2px solid #b96c24;border-radius:14px;background:#0c0907f7;color:#eee;font:13px system-ui}
+#panel.open{display:block}
+.group{margin:14px 0 7px;color:#ffbd66;font-weight:900;text-transform:uppercase;letter-spacing:.05em}
+.row{display:grid;grid-template-columns:126px 1fr 54px;gap:8px;align-items:center;margin:8px 0}
+.row input{width:100%}
+.row output{color:#ffbd66;text-align:right;font-variant-numeric:tabular-nums}
+.row.missing{opacity:.45}
+.actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+button.action{padding:8px 10px;border:1px solid #a86225;border-radius:8px;background:#332116;color:#ffe1aa;font-weight:800}
+#status{position:fixed;left:8px;bottom:8px;z-index:22;max-width:calc(100vw - 16px);background:#111e;color:#ffd695;border:1px solid #b96c24;border-radius:8px;padding:7px 10px;font:700 12px system-ui}
+small{line-height:1.35;color:#d8c7ad}
 </style>
 </head>
 <body>
-<iframe id="game" src="./?lampCalibration=6"></iframe>
-<button id="toggle">LAMP CALIBRATION</button>
+<iframe id="game" src="./?lampCalibration=8"></iframe>
+<button id="toggle" type="button">LAMP CALIBRATION</button>
 <section id="panel">
 <h3>Visible lamp calibration</h3>
 <div id="rows"></div>
-<button class="action" id="center">Center light on gun</button>
-<button class="action" id="save">Save</button>
-<button class="action" id="copy">Copy JSON</button>
-<button class="action" id="reset">Reset</button>
-<p><small>The visible fixture is the newest uploaded PNG: lamp-1.png. The old rectangular bulb box and temporary CSS-painted underside are disabled.</small></p>
+<div class="actions">
+<button class="action" id="center" type="button">Center light on gun</button>
+<button class="action" id="save" type="button">Save</button>
+<button class="action" id="copy" type="button">Copy JSON</button>
+<button class="action" id="reset" type="button">Reset</button>
+</div>
+<p><small>The lamp PNG can move horizontally without moving the stationary chain. Chain width controls affect the separate chain element. Rows dim only when their target is not currently mounted; open a Russian Roulette game to connect every scene control.</small></p>
 </section>
 <div id="status">Loading…</div>
 <script>
-const f=document.getElementById('game'),p=document.getElementById('panel'),status=document.getElementById('status');
-const defs={
-  lampX:[50,30,70,.25],lampY:[0,-80,100,1],lampScale:[1,.55,1.55,.01],chainHeight:[25,8,55,.5],
-  swing:[1.35,0,8,.05],speed:[5.6,1.5,12,.1],
-  undersideWidth:[38,30,48,.25],undersideY:[84.9,81,89,.1],undersideGlow:[.82,0,1,.01],
-  lightX:[50,15,85,.5],lightY:[43,15,85,.5],spreadX:[58,25,100,1],spreadY:[64,25,120,1],
-  strength:[.55,.1,1,.01],wallDark:[.72,.1,.95,.01],gunGleam:[.25,0,.8,.01],track:[6,0,14,.25]
-};
-const labels={undersideWidth:'lamp width',undersideY:'lamp art Y',undersideGlow:'lamp glow',track:'light tracking'};
-let cfg=Object.fromEntries(Object.entries(defs).map(([k,v])=>[k,v[0]]));
-try{Object.assign(cfg,JSON.parse(localStorage.rrLampCalibration||'{}'))}catch{}
-const rows=document.getElementById('rows');
-for(const[k,d]of Object.entries(defs)){
-  const r=document.createElement('label');r.className='row';
-  r.innerHTML=`<span>${labels[k]||k}</span><input type="range" min="${d[1]}" max="${d[2]}" step="${d[3]}" value="${cfg[k]}" data-k="${k}"><output>${cfg[k]}</output>`;
-  rows.append(r);
-}
-function doc(){try{return f.contentDocument}catch{return null}}
-function install(){
-  const d=doc();if(!d)return false;
-  let s=d.getElementById('rrLampCalibrationDirect');
-  if(!s){
-    s=d.createElement('style');s.id='rrLampCalibrationDirect';s.textContent=`
-@keyframes rrCalLampSwing{0%,100%{transform:translateX(-50%) rotate(calc(var(--cal-swing,1.35deg) * -1))}50%{transform:translateX(-50%) rotate(var(--cal-swing,1.35deg))}}
-@keyframes rrCalLightTrack{0%,100%{transform:translateX(calc(var(--cal-track,6%) * -1))}50%{transform:translateX(var(--cal-track,6%))}}
-[data-roulette-game] .rr126-swing{isolation:auto!important;animation-name:rrCalLampSwing!important;animation-timing-function:ease-in-out!important;animation-iteration-count:infinite!important;transform-origin:50% 0!important;overflow:visible!important}
-[data-roulette-game] .rr126-swing::before,[data-roulette-game] .rr126-swing::after{content:none!important;display:none!important;background:none!important;box-shadow:none!important}
-[data-roulette-game] .rr126-bulb-glow{display:none!important;opacity:0!important;background:none!important;box-shadow:none!important;filter:none!important}
-[data-roulette-game] .rr126-lamp-rig{--cal-lamp-x:50%;--cal-lamp-y:0px;--cal-lamp-scale:1;--cal-chain-height:25%;--cal-swing:1.35deg;--cal-track:6%}
-[data-roulette-game] .rr126-chain{left:var(--cal-lamp-x)!important;height:var(--cal-chain-height)!important}
-[data-roulette-game] .rr126-swing{left:var(--cal-lamp-x)!important;top:calc(20% + var(--cal-lamp-y))!important;scale:var(--cal-lamp-scale)}
-[data-roulette-game] #rrCalibrationLampPng{display:block!important;position:absolute!important;left:50%!important;top:var(--cal-art-y,84.9%)!important;width:var(--cal-art-w,38%)!important;height:auto!important;transform:translate(-50%,-50%)!important;transform-origin:50% 0!important;object-fit:contain!important;pointer-events:none!important;z-index:6!important;filter:drop-shadow(0 0 calc(4px + var(--cal-art-glow,.82)*12px) rgba(255,169,64,calc(.16 + var(--cal-art-glow,.82)*.42)))!important}
-[data-roulette-game] .rr130-table-illumination{background:radial-gradient(ellipse var(--cal-rx,58%) var(--cal-ry,64%) at var(--cal-x,50%) var(--cal-y,43%),rgba(255,226,166,var(--cal-s,.55)) 0,rgba(255,145,48,calc(var(--cal-s,.55)*.55)) 38%,rgba(150,43,5,calc(var(--cal-s,.55)*.15)) 68%,transparent 94%)!important;animation-name:rrCalLightTrack!important;animation-timing-function:ease-in-out!important;animation-iteration-count:infinite!important}
-[data-roulette-game]::after{opacity:var(--cal-wall,.72)!important}`;
-    d.head.append(s);
+const f=document.getElementById('game');
+const p=document.getElementById('panel');
+const status=document.getElementById('status');
+const STORAGE_KEY='rrLampCalibrationV8';
+
+const groups=[
+  ['Lamp PNG',[
+    ['lampArtX','PNG horizontal',[0,-35,35,.25]],
+    ['lampWidth','PNG width',[56,25,100,.5]],
+    ['lampArtY','PNG vertical',[84.9,55,115,.25]],
+    ['lampScale','PNG scale',[1,.55,1.8,.01]],
+    ['lampGlow','PNG glow',[.82,0,1.5,.01]]
+  ]],
+  ['Rig and chain',[
+    ['lampX','Rig + chain X',[50,25,75,.25]],
+    ['lampY','Lamp rig vertical',[0,-120,140,1]],
+    ['chainHeight','Chain height',[25,5,70,.5]],
+    ['chainWidth','Chain width',[16,2,50,.5]],
+    ['chainStretch','Chain horizontal scale',[1,.35,3,.01]]
+  ]],
+  ['Swing',[
+    ['swing','Swing amount',[1.35,0,10,.05]],
+    ['speed','Swing seconds',[5.6,1.5,14,.1]]
+  ]],
+  ['Light',[
+    ['lightX','Light horizontal',[50,10,90,.5]],
+    ['lightY','Light vertical',[43,10,90,.5]],
+    ['spreadX','Light width',[58,20,120,1]],
+    ['spreadY','Light depth',[64,20,140,1]],
+    ['strength','Light strength',[.55,.05,1.25,.01]],
+    ['track','Light tracking',[6,0,20,.25]]
+  ]],
+  ['Room and gun',[
+    ['wallDark','Room darkness',[.72,.05,.98,.01]],
+    ['gunGleam','Gun gleam',[.25,0,1,.01]]
+  ]]
+];
+
+const defs={};
+const labels={};
+for(const [group,items] of groups){
+  for(const [key,label,definition] of items){
+    defs[key]=definition;
+    labels[key]=label;
   }
-  return true;
 }
+
+let cfg=Object.fromEntries(Object.entries(defs).map(([key,value])=>[key,value[0]]));
+
+try{
+  const saved=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');
+  if(saved){
+    Object.assign(cfg,saved);
+  }else{
+    const legacy=JSON.parse(localStorage.getItem('rrLampCalibration')||'null');
+    if(legacy){
+      Object.assign(cfg,legacy);
+      if(legacy.undersideWidth!=null)cfg.lampWidth=Math.max(56,+legacy.undersideWidth||56);
+      if(legacy.undersideY!=null)cfg.lampArtY=+legacy.undersideY;
+      if(legacy.undersideGlow!=null)cfg.lampGlow=+legacy.undersideGlow;
+    }
+  }
+}catch{}
+
+for(const [key,definition] of Object.entries(defs)){
+  cfg[key]=Math.min(definition[2],Math.max(definition[1],Number.isFinite(+cfg[key])?+cfg[key]:definition[0]));
+}
+
+const rows=document.getElementById('rows');
+for(const [group,items] of groups){
+  const heading=document.createElement('div');
+  heading.className='group';
+  heading.textContent=group;
+  rows.append(heading);
+  for(const [key,label,definition] of items){
+    const row=document.createElement('label');
+    row.className='row';
+    row.dataset.key=key;
+    row.innerHTML=`<span>${label}</span><input type="range" min="${definition[1]}" max="${definition[2]}" step="${definition[3]}" value="${cfg[key]}" data-k="${key}"><output>${cfg[key]}</output>`;
+    rows.append(row);
+  }
+}
+
+function doc(){
+  try{return f.contentDocument}catch{return null}
+}
+
+function install(d){
+  let style=d.getElementById('rrLampCalibrationDirect');
+  if(!style){
+    style=d.createElement('style');
+    style.id='rrLampCalibrationDirect';
+    d.head.append(style);
+  }
+  style.textContent=`
+@keyframes rrCalLampSwing{
+  0%,100%{transform:translateX(-50%) rotate(var(--cal-swing-negative,-1.35deg))}
+  50%{transform:translateX(-50%) rotate(var(--cal-swing-positive,1.35deg))}
+}
+@keyframes rrCalLightTrack{
+  0%,100%{transform:translateX(var(--cal-track-negative,-6%))}
+  50%{transform:translateX(var(--cal-track-positive,6%))}
+}
+[data-roulette-game] .rr126-swing{
+  isolation:auto!important;
+  animation-name:rrCalLampSwing!important;
+  animation-timing-function:ease-in-out!important;
+  animation-iteration-count:infinite!important;
+  transform-origin:50% 0!important;
+  overflow:visible!important;
+}
+[data-roulette-game] .rr126-swing::before,
+[data-roulette-game] .rr126-swing::after{
+  content:none!important;
+  display:none!important;
+  background:none!important;
+  box-shadow:none!important;
+}
+[data-roulette-game] .rr126-bulb-glow{
+  display:none!important;
+  opacity:0!important;
+  background:none!important;
+  box-shadow:none!important;
+  filter:none!important;
+}
+[data-roulette-game] #rrCalibrationLampPng{
+  display:block!important;
+  position:absolute!important;
+  height:auto!important;
+  max-width:none!important;
+  object-fit:contain!important;
+  transform-origin:50% 0!important;
+  pointer-events:none!important;
+  z-index:6!important;
+}
+[data-roulette-game] .rr126-chain{
+  box-sizing:border-box!important;
+  transform-origin:50% 0!important;
+  overflow:visible!important;
+  max-width:none!important;
+}
+[data-roulette-game] .rr126-chain::before,
+[data-roulette-game] .rr126-chain::after{
+  width:100%!important;
+  max-width:none!important;
+  background-size:100% auto!important;
+}
+[data-roulette-game] .rr126-chain img{
+  width:100%!important;
+  height:100%!important;
+  max-width:none!important;
+  object-fit:fill!important;
+}
+[data-roulette-game] .rr130-table-illumination{
+  animation-name:rrCalLightTrack!important;
+  animation-timing-function:ease-in-out!important;
+  animation-iteration-count:infinite!important;
+}
+[data-roulette-game]::after{opacity:var(--cal-wall,.72)!important}`;
+}
+
 function ensureLampPng(d,sw){
   let img=d.getElementById('rrCalibrationLampPng');
   if(!img){
-    img=d.createElement('img');img.id='rrCalibrationLampPng';img.alt='';img.decoding='async';img.draggable=false;
-    img.src='./assets/roulette/decor/lamp-1.png';
+    img=d.createElement('img');
+    img.id='rrCalibrationLampPng';
+    img.alt='';
+    img.decoding='async';
+    img.draggable=false;
     sw.append(img);
-  }else if(!img.src.includes('/lamp-1.png')){
-    img.src='./assets/roulette/decor/lamp-1.png';
   }
-  for(const old of sw.querySelectorAll('img:not(#rrCalibrationLampPng)'))old.style.setProperty('display','none','important');
+  if(!img.src.includes('/lamp-1.png'))img.src='./assets/roulette/decor/lamp-1.png';
+  for(const old of sw.querySelectorAll('img:not(#rrCalibrationLampPng)')){
+    old.style.setProperty('display','none','important');
+  }
   for(const old of sw.querySelectorAll('[class*="lamp-body"],[class*="lamp-shade"],[class*="shade-art"],[class*="underside"]')){
     if(old!==img&&!old.contains(img))old.style.setProperty('display','none','important');
   }
   return img;
 }
-function apply(){
-  const d=doc();if(!d||!install())return;
-  const g=d.querySelector('[data-roulette-game]'),rig=d.querySelector('.rr126-lamp-rig'),sw=d.querySelector('.rr126-swing'),light=d.querySelector('.rr130-table-illumination'),gun=d.querySelector('.rr-gun-motion');
-  if(!g||!sw){status.textContent='Start/open a Russian Roulette game';return}
-  ensureLampPng(d,sw);
-  rig?.style.setProperty('--cal-lamp-x',cfg.lampX+'%');
-  rig?.style.setProperty('--cal-lamp-y',cfg.lampY+'px');
-  rig?.style.setProperty('--cal-lamp-scale',cfg.lampScale);
-  rig?.style.setProperty('--cal-chain-height',cfg.chainHeight+'%');
-  rig?.style.setProperty('--cal-swing',cfg.swing+'deg');
-  rig?.style.setProperty('--cal-track',cfg.track+'%');
-  sw.style.animationDuration=cfg.speed+'s';
-  sw.style.setProperty('--cal-art-w',cfg.undersideWidth+'%');
-  sw.style.setProperty('--cal-art-y',cfg.undersideY+'%');
-  sw.style.setProperty('--cal-art-glow',cfg.undersideGlow);
-  if(light){
-    light.style.animationDuration=cfg.speed+'s';
-    light.style.setProperty('--cal-track',cfg.track+'%');
-    light.style.setProperty('--cal-x',cfg.lightX+'%');light.style.setProperty('--cal-y',cfg.lightY+'%');
-    light.style.setProperty('--cal-rx',cfg.spreadX+'%');light.style.setProperty('--cal-ry',cfg.spreadY+'%');light.style.setProperty('--cal-s',cfg.strength);
+
+function markTargets(targets){
+  let connected=0;
+  for(const [key,target] of Object.entries(targets)){
+    const row=rows.querySelector(`[data-key="${key}"]`);
+    if(!row)continue;
+    row.classList.toggle('missing',!target);
+    if(target)connected++;
   }
-  g.style.setProperty('--cal-wall',cfg.wallDark);
-  if(gun)gun.style.filter=`brightness(1.02) contrast(1.08) drop-shadow(0 12px 12px #000b) drop-shadow(0 -2px ${8+cfg.gunGleam*20}px rgba(255,145,44,${cfg.gunGleam}))`;
-  status.textContent='Connected — newest lamp-1.png active; all sliders bound';
+  return connected;
 }
-rows.addEventListener('input',e=>{if(!e.target.dataset.k)return;cfg[e.target.dataset.k]=+e.target.value;e.target.nextElementSibling.value=e.target.value;apply()});
-toggle.onclick=()=>p.classList.toggle('open');
-save.onclick=()=>{localStorage.rrLampCalibration=JSON.stringify(cfg);status.textContent='Saved'};
-copy.onclick=async()=>{try{await navigator.clipboard.writeText(JSON.stringify(cfg,null,2));status.textContent='JSON copied'}catch{status.textContent='Clipboard unavailable'}};
-reset.onclick=()=>{cfg=Object.fromEntries(Object.entries(defs).map(([k,v])=>[k,v[0]]));localStorage.removeItem('rrLampCalibration');location.reload()};
-center.onclick=()=>{const d=doc(),t=d?.querySelector('.rr-table'),g=d?.querySelector('.rr-gun-motion');if(!t||!g)return;const a=t.getBoundingClientRect(),b=g.getBoundingClientRect();cfg.lightX=(b.left+b.width/2-a.left)/a.width*100;cfg.lightY=(b.top+b.height/2-a.top)/a.height*100;for(const k of['lightX','lightY']){const i=rows.querySelector(`[data-k="${k}"]`);i.value=cfg[k];i.nextElementSibling.value=cfg[k].toFixed(1)}apply()};
-f.onload=()=>{setTimeout(apply,800);setInterval(apply,1500)};
+
+function apply(changedKey=''){
+  const d=doc();
+  if(!d)return;
+  install(d);
+
+  const game=d.querySelector('[data-roulette-game]');
+  const rig=d.querySelector('.rr126-lamp-rig');
+  const swing=d.querySelector('.rr126-swing');
+  const chain=d.querySelector('.rr126-chain');
+  const light=d.querySelector('.rr130-table-illumination');
+  const gun=d.querySelector('.rr-gun-motion');
+
+  if(!game||!swing){
+    status.textContent='Open or start a Russian Roulette game to mount the lamp controls';
+    return;
+  }
+
+  const img=ensureLampPng(d,swing);
+
+  swing.style.setProperty('left',cfg.lampX+'%','important');
+  swing.style.setProperty('top',`calc(20% + ${cfg.lampY}px)`,'important');
+  swing.style.setProperty('--cal-swing-positive',cfg.swing+'deg');
+  swing.style.setProperty('--cal-swing-negative',(-cfg.swing)+'deg');
+  swing.style.setProperty('animation-duration',cfg.speed+'s','important');
+
+  img.style.setProperty('left',`calc(50% + ${cfg.lampArtX}%)`,'important');
+  img.style.setProperty('top',cfg.lampArtY+'%','important');
+  img.style.setProperty('width',cfg.lampWidth+'%','important');
+  img.style.setProperty('transform',`translate(-50%,-50%) scale(${cfg.lampScale})`,'important');
+  const glow=Math.max(0,cfg.lampGlow);
+  img.style.setProperty('filter',`brightness(${1+glow*.12}) drop-shadow(0 0 ${4+glow*14}px rgba(255,169,64,${Math.min(.8,.12+glow*.42)}))`,'important');
+
+  if(chain){
+    chain.style.setProperty('left',cfg.lampX+'%','important');
+    chain.style.setProperty('height',cfg.chainHeight+'%','important');
+    chain.style.setProperty('width',cfg.chainWidth+'px','important');
+    chain.style.setProperty('min-width',cfg.chainWidth+'px','important');
+    chain.style.setProperty('transform',`translateX(-50%) scaleX(${cfg.chainStretch})`,'important');
+  }
+
+  if(rig){
+    rig.style.setProperty('--cal-lamp-x',cfg.lampX+'%');
+    rig.style.setProperty('--cal-lamp-y',cfg.lampY+'px');
+  }
+
+  if(light){
+    light.style.setProperty('--cal-track-positive',cfg.track+'%');
+    light.style.setProperty('--cal-track-negative',(-cfg.track)+'%');
+    light.style.setProperty('animation-duration',cfg.speed+'s','important');
+    light.style.setProperty('--cal-x',cfg.lightX+'%');
+    light.style.setProperty('--cal-y',cfg.lightY+'%');
+    light.style.setProperty('--cal-rx',cfg.spreadX+'%');
+    light.style.setProperty('--cal-ry',cfg.spreadY+'%');
+    light.style.setProperty('--cal-s',cfg.strength);
+    light.style.setProperty('background',`radial-gradient(ellipse ${cfg.spreadX}% ${cfg.spreadY}% at ${cfg.lightX}% ${cfg.lightY}%,rgba(255,226,166,${cfg.strength}) 0,rgba(255,145,48,${cfg.strength*.55}) 38%,rgba(150,43,5,${cfg.strength*.15}) 68%,transparent 94%)`,'important');
+  }
+
+  game.style.setProperty('--cal-wall',cfg.wallDark);
+
+  if(gun){
+    gun.style.setProperty('filter',`brightness(${1.01+cfg.gunGleam*.12}) contrast(1.08) drop-shadow(0 12px 12px #000b) drop-shadow(0 -2px ${8+cfg.gunGleam*24}px rgba(255,145,44,${Math.min(.9,cfg.gunGleam)}))`,'important');
+  }
+
+  const targets={
+    lampArtX:img,lampWidth:img,lampArtY:img,lampScale:img,lampGlow:img,
+    lampX:swing,lampY:swing,chainHeight:chain,chainWidth:chain,chainStretch:chain,
+    swing:swing,speed:swing,
+    lightX:light,lightY:light,spreadX:light,spreadY:light,strength:light,track:light,
+    wallDark:game,gunGleam:gun
+  };
+  const connected=markTargets(targets);
+  status.textContent=changedKey
+    ? `${labels[changedKey]}: ${cfg[changedKey]} — ${connected}/${Object.keys(targets).length} controls connected`
+    : `Connected — lamp-1.png active; ${connected}/${Object.keys(targets).length} controls connected`;
+}
+
+rows.addEventListener('input',event=>{
+  const key=event.target.dataset.k;
+  if(!key)return;
+  cfg[key]=+event.target.value;
+  event.target.nextElementSibling.value=event.target.value;
+  apply(key);
+});
+
+toggle.addEventListener('click',()=>p.classList.toggle('open'));
+save.addEventListener('click',()=>{
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(cfg));
+  status.textContent='Calibration saved';
+});
+copy.addEventListener('click',async()=>{
+  try{
+    await navigator.clipboard.writeText(JSON.stringify(cfg,null,2));
+    status.textContent='Calibration JSON copied';
+  }catch{
+    status.textContent='Clipboard unavailable';
+  }
+});
+reset.addEventListener('click',()=>{
+  localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem('rrLampCalibration');
+  location.reload();
+});
+center.addEventListener('click',()=>{
+  const d=doc();
+  const table=d?.querySelector('.rr-table');
+  const gun=d?.querySelector('.rr-gun-motion');
+  if(!table||!gun){
+    status.textContent='Table or gun is not currently mounted';
+    return;
+  }
+  const tableBox=table.getBoundingClientRect();
+  const gunBox=gun.getBoundingClientRect();
+  cfg.lightX=(gunBox.left+gunBox.width/2-tableBox.left)/tableBox.width*100;
+  cfg.lightY=(gunBox.top+gunBox.height/2-tableBox.top)/tableBox.height*100;
+  for(const key of ['lightX','lightY']){
+    const input=rows.querySelector(`[data-k="${key}"]`);
+    input.value=cfg[key];
+    input.nextElementSibling.value=cfg[key].toFixed(1);
+  }
+  apply('lightX');
+});
+
+f.addEventListener('load',()=>{
+  setTimeout(()=>apply(),500);
+  setTimeout(()=>apply(),1200);
+});
+setInterval(()=>apply(),1200);
 </script>
 </body>
 </html>
