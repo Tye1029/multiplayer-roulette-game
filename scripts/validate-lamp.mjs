@@ -8,6 +8,9 @@ const [
   calibrationSource,
   bootstrapSource,
   gunAnimationSource,
+  gunTestSource,
+  gunTestHtmlSource,
+  gunTestCssSource,
   injectorSource,
   packageSource,
   htmlSource,
@@ -18,6 +21,9 @@ const [
   read('assets/roulette/lamp-calibration.js'),
   read('assets/roulette/lamp-bootstrap.js'),
   read('assets/roulette/gun-turn-animation.js'),
+  read('assets/roulette/gun-animation-test.js'),
+  read('gun-animation-test.html'),
+  read('assets/roulette/gun-animation-test.css'),
   read('scripts/inject-lamp-assets.mjs'),
   read('package.json'),
   read('lamp-calibration.html'),
@@ -31,6 +37,7 @@ new vm.Script(runtimeSource, { filename: 'lamp.js' });
 new vm.Script(calibrationSource, { filename: 'lamp-calibration.js' });
 new vm.Script(bootstrapSource, { filename: 'lamp-bootstrap.js' });
 new vm.Script(gunAnimationSource, { filename: 'gun-turn-animation.js' });
+new vm.Script(gunTestSource, { filename: 'gun-animation-test.js' });
 
 const api = sandbox.window.RouletteLampConfig;
 if (!api) throw new Error('RouletteLampConfig was not exported');
@@ -57,7 +64,7 @@ for (const required of [
   '/assets/roulette/lamp-config.js?v=16',
   '/assets/roulette/lamp.js?v=16',
   '/assets/roulette/lamp-bootstrap.js?v=16',
-  '/assets/roulette/gun-turn-animation.js?v=1',
+  '/assets/roulette/gun-turn-animation.js?v=2',
   'rrLampCriticalHide',
   'MODULAR_LAMP_ASSETS_START',
   'MODULAR_LAMP_ASSETS_END'
@@ -137,6 +144,60 @@ for (const forbidden of [
   if (gunAnimationSource.includes(forbidden)) throw new Error(`Gun animation bridge must remain state-neutral: ${forbidden}`);
 }
 
+for (const required of [
+  '<main class="test-shell" data-roulette-game data-current-turn="local">',
+  'class="rr-gun-motion"',
+  'id="testGun"',
+  '/assets/roulette/gun-turn-animation.js?v=2',
+  '/assets/roulette/gun-animation-test.js?v=1',
+  '/assets/roulette/gun-animation-test.css?v=1',
+  'Opponent fires',
+  'does not create a game'
+]) {
+  if (!gunTestHtmlSource.includes(required)) throw new Error(`Gun animation test page missing ${required}`);
+}
+
+for (const required of [
+  'runAutomaticLoop',
+  'expectAnimation',
+  "setTurn('opponent')",
+  "fire('opponent')",
+  'gun.getAnimations()',
+  "expectAnimation('turn'",
+  "expectAnimation('recoil'",
+  'data-test-action',
+  "overall.textContent = 'PASS'",
+  'shotRevision'
+]) {
+  if (!gunTestSource.includes(required)) throw new Error(`Gun animation test harness missing ${required}`);
+}
+for (const forbidden of [
+  'fetch(',
+  'XMLHttpRequest',
+  'WebSocket',
+  'EventSource',
+  'sendBeacon',
+  'localStorage',
+  'sessionStorage',
+  '/.netlify/functions/',
+  'create-game',
+  'join-game'
+]) {
+  if (gunTestSource.includes(forbidden) || gunTestHtmlSource.includes(forbidden)) {
+    throw new Error(`Gun animation test must remain offline and state-isolated: ${forbidden}`);
+  }
+}
+for (const required of [
+  '.rr-gun-motion',
+  '.muzzle-flash',
+  '[data-current-turn="local"] .player-local',
+  '[data-current-turn="opponent"] .player-opponent',
+  '@keyframes testHammer',
+  '@keyframes testFlash'
+]) {
+  if (!gunTestCssSource.includes(required)) throw new Error(`Gun animation test styling missing ${required}`);
+}
+
 if (injectorSource.includes('.rr126-swing { visibility: hidden')) {
   throw new Error('Critical CSS still hides the whole lamp rig during firing rerenders');
 }
@@ -166,4 +227,4 @@ if (!bootstrapSource.includes("params.has('lampCalibration')") || !bootstrapSour
   throw new Error('Normal-page lamp bootstrap is not isolated from calibration mode');
 }
 
-console.log(`Validation passed: ${keys.length}/${keys.length} lamp controls bound; lamp runtime is gun-independent and both-player turn/recoil animation is installed.`);
+console.log(`Validation passed: ${keys.length}/${keys.length} lamp controls bound; production gun animation covers both players and the isolated visual firing test is installed.`);
