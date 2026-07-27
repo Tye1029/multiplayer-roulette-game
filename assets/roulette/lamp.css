@@ -98,10 +98,14 @@
   opacity: 1 !important;
   pointer-events: none !important;
   mix-blend-mode: screen !important;
+  background: var(--rr-cal-light-background, radial-gradient(ellipse 75% 80% at 55.5% 39%, rgba(255,238,191,.25) 0%, rgba(255,164,64,.145) 38%, rgba(153,74,8,.05) 68%, transparent 94%)) !important;
   animation-name: rrLampLightTrackExternal !important;
+  animation-duration: var(--rr-light-track-duration, 5.6s) !important;
+  animation-delay: 0s !important;
   animation-timing-function: ease-in-out !important;
   animation-iteration-count: infinite !important;
   animation-play-state: running !important;
+  transition: none !important;
   will-change: transform;
 }
 
@@ -116,6 +120,8 @@
   ) !important;
   mix-blend-mode: normal !important;
   pointer-events: none !important;
+  animation: none !important;
+  transition: none !important;
 }
 
 #rrLampVisualOverlayRoot {
@@ -135,6 +141,8 @@
   mix-blend-mode: screen !important;
   border-radius: 50% !important;
   clip-path: ellipse(48% 42% at 50% 50%) !important;
+  animation: none !important;
+  transition: none !important;
 }
 
 #rrLampTrackedLight,
