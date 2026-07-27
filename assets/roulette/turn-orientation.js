@@ -8,6 +8,7 @@
   const READY_ATTRIBUTE = 'data-rr-turn-ready';
   const OWNER_LOCAL = 'local';
   const OWNER_OPPONENT = 'opponent';
+  const LARGE_ROTATION_DEGREES = 90;
 
   let gameRoot = null;
   let gameObserver = null;
@@ -111,6 +112,36 @@
     return ownerFromData(root) || ownerFromVisibleStatus(root);
   }
 
+  function rotationFromTransform(transform) {
+    const value = String(transform || '');
+    let largest = 0;
+    for (const match of value.matchAll(/rotate(?:Z)?\(\s*(-?\d+(?:\.\d+)?)deg\s*\)/gi)) {
+      largest = Math.max(largest, Math.abs(Number(match[1]) || 0));
+    }
+    const matrix = value.match(/matrix\(\s*(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?),/i);
+    if (matrix) {
+      const angle = Math.abs(Math.atan2(Number(matrix[2]), Number(matrix[1])) * 180 / Math.PI);
+      largest = Math.max(largest, angle);
+    }
+    return largest;
+  }
+
+  function cancelLegacyFlip(gun) {
+    for (const animation of gun.getAnimations()) {
+      if (animation.effect?.target !== gun) continue;
+      let keyframes = [];
+      try {
+        keyframes = animation.effect.getKeyframes();
+      } catch {
+        continue;
+      }
+      const isLargeTransformFlip = keyframes.some(frame => (
+        rotationFromTransform(frame.transform) >= LARGE_ROTATION_DEGREES
+      ));
+      if (isLargeTransformFlip) animation.cancel();
+    }
+  }
+
   function cancelPendingFrames() {
     cancelAnimationFrame(readyFrame);
     cancelAnimationFrame(orientationFrame);
@@ -148,6 +179,8 @@
     const gun = gameRoot.querySelector(GUN_SELECTOR);
     const owner = readOwner(gameRoot);
     if (!gun || !owner) return;
+
+    cancelLegacyFlip(gun);
 
     const previousOwner = lastOwner;
     const gunChanged = gun !== lastGun;
@@ -200,6 +233,7 @@
       attributes: true,
       attributeFilter: [
         'class',
+        'style',
         'hidden',
         'aria-live',
         'data-is-my-turn',
@@ -207,6 +241,8 @@
         'data-turn-owner'
       ]
     });
+    gameRoot.addEventListener('animationstart', scheduleOrientation, true);
+    gameRoot.addEventListener('transitionrun', scheduleOrientation, true);
     scheduleOrientation();
   }
 
