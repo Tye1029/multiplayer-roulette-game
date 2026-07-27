@@ -24,6 +24,7 @@ const block = `${startMarker}\n` +
   '  <script src="/assets/roulette/lamp-config.js?v=16" defer></script>\n' +
   '  <script src="/assets/roulette/lamp.js?v=16" defer></script>\n' +
   '  <script src="/assets/roulette/lamp-bootstrap.js?v=16" defer></script>\n' +
+  '  <script src="/assets/roulette/turn-orientation.js?v=1" defer></script>\n' +
   `${endMarker}`;
 
 let html = await readFile(indexUrl, 'utf8');
@@ -38,4 +39,4 @@ if (markerPattern.test(html)) {
 }
 
 await writeFile(indexUrl, html);
-console.log('Injected lamp-only controls; original game gun and turn animations remain untouched.');
+console.log('Injected lamp controls plus deterministic real-game turn orientation.');
