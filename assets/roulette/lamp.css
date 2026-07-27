@@ -46,12 +46,6 @@
   transform-origin: 50% 0 !important;
   pointer-events: none !important;
   z-index: 6 !important;
-  filter:
-    brightness(calc(1 + var(--rr-lamp-glow, .82) * .12))
-    drop-shadow(
-      0 0 calc(4px + var(--rr-lamp-glow, .82) * 14px)
-      rgba(255, 169, 64, calc(.12 + var(--rr-lamp-glow, .82) * .42))
-    ) !important;
 }
 
 [data-roulette-game] .rr126-chain {
