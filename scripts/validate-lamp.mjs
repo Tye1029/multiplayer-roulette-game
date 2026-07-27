@@ -7,6 +7,7 @@ const [
   runtimeSource,
   calibrationSource,
   bootstrapSource,
+  gunAnimationSource,
   injectorSource,
   packageSource,
   htmlSource,
@@ -16,6 +17,7 @@ const [
   read('assets/roulette/lamp.js'),
   read('assets/roulette/lamp-calibration.js'),
   read('assets/roulette/lamp-bootstrap.js'),
+  read('assets/roulette/gun-turn-animation.js'),
   read('scripts/inject-lamp-assets.mjs'),
   read('package.json'),
   read('lamp-calibration.html'),
@@ -28,6 +30,7 @@ vm.runInContext(configSource, sandbox, { filename: 'lamp-config.js' });
 new vm.Script(runtimeSource, { filename: 'lamp.js' });
 new vm.Script(calibrationSource, { filename: 'lamp-calibration.js' });
 new vm.Script(bootstrapSource, { filename: 'lamp-bootstrap.js' });
+new vm.Script(gunAnimationSource, { filename: 'gun-turn-animation.js' });
 
 const api = sandbox.window.RouletteLampConfig;
 if (!api) throw new Error('RouletteLampConfig was not exported');
@@ -42,18 +45,19 @@ for (const key of keys) {
 }
 
 for (const required of [
-  '/assets/roulette/lamp-config.js?v=15',
-  '/assets/roulette/lamp.js?v=15',
-  '/assets/roulette/lamp-calibration.js?v=15',
-  '/assets/roulette/lamp-calibration.css?v=15'
+  '/assets/roulette/lamp-config.js?v=16',
+  '/assets/roulette/lamp.js?v=16',
+  '/assets/roulette/lamp-calibration.js?v=16',
+  '/assets/roulette/lamp-calibration.css?v=16'
 ]) {
   if (!htmlSource.includes(required)) throw new Error(`Calibration HTML missing ${required}`);
 }
 
 for (const required of [
-  '/assets/roulette/lamp-config.js?v=15',
-  '/assets/roulette/lamp.js?v=15',
-  '/assets/roulette/lamp-bootstrap.js?v=15',
+  '/assets/roulette/lamp-config.js?v=16',
+  '/assets/roulette/lamp.js?v=16',
+  '/assets/roulette/lamp-bootstrap.js?v=16',
+  '/assets/roulette/gun-turn-animation.js?v=1',
   'rrLampCriticalHide',
   'MODULAR_LAMP_ASSETS_START',
   'MODULAR_LAMP_ASSETS_END'
@@ -63,52 +67,78 @@ for (const required of [
 
 for (const required of [
   '/assets/roulette/decor/lamp-1.png',
-  "styleAsset = '/assets/roulette/lamp.css?v=15'",
+  "styleAsset = '/assets/roulette/lamp.css?v=16'",
   'applyLightingVariables',
   '--rr-cal-light-background',
   '--rr-light-track-distance',
   '--rr-light-track-duration',
-  'cfg.gunGleam <= 0.05',
-  'removeGunGlint',
-  'sceneWasReplaced',
-  'new Observer(onMutation)',
-  'observer.observe(root, { childList: true, subtree: true })'
+  '--rr-gun-gleam',
+  'lampNeedsRepair',
+  'scene.game !== lastGame || scene.swing !== lastSwing',
+  'if (lampNeedsRepair()) run()'
 ]) {
   if (!runtimeSource.includes(required)) throw new Error(`Lamp runtime missing ${required}`);
+}
+
+for (const forbidden of [
+  '.rr-gun-motion',
+  'getBoundingClientRect',
+  'applyGunGlint',
+  'ensureGunGlint',
+  'scene.gun',
+  'scene.table',
+  'setInterval('
+]) {
+  if (runtimeSource.includes(forbidden)) throw new Error(`Lamp runtime still interacts with gun/turn rendering: ${forbidden}`);
 }
 
 for (const required of [
   'background: var(--rr-cal-light-background',
   'background-position: calc(50% - var(--rr-light-track-distance',
   'background-position: calc(50% + var(--rr-light-track-distance',
-  'background-size: 125% 100% !important',
   'transform: none !important',
   'will-change: background-position',
-  'transition: none !important',
   '#rrLampTrackedLight',
   '#rrRoomDarknessOverlay'
 ]) {
   if (!cssSource.includes(required)) throw new Error(`Lamp CSS missing ${required}`);
 }
+if (cssSource.includes('[data-roulette-game] .rr-gun-motion')) {
+  throw new Error('Lamp CSS must not select or style the gun');
+}
+if (cssSource.includes('@keyframes rrLampLightTrackExternal {\n  0%, 100% { transform:')) {
+  throw new Error('Light tracking still transforms a scene element');
+}
 
-for (const forbidden of [
-  'setInterval(',
-  'data-rr-lamp-ready',
-  "scene.sceneLight,\n        'background'",
-  "scene.sceneLight, 'background'",
-  'scene.gun.append',
-  'scene.table.append',
-  'scene.gun.style.setProperty',
-  'scene.table.style.setProperty'
+for (const required of [
+  "const GUN_SELECTOR = '.rr-gun-motion'",
+  'readTurnSignature',
+  'readShotSignature',
+  'playTurnAnimation',
+  'playRecoilAnimation',
+  'turnChanged',
+  'shotChanged',
+  'gunChanged',
+  'MutationObserver',
+  "params.has('lampCalibration')",
+  "rotate: `${delta}deg`",
+  "translate: '-3.5% 1.5%'"
 ]) {
-  if (runtimeSource.includes(forbidden)) throw new Error(`Lamp runtime still contains unsafe behavior: ${forbidden}`);
+  if (!gunAnimationSource.includes(required)) throw new Error(`Gun animation bridge missing ${required}`);
+}
+for (const forbidden of [
+  'fetch(',
+  'XMLHttpRequest',
+  'localStorage.setItem',
+  'classList.add',
+  'classList.remove',
+  'style.setProperty'
+]) {
+  if (gunAnimationSource.includes(forbidden)) throw new Error(`Gun animation bridge must remain state-neutral: ${forbidden}`);
 }
 
 if (injectorSource.includes('.rr126-swing { visibility: hidden')) {
   throw new Error('Critical CSS still hides the whole lamp rig during firing rerenders');
-}
-if (cssSource.includes('@keyframes rrLampLightTrackExternal {\n  0%, 100% { transform:')) {
-  throw new Error('Light tracking still transforms a scene element');
 }
 
 const packageJson = JSON.parse(packageSource);
@@ -130,10 +160,10 @@ try {
 }
 
 if (!calibrationSource.includes('lampApi.watch')) {
-  throw new Error('Calibration controller is not watching dynamic game mounts');
+  throw new Error('Calibration controller is not watching dynamic lamp mounts');
 }
 if (!bootstrapSource.includes("params.has('lampCalibration')") || !bootstrapSource.includes('lampApi.watch')) {
-  throw new Error('Normal-page bootstrap is not isolated from calibration mode');
+  throw new Error('Normal-page lamp bootstrap is not isolated from calibration mode');
 }
 
-console.log(`Lamp validation passed: ${keys.length}/${keys.length} controls bound; lamp remounts immediately and light tracking cannot transform the gun scene.`);
+console.log(`Validation passed: ${keys.length}/${keys.length} lamp controls bound; lamp runtime is gun-independent and both-player turn/recoil animation is installed.`);
