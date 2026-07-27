@@ -57,7 +57,7 @@ for (const required of [
   '/assets/roulette/lamp-config.js?v=16',
   '/assets/roulette/lamp.js?v=16',
   '/assets/roulette/lamp-bootstrap.js?v=16',
-  '/assets/roulette/turn-orientation.js?v=1',
+  '/assets/roulette/turn-orientation.js?v=2',
   'rrLampCriticalHide',
   'MODULAR_LAMP_ASSETS_START',
   'MODULAR_LAMP_ASSETS_END'
@@ -139,8 +139,12 @@ for (const required of [
   '/\\bHAS THE REVOLVER\\b/',
   'ownerFromData',
   'ownerFromVisibleStatus',
-  'const ownerChanged = owner !== lastOwner',
+  'const previousOwner = lastOwner',
+  'const ownerChanged = owner !== previousOwner',
   'if (!gunChanged && !ownerChanged) return',
+  'animateReplacementFromPreviousOwner',
+  'root.setAttribute(OWNER_ATTRIBUTE, previousOwner)',
+  'lastOwner === nextOwner',
   "gameRoot.setAttribute(OWNER_ATTRIBUTE, owner)",
   'gameObserver.observe(gameRoot',
   'pageObserver.observe(document.body || document.documentElement'
@@ -211,4 +215,4 @@ if (!bootstrapSource.includes("params.has('lampCalibration')") || !bootstrapSour
   throw new Error('Normal-page lamp bootstrap is not isolated from calibration mode');
 }
 
-console.log(`Validation passed: ${keys.length}/${keys.length} lamp controls bound; turn ownership rotates the real gun exactly once per owner change.`);
+console.log(`Validation passed: ${keys.length}/${keys.length} lamp controls bound; the real gun rotates once per owner change, including gun-node replacement renders.`);
