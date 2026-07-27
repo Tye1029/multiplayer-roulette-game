@@ -3,7 +3,8 @@
   "version": "2.0.0",
   "private": true,
   "scripts": {
-    "build": "echo 'Static Netlify site - no build needed'"
+    "validate:lamp": "node scripts/validate-lamp.mjs",
+    "build": "npm run validate:lamp && echo 'Static Netlify site - validation complete'"
   },
   "dependencies": {
     "@netlify/blobs": "^8.1.0",
