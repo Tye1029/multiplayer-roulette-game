@@ -9,6 +9,7 @@
   const OWNER_LOCAL = 'local';
   const OWNER_OPPONENT = 'opponent';
   const LARGE_ROTATION_DEGREES = 90;
+  const MEDIA_TAGS = new Set(['IMG', 'SVG', 'CANVAS', 'PICTURE', 'VIDEO']);
 
   let gameRoot = null;
   let gameObserver = null;
@@ -25,7 +26,8 @@
     style.textContent = `
       ${GAME_SELECTOR} ${GUN_SELECTOR} {
         rotate: 0deg !important;
-        transform-origin: 50% 50% !important;
+        transform-box: border-box !important;
+        transform-origin: var(--rr-turn-origin-x, 50%) var(--rr-turn-origin-y, 50%) !important;
       }
       ${GAME_SELECTOR}[${OWNER_ATTRIBUTE}="${OWNER_OPPONENT}"] ${GUN_SELECTOR} {
         rotate: 180deg !important;
@@ -142,6 +144,57 @@
     }
   }
 
+  function restoreInlineProperty(element, property, value, priority) {
+    if (value) element.style.setProperty(property, value, priority);
+    else element.style.removeProperty(property);
+  }
+
+  function measureVisibleArtworkPivot(gun) {
+    const previousRotate = gun.style.getPropertyValue('rotate');
+    const previousRotatePriority = gun.style.getPropertyPriority('rotate');
+    const previousTransition = gun.style.getPropertyValue('transition');
+    const previousTransitionPriority = gun.style.getPropertyPriority('transition');
+
+    gun.style.setProperty('transition', 'none', 'important');
+    gun.style.setProperty('rotate', '0deg', 'important');
+
+    const gunRect = gun.getBoundingClientRect();
+    if (!gunRect.width || !gunRect.height) {
+      restoreInlineProperty(gun, 'rotate', previousRotate, previousRotatePriority);
+      restoreInlineProperty(gun, 'transition', previousTransition, previousTransitionPriority);
+      return;
+    }
+
+    let left = Infinity;
+    let top = Infinity;
+    let right = -Infinity;
+    let bottom = -Infinity;
+    let found = false;
+
+    for (const element of gun.querySelectorAll('*')) {
+      const isLeafArtwork = MEDIA_TAGS.has(element.tagName) || element.children.length === 0;
+      if (!isLeafArtwork || !isVisible(element)) continue;
+      const rect = element.getBoundingClientRect();
+      if (rect.width < 2 || rect.height < 2) continue;
+      left = Math.min(left, rect.left);
+      top = Math.min(top, rect.top);
+      right = Math.max(right, rect.right);
+      bottom = Math.max(bottom, rect.bottom);
+      found = true;
+    }
+
+    const centerX = found ? (left + right) / 2 : gunRect.left + gunRect.width / 2;
+    const centerY = found ? (top + bottom) / 2 : gunRect.top + gunRect.height / 2;
+    const originX = Math.max(0, Math.min(gunRect.width, centerX - gunRect.left));
+    const originY = Math.max(0, Math.min(gunRect.height, centerY - gunRect.top));
+
+    gun.style.setProperty('--rr-turn-origin-x', `${originX}px`);
+    gun.style.setProperty('--rr-turn-origin-y', `${originY}px`);
+
+    restoreInlineProperty(gun, 'rotate', previousRotate, previousRotatePriority);
+    restoreInlineProperty(gun, 'transition', previousTransition, previousTransitionPriority);
+  }
+
   function cancelPendingFrames() {
     cancelAnimationFrame(readyFrame);
     cancelAnimationFrame(orientationFrame);
@@ -187,6 +240,7 @@
     const ownerChanged = owner !== previousOwner;
     if (!gunChanged && !ownerChanged) return;
 
+    measureVisibleArtworkPivot(gun);
     lastGun = gun;
     lastOwner = owner;
 
@@ -254,6 +308,7 @@
       if (currentRoot !== gameRoot) bindGameRoot();
     });
     pageObserver.observe(document.body || document.documentElement, { childList: true, subtree: true });
+    window.addEventListener('resize', scheduleOrientation, { passive: true });
     window.addEventListener('pageshow', bindGameRoot, { passive: true });
   }
 
