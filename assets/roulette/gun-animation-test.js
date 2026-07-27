@@ -17,6 +17,7 @@
   const seenAnimations = new WeakSet();
   let turnCount = 0;
   let recoilCount = 0;
+  let turnRevision = 0;
   let shotRevision = 0;
   let automatic = true;
   let loopToken = 0;
@@ -80,8 +81,10 @@
 
   function setTurn(owner) {
     const opponent = owner === 'opponent';
+    turnRevision += 1;
     gun.style.setProperty('--base-angle', opponent ? '180deg' : '0deg');
     game.dataset.currentTurn = owner;
+    game.dataset.currentTurnRevision = String(turnRevision);
     setStep(opponent ? 'Opponent turn' : 'Your turn', opponent ? "Opponent's turn" : 'Your turn');
   }
 
@@ -175,9 +178,11 @@
     failures = 0;
     turnCount = 0;
     recoilCount = 0;
+    turnRevision = 0;
     shotRevision = 0;
     logElement.replaceChildren();
     gun.removeAttribute('data-shot-revision');
+    game.removeAttribute('data-current-turn-revision');
     gun.classList.remove('firing');
     setTurn('local');
     updateDiagnostics();
