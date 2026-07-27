@@ -24,7 +24,6 @@ const block = `${startMarker}\n` +
   '  <script src="/assets/roulette/lamp-config.js?v=16" defer></script>\n' +
   '  <script src="/assets/roulette/lamp.js?v=16" defer></script>\n' +
   '  <script src="/assets/roulette/lamp-bootstrap.js?v=16" defer></script>\n' +
-  '  <script src="/assets/roulette/gun-facing.js?v=1" defer></script>\n' +
   `${endMarker}`;
 
 let html = await readFile(indexUrl, 'utf8');
@@ -39,4 +38,4 @@ if (markerPattern.test(html)) {
 }
 
 await writeFile(indexUrl, html);
-console.log('Injected lamp controls plus one clean visible-gun facing animation.');
+console.log('Injected isolated lamp assets only; gun animation remains owned by the game.');
