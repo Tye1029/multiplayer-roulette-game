@@ -8,7 +8,6 @@ const [
   calibrationSource,
   bootstrapSource,
   injectorSource,
-  cleanupSource,
   packageSource,
   htmlSource,
   cssSource
@@ -18,7 +17,6 @@ const [
   read('assets/roulette/lamp-calibration.js'),
   read('assets/roulette/lamp-bootstrap.js'),
   read('scripts/inject-lamp-assets.mjs'),
-  read('scripts/clean-legacy-lamp-assets.mjs'),
   read('package.json'),
   read('lamp-calibration.html'),
   read('assets/roulette/lamp.css')
@@ -102,24 +100,13 @@ for (const forbidden of [
   if (runtimeSource.includes(forbidden)) throw new Error(`Lamp runtime still interferes with gameplay: ${forbidden}`);
 }
 
-for (const forbidden of [
-  'isKnownTemporary',
-  '(?:legacy|old|temp|patch|development|active)',
-  'basename.includes(\'lamp\')',
-  'readdir('
-]) {
-  if (cleanupSource.includes(forbidden)) {
-    throw new Error(`Cleanup script is still broad enough to remove gameplay assets: ${forbidden}`);
-  }
-}
-if (!cleanupSource.includes('workshop-lamp-body-game-small-2.png')) {
-  throw new Error('Cleanup script does not name the confirmed obsolete lamp explicitly');
-}
-
 const packageJson = JSON.parse(packageSource);
 const buildCommand = packageJson.scripts?.build || '';
-if (!buildCommand.startsWith('npm run clean:lamp && node scripts/inject-lamp-assets.mjs')) {
-  throw new Error('Netlify build does not run the restricted lamp cleanup before injection');
+if (buildCommand !== "node scripts/inject-lamp-assets.mjs && npm run validate:lamp && echo 'Static Netlify site - validation complete'") {
+  throw new Error('Netlify build must not delete repository or gameplay assets');
+}
+if (packageJson.scripts?.['clean:lamp']) {
+  throw new Error('Deployment-time lamp cleanup must remain disabled');
 }
 
 await access(new URL('../assets/roulette/decor/lamp-1.png', import.meta.url));
@@ -138,4 +125,4 @@ if (!bootstrapSource.includes("params.has('lampCalibration')") || !bootstrapSour
   throw new Error('Normal-page bootstrap is not isolated from calibration mode');
 }
 
-console.log(`Lamp validation passed: ${keys.length}/${keys.length} controls bound; saved lighting is deterministic and cleanup cannot remove gameplay assets.`);
+console.log(`Lamp validation passed: ${keys.length}/${keys.length} controls bound; saved lighting is deterministic and builds do not delete gameplay assets.`);
