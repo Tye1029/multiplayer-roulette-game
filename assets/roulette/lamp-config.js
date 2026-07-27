@@ -12,28 +12,33 @@
       ['lampScale', 'PNG scale', [1, 0.55, 1.8, 0.01]],
       ['lampGlow', 'PNG glow', [0.82, 0, 1.5, 0.01]]
     ]],
-    ['Rig and chain', [
-      ['lampX', 'Rig + chain X', [50, 25, 75, 0.25]],
+    ['Rig and chains', [
+      ['lampX', 'Rig + chains X', [50, 25, 75, 0.25]],
       ['lampY', 'Lamp rig vertical', [0, -120, 140, 1]],
-      ['chainHeight', 'Chain height', [25, 5, 70, 0.5]],
+      ['chainHeight', 'Chain anchor height', [25, 5, 70, 0.5]],
+      ['chainLeftLength', 'Left chain length', [100, 20, 180, 1]],
+      ['chainRightLength', 'Right chain length', [100, 20, 180, 1]],
       ['chainWidth', 'Chain width', [16, 2, 50, 0.5]],
       ['chainStretch', 'Chain horizontal scale', [1, 0.35, 3, 0.01]]
     ]],
     ['Swing', [
       ['swing', 'Swing amount', [1.35, 0, 10, 0.05]],
-      ['speed', 'Swing seconds', [5.6, 1.5, 14, 0.1]]
+      ['speed', 'Swing duration (sec)', [5.6, 1.2, 14, 0.1]]
     ]],
     ['Light', [
+      ['lightHue', 'Light color / hue', [34, 0, 360, 1]],
+      ['lightSaturation', 'Light saturation', [88, 0, 100, 1]],
       ['lightX', 'Light horizontal', [50, 10, 90, 0.5]],
       ['lightY', 'Light vertical', [43, 10, 90, 0.5]],
       ['spreadX', 'Light width', [58, 20, 120, 1]],
       ['spreadY', 'Light depth', [64, 20, 140, 1]],
       ['strength', 'Light strength', [0.55, 0.05, 1.25, 0.01]],
-      ['track', 'Light tracking', [6, 0, 20, 0.25]]
+      ['track', 'Tracking distance', [6, 0, 20, 0.25]],
+      ['trackSpeed', 'Tracking duration (sec)', [5.6, 1.2, 14, 0.1]]
     ]],
     ['Room and gun', [
-      ['wallDark', 'Room darkness', [0.72, 0.05, 0.98, 0.01]],
-      ['gunGleam', 'Gun gleam', [0.25, 0, 1, 0.01]]
+      ['wallDark', 'Room darkness', [0.45, 0, 0.92, 0.01]],
+      ['gunGleam', 'Gun glint', [0.25, 0, 1.5, 0.01]]
     ]]
   ];
 
@@ -56,21 +61,26 @@
     lampArtY: 'lampImage',
     lampScale: 'lampImage',
     lampGlow: 'lampImage',
-    lampX: 'swingAndChain',
+    lampX: 'swingAndChains',
     lampY: 'swing',
-    chainHeight: 'chain',
-    chainWidth: 'chain',
-    chainStretch: 'chain',
+    chainHeight: 'chains',
+    chainLeftLength: 'leftChain',
+    chainRightLength: 'rightChain',
+    chainWidth: 'chains',
+    chainStretch: 'chains',
     swing: 'swing',
-    speed: 'swingAndLight',
-    lightX: 'tableLight',
-    lightY: 'tableLight',
-    spreadX: 'tableLight',
-    spreadY: 'tableLight',
-    strength: 'tableLight',
-    track: 'tableLight',
-    wallDark: 'game',
-    gunGleam: 'gun'
+    speed: 'swing',
+    lightHue: 'trackedLight',
+    lightSaturation: 'trackedLight',
+    lightX: 'trackedLight',
+    lightY: 'trackedLight',
+    spreadX: 'trackedLight',
+    spreadY: 'trackedLight',
+    strength: 'trackedLight',
+    track: 'trackedLight',
+    trackSpeed: 'trackedLight',
+    wallDark: 'roomOverlay',
+    gunGleam: 'gunGlint'
   });
 
   function normalize(input = {}) {
@@ -84,6 +94,13 @@
     }
     if (input && input.undersideGlow != null && input.lampGlow == null) {
       value.lampGlow = Number(input.undersideGlow);
+    }
+    if (input && input.chainHeight != null) {
+      if (input.chainLeftLength == null) value.chainLeftLength = 100;
+      if (input.chainRightLength == null) value.chainRightLength = 100;
+    }
+    if (input && input.speed != null && input.trackSpeed == null) {
+      value.trackSpeed = Number(input.speed);
     }
 
     for (const [key, definition] of Object.entries(definitions)) {
