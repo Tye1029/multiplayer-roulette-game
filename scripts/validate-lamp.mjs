@@ -7,19 +7,21 @@ const [
   runtimeSource,
   calibrationSource,
   bootstrapSource,
-  gunFacingSource,
   injectorSource,
+  cleanupSource,
   packageSource,
   htmlSource,
+  calibrationHtmlSource,
   cssSource
 ] = await Promise.all([
   read('assets/roulette/lamp-config.js'),
   read('assets/roulette/lamp.js'),
   read('assets/roulette/lamp-calibration.js'),
   read('assets/roulette/lamp-bootstrap.js'),
-  read('assets/roulette/gun-facing.js'),
   read('scripts/inject-lamp-assets.mjs'),
+  read('scripts/clean-roulette-scene.mjs'),
   read('package.json'),
+  read('index.html'),
   read('lamp-calibration.html'),
   read('assets/roulette/lamp.css')
 ]);
@@ -30,14 +32,12 @@ vm.runInContext(configSource, sandbox, { filename: 'lamp-config.js' });
 new vm.Script(runtimeSource, { filename: 'lamp.js' });
 new vm.Script(calibrationSource, { filename: 'lamp-calibration.js' });
 new vm.Script(bootstrapSource, { filename: 'lamp-bootstrap.js' });
-new vm.Script(gunFacingSource, { filename: 'gun-facing.js' });
 
 const api = sandbox.window.RouletteLampConfig;
 if (!api) throw new Error('RouletteLampConfig was not exported');
 
 const keys = Object.keys(api.bindings);
 if (keys.length !== 25) throw new Error(`Expected 25 controls, found ${keys.length}`);
-
 for (const key of keys) {
   if (!Object.hasOwn(api.defaults, key)) throw new Error(`Missing default for ${key}`);
   if (!runtimeSource.includes(`cfg.${key}`)) throw new Error(`Runtime does not apply ${key}`);
@@ -50,28 +50,30 @@ for (const required of [
   '/assets/roulette/lamp-calibration.js?v=16',
   '/assets/roulette/lamp-calibration.css?v=16'
 ]) {
-  if (!htmlSource.includes(required)) throw new Error(`Calibration HTML missing ${required}`);
+  if (!calibrationHtmlSource.includes(required)) throw new Error(`Calibration HTML missing ${required}`);
 }
 
 for (const required of [
   '/assets/roulette/lamp-config.js?v=16',
   '/assets/roulette/lamp.js?v=16',
   '/assets/roulette/lamp-bootstrap.js?v=16',
-  '/assets/roulette/gun-facing.js?v=1',
   'rrLampCriticalHide',
   'MODULAR_LAMP_ASSETS_START',
   'MODULAR_LAMP_ASSETS_END'
 ]) {
   if (!injectorSource.includes(required)) throw new Error(`Build injector missing ${required}`);
+  if (!htmlSource.includes(required)) throw new Error(`Built page missing ${required}`);
 }
 
 for (const forbidden of [
-  'turn-orientation',
-  'gun-turn-animation',
-  'gun-animation-test',
-  'data-shot-revision'
+  'gun-facing.js',
+  'turn-orientation.js',
+  'gun-turn-animation.js',
+  'gun-animation-test'
 ]) {
-  if (injectorSource.includes(forbidden)) throw new Error(`Build injector still contains an obsolete gun hook: ${forbidden}`);
+  if (injectorSource.includes(forbidden) || htmlSource.includes(forbidden)) {
+    throw new Error(`External gun patch is still loaded: ${forbidden}`);
+  }
 }
 
 for (const required of [
@@ -113,7 +115,6 @@ for (const required of [
 ]) {
   if (!cssSource.includes(required)) throw new Error(`Lamp CSS missing ${required}`);
 }
-
 for (const forbidden of [
   '[data-roulette-game] .rr-gun-motion',
   '[data-current-turn',
@@ -121,7 +122,6 @@ for (const forbidden of [
 ]) {
   if (cssSource.includes(forbidden)) throw new Error(`Lamp CSS still styles gun or turn state: ${forbidden}`);
 }
-
 if (cssSource.includes('@keyframes rrLampLightTrackExternal {\n  0%, 100% { transform:')) {
   throw new Error('Light tracking still transforms a scene element');
 }
@@ -129,71 +129,72 @@ if (injectorSource.includes('.rr126-swing { visibility: hidden')) {
   throw new Error('Critical CSS still hides the whole lamp rig during firing rerenders');
 }
 
-for (const required of [
-  "const GAME_SELECTOR = '[data-roulette-game]'",
-  "const MOTION_SELECTOR = '.rr-gun-motion'",
-  "const ROTOR_ATTRIBUTE = 'data-rr-gun-facing-rotor'",
-  'ownerFromData',
-  'ownerFromVisibleStatus',
-  'findLowestCommonAncestor',
-  'findGunRotor',
-  'setFacing',
-  'angleForOwner',
-  'owner === OWNER_OPPONENT ? 180 : 0',
-  "rotor.style.setProperty('rotate'",
-  "rotor.style.setProperty('transform-origin', '50% 50%'",
-  'facingAnimation = rotor.animate(',
-  'duration: 720',
-  'const ownerChanged = owner !== lastOwner',
-  'if (!motionChanged && !rotorChanged && !ownerChanged) return',
-  'Boolean(previousOwner && ownerChanged)',
-  'gameObserver.observe(gameRoot',
-  'pageObserver.observe(document.body || document.documentElement'
-]) {
-  if (!gunFacingSource.includes(required)) {
-    throw new Error(`Clean gun-facing implementation missing ${required}`);
+const obsoleteSceneBlockIds = [
+  'rr-v114-image2-lamp-rig',
+  'rr-v115-lamp-and-light-runtime',
+  'rr-v126-split-lamp-rig',
+  'rr-v127-lamp-layer-fix',
+  'rr-v130-table-surface-lighting',
+  'rr-v134-clean-reactive-lighting',
+  'rr-v135-overhead-table-light-fix',
+  'rr-v136-center-bright-full-table-extension',
+  'rr-v136-table-edge-layer',
+  'rr-v137-reference-centered-textured-lighting',
+  'rr-v139-visible-reference-lighting',
+  'rr-v140-lighting-debug-rebuild',
+  'rr-v140-lighting-debug-tools',
+  'rr-v141-debug-bootstrap',
+  'rr-v141-debug-visible-fix',
+  'rr-v142-warm-rough-table-authoritative',
+  'rr-v143-clean-moving-light-authoritative',
+  'rr-v143-remove-debug-ui',
+  'rr-v144-targeted-light-balance',
+  'rr-v145-single-driver-light-sync',
+  'rr-v145-single-driver-light-sync-script',
+  'rr-v146-lamp-art-cleanup',
+  'rr-v147-halo-bulb-direction-fix',
+  'rr-v148-final-lamp-asset-cleanup',
+  'rr-live-lamp-calibration-style',
+  'rr-live-lamp-calibration-script',
+  'rr-live-lamp-calibration-overrides'
+];
+for (const id of obsoleteSceneBlockIds) {
+  if (!cleanupSource.includes(`'${id}'`)) throw new Error(`Cleanup script does not own obsolete block: ${id}`);
+  if (htmlSource.includes(`id="${id}"`) || htmlSource.includes(`id='${id}'`)) {
+    throw new Error(`Obsolete scene override survived the build: ${id}`);
   }
 }
 
-for (const forbidden of [
-  'getBoundingClientRect',
-  'measureVisibleArtworkPivot',
-  'rotationFromTransform',
-  'cancelLegacyFlip',
-  '--rr-turn-origin',
-  'translate:',
-  "style.setProperty('translate'",
-  'transform-box',
-  'setInterval(',
-  'fetch(',
-  'XMLHttpRequest',
-  'WebSocket',
-  'EventSource',
-  'sendBeacon',
-  'playRecoil',
-  'data-shot-revision',
-  'lastShotNumber',
-  'shotsFired',
-  '/.netlify/functions/',
-  'localStorage',
-  'sessionStorage'
+for (const required of [
+  'function rouletteMotionTransform(angle,scale=rouletteMotionScale()',
+  'rotate(${Number(angle)||0}deg) scale(${scale})',
+  'const animatedTarget=from+delta;',
+  '{transform:rouletteMotionTransform(from,scale)}',
+  '{transform:rouletteMotionTransform(animatedTarget,scale)}',
+  "{duration,easing:'cubic-bezier(.22,.58,.12,1)',fill:'forwards'}",
+  'rouletteRotationGlint(glint,duration,.18)'
 ]) {
-  if (gunFacingSource.includes(forbidden)) {
-    throw new Error(`Gun facing must remain simple and state-neutral: ${forbidden}`);
-  }
+  if (!htmlSource.includes(required)) throw new Error(`Clean core turn rotation missing ${required}`);
+}
+for (const forbidden of [
+  'scale(${-scale},${scale})',
+  "rouletteAnimate(motion,[{opacity:1},{opacity:.12}]",
+  "rouletteAnimate(motion,[{opacity:.12},{opacity:1}]",
+  'data-rr-gun-facing-rotor',
+  '--rr-turn-origin-x',
+  '--rr-turn-origin-y'
+]) {
+  if (htmlSource.includes(forbidden)) throw new Error(`Old gun transition behavior survived cleanup: ${forbidden}`);
 }
 
 const packageJson = JSON.parse(packageSource);
 const buildCommand = packageJson.scripts?.build || '';
-if (buildCommand !== "node scripts/inject-lamp-assets.mjs && npm run validate:lamp && echo 'Static Netlify site - validation complete'") {
-  throw new Error('Netlify build must not delete repository or gameplay assets');
-}
-if (packageJson.scripts?.['clean:lamp']) {
-  throw new Error('Deployment-time lamp cleanup must remain disabled');
-}
+const expectedBuild = "node scripts/clean-roulette-scene.mjs && node scripts/inject-lamp-assets.mjs && npm run validate:lamp && echo 'Static Netlify site - validation complete'";
+if (buildCommand !== expectedBuild) throw new Error('Netlify build must clean the scene before injecting the isolated lamp');
+if (packageJson.scripts?.['clean:lamp']) throw new Error('Deployment-time broad asset deletion must remain disabled');
 
 await access(new URL('../assets/roulette/decor/lamp-1.png', import.meta.url));
-await access(new URL('../assets/roulette/gun-facing.js', import.meta.url));
+await access(new URL('../scripts/clean-roulette-scene.mjs', import.meta.url));
 
 async function requireMissing(filePath) {
   try {
@@ -204,8 +205,8 @@ async function requireMissing(filePath) {
     if (error.code !== 'ENOENT') throw error;
   }
 }
-
 for (const filePath of [
+  'assets/roulette/gun-facing.js',
   'assets/roulette/turn-orientation.js',
   'assets/roulette/gun-turn-animation.js',
   'assets/roulette/gun-animation-test.js',
@@ -216,11 +217,9 @@ for (const filePath of [
   await requireMissing(filePath);
 }
 
-if (!calibrationSource.includes('lampApi.watch')) {
-  throw new Error('Calibration controller is not watching dynamic lamp mounts');
-}
+if (!calibrationSource.includes('lampApi.watch')) throw new Error('Calibration controller is not watching dynamic lamp mounts');
 if (!bootstrapSource.includes("params.has('lampCalibration')") || !bootstrapSource.includes('lampApi.watch')) {
   throw new Error('Normal-page lamp bootstrap is not isolated from calibration mode');
 }
 
-console.log(`Validation passed: ${keys.length}/${keys.length} lamp controls bound; one clean gun-facing animation rotates only the visible gun group.`);
+console.log(`Validation passed: ${keys.length}/${keys.length} lamp controls bound; post-V111 scene patches are removed and core turn changes use the opening-spin rotation path.`);
