@@ -4,13 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>Lamp Calibration</title>
-  <link rel="stylesheet" href="/assets/roulette/lamp-calibration.css?v=15">
-  <script src="/assets/roulette/lamp-config.js?v=15" defer></script>
-  <script src="/assets/roulette/lamp.js?v=15" defer></script>
-  <script src="/assets/roulette/lamp-calibration.js?v=15" defer></script>
+  <link rel="stylesheet" href="/assets/roulette/lamp-calibration.css?v=16">
+  <script src="/assets/roulette/lamp-config.js?v=16" defer></script>
+  <script src="/assets/roulette/lamp.js?v=16" defer></script>
+  <script src="/assets/roulette/lamp-calibration.js?v=16" defer></script>
 </head>
 <body>
-  <iframe id="game" src="./?lampCalibration=15" title="Russian Roulette lamp preview"></iframe>
+  <iframe id="game" src="./?lampCalibration=16" title="Russian Roulette lamp preview"></iframe>
   <button id="toggle" type="button">LAMP CALIBRATION</button>
   <section id="panel">
     <h3>Visible lamp calibration</h3>
@@ -21,7 +21,7 @@
       <button class="action" id="copy" type="button">Copy JSON</button>
       <button class="action" id="reset" type="button">Reset</button>
     </div>
-    <p><small>The lamp remounts immediately when a firing or turn update replaces its scene node. Light tracking now moves only the gradient background and never transforms the table, gun, or their parent scene.</small></p>
+    <p><small>The lamp runtime no longer queries, measures, overlays, or modifies the gun. Its watcher repairs only a replaced lamp node. Normal gameplay uses one shared turn-animation observer for both local and opponent turns.</small></p>
   </section>
   <div id="status">Loading…</div>
 </body>
