@@ -123,28 +123,9 @@
   transition: none !important;
 }
 
-#rrLampVisualOverlayRoot {
-  position: fixed !important;
-  inset: 0 !important;
-  width: 100vw !important;
-  height: 100vh !important;
-  overflow: hidden !important;
-  pointer-events: none !important;
-  z-index: 5 !important;
-}
-
-#rrGunGlintOverlay {
-  position: fixed !important;
-  pointer-events: none !important;
-  z-index: 1 !important;
-  mix-blend-mode: screen !important;
-  border-radius: 50% !important;
-  clip-path: ellipse(48% 42% at 50% 50%) !important;
-  animation: none !important;
-  transition: none !important;
-}
-
 #rrLampTrackedLight,
-#rrRoomDarknessOverlay {
+#rrRoomDarknessOverlay,
+#rrGunGlintOverlay,
+#rrLampVisualOverlayRoot {
   display: none !important;
 }
