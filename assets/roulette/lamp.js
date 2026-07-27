@@ -100,6 +100,13 @@
     image.style.setProperty('--rr-lamp-width', `${cfg.lampWidth}%`);
     image.style.setProperty('--rr-lamp-scale', cfg.lampScale);
     image.style.setProperty('--rr-lamp-glow', cfg.lampGlow);
+    const lampGlow = Math.max(0, cfg.lampGlow);
+    setImportant(
+      image,
+      'filter',
+      `brightness(${1 + lampGlow * 0.12}) ` +
+        `drop-shadow(0 0 ${4 + lampGlow * 14}px rgba(255,169,64,${Math.min(0.8, 0.12 + lampGlow * 0.42)}))`
+    );
 
     if (scene.chain) {
       setImportant(scene.chain, 'left', `${cfg.lampX}%`);
@@ -189,10 +196,18 @@
     const schedule = () => {
       if (scheduled || stopped) return;
       scheduled = true;
-      (doc.defaultView || global).requestAnimationFrame(run);
+      const view = doc.defaultView || global;
+      const requestFrame = view.requestAnimationFrame || (callback => view.setTimeout(callback, 16));
+      requestFrame.call(view, run);
     };
 
-    const observer = new MutationObserver(schedule);
+    const Observer = doc.defaultView?.MutationObserver || global.MutationObserver;
+    if (!Observer) {
+      schedule();
+      return () => { stopped = true; };
+    }
+
+    const observer = new Observer(schedule);
     observer.observe(doc.documentElement, { childList: true, subtree: true });
     schedule();
 
