@@ -8,13 +8,25 @@
   50% { transform: translateX(var(--rr-light-track-positive, 6%)); }
 }
 
+@keyframes rrGunGlintSweepExternal {
+  0%, 100% { transform: translateX(-18%) rotate(-7deg); }
+  50% { transform: translateX(18%) rotate(-7deg); }
+}
+
+[data-roulette-game] {
+  isolation: isolate !important;
+  position: relative !important;
+}
+
 [data-roulette-game] .rr126-swing {
   isolation: auto !important;
   animation-name: rrLampSwingExternal !important;
   animation-timing-function: ease-in-out !important;
   animation-iteration-count: infinite !important;
+  animation-play-state: running !important;
   transform-origin: 50% 0 !important;
   overflow: visible !important;
+  will-change: transform;
 }
 
 [data-roulette-game] .rr126-swing::before,
@@ -60,21 +72,68 @@
   width: 100% !important;
   max-width: none !important;
   background-size: 100% auto !important;
+  transform-origin: 50% 0 !important;
 }
 
-[data-roulette-game] .rr126-chain img {
-  width: 100% !important;
-  height: 100% !important;
-  max-width: none !important;
-  object-fit: fill !important;
+[data-roulette-game] .rr126-chain::before {
+  height: var(--rr-chain-left-length, 100%) !important;
+}
+
+[data-roulette-game] .rr126-chain::after {
+  height: var(--rr-chain-right-length, 100%) !important;
+}
+
+[data-roulette-game] .rr126-chain > :first-child {
+  height: var(--rr-chain-left-length, 100%) !important;
+  transform-origin: 50% 0 !important;
+}
+
+[data-roulette-game] .rr126-chain > :nth-child(2) {
+  height: var(--rr-chain-right-length, 100%) !important;
+  transform-origin: 50% 0 !important;
 }
 
 [data-roulette-game] .rr130-table-illumination {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+[data-roulette-game] #rrLampTrackedLight {
+  position: absolute !important;
+  inset: -8% !important;
+  z-index: 4 !important;
+  pointer-events: none !important;
+  mix-blend-mode: screen !important;
   animation-name: rrLampLightTrackExternal !important;
   animation-timing-function: ease-in-out !important;
   animation-iteration-count: infinite !important;
+  animation-play-state: running !important;
+  will-change: transform;
+}
+
+[data-roulette-game] #rrRoomDarknessOverlay {
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: -1 !important;
+  pointer-events: none !important;
+  background: #000 !important;
 }
 
 [data-roulette-game]::after {
-  opacity: var(--rr-room-darkness, .72) !important;
+  opacity: 0 !important;
+}
+
+[data-roulette-game] .rr-gun-motion {
+  position: relative !important;
+}
+
+[data-roulette-game] #rrGunGlintOverlay {
+  position: absolute !important;
+  inset: 4% 2% !important;
+  z-index: 30 !important;
+  pointer-events: none !important;
+  mix-blend-mode: screen !important;
+  border-radius: 42% !important;
+  animation: rrGunGlintSweepExternal 2.8s ease-in-out infinite !important;
+  will-change: transform;
 }
