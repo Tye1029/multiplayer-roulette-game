@@ -4,8 +4,6 @@ const indexUrl = new URL('../index.html', import.meta.url);
 const startMarker = '<!-- MODULAR_LAMP_ASSETS_START -->';
 const endMarker = '<!-- MODULAR_LAMP_ASSETS_END -->';
 const criticalStyle = `  <style id="rrLampCriticalHide">
-    [data-roulette-game] .rr126-swing { visibility: hidden !important; }
-    [data-roulette-game] .rr126-swing[data-rr-lamp-ready="true"] { visibility: visible !important; }
     [data-roulette-game] .rr126-swing::before,
     [data-roulette-game] .rr126-swing::after,
     [data-roulette-game] .rr126-bulb-glow,
@@ -18,13 +16,14 @@ const criticalStyle = `  <style id="rrLampCriticalHide">
       visibility: hidden !important;
       opacity: 0 !important;
     }
+    [data-roulette-game] .rr126-swing,
     [data-roulette-game] #rrLampPng { visibility: visible !important; opacity: 1 !important; }
   </style>`;
 const block = `${startMarker}\n` +
   `${criticalStyle}\n` +
-  '  <script src="/assets/roulette/lamp-config.js?v=14" defer></script>\n' +
-  '  <script src="/assets/roulette/lamp.js?v=14" defer></script>\n' +
-  '  <script src="/assets/roulette/lamp-bootstrap.js?v=14" defer></script>\n' +
+  '  <script src="/assets/roulette/lamp-config.js?v=15" defer></script>\n' +
+  '  <script src="/assets/roulette/lamp.js?v=15" defer></script>\n' +
+  '  <script src="/assets/roulette/lamp-bootstrap.js?v=15" defer></script>\n' +
   `${endMarker}`;
 
 let html = await readFile(indexUrl, 'utf8');
@@ -39,4 +38,4 @@ if (markerPattern.test(html)) {
 }
 
 await writeFile(indexUrl, html);
-console.log('Injected the single modular lamp implementation with deterministic saved lighting.');
+console.log('Injected instant lamp remounting and transform-free light tracking.');
