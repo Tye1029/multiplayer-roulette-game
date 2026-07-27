@@ -3,10 +3,28 @@ import { readFile, writeFile } from 'node:fs/promises';
 const indexUrl = new URL('../index.html', import.meta.url);
 const startMarker = '<!-- MODULAR_LAMP_ASSETS_START -->';
 const endMarker = '<!-- MODULAR_LAMP_ASSETS_END -->';
+const criticalStyle = `  <style id="rrLampCriticalHide">
+    [data-roulette-game] .rr126-swing { visibility: hidden !important; }
+    [data-roulette-game] .rr126-swing[data-rr-lamp-ready="true"] { visibility: visible !important; }
+    [data-roulette-game] .rr126-swing::before,
+    [data-roulette-game] .rr126-swing::after,
+    [data-roulette-game] .rr126-bulb-glow,
+    [data-roulette-game] .rr126-swing > img:not(#rrLampPng),
+    [data-roulette-game] .rr126-swing > [class*="lamp-body"],
+    [data-roulette-game] .rr126-swing > [class*="lamp-shade"],
+    [data-roulette-game] .rr126-swing > [class*="shade-art"],
+    [data-roulette-game] .rr126-swing > [class*="underside"] {
+      display: none !important;
+      visibility: hidden !important;
+      opacity: 0 !important;
+    }
+    [data-roulette-game] #rrLampPng { visibility: visible !important; opacity: 1 !important; }
+  </style>`;
 const block = `${startMarker}\n` +
-  '  <script src="/assets/roulette/lamp-config.js?v=12" defer></script>\n' +
-  '  <script src="/assets/roulette/lamp.js?v=12" defer></script>\n' +
-  '  <script src="/assets/roulette/lamp-bootstrap.js?v=12" defer></script>\n' +
+  `${criticalStyle}\n` +
+  '  <script src="/assets/roulette/lamp-config.js?v=13" defer></script>\n' +
+  '  <script src="/assets/roulette/lamp.js?v=13" defer></script>\n' +
+  '  <script src="/assets/roulette/lamp-bootstrap.js?v=13" defer></script>\n' +
   `${endMarker}`;
 
 let html = await readFile(indexUrl, 'utf8');
@@ -21,4 +39,4 @@ if (markerPattern.test(html)) {
 }
 
 await writeFile(indexUrl, html);
-console.log('Injected modular lamp assets into index.html for this Netlify deploy.');
+console.log('Injected the single modular lamp implementation and first-paint legacy-lamp blocker.');
