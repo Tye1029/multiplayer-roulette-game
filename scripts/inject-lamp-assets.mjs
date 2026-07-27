@@ -21,9 +21,10 @@ const criticalStyle = `  <style id="rrLampCriticalHide">
   </style>`;
 const block = `${startMarker}\n` +
   `${criticalStyle}\n` +
-  '  <script src="/assets/roulette/lamp-config.js?v=15" defer></script>\n' +
-  '  <script src="/assets/roulette/lamp.js?v=15" defer></script>\n' +
-  '  <script src="/assets/roulette/lamp-bootstrap.js?v=15" defer></script>\n' +
+  '  <script src="/assets/roulette/lamp-config.js?v=16" defer></script>\n' +
+  '  <script src="/assets/roulette/lamp.js?v=16" defer></script>\n' +
+  '  <script src="/assets/roulette/lamp-bootstrap.js?v=16" defer></script>\n' +
+  '  <script src="/assets/roulette/gun-turn-animation.js?v=1" defer></script>\n' +
   `${endMarker}`;
 
 let html = await readFile(indexUrl, 'utf8');
@@ -38,4 +39,4 @@ if (markerPattern.test(html)) {
 }
 
 await writeFile(indexUrl, html);
-console.log('Injected instant lamp remounting and transform-free light tracking.');
+console.log('Injected gun-independent lamp controls and shared local/opponent gun turn animation.');
