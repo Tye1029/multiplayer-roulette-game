@@ -1,0 +1,10 @@
+V106 reference-lamp scene update
+
+- Extracted the supplied workshop lamp into a transparent high-resolution PNG asset.
+- Replaced the CSS-drawn visible shade with the reference PNG while retaining one measured bulb anchor.
+- Made the bulb the brightest point and added a glowing inner reflector.
+- Widened the soft bulb-originating light and increased full-table coverage.
+- Slightly brightened the room while retaining dark peripheral falloff.
+- Added stronger wall planks, stains, worn paint, nail holes, dust and corner shading.
+- Ensured two wooden chair PNGs are visible on desktop and mobile.
+- Kept table light, room light, smoke, wall art, chairs and revolver response linked to the bulb controller.

@@ -1,0 +1,6 @@
+V67 fixes:
+- Countdown portal is fixed to the browser viewport and no longer follows mobile scrolling.
+- Roulette active stage locks to one viewport to prevent layered-page scrolling.
+- Spin availability is derived only from rouletteState.spinUsed[userId].
+- mySpinUsed/opponentSpinUsed are normalized from the authoritative server map.
+- Spin button counter, disabled state, and player-card labels share the same source of truth.

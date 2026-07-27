@@ -1,0 +1,11 @@
+V80 roulette scene update
+
+- Reorganized wall PNG decorations into a deliberately uneven, professional side-wall layout.
+- Reserved the center wall lane so ONE ROUND · ONE LIFE remains unobstructed.
+- Extracted left, right, and rear wooden chairs from the approved existing image as PNG assets.
+- Extracted an approved dark wood table texture as a PNG asset.
+- Rounded and darkened the table while retaining bullet/scratch detail.
+- Rebuilt lighting around one narrow lamp cone and one synchronized table pool.
+- Increased darkness outside the lamp footprint.
+- Added shadow smoke plus a separate illuminated smoke layer synchronized with the swinging lamp.
+- No new image was generated for this build.

@@ -1,0 +1,10 @@
+V79 PNG wall and lighting update
+
+- Replaced legacy HTML wall signs with PNG artwork cropped from the approved generated saloon scene.
+- Added separate PNG assets for One Round / skull / One Life, Wanted, western town frame, bull skull, Dead Men plaque, bottle shelf, smoke, and haze.
+- Positioned all wall art inside a dedicated wall-only container above the table with responsive non-overlapping layouts.
+- Removed the old circular clock, wall marks, wires, pipes, and CSS-generated signs.
+- Rebuilt the lamp so only a tiny lower bulb tip is visible beneath the shade.
+- Added a clean beam and synchronized table light originating at the visible bulb tip.
+- Added subtle PNG smoke/haze with reduced-motion support.
+- Darkened unlit room edges to emphasize the moving lamp illumination.

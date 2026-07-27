@@ -1,0 +1,12 @@
+{
+  "name": "torn-xans-scratch-ticket",
+  "version": "2.0.0",
+  "private": true,
+  "scripts": {
+    "build": "echo 'Static Netlify site - no build needed'"
+  },
+  "dependencies": {
+    "@netlify/blobs": "^8.1.0",
+    "@netlify/database": "latest"
+  }
+}

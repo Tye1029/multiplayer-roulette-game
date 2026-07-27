@@ -1,0 +1,7 @@
+V66 countdown and roulette direction correction
+
+- Removed every embedded/in-game countdown renderer. The top-level portal is now the only 3-2-1 display.
+- Rejected delayed action responses can no longer remount an older roulette revision.
+- Stale visual snapshots are blocked before they can replay gun effects or change direction.
+- Controls recover from the newest accepted server snapshot after delayed/duplicate responses.
+- Gun rotation remains owned exclusively by the opening result and actual turnId changes.

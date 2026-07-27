@@ -1,0 +1,8 @@
+V68 fixes the remote-bot join freeze and legacy lottery flash.
+
+- Removed the global Roulette viewport scroll lock.
+- Countdown remains a fixed top-level overlay without freezing the document.
+- Added a stale-lock guard for bot joins, refreshes, cancellations, and page restore.
+- Hid the legacy scratch-ticket page during initial parsing so it cannot flash behind the test shell.
+- The dedicated multiplayer API-key home becomes visible as soon as its markup loads.
+- No server gameplay, winner, turn, gun rotation, or spin-limit rules were changed.

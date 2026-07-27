@@ -1,0 +1,5 @@
+V111.2 minimal visual correction
+- Shifted the full lamp assembly left, with a stronger mobile-specific offset.
+- Restored one chain centered above the lamp.
+- Removed the middle ONE ROUND · ONE LIFE text.
+- Left lamp size, light beam, table lighting, room glow, smoke, controls, game logic, and scrolling unchanged.
