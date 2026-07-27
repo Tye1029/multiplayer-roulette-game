@@ -22,9 +22,9 @@ const criticalStyle = `  <style id="rrLampCriticalHide">
   </style>`;
 const block = `${startMarker}\n` +
   `${criticalStyle}\n` +
-  '  <script src="/assets/roulette/lamp-config.js?v=13" defer></script>\n' +
-  '  <script src="/assets/roulette/lamp.js?v=13" defer></script>\n' +
-  '  <script src="/assets/roulette/lamp-bootstrap.js?v=13" defer></script>\n' +
+  '  <script src="/assets/roulette/lamp-config.js?v=14" defer></script>\n' +
+  '  <script src="/assets/roulette/lamp.js?v=14" defer></script>\n' +
+  '  <script src="/assets/roulette/lamp-bootstrap.js?v=14" defer></script>\n' +
   `${endMarker}`;
 
 let html = await readFile(indexUrl, 'utf8');
@@ -39,4 +39,4 @@ if (markerPattern.test(html)) {
 }
 
 await writeFile(indexUrl, html);
-console.log('Injected the single modular lamp implementation and first-paint legacy-lamp blocker.');
+console.log('Injected the single modular lamp implementation with deterministic saved lighting.');
