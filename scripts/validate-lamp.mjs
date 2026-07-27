@@ -64,7 +64,7 @@ for (const required of [
   '/assets/roulette/lamp-config.js?v=16',
   '/assets/roulette/lamp.js?v=16',
   '/assets/roulette/lamp-bootstrap.js?v=16',
-  '/assets/roulette/gun-turn-animation.js?v=2',
+  '/assets/roulette/gun-turn-animation.js?v=3',
   'rrLampCriticalHide',
   'MODULAR_LAMP_ASSETS_START',
   'MODULAR_LAMP_ASSETS_END'
@@ -129,7 +129,13 @@ for (const required of [
   'MutationObserver',
   "params.has('lampCalibration')",
   "rotate: `${delta}deg`",
-  "translate: '-3.5% 1.5%'"
+  "translate: '-3.5% 1.5%'",
+  'SHOT_DATA_KEY',
+  'RECOIL_DEDUPE_MS',
+  'if (explicitValues.length) return',
+  "'data-shot-revision'",
+  "'data-current-turn-revision'",
+  'now - lastRecoilAt >= RECOIL_DEDUPE_MS'
 ]) {
   if (!gunAnimationSource.includes(required)) throw new Error(`Gun animation bridge missing ${required}`);
 }
@@ -148,8 +154,8 @@ for (const required of [
   '<main class="test-shell" data-roulette-game data-current-turn="local">',
   'class="rr-gun-motion"',
   'id="testGun"',
-  '/assets/roulette/gun-turn-animation.js?v=2',
-  '/assets/roulette/gun-animation-test.js?v=1',
+  '/assets/roulette/gun-turn-animation.js?v=3',
+  '/assets/roulette/gun-animation-test.js?v=2',
   '/assets/roulette/gun-animation-test.css?v=1',
   'Opponent fires',
   'does not create a game'
@@ -167,7 +173,12 @@ for (const required of [
   "expectAnimation('recoil'",
   'data-test-action',
   "overall.textContent = 'PASS'",
-  'shotRevision'
+  'shotRevision',
+  'manualBusy',
+  'manualTakeoverPending',
+  'setManualControlsDisabled',
+  'isCancelled',
+  'await wait(950)'
 ]) {
   if (!gunTestSource.includes(required)) throw new Error(`Gun animation test harness missing ${required}`);
 }
@@ -227,4 +238,4 @@ if (!bootstrapSource.includes("params.has('lampCalibration')") || !bootstrapSour
   throw new Error('Normal-page lamp bootstrap is not isolated from calibration mode');
 }
 
-console.log(`Validation passed: ${keys.length}/${keys.length} lamp controls bound; production gun animation covers both players and the isolated visual firing test is installed.`);
+console.log(`Validation passed: ${keys.length}/${keys.length} lamp controls bound; recoil is deduplicated and automatic/manual gun tests cannot overlap.`);
