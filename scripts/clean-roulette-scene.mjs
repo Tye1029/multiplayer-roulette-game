@@ -86,6 +86,13 @@ const newTurnTransition = `      liveRoot.classList.add('rr-animation-lock');
         ]);
       }finally{`;
 
+const shotOrientationPattern = /\n    async function rouletteOrientToShotActor\(game,st,gameId\)\{[\s\S]*?\n    \}\n    async function rouletteShotSequence\(game,st,gameId\)\{\n      await rouletteOrientToShotActor\(game,st,gameId\);/;
+const shotSequenceStart = `
+    async function rouletteShotSequence(game,st,gameId){
+      // Shot effects never rotate the revolver. The mounted gun is already
+      // facing the authoritative turn owner; only rouletteRotateToTurn may
+      // change its direction after the shot finishes.`;
+
 let html = await readFile(indexUrl, 'utf8');
 html = removeObsoleteSceneBlocks(html);
 
@@ -101,6 +108,12 @@ if (html.includes(oldTurnTransition)) {
   throw new Error('Could not locate the roulette turn transition to cleanly rebuild it.');
 }
 
+if (shotOrientationPattern.test(html)) {
+  html = html.replace(shotOrientationPattern, shotSequenceStart);
+} else if (!html.includes('Shot effects never rotate the revolver.')) {
+  throw new Error('Could not remove the redundant pre-shot gun orientation.');
+}
+
 for (const id of obsoleteSceneBlockIds) {
   if (html.includes(`id="${id}"`) || html.includes(`id='${id}'`)) {
     throw new Error(`Obsolete scene patch still exists after cleanup: ${id}`);
@@ -113,6 +126,9 @@ if (/scale\(\$\{-scale\},\$\{scale\}\)/.test(html)) {
 if (html.includes("rouletteAnimate(motion,[{opacity:1},{opacity:.12}]")) {
   throw new Error('The old fade-and-swap turn animation is still present.');
 }
+if (html.includes('rouletteOrientToShotActor(') || html.includes('shot actor orientation locked')) {
+  throw new Error('A shot effect can still independently rotate the gun.');
+}
 
 await writeFile(indexUrl, html);
-console.log(`Cleaned ${obsoleteSceneBlockIds.length} obsolete scene patch IDs and rebuilt turn rotation with the opening-spin animation path.`);
+console.log(`Cleaned ${obsoleteSceneBlockIds.length} obsolete scene patch IDs; only turn changes can rotate the gun.`);
