@@ -5,7 +5,7 @@
   if (!configApi) throw new Error('lamp-config.js must load before lamp.js');
 
   const lampAsset = '/assets/roulette/decor/lamp-1.png';
-  const styleAsset = '/assets/roulette/lamp.css?v=16';
+  const styleAsset = '/assets/roulette/lamp.css?v=17';
   const styleMarker = 'rrLampExternalStyles';
   const imageId = 'rrLampPng';
   const staleOverlayIds = ['rrLampTrackedLight', 'rrRoomDarknessOverlay', 'rrGunGlintOverlay', 'rrLampVisualOverlayRoot'];
@@ -18,7 +18,7 @@
       link.rel = 'stylesheet';
       doc.head.append(link);
     }
-    if (!link.href.includes('lamp.css?v=16')) link.href = styleAsset;
+    if (!link.href.includes('lamp.css?v=17')) link.href = styleAsset;
     return link;
   }
 
