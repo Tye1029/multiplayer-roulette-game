@@ -5,9 +5,10 @@
   if (!configApi) throw new Error('lamp-config.js must load before lamp.js');
 
   const lampAsset = '/assets/roulette/decor/lamp-1.png';
-  const styleAsset = '/assets/roulette/lamp.css?v=11';
+  const styleAsset = '/assets/roulette/lamp.css?v=12';
   const styleMarker = 'rrLampExternalStyles';
   const imageId = 'rrLampPng';
+  const overlayRootId = 'rrLampVisualOverlayRoot';
   const trackedLightId = 'rrLampTrackedLight';
   const roomOverlayId = 'rrRoomDarknessOverlay';
   const gunGlintId = 'rrGunGlintOverlay';
@@ -20,7 +21,7 @@
       link.rel = 'stylesheet';
       doc.head.append(link);
     }
-    if (!link.href.includes('lamp.css?v=11')) link.href = styleAsset;
+    if (!link.href.includes('lamp.css?v=12')) link.href = styleAsset;
     return link;
   }
 
@@ -61,39 +62,26 @@
     return image;
   }
 
-  function ensureTrackedLight(doc, scene) {
-    let light = doc.getElementById(trackedLightId);
-    const host = scene.table || scene.game;
-    if (!light) {
-      light = doc.createElement('div');
-      light.id = trackedLightId;
+  function ensureOverlayRoot(doc) {
+    let root = doc.getElementById(overlayRootId);
+    if (!root) {
+      root = doc.createElement('div');
+      root.id = overlayRootId;
+      root.setAttribute('aria-hidden', 'true');
+      (doc.body || doc.documentElement).append(root);
     }
-    if (light.parentElement !== host) host.append(light);
-    if (scene.table) {
-      const position = doc.defaultView?.getComputedStyle(scene.table).position;
-      if (!position || position === 'static') scene.table.style.setProperty('position', 'relative', 'important');
-    }
-    return light;
+    return root;
   }
 
-  function ensureRoomOverlay(doc, game) {
-    let overlay = doc.getElementById(roomOverlayId);
+  function ensureOverlay(doc, root, id) {
+    let overlay = doc.getElementById(id);
     if (!overlay) {
       overlay = doc.createElement('div');
-      overlay.id = roomOverlayId;
+      overlay.id = id;
+      root.append(overlay);
+    } else if (overlay.parentElement !== root) {
+      root.append(overlay);
     }
-    if (overlay.parentElement !== game) game.prepend(overlay);
-    return overlay;
-  }
-
-  function ensureGunGlint(doc, gun) {
-    if (!gun) return null;
-    let overlay = doc.getElementById(gunGlintId);
-    if (!overlay) {
-      overlay = doc.createElement('div');
-      overlay.id = gunGlintId;
-    }
-    if (overlay.parentElement !== gun) gun.append(overlay);
     return overlay;
   }
 
@@ -101,33 +89,46 @@
     if (element) element.style.setProperty(property, value, 'important');
   }
 
-  function applyGunVisuals(scene, cfg, glintOverlay) {
-    if (!scene.gun) return [];
+  function syncOverlayRect(overlay, target, paddingX = 0, paddingY = paddingX) {
+    if (!overlay || !target) {
+      if (overlay) setImportant(overlay, 'display', 'none');
+      return false;
+    }
+    const rect = target.getBoundingClientRect();
+    if (!rect.width || !rect.height) {
+      setImportant(overlay, 'display', 'none');
+      return false;
+    }
+    setImportant(overlay, 'display', 'block');
+    setImportant(overlay, 'left', `${rect.left - paddingX}px`);
+    setImportant(overlay, 'top', `${rect.top - paddingY}px`);
+    setImportant(overlay, 'width', `${rect.width + paddingX * 2}px`);
+    setImportant(overlay, 'height', `${rect.height + paddingY * 2}px`);
+    return true;
+  }
+
+  function applyGunGlint(scene, cfg, gunGlint) {
+    if (!scene.gun || !gunGlint) {
+      if (gunGlint) setImportant(gunGlint, 'display', 'none');
+      return false;
+    }
+
     const glint = Math.max(0, cfg.gunGleam);
-    const color = `hsla(${cfg.lightHue},${Math.max(55, cfg.lightSaturation)}%,88%,${Math.min(0.95, 0.18 + glint * 0.48)})`;
-    const visuals = Array.from(scene.gun.querySelectorAll('img,svg,canvas,picture,[class*="sprite"],[class*="art"]'));
-    const targets = visuals.length ? visuals : [scene.gun];
+    const rect = scene.gun.getBoundingClientRect();
+    const paddingX = rect.width * 0.04;
+    const paddingY = rect.height * 0.08;
+    const mounted = syncOverlayRect(gunGlint, scene.gun, paddingX, paddingY);
+    if (!mounted) return false;
 
-    for (const target of targets) {
-      setImportant(
-        target,
-        'filter',
-        `brightness(${1 + glint * 0.22}) contrast(${1.04 + glint * 0.08}) saturate(${1 + glint * 0.12}) ` +
-          `drop-shadow(0 10px 12px rgba(0,0,0,.72)) ` +
-          `drop-shadow(0 -2px ${6 + glint * 20}px ${color})`
-      );
-    }
-
-    if (glintOverlay) {
-      setImportant(glintOverlay, 'opacity', `${Math.min(0.9, glint * 0.62)}`);
-      setImportant(
-        glintOverlay,
-        'background',
-        `linear-gradient(102deg,transparent 0 37%,${color} 47%,transparent 58%),` +
-          `radial-gradient(circle at 58% 35%,${color} 0 2%,transparent 13%)`
-      );
-    }
-    return targets;
+    const color = `hsla(${cfg.lightHue},${Math.max(55, cfg.lightSaturation)}%,88%,${Math.min(0.95, 0.12 + glint * 0.5)})`;
+    setImportant(gunGlint, 'opacity', `${Math.min(0.9, glint * 0.62)}`);
+    setImportant(
+      gunGlint,
+      'background',
+      `linear-gradient(102deg,transparent 0 38%,${color} 48%,transparent 58%),` +
+        `radial-gradient(circle at 58% 35%,${color} 0 2%,transparent 13%)`
+    );
+    return true;
   }
 
   function apply(doc, rawConfig = {}) {
@@ -150,14 +151,14 @@
     }
 
     const image = ensureLampImage(doc, scene.swing);
-    const trackedLight = ensureTrackedLight(doc, scene);
-    const roomOverlay = ensureRoomOverlay(doc, scene.game);
-    const gunGlint = ensureGunGlint(doc, scene.gun);
+    const overlayRoot = ensureOverlayRoot(doc);
+    const trackedLight = ensureOverlay(doc, overlayRoot, trackedLightId);
+    const roomOverlay = ensureOverlay(doc, overlayRoot, roomOverlayId);
+    const gunGlint = ensureOverlay(doc, overlayRoot, gunGlintId);
 
     setImportant(scene.swing, 'left', `${cfg.lampX}%`);
     setImportant(scene.swing, 'top', `calc(20% + ${cfg.lampY}px)`);
     setImportant(scene.swing, 'animation-duration', `${cfg.speed}s`);
-    setImportant(scene.swing, 'animation-delay', '0s');
     scene.swing.style.setProperty('--rr-lamp-swing-positive', `${cfg.swing}deg`);
     scene.swing.style.setProperty('--rr-lamp-swing-negative', `${-cfg.swing}deg`);
 
@@ -191,22 +192,28 @@
       scene.rig.style.setProperty('--rr-lamp-y', `${cfg.lampY}px`);
     }
 
-    const centerColor = `hsla(${cfg.lightHue},${cfg.lightSaturation}%,88%,${Math.min(1, cfg.strength)})`;
-    const midColor = `hsla(${cfg.lightHue},${Math.max(0, cfg.lightSaturation - 8)}%,58%,${Math.min(0.88, cfg.strength * 0.58)})`;
-    const edgeColor = `hsla(${cfg.lightHue},${Math.max(0, cfg.lightSaturation - 22)}%,30%,${Math.min(0.45, cfg.strength * 0.2)})`;
-    trackedLight.style.setProperty('--rr-light-track-positive', `${cfg.track}%`);
-    trackedLight.style.setProperty('--rr-light-track-negative', `${-cfg.track}%`);
-    setImportant(trackedLight, 'animation-duration', `${cfg.trackSpeed}s`);
-    setImportant(trackedLight, 'animation-delay', '0s');
-    setImportant(
-      trackedLight,
-      'background',
-      `radial-gradient(ellipse ${cfg.spreadX}% ${cfg.spreadY}% at ${cfg.lightX}% ${cfg.lightY}%,` +
-        `${centerColor} 0,${midColor} 38%,${edgeColor} 68%,transparent 94%)`
-    );
+    const tableRect = scene.table?.getBoundingClientRect();
+    const tablePaddingX = tableRect ? tableRect.width * 0.08 : 0;
+    const tablePaddingY = tableRect ? tableRect.height * 0.08 : 0;
+    const lightMounted = syncOverlayRect(trackedLight, scene.table, tablePaddingX, tablePaddingY);
+    if (lightMounted) {
+      const centerColor = `hsla(${cfg.lightHue},${cfg.lightSaturation}%,88%,${Math.min(1, cfg.strength)})`;
+      const midColor = `hsla(${cfg.lightHue},${Math.max(0, cfg.lightSaturation - 8)}%,58%,${Math.min(0.88, cfg.strength * 0.58)})`;
+      const edgeColor = `hsla(${cfg.lightHue},${Math.max(0, cfg.lightSaturation - 22)}%,30%,${Math.min(0.45, cfg.strength * 0.2)})`;
+      trackedLight.style.setProperty('--rr-light-track-positive', `${cfg.track}%`);
+      trackedLight.style.setProperty('--rr-light-track-negative', `${-cfg.track}%`);
+      setImportant(trackedLight, 'animation-duration', `${cfg.trackSpeed}s`);
+      setImportant(
+        trackedLight,
+        'background',
+        `radial-gradient(ellipse ${cfg.spreadX}% ${cfg.spreadY}% at ${cfg.lightX}% ${cfg.lightY}%,` +
+          `${centerColor} 0,${midColor} 38%,${edgeColor} 68%,transparent 94%)`
+      );
+    }
 
-    setImportant(roomOverlay, 'opacity', `${cfg.wallDark}`);
-    const gunVisuals = applyGunVisuals(scene, cfg, gunGlint);
+    const roomMounted = syncOverlayRect(roomOverlay, scene.game);
+    if (roomMounted) setImportant(roomOverlay, 'opacity', `${cfg.wallDark}`);
+    const gunMounted = applyGunGlint(scene, cfg, gunGlint);
 
     const targets = {
       lampArtX: image,
@@ -223,17 +230,17 @@
       chainStretch: scene.chain,
       swing: scene.swing,
       speed: scene.swing,
-      lightHue: trackedLight,
-      lightSaturation: trackedLight,
-      lightX: trackedLight,
-      lightY: trackedLight,
-      spreadX: trackedLight,
-      spreadY: trackedLight,
-      strength: trackedLight,
-      track: trackedLight,
-      trackSpeed: trackedLight,
-      wallDark: roomOverlay,
-      gunGleam: gunGlint || gunVisuals[0] || null
+      lightHue: lightMounted ? trackedLight : null,
+      lightSaturation: lightMounted ? trackedLight : null,
+      lightX: lightMounted ? trackedLight : null,
+      lightY: lightMounted ? trackedLight : null,
+      spreadX: lightMounted ? trackedLight : null,
+      spreadY: lightMounted ? trackedLight : null,
+      strength: lightMounted ? trackedLight : null,
+      track: lightMounted ? trackedLight : null,
+      trackSpeed: lightMounted ? trackedLight : null,
+      wallDark: roomMounted ? roomOverlay : null,
+      gunGleam: gunMounted ? gunGlint : null
     };
 
     const connectedCount = Object.values(targets).filter(Boolean).length;
@@ -241,6 +248,7 @@
       mounted: true,
       image,
       scene,
+      overlayRoot,
       trackedLight,
       roomOverlay,
       gunGlint,
@@ -253,36 +261,24 @@
 
   function watch(doc, configProvider, onApply) {
     let stopped = false;
-    let scheduled = false;
+    let timer = null;
+    const view = doc.defaultView || global;
 
     const run = () => {
       if (stopped) return;
-      scheduled = false;
       const result = apply(doc, typeof configProvider === 'function' ? configProvider() : configProvider);
       if (typeof onApply === 'function') onApply(result);
     };
 
-    const schedule = () => {
-      if (scheduled || stopped) return;
-      scheduled = true;
-      const view = doc.defaultView || global;
-      const requestFrame = view.requestAnimationFrame || (callback => view.setTimeout(callback, 16));
-      requestFrame.call(view, run);
-    };
-
-    const Observer = doc.defaultView?.MutationObserver || global.MutationObserver;
-    if (!Observer) {
-      schedule();
-      return () => { stopped = true; };
-    }
-
-    const observer = new Observer(schedule);
-    observer.observe(doc.documentElement, { childList: true, subtree: true });
-    schedule();
+    const onResize = () => run();
+    view.addEventListener?.('resize', onResize, { passive: true });
+    run();
+    timer = view.setInterval(run, 750);
 
     return () => {
       stopped = true;
-      observer.disconnect();
+      if (timer != null) view.clearInterval(timer);
+      view.removeEventListener?.('resize', onResize);
     };
   }
 
