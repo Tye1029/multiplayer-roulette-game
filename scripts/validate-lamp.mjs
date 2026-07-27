@@ -57,7 +57,7 @@ for (const required of [
   '/assets/roulette/lamp-config.js?v=16',
   '/assets/roulette/lamp.js?v=16',
   '/assets/roulette/lamp-bootstrap.js?v=16',
-  '/assets/roulette/turn-orientation.js?v=3',
+  '/assets/roulette/turn-orientation.js?v=4',
   'rrLampCriticalHide',
   'MODULAR_LAMP_ASSETS_START',
   'MODULAR_LAMP_ASSETS_END'
@@ -134,8 +134,11 @@ for (const required of [
   "const OWNER_ATTRIBUTE = 'data-rr-turn-owner'",
   "const READY_ATTRIBUTE = 'data-rr-turn-ready'",
   'const LARGE_ROTATION_DEGREES = 90',
+  'const MEDIA_TAGS = new Set',
   'rotate: 180deg !important',
   'transition: rotate 780ms',
+  'transform-box: border-box !important',
+  'transform-origin: var(--rr-turn-origin-x, 50%) var(--rr-turn-origin-y, 50%)',
   '/^YOUR TURN[.!]?$/',
   '/\\bHAS THE REVOLVER\\b/',
   'ownerFromData',
@@ -146,6 +149,13 @@ for (const required of [
   'animation.effect?.target !== gun',
   'rotationFromTransform(frame.transform) >= LARGE_ROTATION_DEGREES',
   'if (isLargeTransformFlip) animation.cancel()',
+  'measureVisibleArtworkPivot',
+  "gun.style.setProperty('transition', 'none', 'important')",
+  "gun.style.setProperty('rotate', '0deg', 'important')",
+  'gun.getBoundingClientRect()',
+  "gun.style.setProperty('--rr-turn-origin-x'",
+  "gun.style.setProperty('--rr-turn-origin-y'",
+  'restoreInlineProperty',
   'const previousOwner = lastOwner',
   'const ownerChanged = owner !== previousOwner',
   'if (!gunChanged && !ownerChanged) return',
@@ -153,8 +163,9 @@ for (const required of [
   'root.setAttribute(OWNER_ATTRIBUTE, previousOwner)',
   'lastOwner === nextOwner',
   "gameRoot.setAttribute(OWNER_ATTRIBUTE, owner)",
-  'gameRoot.addEventListener(\'animationstart\'',
-  'gameRoot.addEventListener(\'transitionrun\'',
+  "gameRoot.addEventListener('animationstart'",
+  "gameRoot.addEventListener('transitionrun'",
+  "window.addEventListener('resize', scheduleOrientation",
   'gameObserver.observe(gameRoot',
   'pageObserver.observe(document.body || document.documentElement'
 ]) {
@@ -224,4 +235,4 @@ if (!bootstrapSource.includes("params.has('lampCalibration')") || !bootstrapSour
   throw new Error('Normal-page lamp bootstrap is not isolated from calibration mode');
 }
 
-console.log(`Validation passed: ${keys.length}/${keys.length} lamp controls bound; the real gun keeps its owner direction and the obsolete transient 180-degree flip is cancelled.`);
+console.log(`Validation passed: ${keys.length}/${keys.length} lamp controls bound; the opponent-facing gun rotates around the visible artwork center and remains on-screen.`);
