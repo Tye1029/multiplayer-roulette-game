@@ -42,20 +42,19 @@ for (const key of keys) {
 }
 
 for (const required of [
-  '/assets/roulette/lamp-config.js?v=14',
-  '/assets/roulette/lamp.js?v=14',
-  '/assets/roulette/lamp-calibration.js?v=14',
-  '/assets/roulette/lamp-calibration.css?v=14'
+  '/assets/roulette/lamp-config.js?v=15',
+  '/assets/roulette/lamp.js?v=15',
+  '/assets/roulette/lamp-calibration.js?v=15',
+  '/assets/roulette/lamp-calibration.css?v=15'
 ]) {
   if (!htmlSource.includes(required)) throw new Error(`Calibration HTML missing ${required}`);
 }
 
 for (const required of [
-  '/assets/roulette/lamp-config.js?v=14',
-  '/assets/roulette/lamp.js?v=14',
-  '/assets/roulette/lamp-bootstrap.js?v=14',
+  '/assets/roulette/lamp-config.js?v=15',
+  '/assets/roulette/lamp.js?v=15',
+  '/assets/roulette/lamp-bootstrap.js?v=15',
   'rrLampCriticalHide',
-  'data-rr-lamp-ready',
   'MODULAR_LAMP_ASSETS_START',
   'MODULAR_LAMP_ASSETS_END'
 ]) {
@@ -64,32 +63,37 @@ for (const required of [
 
 for (const required of [
   '/assets/roulette/decor/lamp-1.png',
-  "styleAsset = '/assets/roulette/lamp.css?v=14'",
+  "styleAsset = '/assets/roulette/lamp.css?v=15'",
   'applyLightingVariables',
   '--rr-cal-light-background',
+  '--rr-light-track-distance',
   '--rr-light-track-duration',
   'cfg.gunGleam <= 0.05',
-  'removeStaleOverlays',
-  'setInterval(run, 1000)'
+  'removeGunGlint',
+  'sceneWasReplaced',
+  'new Observer(onMutation)',
+  'observer.observe(root, { childList: true, subtree: true })'
 ]) {
   if (!runtimeSource.includes(required)) throw new Error(`Lamp runtime missing ${required}`);
 }
 
 for (const required of [
   'background: var(--rr-cal-light-background',
-  'animation-duration: var(--rr-light-track-duration',
+  'background-position: calc(50% - var(--rr-light-track-distance',
+  'background-position: calc(50% + var(--rr-light-track-distance',
+  'background-size: 125% 100% !important',
+  'transform: none !important',
+  'will-change: background-position',
   'transition: none !important',
-  'animation: none !important',
   '#rrLampTrackedLight',
   '#rrRoomDarknessOverlay'
 ]) {
   if (!cssSource.includes(required)) throw new Error(`Lamp CSS missing ${required}`);
 }
 
-if (runtimeSource.includes('MutationObserver')) {
-  throw new Error('Lamp runtime must not observe gameplay DOM mutations');
-}
 for (const forbidden of [
+  'setInterval(',
+  'data-rr-lamp-ready',
   "scene.sceneLight,\n        'background'",
   "scene.sceneLight, 'background'",
   'scene.gun.append',
@@ -97,7 +101,14 @@ for (const forbidden of [
   'scene.gun.style.setProperty',
   'scene.table.style.setProperty'
 ]) {
-  if (runtimeSource.includes(forbidden)) throw new Error(`Lamp runtime still interferes with gameplay: ${forbidden}`);
+  if (runtimeSource.includes(forbidden)) throw new Error(`Lamp runtime still contains unsafe behavior: ${forbidden}`);
+}
+
+if (injectorSource.includes('.rr126-swing { visibility: hidden')) {
+  throw new Error('Critical CSS still hides the whole lamp rig during firing rerenders');
+}
+if (cssSource.includes('@keyframes rrLampLightTrackExternal {\n  0%, 100% { transform:')) {
+  throw new Error('Light tracking still transforms a scene element');
 }
 
 const packageJson = JSON.parse(packageSource);
@@ -125,4 +136,4 @@ if (!bootstrapSource.includes("params.has('lampCalibration')") || !bootstrapSour
   throw new Error('Normal-page bootstrap is not isolated from calibration mode');
 }
 
-console.log(`Lamp validation passed: ${keys.length}/${keys.length} controls bound; saved lighting is deterministic and builds do not delete gameplay assets.`);
+console.log(`Lamp validation passed: ${keys.length}/${keys.length} controls bound; lamp remounts immediately and light tracking cannot transform the gun scene.`);
