@@ -5,7 +5,7 @@
   if (!configApi) throw new Error('lamp-config.js must load before lamp.js');
 
   const lampAsset = '/assets/roulette/decor/lamp-1.png';
-  const styleAsset = '/assets/roulette/lamp.css?v=14';
+  const styleAsset = '/assets/roulette/lamp.css?v=15';
   const styleMarker = 'rrLampExternalStyles';
   const imageId = 'rrLampPng';
   const overlayRootId = 'rrLampVisualOverlayRoot';
@@ -20,7 +20,7 @@
       link.rel = 'stylesheet';
       doc.head.append(link);
     }
-    if (!link.href.includes('lamp.css?v=14')) link.href = styleAsset;
+    if (!link.href.includes('lamp.css?v=15')) link.href = styleAsset;
     return link;
   }
 
@@ -35,38 +35,17 @@
     };
   }
 
-  function revealNewLamp(swing, image) {
-    const reveal = () => {
-      swing.dataset.rrLampReady = 'true';
-      image.style.setProperty('visibility', 'visible', 'important');
-      image.style.setProperty('opacity', '1', 'important');
-    };
-
-    if (image.complete && image.naturalWidth > 0) {
-      reveal();
-    } else {
-      swing.dataset.rrLampReady = 'false';
-      image.addEventListener('load', reveal, { once: true });
-      image.addEventListener('error', () => {
-        swing.dataset.rrLampReady = 'false';
-      }, { once: true });
-    }
-  }
-
   function ensureLampImage(doc, swing) {
-    let image = doc.getElementById(imageId);
+    let image = swing.querySelector(`#${imageId}`);
     if (!image) {
       image = doc.createElement('img');
       image.id = imageId;
       image.alt = '';
       image.decoding = 'async';
       image.draggable = false;
-      image.style.setProperty('visibility', 'hidden', 'important');
+      image.src = lampAsset;
       swing.append(image);
-    }
-
-    if (!image.src.includes('/lamp-1.png')) {
-      swing.dataset.rrLampReady = 'false';
+    } else if (!image.src.includes('/lamp-1.png')) {
       image.src = lampAsset;
     }
 
@@ -79,12 +58,17 @@
       if (oldPart !== image && !oldPart.contains(image)) oldPart.remove();
     }
 
-    revealNewLamp(swing, image);
     return image;
   }
 
   function removeStaleOverlays(doc) {
     for (const id of staleOverlayIds) doc.getElementById(id)?.remove();
+  }
+
+  function removeGunGlint(doc) {
+    doc.getElementById(gunGlintId)?.remove();
+    const root = doc.getElementById(overlayRootId);
+    if (root && !root.children.length) root.remove();
   }
 
   function ensureOverlayRoot(doc) {
@@ -134,17 +118,18 @@
     return true;
   }
 
-  function applyGunGlint(scene, cfg, gunGlint) {
-    if (!scene.gun || !gunGlint) {
-      if (gunGlint) setImportant(gunGlint, 'display', 'none');
+  function applyGunGlint(doc, scene, cfg) {
+    if (cfg.gunGleam <= 0.05) {
+      removeGunGlint(doc);
+      return Boolean(scene.gun);
+    }
+    if (!scene.gun) {
+      removeGunGlint(doc);
       return false;
     }
 
-    if (cfg.gunGleam <= 0.05) {
-      setImportant(gunGlint, 'display', 'none');
-      return true;
-    }
-
+    const root = ensureOverlayRoot(doc);
+    const gunGlint = ensureGunGlint(doc, root);
     const glint = Math.max(0, cfg.gunGleam);
     const rect = scene.gun.getBoundingClientRect();
     const mounted = syncOverlayRect(gunGlint, scene.gun, rect.width * 0.03, rect.height * 0.05);
@@ -171,8 +156,7 @@
       `${centerColor} 0,${midColor} 38%,${edgeColor} 68%,transparent 94%)`;
 
     scene.game.style.setProperty('--rr-cal-light-background', background);
-    scene.game.style.setProperty('--rr-light-track-positive', `${cfg.track}%`);
-    scene.game.style.setProperty('--rr-light-track-negative', `${-cfg.track}%`);
+    scene.game.style.setProperty('--rr-light-track-distance', `${cfg.track}%`);
     scene.game.style.setProperty('--rr-light-track-duration', `${cfg.trackSpeed}s`);
     scene.game.style.setProperty('--rr-room-darkness', `${cfg.wallDark}`);
     return Boolean(scene.sceneLight);
@@ -189,6 +173,7 @@
     const scene = queryScene(doc);
 
     if (!scene.game || !scene.swing) {
+      removeGunGlint(doc);
       return {
         mounted: false,
         connectedCount: 0,
@@ -199,8 +184,6 @@
     }
 
     const image = ensureLampImage(doc, scene.swing);
-    const overlayRoot = ensureOverlayRoot(doc);
-    const gunGlint = ensureGunGlint(doc, overlayRoot);
 
     setImportant(scene.swing, 'left', `${cfg.lampX}%`);
     setImportant(scene.swing, 'top', `calc(20% + ${cfg.lampY}px)`);
@@ -239,7 +222,8 @@
     }
 
     const lightMounted = applyLightingVariables(scene, cfg);
-    const gunMounted = applyGunGlint(scene, cfg, gunGlint);
+    const gunMounted = applyGunGlint(doc, scene, cfg);
+    const gunTarget = cfg.gunGleam <= 0.05 ? scene.game : doc.getElementById(gunGlintId);
 
     const targets = {
       lampArtX: image,
@@ -266,7 +250,7 @@
       track: lightMounted ? scene.game : null,
       trackSpeed: lightMounted ? scene.game : null,
       wallDark: scene.game,
-      gunGleam: gunMounted ? gunGlint : null
+      gunGleam: gunMounted ? gunTarget : null
     };
 
     const connectedCount = Object.values(targets).filter(Boolean).length;
@@ -274,8 +258,6 @@
       mounted: true,
       image,
       scene,
-      overlayRoot,
-      gunGlint,
       targets,
       connectedCount,
       totalControls: Object.keys(targets).length,
@@ -285,23 +267,53 @@
 
   function watch(doc, configProvider, onApply) {
     let stopped = false;
-    let timer = null;
+    let applying = false;
+    let lastScene = {};
     const view = doc.defaultView || global;
 
+    const currentConfig = () => (
+      typeof configProvider === 'function' ? configProvider() : configProvider
+    );
+
     const run = () => {
-      if (stopped) return;
-      const result = apply(doc, typeof configProvider === 'function' ? configProvider() : configProvider);
-      if (typeof onApply === 'function') onApply(result);
+      if (stopped || applying) return;
+      applying = true;
+      try {
+        const result = apply(doc, currentConfig());
+        lastScene = result.scene || {};
+        if (typeof onApply === 'function') onApply(result);
+      } finally {
+        applying = false;
+      }
     };
 
+    const sceneWasReplaced = () => {
+      const scene = queryScene(doc);
+      const image = doc.getElementById(imageId);
+      return (
+        scene.game !== lastScene.game ||
+        scene.swing !== lastScene.swing ||
+        scene.chain !== lastScene.chain ||
+        scene.sceneLight !== lastScene.sceneLight ||
+        (scene.swing && (!image || image.parentElement !== scene.swing))
+      );
+    };
+
+    const onMutation = () => {
+      if (!stopped && !applying && sceneWasReplaced()) run();
+    };
     const onResize = () => run();
+
+    const Observer = view.MutationObserver || global.MutationObserver;
+    const observer = Observer ? new Observer(onMutation) : null;
+    const root = doc.body || doc.documentElement;
+    if (observer && root) observer.observe(root, { childList: true, subtree: true });
     view.addEventListener?.('resize', onResize, { passive: true });
     run();
-    timer = view.setInterval(run, 1000);
 
     return () => {
       stopped = true;
-      if (timer != null) view.clearInterval(timer);
+      observer?.disconnect();
       view.removeEventListener?.('resize', onResize);
     };
   }
