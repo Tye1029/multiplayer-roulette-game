@@ -70,7 +70,7 @@
       image.src = lampAsset;
     }
 
-    for (const oldImage of swing.querySelectorAll(`img:not(#${imageId})`)) {
+    for (const oldImage of swing.querySelectorAll(`:scope > img:not(#${imageId})`)) {
       oldImage.remove();
     }
     for (const oldPart of swing.querySelectorAll(
