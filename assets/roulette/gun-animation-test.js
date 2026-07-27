@@ -11,6 +11,7 @@
   const logElement = document.getElementById('testLog');
   const toggleLoopButton = document.getElementById('toggleLoop');
   const resetButton = document.getElementById('resetTest');
+  const manualButtons = Array.from(document.querySelectorAll('[data-test-action]'));
 
   if (!game || !gun || !status || !overall) return;
 
@@ -23,6 +24,8 @@
   let loopToken = 0;
   let failures = 0;
   let monitorFrame = 0;
+  let manualBusy = false;
+  let manualTakeoverPending = false;
 
   const wait = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
 
@@ -99,12 +102,14 @@
     setTimeout(() => gun.classList.remove('firing'), 360);
   }
 
-  async function expectAnimation(type, action, label) {
+  async function expectAnimation(type, action, label, isCancelled = () => false) {
     const before = type === 'turn' ? turnCount : recoilCount;
     action();
 
-    const deadline = performance.now() + 650;
+    const timeout = type === 'turn' ? 1050 : 800;
+    const deadline = performance.now() + timeout;
     while (performance.now() < deadline) {
+      if (isCancelled()) return null;
       const current = type === 'turn' ? turnCount : recoilCount;
       if (current > before) {
         writeLog(`${label}: ${type} check passed.`, 'pass');
@@ -113,6 +118,7 @@
       await wait(40);
     }
 
+    if (isCancelled()) return null;
     failures += 1;
     writeLog(`${label}: no ${type} animation was detected.`, 'fail');
     updateDiagnostics();
@@ -120,61 +126,95 @@
   }
 
   async function runAutomaticLoop(token) {
-    while (automatic && token === loopToken) {
+    const cancelled = () => !automatic || token !== loopToken;
+
+    while (!cancelled()) {
       setTurn('local');
       await wait(950);
-      if (!automatic || token !== loopToken) break;
+      if (cancelled()) break;
 
-      await expectAnimation('recoil', () => fire('local'), 'Local firing');
+      await expectAnimation('recoil', () => fire('local'), 'Local firing', cancelled);
       await wait(850);
-      if (!automatic || token !== loopToken) break;
+      if (cancelled()) break;
 
-      await expectAnimation('turn', () => setTurn('opponent'), 'Opponent turn change');
+      await expectAnimation('turn', () => setTurn('opponent'), 'Opponent turn change', cancelled);
       await wait(950);
-      if (!automatic || token !== loopToken) break;
+      if (cancelled()) break;
 
-      await expectAnimation('recoil', () => fire('opponent'), 'Opponent firing');
+      await expectAnimation('recoil', () => fire('opponent'), 'Opponent firing', cancelled);
       await wait(850);
-      if (!automatic || token !== loopToken) break;
+      if (cancelled()) break;
 
-      await expectAnimation('turn', () => setTurn('local'), 'Return to local turn');
+      await expectAnimation('turn', () => setTurn('local'), 'Return to local turn', cancelled);
       await wait(1100);
     }
   }
 
   function startAutomaticLoop() {
+    if (manualBusy) return;
     automatic = true;
+    manualTakeoverPending = false;
     loopToken += 1;
     toggleLoopButton.textContent = 'Pause automatic loop';
     runAutomaticLoop(loopToken);
   }
 
   function stopAutomaticLoop() {
-    automatic = false;
-    loopToken += 1;
+    if (automatic) {
+      automatic = false;
+      loopToken += 1;
+      manualTakeoverPending = true;
+      writeLog('Automatic loop paused. Waiting for the current animation to settle.');
+    }
     toggleLoopButton.textContent = 'Resume automatic loop';
-    writeLog('Automatic loop paused.');
   }
 
-  function runManualAction(action) {
+  function setManualControlsDisabled(disabled) {
+    manualButtons.forEach(button => { button.disabled = disabled; });
+    resetButton.disabled = disabled;
+    toggleLoopButton.disabled = disabled;
+  }
+
+  async function runManualAction(action) {
+    if (manualBusy) {
+      writeLog('Manual input ignored because another test action is still running.');
+      return;
+    }
+
     stopAutomaticLoop();
-    switch (action) {
-      case 'local-turn':
-        expectAnimation('turn', () => setTurn('local'), 'Manual local turn');
-        break;
-      case 'local-fire':
-        expectAnimation('recoil', () => fire('local'), 'Manual local firing');
-        break;
-      case 'opponent-turn':
-        expectAnimation('turn', () => setTurn('opponent'), 'Manual opponent turn');
-        break;
-      case 'opponent-fire':
-        expectAnimation('recoil', () => fire('opponent'), 'Manual opponent firing');
-        break;
+    manualBusy = true;
+    setManualControlsDisabled(true);
+
+    try {
+      if (manualTakeoverPending) {
+        manualTakeoverPending = false;
+        await wait(950);
+      }
+
+      switch (action) {
+        case 'local-turn':
+          await expectAnimation('turn', () => setTurn('local'), 'Manual local turn');
+          break;
+        case 'local-fire':
+          await expectAnimation('recoil', () => fire('local'), 'Manual local firing');
+          break;
+        case 'opponent-turn':
+          await expectAnimation('turn', () => setTurn('opponent'), 'Manual opponent turn');
+          break;
+        case 'opponent-fire':
+          await expectAnimation('recoil', () => fire('opponent'), 'Manual opponent firing');
+          break;
+      }
+
+      await wait(380);
+    } finally {
+      manualBusy = false;
+      setManualControlsDisabled(false);
     }
   }
 
   function resetDiagnostics() {
+    stopAutomaticLoop();
     failures = 0;
     turnCount = 0;
     recoilCount = 0;
@@ -186,9 +226,8 @@
     gun.classList.remove('firing');
     setTurn('local');
     updateDiagnostics();
-    writeLog('Diagnostics reset. The automatic sequence will build a fresh result.');
-
-    if (!automatic) startAutomaticLoop();
+    writeLog('Diagnostics reset. Starting a fresh automatic sequence.');
+    setTimeout(startAutomaticLoop, 500);
   }
 
   toggleLoopButton.addEventListener('click', () => {
@@ -197,7 +236,7 @@
   });
 
   resetButton.addEventListener('click', resetDiagnostics);
-  document.querySelectorAll('[data-test-action]').forEach(button => {
+  manualButtons.forEach(button => {
     button.addEventListener('click', () => runManualAction(button.dataset.testAction));
   });
 
