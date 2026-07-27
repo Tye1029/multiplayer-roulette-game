@@ -5,7 +5,7 @@
   if (!configApi) throw new Error('lamp-config.js must load before lamp.js');
 
   const lampAsset = '/assets/roulette/decor/lamp-1.png';
-  const styleAsset = '/assets/roulette/lamp.css?v=13';
+  const styleAsset = '/assets/roulette/lamp.css?v=14';
   const styleMarker = 'rrLampExternalStyles';
   const imageId = 'rrLampPng';
   const overlayRootId = 'rrLampVisualOverlayRoot';
@@ -20,7 +20,7 @@
       link.rel = 'stylesheet';
       doc.head.append(link);
     }
-    if (!link.href.includes('lamp.css?v=13')) link.href = styleAsset;
+    if (!link.href.includes('lamp.css?v=14')) link.href = styleAsset;
     return link;
   }
 
@@ -30,7 +30,7 @@
       rig: doc.querySelector('.rr126-lamp-rig'),
       swing: doc.querySelector('.rr126-swing'),
       chain: doc.querySelector('.rr126-chain'),
-      legacyLight: doc.querySelector('.rr130-table-illumination'),
+      sceneLight: doc.querySelector('.rr130-table-illumination'),
       gun: doc.querySelector('.rr-gun-motion')
     };
   }
@@ -135,9 +135,14 @@
   }
 
   function applyGunGlint(scene, cfg, gunGlint) {
-    if (!scene.gun || !gunGlint || cfg.gunGleam <= 0) {
+    if (!scene.gun || !gunGlint) {
       if (gunGlint) setImportant(gunGlint, 'display', 'none');
-      return Boolean(scene.gun && gunGlint);
+      return false;
+    }
+
+    if (cfg.gunGleam <= 0.05) {
+      setImportant(gunGlint, 'display', 'none');
+      return true;
     }
 
     const glint = Math.max(0, cfg.gunGleam);
@@ -153,6 +158,24 @@
       `radial-gradient(ellipse 42% 26% at 58% 35%,${color} 0 4%,transparent 70%)`
     );
     return true;
+  }
+
+  function applyLightingVariables(scene, cfg) {
+    if (!scene.game) return false;
+
+    const centerColor = `hsla(${cfg.lightHue},${cfg.lightSaturation}%,88%,${Math.min(1, cfg.strength)})`;
+    const midColor = `hsla(${cfg.lightHue},${Math.max(0, cfg.lightSaturation - 8)}%,58%,${Math.min(0.88, cfg.strength * 0.58)})`;
+    const edgeColor = `hsla(${cfg.lightHue},${Math.max(0, cfg.lightSaturation - 22)}%,30%,${Math.min(0.45, cfg.strength * 0.2)})`;
+    const background =
+      `radial-gradient(ellipse ${cfg.spreadX}% ${cfg.spreadY}% at ${cfg.lightX}% ${cfg.lightY}%,` +
+      `${centerColor} 0,${midColor} 38%,${edgeColor} 68%,transparent 94%)`;
+
+    scene.game.style.setProperty('--rr-cal-light-background', background);
+    scene.game.style.setProperty('--rr-light-track-positive', `${cfg.track}%`);
+    scene.game.style.setProperty('--rr-light-track-negative', `${-cfg.track}%`);
+    scene.game.style.setProperty('--rr-light-track-duration', `${cfg.trackSpeed}s`);
+    scene.game.style.setProperty('--rr-room-darkness', `${cfg.wallDark}`);
+    return Boolean(scene.sceneLight);
   }
 
   function apply(doc, rawConfig = {}) {
@@ -215,26 +238,7 @@
       scene.rig.style.setProperty('--rr-lamp-y', `${cfg.lampY}px`);
     }
 
-    let lightMounted = false;
-    if (scene.legacyLight) {
-      lightMounted = true;
-      const centerColor = `hsla(${cfg.lightHue},${cfg.lightSaturation}%,88%,${Math.min(1, cfg.strength)})`;
-      const midColor = `hsla(${cfg.lightHue},${Math.max(0, cfg.lightSaturation - 8)}%,58%,${Math.min(0.88, cfg.strength * 0.58)})`;
-      const edgeColor = `hsla(${cfg.lightHue},${Math.max(0, cfg.lightSaturation - 22)}%,30%,${Math.min(0.45, cfg.strength * 0.2)})`;
-      scene.legacyLight.style.setProperty('--rr-light-track-positive', `${cfg.track}%`);
-      scene.legacyLight.style.setProperty('--rr-light-track-negative', `${-cfg.track}%`);
-      setImportant(scene.legacyLight, 'display', 'block');
-      setImportant(scene.legacyLight, 'opacity', '1');
-      setImportant(scene.legacyLight, 'animation-duration', `${cfg.trackSpeed}s`);
-      setImportant(
-        scene.legacyLight,
-        'background',
-        `radial-gradient(ellipse ${cfg.spreadX}% ${cfg.spreadY}% at ${cfg.lightX}% ${cfg.lightY}%,` +
-          `${centerColor} 0,${midColor} 38%,${edgeColor} 68%,transparent 94%)`
-      );
-    }
-
-    scene.game.style.setProperty('--rr-room-darkness', `${cfg.wallDark}`);
+    const lightMounted = applyLightingVariables(scene, cfg);
     const gunMounted = applyGunGlint(scene, cfg, gunGlint);
 
     const targets = {
@@ -252,15 +256,15 @@
       chainStretch: scene.chain,
       swing: scene.swing,
       speed: scene.swing,
-      lightHue: lightMounted ? scene.legacyLight : null,
-      lightSaturation: lightMounted ? scene.legacyLight : null,
-      lightX: lightMounted ? scene.legacyLight : null,
-      lightY: lightMounted ? scene.legacyLight : null,
-      spreadX: lightMounted ? scene.legacyLight : null,
-      spreadY: lightMounted ? scene.legacyLight : null,
-      strength: lightMounted ? scene.legacyLight : null,
-      track: lightMounted ? scene.legacyLight : null,
-      trackSpeed: lightMounted ? scene.legacyLight : null,
+      lightHue: lightMounted ? scene.game : null,
+      lightSaturation: lightMounted ? scene.game : null,
+      lightX: lightMounted ? scene.game : null,
+      lightY: lightMounted ? scene.game : null,
+      spreadX: lightMounted ? scene.game : null,
+      spreadY: lightMounted ? scene.game : null,
+      strength: lightMounted ? scene.game : null,
+      track: lightMounted ? scene.game : null,
+      trackSpeed: lightMounted ? scene.game : null,
       wallDark: scene.game,
       gunGleam: gunMounted ? gunGlint : null
     };
