@@ -21,11 +21,9 @@
     try {
       const saved = JSON.parse(localStorage.getItem(configApi.storageKey) || 'null');
       if (saved) return configApi.normalize(saved);
-
       const legacy = JSON.parse(localStorage.getItem(configApi.legacyStorageKey) || 'null');
       if (legacy) return configApi.normalize(legacy);
     } catch {}
-
     return configApi.normalize(configApi.defaults);
   }
 
@@ -54,11 +52,7 @@
   }
 
   function frameDocument() {
-    try {
-      return frame.contentDocument;
-    } catch {
-      return null;
-    }
+    try { return frame.contentDocument; } catch { return null; }
   }
 
   function updateStatus(result, changedKey = '') {
@@ -104,7 +98,7 @@
 
   saveButton.addEventListener('click', () => {
     localStorage.setItem(configApi.storageKey, JSON.stringify(cfg));
-    status.textContent = 'Calibration saved';
+    status.textContent = `Calibration saved — ${Object.keys(configApi.bindings).length} controls`;
   });
 
   copyButton.addEventListener('click', async () => {
