@@ -24,7 +24,7 @@ const block = `${startMarker}\n` +
   '  <script src="/assets/roulette/lamp-config.js?v=16" defer></script>\n' +
   '  <script src="/assets/roulette/lamp.js?v=16" defer></script>\n' +
   '  <script src="/assets/roulette/lamp-bootstrap.js?v=16" defer></script>\n' +
-  '  <script src="/assets/roulette/gun-turn-animation.js?v=1" defer></script>\n' +
+  '  <script src="/assets/roulette/gun-turn-animation.js?v=3" defer></script>\n' +
   `${endMarker}`;
 
 let html = await readFile(indexUrl, 'utf8');
@@ -39,4 +39,4 @@ if (markerPattern.test(html)) {
 }
 
 await writeFile(indexUrl, html);
-console.log('Injected gun-independent lamp controls and shared local/opponent gun turn animation.');
+console.log('Injected gun-independent lamp controls and deduplicated local/opponent gun animation.');
