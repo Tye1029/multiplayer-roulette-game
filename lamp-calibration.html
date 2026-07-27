@@ -15,7 +15,7 @@ button.action{margin:5px;padding:8px 10px;border:1px solid #a86225;border-radius
 </style>
 </head>
 <body>
-<iframe id="game" src="./?lampCalibration=5"></iframe>
+<iframe id="game" src="./?lampCalibration=6"></iframe>
 <button id="toggle">LAMP CALIBRATION</button>
 <section id="panel">
 <h3>Visible lamp calibration</h3>
@@ -24,7 +24,7 @@ button.action{margin:5px;padding:8px 10px;border:1px solid #a86225;border-radius
 <button class="action" id="save">Save</button>
 <button class="action" id="copy">Copy JSON</button>
 <button class="action" id="reset">Reset</button>
-<p><small>The visible fixture is the transparent PNG. The old rectangular bulb box and temporary CSS-painted underside are disabled.</small></p>
+<p><small>The visible fixture is the newest uploaded PNG: lamp-1.png. The old rectangular bulb box and temporary CSS-painted underside are disabled.</small></p>
 </section>
 <div id="status">Loading…</div>
 <script>
@@ -70,8 +70,10 @@ function ensureLampPng(d,sw){
   let img=d.getElementById('rrCalibrationLampPng');
   if(!img){
     img=d.createElement('img');img.id='rrCalibrationLampPng';img.alt='';img.decoding='async';img.draggable=false;
-    img.src='./assets/roulette/decor/workshop-lamp-body-game-small-2.png';
+    img.src='./assets/roulette/decor/lamp-1.png';
     sw.append(img);
+  }else if(!img.src.includes('/lamp-1.png')){
+    img.src='./assets/roulette/decor/lamp-1.png';
   }
   for(const old of sw.querySelectorAll('img:not(#rrCalibrationLampPng)'))old.style.setProperty('display','none','important');
   for(const old of sw.querySelectorAll('[class*="lamp-body"],[class*="lamp-shade"],[class*="shade-art"],[class*="underside"]')){
@@ -102,7 +104,7 @@ function apply(){
   }
   g.style.setProperty('--cal-wall',cfg.wallDark);
   if(gun)gun.style.filter=`brightness(1.02) contrast(1.08) drop-shadow(0 12px 12px #000b) drop-shadow(0 -2px ${8+cfg.gunGleam*20}px rgba(255,145,44,${cfg.gunGleam}))`;
-  status.textContent='Connected — transparent PNG active; all sliders bound';
+  status.textContent='Connected — newest lamp-1.png active; all sliders bound';
 }
 rows.addEventListener('input',e=>{if(!e.target.dataset.k)return;cfg[e.target.dataset.k]=+e.target.value;e.target.nextElementSibling.value=e.target.value;apply()});
 toggle.onclick=()=>p.classList.toggle('open');
