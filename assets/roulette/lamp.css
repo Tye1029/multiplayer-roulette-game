@@ -8,11 +8,6 @@
   50% { transform: translateX(var(--rr-light-track-positive, 6%)); }
 }
 
-@keyframes rrGunGlintSweepExternal {
-  0%, 100% { transform: translateX(-18%) rotate(-7deg); }
-  50% { transform: translateX(18%) rotate(-7deg); }
-}
-
 [data-roulette-game] .rr126-swing {
   isolation: auto !important;
   animation-name: rrLampSwingExternal !important;
@@ -22,6 +17,11 @@
   transform-origin: 50% 0 !important;
   overflow: visible !important;
   will-change: transform;
+  visibility: hidden !important;
+}
+
+[data-roulette-game] .rr126-swing[data-rr-lamp-ready="true"] {
+  visibility: visible !important;
 }
 
 [data-roulette-game] .rr126-swing::before,
@@ -32,16 +32,21 @@
   box-shadow: none !important;
 }
 
-[data-roulette-game] .rr126-bulb-glow {
+[data-roulette-game] .rr126-bulb-glow,
+[data-roulette-game] .rr126-swing > img:not(#rrLampPng),
+[data-roulette-game] .rr126-swing > [class*="lamp-body"],
+[data-roulette-game] .rr126-swing > [class*="lamp-shade"],
+[data-roulette-game] .rr126-swing > [class*="shade-art"],
+[data-roulette-game] .rr126-swing > [class*="underside"] {
   display: none !important;
+  visibility: hidden !important;
   opacity: 0 !important;
-  background: none !important;
-  box-shadow: none !important;
-  filter: none !important;
 }
 
 [data-roulette-game] #rrLampPng {
   display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
   position: absolute !important;
   left: calc(50% + var(--rr-lamp-art-x, 0%)) !important;
   top: var(--rr-lamp-art-y, 84.9%) !important;
@@ -89,36 +94,9 @@
 }
 
 [data-roulette-game] .rr130-table-illumination {
-  opacity: 0 !important;
+  display: block !important;
+  opacity: 1 !important;
   pointer-events: none !important;
-}
-
-#rrLampVisualOverlayRoot {
-  position: fixed !important;
-  inset: 0 !important;
-  width: 0 !important;
-  height: 0 !important;
-  overflow: visible !important;
-  pointer-events: none !important;
-  z-index: 5 !important;
-}
-
-#rrLampTrackedLight,
-#rrRoomDarknessOverlay,
-#rrGunGlintOverlay {
-  position: fixed !important;
-  pointer-events: none !important;
-  transform-origin: 50% 50% !important;
-}
-
-#rrRoomDarknessOverlay {
-  z-index: 1 !important;
-  background: radial-gradient(ellipse 72% 68% at 50% 58%, rgba(0,0,0,.08) 0%, rgba(0,0,0,.42) 58%, #000 100%) !important;
-  mix-blend-mode: multiply !important;
-}
-
-#rrLampTrackedLight {
-  z-index: 2 !important;
   mix-blend-mode: screen !important;
   animation-name: rrLampLightTrackExternal !important;
   animation-timing-function: ease-in-out !important;
@@ -127,14 +105,39 @@
   will-change: transform;
 }
 
-#rrGunGlintOverlay {
-  z-index: 3 !important;
-  mix-blend-mode: screen !important;
-  border-radius: 42% !important;
-  animation: rrGunGlintSweepExternal 2.8s ease-in-out infinite !important;
-  will-change: transform;
+[data-roulette-game]::after {
+  opacity: var(--rr-room-darkness, .92) !important;
+  background: radial-gradient(
+    ellipse 76% 72% at 50% 58%,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, .06) 44%,
+    rgba(0, 0, 0, .28) 72%,
+    rgba(0, 0, 0, .66) 100%
+  ) !important;
+  mix-blend-mode: normal !important;
+  pointer-events: none !important;
 }
 
-[data-roulette-game]::after {
-  opacity: 0 !important;
+#rrLampVisualOverlayRoot {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+  z-index: 5 !important;
+}
+
+#rrGunGlintOverlay {
+  position: fixed !important;
+  pointer-events: none !important;
+  z-index: 1 !important;
+  mix-blend-mode: screen !important;
+  border-radius: 50% !important;
+  clip-path: ellipse(48% 42% at 50% 50%) !important;
+}
+
+#rrLampTrackedLight,
+#rrRoomDarknessOverlay {
+  display: none !important;
 }
