@@ -4,13 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>Lamp Calibration</title>
-  <link rel="stylesheet" href="/assets/roulette/lamp-calibration.css?v=11">
-  <script src="/assets/roulette/lamp-config.js?v=11" defer></script>
-  <script src="/assets/roulette/lamp.js?v=11" defer></script>
-  <script src="/assets/roulette/lamp-calibration.js?v=11" defer></script>
+  <link rel="stylesheet" href="/assets/roulette/lamp-calibration.css?v=12">
+  <script src="/assets/roulette/lamp-config.js?v=12" defer></script>
+  <script src="/assets/roulette/lamp.js?v=12" defer></script>
+  <script src="/assets/roulette/lamp-calibration.js?v=12" defer></script>
 </head>
 <body>
-  <iframe id="game" src="./?lampCalibration=11" title="Russian Roulette lamp preview"></iframe>
+  <iframe id="game" src="./?lampCalibration=12" title="Russian Roulette lamp preview"></iframe>
   <button id="toggle" type="button">LAMP CALIBRATION</button>
   <section id="panel">
     <h3>Visible lamp calibration</h3>
@@ -21,7 +21,7 @@
       <button class="action" id="copy" type="button">Copy JSON</button>
       <button class="action" id="reset" type="button">Reset</button>
     </div>
-    <p><small>Light color, tracking speed, room darkness, gun glint, and the two chain lengths are independently adjustable. Dimmed rows indicate a scene element that is not currently mounted.</small></p>
+    <p><small>Lighting overlays are isolated outside the gameplay DOM so they cannot affect gun rotation, turn tracking, or table dimensions. Light color, tracking speed, room darkness, gun glint, and both chain lengths remain adjustable.</small></p>
   </section>
   <div id="status">Loading…</div>
 </body>
