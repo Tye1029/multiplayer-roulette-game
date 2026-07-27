@@ -5,12 +5,10 @@
   if (!configApi) throw new Error('lamp-config.js must load before lamp.js');
 
   const lampAsset = '/assets/roulette/decor/lamp-1.png';
-  const styleAsset = '/assets/roulette/lamp.css?v=15';
+  const styleAsset = '/assets/roulette/lamp.css?v=16';
   const styleMarker = 'rrLampExternalStyles';
   const imageId = 'rrLampPng';
-  const overlayRootId = 'rrLampVisualOverlayRoot';
-  const gunGlintId = 'rrGunGlintOverlay';
-  const staleOverlayIds = ['rrLampTrackedLight', 'rrRoomDarknessOverlay'];
+  const staleOverlayIds = ['rrLampTrackedLight', 'rrRoomDarknessOverlay', 'rrGunGlintOverlay', 'rrLampVisualOverlayRoot'];
 
   function ensureStyles(doc) {
     let link = doc.getElementById(styleMarker);
@@ -20,7 +18,7 @@
       link.rel = 'stylesheet';
       doc.head.append(link);
     }
-    if (!link.href.includes('lamp.css?v=15')) link.href = styleAsset;
+    if (!link.href.includes('lamp.css?v=16')) link.href = styleAsset;
     return link;
   }
 
@@ -30,8 +28,7 @@
       rig: doc.querySelector('.rr126-lamp-rig'),
       swing: doc.querySelector('.rr126-swing'),
       chain: doc.querySelector('.rr126-chain'),
-      sceneLight: doc.querySelector('.rr130-table-illumination'),
-      gun: doc.querySelector('.rr-gun-motion')
+      sceneLight: doc.querySelector('.rr130-table-illumination')
     };
   }
 
@@ -48,16 +45,6 @@
     } else if (!image.src.includes('/lamp-1.png')) {
       image.src = lampAsset;
     }
-
-    for (const oldImage of swing.querySelectorAll(`:scope > img:not(#${imageId})`)) {
-      oldImage.remove();
-    }
-    for (const oldPart of swing.querySelectorAll(
-      '[class*="lamp-body"],[class*="lamp-shade"],[class*="shade-art"],[class*="underside"]'
-    )) {
-      if (oldPart !== image && !oldPart.contains(image)) oldPart.remove();
-    }
-
     return image;
   }
 
@@ -65,84 +52,8 @@
     for (const id of staleOverlayIds) doc.getElementById(id)?.remove();
   }
 
-  function removeGunGlint(doc) {
-    doc.getElementById(gunGlintId)?.remove();
-    const root = doc.getElementById(overlayRootId);
-    if (root && !root.children.length) root.remove();
-  }
-
-  function ensureOverlayRoot(doc) {
-    let root = doc.getElementById(overlayRootId);
-    if (!root) {
-      root = doc.createElement('div');
-      root.id = overlayRootId;
-      root.setAttribute('aria-hidden', 'true');
-      (doc.body || doc.documentElement).append(root);
-    }
-    return root;
-  }
-
-  function ensureGunGlint(doc, root) {
-    let overlay = doc.getElementById(gunGlintId);
-    if (!overlay) {
-      overlay = doc.createElement('div');
-      overlay.id = gunGlintId;
-      root.append(overlay);
-    } else if (overlay.parentElement !== root) {
-      root.append(overlay);
-    }
-    return overlay;
-  }
-
   function setImportant(element, property, value) {
     if (element) element.style.setProperty(property, value, 'important');
-  }
-
-  function syncOverlayRect(overlay, target, paddingX = 0, paddingY = paddingX) {
-    if (!overlay || !target) {
-      if (overlay) setImportant(overlay, 'display', 'none');
-      return false;
-    }
-
-    const rect = target.getBoundingClientRect();
-    if (!rect.width || !rect.height) {
-      setImportant(overlay, 'display', 'none');
-      return false;
-    }
-
-    setImportant(overlay, 'display', 'block');
-    setImportant(overlay, 'left', `${rect.left - paddingX}px`);
-    setImportant(overlay, 'top', `${rect.top - paddingY}px`);
-    setImportant(overlay, 'width', `${rect.width + paddingX * 2}px`);
-    setImportant(overlay, 'height', `${rect.height + paddingY * 2}px`);
-    return true;
-  }
-
-  function applyGunGlint(doc, scene, cfg) {
-    if (cfg.gunGleam <= 0.05) {
-      removeGunGlint(doc);
-      return Boolean(scene.gun);
-    }
-    if (!scene.gun) {
-      removeGunGlint(doc);
-      return false;
-    }
-
-    const root = ensureOverlayRoot(doc);
-    const gunGlint = ensureGunGlint(doc, root);
-    const glint = Math.max(0, cfg.gunGleam);
-    const rect = scene.gun.getBoundingClientRect();
-    const mounted = syncOverlayRect(gunGlint, scene.gun, rect.width * 0.03, rect.height * 0.05);
-    if (!mounted) return false;
-
-    const color = `hsla(${cfg.lightHue},${Math.max(55, cfg.lightSaturation)}%,90%,${Math.min(0.72, 0.08 + glint * 0.38)})`;
-    setImportant(gunGlint, 'opacity', `${Math.min(0.55, glint * 0.42)}`);
-    setImportant(
-      gunGlint,
-      'background',
-      `radial-gradient(ellipse 42% 26% at 58% 35%,${color} 0 4%,transparent 70%)`
-    );
-    return true;
   }
 
   function applyLightingVariables(scene, cfg) {
@@ -159,6 +70,7 @@
     scene.game.style.setProperty('--rr-light-track-distance', `${cfg.track}%`);
     scene.game.style.setProperty('--rr-light-track-duration', `${cfg.trackSpeed}s`);
     scene.game.style.setProperty('--rr-room-darkness', `${cfg.wallDark}`);
+    scene.game.style.setProperty('--rr-gun-gleam', `${cfg.gunGleam}`);
     return Boolean(scene.sceneLight);
   }
 
@@ -173,13 +85,13 @@
     const scene = queryScene(doc);
 
     if (!scene.game || !scene.swing) {
-      removeGunGlint(doc);
       return {
         mounted: false,
         connectedCount: 0,
         totalControls: Object.keys(configApi.bindings).length,
         targets: {},
-        config: cfg
+        config: cfg,
+        scene
       };
     }
 
@@ -222,9 +134,6 @@
     }
 
     const lightMounted = applyLightingVariables(scene, cfg);
-    const gunMounted = applyGunGlint(doc, scene, cfg);
-    const gunTarget = cfg.gunGleam <= 0.05 ? scene.game : doc.getElementById(gunGlintId);
-
     const targets = {
       lampArtX: image,
       lampWidth: image,
@@ -250,16 +159,15 @@
       track: lightMounted ? scene.game : null,
       trackSpeed: lightMounted ? scene.game : null,
       wallDark: scene.game,
-      gunGleam: gunMounted ? gunTarget : null
+      gunGleam: scene.game
     };
 
-    const connectedCount = Object.values(targets).filter(Boolean).length;
     return {
       mounted: true,
       image,
       scene,
       targets,
-      connectedCount,
+      connectedCount: Object.values(targets).filter(Boolean).length,
       totalControls: Object.keys(targets).length,
       config: cfg
     };
@@ -268,7 +176,9 @@
   function watch(doc, configProvider, onApply) {
     let stopped = false;
     let applying = false;
-    let lastScene = {};
+    let scheduled = false;
+    let lastGame = null;
+    let lastSwing = null;
     const view = doc.defaultView || global;
 
     const currentConfig = () => (
@@ -280,32 +190,33 @@
       applying = true;
       try {
         const result = apply(doc, currentConfig());
-        lastScene = result.scene || {};
+        lastGame = result.scene?.game || null;
+        lastSwing = result.scene?.swing || null;
         if (typeof onApply === 'function') onApply(result);
       } finally {
         applying = false;
       }
     };
 
-    const sceneWasReplaced = () => {
+    const lampNeedsRepair = () => {
       const scene = queryScene(doc);
-      const image = doc.getElementById(imageId);
-      return (
-        scene.game !== lastScene.game ||
-        scene.swing !== lastScene.swing ||
-        scene.chain !== lastScene.chain ||
-        scene.sceneLight !== lastScene.sceneLight ||
-        (scene.swing && (!image || image.parentElement !== scene.swing))
-      );
+      if (scene.game !== lastGame || scene.swing !== lastSwing) return true;
+      return Boolean(scene.swing && !scene.swing.querySelector(`#${imageId}`));
     };
 
-    const onMutation = () => {
-      if (!stopped && !applying && sceneWasReplaced()) run();
+    const scheduleRepair = () => {
+      if (stopped || scheduled || !lampNeedsRepair()) return;
+      scheduled = true;
+      const requestFrame = view.requestAnimationFrame || (callback => view.setTimeout(callback, 16));
+      requestFrame.call(view, () => {
+        scheduled = false;
+        if (lampNeedsRepair()) run();
+      });
     };
+
     const onResize = () => run();
-
     const Observer = view.MutationObserver || global.MutationObserver;
-    const observer = Observer ? new Observer(onMutation) : null;
+    const observer = Observer ? new Observer(scheduleRepair) : null;
     const root = doc.body || doc.documentElement;
     if (observer && root) observer.observe(root, { childList: true, subtree: true });
     view.addEventListener?.('resize', onResize, { passive: true });
