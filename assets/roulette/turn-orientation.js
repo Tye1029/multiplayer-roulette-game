@@ -18,6 +18,7 @@
   let scheduled = false;
   let readyFrame = 0;
   let orientationFrame = 0;
+  let pivotDirty = true;
 
   function ensureStyles() {
     if (document.getElementById(STYLE_ID)) return;
@@ -185,8 +186,10 @@
 
     const centerX = found ? (left + right) / 2 : gunRect.left + gunRect.width / 2;
     const centerY = found ? (top + bottom) / 2 : gunRect.top + gunRect.height / 2;
-    const originX = Math.max(0, Math.min(gunRect.width, centerX - gunRect.left));
-    const originY = Math.max(0, Math.min(gunRect.height, centerY - gunRect.top));
+    const measuredOriginX = centerX - gunRect.left;
+    const measuredOriginY = centerY - gunRect.top;
+    const originX = Number.isFinite(measuredOriginX) ? measuredOriginX : gunRect.width / 2;
+    const originY = Number.isFinite(measuredOriginY) ? measuredOriginY : gunRect.height / 2;
 
     gun.style.setProperty('--rr-turn-origin-x', `${originX}px`);
     gun.style.setProperty('--rr-turn-origin-y', `${originY}px`);
@@ -238,9 +241,13 @@
     const previousOwner = lastOwner;
     const gunChanged = gun !== lastGun;
     const ownerChanged = owner !== previousOwner;
-    if (!gunChanged && !ownerChanged) return;
+    if (!gunChanged && !ownerChanged && !pivotDirty) return;
 
     measureVisibleArtworkPivot(gun);
+    pivotDirty = false;
+
+    if (!gunChanged && !ownerChanged) return;
+
     lastGun = gun;
     lastOwner = owner;
 
@@ -276,6 +283,7 @@
     gameRoot = nextRoot;
     lastGun = null;
     lastOwner = '';
+    pivotDirty = true;
 
     if (!gameRoot) return;
     gameRoot.removeAttribute(READY_ATTRIBUTE);
@@ -308,7 +316,10 @@
       if (currentRoot !== gameRoot) bindGameRoot();
     });
     pageObserver.observe(document.body || document.documentElement, { childList: true, subtree: true });
-    window.addEventListener('resize', scheduleOrientation, { passive: true });
+    window.addEventListener('resize', () => {
+      pivotDirty = true;
+      scheduleOrientation();
+    }, { passive: true });
     window.addEventListener('pageshow', bindGameRoot, { passive: true });
   }
 
