@@ -13,11 +13,6 @@
   50% { transform: translateX(18%) rotate(-7deg); }
 }
 
-[data-roulette-game] {
-  isolation: isolate !important;
-  position: relative !important;
-}
-
 [data-roulette-game] .rr126-swing {
   isolation: auto !important;
   animation-name: rrLampSwingExternal !important;
@@ -98,11 +93,32 @@
   pointer-events: none !important;
 }
 
-[data-roulette-game] #rrLampTrackedLight {
-  position: absolute !important;
-  inset: -8% !important;
-  z-index: 4 !important;
+#rrLampVisualOverlayRoot {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: visible !important;
   pointer-events: none !important;
+  z-index: 2147482000 !important;
+}
+
+#rrLampTrackedLight,
+#rrRoomDarknessOverlay,
+#rrGunGlintOverlay {
+  position: fixed !important;
+  pointer-events: none !important;
+  transform-origin: 50% 50% !important;
+}
+
+#rrRoomDarknessOverlay {
+  z-index: 1 !important;
+  background: radial-gradient(ellipse 72% 68% at 50% 58%, rgba(0,0,0,.08) 0%, rgba(0,0,0,.42) 58%, #000 100%) !important;
+  mix-blend-mode: multiply !important;
+}
+
+#rrLampTrackedLight {
+  z-index: 2 !important;
   mix-blend-mode: screen !important;
   animation-name: rrLampLightTrackExternal !important;
   animation-timing-function: ease-in-out !important;
@@ -111,29 +127,14 @@
   will-change: transform;
 }
 
-[data-roulette-game] #rrRoomDarknessOverlay {
-  position: absolute !important;
-  inset: 0 !important;
-  z-index: -1 !important;
-  pointer-events: none !important;
-  background: #000 !important;
-}
-
-[data-roulette-game]::after {
-  opacity: 0 !important;
-}
-
-[data-roulette-game] .rr-gun-motion {
-  position: relative !important;
-}
-
-[data-roulette-game] #rrGunGlintOverlay {
-  position: absolute !important;
-  inset: 4% 2% !important;
-  z-index: 30 !important;
-  pointer-events: none !important;
+#rrGunGlintOverlay {
+  z-index: 3 !important;
   mix-blend-mode: screen !important;
   border-radius: 42% !important;
   animation: rrGunGlintSweepExternal 2.8s ease-in-out infinite !important;
   will-change: transform;
+}
+
+[data-roulette-game]::after {
+  opacity: 0 !important;
 }
