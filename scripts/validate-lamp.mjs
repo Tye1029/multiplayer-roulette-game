@@ -32,18 +32,18 @@ for (const key of keys) {
 }
 
 for (const required of [
-  '/assets/roulette/lamp-config.js?v=11',
-  '/assets/roulette/lamp.js?v=11',
-  '/assets/roulette/lamp-calibration.js?v=11',
-  '/assets/roulette/lamp-calibration.css?v=11'
+  '/assets/roulette/lamp-config.js?v=12',
+  '/assets/roulette/lamp.js?v=12',
+  '/assets/roulette/lamp-calibration.js?v=12',
+  '/assets/roulette/lamp-calibration.css?v=12'
 ]) {
   if (!htmlSource.includes(required)) throw new Error(`Calibration HTML missing ${required}`);
 }
 
 for (const required of [
-  '/assets/roulette/lamp-config.js?v=11',
-  '/assets/roulette/lamp.js?v=11',
-  '/assets/roulette/lamp-bootstrap.js?v=11',
+  '/assets/roulette/lamp-config.js?v=12',
+  '/assets/roulette/lamp.js?v=12',
+  '/assets/roulette/lamp-bootstrap.js?v=12',
   'MODULAR_LAMP_ASSETS_START',
   'MODULAR_LAMP_ASSETS_END'
 ]) {
@@ -51,6 +51,7 @@ for (const required of [
 }
 
 for (const required of [
+  'rrLampVisualOverlayRoot',
   'rrLampTrackedLight',
   'rrRoomDarknessOverlay',
   'rrGunGlintOverlay',
@@ -70,11 +71,29 @@ if (htmlSource.includes('function apply(') || htmlSource.includes('const groups=
 if (!runtimeSource.includes('/assets/roulette/decor/lamp-1.png')) {
   throw new Error('Runtime is not using lamp-1.png');
 }
-if (!runtimeSource.includes("styleAsset = '/assets/roulette/lamp.css?v=11'")) {
+if (!runtimeSource.includes("styleAsset = '/assets/roulette/lamp.css?v=12'")) {
   throw new Error('Runtime lamp stylesheet cache version is out of sync');
 }
 if (!cssSource.includes('width: var(--rr-lamp-width, 56%)')) {
-  throw new Error('Lamp CSS does not preserve the larger 56% default width');
+  throw new Error('Lamp CSS does not preserve the larger 56% fallback width');
+}
+if (runtimeSource.includes('MutationObserver')) {
+  throw new Error('Lamp runtime must not observe gameplay DOM mutations');
+}
+for (const forbidden of [
+  'scene.table.style.setProperty',
+  'scene.table.append',
+  'scene.gun.append',
+  "scene.gun, 'filter'",
+  "target,\n        'filter'"
+]) {
+  if (runtimeSource.includes(forbidden)) throw new Error(`Lamp runtime still touches gameplay visuals: ${forbidden}`);
+}
+if (!runtimeSource.includes('(doc.body || doc.documentElement).append(root)')) {
+  throw new Error('Visual overlays are not isolated outside the game-managed DOM');
+}
+if (!runtimeSource.includes('setInterval(run, 750)')) {
+  throw new Error('Lamp visual sync is not using the low-frequency safe interval');
 }
 if (!calibrationSource.includes('lampApi.watch')) {
   throw new Error('Calibration controller is not watching dynamic game mounts');
@@ -83,4 +102,4 @@ if (!bootstrapSource.includes("params.has('lampCalibration')") || !bootstrapSour
   throw new Error('Normal-page bootstrap is not isolated from calibration mode');
 }
 
-console.log(`Lamp validation passed: ${keys.length}/${keys.length} controls bound; color, chains, darkness, glint, swing, and tracking verified.`);
+console.log(`Lamp validation passed: ${keys.length}/${keys.length} controls bound; gameplay DOM isolation and safe visual sync verified.`);
