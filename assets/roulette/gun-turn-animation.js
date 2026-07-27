@@ -8,10 +8,14 @@
   const GUN_SELECTOR = '.rr-gun-motion';
   const TURN_PHRASE = /(your turn|opponent(?:'s)? turn|enemy(?:'s)? turn|waiting for (?:the )?(?:other player|opponent)|(?:creator|joiner|player\s*[12])(?:'s)? turn)/i;
   const SHOT_PHRASE = /(bang|gunshot|fired|fires|shoots|shot|click|empty chamber|survived|eliminated|was killed|is dead)/i;
-  const TURN_DATA_KEY = /(current.*turn|turn.*(?:user|player|owner)|active.*player|current.*player|shooter)/i;
+  const TURN_DATA_KEY = /(current.*turn|turn.*(?:user|player|owner|revision)|active.*player|current.*player|shooter)/i;
+  const SHOT_DATA_KEY = /^(?:shot|fire|shoot|recoil|hammer|result).*(?:revision|id|token|sequence|state)?$/i;
+  const ACTIVE_SHOT_STATE = /(?:shooting|firing|recoil|hammer|bang|click|shot)/i;
+  const RECOIL_DEDUPE_MS = 520;
   const TURN_ELEMENT_SELECTOR = [
     '[data-turn]',
     '[data-current-turn]',
+    '[data-current-turn-revision]',
     '[data-active-player]',
     '[data-shooter]',
     '[aria-current="true"]',
@@ -32,6 +36,7 @@
   let turnAnimation = null;
   let recoilAnimation = null;
   let turnSequence = 0;
+  let lastRecoilAt = -Infinity;
 
   function normalizeText(value) {
     return String(value || '').replace(/\s+/g, ' ').trim().slice(0, 180);
@@ -40,7 +45,7 @@
   function elementIdentity(element) {
     if (!element) return '';
     const parts = [element.id, element.className];
-    for (const name of ['data-turn', 'data-current-turn', 'data-active-player', 'data-shooter', 'data-user-id', 'data-player-id', 'aria-current']) {
+    for (const name of ['data-turn', 'data-current-turn', 'data-current-turn-revision', 'data-active-player', 'data-shooter', 'data-user-id', 'data-player-id', 'aria-current']) {
       const value = element.getAttribute?.(name);
       if (value) parts.push(`${name}:${value}`);
     }
@@ -60,8 +65,7 @@
 
     const candidates = root.querySelectorAll(TURN_ELEMENT_SELECTOR);
     for (let index = 0; index < Math.min(candidates.length, 24); index += 1) {
-      const candidate = candidates[index];
-      const identity = elementIdentity(candidate);
+      const identity = elementIdentity(candidates[index]);
       if (identity) values.push(identity);
     }
 
@@ -78,14 +82,16 @@
   }
 
   function readShotSignature(root, gunElement) {
-    const values = [];
     if (gunElement) {
-      const gunState = `${gunElement.id || ''} ${gunElement.className || ''}`;
-      const stateMatch = gunState.match(/(?:shooting|firing|recoil|hammer|bang|click|shot)/i)?.[0];
-      if (stateMatch) values.push(stateMatch.toLowerCase());
+      const explicitValues = [];
       for (const [key, value] of Object.entries(gunElement.dataset || {})) {
-        if (/(shot|fire|shoot|recoil|hammer|result|revision)/i.test(key)) values.push(`${key}:${value}`);
+        if (SHOT_DATA_KEY.test(key) && value != null && value !== '') explicitValues.push(`${key}:${value}`);
       }
+      if (explicitValues.length) return `data:${explicitValues.sort().join('|')}`;
+
+      const gunState = `${gunElement.id || ''} ${gunElement.className || ''}`;
+      const stateMatch = gunState.match(ACTIVE_SHOT_STATE)?.[0];
+      if (stateMatch) return `state:${stateMatch.toLowerCase()}`;
     }
 
     if (root) {
@@ -93,11 +99,11 @@
       for (let index = 0; index < Math.min(candidates.length, 24); index += 1) {
         const text = normalizeText(candidates[index].textContent);
         const match = text.match(SHOT_PHRASE)?.[0];
-        if (match) values.push(`${match.toLowerCase()}:${text}`);
+        if (match) return `status:${match.toLowerCase()}:${text}`;
       }
     }
 
-    return [...new Set(values)].sort().join('|');
+    return '';
   }
 
   function readAngle(element) {
@@ -198,7 +204,12 @@
     if (nextGun && (turnChanged || (gunChanged && gun))) {
       playTurnAnimation(nextGun, previousAngle, nextAngle, turnChanged || gameChanged);
     }
-    if (nextGun && shotChanged) playRecoilAnimation(nextGun);
+
+    const now = performance.now();
+    if (nextGun && shotChanged && now - lastRecoilAt >= RECOIL_DEDUPE_MS) {
+      lastRecoilAt = now;
+      playRecoilAnimation(nextGun);
+    }
 
     game = nextGame;
     gun = nextGun;
@@ -221,7 +232,21 @@
       subtree: true,
       characterData: true,
       attributes: true,
-      attributeFilter: ['class', 'style', 'data-turn', 'data-current-turn', 'data-active-player', 'data-shooter', 'data-user-id', 'data-player-id', 'aria-current']
+      attributeFilter: [
+        'class',
+        'style',
+        'data-turn',
+        'data-current-turn',
+        'data-current-turn-revision',
+        'data-active-player',
+        'data-shooter',
+        'data-user-id',
+        'data-player-id',
+        'data-shot-revision',
+        'data-fire-revision',
+        'data-recoil-revision',
+        'aria-current'
+      ]
     });
     window.addEventListener('resize', scheduleSynchronize, { passive: true });
     window.addEventListener('pageshow', scheduleSynchronize, { passive: true });
