@@ -45,21 +45,26 @@ for (const key of keys) {
 }
 
 for (const required of [
-  '/assets/roulette/lamp-config.js?v=16',
-  '/assets/roulette/lamp.js?v=16',
-  '/assets/roulette/lamp-calibration.js?v=16',
-  '/assets/roulette/lamp-calibration.css?v=16'
+  '/assets/roulette/lamp-config.js?v=17',
+  '/assets/roulette/lamp.js?v=17',
+  '/assets/roulette/lamp-calibration.js?v=17',
+  '/assets/roulette/lamp-calibration.css?v=17',
+  '?lampCalibration=17'
 ]) {
   if (!calibrationHtmlSource.includes(required)) throw new Error(`Calibration HTML missing ${required}`);
 }
 
 for (const required of [
-  '/assets/roulette/lamp-config.js?v=16',
-  '/assets/roulette/lamp.js?v=16',
-  '/assets/roulette/lamp-bootstrap.js?v=16',
+  '/assets/roulette/lamp-config.js?v=17',
+  '/assets/roulette/lamp.js?v=17',
+  '/assets/roulette/lamp-bootstrap.js?v=17',
   'rrLampCriticalHide',
   'MODULAR_LAMP_ASSETS_START',
-  'MODULAR_LAMP_ASSETS_END'
+  'MODULAR_LAMP_ASSETS_END',
+  '[data-roulette-game] .rr126-lamp-rig',
+  '[data-roulette-game] .rr126-chain',
+  '[data-roulette-game] .rr126-swing',
+  '[data-roulette-game] .rr130-table-illumination'
 ]) {
   if (!injectorSource.includes(required)) throw new Error(`Build injector missing ${required}`);
   if (!htmlSource.includes(required)) throw new Error(`Built page missing ${required}`);
@@ -105,6 +110,14 @@ for (const forbidden of [
 }
 
 for (const required of [
+  '/* Permanent lamp foundation.',
+  '[data-roulette-game] .rr126-lamp-rig {',
+  'height: 58% !important;',
+  "background-image: url('/assets/roulette/decor/workshop-lamp-chain.png')",
+  '[data-roulette-game] .rr126-swing {',
+  'aspect-ratio: 325 / 273 !important;',
+  '[data-roulette-game] .rr130-table-illumination {',
+  'inset: 0 !important;',
   'background: var(--rr-cal-light-background',
   'background-position: calc(50% - var(--rr-light-track-distance',
   'background-position: calc(50% + var(--rr-light-track-distance',
@@ -194,6 +207,7 @@ if (buildCommand !== expectedBuild) throw new Error('Netlify build must clean th
 if (packageJson.scripts?.['clean:lamp']) throw new Error('Deployment-time broad asset deletion must remain disabled');
 
 await access(new URL('../assets/roulette/decor/lamp-1.png', import.meta.url));
+await access(new URL('../assets/roulette/decor/workshop-lamp-chain.png', import.meta.url));
 await access(new URL('../scripts/clean-roulette-scene.mjs', import.meta.url));
 
 async function requireMissing(filePath) {
@@ -222,4 +236,4 @@ if (!bootstrapSource.includes("params.has('lampCalibration')") || !bootstrapSour
   throw new Error('Normal-page lamp bootstrap is not isolated from calibration mode');
 }
 
-console.log(`Validation passed: ${keys.length}/${keys.length} lamp controls bound; post-V111 scene patches are removed and core turn changes use the opening-spin rotation path.`);
+console.log(`Validation passed: ${keys.length}/${keys.length} lamp controls bound; the modular lamp owns its full rig and the core opening-spin turn rotation remains intact.`);
