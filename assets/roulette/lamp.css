@@ -4,8 +4,8 @@
 }
 
 @keyframes rrLampLightTrackExternal {
-  0%, 100% { transform: translateX(var(--rr-light-track-negative, -6%)); }
-  50% { transform: translateX(var(--rr-light-track-positive, 6%)); }
+  0%, 100% { background-position: calc(50% - var(--rr-light-track-distance, 7.5%)) 50%; }
+  50% { background-position: calc(50% + var(--rr-light-track-distance, 7.5%)) 50%; }
 }
 
 [data-roulette-game] .rr126-swing {
@@ -17,10 +17,6 @@
   transform-origin: 50% 0 !important;
   overflow: visible !important;
   will-change: transform;
-  visibility: hidden !important;
-}
-
-[data-roulette-game] .rr126-swing[data-rr-lamp-ready="true"] {
   visibility: visible !important;
 }
 
@@ -99,6 +95,8 @@
   pointer-events: none !important;
   mix-blend-mode: screen !important;
   background: var(--rr-cal-light-background, radial-gradient(ellipse 75% 80% at 55.5% 39%, rgba(255,238,191,.25) 0%, rgba(255,164,64,.145) 38%, rgba(153,74,8,.05) 68%, transparent 94%)) !important;
+  background-size: 125% 100% !important;
+  background-repeat: no-repeat !important;
   animation-name: rrLampLightTrackExternal !important;
   animation-duration: var(--rr-light-track-duration, 5.6s) !important;
   animation-delay: 0s !important;
@@ -106,7 +104,8 @@
   animation-iteration-count: infinite !important;
   animation-play-state: running !important;
   transition: none !important;
-  will-change: transform;
+  transform: none !important;
+  will-change: background-position;
 }
 
 [data-roulette-game]::after {
