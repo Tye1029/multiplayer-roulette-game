@@ -4,13 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>Lamp Calibration</title>
-  <link rel="stylesheet" href="/assets/roulette/lamp-calibration.css?v=13">
-  <script src="/assets/roulette/lamp-config.js?v=13" defer></script>
-  <script src="/assets/roulette/lamp.js?v=13" defer></script>
-  <script src="/assets/roulette/lamp-calibration.js?v=13" defer></script>
+  <link rel="stylesheet" href="/assets/roulette/lamp-calibration.css?v=14">
+  <script src="/assets/roulette/lamp-config.js?v=14" defer></script>
+  <script src="/assets/roulette/lamp.js?v=14" defer></script>
+  <script src="/assets/roulette/lamp-calibration.js?v=14" defer></script>
 </head>
 <body>
-  <iframe id="game" src="./?lampCalibration=13" title="Russian Roulette lamp preview"></iframe>
+  <iframe id="game" src="./?lampCalibration=14" title="Russian Roulette lamp preview"></iframe>
   <button id="toggle" type="button">LAMP CALIBRATION</button>
   <section id="panel">
     <h3>Visible lamp calibration</h3>
@@ -21,7 +21,7 @@
       <button class="action" id="copy" type="button">Copy JSON</button>
       <button class="action" id="reset" type="button">Reset</button>
     </div>
-    <p><small>Only lamp-1.png is used. Legacy lamp artwork is blocked before first paint, stale lighting overlays are removed, and the built-in scene light handles tracking without adding dark screen bars.</small></p>
+    <p><small>The saved lighting is now enforced through inherited scene variables, so the original game cannot switch it back to another preset. Cleanup is restricted to one confirmed obsolete lamp image and cannot remove gun or turn-state assets.</small></p>
   </section>
   <div id="status">Loading…</div>
 </body>
