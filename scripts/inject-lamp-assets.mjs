@@ -24,7 +24,7 @@ const block = `${startMarker}\n` +
   '  <script src="/assets/roulette/lamp-config.js?v=16" defer></script>\n' +
   '  <script src="/assets/roulette/lamp.js?v=16" defer></script>\n' +
   '  <script src="/assets/roulette/lamp-bootstrap.js?v=16" defer></script>\n' +
-  '  <script src="/assets/roulette/turn-orientation.js?v=4" defer></script>\n' +
+  '  <script src="/assets/roulette/turn-orientation.js?v=5" defer></script>\n' +
   `${endMarker}`;
 
 let html = await readFile(indexUrl, 'utf8');
@@ -39,4 +39,4 @@ if (markerPattern.test(html)) {
 }
 
 await writeFile(indexUrl, html);
-console.log('Injected lamp controls plus artwork-centered real-game turn orientation.');
+console.log('Injected lamp controls plus unclamped artwork-centered turn orientation.');
