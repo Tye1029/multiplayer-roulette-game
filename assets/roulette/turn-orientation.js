@@ -15,6 +15,7 @@
   let lastGun = null;
   let scheduled = false;
   let readyFrame = 0;
+  let orientationFrame = 0;
 
   function ensureStyles() {
     if (document.getElementById(STYLE_ID)) return;
@@ -110,10 +111,33 @@
     return ownerFromData(root) || ownerFromVisibleStatus(root);
   }
 
-  function enableTransitionsNextFrame(root) {
+  function cancelPendingFrames() {
     cancelAnimationFrame(readyFrame);
+    cancelAnimationFrame(orientationFrame);
+    readyFrame = 0;
+    orientationFrame = 0;
+  }
+
+  function enableTransitionsNextFrame(root) {
+    cancelPendingFrames();
     readyFrame = requestAnimationFrame(() => {
       if (root === gameRoot && root.isConnected) root.setAttribute(READY_ATTRIBUTE, 'true');
+    });
+  }
+
+  function animateReplacementFromPreviousOwner(root, previousOwner, nextOwner) {
+    cancelPendingFrames();
+    root.removeAttribute(READY_ATTRIBUTE);
+    root.setAttribute(OWNER_ATTRIBUTE, previousOwner);
+
+    readyFrame = requestAnimationFrame(() => {
+      if (root !== gameRoot || !root.isConnected) return;
+      root.setAttribute(READY_ATTRIBUTE, 'true');
+      orientationFrame = requestAnimationFrame(() => {
+        if (root === gameRoot && root.isConnected && lastOwner === nextOwner) {
+          root.setAttribute(OWNER_ATTRIBUTE, nextOwner);
+        }
+      });
     });
   }
 
@@ -125,17 +149,28 @@
     const owner = readOwner(gameRoot);
     if (!gun || !owner) return;
 
+    const previousOwner = lastOwner;
     const gunChanged = gun !== lastGun;
-    const ownerChanged = owner !== lastOwner;
+    const ownerChanged = owner !== previousOwner;
     if (!gunChanged && !ownerChanged) return;
-
-    if (gunChanged) gameRoot.removeAttribute(READY_ATTRIBUTE);
-    gameRoot.setAttribute(OWNER_ATTRIBUTE, owner);
 
     lastGun = gun;
     lastOwner = owner;
 
-    if (gunChanged) enableTransitionsNextFrame(gameRoot);
+    if (gunChanged && ownerChanged && previousOwner) {
+      animateReplacementFromPreviousOwner(gameRoot, previousOwner, owner);
+      return;
+    }
+
+    if (gunChanged) {
+      gameRoot.removeAttribute(READY_ATTRIBUTE);
+      gameRoot.setAttribute(OWNER_ATTRIBUTE, owner);
+      enableTransitionsNextFrame(gameRoot);
+      return;
+    }
+
+    cancelPendingFrames();
+    gameRoot.setAttribute(OWNER_ATTRIBUTE, owner);
   }
 
   function scheduleOrientation() {
@@ -150,6 +185,7 @@
 
     gameObserver?.disconnect();
     gameObserver = null;
+    cancelPendingFrames();
     gameRoot = nextRoot;
     lastGun = null;
     lastOwner = '';
