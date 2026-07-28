@@ -91,7 +91,8 @@ const block = `${startMarker}\n` +
   '  <script src="/assets/roulette/spin-audio-policy.js?v=3" defer></script>\n' +
   '  <script src="/assets/roulette/turn-animation.js?v=5" defer></script>\n' +
   '  <script src="/assets/roulette/turn-fire.js?v=2" defer></script>\n' +
-  '  <script src="/assets/roulette/audio-bindings.js?v=5" defer></script>\n' +
+  '  <script src="/assets/roulette/opening-spin-sync.js?v=1" defer></script>\n' +
+  '  <script src="/assets/roulette/audio-bindings.js?v=6" defer></script>\n' +
   '  <script src="/assets/roulette/reaction-audio.js?v=1" defer></script>\n' +
   `${endMarker}`;
 
@@ -108,4 +109,4 @@ if (markerPattern.test(html)) {
 }
 
 await writeFile(indexUrl, html);
-console.log('Injected independent lamp, approved opening spin, late-round relief breaths, live-round chair fall, result cues, and unchanged protected animations.');
+console.log('Injected independent lamp, synchronized opening spin, late-round relief breaths, live-round chair fall, result cues, and unchanged protected animations.');
