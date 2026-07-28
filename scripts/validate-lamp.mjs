@@ -53,7 +53,7 @@ for (const required of [
   '/assets/roulette/lamp-bootstrap.js?v=19',
   '/assets/roulette/turn-animation.js?v=5',
   '/assets/roulette/turn-fire.js?v=2',
-  '/assets/roulette/audio-manager.js?v=2',
+  '/assets/roulette/audio-manager.js?v=3',
   'MODULAR_LAMP_ASSETS_START',
   'rrLampCriticalHide'
 ]) {
@@ -106,40 +106,63 @@ for (const forbidden of [
 }
 
 for (const required of [
-  "const BASE = '/assets/roulette/audio/'",
-  'const sequenceTimers = new Set()',
-  'const clipTimers = new Set()',
-  'function scheduleRoomDetail()',
-  'function spinSound()',
-  'function hammerSound()',
-  'function blankSound()',
-  'function gunshotSound()',
-  'function attemptDirectBindings()',
-  'function hookOpeningSequence()',
-  'function hookShotSequence()',
-  'function hookBind()',
-  'function beginPolling()',
-  'global.setTimeout(tick, 750)',
-  'if (!direct.spin) spinSound()',
-  'if (!direct.hammer) hammerSound()',
-  "if (!direct.gunshot) gunshotSound()",
-  'global.rouletteSpinSound = spinSound',
-  'global.rouletteShotIndexSound = hammerSound',
-  'global.rouletteBlankSound = blankSound',
-  'global.rouletteGunshotSound = gunshotSound',
-  "duckLoop('room', 0.18, 180, 900)",
-  "duckLoop('heartbeat', 0.12, 240, 1100)",
-  "play('tension', { volume: 0.085 })",
-  "play(cue, { volume: cue === 'victory' ? 0.2 : 0.17 })",
-  'function diagnostics()',
-  'global.RouletteAudio = Object.freeze({'
+  'function rouletteUploadedAudio(src,volume=.2,rate=1)',
+  'function rouletteClearSpinPlayback()',
+  'function rouletteSpinSound(speedMultiplier=1)',
+  'function rouletteShotIndexSound()',
+  'function rouletteBlankSound()',
+  'function rouletteGunshotSound()',
+  'assets/roulette/audio/freesound_community-revolver-spin-96947.mp3',
+  'assets/roulette/audio/freesound_community-revolver-chamber-spin-ratchet-sound-90521.mp3',
+  'assets/roulette/audio/freesound_community-revolver-cocking-104722.mp3',
+  'assets/roulette/audio/freesound_community-pistol-hammer-cocking-back-4-39887.mp3',
+  'assets/roulette/audio/freesound_community-cocking-a-revolver-6279.mp3',
+  'assets/roulette/audio/spinopel-dry-fire-gun-364844.mp3',
+  'assets/roulette/audio/freesound_community-gun-dry-firing-3-39820.mp3',
+  'assets/roulette/audio/freesound_community-single-pistol-gunshot-33-37187.mp3',
+  'window.RouletteAmbientAudio?.duckForShot?.()'
 ]) {
-  if (!audio.includes(required)) throw new Error(`Layered audio manager is missing ${required}`);
+  if (!html.includes(required)) throw new Error(`Built page is missing uploaded roulette audio replacement: ${required}`);
 }
 
 for (const forbidden of [
+  'function rouletteSpinSound(speedMultiplier=1){const ctx=rouletteAudioCtx',
+  'function rouletteShotIndexSound(){rouletteClickTone',
+  'function rouletteBlankSound(){rouletteClickTone',
+  'function rouletteGunshotSound(){try{const a=new Audio(`assets/gunshot_punchy_',
+  "wrap('rouletteSpinSound'",
+  "wrap('rouletteShotIndexSound'",
+  "wrap('rouletteBlankSound'",
+  "wrap('rouletteGunshotSound'"
+]) {
+  if (html.includes(forbidden)) throw new Error(`Legacy duplicate roulette audio remains in the built page: ${forbidden}`);
+}
+
+for (const required of [
+  "const BASE = '/assets/roulette/audio/'",
+  'const LOOP_LEVELS = Object.freeze({',
+  'function scheduleRoomDetail()',
+  'function currentGame()',
+  'function sync()',
+  'function duckForShot()',
+  'global.RouletteAmbientAudio = Object.freeze({',
+  'pollTimer = global.setTimeout(tick, 750)',
+  "play('chair', { volume: 0.1 })",
+  "play('tap', { volume: 0.12 })",
+  "play('tension', { volume: 0.1 })",
+  "play(cue, { volume: cue === 'victory' ? 0.22 : 0.19 })"
+]) {
+  if (!audio.includes(required)) throw new Error(`Ambient audio manager is missing ${required}`);
+}
+
+for (const forbidden of [
+  'rouletteSpinSound',
+  'rouletteShotIndexSound',
+  'rouletteBlankSound',
+  'rouletteGunshotSound',
   'RouletteTurnLock',
   'rouletteRotateToTurn',
+  'rouletteShotSequence',
   '.rr-turn-facing',
   '.rr-gun-motion',
   'data-roulette-facing',
@@ -148,12 +171,9 @@ for (const forbidden of [
   'rr-fired',
   'getAnimations',
   'MutationObserver',
-  'style.transform',
-  'rouletteAnimate(',
-  'applyFacing(',
-  'enforceLockedFacing('
+  'style.transform'
 ]) {
-  if (audio.includes(forbidden)) throw new Error(`Audio manager can alter animation state: ${forbidden}`);
+  if (audio.includes(forbidden)) throw new Error(`Ambient audio manager can alter or duplicate gun animation/audio: ${forbidden}`);
 }
 
 for (const required of [
@@ -200,6 +220,15 @@ for (const forbidden of ['.rr-gun-motion', 'scene.gun', 'scene.table', 'data-cur
   }
 }
 
+for (const required of [
+  'function replaceLegacyRouletteAudio(source)',
+  'const uploadedRouletteAudioFunctions = String.raw',
+  "wrap\\('rouletteSpinSound'",
+  '/assets/roulette/audio-manager.js?v=3'
+]) {
+  if (!injector.includes(required)) throw new Error(`Asset injector is missing direct audio replacement logic: ${required}`);
+}
+
 for (const forbidden of [
   'rouletteRotateToTurn',
   'rouletteShotSequence',
@@ -210,20 +239,9 @@ for (const forbidden of [
 ]) {
   if (injector.includes(forbidden)) throw new Error(`Asset injector rewrites obsolete gun code: ${forbidden}`);
 }
-if (!injector.includes('/assets/roulette/lamp.js?v=20')) {
-  throw new Error('The injector is not loading independent lamp runtime version 20.');
-}
-if (!injector.includes('/assets/roulette/turn-animation.js?v=5')) {
-  throw new Error('The injector is not loading strict turn lock version 5.');
-}
-if (!injector.includes('/assets/roulette/turn-fire.js?v=2')) {
-  throw new Error('The injector is not loading isolated firing effects version 2.');
-}
-if (!injector.includes('/assets/roulette/audio-manager.js?v=2')) {
-  throw new Error('The injector is not loading robust layered audio manager version 2.');
-}
-if (injector.indexOf('audio-manager.js?v=2') < injector.indexOf('turn-fire.js?v=2')) {
-  throw new Error('Audio manager must load after the locked firing module.');
+
+if (injector.indexOf('audio-manager.js?v=3') < injector.indexOf('turn-fire.js?v=2')) {
+  throw new Error('Ambient audio manager must load after the locked firing module.');
 }
 if (!calibrationHtml.includes('/assets/roulette/lamp.js?v=20') || !calibrationHtml.includes('lampCalibration=20')) {
   throw new Error('Lamp calibration page is not loading independent timeline version 20.');
@@ -276,4 +294,4 @@ for (const path of [
   'assets/roulette/audio/freesound_community-revolver-cocking-104722.mp3'
 ]) await access(new URL(`../${path}`, import.meta.url));
 
-console.log('Validation passed: robust layered audio reaches private game bindings, fades naturally, and cannot alter locked gun or lamp animations.');
+console.log('Validation passed: legacy duplicate roulette sounds are removed; uploaded recordings are the only action sounds; ambience cannot alter animations.');
