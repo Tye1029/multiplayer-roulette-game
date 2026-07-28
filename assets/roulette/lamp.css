@@ -1,4 +1,4 @@
-/* Permanent lamp foundation. This replaces the removed V126/V127 structural patches. */
+/* Permanent self-contained lamp foundation. */
 [data-roulette-game] > .rr-lamp,
 [data-roulette-game] .rr-lamp-fixture,
 [data-roulette-game] .rr-v106-lamp-art,
@@ -31,102 +31,73 @@
 [data-roulette-game] .rr126-chain {
   position: absolute !important;
   top: 0 !important;
-  left: 50%;
-  width: 14px;
-  height: 27%;
-  transform: translateX(-50%);
+  left: 49.75%;
+  width: 12.5px;
+  min-width: 12.5px;
+  height: 5%;
+  transform: translateX(-50%) scaleX(.56);
+  transform-origin: 50% 0 !important;
   background-image: url('/assets/roulette/decor/workshop-lamp-chain.png') !important;
   background-repeat: repeat-y !important;
   background-position: center top !important;
-  background-size: 14px auto !important;
+  background-size: 12.5px auto !important;
   filter: drop-shadow(0 2px 2px rgba(0, 0, 0, .9)) !important;
+  box-sizing: border-box !important;
+  max-width: none !important;
+  overflow: visible !important;
   z-index: 2 !important;
   pointer-events: none !important;
+  --rr-chain-left-length: 70%;
+  --rr-chain-right-length: 101%;
+}
+
+[data-roulette-game] .rr126-chain::before,
+[data-roulette-game] .rr126-chain::after {
+  width: 100% !important;
+  max-width: none !important;
+  background-size: 100% auto !important;
+  transform-origin: 50% 0 !important;
+}
+
+[data-roulette-game] .rr126-chain::before { height: var(--rr-chain-left-length, 70%) !important; }
+[data-roulette-game] .rr126-chain::after { height: var(--rr-chain-right-length, 101%) !important; }
+[data-roulette-game] .rr126-chain > :first-child {
+  height: var(--rr-chain-left-length, 70%) !important;
+  transform-origin: 50% 0 !important;
+}
+[data-roulette-game] .rr126-chain > :nth-child(2) {
+  height: var(--rr-chain-right-length, 101%) !important;
+  transform-origin: 50% 0 !important;
 }
 
 [data-roulette-game] .rr126-swing {
   position: absolute !important;
-  top: 22%;
-  left: 50%;
+  top: calc(20% - 26px);
+  left: 49.75%;
   width: 44% !important;
   aspect-ratio: 325 / 273 !important;
   transform: translateX(-50%);
   transform-origin: 50% 0 !important;
+  isolation: auto !important;
+  overflow: visible !important;
+  visibility: visible !important;
+  opacity: 1 !important;
   z-index: 3 !important;
   pointer-events: none !important;
-}
-
-[data-roulette-game] .rr126-room-glow,
-[data-roulette-game] .rr126-beam {
-  display: none !important;
-  visibility: hidden !important;
-  opacity: 0 !important;
-}
-
-[data-roulette-game] .rr-top,
-[data-roulette-game] .rr-status,
-[data-roulette-game] .rr-scene-countdown,
-[data-roulette-game] .rr-opening-banner,
-[data-roulette-game] .rr-controls,
-[data-roulette-game] .rr-final {
-  position: relative;
-  z-index: 8 !important;
-}
-
-[data-roulette-game] .rr-table {
-  isolation: isolate !important;
-}
-
-[data-roulette-game] .rr130-table-illumination {
-  position: absolute !important;
-  inset: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-  z-index: 6 !important;
-  border: 0 !important;
-  outline: 0 !important;
-  border-radius: inherit !important;
-  overflow: hidden !important;
-  filter: blur(10px) !important;
-  box-shadow: none !important;
-}
-
-@media (min-width: 701px) {
-  [data-roulette-game] .rr126-lamp-rig { height: 51% !important; }
-  [data-roulette-game] .rr126-chain { width: 11px; background-size: 11px auto !important; }
-  [data-roulette-game] .rr126-swing { width: 31% !important; max-width: 230px !important; }
-}
-
-@media (max-width: 700px), (hover: none) and (pointer: coarse) {
-  [data-roulette-game] .rr126-lamp-rig { height: 57% !important; }
-  [data-roulette-game] .rr126-chain { width: 12px; background-size: 12px auto !important; }
-  [data-roulette-game] .rr126-swing { width: 43% !important; max-width: none !important; }
-}
-
-@media (max-width: 390px) {
-  [data-roulette-game] .rr126-swing { width: 42% !important; }
+  will-change: transform;
+  animation-name: rrLampSwingExternal !important;
+  animation-duration: 5.6s;
+  animation-delay: 0s;
+  animation-timing-function: ease-in-out !important;
+  animation-iteration-count: infinite !important;
+  animation-play-state: running !important;
+  --rr-lamp-swing-negative: -1.35deg;
+  --rr-lamp-swing-positive: 1.35deg;
 }
 
 @keyframes rrLampSwingExternal {
   0%, 100% { transform: translateX(-50%) rotate(var(--rr-lamp-swing-negative, -1.35deg)); }
   50% { transform: translateX(-50%) rotate(var(--rr-lamp-swing-positive, 1.35deg)); }
-}
-
-@keyframes rrLampLightTrackExternal {
-  0%, 100% { background-position: calc(50% - var(--rr-light-track-distance, 7.5%)) 50%; }
-  50% { background-position: calc(50% + var(--rr-light-track-distance, 7.5%)) 50%; }
-}
-
-[data-roulette-game] .rr126-swing {
-  isolation: auto !important;
-  animation-name: rrLampSwingExternal !important;
-  animation-timing-function: ease-in-out !important;
-  animation-iteration-count: infinite !important;
-  animation-play-state: running !important;
-  transform-origin: 50% 0 !important;
-  overflow: visible !important;
-  will-change: transform;
-  visibility: visible !important;
 }
 
 [data-roulette-game] .rr126-swing::before,
@@ -138,6 +109,8 @@
 }
 
 [data-roulette-game] .rr126-bulb-glow,
+[data-roulette-game] .rr126-room-glow,
+[data-roulette-game] .rr126-beam,
 [data-roulette-game] .rr126-swing > img:not(#rrLampPng),
 [data-roulette-game] .rr126-swing > [class*="lamp-body"],
 [data-roulette-game] .rr126-swing > [class*="lamp-shade"],
@@ -153,62 +126,57 @@
   visibility: visible !important;
   opacity: 1 !important;
   position: absolute !important;
-  left: calc(50% + var(--rr-lamp-art-x, 0%)) !important;
-  top: var(--rr-lamp-art-y, 84.9%) !important;
-  width: var(--rr-lamp-width, 56%) !important;
+  left: calc(50% + var(--rr-lamp-art-x, -0.75%)) !important;
+  top: var(--rr-lamp-art-y, 90.5%) !important;
+  width: var(--rr-lamp-width, 94%) !important;
   height: auto !important;
   max-width: none !important;
   object-fit: contain !important;
-  transform: translate(-50%, -50%) scale(var(--rr-lamp-scale, 1)) !important;
+  transform: translate(-50%, -50%) scale(var(--rr-lamp-scale, 1.1)) !important;
   transform-origin: 50% 0 !important;
   pointer-events: none !important;
   z-index: 6 !important;
 }
 
-[data-roulette-game] .rr126-chain {
-  box-sizing: border-box !important;
-  transform-origin: 50% 0 !important;
-  overflow: visible !important;
-  max-width: none !important;
+[data-roulette-game] .rr-top,
+[data-roulette-game] .rr-status,
+[data-roulette-game] .rr-scene-countdown,
+[data-roulette-game] .rr-opening-banner,
+[data-roulette-game] .rr-controls,
+[data-roulette-game] .rr-final {
+  position: relative;
+  z-index: 8 !important;
 }
 
-[data-roulette-game] .rr126-chain::before,
-[data-roulette-game] .rr126-chain::after {
-  width: 100% !important;
-  max-width: none !important;
-  background-size: 100% auto !important;
-  transform-origin: 50% 0 !important;
-}
+[data-roulette-game] .rr-table { isolation: isolate !important; }
 
-[data-roulette-game] .rr126-chain::before {
-  height: var(--rr-chain-left-length, 100%) !important;
-}
-
-[data-roulette-game] .rr126-chain::after {
-  height: var(--rr-chain-right-length, 100%) !important;
-}
-
-[data-roulette-game] .rr126-chain > :first-child {
-  height: var(--rr-chain-left-length, 100%) !important;
-  transform-origin: 50% 0 !important;
-}
-
-[data-roulette-game] .rr126-chain > :nth-child(2) {
-  height: var(--rr-chain-right-length, 100%) !important;
-  transform-origin: 50% 0 !important;
+@keyframes rrLampLightTrackExternal {
+  0%, 100% { background-position: calc(50% - var(--rr-light-track-distance, 7.5%)) 50%; }
+  50% { background-position: calc(50% + var(--rr-light-track-distance, 7.5%)) 50%; }
 }
 
 [data-roulette-game] .rr130-table-illumination {
   display: block !important;
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  z-index: 6 !important;
+  border: 0 !important;
+  outline: 0 !important;
+  border-radius: inherit !important;
+  overflow: hidden !important;
   opacity: 1 !important;
   pointer-events: none !important;
   mix-blend-mode: screen !important;
+  filter: blur(10px) !important;
+  box-shadow: none !important;
   background: var(--rr-cal-light-background, radial-gradient(ellipse 75% 80% at 55.5% 39%, rgba(255,238,191,.25) 0%, rgba(255,164,64,.145) 38%, rgba(153,74,8,.05) 68%, transparent 94%)) !important;
   background-size: 125% 100% !important;
   background-repeat: no-repeat !important;
   animation-name: rrLampLightTrackExternal !important;
   animation-duration: var(--rr-light-track-duration, 5.6s) !important;
-  animation-delay: 0s !important;
+  animation-delay: 0s;
   animation-timing-function: ease-in-out !important;
   animation-iteration-count: infinite !important;
   animation-play-state: running !important;
@@ -230,6 +198,25 @@
   pointer-events: none !important;
   animation: none !important;
   transition: none !important;
+}
+
+@media (min-width: 701px) {
+  [data-roulette-game] .rr126-lamp-rig { height: 51% !important; }
+  [data-roulette-game] .rr126-swing { width: 31% !important; max-width: 230px !important; }
+}
+
+@media (max-width: 700px), (hover: none) and (pointer: coarse) {
+  [data-roulette-game] .rr126-lamp-rig { height: 57% !important; }
+  [data-roulette-game] .rr126-swing { width: 43% !important; max-width: none !important; }
+}
+
+@media (max-width: 390px) {
+  [data-roulette-game] .rr126-swing { width: 42% !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-roulette-game] .rr126-swing { animation: none !important; transform: translateX(-50%) !important; }
+  [data-roulette-game] .rr130-table-illumination { animation: none !important; }
 }
 
 #rrLampTrackedLight,
