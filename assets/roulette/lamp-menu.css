@@ -1,0 +1,132 @@
+#rrLightingMenuToggle {
+  position: fixed;
+  top: max(88px, env(safe-area-inset-top));
+  right: 10px;
+  z-index: 10020;
+  padding: 10px 13px;
+  border: 2px solid #e39435;
+  border-radius: 11px;
+  background: rgba(24, 16, 10, .96);
+  color: #ffd79a;
+  box-shadow: 0 5px 18px rgba(0, 0, 0, .55);
+  font: 800 12px/1 system-ui, sans-serif;
+  letter-spacing: .06em;
+  touch-action: manipulation;
+}
+
+#rrLightingMenu {
+  display: none;
+  position: fixed;
+  top: max(132px, calc(env(safe-area-inset-top) + 44px));
+  right: 8px;
+  z-index: 10021;
+  width: min(390px, calc(100vw - 16px));
+  max-height: calc(100dvh - 144px);
+  overflow: auto;
+  box-sizing: border-box;
+  padding: 12px;
+  border: 2px solid #a96226;
+  border-radius: 14px;
+  background: rgba(12, 9, 7, .98);
+  color: #eee;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, .72);
+  font: 13px/1.25 system-ui, sans-serif;
+  overscroll-behavior: contain;
+}
+
+#rrLightingMenu.open { display: block; }
+
+#rrLightingMenu header {
+  position: sticky;
+  top: -12px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: -12px -12px 8px;
+  padding: 12px;
+  border-bottom: 1px solid rgba(226, 147, 53, .38);
+  background: rgba(18, 12, 8, .98);
+  color: #ffc574;
+  letter-spacing: .04em;
+}
+
+#rrLightingMenu header button {
+  min-width: 34px;
+  min-height: 34px;
+  border: 1px solid #92531f;
+  border-radius: 8px;
+  background: #2b1c12;
+  color: #ffe0ad;
+  font: 800 22px/1 system-ui, sans-serif;
+}
+
+#rrLightingMenu .rr-lighting-menu-group {
+  margin: 13px 0 6px;
+  color: #ffbd66;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+#rrLightingMenu .rr-lighting-menu-row {
+  display: grid;
+  grid-template-columns: minmax(112px, 1fr) minmax(110px, 1.4fr) 54px;
+  gap: 8px;
+  align-items: center;
+  margin: 8px 0;
+}
+
+#rrLightingMenu .rr-lighting-menu-row input {
+  width: 100%;
+  accent-color: #d9842f;
+}
+
+#rrLightingMenu .rr-lighting-menu-row output {
+  color: #ffbd66;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#rrLightingMenu .rr-lighting-menu-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 14px;
+}
+
+#rrLightingMenu .rr-lighting-menu-actions button {
+  padding: 8px 11px;
+  border: 1px solid #9b5a24;
+  border-radius: 8px;
+  background: #332116;
+  color: #ffe1aa;
+  font-weight: 800;
+}
+
+#rrLightingMenu .rr-lighting-menu-status {
+  margin: 10px 0 0;
+  color: #d8c7ad;
+  font-size: 12px;
+}
+
+@media (max-width: 430px) {
+  #rrLightingMenuToggle {
+    top: max(74px, env(safe-area-inset-top));
+    right: 7px;
+    padding: 9px 11px;
+  }
+
+  #rrLightingMenu {
+    top: max(116px, calc(env(safe-area-inset-top) + 42px));
+    right: 5px;
+    width: calc(100vw - 10px);
+    max-height: calc(100dvh - 124px);
+  }
+
+  #rrLightingMenu .rr-lighting-menu-row {
+    grid-template-columns: 104px minmax(90px, 1fr) 48px;
+    gap: 6px;
+    font-size: 12px;
+  }
+}
