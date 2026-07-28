@@ -20,16 +20,19 @@
   });
   const RESULT_SOURCES = new Set(Object.values(RESULT_FILES));
   const OPENING_WOOD_SOUND_MS = 7000;
+  const OPENING_WOOD_PEAK = 0.045;
+  const SPIN_BUTTON_COOLDOWN_MS = 520;
   const RESULT_POLL_MS = 350;
-  const SPIN_BUTTON_COOLDOWN_MS = 650;
 
   const seenResults = new Set();
   let openingWoodUntil = 0;
   let openingWoodStarted = false;
-  let resultPollTimer = 0;
-  let activeResultClip = null;
+  let openingWoodFrame = 0;
+  let activeOpeningWoodClip = null;
   let activeSpinButtonClip = null;
+  let activeResultClip = null;
   let lastSpinButtonAt = -Infinity;
+  let resultPollTimer = 0;
   let nativeMediaPlay = null;
 
   function silenceLegacy() {
@@ -51,6 +54,68 @@
       try { element.dispatchEvent(new Event('ended')); } catch {}
     });
     return Promise.resolve();
+  }
+
+  function cancelOpeningWoodFrame() {
+    if (openingWoodFrame) cancelAnimationFrame(openingWoodFrame);
+    openingWoodFrame = 0;
+  }
+
+  function shapeOpeningWood(clip) {
+    cancelOpeningWoodFrame();
+    activeOpeningWoodClip = clip;
+    const started = performance.now();
+    const fadeInMs = 300;
+    const fadeOutAtMs = 1550;
+    const finishAtMs = 2480;
+
+    const step = now => {
+      if (activeOpeningWoodClip !== clip || clip.paused) {
+        if (activeOpeningWoodClip === clip) activeOpeningWoodClip = null;
+        openingWoodFrame = 0;
+        return;
+      }
+
+      const elapsed = now - started;
+      let envelope = OPENING_WOOD_PEAK;
+      if (elapsed < fadeInMs) envelope *= Math.max(0, elapsed / fadeInMs);
+      if (elapsed > fadeOutAtMs) {
+        envelope *= Math.max(0, 1 - (elapsed - fadeOutAtMs) / (finishAtMs - fadeOutAtMs));
+      }
+      clip.volume = Math.max(0, Math.min(OPENING_WOOD_PEAK, envelope));
+
+      if (elapsed >= finishAtMs) {
+        clip.volume = 0;
+        activeOpeningWoodClip = null;
+        openingWoodFrame = 0;
+        return;
+      }
+      openingWoodFrame = requestAnimationFrame(step);
+    };
+
+    openingWoodFrame = requestAnimationFrame(step);
+  }
+
+  function fadeOutOpeningWood(duration = 170) {
+    cancelOpeningWoodFrame();
+    const clip = activeOpeningWoodClip;
+    activeOpeningWoodClip = null;
+    if (!clip) return;
+
+    const started = performance.now();
+    const startVolume = Math.max(0, Number(clip.volume) || 0);
+    const step = now => {
+      const progress = Math.min(1, (now - started) / Math.max(50, duration));
+      clip.volume = startVolume * (1 - progress);
+      if (progress < 1) {
+        openingWoodFrame = requestAnimationFrame(step);
+        return;
+      }
+      openingWoodFrame = 0;
+      try { clip.pause(); } catch {}
+      try { clip.removeAttribute('src'); } catch {}
+    };
+    openingWoodFrame = requestAnimationFrame(step);
   }
 
   function installFinalMixFilter() {
@@ -75,8 +140,11 @@
         if (src.includes(TABLE_MOVE)) {
           if (openingWoodStarted) return blockMedia(this);
           openingWoodStarted = true;
-          this.volume = Math.min(0.13, Math.max(0, Number(this.volume) || 0));
-        } else if (OPENING_BLOCKED_SOURCES.some(file => src.includes(file))) {
+          const result = upstreamPlay.apply(this, arguments);
+          shapeOpeningWood(this);
+          return result;
+        }
+        if (OPENING_BLOCKED_SOURCES.some(file => src.includes(file))) {
           return blockMedia(this);
         }
       }
@@ -86,6 +154,7 @@
   }
 
   function beginOpeningWoodSound() {
+    fadeOutOpeningWood(90);
     openingWoodUntil = performance.now() + OPENING_WOOD_SOUND_MS;
     openingWoodStarted = false;
   }
@@ -98,16 +167,18 @@
 
   function playSpinButtonChamber() {
     const now = performance.now();
-    if (now < openingWoodUntil || now - lastSpinButtonAt < SPIN_BUTTON_COOLDOWN_MS) return;
+    if (now - lastSpinButtonAt < SPIN_BUTTON_COOLDOWN_MS) return;
     lastSpinButtonAt = now;
 
+    fadeOutOpeningWood(150);
     stopClip(activeSpinButtonClip);
+
     const clip = new Audio(BASE + CHAMBER_SPIN);
     clip.__rrAuthorizedSpinButtonChamber = true;
     clip.preload = 'auto';
     clip.playsInline = true;
     clip.preservesPitch = false;
-    clip.volume = 0.3;
+    clip.volume = 0.34;
     clip.playbackRate = 0.96;
     activeSpinButtonClip = clip;
 
@@ -125,16 +196,6 @@
     Promise.resolve(play.call(clip)).catch(cleanup);
   }
 
-  function isSpinButton(button) {
-    if (!button || button.disabled || button.getAttribute('aria-disabled') === 'true') return false;
-    if (!button.closest('[data-roulette-game]')) return false;
-    const label = String(button.textContent || '')
-      .replace(/\s+/g, ' ')
-      .trim()
-      .toUpperCase();
-    return /^SPIN(?: (?:CHAMBER|CYLINDER))?$/.test(label);
-  }
-
   function currentGame() {
     try {
       if (typeof rouletteLatestGame !== 'undefined' && rouletteLatestGame?.mode === 'roulette') {
@@ -147,6 +208,48 @@
       }
     } catch {}
     return null;
+  }
+
+  function nearestInteractive(target) {
+    return target?.closest?.(
+      'button,[role="button"],input[type="button"],input[type="submit"],a,' +
+      '[data-action],[data-roulette-action],[id*="spin" i],[class*="spin" i]'
+    ) || null;
+  }
+
+  function spinDescriptor(control) {
+    const dataset = control?.dataset || {};
+    return [
+      control?.textContent,
+      control?.value,
+      control?.getAttribute?.('aria-label'),
+      control?.getAttribute?.('title'),
+      control?.getAttribute?.('name'),
+      control?.id,
+      typeof control?.className === 'string' ? control.className : '',
+      dataset.action,
+      dataset.rouletteAction
+    ].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+  }
+
+  function isStrictSpinLabel(label) {
+    return /^SPIN(?: (?:CHAMBER|CYLINDER))?$/.test(label);
+  }
+
+  function isSpinControl(control) {
+    if (!control || control.disabled || control.getAttribute?.('aria-disabled') === 'true') return false;
+    const descriptor = spinDescriptor(control);
+    if (!isStrictSpinLabel(descriptor.toUpperCase()) && !/\bSPIN\b/i.test(descriptor)) return false;
+
+    const rouletteContext = control.closest?.(
+      '[data-roulette-game],.rr-game,.roulette-game,.rr-card,#duelActive,#duel-active'
+    );
+    return Boolean(rouletteContext || currentGame()?.mode === 'roulette');
+  }
+
+  function handleSpinGesture(event) {
+    const control = nearestInteractive(event.target);
+    if (isSpinControl(control)) playSpinButtonChamber();
   }
 
   function localUserId() {
@@ -275,10 +378,8 @@
     rouletteShotSequence = boundShotSequence;
   }
 
-  document.addEventListener('click', event => {
-    const button = event.target?.closest?.('button');
-    if (isSpinButton(button)) playSpinButtonChamber();
-  }, true);
+  document.addEventListener('pointerdown', handleSpinGesture, true);
+  document.addEventListener('click', handleSpinGesture, true);
 
   const pollResult = () => {
     syncResultCue();
@@ -292,6 +393,7 @@
       return {
         openingWoodActive: performance.now() < openingWoodUntil,
         openingWoodStarted,
+        openingWoodVolume: Number(activeOpeningWoodClip?.volume || 0),
         spinButtonPlaying: Boolean(activeSpinButtonClip),
         seenResults: [...seenResults]
       };
@@ -300,8 +402,13 @@
 
   global.addEventListener('pagehide', () => {
     clearTimeout(resultPollTimer);
+    document.removeEventListener('pointerdown', handleSpinGesture, true);
+    document.removeEventListener('click', handleSpinGesture, true);
+    cancelOpeningWoodFrame();
+    stopClip(activeOpeningWoodClip);
     stopClip(activeResultClip);
     stopClip(activeSpinButtonClip);
+    activeOpeningWoodClip = null;
     activeResultClip = null;
     activeSpinButtonClip = null;
   }, { once: true });
