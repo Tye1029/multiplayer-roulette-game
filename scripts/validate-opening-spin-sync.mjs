@@ -6,11 +6,16 @@ const index = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 
 for (const required of [
   "const OPENING_SPIN_PATH = '/assets/roulette/audio/revolver-spinning-on-wood-v4.mp3'",
+  'const RAPID_FADE_START_PROGRESS = 0.50',
+  'const RAPID_FADE_END_PROGRESS = 0.68',
+  'function openingVolumeEnvelope(progress)',
   'function findOpeningAnimation()',
   '.getAnimations()',
   "clip.addEventListener('loadedmetadata', synchronize)",
-  "clip.addEventListener('playing', synchronize)",
+  "clip.addEventListener('playing', startTracking)",
   'remainingAudioSeconds / remainingAnimationSeconds',
+  'clip.volume = baseVolume * openingVolumeEnvelope(progress)',
+  'requestAnimationFrame(trackEnvelope)',
   'clip.preservesPitch = true',
   'global.Audio = SyncedAudio'
 ]) {
@@ -30,4 +35,4 @@ for (const source of [inject, index]) {
   }
 }
 
-console.log('Opening-spin audio reads the active animation duration and scales its playback to finish on the same frame.');
+console.log('Opening-spin audio follows the active animation duration, stays full during the fast half, and rapidly fades through the long slowdown.');
