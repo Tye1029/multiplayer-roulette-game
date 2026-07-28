@@ -60,7 +60,11 @@ for (const required of [
   "element.className = 'rr-atmosphere-settings rr-atmosphere-portal'",
   "toggle.textContent = '⚙ Scene Settings'",
   'document.body.append(element);',
-  'panel.parentElement === document.body'
+  'panel.parentElement === document.body',
+  'function rouletteScreenIsVisible()',
+  "selectedMode === 'roulette'",
+  "event.target?.id === 'duelModeSelect'",
+  "attributeFilter: ['hidden']"
 ]) {
   if (!settings.includes(required)) throw new Error(`Atmosphere settings are missing ${required}`);
 }
@@ -99,7 +103,7 @@ const assetOrder = [
   '/assets/roulette/lamp-config.js?v=19',
   '/assets/roulette/lamp.js?v=20&smoke=1',
   '/assets/roulette/lamp-bootstrap.js?v=19&settings=2',
-  '/assets/roulette/atmosphere-settings.js?v=3',
+  '/assets/roulette/atmosphere-settings.js?v=4',
   '/assets/roulette/audio-manager.js?v=4&ambience=2&countdown=2&audible=3&media=2'
 ];
 for (const asset of [
@@ -111,7 +115,7 @@ for (const asset of [
 }
 const indexes = assetOrder.map(asset => injector.indexOf(asset));
 if (indexes.some(index => index < 0) || indexes.some((index, position) => position > 0 && index <= indexes[position - 1])) {
-  throw new Error('Lamp, viewport settings, and media-safe ambience assets are not loaded in the required order.');
+  throw new Error('Lamp, pregame viewport settings, and media-safe ambience assets are not loaded in the required order.');
 }
 if (!injector.includes("import './patch-roulette-media-settings.mjs';")) {
   throw new Error('The media-safe ambience build patch is not connected.');
@@ -140,4 +144,4 @@ for (const [name, expected, source] of [
   if (actual !== expected) throw new Error(`${name} hash changed: ${actual}`);
 }
 
-console.log('Media/settings validation passed: ambience avoids Chrome media controls, the scene settings tab is viewport-mounted above the game, smoke is adjustable, and all 25 calibration controls plus protected gun files remain intact.');
+console.log('Media/settings validation passed: ambience avoids Chrome media controls, the scene settings tab is viewport-mounted and visible before Roulette starts, smoke is adjustable, and all 25 calibration controls plus protected gun files remain intact.');
