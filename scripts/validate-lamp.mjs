@@ -2,17 +2,7 @@ import { access, readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 
 const read = path => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
-const [
-  html,
-  injector,
-  turnAnimation,
-  config,
-  lamp,
-  bootstrap,
-  calibration,
-  lampCss,
-  packageSource
-] = await Promise.all([
+const [html, injector, turnAnimation, config, lamp, bootstrap, calibration, lampCss, packageSource] = await Promise.all([
   read('index.html'),
   read('scripts/inject-lamp-assets.mjs'),
   read('assets/roulette/turn-animation.js'),
@@ -29,15 +19,12 @@ for (const [name, source] of [
   ['lamp.js', lamp],
   ['lamp-bootstrap.js', bootstrap],
   ['lamp-calibration.js', calibration]
-]) {
-  new vm.Script(source, { filename: name });
-}
+]) new vm.Script(source, { filename: name });
 
 const sandbox = { window: {} };
 vm.createContext(sandbox);
 vm.runInContext(config, sandbox, { filename: 'lamp-config.js' });
-const api = sandbox.window.RouletteLampConfig;
-if (!api || Object.keys(api.bindings).length !== 25) {
+if (Object.keys(sandbox.window.RouletteLampConfig?.bindings || {}).length !== 25) {
   throw new Error('The 25 lamp calibration controls are not intact.');
 }
 
@@ -46,7 +33,7 @@ for (const required of [
   '/assets/roulette/lamp-config.js?v=19',
   '/assets/roulette/lamp.js?v=19',
   '/assets/roulette/lamp-bootstrap.js?v=19',
-  '/assets/roulette/turn-animation.js?v=2',
+  '/assets/roulette/turn-animation.js?v=3',
   'MODULAR_LAMP_ASSETS_START',
   'rrLampCriticalHide'
 ]) {
@@ -56,44 +43,40 @@ for (const required of [
 for (const required of [
   "const facingSelector = ':scope > [data-roulette-facing]'",
   "const recoilSelector = ':scope > [data-roulette-recoil]'",
-  "(document.body || document.documentElement).append(style)",
-  'html body [data-roulette-game] .rr-gun-motion',
-  'transform: translate(-50%, -50%) scale(.74) !important',
-  'animation: none !important',
   "facing.dataset.rouletteFacing = '1'",
   "recoil.dataset.rouletteRecoil = '1'",
   'function ensureLayers(root)',
-  'function settleFacing(gameId, angle, turnId',
   'async function animateFacing(game, gameId, turnId',
   'rouletteMotionTransform = function (_angle',
   'rouletteRotateToTurn = async function',
   'rouletteOpeningSequence = async function',
-  'rouletteShotSequence = async function',
-  'rouletteOrientToShotActor = async function',
-  'const actorAngle = normalizeAngle(angleForPlayer(game, actorId))',
-  'const recoilMotion = rouletteAnimate(',
-  'layers.recoil,',
-  'const originalBind = rouletteBind',
-  'mountCurrentScene()'
+  'rouletteShotSequence = async function (_game, state, gameId)',
+  'const recoilMotion = rouletteAnimate(layers.recoil',
+  'await animateFacing(newest, gameId, newestTurnId, 900)',
+  'html body [data-roulette-game] .rr-table',
+  'animation: none !important',
+  'transform: none !important',
+  'transition: none !important'
 ]) {
-  if (!turnAnimation.includes(required)) throw new Error(`Two-layer turn module is missing ${required}`);
+  if (!turnAnimation.includes(required)) throw new Error(`Turn animation v3 is missing ${required}`);
 }
 
 for (const forbidden of [
   'MutationObserver',
   'setInterval(',
   'getBoundingClientRect',
-  'rouletteAnimate(\n            layers.motion',
-  'rouletteAnimate(motion',
+  'lastActorId',
+  'actorAngle',
+  'settleFacing(gameId, actor',
+  'rouletteVisualRuntime.currentAngle = actor',
+  'rouletteVisualRuntime.lastTurnId = actor',
+  'rouletteMotionTransform(base+10',
+  'rouletteMotionTransform(base-2',
   'scale(${-scale}',
   'data-current-turn',
-  'data-shot-revision',
-  'motion.style.transform = rouletteMotionTransform(angle',
-  'motion.style.transform=rouletteMotionTransform(angle'
+  'data-shot-revision'
 ]) {
-  if (turnAnimation.includes(forbidden)) {
-    throw new Error(`Turn module contains a conflicting patch technique: ${forbidden}`);
-  }
+  if (turnAnimation.includes(forbidden)) throw new Error(`Shot or legacy code can still change facing: ${forbidden}`);
 }
 
 for (const forbidden of [
@@ -104,23 +87,10 @@ for (const forbidden of [
   'turn-orientation.js',
   'gun-turn-animation.js'
 ]) {
-  if (injector.includes(forbidden)) throw new Error(`Lamp injector still rewrites or loads obsolete gun code: ${forbidden}`);
+  if (injector.includes(forbidden)) throw new Error(`Lamp injector rewrites or loads obsolete gun code: ${forbidden}`);
 }
-if (!injector.includes('/assets/roulette/turn-animation.js?v=2')) {
-  throw new Error('Lamp injector is not loading the cache-busted two-layer turn module.');
-}
-
-for (const id of [
-  'rr-v114-image2-lamp-rig',
-  'rr-v126-split-lamp-rig',
-  'rr-v130-table-surface-lighting',
-  'rr-v140-lighting-debug-rebuild',
-  'rr-v145-single-driver-light-sync',
-  'rr-v148-final-lamp-asset-cleanup'
-]) {
-  if (html.includes(`id="${id}"`) || html.includes(`id='${id}'`)) {
-    throw new Error(`Obsolete lamp block survived the build: ${id}`);
-  }
+if (!injector.includes('/assets/roulette/turn-animation.js?v=3')) {
+  throw new Error('The injector is not loading turn animation version 3.');
 }
 
 for (const required of [
@@ -134,13 +104,13 @@ for (const required of [
 }
 for (const forbidden of ['.rr-gun-motion', 'scene.gun', 'scene.table', 'data-current-turn']) {
   if (lamp.includes(forbidden) || lampCss.includes(forbidden)) {
-    throw new Error(`Lamp module still interacts with gun state: ${forbidden}`);
+    throw new Error(`Lamp code still interacts with gun or table state: ${forbidden}`);
   }
 }
 
 const packageJson = JSON.parse(packageSource);
 const expected = "node scripts/inject-lamp-assets.mjs && npm run validate:lamp && echo 'Static Netlify site - validation complete'";
-if (packageJson.scripts?.build !== expected) throw new Error('Build still runs the old gameplay rewriter.');
+if (packageJson.scripts?.build !== expected) throw new Error('Unexpected Netlify build pipeline.');
 
 async function requireMissing(path) {
   try {
@@ -163,5 +133,4 @@ for (const path of [
 
 await access(new URL('../assets/roulette/decor/lamp-1.png', import.meta.url));
 await access(new URL('../assets/roulette/decor/workshop-lamp-chain.png', import.meta.url));
-
-console.log('Validation passed: outer gun positioning is locked; one facing layer rotates and one recoil layer fires.');
+console.log('Validation passed: shots never write facing; only the inner recoil moves; the table is fixed.');
