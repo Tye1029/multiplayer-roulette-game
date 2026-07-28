@@ -56,12 +56,19 @@ for (const required of [
   "root.style.setProperty('--rr-smoke-ambient-opacity'",
   "root.style.setProperty('--rr-smoke-lit-opacity'",
   "root.style.setProperty('--rr-smoke-blur'",
-  "root.style.setProperty('--rr-smoke-speed'"
+  "root.style.setProperty('--rr-smoke-speed'",
+  "element.className = 'rr-atmosphere-settings rr-atmosphere-portal'",
+  "toggle.textContent = '⚙ Scene Settings'",
+  'document.body.append(element);',
+  'panel.parentElement === document.body'
 ]) {
   if (!settings.includes(required)) throw new Error(`Atmosphere settings are missing ${required}`);
 }
 
 for (const required of [
+  '.rr-atmosphere-settings{',
+  'position:fixed!important;',
+  'z-index:2147483000!important;',
   '.rr-atmosphere-settings.is-collapsed',
   '.rr-atmosphere-row input[type="range"]',
   '[data-roulette-game] .rr-smoke-ambient',
@@ -69,7 +76,7 @@ for (const required of [
   'rgba(205,210,212,.25)',
   'z-index:5!important;'
 ]) {
-  if (!settingsCss.includes(required)) throw new Error(`Atmosphere panel or visible smoke styling is missing ${required}`);
+  if (!settingsCss.includes(required)) throw new Error(`Viewport settings panel or visible smoke styling is missing ${required}`);
 }
 
 for (const required of [
@@ -92,11 +99,11 @@ const assetOrder = [
   '/assets/roulette/lamp-config.js?v=19',
   '/assets/roulette/lamp.js?v=20&smoke=1',
   '/assets/roulette/lamp-bootstrap.js?v=19&settings=2',
-  '/assets/roulette/atmosphere-settings.js?v=2',
+  '/assets/roulette/atmosphere-settings.js?v=3',
   '/assets/roulette/audio-manager.js?v=4&ambience=2&countdown=2&audible=3&media=2'
 ];
 for (const asset of [
-  '/assets/roulette/atmosphere-settings.css?v=2',
+  '/assets/roulette/atmosphere-settings.css?v=3',
   ...assetOrder
 ]) {
   if (!injector.includes(asset)) throw new Error(`Asset injector is missing ${asset}`);
@@ -104,7 +111,7 @@ for (const asset of [
 }
 const indexes = assetOrder.map(asset => injector.indexOf(asset));
 if (indexes.some(index => index < 0) || indexes.some((index, position) => position > 0 && index <= indexes[position - 1])) {
-  throw new Error('Lamp, settings, and media-safe ambience assets are not loaded in the required order.');
+  throw new Error('Lamp, viewport settings, and media-safe ambience assets are not loaded in the required order.');
 }
 if (!injector.includes("import './patch-roulette-media-settings.mjs';")) {
   throw new Error('The media-safe ambience build patch is not connected.');
@@ -133,4 +140,4 @@ for (const [name, expected, source] of [
   if (actual !== expected) throw new Error(`${name} hash changed: ${actual}`);
 }
 
-console.log('Media/settings validation passed: persistent ambience uses Web Audio without Chrome media controls, smoke is visibly adjustable, the panel collapses, and all 25 calibration controls plus protected gun files remain intact.');
+console.log('Media/settings validation passed: ambience avoids Chrome media controls, the scene settings tab is viewport-mounted above the game, smoke is adjustable, and all 25 calibration controls plus protected gun files remain intact.');
