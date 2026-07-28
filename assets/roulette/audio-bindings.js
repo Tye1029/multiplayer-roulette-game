@@ -36,6 +36,10 @@
   let lastSpinButtonAt = -Infinity;
   let resultPollTimer = 0;
   let nativeMediaPlay = null;
+  let visibleResultState = '';
+  let visibleResultSerial = 0;
+  let lastResultCue = '';
+  let lastResultAt = -Infinity;
 
   function silenceLegacy() {
     const noop = function () { return null; };
@@ -354,17 +358,105 @@
     });
   }
 
+  const RESULT_ELEMENT_SELECTOR = [
+    '[role="dialog"]',
+    '[aria-modal="true"]',
+    '[data-roulette-result]',
+    '.rr-final',
+    '.rr-result',
+    '.rr-ending-banner',
+    '.result-modal',
+    '.game-result',
+    '.game-over',
+    '.end-screen',
+    '.modal',
+    '.popup',
+    'h1',
+    'h2',
+    'h3'
+  ].join(',');
+
+  function documentResultCue() {
+    const candidates = document.querySelectorAll(RESULT_ELEMENT_SELECTOR);
+
+    for (const element of candidates) {
+      const computed = global.getComputedStyle?.(element);
+      if (
+        computed &&
+        (
+          computed.display === 'none' ||
+          computed.visibility === 'hidden' ||
+          Number(computed.opacity) === 0
+        )
+      ) continue;
+
+      const rect = element.getBoundingClientRect?.();
+      if (rect && (rect.width < 1 || rect.height < 1)) continue;
+
+      const text = String(element.textContent || '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .toLowerCase();
+
+      if (!text || text.length > 800) continue;
+
+      if (/\byou\s+(?:win|won)\b|\bvictory\b/.test(text)) {
+        return 'victory';
+      }
+
+      if (/\byou\s+(?:lose|lost)\b|\bdefeat\b|\beliminated\b/.test(text)) {
+        return 'defeat';
+      }
+    }
+
+    return '';
+  }
+
+  function queueResultCue(game, cue, key) {
+    if (!cue || seenResults.has(key)) return;
+
+    seenResults.add(key);
+    lastResultCue = cue;
+    lastResultAt = performance.now();
+
+    global.setTimeout(() => playResultCue(game, cue, key), 700);
+  }
+
   function syncResultCue() {
+    const domCue = documentResultCue();
+
+    if (!domCue) {
+      visibleResultState = '';
+    }
+
     const game = currentGame();
     const status = String(game?.status || '').toLowerCase();
-    if (!game || !['complete', 'completed', 'finished'].includes(status)) return;
+    const gameComplete = Boolean(
+      game && ['complete', 'completed', 'finished'].includes(status)
+    );
 
-    const cue = resultCue(game);
-    if (!cue) return;
-    const key = resultKey(game, cue);
-    if (seenResults.has(key)) return;
-    seenResults.add(key);
-    global.setTimeout(() => playResultCue(game, cue, key), 700);
+    if (gameComplete) {
+      const cue = resultCue(game) || domCue;
+      if (!cue) return;
+
+      if (domCue) visibleResultState = domCue;
+      queueResultCue(game, cue, resultKey(game, cue));
+      return;
+    }
+
+    if (!domCue || visibleResultState === domCue) return;
+
+    visibleResultState = domCue;
+
+    const now = performance.now();
+    if (lastResultCue === domCue && now - lastResultAt < 8000) return;
+
+    visibleResultSerial += 1;
+    queueResultCue(
+      null,
+      domCue,
+      `visible-result:${visibleResultSerial}:${domCue}`
+    );
   }
 
   silenceLegacy();
