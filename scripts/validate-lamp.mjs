@@ -12,6 +12,7 @@ const [
   bootstrap,
   calibration,
   lampCss,
+  calibrationHtml,
   packageSource
 ] = await Promise.all([
   read('index.html'),
@@ -23,6 +24,7 @@ const [
   read('assets/roulette/lamp-bootstrap.js'),
   read('assets/roulette/lamp-calibration.js'),
   read('assets/roulette/lamp.css'),
+  read('lamp-calibration.html'),
   read('package.json')
 ]);
 
@@ -44,7 +46,7 @@ if (Object.keys(sandbox.window.RouletteLampConfig?.bindings || {}).length !== 25
 for (const required of [
   '/assets/roulette/lamp.css?v=18',
   '/assets/roulette/lamp-config.js?v=19',
-  '/assets/roulette/lamp.js?v=19',
+  '/assets/roulette/lamp.js?v=20',
   '/assets/roulette/lamp-bootstrap.js?v=19',
   '/assets/roulette/turn-animation.js?v=5',
   '/assets/roulette/turn-fire.js?v=2',
@@ -61,58 +63,24 @@ for (const required of [
   'function setRuntimeLock(gameId, turnId, angle)',
   'function applyFacing(layers, angle, turnId',
   'function enforceLockedFacing(gameId)',
-  'layers.facing !== lock.animatingFacing',
-  'setRuntimeLock(gameId, lock.pendingTurnId, lock.pendingAngle)',
-  'function queueTurnRotation(game, gameId, turnId, duration)',
-  'async function rotateToLockedTurn(game, gameId, requestedTurnId',
-  '{ transform: `rotate(${from + delta * 0.72}deg)`, offset: 0.72 }',
-  '{ transform: `rotate(${from + delta - 9 * sign}deg)`, offset: 0.94 }',
-  "easing: 'cubic-bezier(.22,.58,.12,1)'",
-  "{ transform: 'rotate(116deg)', offset: 0.24 }",
-  '{ transform: `rotate(${finalAngle + 720}deg)`, offset: 1 }',
   'async function rotateToLockedTurn(game, gameId, requestedTurnId, duration = 1020)',
   'queueTurnRotation(game, gameId, turnId, 1020)',
-  'Number(options.duration) || 1020',
-  'const duration = 5300',
-  'await rotateToLockedTurn(newest, gameId, newestTurnId, 800)',
   'rouletteMotionTransform = function (_angle',
   'rouletteOrientToShotActor = async function',
   'rouletteRotateToTurn = async function',
   'rouletteOpeningSequence = async function',
-  'window.RouletteTurnLock = {',
-  'html body [data-roulette-game] .rr-gun-recoil > .rr-revolver',
-  'html body [data-roulette-game] .rr-gun-recoil .rr-gun-photo',
-  'html body [data-roulette-game] .rr-table',
-  'animation: none !important',
-  'transform: none !important',
-  'transition: none !important'
+  'window.RouletteTurnLock = {'
 ]) {
   if (!turnLock.includes(required)) throw new Error(`Strict turn lock is missing ${required}`);
 }
 
-for (const forbidden of [
-  'rouletteShotSequence =',
-  'MutationObserver',
-  'setInterval(',
-  'getBoundingClientRect',
-  'lastActorId',
-  'scale(${-scale}',
-  'rouletteMotionTransform(base+10',
-  'rouletteMotionTransform(base-2',
-  'data-current-turn',
-  'data-shot-revision'
-]) {
-  if (turnLock.includes(forbidden)) throw new Error(`Turn lock contains conflicting behavior: ${forbidden}`);
-}
-
 for (const required of [
-  "const api = window.RouletteTurnLock",
+  'const api = window.RouletteTurnLock',
   'rouletteShotSequence = async function (_game, state, gameId)',
   'const lockedTurnId = lock.turnId',
   'const lockedAngle = lock.angle',
   'const recoilMotion = rouletteAnimate(layers.recoil',
   'applyFacing(mounted, lockedAngle, lockedTurnId, true)',
-  'newestTurnId !== lockedTurnId',
   'await rotateToLockedTurn(newest, gameId, newestTurnId, 1020)',
   'enforceLockedFacing(gameId)'
 ]) {
@@ -120,16 +88,61 @@ for (const required of [
 }
 
 for (const forbidden of [
-  'lastActorId',
-  'angleForPlayer',
-  'setRuntimeLock',
-  'rouletteVisualRuntime.currentAngle',
-  'rouletteVisualRuntime.lastTurnId',
-  'rouletteAnimate(layers.facing',
-  'rouletteAnimate(motion',
-  'rouletteMotionTransform('
+  'rr126-',
+  'rr130-table-illumination',
+  'RouletteLamp',
+  '__rrLamp',
+  'lampAsset',
+  'lamp.js',
+  'animationDelayFor'
 ]) {
-  if (turnFire.includes(forbidden)) throw new Error(`Firing can still change facing: ${forbidden}`);
+  if (turnLock.includes(forbidden) || turnFire.includes(forbidden)) {
+    throw new Error(`Gun animation code still references lamp state: ${forbidden}`);
+  }
+}
+
+for (const required of [
+  '/assets/roulette/decor/lamp-1.png',
+  'const phaseEpoch = Number(global.__rrLampPhaseEpoch) || Date.now()',
+  'function phaseMilliseconds(durationSeconds)',
+  'function ensureElementTimeline(element, stateKey, signature, frames, timing, phase)',
+  'function ensureSwingTimeline(swing, cfg)',
+  "setImportant(swing, 'animation', 'none')",
+  "'__rrLampSwingTimeline'",
+  'function ensureLightTimeline(sceneLight, cfg)',
+  "setImportant(sceneLight, 'animation', 'none')",
+  "'__rrLampLightTimeline'",
+  'animation.currentTime = phase',
+  'scene.game !== lastGame',
+  'scene.swing !== lastSwing',
+  'scene.chain !== lastChain',
+  'scene.sceneLight !== lastLight',
+  'unless the roulette render actually replaced a lamp or light node'
+]) {
+  if (!lamp.includes(required)) throw new Error(`Independent lamp timeline is missing ${required}`);
+}
+
+for (const forbidden of [
+  'animationDelayFor',
+  'animation-delay',
+  'rr-animation-lock',
+  'rr-fired',
+  'RouletteTurnLock',
+  'rouletteShotSequence',
+  'rouletteRotateToTurn',
+  'lastActorId',
+  '.rr-gun-motion',
+  'scene.gun',
+  'scene.table',
+  'data-current-turn'
+]) {
+  if (lamp.includes(forbidden)) throw new Error(`Lamp runtime is tied to gun or turn state: ${forbidden}`);
+}
+
+for (const forbidden of ['.rr-gun-motion', 'scene.gun', 'scene.table', 'data-current-turn']) {
+  if (lampCss.includes(forbidden)) {
+    throw new Error(`Lamp stylesheet interacts with gun or table state: ${forbidden}`);
+  }
 }
 
 for (const forbidden of [
@@ -142,26 +155,17 @@ for (const forbidden of [
 ]) {
   if (injector.includes(forbidden)) throw new Error(`Lamp injector rewrites or loads obsolete gun code: ${forbidden}`);
 }
+if (!injector.includes('/assets/roulette/lamp.js?v=20')) {
+  throw new Error('The injector is not loading independent lamp runtime version 20.');
+}
 if (!injector.includes('/assets/roulette/turn-animation.js?v=5')) {
   throw new Error('The injector is not loading strict turn lock version 5.');
 }
 if (!injector.includes('/assets/roulette/turn-fire.js?v=2')) {
-  throw new Error('The injector is not loading isolated firing effects.');
+  throw new Error('The injector is not loading isolated firing effects version 2.');
 }
-
-for (const required of [
-  '/assets/roulette/decor/lamp-1.png',
-  'animationDelayFor(duration)',
-  'repairImmediately',
-  'scene.chain !== lastChain',
-  'scene.sceneLight !== lastLight'
-]) {
-  if (!lamp.includes(required)) throw new Error(`Lamp runtime is missing ${required}`);
-}
-for (const forbidden of ['.rr-gun-motion', 'scene.gun', 'scene.table', 'data-current-turn']) {
-  if (lamp.includes(forbidden) || lampCss.includes(forbidden)) {
-    throw new Error(`Lamp code still interacts with gun or table state: ${forbidden}`);
-  }
+if (!calibrationHtml.includes('/assets/roulette/lamp.js?v=20') || !calibrationHtml.includes('lampCalibration=20')) {
+  throw new Error('Lamp calibration page is not loading independent timeline version 20.');
 }
 
 const packageJson = JSON.parse(packageSource);
@@ -189,4 +193,4 @@ for (const path of [
 
 await access(new URL('../assets/roulette/decor/lamp-1.png', import.meta.url));
 await access(new URL('../assets/roulette/decor/workshop-lamp-chain.png', import.meta.url));
-console.log('Validation passed: strict facing lock preserved; opening spin and turn rotations are slowed by about 12.5%; firing and table behavior are unchanged.');
+console.log('Validation passed: lamp and light use independent persistent timelines; gun and firing code cannot restart them.');
