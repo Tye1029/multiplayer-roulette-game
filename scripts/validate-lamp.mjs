@@ -152,36 +152,29 @@ for (const id of obsoleteSceneBlockIds) {
 
 for (const required of [
   'rotate(${Number(angle)||0}deg) scale(${scale})',
+  'const mountedClaimsTarget=',
+  'const runtimeClaimsTarget=',
+  'runtimeClaimsTarget&&mountedClaimsTarget',
+  'mountedMotion.dataset.rouletteFacingTurnId=String(turnId||\'\')',
   'const animatedTarget=from+delta;',
-  '{transform:rouletteMotionTransform(from,scale)}',
-  '{transform:rouletteMotionTransform(animatedTarget,scale)}',
-  "{duration,easing:'cubic-bezier(.22,.58,.12,1)',fill:'forwards'}",
-  'const mountedRoot=duelActive?.querySelector',
-  "const mountedMotion=mountedRoot?.querySelector('[data-roulette-motion]')",
-  'const applyAngleToMountedGun=angle=>',
-  "candidate.style.removeProperty('translate')",
-  "candidate.style.removeProperty('rotate')",
-  "candidate.style.removeProperty('scale')",
-  'if(finalMotion)finalMotion.style.transform=rouletteMotionTransform(angle,rouletteMotionScale())',
-  "mountedRoot?.classList.remove('rr-animation-lock')"
-]) {
-  if (!htmlSource.includes(required)) throw new Error(`Replacement-safe core turn rotation missing ${required}`);
-}
-
-for (const required of [
-  'additive individual transform properties',
-  "const shotActorId=String(st?.lastActorId||rouletteVisualRuntime.displayTurnId||st?.turnId||'')",
-  'const facingSign=Math.cos((base+4)*Math.PI/180)>=0?1:-1;',
+  'await rouletteRotateToTurn(latestAtFinish',
+  "rouletteDebug('skipped stale shot visual'",
+  'actorId&&displayedTurnId&&actorId!==displayedTurnId',
+  'const base=Number.isFinite(rouletteVisualRuntime.currentAngle)',
   "{translate:'0px 0px',rotate:'0deg',scale:'1',offset:0}",
-  "translate:`${20*facingSign}px ${7*facingSign}px`",
-  "translate:`${-5*facingSign}px ${-2*facingSign}px`",
-  "translate:`${-3*facingSign}px 0px`",
-  'const mountedHammer=mountedRoot?.querySelector',
-  'const mountedCover=mountedRoot?.querySelector',
-  'if(finalMotion)finalMotion.style.transform=rouletteMotionTransform(base,rouletteMotionScale())',
+  'const restoreAngle=Number.isFinite(rouletteVisualRuntime.currentAngle)',
+  'const restoreTurnId=String(rouletteVisualRuntime.displayTurnId',
+  'finalMotion.dataset.rouletteFacingTurnId=restoreTurnId',
+  'const syncNewestTurn=async duration=>',
+  'await syncNewestTurn(900)',
+  'Repeated authoritative polls are also allowed to repair direction',
+  '.rr-gun-motion{backface-visibility:visible;transform-style:flat}',
   '.rr-game.rr-fired{animation:none!important}'
 ]) {
-  if (!htmlSource.includes(required)) throw new Error(`Opponent-safe firing animation missing ${required}`);
+  if (!htmlSource.includes(required)) throw new Error(`Authoritative gun state is missing ${required}`);
+  if (!cleanupSource.includes(required) && !['rotate(${Number(angle)||0}deg) scale(${scale})','.rr-game.rr-fired{animation:none!important}'].includes(required)) {
+    throw new Error(`Cleanup source does not enforce ${required}`);
+  }
 }
 
 for (const forbidden of [
@@ -190,10 +183,15 @@ for (const forbidden of [
   "rouletteAnimate(motion,[{opacity:.12},{opacity:1}]",
   'rouletteOrientToShotActor(',
   'shot actor orientation locked',
+  'const shotActorId=String(st?.lastActorId',
+  'rouletteVisualRuntime.currentAngle=base',
+  'if(rouletteVisualRuntime.displayTurnId===requestedTurnId||rouletteVisualRuntime.rotationTargetId===requestedTurnId)return',
+  'const nextTurnId=turnChanged',
   'rouletteMotionTransform(base+10',
   'rouletteMotionTransform(base-2',
   'const current=getComputedStyle(motion).transform',
   '.rr-game.rr-fired{animation:rrLiveCameraShake',
+  'backface-visibility:hidden;transform-style:preserve-3d',
   'data-rr-gun-facing-rotor',
   '--rr-turn-origin-x',
   '--rr-turn-origin-y'
@@ -230,4 +228,4 @@ if (!bootstrapSource.includes("params.has('lampCalibration')") || !bootstrapSour
   throw new Error('Normal-page lamp bootstrap is not isolated from calibration mode');
 }
 
-console.log(`Validation passed: ${keys.length}/${keys.length} lamp controls bound; opponent-facing shots use additive recoil while the lamp root remains stable.`);
+console.log(`Validation passed: ${keys.length}/${keys.length} lamp controls bound; one verified authoritative state owns gun direction and repairs stale mounts.`);
