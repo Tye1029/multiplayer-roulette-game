@@ -159,23 +159,46 @@ for (const required of [
   'const mountedRoot=duelActive?.querySelector',
   "const mountedMotion=mountedRoot?.querySelector('[data-roulette-motion]')",
   'const applyAngleToMountedGun=angle=>',
+  "candidate.style.removeProperty('translate')",
+  "candidate.style.removeProperty('rotate')",
+  "candidate.style.removeProperty('scale')",
   'if(finalMotion)finalMotion.style.transform=rouletteMotionTransform(angle,rouletteMotionScale())',
-  "mountedRoot?.classList.remove('rr-animation-lock')",
-  'Shot effects never rotate the revolver.'
+  "mountedRoot?.classList.remove('rr-animation-lock')"
 ]) {
   if (!htmlSource.includes(required)) throw new Error(`Replacement-safe core turn rotation missing ${required}`);
 }
+
+for (const required of [
+  'additive individual transform properties',
+  "const shotActorId=String(st?.lastActorId||rouletteVisualRuntime.displayTurnId||st?.turnId||'')",
+  'const facingSign=Math.cos((base+4)*Math.PI/180)>=0?1:-1;',
+  "{translate:'0px 0px',rotate:'0deg',scale:'1',offset:0}",
+  "translate:`${20*facingSign}px ${7*facingSign}px`",
+  "translate:`${-5*facingSign}px ${-2*facingSign}px`",
+  "translate:`${-3*facingSign}px 0px`",
+  'const mountedHammer=mountedRoot?.querySelector',
+  'const mountedCover=mountedRoot?.querySelector',
+  'if(finalMotion)finalMotion.style.transform=rouletteMotionTransform(base,rouletteMotionScale())',
+  '.rr-game.rr-fired{animation:none!important}'
+]) {
+  if (!htmlSource.includes(required)) throw new Error(`Opponent-safe firing animation missing ${required}`);
+}
+
 for (const forbidden of [
   'scale(${-scale},${scale})',
   "rouletteAnimate(motion,[{opacity:1},{opacity:.12}]",
   "rouletteAnimate(motion,[{opacity:.12},{opacity:1}]",
   'rouletteOrientToShotActor(',
   'shot actor orientation locked',
+  'rouletteMotionTransform(base+10',
+  'rouletteMotionTransform(base-2',
+  'const current=getComputedStyle(motion).transform',
+  '.rr-game.rr-fired{animation:rrLiveCameraShake',
   'data-rr-gun-facing-rotor',
   '--rr-turn-origin-x',
   '--rr-turn-origin-y'
 ]) {
-  if (htmlSource.includes(forbidden)) throw new Error(`Old gun transition behavior survived cleanup: ${forbidden}`);
+  if (htmlSource.includes(forbidden)) throw new Error(`Conflicting gun or scene animation survived cleanup: ${forbidden}`);
 }
 
 const packageJson = JSON.parse(packageSource);
@@ -207,4 +230,4 @@ if (!bootstrapSource.includes("params.has('lampCalibration')") || !bootstrapSour
   throw new Error('Normal-page lamp bootstrap is not isolated from calibration mode');
 }
 
-console.log(`Validation passed: ${keys.length}/${keys.length} lamp controls bound; gun direction and lamp phase survive scene-node replacement.`);
+console.log(`Validation passed: ${keys.length}/${keys.length} lamp controls bound; opponent-facing shots use additive recoil while the lamp root remains stable.`);
