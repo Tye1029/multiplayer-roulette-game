@@ -67,7 +67,7 @@ for (const required of [
   '/assets/roulette/spin-audio-policy.js?v=3',
   '/assets/roulette/turn-animation.js?v=5',
   '/assets/roulette/turn-fire.js?v=2',
-  '/assets/roulette/audio-bindings.js?v=2',
+  '/assets/roulette/audio-bindings.js?v=3',
   'MODULAR_LAMP_ASSETS_START',
   'rrLampCriticalHide'
 ]) if (!html.includes(required)) throw new Error(`Built page is missing ${required}`);
@@ -76,7 +76,7 @@ const audioIndex = injector.indexOf('/assets/roulette/audio-manager.js?v=4');
 const policyIndex = injector.indexOf('/assets/roulette/spin-audio-policy.js?v=3');
 const turnIndex = injector.indexOf('/assets/roulette/turn-animation.js?v=5');
 const fireIndex = injector.indexOf('/assets/roulette/turn-fire.js?v=2');
-const bindingIndex = injector.indexOf('/assets/roulette/audio-bindings.js?v=2');
+const bindingIndex = injector.indexOf('/assets/roulette/audio-bindings.js?v=3');
 if (!(audioIndex >= 0 && audioIndex < policyIndex && policyIndex < turnIndex && turnIndex < fireIndex && fireIndex < bindingIndex)) {
   throw new Error('Audio policy must load after the manager and before the protected animation modules.');
 }
@@ -167,11 +167,23 @@ for (const forbidden of [
 
 for (const required of [
   'const originalOpeningSequence = rouletteOpeningSequence',
+  'beginOpeningSingleSound()',
   'audio.openingSpin(game, state, gameId)',
   'return originalOpeningSequence.apply(this, arguments)',
   'const originalShotSequence = rouletteShotSequence',
   'audio.shotSequence(game, state, gameId)',
   'return originalShotSequence.apply(this, arguments)',
+  'const OPENING_SINGLE_SOUND_MS = 7000',
+  'const OPENING_BLOCKED_SOURCES = Object.freeze([',
+  'this.__rrSpinSequenceChamber !== true || openingSpinStarted',
+  'function installFinalMixFilter()',
+  'function syncResultCue()',
+  'function playResultCue(game, cue, key)',
+  'clip.__rrAuthorizedResultCue = true',
+  'this.__rrAuthorizedResultCue !== true',
+  "['complete', 'completed', 'finished'].includes(status)",
+  "victory: 'desifreemusic-impact-strike-cinematic-hit-stinger-466320.mp3'",
+  "defeat: 'u_903n3qx7rq-dramatic-sting-118943.mp3'",
   'silenceLegacy()', 'audio.markBindingsReady()'
 ]) if (!bindings.includes(required)) throw new Error(`Direct audio binding is missing ${required}`);
 
@@ -181,6 +193,19 @@ if ((bindings.match(/audio\.openingSpin\(/g) || []).length !== 1) {
 if ((bindings.match(/audio\.shotSequence\(/g) || []).length !== 1) {
   throw new Error('Shot audio must have exactly one action-wrapper trigger.');
 }
+if ((bindings.match(/beginOpeningSingleSound\(\);/g) || []).length !== 1) {
+  throw new Error('Opening single-sound gate must start exactly once.');
+}
+if ((bindings.match(/__rrAuthorizedResultCue = true/g) || []).length !== 1) {
+  throw new Error('Victory or defeat must use exactly one authorized result path.');
+}
+for (const source of [
+  'freesound_community-wood-chest-slid3-90317.mp3',
+  'freesound_community-revolver-chamber-spin-ratchet-sound-90521.mp3',
+  'freesound_community-revolver-cocking-104722.mp3',
+  'freesound_community-tap-on-wooden-table-44998.mp3',
+  'freesound_community-chain-6073.mp3'
+]) if (!bindings.includes(source)) throw new Error(`Opening mix does not suppress ${source}`);
 if ((spinPolicy.match(/playClip\(CHAMBER_LOCK/g) || []).length !== 1) {
   throw new Error('Chamber lock must exist only in the opening Spin sequence.');
 }
@@ -257,4 +282,4 @@ for (const path of [
   'assets/roulette/audio/freesound_community-revolver-cocking-104722.mp3'
 ]) await access(new URL(`../${path}`, import.meta.url));
 
-console.log('Validation passed: Spin-only chamber audio, one keyed shot path, quiet turn slide, restrained chain, deduplicated state cues, and protected animation hashes are intact.');
+console.log('Validation passed: one audible opening spin, one keyed shot path, quiet turn slide, restrained chain, one authorized win-or-lose cue, and protected animation hashes are intact.');
