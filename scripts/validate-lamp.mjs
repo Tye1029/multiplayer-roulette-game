@@ -100,7 +100,8 @@ for (const required of [
   "hum: 'freesound_community-lamp-electricity-buzzingwav-14609.mp3'",
   "heartbeat: 'pwlpl-heartbeat-tense-377250.mp3'",
   "rumble: 'diff_style-disturbing-low-rumble-183748.mp3'",
-  "play('chair'", "play('tap'", "play('tension'",
+  "play('chair'", "play('tension'", 'function countdownCue(label)',
+  'global.RouletteAudioMixPolicy?.turnMove?.(game, state, gameId, turnId)',
   'function trackLampSwing()', 'function silenceLegacyRouletteAudio()',
   'global.RouletteAudio = Object.freeze({'
 ]) if (!audio.includes(required)) throw new Error(`Audio manager is missing ${required}`);
@@ -110,9 +111,12 @@ for (const required of [
   'const CHAIN_STOP_AFTER = 340',
   'function openingSpin(game, state, gameId)',
   'function shotSequence(game, state, gameId)',
+  'function playTurnMove(game, state, gameId, turnId)',
   'function syncTurnMovement()',
-  "claimAction('turn-move', `${gameId}:${turnId}`, 12000)",
-  'volume: 0.052',
+  "claimAction('turn-move', movementKey, 4500)",
+  'volume: 0.062',
+  'duration: 0.58',
+  'turnMove: playTurnMove',
   'global.RouletteAudio = Object.freeze({',
   'shotSequence,',
   'turnRotate() { return null; }'
@@ -176,6 +180,9 @@ for (const required of [
   'function ensureLightTimeline(sceneLight, cfg)',
   "setImportant(sceneLight, 'animation', 'none')",
   "'__rrLampLightTimeline'",
+  'function ensureSmokeLayers(doc, smoke)',
+  'function ensureSmokeTimeline(smokeLit, cfg)',
+  "'__rrLampSmokeTimeline'",
   'animation.currentTime = phase'
 ]) if (!lamp.includes(required)) throw new Error(`Independent lamp timeline is missing ${required}`);
 
@@ -239,4 +246,4 @@ for (const path of [
   'assets/roulette/audio/freesound_community-revolver-cocking-104722.mp3'
 ]) await access(new URL(`../${path}`, import.meta.url));
 
-console.log('Validation passed: opening uses the approved revolver-on-wood mix, Spin button uses one metallic chamber spin, result cues are deduplicated, and protected animation hashes are intact.');
+console.log('Validation passed: pass rotations use revision-keyed audio without a terminal knock, countdown cues are audible, smoke follows the calibrated lamp, opening/Spin/result routes remain isolated, and protected animation hashes are intact.');
