@@ -69,7 +69,17 @@ for (const required of [
 }
 
 for (const required of [
+  '<style id="rr-v151-reactive-smoke-priority">',
+  'visibility:visible!important;',
+  '[data-roulette-game] .rr-smoke-lit{',
+  'background-size:125% 100%,100% 100%!important'
+]) {
+  if (!html.includes(required)) throw new Error(`Final-priority reactive smoke styling is missing ${required}`);
+}
+
+for (const required of [
   "import './patch-roulette-turn-countdown-smoke.mjs';",
+  "import './patch-roulette-smoke-priority.mjs';",
   '/assets/roulette/lamp.css?v=18&smoke=1',
   '/assets/roulette/lamp.js?v=20&smoke=1',
   '/assets/roulette/audio-manager.js?v=4&ambience=2&countdown=2',
@@ -78,4 +88,4 @@ for (const required of [
   if (!injector.includes(required)) throw new Error(`Fresh patched asset loading is missing ${required}`);
 }
 
-console.log('Roulette turn/countdown/smoke validation passed: every pass has a revision-keyed movement cue, the wood knock is removed, countdown is red and audible, and smoke tracks the calibrated lamp light.');
+console.log('Roulette turn/countdown/smoke validation passed: every pass has a revision-keyed movement cue, the wood knock is removed, countdown is red and audible, and final-priority smoke tracks the calibrated lamp light.');
