@@ -46,8 +46,8 @@ for (const required of [
   '/assets/roulette/lamp-config.js?v=19',
   '/assets/roulette/lamp.js?v=19',
   '/assets/roulette/lamp-bootstrap.js?v=19',
-  '/assets/roulette/turn-animation.js?v=4',
-  '/assets/roulette/turn-fire.js?v=1',
+  '/assets/roulette/turn-animation.js?v=5',
+  '/assets/roulette/turn-fire.js?v=2',
   'MODULAR_LAMP_ASSETS_START',
   'rrLampCriticalHide'
 ]) {
@@ -70,6 +70,11 @@ for (const required of [
   "easing: 'cubic-bezier(.22,.58,.12,1)'",
   "{ transform: 'rotate(116deg)', offset: 0.24 }",
   '{ transform: `rotate(${finalAngle + 720}deg)`, offset: 1 }',
+  'async function rotateToLockedTurn(game, gameId, requestedTurnId, duration = 1020)',
+  'queueTurnRotation(game, gameId, turnId, 1020)',
+  'Number(options.duration) || 1020',
+  'const duration = 5300',
+  'await rotateToLockedTurn(newest, gameId, newestTurnId, 800)',
   'rouletteMotionTransform = function (_angle',
   'rouletteOrientToShotActor = async function',
   'rouletteRotateToTurn = async function',
@@ -108,7 +113,7 @@ for (const required of [
   'const recoilMotion = rouletteAnimate(layers.recoil',
   'applyFacing(mounted, lockedAngle, lockedTurnId, true)',
   'newestTurnId !== lockedTurnId',
-  'await rotateToLockedTurn(newest, gameId, newestTurnId, 900)',
+  'await rotateToLockedTurn(newest, gameId, newestTurnId, 1020)',
   'enforceLockedFacing(gameId)'
 ]) {
   if (!turnFire.includes(required)) throw new Error(`Isolated firing effects are missing ${required}`);
@@ -137,10 +142,10 @@ for (const forbidden of [
 ]) {
   if (injector.includes(forbidden)) throw new Error(`Lamp injector rewrites or loads obsolete gun code: ${forbidden}`);
 }
-if (!injector.includes('/assets/roulette/turn-animation.js?v=4')) {
-  throw new Error('The injector is not loading strict turn lock version 4.');
+if (!injector.includes('/assets/roulette/turn-animation.js?v=5')) {
+  throw new Error('The injector is not loading strict turn lock version 5.');
 }
-if (!injector.includes('/assets/roulette/turn-fire.js?v=1')) {
+if (!injector.includes('/assets/roulette/turn-fire.js?v=2')) {
   throw new Error('The injector is not loading isolated firing effects.');
 }
 
@@ -184,4 +189,4 @@ for (const path of [
 
 await access(new URL('../assets/roulette/decor/lamp-1.png', import.meta.url));
 await access(new URL('../assets/roulette/decor/workshop-lamp-chain.png', import.meta.url));
-console.log('Validation passed: one opening-style turn rotation locks facing for the full turn; firing cannot change direction; table motion is disabled.');
+console.log('Validation passed: strict facing lock preserved; opening spin and turn rotations are slowed by about 12.5%; firing and table behavior are unchanged.');
