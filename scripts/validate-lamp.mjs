@@ -10,6 +10,8 @@ const [
   config,
   lamp,
   bootstrap,
+  menu,
+  menuCss,
   calibration,
   lampCss,
   calibrationHtml,
@@ -22,6 +24,8 @@ const [
   read('assets/roulette/lamp-config.js'),
   read('assets/roulette/lamp.js'),
   read('assets/roulette/lamp-bootstrap.js'),
+  read('assets/roulette/lamp-menu.js'),
+  read('assets/roulette/lamp-menu.css'),
   read('assets/roulette/lamp-calibration.js'),
   read('assets/roulette/lamp.css'),
   read('lamp-calibration.html'),
@@ -33,6 +37,7 @@ for (const [name, source] of [
   ['turn-fire.js', turnFire],
   ['lamp.js', lamp],
   ['lamp-bootstrap.js', bootstrap],
+  ['lamp-menu.js', menu],
   ['lamp-calibration.js', calibration]
 ]) new vm.Script(source, { filename: name });
 
@@ -45,9 +50,11 @@ if (Object.keys(sandbox.window.RouletteLampConfig?.bindings || {}).length !== 25
 
 for (const required of [
   '/assets/roulette/lamp.css?v=18',
+  '/assets/roulette/lamp-menu.css?v=1',
   '/assets/roulette/lamp-config.js?v=19',
   '/assets/roulette/lamp.js?v=20',
-  '/assets/roulette/lamp-bootstrap.js?v=19',
+  '/assets/roulette/lamp-bootstrap.js?v=21',
+  '/assets/roulette/lamp-menu.js?v=1',
   '/assets/roulette/turn-animation.js?v=5',
   '/assets/roulette/turn-fire.js?v=2',
   'MODULAR_LAMP_ASSETS_START',
@@ -145,6 +152,58 @@ for (const forbidden of ['.rr-gun-motion', 'scene.gun', 'scene.table', 'data-cur
   }
 }
 
+for (const required of [
+  'window.RouletteLampController = Object.freeze({',
+  'getConfig: () => ({ ...cfg })',
+  'function setConfig(nextConfig, options = {})',
+  'function resetConfig(options = {})',
+  "window.dispatchEvent(new CustomEvent('roulette-lamp-config-change'",
+  'stopWatching = lampApi.watch(document, () => cfg)'
+]) {
+  if (!bootstrap.includes(required)) throw new Error(`Shared lamp controller is missing ${required}`);
+}
+
+for (const required of [
+  "const menuId = 'rrLightingMenu'",
+  "const toggleId = 'rrLightingMenuToggle'",
+  'for (const [groupName, controls] of configApi.groups)',
+  "cfg = controller.setConfig(cfg, { source: 'lighting-menu' })",
+  "cfg = controller.setConfig(cfg, { save: true, source: 'lighting-menu-save' })",
+  "cfg = controller.resetConfig({ source: 'lighting-menu-reset' })",
+  'navigator.clipboard.writeText(JSON.stringify(cfg, null, 2))',
+  "window.addEventListener('roulette-lamp-config-change'"
+]) {
+  if (!menu.includes(required)) throw new Error(`Live lighting menu is missing ${required}`);
+}
+
+for (const required of [
+  '#rrLightingMenuToggle',
+  '#rrLightingMenu',
+  '#rrLightingMenu.open',
+  '.rr-lighting-menu-row',
+  '.rr-lighting-menu-actions',
+  '@media (max-width: 430px)'
+]) {
+  if (!menuCss.includes(required)) throw new Error(`Lighting menu stylesheet is missing ${required}`);
+}
+
+for (const forbidden of [
+  'RouletteTurnLock',
+  'rouletteShotSequence',
+  'rouletteRotateToTurn',
+  'rouletteMotionTransform',
+  'lastActorId',
+  '.rr-gun',
+  'data-roulette-facing',
+  'data-roulette-recoil',
+  'rr-animation-lock',
+  'rr-fired'
+]) {
+  if (menu.includes(forbidden) || menuCss.includes(forbidden)) {
+    throw new Error(`Lighting menu is tied to gun or turn state: ${forbidden}`);
+  }
+}
+
 for (const forbidden of [
   'rouletteRotateToTurn',
   'rouletteShotSequence',
@@ -157,6 +216,15 @@ for (const forbidden of [
 }
 if (!injector.includes('/assets/roulette/lamp.js?v=20')) {
   throw new Error('The injector is not loading independent lamp runtime version 20.');
+}
+if (!injector.includes('/assets/roulette/lamp-bootstrap.js?v=21')) {
+  throw new Error('The injector is not loading shared lamp controller version 21.');
+}
+if (!injector.includes('/assets/roulette/lamp-menu.css?v=1')) {
+  throw new Error('The injector is not loading the lighting menu stylesheet.');
+}
+if (!injector.includes('/assets/roulette/lamp-menu.js?v=1')) {
+  throw new Error('The injector is not loading the live lighting menu.');
 }
 if (!injector.includes('/assets/roulette/turn-animation.js?v=5')) {
   throw new Error('The injector is not loading strict turn lock version 5.');
@@ -193,4 +261,4 @@ for (const path of [
 
 await access(new URL('../assets/roulette/decor/lamp-1.png', import.meta.url));
 await access(new URL('../assets/roulette/decor/workshop-lamp-chain.png', import.meta.url));
-console.log('Validation passed: lamp and light use independent persistent timelines; gun and firing code cannot restart them.');
+console.log('Validation passed: live 25-control lighting menu uses the shared lamp controller and remains isolated from gun, turn and firing state.');
