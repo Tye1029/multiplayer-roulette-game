@@ -11,7 +11,7 @@
     return;
   }
 
-  let cfg;
+  let cfg = loadConfig();
   let stopWatching = null;
 
   function loadConfig() {
@@ -26,16 +26,57 @@
     return configApi.normalize(configApi.defaults);
   }
 
+  function announce(source) {
+    window.dispatchEvent(new CustomEvent('roulette-lamp-config-change', {
+      detail: {
+        source: String(source || ''),
+        config: { ...cfg }
+      }
+    }));
+  }
+
+  function apply(source = '') {
+    const result = lampApi.apply(document, cfg);
+    announce(source);
+    return result;
+  }
+
+  function setConfig(nextConfig, options = {}) {
+    cfg = configApi.normalize({ ...cfg, ...(nextConfig || {}) });
+    if (options.save) {
+      localStorage.setItem(configApi.storageKey, JSON.stringify(cfg));
+      localStorage.removeItem(configApi.legacyStorageKey);
+    }
+    apply(options.source || 'controller');
+    return { ...cfg };
+  }
+
+  function resetConfig(options = {}) {
+    localStorage.removeItem(configApi.storageKey);
+    localStorage.removeItem(configApi.legacyStorageKey);
+    cfg = configApi.normalize(configApi.defaults);
+    apply(options.source || 'reset');
+    return { ...cfg };
+  }
+
   function start() {
-    cfg = loadConfig();
     if (stopWatching) stopWatching();
     stopWatching = lampApi.watch(document, () => cfg);
+    announce('bootstrap');
   }
+
+  window.RouletteLampController = Object.freeze({
+    getConfig: () => ({ ...cfg }),
+    setConfig,
+    resetConfig,
+    apply: () => apply('manual'),
+    save: () => setConfig(cfg, { save: true, source: 'save' })
+  });
 
   window.addEventListener('storage', event => {
     if (event.key !== configApi.storageKey && event.key !== configApi.legacyStorageKey) return;
     cfg = loadConfig();
-    lampApi.apply(document, cfg);
+    apply('storage');
   });
 
   if (document.readyState === 'loading') {
