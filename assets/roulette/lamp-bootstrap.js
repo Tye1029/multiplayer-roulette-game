@@ -26,6 +26,11 @@
     return configApi.normalize(configApi.defaults);
   }
 
+  function applyConfig(nextConfig) {
+    cfg = configApi.normalize(nextConfig || loadConfig());
+    lampApi.apply(document, cfg);
+  }
+
   function start() {
     cfg = loadConfig();
     if (stopWatching) stopWatching();
@@ -34,8 +39,17 @@
 
   window.addEventListener('storage', event => {
     if (event.key !== configApi.storageKey && event.key !== configApi.legacyStorageKey) return;
-    cfg = loadConfig();
-    lampApi.apply(document, cfg);
+    applyConfig(loadConfig());
+  });
+
+  window.addEventListener('rr-lamp-config-change', event => {
+    applyConfig(event.detail || loadConfig());
+  });
+
+  window.RouletteLampBootstrap = Object.freeze({
+    reload() { applyConfig(loadConfig()); },
+    apply(nextConfig) { applyConfig(nextConfig); },
+    current() { return { ...cfg }; }
   });
 
   if (document.readyState === 'loading') {
