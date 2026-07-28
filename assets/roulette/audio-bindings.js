@@ -65,13 +65,16 @@
 
   function playOpeningSpinSound() {
     stopClip(activeOpeningWoodClip);
-    const clip = new Audio(BASE + OPENING_SPIN);
+
+    // Reuse the exact quiet movement recording heard when the gun rotates to the
+    // next player, but let its full body play slower for the who-goes-first spin.
+    const clip = new Audio(BASE + TABLE_MOVE);
     clip.__rrAuthorizedOpeningSpin = true;
     clip.preload = 'auto';
     clip.playsInline = true;
     clip.preservesPitch = false;
-    clip.volume = OPENING_SPIN_VOLUME;
-    clip.playbackRate = 1;
+    clip.volume = 0;
+    clip.playbackRate = 0.9;
     activeOpeningWoodClip = clip;
     openingWoodStarted = true;
 
@@ -86,7 +89,39 @@
       cleanup();
       return;
     }
-    Promise.resolve(play.call(clip)).catch(cleanup);
+
+    const begin = () => {
+      try { clip.currentTime = Math.min(0.08, Math.max(0, clip.duration - 0.1)); } catch {}
+      Promise.resolve(play.call(clip)).then(() => {
+        const started = performance.now();
+        const fadeInMs = 170;
+        const fadeOutAtMs = 2050;
+        const finishAtMs = 2680;
+        const shape = now => {
+          if (activeOpeningWoodClip !== clip || clip.paused) return;
+          const elapsed = now - started;
+          let level = OPENING_SPIN_VOLUME;
+          if (elapsed < fadeInMs) level *= elapsed / fadeInMs;
+          if (elapsed > fadeOutAtMs) {
+            level *= Math.max(0, 1 - (elapsed - fadeOutAtMs) / (finishAtMs - fadeOutAtMs));
+          }
+          clip.volume = Math.max(0, Math.min(OPENING_SPIN_VOLUME, level));
+          clip.playbackRate = Math.max(0.76, 0.9 - elapsed * 0.000052);
+          if (elapsed < finishAtMs) {
+            openingWoodFrame = requestAnimationFrame(shape);
+            return;
+          }
+          clip.volume = 0;
+          stopClip(clip);
+          cleanup();
+          openingWoodFrame = 0;
+        };
+        openingWoodFrame = requestAnimationFrame(shape);
+      }).catch(cleanup);
+    };
+
+    if (clip.readyState >= 1) begin();
+    else clip.addEventListener('loadedmetadata', begin, { once: true });
   }
 
   function fadeOutOpeningWood(duration = 170) {
@@ -131,6 +166,7 @@
 
       if (
         now < openingWoodUntil &&
+        this.__rrAuthorizedOpeningSpin !== true &&
         OPENING_BLOCKED_SOURCES.some(file => src.includes(file))
       ) return blockMedia(this);
 
