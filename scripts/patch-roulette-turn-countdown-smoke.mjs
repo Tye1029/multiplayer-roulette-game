@@ -268,15 +268,15 @@ lamp = replaceOnce(
     const duration = Math.max(0.1, Number(cfg.trackSpeed) || 0.1);
     const distance = Math.max(0, Number(cfg.track) || 0);
     const travel = Math.max(2.5, distance * 0.72);
-    const signature = `${'${duration}'}|${'${distance}'}|smoke-v1`;
+    const signature = \`${'${duration}'}|${'${distance}'}|smoke-v1\`;
     return ensureElementTimeline(
       smokeLit,
       '__rrLampSmokeTimeline',
       signature,
       [
-        { transform: `translate3d(${-travel}%,0,0) scale(1.04)`, opacity: 0.20, offset: 0 },
-        { transform: `translate3d(${travel}%,0,0) scale(1.08)`, opacity: 0.38, offset: 0.5 },
-        { transform: `translate3d(${-travel}%,0,0) scale(1.04)`, opacity: 0.20, offset: 1 }
+        { transform: \`translate3d(${'${-travel}'}%,0,0) scale(1.04)\`, opacity: 0.20, offset: 0 },
+        { transform: \`translate3d(${'${travel}'}%,0,0) scale(1.08)\`, opacity: 0.38, offset: 0.5 },
+        { transform: \`translate3d(${'${-travel}'}%,0,0) scale(1.04)\`, opacity: 0.20, offset: 1 }
       ],
       {
         duration: duration * 1000,
@@ -300,9 +300,11 @@ lamp = replaceOnce(
     ensureSmokeTimeline(smokeLayers.lit, cfg);`
 );
 
-lampCss += `
+const smokeCssMarker = '/* Lamp-synchronized room smoke. */';
+if (!lampCss.includes(smokeCssMarker)) {
+  lampCss += `
 
-/* Lamp-synchronized room smoke. */
+${smokeCssMarker}
 [data-roulette-game] .rr-smoke{
   display:block!important;
   position:absolute!important;
@@ -356,6 +358,7 @@ lampCss += `
   [data-roulette-game] .rr-smoke-lit{animation:none!important;transform:none!important}
 }
 `;
+}
 
 await writeFile(indexUrl, html);
 await writeFile(audioUrl, audio);
