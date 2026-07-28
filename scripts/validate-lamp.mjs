@@ -1,4 +1,5 @@
 import { access, readFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import vm from 'node:vm';
 
 const read = path => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
@@ -33,6 +34,23 @@ for (const [name, source] of [
   ['lamp-calibration.js', calibration]
 ]) new vm.Script(source, { filename: name });
 
+function gitBlobSha(source) {
+  const bytes = Buffer.from(source, 'utf8');
+  return createHash('sha1')
+    .update(Buffer.from(`blob ${bytes.length}\0`, 'utf8'))
+    .update(bytes)
+    .digest('hex');
+}
+
+const protectedHashes = new Map([
+  ['turn-animation.js', ['24358e84c147d99e7297089e69ed1abd0802379f', turnLock]],
+  ['turn-fire.js', ['940e824eae39ddc40dda6200f893f97fc365949b', turnFire]]
+]);
+for (const [name, [expected, source]] of protectedHashes) {
+  const actual = gitBlobSha(source);
+  if (actual !== expected) throw new Error(`${name} hash changed: ${actual}`);
+}
+
 const sandbox = { window: {} };
 vm.createContext(sandbox);
 vm.runInContext(config, sandbox, { filename: 'lamp-config.js' });
@@ -46,21 +64,21 @@ for (const required of [
   '/assets/roulette/lamp.js?v=20',
   '/assets/roulette/lamp-bootstrap.js?v=19',
   '/assets/roulette/audio-manager.js?v=4',
-  '/assets/roulette/spin-audio-policy.js?v=1',
+  '/assets/roulette/spin-audio-policy.js?v=3',
   '/assets/roulette/turn-animation.js?v=5',
   '/assets/roulette/turn-fire.js?v=2',
-  '/assets/roulette/audio-bindings.js?v=1',
+  '/assets/roulette/audio-bindings.js?v=2',
   'MODULAR_LAMP_ASSETS_START',
   'rrLampCriticalHide'
 ]) if (!html.includes(required)) throw new Error(`Built page is missing ${required}`);
 
 const audioIndex = injector.indexOf('/assets/roulette/audio-manager.js?v=4');
-const policyIndex = injector.indexOf('/assets/roulette/spin-audio-policy.js?v=1');
+const policyIndex = injector.indexOf('/assets/roulette/spin-audio-policy.js?v=3');
 const turnIndex = injector.indexOf('/assets/roulette/turn-animation.js?v=5');
 const fireIndex = injector.indexOf('/assets/roulette/turn-fire.js?v=2');
-const bindingIndex = injector.indexOf('/assets/roulette/audio-bindings.js?v=1');
+const bindingIndex = injector.indexOf('/assets/roulette/audio-bindings.js?v=2');
 if (!(audioIndex >= 0 && audioIndex < policyIndex && policyIndex < turnIndex && turnIndex < fireIndex && fireIndex < bindingIndex)) {
-  throw new Error('Spin audio policy must load after audio manager and before unchanged animation modules.');
+  throw new Error('Audio policy must load after the manager and before the protected animation modules.');
 }
 for (const forbidden of ['replaceLegacyRouletteAudio', 'uploadedRouletteAudioFunctions', 'audio-manager.js?v=3']) {
   if (injector.includes(forbidden)) throw new Error(`Fragile audio source rewrite still exists: ${forbidden}`);
@@ -94,63 +112,84 @@ for (const required of [
   'enforceLockedFacing(gameId)'
 ]) if (!turnFire.includes(required)) throw new Error(`Firing animation changed unexpectedly: ${required}`);
 
+for (const forbidden of [
+  'rouletteAnimate(', 'applyFacing(', 'enforceLockedFacing(', 'rotateToLockedTurn(',
+  '.rr-turn-facing', '.rr-gun-motion', 'data-roulette-facing', 'data-roulette-recoil',
+  'getAnimations', 'style.transform', 'MutationObserver'
+]) {
+  if (audio.includes(forbidden)) throw new Error(`Audio manager can alter animation state: ${forbidden}`);
+  if (spinPolicy.includes(forbidden)) throw new Error(`Audio policy can alter animation state: ${forbidden}`);
+  if (bindings.includes(forbidden)) throw new Error(`Audio bindings can alter animation state: ${forbidden}`);
+}
+
 for (const required of [
-  "const BASE = '/assets/roulette/audio/'",
-  "spin: 'freesound_community-revolver-spin-96947.mp3'",
-  "ratchet: 'freesound_community-revolver-chamber-spin-ratchet-sound-90521.mp3'",
-  "lock: 'freesound_community-revolver-cocking-104722.mp3'",
-  "hammerA: 'freesound_community-pistol-hammer-cocking-back-4-39887.mp3'",
-  "hammerB: 'freesound_community-cocking-a-revolver-6279.mp3'",
-  "dryA: 'spinopel-dry-fire-gun-364844.mp3'",
-  "dryB: 'freesound_community-gun-dry-firing-3-39820.mp3'",
-  "gunshot: 'freesound_community-single-pistol-gunshot-33-37187.mp3'",
-  'function silenceLegacyRouletteAudio()', 'rouletteSpinSound = legacyNoop',
-  'rouletteShotIndexSound = legacyNoop', 'rouletteBlankSound = legacyNoop',
-  'rouletteGunshotSound = legacyNoop', 'function openingSpin()',
-  'function turnRotate(duration = 1020)', 'function hammer()', 'function blank()',
-  'function gunshot()', 'function trackLampSwing()',
-  'const epoch = Number(global.__rrLampPhaseEpoch)', "play('chain'", "play('wood'",
-  "play('chair'", "play('tap'", "play('tension'", 'function duckForShot()',
+  "room: 'soundsforyou-the-ambience-room-tone-139064.mp3'",
+  "hum: 'freesound_community-lamp-electricity-buzzingwav-14609.mp3'",
+  "heartbeat: 'pwlpl-heartbeat-tense-377250.mp3'",
+  "rumble: 'diff_style-disturbing-low-rumble-183748.mp3'",
+  "play('chair'", "play('tap'", "play('tension'",
+  "const cue = finishCue(game, root)",
+  "for (const name of ['room', 'hum'])",
+  "for (const name of ['heartbeat', 'rumble'])",
+  'function trackLampSwing()', 'function silenceLegacyRouletteAudio()',
   'global.RouletteAudio = Object.freeze({'
-]) if (!audio.includes(required)) throw new Error(`Uploaded-audio runtime is missing ${required}`);
-
-for (const forbidden of [
-  'rouletteAnimate(', 'applyFacing(', 'enforceLockedFacing(', 'rotateToLockedTurn(',
-  '.rr-turn-facing', '.rr-gun-motion', 'data-roulette-facing', 'data-roulette-recoil',
-  'getAnimations', 'style.transform', 'MutationObserver'
-]) if (audio.includes(forbidden)) throw new Error(`Audio runtime can alter animation state: ${forbidden}`);
+]) if (!audio.includes(required)) throw new Error(`Audio manager is missing ${required}`);
 
 for (const required of [
-  "const TABLE_SPIN = '/assets/roulette/audio/freesound_community-wood-chest-slid3-90317.mp3'",
-  "const CHAMBER_RATCHET = 'freesound_community-revolver-chamber-spin-ratchet-sound-90521.mp3'",
-  'src.includes(CHAMBER_RATCHET) && performance.now() >= chamberSpinUntil',
-  'const originalOpeningSpin = audio.openingSpin.bind(audio)',
-  'chamberSpinUntil = performance.now() + 5600',
-  'playTableSpin({ volume: 0.31, rate: 0.88, duration: 2.58, fadeOut: 0.48 })',
-  'global.RouletteAudio = Object.freeze({ ...audio, openingSpin })',
+  'const CHAIN_COOLDOWN = 15000',
+  'const CHAIN_STOP_AFTER = 340',
+  'this.volume = Math.min(0.006',
+  'this.__rrSpinSequenceChamber !== true || now >= chamberSpinUntil',
+  'if (options.chamber === true) clip.__rrSpinSequenceChamber = true;',
+  'function openingSpin(game, state, gameId)',
+  'function shotSequence(game, state, gameId)',
+  'audio.duckForShot?.()',
+  "const dry = DRY_FIRE[dryVariant++ % DRY_FIRE.length]",
   'function syncTurnMovement()',
-  'turnId !== lastTurnId && performance.now() >= chamberSpinUntil',
-  'volume: 0.145', 'duration: 1.02'
-]) if (!spinPolicy.includes(required)) throw new Error(`Spin-button audio policy is missing ${required}`);
+  "claimAction('turn-move', `${gameId}:${turnId}`, 12000)",
+  'volume: 0.052',
+  'openingSpin: ignoredOpeningSpin',
+  'hammer: ignoredHammer',
+  'gunshot: ignoredGunshot',
+  'global.RouletteAudio = Object.freeze({',
+  'shotSequence,',
+  'turnRotate() { return null; }'
+]) if (!spinPolicy.includes(required)) throw new Error(`Audited audio policy is missing ${required}`);
 
 for (const forbidden of [
-  'rouletteAnimate(', 'applyFacing(', 'enforceLockedFacing(', 'rotateToLockedTurn(',
-  '.rr-turn-facing', '.rr-gun-motion', 'data-roulette-facing', 'data-roulette-recoil',
-  'getAnimations', 'style.transform', 'MutationObserver'
-]) if (spinPolicy.includes(forbidden)) throw new Error(`Spin audio policy can alter animation state: ${forbidden}`);
+  "document.addEventListener('click'",
+  'audio.hammer()', 'audio.blank()', 'audio.gunshot()',
+  "schedule('shot-action', () => playClip(CHAMBER_LOCK",
+  "playClip(CHAMBER_RATCHET, {\n        group: 'turn-move'"
+]) if (spinPolicy.includes(forbidden) || bindings.includes(forbidden)) {
+  throw new Error(`Overlapping or forbidden audio trigger still exists: ${forbidden}`);
+}
 
 for (const required of [
-  'const audio = global.RouletteAudio', 'const originalOpeningSequence = rouletteOpeningSequence',
-  'audio.openingSpin()', 'return originalOpeningSequence.apply(this, arguments)',
-  'const originalShotSequence = rouletteShotSequence', 'audio.hammer()',
-  "const live = state?.lastOutcome === 'live'", 'if (live) audio.gunshot()', 'else audio.blank()',
-  '}, 255)', 'silenceLegacy()', 'audio.markBindingsReady()'
+  'const originalOpeningSequence = rouletteOpeningSequence',
+  'audio.openingSpin(game, state, gameId)',
+  'return originalOpeningSequence.apply(this, arguments)',
+  'const originalShotSequence = rouletteShotSequence',
+  'audio.shotSequence(game, state, gameId)',
+  'return originalShotSequence.apply(this, arguments)',
+  'silenceLegacy()', 'audio.markBindingsReady()'
 ]) if (!bindings.includes(required)) throw new Error(`Direct audio binding is missing ${required}`);
 
-for (const forbidden of [
-  'rouletteAnimate(', 'applyFacing(', 'enforceLockedFacing(', 'rotateToLockedTurn(',
-  'transform:', 'getAnimations', 'MutationObserver'
-]) if (bindings.includes(forbidden)) throw new Error(`Audio bindings alter animation behavior: ${forbidden}`);
+if ((bindings.match(/audio\.openingSpin\(/g) || []).length !== 1) {
+  throw new Error('Opening audio must have exactly one action-wrapper trigger.');
+}
+if ((bindings.match(/audio\.shotSequence\(/g) || []).length !== 1) {
+  throw new Error('Shot audio must have exactly one action-wrapper trigger.');
+}
+if ((spinPolicy.match(/playClip\(CHAMBER_LOCK/g) || []).length !== 1) {
+  throw new Error('Chamber lock must exist only in the opening Spin sequence.');
+}
+if ((spinPolicy.match(/playClip\(CHAMBER_SPIN/g) || []).length !== 1) {
+  throw new Error('Chamber spin must exist only in the opening Spin sequence.');
+}
+if ((spinPolicy.match(/playClip\(CHAMBER_RATCHET/g) || []).length !== 1) {
+  throw new Error('Chamber ratchet must exist only in the opening Spin sequence.');
+}
 
 for (const required of [
   '/assets/roulette/decor/lamp-1.png',
@@ -218,4 +257,4 @@ for (const path of [
   'assets/roulette/audio/freesound_community-revolver-cocking-104722.mp3'
 ]) await access(new URL(`../${path}`, import.meta.url));
 
-console.log('Validation passed: wood-slide audio follows gun movement, chamber spin is Spin-button-only, uploaded ambience remains blended, and animation code is unchanged.');
+console.log('Validation passed: Spin-only chamber audio, one keyed shot path, quiet turn slide, restrained chain, deduplicated state cues, and protected animation hashes are intact.');
