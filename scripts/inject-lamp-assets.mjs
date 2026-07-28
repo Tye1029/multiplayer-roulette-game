@@ -4,8 +4,8 @@ const indexUrl = new URL('../index.html', import.meta.url);
 const startMarker = '<!-- MODULAR_LAMP_ASSETS_START -->';
 const endMarker = '<!-- MODULAR_LAMP_ASSETS_END -->';
 
-// These are confirmed obsolete lamp/lighting experiments. This build step does
-// not inspect, replace, or rewrite roulette gameplay or gun animation functions.
+// Confirmed obsolete lamp and lighting experiments only. Gameplay and animation
+// source is never rewritten by this build step.
 const obsoleteLampBlockIds = [
   'rr-v114-image2-lamp-rig',
   'rr-v115-lamp-and-light-runtime',
@@ -51,90 +51,6 @@ function removeObsoleteLampBlocks(source) {
   return html;
 }
 
-const uploadedRouletteAudioFunctions = String.raw`
-    function rouletteUploadedAudio(src,volume=.2,rate=1){
-      if(document.hidden)return null;
-      try{
-        const audio=new Audio(src);
-        audio.preload='auto';
-        audio.volume=Math.max(0,Math.min(1,Number(volume)||0));
-        audio.playbackRate=Math.max(.7,Math.min(1.35,Number(rate)||1));
-        audio.preservesPitch=false;
-        audio.playsInline=true;
-        audio.play().catch(()=>{});
-        return audio;
-      }catch(_){return null}
-    }
-    let rouletteSpinPlayback=null;
-    let rouletteSpinTimers=[];
-    let rouletteHammerVariant=0;
-    let rouletteDryVariant=0;
-    function rouletteClearSpinPlayback(){
-      for(const timer of rouletteSpinTimers)clearTimeout(timer);
-      rouletteSpinTimers=[];
-      try{rouletteSpinPlayback?.pause()}catch(_){}
-      rouletteSpinPlayback=null;
-    }
-    function rouletteScheduleSpinSound(callback,delay){
-      const timer=setTimeout(callback,delay);
-      rouletteSpinTimers.push(timer);
-      return timer;
-    }
-    function rouletteSpinSound(speedMultiplier=1){
-      rouletteClearSpinPlayback();
-      const opening=Number(speedMultiplier)>=1.2;
-      if(!opening){
-        rouletteSpinPlayback=rouletteUploadedAudio('assets/roulette/audio/freesound_community-revolver-chamber-spin-ratchet-sound-90521.mp3',.2,.94);
-        rouletteScheduleSpinSound(()=>rouletteUploadedAudio('assets/roulette/audio/freesound_community-revolver-cocking-104722.mp3',.16,1),720);
-        return;
-      }
-      rouletteSpinPlayback=rouletteUploadedAudio('assets/roulette/audio/freesound_community-revolver-spin-96947.mp3',.36,.82);
-      const ratchet='assets/roulette/audio/freesound_community-revolver-chamber-spin-ratchet-sound-90521.mp3';
-      [360,900,1540,2320,3200,4100].forEach((delay,index)=>{
-        rouletteScheduleSpinSound(()=>rouletteUploadedAudio(ratchet,Math.max(.06,.12-index*.009),1.07-index*.055),delay);
-      });
-      rouletteScheduleSpinSound(()=>rouletteUploadedAudio('assets/roulette/audio/freesound_community-revolver-cocking-104722.mp3',.2,1),4780);
-    }
-    function rouletteShotIndexSound(){
-      const sources=[
-        'assets/roulette/audio/freesound_community-pistol-hammer-cocking-back-4-39887.mp3',
-        'assets/roulette/audio/freesound_community-cocking-a-revolver-6279.mp3'
-      ];
-      const source=sources[rouletteHammerVariant%sources.length];
-      rouletteHammerVariant=(rouletteHammerVariant+1)%sources.length;
-      rouletteUploadedAudio(source,.24,1);
-    }
-    function rouletteBlankSound(){
-      const sources=[
-        'assets/roulette/audio/spinopel-dry-fire-gun-364844.mp3',
-        'assets/roulette/audio/freesound_community-gun-dry-firing-3-39820.mp3'
-      ];
-      const source=sources[rouletteDryVariant%sources.length];
-      rouletteDryVariant=(rouletteDryVariant+1)%sources.length;
-      rouletteUploadedAudio(source,.31,1);
-      setTimeout(()=>rouletteUploadedAudio('assets/roulette/audio/freesound_community-revolver-cocking-104722.mp3',.045,1),45);
-    }
-    function rouletteGunshotSound(){
-      window.RouletteAmbientAudio?.duckForShot?.();
-      rouletteUploadedAudio('assets/roulette/audio/freesound_community-single-pistol-gunshot-33-37187.mp3',.78,1);
-    }
-`;
-
-function replaceLegacyRouletteAudio(source) {
-  const start = source.indexOf('function rouletteSpinSound');
-  const end = source.indexOf('function rouletteTone', start);
-  if (start < 0 || end < 0 || end <= start) {
-    throw new Error('Could not locate the legacy roulette sound function block.');
-  }
-
-  let html = source.slice(0, start) + uploadedRouletteAudioFunctions + source.slice(end);
-  html = html.replace(
-    /\s*wrap\('rouletteSpinSound',[\s\S]*?wrap\('rouletteGunshotSound',live\);/g,
-    '\n  /* Uploaded recordings replace all premium procedural roulette sound wrappers. */'
-  );
-  return html;
-}
-
 const criticalStyle = `  <link id="rrLampExternalStyles" rel="stylesheet" href="/assets/roulette/lamp.css?v=18">
   <style id="rrLampCriticalHide">
     [data-roulette-game] > .rr-lamp,
@@ -171,14 +87,14 @@ const block = `${startMarker}\n` +
   '  <script src="/assets/roulette/lamp-config.js?v=19" defer></script>\n' +
   '  <script src="/assets/roulette/lamp.js?v=20" defer></script>\n' +
   '  <script src="/assets/roulette/lamp-bootstrap.js?v=19" defer></script>\n' +
+  '  <script src="/assets/roulette/audio-manager.js?v=4" defer></script>\n' +
   '  <script src="/assets/roulette/turn-animation.js?v=5" defer></script>\n' +
   '  <script src="/assets/roulette/turn-fire.js?v=2" defer></script>\n' +
-  '  <script src="/assets/roulette/audio-manager.js?v=3" defer></script>\n' +
+  '  <script src="/assets/roulette/audio-bindings.js?v=1" defer></script>\n' +
   `${endMarker}`;
 
 let html = await readFile(indexUrl, 'utf8');
 html = removeObsoleteLampBlocks(html);
-html = replaceLegacyRouletteAudio(html);
 const markerPattern = new RegExp(`${startMarker}[\\s\\S]*?${endMarker}`, 'm');
 
 if (markerPattern.test(html)) {
@@ -190,4 +106,4 @@ if (markerPattern.test(html)) {
 }
 
 await writeFile(indexUrl, html);
-console.log('Replaced duplicate legacy roulette sounds with uploaded recordings and injected isolated ambient audio.');
+console.log('Injected independent lamp, uploaded-audio replacement, unchanged turn animations and direct action bindings.');
