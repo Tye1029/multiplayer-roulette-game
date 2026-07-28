@@ -2,10 +2,22 @@ import { access, readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 
 const read = path => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
-const [html, injector, turnAnimation, config, lamp, bootstrap, calibration, lampCss, packageSource] = await Promise.all([
+const [
+  html,
+  injector,
+  turnLock,
+  turnFire,
+  config,
+  lamp,
+  bootstrap,
+  calibration,
+  lampCss,
+  packageSource
+] = await Promise.all([
   read('index.html'),
   read('scripts/inject-lamp-assets.mjs'),
   read('assets/roulette/turn-animation.js'),
+  read('assets/roulette/turn-fire.js'),
   read('assets/roulette/lamp-config.js'),
   read('assets/roulette/lamp.js'),
   read('assets/roulette/lamp-bootstrap.js'),
@@ -15,7 +27,8 @@ const [html, injector, turnAnimation, config, lamp, bootstrap, calibration, lamp
 ]);
 
 for (const [name, source] of [
-  ['turn-animation.js', turnAnimation],
+  ['turn-animation.js', turnLock],
+  ['turn-fire.js', turnFire],
   ['lamp.js', lamp],
   ['lamp-bootstrap.js', bootstrap],
   ['lamp-calibration.js', calibration]
@@ -33,7 +46,8 @@ for (const required of [
   '/assets/roulette/lamp-config.js?v=19',
   '/assets/roulette/lamp.js?v=19',
   '/assets/roulette/lamp-bootstrap.js?v=19',
-  '/assets/roulette/turn-animation.js?v=3',
+  '/assets/roulette/turn-animation.js?v=4',
+  '/assets/roulette/turn-fire.js?v=1',
   'MODULAR_LAMP_ASSETS_START',
   'rrLampCriticalHide'
 ]) {
@@ -41,42 +55,76 @@ for (const required of [
 }
 
 for (const required of [
-  "const facingSelector = ':scope > [data-roulette-facing]'",
-  "const recoilSelector = ':scope > [data-roulette-recoil]'",
-  "facing.dataset.rouletteFacing = '1'",
-  "recoil.dataset.rouletteRecoil = '1'",
-  'function ensureLayers(root)',
-  'async function animateFacing(game, gameId, turnId',
+  "const styleId = 'rrStrictTurnLockStyles'",
+  'const lock = {',
+  "pendingTurnId: ''",
+  'function setRuntimeLock(gameId, turnId, angle)',
+  'function applyFacing(layers, angle, turnId',
+  'function enforceLockedFacing(gameId)',
+  'layers.facing !== lock.animatingFacing',
+  'setRuntimeLock(gameId, lock.pendingTurnId, lock.pendingAngle)',
+  'function queueTurnRotation(game, gameId, turnId, duration)',
+  'async function rotateToLockedTurn(game, gameId, requestedTurnId',
+  '{ transform: `rotate(${from + delta * 0.72}deg)`, offset: 0.72 }',
+  '{ transform: `rotate(${from + delta - 9 * sign}deg)`, offset: 0.94 }',
+  "easing: 'cubic-bezier(.22,.58,.12,1)'",
+  "{ transform: 'rotate(116deg)', offset: 0.24 }",
+  '{ transform: `rotate(${finalAngle + 720}deg)`, offset: 1 }',
   'rouletteMotionTransform = function (_angle',
+  'rouletteOrientToShotActor = async function',
   'rouletteRotateToTurn = async function',
   'rouletteOpeningSequence = async function',
-  'rouletteShotSequence = async function (_game, state, gameId)',
-  'const recoilMotion = rouletteAnimate(layers.recoil',
-  'await animateFacing(newest, gameId, newestTurnId, 900)',
+  'window.RouletteTurnLock = {',
+  'html body [data-roulette-game] .rr-gun-recoil > .rr-revolver',
+  'html body [data-roulette-game] .rr-gun-recoil .rr-gun-photo',
   'html body [data-roulette-game] .rr-table',
   'animation: none !important',
   'transform: none !important',
   'transition: none !important'
 ]) {
-  if (!turnAnimation.includes(required)) throw new Error(`Turn animation v3 is missing ${required}`);
+  if (!turnLock.includes(required)) throw new Error(`Strict turn lock is missing ${required}`);
 }
 
 for (const forbidden of [
+  'rouletteShotSequence =',
   'MutationObserver',
   'setInterval(',
   'getBoundingClientRect',
   'lastActorId',
-  'actorAngle',
-  'settleFacing(gameId, actor',
-  'rouletteVisualRuntime.currentAngle = actor',
-  'rouletteVisualRuntime.lastTurnId = actor',
+  'scale(${-scale}',
   'rouletteMotionTransform(base+10',
   'rouletteMotionTransform(base-2',
-  'scale(${-scale}',
   'data-current-turn',
   'data-shot-revision'
 ]) {
-  if (turnAnimation.includes(forbidden)) throw new Error(`Shot or legacy code can still change facing: ${forbidden}`);
+  if (turnLock.includes(forbidden)) throw new Error(`Turn lock contains conflicting behavior: ${forbidden}`);
+}
+
+for (const required of [
+  "const api = window.RouletteTurnLock",
+  'rouletteShotSequence = async function (_game, state, gameId)',
+  'const lockedTurnId = lock.turnId',
+  'const lockedAngle = lock.angle',
+  'const recoilMotion = rouletteAnimate(layers.recoil',
+  'applyFacing(mounted, lockedAngle, lockedTurnId, true)',
+  'newestTurnId !== lockedTurnId',
+  'await rotateToLockedTurn(newest, gameId, newestTurnId, 900)',
+  'enforceLockedFacing(gameId)'
+]) {
+  if (!turnFire.includes(required)) throw new Error(`Isolated firing effects are missing ${required}`);
+}
+
+for (const forbidden of [
+  'lastActorId',
+  'angleForPlayer',
+  'setRuntimeLock',
+  'rouletteVisualRuntime.currentAngle',
+  'rouletteVisualRuntime.lastTurnId',
+  'rouletteAnimate(layers.facing',
+  'rouletteAnimate(motion',
+  'rouletteMotionTransform('
+]) {
+  if (turnFire.includes(forbidden)) throw new Error(`Firing can still change facing: ${forbidden}`);
 }
 
 for (const forbidden of [
@@ -89,8 +137,11 @@ for (const forbidden of [
 ]) {
   if (injector.includes(forbidden)) throw new Error(`Lamp injector rewrites or loads obsolete gun code: ${forbidden}`);
 }
-if (!injector.includes('/assets/roulette/turn-animation.js?v=3')) {
-  throw new Error('The injector is not loading turn animation version 3.');
+if (!injector.includes('/assets/roulette/turn-animation.js?v=4')) {
+  throw new Error('The injector is not loading strict turn lock version 4.');
+}
+if (!injector.includes('/assets/roulette/turn-fire.js?v=1')) {
+  throw new Error('The injector is not loading isolated firing effects.');
 }
 
 for (const required of [
@@ -133,4 +184,4 @@ for (const path of [
 
 await access(new URL('../assets/roulette/decor/lamp-1.png', import.meta.url));
 await access(new URL('../assets/roulette/decor/workshop-lamp-chain.png', import.meta.url));
-console.log('Validation passed: shots never write facing; only the inner recoil moves; the table is fixed.');
+console.log('Validation passed: one opening-style turn rotation locks facing for the full turn; firing cannot change direction; table motion is disabled.');
