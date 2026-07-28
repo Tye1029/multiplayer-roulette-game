@@ -54,7 +54,7 @@ for (const required of [
   '/assets/roulette/lamp-config.js?v=19',
   '/assets/roulette/lamp.js?v=20',
   '/assets/roulette/lamp-bootstrap.js?v=21',
-  '/assets/roulette/lamp-menu.js?v=1',
+  '/assets/roulette/lamp-menu.js?v=2',
   '/assets/roulette/turn-animation.js?v=5',
   '/assets/roulette/turn-fire.js?v=2',
   'MODULAR_LAMP_ASSETS_START',
@@ -164,6 +164,8 @@ for (const required of [
 }
 
 for (const required of [
+  "const params = new URLSearchParams(window.location.search)",
+  "if (params.has('lampCalibration')) return",
   "const menuId = 'rrLightingMenu'",
   "const toggleId = 'rrLightingMenuToggle'",
   'for (const [groupName, controls] of configApi.groups)',
@@ -223,8 +225,8 @@ if (!injector.includes('/assets/roulette/lamp-bootstrap.js?v=21')) {
 if (!injector.includes('/assets/roulette/lamp-menu.css?v=1')) {
   throw new Error('The injector is not loading the lighting menu stylesheet.');
 }
-if (!injector.includes('/assets/roulette/lamp-menu.js?v=1')) {
-  throw new Error('The injector is not loading the live lighting menu.');
+if (!injector.includes('/assets/roulette/lamp-menu.js?v=2')) {
+  throw new Error('The injector is not loading the live lighting menu version 2.');
 }
 if (!injector.includes('/assets/roulette/turn-animation.js?v=5')) {
   throw new Error('The injector is not loading strict turn lock version 5.');
