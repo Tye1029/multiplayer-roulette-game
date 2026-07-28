@@ -7,6 +7,7 @@ const [
   injector,
   turnLock,
   turnFire,
+  audio,
   config,
   lamp,
   bootstrap,
@@ -19,6 +20,7 @@ const [
   read('scripts/inject-lamp-assets.mjs'),
   read('assets/roulette/turn-animation.js'),
   read('assets/roulette/turn-fire.js'),
+  read('assets/roulette/audio-manager.js'),
   read('assets/roulette/lamp-config.js'),
   read('assets/roulette/lamp.js'),
   read('assets/roulette/lamp-bootstrap.js'),
@@ -31,6 +33,7 @@ const [
 for (const [name, source] of [
   ['turn-animation.js', turnLock],
   ['turn-fire.js', turnFire],
+  ['audio-manager.js', audio],
   ['lamp.js', lamp],
   ['lamp-bootstrap.js', bootstrap],
   ['lamp-calibration.js', calibration]
@@ -50,6 +53,7 @@ for (const required of [
   '/assets/roulette/lamp-bootstrap.js?v=19',
   '/assets/roulette/turn-animation.js?v=5',
   '/assets/roulette/turn-fire.js?v=2',
+  '/assets/roulette/audio-manager.js?v=1',
   'MODULAR_LAMP_ASSETS_START',
   'rrLampCriticalHide'
 ]) {
@@ -99,6 +103,48 @@ for (const forbidden of [
   if (turnLock.includes(forbidden) || turnFire.includes(forbidden)) {
     throw new Error(`Gun animation code still references lamp state: ${forbidden}`);
   }
+}
+
+for (const required of [
+  "const BASE = '/assets/roulette/audio/'",
+  'const sequenceTimers = new Set()',
+  'const clipTimers = new Set()',
+  'function scheduleRoomDetail()',
+  'function spinSound()',
+  'function hammerSound()',
+  'function blankSound()',
+  'function gunshotSound()',
+  "global.rouletteSpinSound = spinSound",
+  "global.rouletteShotIndexSound = hammerSound",
+  "global.rouletteBlankSound = blankSound",
+  "global.rouletteGunshotSound = gunshotSound",
+  "rouletteSpinSound = spinSound",
+  'const original = rouletteBind',
+  'queueMicrotask(sync)',
+  "duckLoop('room', .18, 180, 900)",
+  "duckLoop('heartbeat', .12, 240, 1100)",
+  "play('tension', { volume: .07 })",
+  "play(cue, { volume: cue === 'victory' ? .18 : .15 })",
+  'global.RouletteAudio = Object.freeze({'
+]) {
+  if (!audio.includes(required)) throw new Error(`Layered audio manager is missing ${required}`);
+}
+
+for (const forbidden of [
+  'RouletteTurnLock',
+  'rouletteRotateToTurn',
+  'rouletteShotSequence =',
+  '.rr-turn-facing',
+  '.rr-gun-motion',
+  'data-roulette-facing',
+  'data-roulette-recoil',
+  'rr-animation-lock',
+  'rr-fired',
+  'getAnimations',
+  'MutationObserver',
+  'style.transform'
+]) {
+  if (audio.includes(forbidden)) throw new Error(`Audio manager can alter animation state: ${forbidden}`);
 }
 
 for (const required of [
@@ -153,7 +199,7 @@ for (const forbidden of [
   'turn-orientation.js',
   'gun-turn-animation.js'
 ]) {
-  if (injector.includes(forbidden)) throw new Error(`Lamp injector rewrites or loads obsolete gun code: ${forbidden}`);
+  if (injector.includes(forbidden)) throw new Error(`Asset injector rewrites obsolete gun code: ${forbidden}`);
 }
 if (!injector.includes('/assets/roulette/lamp.js?v=20')) {
   throw new Error('The injector is not loading independent lamp runtime version 20.');
@@ -163,6 +209,12 @@ if (!injector.includes('/assets/roulette/turn-animation.js?v=5')) {
 }
 if (!injector.includes('/assets/roulette/turn-fire.js?v=2')) {
   throw new Error('The injector is not loading isolated firing effects version 2.');
+}
+if (!injector.includes('/assets/roulette/audio-manager.js?v=1')) {
+  throw new Error('The injector is not loading layered audio manager version 1.');
+}
+if (injector.indexOf('audio-manager.js?v=1') < injector.indexOf('turn-fire.js?v=2')) {
+  throw new Error('Audio manager must load after the locked firing module.');
 }
 if (!calibrationHtml.includes('/assets/roulette/lamp.js?v=20') || !calibrationHtml.includes('lampCalibration=20')) {
   throw new Error('Lamp calibration page is not loading independent timeline version 20.');
@@ -191,6 +243,28 @@ for (const path of [
   'gun-animation-test.html'
 ]) await requireMissing(path);
 
-await access(new URL('../assets/roulette/decor/lamp-1.png', import.meta.url));
-await access(new URL('../assets/roulette/decor/workshop-lamp-chain.png', import.meta.url));
-console.log('Validation passed: lamp and light use independent persistent timelines; gun and firing code cannot restart them.');
+for (const path of [
+  'assets/roulette/decor/lamp-1.png',
+  'assets/roulette/decor/workshop-lamp-chain.png',
+  'assets/roulette/audio/soundsforyou-the-ambience-room-tone-139064.mp3',
+  'assets/roulette/audio/freesound_community-lamp-electricity-buzzingwav-14609.mp3',
+  'assets/roulette/audio/oxidvideos-wood-creaks-411791.mp3',
+  'assets/roulette/audio/freesound_community-wooden-chair-slide-scrape-on-wood-floor-75857.mp3',
+  'assets/roulette/audio/freesound_community-tap-on-wooden-table-44998.mp3',
+  'assets/roulette/audio/pwlpl-heartbeat-tense-377250.mp3',
+  'assets/roulette/audio/diff_style-disturbing-low-rumble-183748.mp3',
+  'assets/roulette/audio/gd_salman-tension-stinger-ambience-355381.mp3',
+  'assets/roulette/audio/desifreemusic-impact-strike-cinematic-hit-stinger-466320.mp3',
+  'assets/roulette/audio/u_903n3qx7rq-dramatic-sting-118943.mp3',
+  'assets/roulette/audio/freesound_community-chain-6073.mp3',
+  'assets/roulette/audio/freesound_community-pistol-hammer-cocking-back-4-39887.mp3',
+  'assets/roulette/audio/freesound_community-cocking-a-revolver-6279.mp3',
+  'assets/roulette/audio/spinopel-dry-fire-gun-364844.mp3',
+  'assets/roulette/audio/freesound_community-gun-dry-firing-3-39820.mp3',
+  'assets/roulette/audio/freesound_community-single-pistol-gunshot-33-37187.mp3',
+  'assets/roulette/audio/freesound_community-revolver-spin-96947.mp3',
+  'assets/roulette/audio/freesound_community-revolver-chamber-spin-ratchet-sound-90521.mp3',
+  'assets/roulette/audio/freesound_community-revolver-cocking-104722.mp3'
+]) await access(new URL(`../${path}`, import.meta.url));
+
+console.log('Validation passed: layered audio uses uploaded assets, fades loops and cues, and cannot alter the locked gun or lamp animations.');
