@@ -92,7 +92,7 @@ const block = `${startMarker}\n` +
   '  <script src="/assets/roulette/turn-animation.js?v=5" defer></script>\n' +
   '  <script src="/assets/roulette/turn-fire.js?v=2" defer></script>\n' +
   '  <script src="/assets/roulette/opening-spin-sync.js?v=1" defer></script>\n' +
-  '  <script src="/assets/roulette/audio-bindings.js?v=6" defer></script>\n' +
+  '  <script src="/assets/roulette/audio-bindings.js?v=5" defer></script>\n' +
   '  <script src="/assets/roulette/reaction-audio.js?v=1" defer></script>\n' +
   `${endMarker}`;
 
