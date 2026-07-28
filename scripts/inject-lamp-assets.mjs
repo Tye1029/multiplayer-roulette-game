@@ -89,6 +89,7 @@ const block = `${startMarker}\n` +
   '  <script src="/assets/roulette/lamp-bootstrap.js?v=19" defer></script>\n' +
   '  <script src="/assets/roulette/turn-animation.js?v=5" defer></script>\n' +
   '  <script src="/assets/roulette/turn-fire.js?v=2" defer></script>\n' +
+  '  <script src="/assets/roulette/roulette-audio.js?v=1" defer></script>\n' +
   `${endMarker}`;
 
 let html = await readFile(indexUrl, 'utf8');
@@ -104,4 +105,4 @@ if (markerPattern.test(html)) {
 }
 
 await writeFile(indexUrl, html);
-console.log('Injected a gun-independent lamp timeline plus strict locked turn and firing modules.');
+console.log('Injected independent lamp, locked gun animation, isolated firing effects and layered roulette audio.');
