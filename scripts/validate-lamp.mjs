@@ -58,7 +58,7 @@ for (const required of [
   'rouletteRotateToTurn = async function',
   'rouletteShotSequence = async function',
   'rouletteOrientToShotActor = async function',
-  'data.rouletteRecoil',
+  'dataset.rouletteRecoil',
   'ensureRecoilLayer',
   'root._rrHammerMotion',
   'settleFacing(gameId, target)',
