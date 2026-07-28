@@ -86,6 +86,65 @@ const newTurnTransition = `      liveRoot.classList.add('rr-animation-lock');
         ]);
       }finally{`;
 
+const oldTurnFinalize = `      }finally{
+        const latestAtFinish=rouletteLatestGame;
+        const stillAuthoritative=String(latestAtFinish?.gameId||'')===String(gameId)&&
+          latestAtFinish?.status==='playing'&&
+          String(latestAtFinish?.rouletteState?.turnId||'')===requestedTurnId;
+        if(epoch===rouletteVisualRuntime.rotationEpoch&&stillAuthoritative){
+          motion.getAnimations?.().forEach(a=>a.cancel());
+          motion.style.transform=rouletteMotionTransform(target,scale);
+          rouletteVisualRuntime.currentAngle=target;
+          rouletteVisualRuntime.angleHydrated=true;
+          rouletteVisualRuntime.lastTurnId=requestedTurnId;
+          rouletteVisualRuntime.displayTurnId=requestedTurnId;
+          rouletteVisualRuntime.rotationTargetId='';
+        }else if(epoch===rouletteVisualRuntime.rotationEpoch){
+          motion.getAnimations?.().forEach(a=>a.cancel());
+          motion.style.transform=rouletteMotionTransform(rouletteVisualRuntime.currentAngle,scale);
+          rouletteVisualRuntime.rotationTargetId='';
+          rouletteDebug('cancelled stale turn rotation finish',{requestedTurnId,authoritativeTurnId:String(latestAtFinish?.rouletteState?.turnId||'')});
+        }
+        if(glint){glint.getAnimations?.().forEach(a=>a.cancel());glint.style.opacity='0';glint.style.backgroundPosition='116% 0'}
+        liveRoot.classList.remove('rr-animation-lock');
+      }`;
+
+const replacementSafeTurnFinalize = `      }finally{
+        const latestAtFinish=rouletteLatestGame;
+        const stillAuthoritative=String(latestAtFinish?.gameId||'')===String(gameId)&&
+          latestAtFinish?.status==='playing'&&
+          String(latestAtFinish?.rouletteState?.turnId||'')===requestedTurnId;
+        const mountedRoot=duelActive?.querySelector(\`[data-roulette-game][data-game-id="\${CSS.escape(gameId)}"]\`);
+        const mountedMotion=mountedRoot?.querySelector('[data-roulette-motion]');
+        const mountedGlint=mountedRoot?.querySelector('.rr-metal-glint');
+        const applyAngleToMountedGun=angle=>{
+          const finalMotion=mountedMotion||motion;
+          for(const candidate of new Set([motion,mountedMotion].filter(Boolean))){
+            candidate.getAnimations?.().forEach(a=>a.cancel());
+          }
+          if(finalMotion)finalMotion.style.transform=rouletteMotionTransform(angle,rouletteMotionScale());
+        };
+        if(epoch===rouletteVisualRuntime.rotationEpoch&&stillAuthoritative){
+          applyAngleToMountedGun(target);
+          rouletteVisualRuntime.currentAngle=target;
+          rouletteVisualRuntime.angleHydrated=true;
+          rouletteVisualRuntime.lastTurnId=requestedTurnId;
+          rouletteVisualRuntime.displayTurnId=requestedTurnId;
+          rouletteVisualRuntime.rotationTargetId='';
+        }else if(epoch===rouletteVisualRuntime.rotationEpoch){
+          applyAngleToMountedGun(rouletteVisualRuntime.currentAngle);
+          rouletteVisualRuntime.rotationTargetId='';
+          rouletteDebug('cancelled stale turn rotation finish',{requestedTurnId,authoritativeTurnId:String(latestAtFinish?.rouletteState?.turnId||'')});
+        }
+        for(const candidate of new Set([glint,mountedGlint].filter(Boolean))){
+          candidate.getAnimations?.().forEach(a=>a.cancel());
+          candidate.style.opacity='0';
+          candidate.style.backgroundPosition='116% 0';
+        }
+        liveRoot.classList.remove('rr-animation-lock');
+        mountedRoot?.classList.remove('rr-animation-lock');
+      }`;
+
 const shotOrientationPattern = /\n    async function rouletteOrientToShotActor\(game,st,gameId\)\{[\s\S]*?\n    \}\n    async function rouletteShotSequence\(game,st,gameId\)\{\n      await rouletteOrientToShotActor\(game,st,gameId\);/;
 const shotSequenceStart = `
     async function rouletteShotSequence(game,st,gameId){
@@ -106,6 +165,12 @@ if (html.includes(oldTurnTransition)) {
   html = html.replace(oldTurnTransition, newTurnTransition);
 } else if (!html.includes(newTurnTransition)) {
   throw new Error('Could not locate the roulette turn transition to cleanly rebuild it.');
+}
+
+if (html.includes(oldTurnFinalize)) {
+  html = html.replace(oldTurnFinalize, replacementSafeTurnFinalize);
+} else if (!html.includes(replacementSafeTurnFinalize)) {
+  throw new Error('Could not make the turn rotation replacement-safe.');
 }
 
 if (shotOrientationPattern.test(html)) {
@@ -129,6 +194,9 @@ if (html.includes("rouletteAnimate(motion,[{opacity:1},{opacity:.12}]")) {
 if (html.includes('rouletteOrientToShotActor(') || html.includes('shot actor orientation locked')) {
   throw new Error('A shot effect can still independently rotate the gun.');
 }
+if (!html.includes('const mountedMotion=mountedRoot?.querySelector')) {
+  throw new Error('A completed turn rotation can still finish on a detached gun node.');
+}
 
 await writeFile(indexUrl, html);
-console.log(`Cleaned ${obsoleteSceneBlockIds.length} obsolete scene patch IDs; only turn changes can rotate the gun.`);
+console.log(`Cleaned ${obsoleteSceneBlockIds.length} obsolete scene patch IDs; turn rotation repairs the currently mounted gun after rerenders.`);
