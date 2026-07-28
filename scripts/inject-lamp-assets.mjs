@@ -1,6 +1,7 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import './patch-roulette-chamber.mjs';
 import './patch-roulette-presentation.mjs';
+import './patch-roulette-turn-countdown-smoke.mjs';
 
 const indexUrl = new URL('../index.html', import.meta.url);
 const startMarker = '<!-- MODULAR_LAMP_ASSETS_START -->';
@@ -54,7 +55,7 @@ function removeObsoleteLampBlocks(source) {
   return html;
 }
 
-const criticalStyle = `  <link id="rrLampExternalStyles" rel="stylesheet" href="/assets/roulette/lamp.css?v=18">
+const criticalStyle = `  <link id="rrLampExternalStyles" rel="stylesheet" href="/assets/roulette/lamp.css?v=18&smoke=1">
   <style id="rrLampCriticalHide">
     [data-roulette-game] > .rr-lamp,
     [data-roulette-game] .rr-lamp-fixture,
@@ -88,10 +89,10 @@ const criticalStyle = `  <link id="rrLampExternalStyles" rel="stylesheet" href="
 const block = `${startMarker}\n` +
   `${criticalStyle}\n` +
   '  <script src="/assets/roulette/lamp-config.js?v=19" defer></script>\n' +
-  '  <script src="/assets/roulette/lamp.js?v=20" defer></script>\n' +
+  '  <script src="/assets/roulette/lamp.js?v=20&smoke=1" defer></script>\n' +
   '  <script src="/assets/roulette/lamp-bootstrap.js?v=19" defer></script>\n' +
-  '  <script src="/assets/roulette/audio-manager.js?v=4&ambience=2" defer></script>\n' +
-  '  <script src="/assets/roulette/spin-audio-policy.js?v=3" defer></script>\n' +
+  '  <script src="/assets/roulette/audio-manager.js?v=4&ambience=2&countdown=2" defer></script>\n' +
+  '  <script src="/assets/roulette/spin-audio-policy.js?v=3&turn-audio=2" defer></script>\n' +
   '  <script src="/assets/roulette/turn-animation.js?v=5" defer></script>\n' +
   '  <script src="/assets/roulette/turn-fire.js?v=2" defer></script>\n' +
   '  <script src="/assets/roulette/opening-spin-sync.js?v=4" defer></script>\n' +
@@ -112,4 +113,4 @@ if (markerPattern.test(html)) {
 }
 
 await writeFile(indexUrl, html);
-console.log('Injected independent lamp, synchronized opening spin, authoritative six-chamber Roulette rules, cleaned table text, darker countdown, stronger ambience, late-round relief breaths, live-round chair fall, result cues, and unchanged protected animations.');
+console.log('Injected independent lamp, synchronized opening spin, authoritative six-chamber Roulette rules, reliable pass audio without a terminal knock, red audible countdown, lamp-reactive smoke, stronger ambience, result cues, and unchanged protected animations.');
