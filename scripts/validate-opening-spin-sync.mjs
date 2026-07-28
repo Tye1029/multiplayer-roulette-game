@@ -6,10 +6,10 @@ const index = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 
 for (const required of [
   "const OPENING_SPIN_PATH = '/assets/roulette/audio/revolver-spinning-on-wood-v4.mp3'",
-  'const RAPID_FADE_START_PROGRESS = 0.42',
-  'const RAPID_FADE_END_PROGRESS = 0.56',
-  'const RAPID_FADE_LEVEL = 0.10',
-  'const SILENT_PROGRESS = 0.78',
+  'const RAPID_FADE_START_PROGRESS = 0.40',
+  'const RAPID_FADE_END_PROGRESS = 0.53',
+  'const RAPID_FADE_LEVEL = 0.08',
+  'const SILENT_PROGRESS = 0.74',
   'function openingVolumeEnvelope(progress)',
   'function findOpeningAnimation()',
   '.getAnimations()',
@@ -26,7 +26,7 @@ for (const required of [
   }
 }
 
-const syncTag = '<script src="/assets/roulette/opening-spin-sync.js?v=3" defer></script>';
+const syncTag = '<script src="/assets/roulette/opening-spin-sync.js?v=4" defer></script>';
 const bindingsTag = '<script src="/assets/roulette/audio-bindings.js?v=5" defer></script>';
 
 for (const source of [inject, index]) {
@@ -37,4 +37,4 @@ for (const source of [inject, index]) {
   }
 }
 
-console.log('Opening-spin audio follows the active animation duration, fades sharply before the midpoint slowdown, and becomes silent before the final settle.');
+console.log('Opening-spin audio follows the active animation duration, fades slightly earlier through the slowdown, and becomes silent before the final settle.');
