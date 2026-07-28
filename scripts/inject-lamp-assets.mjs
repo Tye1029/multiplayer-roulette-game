@@ -52,6 +52,7 @@ function removeObsoleteLampBlocks(source) {
 }
 
 const criticalStyle = `  <link id="rrLampExternalStyles" rel="stylesheet" href="/assets/roulette/lamp.css?v=18">
+  <link id="rrLampMenuStyles" rel="stylesheet" href="/assets/roulette/lamp-menu.css?v=1">
   <style id="rrLampCriticalHide">
     [data-roulette-game] > .rr-lamp,
     [data-roulette-game] .rr-lamp-fixture,
@@ -86,7 +87,8 @@ const block = `${startMarker}\n` +
   `${criticalStyle}\n` +
   '  <script src="/assets/roulette/lamp-config.js?v=19" defer></script>\n' +
   '  <script src="/assets/roulette/lamp.js?v=20" defer></script>\n' +
-  '  <script src="/assets/roulette/lamp-bootstrap.js?v=19" defer></script>\n' +
+  '  <script src="/assets/roulette/lamp-bootstrap.js?v=21" defer></script>\n' +
+  '  <script src="/assets/roulette/lamp-menu.js?v=1" defer></script>\n' +
   '  <script src="/assets/roulette/turn-animation.js?v=5" defer></script>\n' +
   '  <script src="/assets/roulette/turn-fire.js?v=2" defer></script>\n' +
   `${endMarker}`;
@@ -104,4 +106,4 @@ if (markerPattern.test(html)) {
 }
 
 await writeFile(indexUrl, html);
-console.log('Injected a gun-independent lamp timeline plus strict locked turn and firing modules.');
+console.log('Injected independent lamp runtime, live lighting menu, strict turn lock and isolated firing effects.');
