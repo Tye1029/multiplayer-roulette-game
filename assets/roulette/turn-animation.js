@@ -219,7 +219,7 @@
     });
   }
 
-  async function rotateToLockedTurn(game, gameId, requestedTurnId, duration = 900) {
+  async function rotateToLockedTurn(game, gameId, requestedTurnId, duration = 1020) {
     const latest = latestGameFor(gameId, game);
     const authoritativeTurnId = String(latest?.rouletteState?.turnId || '');
     if (
@@ -303,7 +303,7 @@
     lock.animatingFacing = null;
     rouletteVisualRuntime.rotationTargetId = '';
     if (newest?.status === 'playing' && newestTurnId) {
-      await rotateToLockedTurn(newest, gameId, newestTurnId, Math.min(700, duration));
+      await rotateToLockedTurn(newest, gameId, newestTurnId, Math.min(800, duration));
     }
   }
 
@@ -356,9 +356,9 @@
       return;
     }
 
-    // Keep the previous owner locked until the one permitted rotation runs.
+    // Keep the previous owner locked until the one permitted turn rotation runs.
     applyFacing(layers, lock.angle, lock.turnId, true);
-    if (!rouletteVisualRuntime.busy) queueTurnRotation(game, gameId, turnId, 900);
+    if (!rouletteVisualRuntime.busy) queueTurnRotation(game, gameId, turnId, 1020);
   }
 
   installStyles();
@@ -370,6 +370,8 @@
     return result;
   };
 
+  // The legacy game may still ask for a motion transform while rendering,
+  // hydrating, or firing. It may position and scale the outer wrapper only.
   rouletteMotionTransform = function (_angle, scale = rouletteMotionScale(), x = '-50%', y = '-50%') {
     return `translate(${x},${y}) scale(${scale})`;
   };
@@ -384,7 +386,7 @@
       options.targetTurnId || latest?.rouletteState?.turnId || state?.turnId || ''
     );
     if (turnId) {
-      await rotateToLockedTurn(latest, gameId, turnId, Number(options.duration) || 900);
+      await rotateToLockedTurn(latest, gameId, turnId, Number(options.duration) || 1020);
     }
   };
 
@@ -415,7 +417,7 @@
 
     const finalTurnId = lock.pendingTurnId;
     const finalAngle = lock.pendingAngle;
-    const duration = 4700;
+    const duration = 5300;
     applyFacing(layers, -4, '', true);
     rouletteSpinSound(1.35);
 
@@ -460,7 +462,7 @@
     const newest = latestGameFor(gameId, game);
     const newestTurnId = String(newest?.rouletteState?.turnId || '');
     if (newest?.status === 'playing' && newestTurnId && newestTurnId !== lock.turnId) {
-      await rotateToLockedTurn(newest, gameId, newestTurnId, 700);
+      await rotateToLockedTurn(newest, gameId, newestTurnId, 800);
     }
   };
 
