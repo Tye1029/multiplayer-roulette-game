@@ -33,6 +33,7 @@
   let activeOpeningWoodClip = null;
   let activeSpinButtonClip = null;
   let activeResultClip = null;
+  let resultFadeFrame = 0;
   let lastSpinButtonAt = -Infinity;
   let resultPollTimer = 0;
   let nativeMediaPlay = null;
@@ -337,6 +338,50 @@
     return cue === 'victory' ? 0.48 : 0.42;
   }
 
+  function cancelResultFade() {
+    if (resultFadeFrame) {
+      cancelAnimationFrame(resultFadeFrame);
+      resultFadeFrame = 0;
+    }
+  }
+
+  function startDefeatTailFade(clip) {
+    cancelResultFade();
+
+    const fullVolume = resultVolume('defeat');
+    const fadeSeconds = 0.70;
+
+    const step = () => {
+      if (activeResultClip !== clip || clip.paused) {
+        resultFadeFrame = 0;
+        return;
+      }
+
+      const duration = Number(clip.duration);
+      const currentTime = Number(clip.currentTime);
+
+      if (
+        Number.isFinite(duration) &&
+        duration > 0 &&
+        Number.isFinite(currentTime)
+      ) {
+        const remaining = Math.max(0, duration - currentTime);
+
+        if (remaining <= fadeSeconds) {
+          const progress = remaining / fadeSeconds;
+          clip.volume = Math.max(
+            0,
+            Math.min(fullVolume, fullVolume * progress)
+          );
+        }
+      }
+
+      resultFadeFrame = requestAnimationFrame(step);
+    };
+
+    resultFadeFrame = requestAnimationFrame(step);
+  }
+
   function makeResultClip(cue) {
     if (resultAudioPool[cue]) return resultAudioPool[cue];
 
@@ -351,12 +396,23 @@
     clip.playbackRate = 1;
 
     clip.addEventListener('ended', () => {
-      if (activeResultClip === clip) activeResultClip = null;
-      try { clip.currentTime = 0; } catch {}
+      if (activeResultClip === clip) {
+        activeResultClip = null;
+        cancelResultFade();
+      }
+
+      try {
+        clip.currentTime = 0;
+        clip.volume = resultVolume(cue);
+      } catch {}
     });
 
     clip.addEventListener('error', () => {
-      if (activeResultClip === clip) activeResultClip = null;
+      if (activeResultClip === clip) {
+        activeResultClip = null;
+        cancelResultFade();
+      }
+
       delete resultAudioPool[cue];
       resultAudioPrimed = false;
     });
@@ -413,6 +469,8 @@
       return;
     }
 
+    cancelResultFade();
+
     if (activeResultClip && activeResultClip !== clip) {
       try {
         activeResultClip.pause();
@@ -442,8 +500,13 @@
       return;
     }
 
-    Promise.resolve(play.call(clip)).catch(() => {
+    Promise.resolve(play.call(clip)).then(() => {
+      if (cue === 'defeat') {
+        startDefeatTailFade(clip);
+      }
+    }).catch(() => {
       if (activeResultClip === clip) activeResultClip = null;
+      cancelResultFade();
       resultAudioPrimed = false;
       seenResults.delete(key);
     });
@@ -628,6 +691,29 @@
       if (seenResults.has(key)) return true;
 
       seenResults.add(key);
+
+      if (
+        normalized === 'victory' &&
+        typeof global.playWinSound === 'function'
+      ) {
+        cancelResultFade();
+
+        if (activeResultClip) {
+          try {
+            activeResultClip.pause();
+            activeResultClip.currentTime = 0;
+            activeResultClip.volume = resultVolume('defeat');
+          } catch {}
+
+          activeResultClip = null;
+        }
+
+        try {
+          global.playWinSound();
+          return true;
+        } catch {}
+      }
+
       playResultCue(null, normalized, key);
       return true;
     },
@@ -648,6 +734,7 @@
     document.removeEventListener('pointerdown', handleSpinGesture, true);
     document.removeEventListener('click', handleSpinGesture, true);
     cancelOpeningWoodFrame();
+    cancelResultFade();
     stopClip(activeOpeningWoodClip);
     stopClip(activeResultClip);
     stopClip(activeSpinButtonClip);
