@@ -28,8 +28,8 @@
 
   const originalOpeningSequence = rouletteOpeningSequence;
   if (!originalOpeningSequence.__rrUploadedAudioBound) {
-    const boundOpeningSequence = async function () {
-      audio.openingSpin();
+    const boundOpeningSequence = async function (game, state, gameId) {
+      audio.openingSpin(game, state, gameId);
       silenceLegacy();
       return originalOpeningSequence.apply(this, arguments);
     };
@@ -39,13 +39,8 @@
 
   const originalShotSequence = rouletteShotSequence;
   if (!originalShotSequence.__rrUploadedAudioBound) {
-    const boundShotSequence = async function (_game, state) {
-      audio.hammer();
-      const live = state?.lastOutcome === 'live';
-      global.setTimeout(() => {
-        if (live) audio.gunshot();
-        else audio.blank();
-      }, 255);
+    const boundShotSequence = async function (game, state, gameId) {
+      audio.shotSequence(game, state, gameId);
       silenceLegacy();
       return originalShotSequence.apply(this, arguments);
     };
