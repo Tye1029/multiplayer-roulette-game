@@ -1,105 +1,125 @@
-[data-roulette-game] .rr-atmosphere-settings{
-  position:absolute;
-  top:82px;
-  right:8px;
-  z-index:48;
-  width:min(286px,calc(100% - 16px));
-  border:1px solid rgba(144,73,48,.72);
+.rr-atmosphere-settings{
+  position:fixed!important;
+  top:calc(env(safe-area-inset-top,0px) + 62px)!important;
+  right:calc(env(safe-area-inset-right,0px) + 8px)!important;
+  z-index:2147483000!important;
+  display:block!important;
+  visibility:visible!important;
+  opacity:1!important;
+  width:min(286px,calc(100vw - 16px));
+  max-width:calc(100vw - 16px);
+  border:1px solid rgba(144,73,48,.88);
   border-radius:13px;
-  background:linear-gradient(180deg,rgba(20,11,10,.96),rgba(7,5,5,.94));
-  box-shadow:0 14px 34px rgba(0,0,0,.65),inset 0 1px 0 rgba(255,218,174,.08);
+  background:linear-gradient(180deg,rgba(20,11,10,.985),rgba(7,5,5,.975));
+  box-shadow:0 14px 34px rgba(0,0,0,.78),inset 0 1px 0 rgba(255,218,174,.10),0 0 0 1px rgba(55,14,12,.55);
   color:#ead6c5;
   font-family:Arial,sans-serif;
-  pointer-events:auto;
+  pointer-events:auto!important;
   overflow:hidden;
-  backdrop-filter:blur(8px);
+  isolation:isolate;
+  transform:none!important;
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
 }
-[data-roulette-game] .rr-atmosphere-settings.is-collapsed{
+.rr-atmosphere-settings.is-collapsed{
   width:auto;
-  min-width:116px;
+  min-width:142px;
 }
-[data-roulette-game] .rr-atmosphere-toggle{
-  width:100%;
-  min-height:38px;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:12px;
-  padding:8px 11px;
-  border:0;
-  background:linear-gradient(180deg,rgba(104,42,31,.48),rgba(39,17,15,.38));
-  color:#e7c7af;
-  font:800 .68rem/1 Arial,sans-serif;
-  letter-spacing:.08em;
-  text-transform:uppercase;
-  cursor:pointer;
+.rr-atmosphere-toggle{
+  appearance:none!important;
+  -webkit-appearance:none!important;
+  width:100%!important;
+  min-height:42px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:12px!important;
+  margin:0!important;
+  padding:9px 12px!important;
+  border:0!important;
+  border-radius:0!important;
+  background:linear-gradient(180deg,rgba(119,45,34,.82),rgba(54,20,18,.86))!important;
+  color:#f0d4bd!important;
+  box-shadow:none!important;
+  font:900 .69rem/1 Arial,sans-serif!important;
+  letter-spacing:.08em!important;
+  text-transform:uppercase!important;
+  text-shadow:0 1px 0 rgba(0,0,0,.8)!important;
+  cursor:pointer!important;
+  pointer-events:auto!important;
 }
-[data-roulette-game] .rr-atmosphere-toggle::after{
+.rr-atmosphere-toggle::after{
   content:"−";
-  width:19px;
-  height:19px;
+  width:21px;
+  height:21px;
   display:grid;
   place-items:center;
+  flex:0 0 auto;
   border-radius:50%;
-  background:rgba(0,0,0,.32);
-  color:#b98d71;
-  font-size:.88rem;
+  background:rgba(0,0,0,.38);
+  color:#d3a184;
+  font-size:.9rem;
 }
-[data-roulette-game] .rr-atmosphere-settings.is-collapsed .rr-atmosphere-toggle::after{content:"+"}
-[data-roulette-game] .rr-atmosphere-settings.is-collapsed .rr-atmosphere-body{display:none}
-[data-roulette-game] .rr-atmosphere-body{
+.rr-atmosphere-settings.is-collapsed .rr-atmosphere-toggle::after{content:"+"}
+.rr-atmosphere-settings.is-collapsed .rr-atmosphere-body{display:none!important}
+.rr-atmosphere-body{
+  display:block;
   max-height:min(430px,58vh);
   overflow:auto;
   padding:7px 10px 10px;
   scrollbar-width:thin;
 }
-[data-roulette-game] .rr-atmosphere-section-title{
+.rr-atmosphere-section-title{
   margin:7px 0 4px;
-  color:#9f6555;
+  color:#a96d5a;
   font:900 .57rem/1 Arial,sans-serif;
   letter-spacing:.13em;
   text-transform:uppercase;
 }
-[data-roulette-game] .rr-atmosphere-row{
+.rr-atmosphere-row{
   display:grid;
   grid-template-columns:minmax(0,1fr) 46px;
   gap:4px 8px;
   align-items:center;
   margin:0 0 8px;
 }
-[data-roulette-game] .rr-atmosphere-row label{
+.rr-atmosphere-row label{
   min-width:0;
   color:#d5bca8;
   font:700 .61rem/1.1 Arial,sans-serif;
 }
-[data-roulette-game] .rr-atmosphere-value{
-  color:#9f7461;
+.rr-atmosphere-value{
+  color:#ad7f69;
   text-align:right;
   font:800 .58rem/1 Arial,sans-serif;
   font-variant-numeric:tabular-nums;
 }
-[data-roulette-game] .rr-atmosphere-row input[type="range"]{
+.rr-atmosphere-row input[type="range"]{
   grid-column:1/-1;
   width:100%;
-  height:18px;
+  height:20px;
   margin:0;
-  accent-color:#6f1218;
+  accent-color:#7d161d;
   cursor:pointer;
+  pointer-events:auto;
 }
-[data-roulette-game] .rr-atmosphere-reset{
-  width:100%;
-  min-height:30px;
-  margin-top:2px;
-  border:1px solid rgba(131,72,56,.48);
-  border-radius:8px;
-  background:rgba(51,22,18,.72);
-  color:#ba9481;
-  font:800 .58rem/1 Arial,sans-serif;
-  letter-spacing:.08em;
-  text-transform:uppercase;
-  cursor:pointer;
+.rr-atmosphere-reset{
+  appearance:none!important;
+  -webkit-appearance:none!important;
+  width:100%!important;
+  min-height:32px!important;
+  margin-top:2px!important;
+  border:1px solid rgba(131,72,56,.58)!important;
+  border-radius:8px!important;
+  background:rgba(58,23,19,.82)!important;
+  color:#c39b87!important;
+  box-shadow:none!important;
+  font:800 .58rem/1 Arial,sans-serif!important;
+  letter-spacing:.08em!important;
+  text-transform:uppercase!important;
+  cursor:pointer!important;
 }
-[data-roulette-game] .rr-atmosphere-reset:active{transform:translateY(1px)}
+.rr-atmosphere-reset:active{transform:translateY(1px)}
 
 /* Strong, adjustable smoke. The lit layer still follows the calibrated lamp timeline. */
 [data-roulette-game]{
@@ -152,11 +172,17 @@
 }
 
 @media(max-width:600px){
-  [data-roulette-game] .rr-atmosphere-settings{top:74px;right:5px;width:min(274px,calc(100% - 10px))}
-  [data-roulette-game] .rr-atmosphere-body{max-height:52vh}
+  .rr-atmosphere-settings{
+    top:calc(env(safe-area-inset-top,0px) + 54px)!important;
+    right:calc(env(safe-area-inset-right,0px) + 5px)!important;
+    width:min(274px,calc(100vw - 10px));
+    max-width:calc(100vw - 10px);
+  }
+  .rr-atmosphere-settings.is-collapsed{width:auto;min-width:138px}
+  .rr-atmosphere-body{max-height:54vh}
   [data-roulette-game] .rr-smoke{inset:7% -22% 27%!important}
 }
 @media(max-width:390px){
-  [data-roulette-game] .rr-atmosphere-settings{top:69px}
-  [data-roulette-game] .rr-atmosphere-toggle{min-height:34px;padding:7px 9px}
+  .rr-atmosphere-settings{top:calc(env(safe-area-inset-top,0px) + 48px)!important}
+  .rr-atmosphere-toggle{min-height:38px!important;padding:8px 10px!important}
 }
