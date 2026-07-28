@@ -9,11 +9,12 @@
   const MIN_PLAYBACK_RATE = 0.25;
   const MAX_PLAYBACK_RATE = 4;
   const MAX_SYNC_ATTEMPTS = 20;
-  const RAPID_FADE_START_PROGRESS = 0.50;
-  const RAPID_FADE_END_PROGRESS = 0.68;
-  const RAPID_FADE_LEVEL = 0.20;
-  const SETTLE_FADE_END_PROGRESS = 0.92;
-  const SETTLE_FADE_LEVEL = 0.05;
+  const RAPID_FADE_START_PROGRESS = 0.42;
+  const RAPID_FADE_END_PROGRESS = 0.56;
+  const RAPID_FADE_LEVEL = 0.10;
+  const SETTLE_FADE_END_PROGRESS = 0.70;
+  const SETTLE_FADE_LEVEL = 0.02;
+  const SILENT_PROGRESS = 0.78;
 
   function clamp(value, minimum, maximum) {
     return Math.max(minimum, Math.min(maximum, value));
@@ -49,11 +50,15 @@
       return mix(RAPID_FADE_LEVEL, SETTLE_FADE_LEVEL, localProgress);
     }
 
-    const localProgress = smoothstep(
-      (position - SETTLE_FADE_END_PROGRESS) /
-      (1 - SETTLE_FADE_END_PROGRESS)
-    );
-    return mix(SETTLE_FADE_LEVEL, 0, localProgress);
+    if (position <= SILENT_PROGRESS) {
+      const localProgress = smoothstep(
+        (position - SETTLE_FADE_END_PROGRESS) /
+        (SILENT_PROGRESS - SETTLE_FADE_END_PROGRESS)
+      );
+      return mix(SETTLE_FADE_LEVEL, 0, localProgress);
+    }
+
+    return 0;
   }
 
   function sourcePath(value) {
@@ -196,7 +201,7 @@
       clip.__rrOpeningProgress = progress;
       clip.__rrOpeningVolumeEnvelope = openingVolumeEnvelope(progress);
 
-      if (progress < 1) {
+      if (progress < SILENT_PROGRESS) {
         envelopeFrame = requestAnimationFrame(trackEnvelope);
         return;
       }
