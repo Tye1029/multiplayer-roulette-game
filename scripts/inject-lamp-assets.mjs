@@ -87,7 +87,8 @@ const block = `${startMarker}\n` +
   '  <script src="/assets/roulette/lamp-config.js?v=19" defer></script>\n' +
   '  <script src="/assets/roulette/lamp.js?v=19" defer></script>\n' +
   '  <script src="/assets/roulette/lamp-bootstrap.js?v=19" defer></script>\n' +
-  '  <script src="/assets/roulette/turn-animation.js?v=3" defer></script>\n' +
+  '  <script src="/assets/roulette/turn-animation.js?v=4" defer></script>\n' +
+  '  <script src="/assets/roulette/turn-fire.js?v=1" defer></script>\n' +
   `${endMarker}`;
 
 let html = await readFile(indexUrl, 'utf8');
@@ -103,4 +104,4 @@ if (markerPattern.test(html)) {
 }
 
 await writeFile(indexUrl, html);
-console.log('Injected lamp assets and turn animation v3; shots cannot change facing and the table is locked.');
+console.log('Injected lamp assets plus strict per-turn facing lock and isolated firing effects.');
