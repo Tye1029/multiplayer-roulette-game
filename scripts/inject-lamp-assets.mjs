@@ -88,6 +88,7 @@ const block = `${startMarker}\n` +
   '  <script src="/assets/roulette/lamp.js?v=20" defer></script>\n' +
   '  <script src="/assets/roulette/lamp-bootstrap.js?v=19" defer></script>\n' +
   '  <script src="/assets/roulette/audio-manager.js?v=4" defer></script>\n' +
+  '  <script src="/assets/roulette/spin-audio-policy.js?v=1" defer></script>\n' +
   '  <script src="/assets/roulette/turn-animation.js?v=5" defer></script>\n' +
   '  <script src="/assets/roulette/turn-fire.js?v=2" defer></script>\n' +
   '  <script src="/assets/roulette/audio-bindings.js?v=1" defer></script>\n' +
@@ -106,4 +107,4 @@ if (markerPattern.test(html)) {
 }
 
 await writeFile(indexUrl, html);
-console.log('Injected independent lamp, uploaded-audio replacement, unchanged turn animations and direct action bindings.');
+console.log('Injected independent lamp, uploaded audio, spin-button chamber policy, unchanged turn animations and direct action bindings.');
