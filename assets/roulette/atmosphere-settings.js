@@ -137,9 +137,9 @@
     return { row, syncDisplay };
   }
 
-  function buildPanel(root) {
+  function buildPanel() {
     const element = document.createElement('section');
-    element.className = 'rr-atmosphere-settings';
+    element.className = 'rr-atmosphere-settings rr-atmosphere-portal';
     element.setAttribute('aria-label', 'Scene settings');
 
     let collapsed = readCollapsed();
@@ -148,7 +148,7 @@
     const toggle = document.createElement('button');
     toggle.type = 'button';
     toggle.className = 'rr-atmosphere-toggle';
-    toggle.textContent = 'Scene Settings';
+    toggle.textContent = '⚙ Scene Settings';
     toggle.setAttribute('aria-expanded', String(!collapsed));
 
     const body = document.createElement('div');
@@ -195,18 +195,24 @@
     });
 
     element.append(toggle, body);
-    root.append(element);
+    document.body.append(element);
     return element;
   }
 
   function mount() {
     const root = findRoot();
-    if (!root) return;
+    if (!root) {
+      currentRoot = null;
+      panel?.remove();
+      panel = null;
+      return;
+    }
+
     currentRoot = root;
     applyAtmosphere(root);
-    if (panel?.isConnected && panel.parentElement === root) return;
+    if (panel?.isConnected && panel.parentElement === document.body) return;
     panel?.remove();
-    panel = buildPanel(root);
+    panel = buildPanel();
   }
 
   function start() {
