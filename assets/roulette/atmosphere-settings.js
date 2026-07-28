@@ -97,6 +97,13 @@
     return document.querySelector('#duelActive [data-roulette-game],#duel-active [data-roulette-game],[data-roulette-game]');
   }
 
+  function rouletteScreenIsVisible() {
+    const screen = document.querySelector('#duelScreen');
+    if (!screen || screen.hidden) return false;
+    const selectedMode = document.querySelector('#duelModeSelect')?.value;
+    return selectedMode === 'roulette' || Boolean(findRoot());
+  }
+
   function createSlider(type, key, label, minimum, maximum, step) {
     const row = document.createElement('div');
     row.className = 'rr-atmosphere-row';
@@ -201,24 +208,34 @@
 
   function mount() {
     const root = findRoot();
-    if (!root) {
+    if (!rouletteScreenIsVisible()) {
       currentRoot = null;
       panel?.remove();
       panel = null;
       return;
     }
 
-    currentRoot = root;
-    applyAtmosphere(root);
+    currentRoot = root || null;
+    if (root) applyAtmosphere(root);
     if (panel?.isConnected && panel.parentElement === document.body) return;
     panel?.remove();
     panel = buildPanel();
   }
 
+  function onModeChange(event) {
+    if (event.target?.id === 'duelModeSelect') mount();
+  }
+
   function start() {
     mount();
     observer = new MutationObserver(mount);
-    observer.observe(document.body || document.documentElement, { childList: true, subtree: true });
+    observer.observe(document.body || document.documentElement, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['hidden']
+    });
+    document.addEventListener('change', onModeChange);
   }
 
   global.addEventListener('storage', event => {
@@ -246,5 +263,8 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
   else start();
 
-  global.addEventListener('pagehide', () => observer?.disconnect(), { once: true });
+  global.addEventListener('pagehide', () => {
+    observer?.disconnect();
+    document.removeEventListener('change', onModeChange);
+  }, { once: true });
 })(window);
