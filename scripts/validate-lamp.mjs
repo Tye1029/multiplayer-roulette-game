@@ -46,7 +46,7 @@ for (const required of [
   '/assets/roulette/lamp-config.js?v=19',
   '/assets/roulette/lamp.js?v=19',
   '/assets/roulette/lamp-bootstrap.js?v=19',
-  '/assets/roulette/turn-animation.js?v=1',
+  '/assets/roulette/turn-animation.js?v=2',
   'MODULAR_LAMP_ASSETS_START',
   'rrLampCriticalHide'
 ]) {
@@ -54,30 +54,46 @@ for (const required of [
 }
 
 for (const required of [
-  'rouletteMotionTransform = function',
+  "const facingSelector = ':scope > [data-roulette-facing]'",
+  "const recoilSelector = ':scope > [data-roulette-recoil]'",
+  "(document.body || document.documentElement).append(style)",
+  'html body [data-roulette-game] .rr-gun-motion',
+  'transform: translate(-50%, -50%) scale(.74) !important',
+  'animation: none !important',
+  "facing.dataset.rouletteFacing = '1'",
+  "recoil.dataset.rouletteRecoil = '1'",
+  'function ensureLayers(root)',
+  'function settleFacing(gameId, angle, turnId',
+  'async function animateFacing(game, gameId, turnId',
+  'rouletteMotionTransform = function (_angle',
   'rouletteRotateToTurn = async function',
+  'rouletteOpeningSequence = async function',
   'rouletteShotSequence = async function',
   'rouletteOrientToShotActor = async function',
-  'dataset.rouletteRecoil',
-  'ensureRecoilLayer',
-  'root._rrHammerMotion',
-  'settleFacing(gameId, target)',
-  'newestTurnId !== turnId'
+  'const actorAngle = normalizeAngle(angleForPlayer(game, actorId))',
+  'const recoilMotion = rouletteAnimate(',
+  'layers.recoil,',
+  'const originalBind = rouletteBind',
+  'mountCurrentScene()'
 ]) {
-  if (!turnAnimation.includes(required)) throw new Error(`Clean turn module is missing ${required}`);
+  if (!turnAnimation.includes(required)) throw new Error(`Two-layer turn module is missing ${required}`);
 }
 
 for (const forbidden of [
   'MutationObserver',
   'setInterval(',
   'getBoundingClientRect',
-  'rouletteMotionTransform(base+10',
-  'rouletteMotionTransform(base-2',
+  'rouletteAnimate(\n            layers.motion',
+  'rouletteAnimate(motion',
   'scale(${-scale}',
   'data-current-turn',
-  'data-shot-revision'
+  'data-shot-revision',
+  'motion.style.transform = rouletteMotionTransform(angle',
+  'motion.style.transform=rouletteMotionTransform(angle'
 ]) {
-  if (turnAnimation.includes(forbidden)) throw new Error(`Turn module contains a forbidden patch technique: ${forbidden}`);
+  if (turnAnimation.includes(forbidden)) {
+    throw new Error(`Turn module contains a conflicting patch technique: ${forbidden}`);
+  }
 }
 
 for (const forbidden of [
@@ -89,6 +105,9 @@ for (const forbidden of [
   'gun-turn-animation.js'
 ]) {
   if (injector.includes(forbidden)) throw new Error(`Lamp injector still rewrites or loads obsolete gun code: ${forbidden}`);
+}
+if (!injector.includes('/assets/roulette/turn-animation.js?v=2')) {
+  throw new Error('Lamp injector is not loading the cache-busted two-layer turn module.');
 }
 
 for (const id of [
@@ -145,4 +164,4 @@ for (const path of [
 await access(new URL('../assets/roulette/decor/lamp-1.png', import.meta.url));
 await access(new URL('../assets/roulette/decor/workshop-lamp-chain.png', import.meta.url));
 
-console.log('Validation passed: old gameplay rewriter removed; one turn module owns facing and recoil is isolated.');
+console.log('Validation passed: outer gun positioning is locked; one facing layer rotates and one recoil layer fires.');
