@@ -1,6 +1,9 @@
 (function () {
   'use strict';
 
+  const params = new URLSearchParams(window.location.search);
+  if (params.has('lampCalibration')) return;
+
   const configApi = window.RouletteLampConfig;
   const controller = window.RouletteLampController;
   if (!configApi || !controller) {
