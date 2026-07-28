@@ -615,15 +615,19 @@
   global.RouletteAudioBindings = Object.freeze({
     playSpinButtonChamber,
 
-    playResult(cue) {
+    playResult(cue, resultId = '') {
       const normalized =
         cue === 'victory' || cue === 'defeat' ? cue : '';
 
       if (!normalized) return false;
 
-      const key =
-        `direct-result:${Date.now()}:${normalized}`;
+      const key = resultId
+        ? `direct-result:${String(resultId)}:${normalized}`
+        : `direct-result:${Date.now()}:${normalized}`;
 
+      if (seenResults.has(key)) return true;
+
+      seenResults.add(key);
       playResultCue(null, normalized, key);
       return true;
     },

@@ -15856,13 +15856,7 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
       const won = String(game.winnerUserId) === mpViewerUserId();
       setTimeout(() => {
         showResultPopup(won ? "YOU WIN!" : "YOU LOSE!", won ? "win" : "lose");
-        const resultCue = won ? "victory" : "defeat";
-        const directResultPlayed =
-          globalThis.RouletteAudioBindings?.playResult?.(resultCue);
-
-        if (!directResultPlayed) {
-          won ? playWinSound() : playLoseSound();
-        }
+        won ? playWinSound() : playLoseSound();
       }, 140);
     }
 
@@ -18978,7 +18972,16 @@ function updateRunnerBalanceDisplay() {
       else if(!bothReady){status='WAITING FOR BOTH PLAYERS';sub='Both players must press Ready before the countdown begins.';controlNote='Waiting for both players to ready up';}
       else if(!countdownFinished){status='GET READY';sub='The opening spin begins after the 3-2-1 countdown.';controlNote='Game starts after countdown';}
       else if(openingConcealed){status='CHOOSING FIRST PLAYER';sub='The revolver is spinning. The starting player stays hidden until it stops.';controlNote='Choosing first player…';}
-      else if(complete){status=meWon?'YOU SURVIVED':'YOU\'VE BEEN SHOT';sub=meWon?`You won ${money(game.payout||0)}.`:rouletteStableMessage(game);controlNote='';}
+      else if(complete){
+        status=meWon?'YOU SURVIVED':'YOU\'VE BEEN SHOT';
+        sub=meWon?`You won ${money(game.payout||0)}.`:rouletteStableMessage(game);
+        controlNote='';
+
+        globalThis.RouletteAudioBindings?.playResult?.(
+          meWon?'victory':'defeat',
+          `${game.gameId}:${st.revision||game.revision||''}:${st.winnerId||game.winnerUserId||''}`
+        );
+      }
       else if(myTurn){status='YOUR TURN';sub='';controlNote='';}
       else{status=`${escapeHtml(actor.name||'Opponent')} HAS THE REVOLVER`;sub='';controlNote='Waiting for other player';}
       const opponent=String(me)===String(creator.userId||'')?joiner:creator;
