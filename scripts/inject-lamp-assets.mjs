@@ -1,11 +1,13 @@
 import { readFile, writeFile } from 'node:fs/promises';
+import './patch-roulette-chamber.mjs';
 
 const indexUrl = new URL('../index.html', import.meta.url);
 const startMarker = '<!-- MODULAR_LAMP_ASSETS_START -->';
 const endMarker = '<!-- MODULAR_LAMP_ASSETS_END -->';
 
-// Confirmed obsolete lamp and lighting experiments only. Gameplay and animation
-// source is never rewritten by this build step.
+// Confirmed obsolete lamp and lighting experiments only. Protected animation
+// source is never rewritten; the imported server patch only normalizes the
+// authoritative six-chamber Roulette state before Netlify bundles Functions.
 const obsoleteLampBlockIds = [
   'rr-v114-image2-lamp-rig',
   'rr-v115-lamp-and-light-runtime',
@@ -109,4 +111,4 @@ if (markerPattern.test(html)) {
 }
 
 await writeFile(indexUrl, html);
-console.log('Injected independent lamp, synchronized opening spin, late-round relief breaths, live-round chair fall, result cues, and unchanged protected animations.');
+console.log('Injected independent lamp, synchronized opening spin, authoritative six-chamber Roulette rules, late-round relief breaths, live-round chair fall, result cues, and unchanged protected animations.');
