@@ -91,12 +91,12 @@ for (const required of [
 const assetOrder = [
   '/assets/roulette/lamp-config.js?v=19',
   '/assets/roulette/lamp.js?v=20&smoke=1',
-  '/assets/roulette/lamp-bootstrap.js?v=19&settings=1',
-  '/assets/roulette/atmosphere-settings.js?v=1',
-  '/assets/roulette/audio-manager.js?v=4&ambience=2&countdown=2&audible=3&media=1'
+  '/assets/roulette/lamp-bootstrap.js?v=19&settings=2',
+  '/assets/roulette/atmosphere-settings.js?v=2',
+  '/assets/roulette/audio-manager.js?v=4&ambience=2&countdown=2&audible=3&media=2'
 ];
 for (const asset of [
-  '/assets/roulette/atmosphere-settings.css?v=1',
+  '/assets/roulette/atmosphere-settings.css?v=2',
   ...assetOrder
 ]) {
   if (!injector.includes(asset)) throw new Error(`Asset injector is missing ${asset}`);
