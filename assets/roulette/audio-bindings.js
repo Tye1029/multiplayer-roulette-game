@@ -6,8 +6,10 @@
 
   const BASE = '/assets/roulette/audio/';
   const TABLE_MOVE = 'freesound_community-wood-chest-slid3-90317.mp3';
+  const OPENING_SPIN = 'revolver-spinning-on-wood-v4.mp3';
   const CHAMBER_SPIN = 'freesound_community-revolver-spin-96947.mp3';
   const OPENING_BLOCKED_SOURCES = Object.freeze([
+    TABLE_MOVE,
     CHAMBER_SPIN,
     'freesound_community-revolver-chamber-spin-ratchet-sound-90521.mp3',
     'freesound_community-revolver-cocking-104722.mp3',
@@ -20,7 +22,7 @@
   });
   const RESULT_SOURCES = new Set(Object.values(RESULT_FILES));
   const OPENING_WOOD_SOUND_MS = 7000;
-  const OPENING_WOOD_PEAK = 0.045;
+  const OPENING_SPIN_VOLUME = 0.16;
   const SPIN_BUTTON_COOLDOWN_MS = 520;
   const RESULT_POLL_MS = 350;
 
@@ -61,39 +63,30 @@
     openingWoodFrame = 0;
   }
 
-  function shapeOpeningWood(clip) {
-    cancelOpeningWoodFrame();
+  function playOpeningSpinSound() {
+    stopClip(activeOpeningWoodClip);
+    const clip = new Audio(BASE + OPENING_SPIN);
+    clip.__rrAuthorizedOpeningSpin = true;
+    clip.preload = 'auto';
+    clip.playsInline = true;
+    clip.preservesPitch = false;
+    clip.volume = OPENING_SPIN_VOLUME;
+    clip.playbackRate = 1;
     activeOpeningWoodClip = clip;
-    const started = performance.now();
-    const fadeInMs = 300;
-    const fadeOutAtMs = 1550;
-    const finishAtMs = 2480;
+    openingWoodStarted = true;
 
-    const step = now => {
-      if (activeOpeningWoodClip !== clip || clip.paused) {
-        if (activeOpeningWoodClip === clip) activeOpeningWoodClip = null;
-        openingWoodFrame = 0;
-        return;
-      }
-
-      const elapsed = now - started;
-      let envelope = OPENING_WOOD_PEAK;
-      if (elapsed < fadeInMs) envelope *= Math.max(0, elapsed / fadeInMs);
-      if (elapsed > fadeOutAtMs) {
-        envelope *= Math.max(0, 1 - (elapsed - fadeOutAtMs) / (finishAtMs - fadeOutAtMs));
-      }
-      clip.volume = Math.max(0, Math.min(OPENING_WOOD_PEAK, envelope));
-
-      if (elapsed >= finishAtMs) {
-        clip.volume = 0;
-        activeOpeningWoodClip = null;
-        openingWoodFrame = 0;
-        return;
-      }
-      openingWoodFrame = requestAnimationFrame(step);
+    const cleanup = () => {
+      if (activeOpeningWoodClip === clip) activeOpeningWoodClip = null;
     };
+    clip.addEventListener('ended', cleanup, { once: true });
+    clip.addEventListener('error', cleanup, { once: true });
 
-    openingWoodFrame = requestAnimationFrame(step);
+    const play = nativeMediaPlay || HTMLMediaElement.prototype.__rrOriginalPlay;
+    if (typeof play !== 'function') {
+      cleanup();
+      return;
+    }
+    Promise.resolve(play.call(clip)).catch(cleanup);
   }
 
   function fadeOutOpeningWood(duration = 170) {
@@ -136,18 +129,10 @@
         this.__rrAuthorizedResultCue !== true
       ) return blockMedia(this);
 
-      if (now < openingWoodUntil) {
-        if (src.includes(TABLE_MOVE)) {
-          if (openingWoodStarted) return blockMedia(this);
-          openingWoodStarted = true;
-          const result = upstreamPlay.apply(this, arguments);
-          shapeOpeningWood(this);
-          return result;
-        }
-        if (OPENING_BLOCKED_SOURCES.some(file => src.includes(file))) {
-          return blockMedia(this);
-        }
-      }
+      if (
+        now < openingWoodUntil &&
+        OPENING_BLOCKED_SOURCES.some(file => src.includes(file))
+      ) return blockMedia(this);
 
       return upstreamPlay.apply(this, arguments);
     };
@@ -157,6 +142,7 @@
     fadeOutOpeningWood(90);
     openingWoodUntil = performance.now() + OPENING_WOOD_SOUND_MS;
     openingWoodStarted = false;
+    playOpeningSpinSound();
   }
 
   function stopClip(clip) {

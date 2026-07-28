@@ -91,7 +91,7 @@ const block = `${startMarker}\n` +
   '  <script src="/assets/roulette/spin-audio-policy.js?v=3" defer></script>\n' +
   '  <script src="/assets/roulette/turn-animation.js?v=5" defer></script>\n' +
   '  <script src="/assets/roulette/turn-fire.js?v=2" defer></script>\n' +
-  '  <script src="/assets/roulette/audio-bindings.js?v=4" defer></script>\n' +
+  '  <script src="/assets/roulette/audio-bindings.js?v=5" defer></script>\n' +
   `${endMarker}`;
 
 let html = await readFile(indexUrl, 'utf8');
@@ -107,4 +107,4 @@ if (markerPattern.test(html)) {
 }
 
 await writeFile(indexUrl, html);
-console.log('Injected independent lamp, wood-scrape opening, metallic Spin-button cue, result cues, and unchanged protected animations.');
+console.log('Injected independent lamp, approved revolver-on-wood opening, metallic Spin-button cue, result cues, and unchanged protected animations.');

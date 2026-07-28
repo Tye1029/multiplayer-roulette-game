@@ -66,7 +66,7 @@ const requiredAssets = [
   '/assets/roulette/spin-audio-policy.js?v=3',
   '/assets/roulette/turn-animation.js?v=5',
   '/assets/roulette/turn-fire.js?v=2',
-  '/assets/roulette/audio-bindings.js?v=4',
+  '/assets/roulette/audio-bindings.js?v=5',
   'MODULAR_LAMP_ASSETS_START',
   'rrLampCriticalHide'
 ];
@@ -79,7 +79,7 @@ const ordered = [
   '/assets/roulette/spin-audio-policy.js?v=3',
   '/assets/roulette/turn-animation.js?v=5',
   '/assets/roulette/turn-fire.js?v=2',
-  '/assets/roulette/audio-bindings.js?v=4'
+  '/assets/roulette/audio-bindings.js?v=5'
 ].map(value => injector.indexOf(value));
 if (ordered.some(index => index < 0) || ordered.some((index, i) => i && index <= ordered[i - 1])) {
   throw new Error('Roulette audio and protected animation modules are not injected in the required order.');
@@ -120,12 +120,15 @@ for (const required of [
 
 for (const required of [
   "const TABLE_MOVE = 'freesound_community-wood-chest-slid3-90317.mp3'",
+  "const OPENING_SPIN = 'revolver-spinning-on-wood-v4.mp3'",
   "const CHAMBER_SPIN = 'freesound_community-revolver-spin-96947.mp3'",
   'const OPENING_WOOD_SOUND_MS = 7000',
+  'const OPENING_SPIN_VOLUME = 0.16',
+  'function playOpeningSpinSound()',
+  'clip.__rrAuthorizedOpeningSpin = true',
   'function beginOpeningWoodSound()',
-  'if (src.includes(TABLE_MOVE))',
-  'if (openingWoodStarted) return blockMedia(this)',
   'OPENING_BLOCKED_SOURCES.some(file => src.includes(file))',
+  'playOpeningSpinSound()',
   'function playSpinButtonChamber()',
   'clip.__rrAuthorizedSpinButtonChamber = true',
   'nativeMediaPlay || HTMLMediaElement.prototype.__rrOriginalPlay',
@@ -140,8 +143,11 @@ for (const required of [
   "defeat: 'u_903n3qx7rq-dramatic-sting-118943.mp3'"
 ]) if (!bindings.includes(required)) throw new Error(`Direct audio routing is missing ${required}`);
 
-if (!bindings.match(/OPENING_BLOCKED_SOURCES = Object\.freeze\(\[\s*CHAMBER_SPIN,/)) {
-  throw new Error('The automatic opening must block metallic chamber audio.');
+if (!bindings.match(/OPENING_BLOCKED_SOURCES = Object\.freeze\(\[\s*TABLE_MOVE,\s*CHAMBER_SPIN,/)) {
+  throw new Error('The automatic opening must block the legacy wood and metallic chamber layers.');
+}
+if ((bindings.match(/__rrAuthorizedOpeningSpin = true/g) || []).length !== 1) {
+  throw new Error('The approved opening sound must have exactly one authorized playback path.');
 }
 if ((bindings.match(/audio\.openingSpin\(/g) || []).length !== 1) {
   throw new Error('The opening wood route must have exactly one wrapper trigger.');
@@ -222,6 +228,7 @@ for (const path of [
   'assets/roulette/audio/u_903n3qx7rq-dramatic-sting-118943.mp3',
   'assets/roulette/audio/freesound_community-chain-6073.mp3',
   'assets/roulette/audio/freesound_community-wood-chest-slid3-90317.mp3',
+  'assets/roulette/audio/revolver-spinning-on-wood-v4.mp3',
   'assets/roulette/audio/freesound_community-pistol-hammer-cocking-back-4-39887.mp3',
   'assets/roulette/audio/freesound_community-cocking-a-revolver-6279.mp3',
   'assets/roulette/audio/spinopel-dry-fire-gun-364844.mp3',
@@ -232,4 +239,4 @@ for (const path of [
   'assets/roulette/audio/freesound_community-revolver-cocking-104722.mp3'
 ]) await access(new URL(`../${path}`, import.meta.url));
 
-console.log('Validation passed: opening uses one wood scrape, Spin button uses one metallic chamber spin, result cues are deduplicated, and protected animation hashes are intact.');
+console.log('Validation passed: opening uses the approved revolver-on-wood mix, Spin button uses one metallic chamber spin, result cues are deduplicated, and protected animation hashes are intact.');
