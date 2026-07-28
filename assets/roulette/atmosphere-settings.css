@@ -100,9 +100,59 @@
   cursor:pointer;
 }
 [data-roulette-game] .rr-atmosphere-reset:active{transform:translateY(1px)}
+
+/* Strong, adjustable smoke. The lit layer still follows the calibrated lamp timeline. */
+[data-roulette-game]{
+  --rr-smoke-density:1.05;
+  --rr-smoke-light:1.12;
+  --rr-smoke-blur:9px;
+  --rr-smoke-speed:12s;
+}
+[data-roulette-game] .rr-smoke{
+  display:block!important;
+  visibility:visible!important;
+  position:absolute!important;
+  inset:4% -18% 24%!important;
+  z-index:5!important;
+  opacity:1!important;
+  overflow:hidden!important;
+  pointer-events:none!important;
+  background:none!important;
+  mix-blend-mode:screen!important;
+}
+[data-roulette-game] .rr-smoke-ambient,
+[data-roulette-game] .rr-smoke-lit{
+  position:absolute!important;
+  inset:-15% -12%!important;
+  display:block!important;
+  visibility:visible!important;
+  pointer-events:none!important;
+}
+[data-roulette-game] .rr-smoke-ambient{
+  opacity:calc(var(--rr-smoke-density) * .60)!important;
+  filter:blur(var(--rr-smoke-blur))!important;
+  background:
+    repeating-linear-gradient(169deg,transparent 0 25px,rgba(194,199,202,.13) 31px 38px,transparent 45px 68px),
+    radial-gradient(ellipse 48% 22% at 22% 55%,rgba(205,210,212,.25),transparent 74%),
+    radial-gradient(ellipse 58% 24% at 74% 36%,rgba(180,187,191,.22),transparent 76%),
+    radial-gradient(ellipse 70% 30% at 50% 72%,rgba(159,166,170,.16),transparent 78%)!important;
+  animation:rrRoomSmokeDrift var(--rr-smoke-speed) ease-in-out infinite alternate!important;
+}
+[data-roulette-game] .rr-smoke-lit{
+  opacity:calc(var(--rr-smoke-light) * .62)!important;
+  filter:blur(calc(var(--rr-smoke-blur) + 3px)) saturate(1.15)!important;
+  background:
+    radial-gradient(ellipse 38% 66% at 50% 46%,rgba(255,229,178,.42) 0,rgba(255,169,77,.25) 38%,rgba(194,93,27,.08) 65%,transparent 80%),
+    repeating-linear-gradient(171deg,transparent 0 24px,rgba(255,218,164,.15) 30px 37px,transparent 44px 68px)!important;
+  background-size:125% 100%,100% 100%!important;
+  mix-blend-mode:screen!important;
+  will-change:transform,opacity;
+}
+
 @media(max-width:600px){
   [data-roulette-game] .rr-atmosphere-settings{top:74px;right:5px;width:min(274px,calc(100% - 10px))}
   [data-roulette-game] .rr-atmosphere-body{max-height:52vh}
+  [data-roulette-game] .rr-smoke{inset:7% -22% 27%!important}
 }
 @media(max-width:390px){
   [data-roulette-game] .rr-atmosphere-settings{top:69px}
