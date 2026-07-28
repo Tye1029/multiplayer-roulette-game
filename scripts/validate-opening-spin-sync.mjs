@@ -20,7 +20,7 @@ for (const required of [
 }
 
 const syncTag = '<script src="/assets/roulette/opening-spin-sync.js?v=1" defer></script>';
-const bindingsTag = '<script src="/assets/roulette/audio-bindings.js?v=6" defer></script>';
+const bindingsTag = '<script src="/assets/roulette/audio-bindings.js?v=5" defer></script>';
 
 for (const source of [inject, index]) {
   const syncIndex = source.indexOf(syncTag);
