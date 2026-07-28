@@ -15856,7 +15856,13 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
       const won = String(game.winnerUserId) === mpViewerUserId();
       setTimeout(() => {
         showResultPopup(won ? "YOU WIN!" : "YOU LOSE!", won ? "win" : "lose");
-        won ? playWinSound() : playLoseSound();
+        const resultCue = won ? "victory" : "defeat";
+        const directResultPlayed =
+          globalThis.RouletteAudioBindings?.playResult?.(resultCue);
+
+        if (!directResultPlayed) {
+          won ? playWinSound() : playLoseSound();
+        }
       }, 140);
     }
 

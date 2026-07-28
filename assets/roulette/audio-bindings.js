@@ -608,14 +608,26 @@
   document.addEventListener('pointerdown', handleSpinGesture, true);
   document.addEventListener('click', handleSpinGesture, true);
 
-  const pollResult = () => {
-    syncResultCue();
-    resultPollTimer = global.setTimeout(pollResult, RESULT_POLL_MS);
-  };
-  pollResult();
+  // Roulette result sounds are fired directly when the result popup appears.
+  // Keep the older document scanner inactive to prevent duplicate result audio.
+  clearTimeout(resultPollTimer);
 
   global.RouletteAudioBindings = Object.freeze({
     playSpinButtonChamber,
+
+    playResult(cue) {
+      const normalized =
+        cue === 'victory' || cue === 'defeat' ? cue : '';
+
+      if (!normalized) return false;
+
+      const key =
+        `direct-result:${Date.now()}:${normalized}`;
+
+      playResultCue(null, normalized, key);
+      return true;
+    },
+
     diagnostics() {
       return {
         openingWoodActive: performance.now() < openingWoodUntil,
