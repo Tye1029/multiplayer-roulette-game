@@ -58,14 +58,14 @@ function rouletteInitialState(game,startMs=Date.now()){
 
   replaceOnce(
     'the NPC remaining lookup',
-    '  const remaining=rouletteChamberPosition(s.bulletPosition||s.remaining||6);',
-    '  const remaining=rouletteRemaining(s);'
+    '\n  const remaining=rouletteChamberPosition(s.bulletPosition||s.remaining||6);',
+    '\n  const remaining=rouletteRemaining(s);'
   );
 
   replaceOnce(
     'the NPC live-round test',
-    '  const live=rouletteChamberPosition(s.bulletPosition||s.remaining||6)===1;',
-    '  const live=remaining===1;'
+    '\n  const live=rouletteChamberPosition(s.bulletPosition||s.remaining||6)===1;',
+    '\n  const live=remaining===1;'
   );
 
   replaceOnce(
@@ -86,8 +86,8 @@ function rouletteInitialState(game,startMs=Date.now()){
 
   replaceOnce(
     'the player live-round test',
-    '    const live=rouletteChamberPosition(s.bulletPosition||s.remaining||6)===1;',
-    '    const remaining=rouletteRemaining(s);\n    const live=remaining===1;'
+    '\n    const live=rouletteChamberPosition(s.bulletPosition||s.remaining||6)===1;',
+    '\n    const remaining=rouletteRemaining(s);\n    const live=remaining===1;'
   );
 
   replaceOnce(
