@@ -59,7 +59,7 @@ function removeObsoleteLampBlocks(source) {
 }
 
 const criticalStyle = `  <link id="rrLampExternalStyles" rel="stylesheet" href="/assets/roulette/lamp.css?v=18&smoke=1">
-  <link id="rrAtmosphereSettingsStyles" rel="stylesheet" href="/assets/roulette/atmosphere-settings.css?v=2">
+  <link id="rrAtmosphereSettingsStyles" rel="stylesheet" href="/assets/roulette/atmosphere-settings.css?v=3">
   <style id="rrLampCriticalHide">
     [data-roulette-game] > .rr-lamp,
     [data-roulette-game] .rr-lamp-fixture,
@@ -95,7 +95,7 @@ const block = `${startMarker}\n` +
   '  <script src="/assets/roulette/lamp-config.js?v=19" defer></script>\n' +
   '  <script src="/assets/roulette/lamp.js?v=20&smoke=1" defer></script>\n' +
   '  <script src="/assets/roulette/lamp-bootstrap.js?v=19&settings=2" defer></script>\n' +
-  '  <script src="/assets/roulette/atmosphere-settings.js?v=2" defer></script>\n' +
+  '  <script src="/assets/roulette/atmosphere-settings.js?v=3" defer></script>\n' +
   '  <script src="/assets/roulette/audio-manager.js?v=4&ambience=2&countdown=2&audible=3&media=2" defer></script>\n' +
   '  <script src="/assets/roulette/spin-audio-policy.js?v=3&turn-audio=2" defer></script>\n' +
   '  <script src="/assets/roulette/turn-animation.js?v=5" defer></script>\n' +
@@ -118,4 +118,4 @@ if (markerPattern.test(html)) {
 }
 
 await writeFile(indexUrl, html);
-console.log('Injected independent lamp, synchronized opening spin, authoritative six-chamber Roulette rules, reliable pass audio, deep-red audible countdown, visible adjustable smoke, collapsible scene settings, media-safe ambience, result cues, and unchanged protected animations.');
+console.log('Injected independent lamp, synchronized opening spin, authoritative six-chamber Roulette rules, reliable pass audio, deep-red audible countdown, visible adjustable smoke, viewport scene settings, media-safe ambience, result cues, and unchanged protected animations.');
