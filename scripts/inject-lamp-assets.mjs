@@ -88,7 +88,7 @@ const block = `${startMarker}\n` +
   '  <script src="/assets/roulette/lamp-config.js?v=19" defer></script>\n' +
   '  <script src="/assets/roulette/lamp.js?v=20" defer></script>\n' +
   '  <script src="/assets/roulette/lamp-bootstrap.js?v=21" defer></script>\n' +
-  '  <script src="/assets/roulette/lamp-menu.js?v=1" defer></script>\n' +
+  '  <script src="/assets/roulette/lamp-menu.js?v=2" defer></script>\n' +
   '  <script src="/assets/roulette/turn-animation.js?v=5" defer></script>\n' +
   '  <script src="/assets/roulette/turn-fire.js?v=2" defer></script>\n' +
   `${endMarker}`;
