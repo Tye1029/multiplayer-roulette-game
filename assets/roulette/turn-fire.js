@@ -131,7 +131,7 @@
     const newest = latestGameFor(gameId, null);
     const newestTurnId = String(newest?.rouletteState?.turnId || '');
     if (newest?.status === 'playing' && newestTurnId && newestTurnId !== lockedTurnId) {
-      await rotateToLockedTurn(newest, gameId, newestTurnId, 900);
+      await rotateToLockedTurn(newest, gameId, newestTurnId, 1020);
     } else {
       enforceLockedFacing(gameId);
     }
