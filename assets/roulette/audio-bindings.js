@@ -5,9 +5,10 @@
   if (!audio) throw new Error('RouletteAudio must load before direct action bindings.');
 
   const BASE = '/assets/roulette/audio/';
+  const TABLE_MOVE = 'freesound_community-wood-chest-slid3-90317.mp3';
   const CHAMBER_SPIN = 'freesound_community-revolver-spin-96947.mp3';
   const OPENING_BLOCKED_SOURCES = Object.freeze([
-    'freesound_community-wood-chest-slid3-90317.mp3',
+    CHAMBER_SPIN,
     'freesound_community-revolver-chamber-spin-ratchet-sound-90521.mp3',
     'freesound_community-revolver-cocking-104722.mp3',
     'freesound_community-tap-on-wooden-table-44998.mp3',
@@ -18,14 +19,18 @@
     defeat: 'u_903n3qx7rq-dramatic-sting-118943.mp3'
   });
   const RESULT_SOURCES = new Set(Object.values(RESULT_FILES));
-  const OPENING_SINGLE_SOUND_MS = 7000;
+  const OPENING_WOOD_SOUND_MS = 7000;
   const RESULT_POLL_MS = 350;
+  const SPIN_BUTTON_COOLDOWN_MS = 650;
 
   const seenResults = new Set();
-  let openingSingleSoundUntil = 0;
-  let openingSpinStarted = false;
+  let openingWoodUntil = 0;
+  let openingWoodStarted = false;
   let resultPollTimer = 0;
   let activeResultClip = null;
+  let activeSpinButtonClip = null;
+  let lastSpinButtonAt = -Infinity;
+  let nativeMediaPlay = null;
 
   function silenceLegacy() {
     const noop = function () { return null; };
@@ -49,9 +54,10 @@
   }
 
   function installFinalMixFilter() {
-    if (HTMLMediaElement.prototype.__rrFinalAudioBindingsV3) return;
+    if (HTMLMediaElement.prototype.__rrFinalAudioBindingsV4) return;
     const upstreamPlay = HTMLMediaElement.prototype.play;
-    Object.defineProperty(HTMLMediaElement.prototype, '__rrFinalAudioBindingsV3', {
+    nativeMediaPlay = HTMLMediaElement.prototype.__rrOriginalPlay || upstreamPlay;
+    Object.defineProperty(HTMLMediaElement.prototype, '__rrFinalAudioBindingsV4', {
       value: true,
       configurable: true
     });
@@ -65,13 +71,11 @@
         this.__rrAuthorizedResultCue !== true
       ) return blockMedia(this);
 
-      if (now < openingSingleSoundUntil) {
-        if (src.includes(CHAMBER_SPIN)) {
-          if (this.__rrSpinSequenceChamber !== true || openingSpinStarted) {
-            return blockMedia(this);
-          }
-          openingSpinStarted = true;
-          this.volume = Math.min(0.24, Math.max(0, Number(this.volume) || 0));
+      if (now < openingWoodUntil) {
+        if (src.includes(TABLE_MOVE)) {
+          if (openingWoodStarted) return blockMedia(this);
+          openingWoodStarted = true;
+          this.volume = Math.min(0.13, Math.max(0, Number(this.volume) || 0));
         } else if (OPENING_BLOCKED_SOURCES.some(file => src.includes(file))) {
           return blockMedia(this);
         }
@@ -81,9 +85,54 @@
     };
   }
 
-  function beginOpeningSingleSound() {
-    openingSingleSoundUntil = performance.now() + OPENING_SINGLE_SOUND_MS;
-    openingSpinStarted = false;
+  function beginOpeningWoodSound() {
+    openingWoodUntil = performance.now() + OPENING_WOOD_SOUND_MS;
+    openingWoodStarted = false;
+  }
+
+  function stopClip(clip) {
+    if (!clip) return;
+    try { clip.pause(); } catch {}
+    try { clip.removeAttribute('src'); } catch {}
+  }
+
+  function playSpinButtonChamber() {
+    const now = performance.now();
+    if (now < openingWoodUntil || now - lastSpinButtonAt < SPIN_BUTTON_COOLDOWN_MS) return;
+    lastSpinButtonAt = now;
+
+    stopClip(activeSpinButtonClip);
+    const clip = new Audio(BASE + CHAMBER_SPIN);
+    clip.__rrAuthorizedSpinButtonChamber = true;
+    clip.preload = 'auto';
+    clip.playsInline = true;
+    clip.preservesPitch = false;
+    clip.volume = 0.3;
+    clip.playbackRate = 0.96;
+    activeSpinButtonClip = clip;
+
+    const cleanup = () => {
+      if (activeSpinButtonClip === clip) activeSpinButtonClip = null;
+    };
+    clip.addEventListener('ended', cleanup, { once: true });
+    clip.addEventListener('error', cleanup, { once: true });
+
+    const play = nativeMediaPlay || HTMLMediaElement.prototype.__rrOriginalPlay;
+    if (typeof play !== 'function') {
+      cleanup();
+      return;
+    }
+    Promise.resolve(play.call(clip)).catch(cleanup);
+  }
+
+  function isSpinButton(button) {
+    if (!button || button.disabled || button.getAttribute('aria-disabled') === 'true') return false;
+    if (!button.closest('[data-roulette-game]')) return false;
+    const label = String(button.textContent || '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toUpperCase();
+    return /^SPIN(?: (?:CHAMBER|CYLINDER))?$/.test(label);
   }
 
   function currentGame() {
@@ -159,12 +208,7 @@
       return;
     }
 
-    if (activeResultClip) {
-      try { activeResultClip.pause(); } catch {}
-      activeResultClip = null;
-    }
-
-    audio.duckForShot?.();
+    stopClip(activeResultClip);
     const clip = new Audio(BASE + file);
     clip.__rrAuthorizedResultCue = true;
     clip.preload = 'auto';
@@ -173,6 +217,7 @@
     clip.playbackRate = 1;
     activeResultClip = clip;
 
+    audio.duckForShot?.();
     const cleanup = () => {
       if (activeResultClip === clip) activeResultClip = null;
     };
@@ -210,7 +255,7 @@
   const originalOpeningSequence = rouletteOpeningSequence;
   if (!originalOpeningSequence.__rrUploadedAudioBound) {
     const boundOpeningSequence = async function (game, state, gameId) {
-      beginOpeningSingleSound();
+      beginOpeningWoodSound();
       audio.openingSpin(game, state, gameId);
       silenceLegacy();
       return originalOpeningSequence.apply(this, arguments);
@@ -230,6 +275,11 @@
     rouletteShotSequence = boundShotSequence;
   }
 
+  document.addEventListener('click', event => {
+    const button = event.target?.closest?.('button');
+    if (isSpinButton(button)) playSpinButtonChamber();
+  }, true);
+
   const pollResult = () => {
     syncResultCue();
     resultPollTimer = global.setTimeout(pollResult, RESULT_POLL_MS);
@@ -237,10 +287,12 @@
   pollResult();
 
   global.RouletteAudioBindings = Object.freeze({
+    playSpinButtonChamber,
     diagnostics() {
       return {
-        openingSingleSoundActive: performance.now() < openingSingleSoundUntil,
-        openingSpinStarted,
+        openingWoodActive: performance.now() < openingWoodUntil,
+        openingWoodStarted,
+        spinButtonPlaying: Boolean(activeSpinButtonClip),
         seenResults: [...seenResults]
       };
     }
@@ -248,10 +300,10 @@
 
   global.addEventListener('pagehide', () => {
     clearTimeout(resultPollTimer);
-    if (activeResultClip) {
-      try { activeResultClip.pause(); } catch {}
-      activeResultClip = null;
-    }
+    stopClip(activeResultClip);
+    stopClip(activeSpinButtonClip);
+    activeResultClip = null;
+    activeSpinButtonClip = null;
   }, { once: true });
 
   silenceLegacy();
