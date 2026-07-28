@@ -2,6 +2,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import './patch-roulette-chamber.mjs';
 import './patch-roulette-presentation.mjs';
 import './patch-roulette-turn-countdown-smoke.mjs';
+import './patch-roulette-smoke-priority.mjs';
 
 const indexUrl = new URL('../index.html', import.meta.url);
 const startMarker = '<!-- MODULAR_LAMP_ASSETS_START -->';
@@ -113,4 +114,4 @@ if (markerPattern.test(html)) {
 }
 
 await writeFile(indexUrl, html);
-console.log('Injected independent lamp, synchronized opening spin, authoritative six-chamber Roulette rules, reliable pass audio without a terminal knock, red audible countdown, lamp-reactive smoke, stronger ambience, result cues, and unchanged protected animations.');
+console.log('Injected independent lamp, synchronized opening spin, authoritative six-chamber Roulette rules, reliable pass audio without a terminal knock, red audible countdown, final-priority lamp-reactive smoke, stronger ambience, result cues, and unchanged protected animations.');
