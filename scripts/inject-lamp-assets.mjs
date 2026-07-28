@@ -1,5 +1,6 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import './patch-roulette-chamber.mjs';
+import './patch-roulette-presentation.mjs';
 
 const indexUrl = new URL('../index.html', import.meta.url);
 const startMarker = '<!-- MODULAR_LAMP_ASSETS_START -->';
@@ -89,7 +90,7 @@ const block = `${startMarker}\n` +
   '  <script src="/assets/roulette/lamp-config.js?v=19" defer></script>\n' +
   '  <script src="/assets/roulette/lamp.js?v=20" defer></script>\n' +
   '  <script src="/assets/roulette/lamp-bootstrap.js?v=19" defer></script>\n' +
-  '  <script src="/assets/roulette/audio-manager.js?v=4" defer></script>\n' +
+  '  <script src="/assets/roulette/audio-manager.js?v=5" defer></script>\n' +
   '  <script src="/assets/roulette/spin-audio-policy.js?v=3" defer></script>\n' +
   '  <script src="/assets/roulette/turn-animation.js?v=5" defer></script>\n' +
   '  <script src="/assets/roulette/turn-fire.js?v=2" defer></script>\n' +
@@ -111,4 +112,4 @@ if (markerPattern.test(html)) {
 }
 
 await writeFile(indexUrl, html);
-console.log('Injected independent lamp, synchronized opening spin, authoritative six-chamber Roulette rules, late-round relief breaths, live-round chair fall, result cues, and unchanged protected animations.');
+console.log('Injected independent lamp, synchronized opening spin, authoritative six-chamber Roulette rules, cleaned table text, darker countdown, stronger ambience, late-round relief breaths, live-round chair fall, result cues, and unchanged protected animations.');
