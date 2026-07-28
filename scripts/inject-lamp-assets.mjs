@@ -38,17 +38,18 @@ const criticalStyle = `  <style id="rrLampCriticalHide">
     [data-roulette-game] .rr126-chain {
       position: absolute !important;
       top: 0 !important;
-      left: 50%;
-      width: 14px;
-      height: 27%;
-      transform: translateX(-50%);
-      background: url('/assets/roulette/decor/workshop-lamp-chain.png') center top / 14px auto repeat-y !important;
+      left: 49.75%;
+      width: 12.5px;
+      min-width: 12.5px;
+      height: 5%;
+      transform: translateX(-50%) scaleX(.56);
+      background: url('/assets/roulette/decor/workshop-lamp-chain.png') center top / 12.5px auto repeat-y !important;
       z-index: 2 !important;
     }
     [data-roulette-game] .rr126-swing {
       position: absolute !important;
-      top: 22%;
-      left: 50%;
+      top: calc(20% - 26px);
+      left: 49.75%;
       width: 44% !important;
       aspect-ratio: 325 / 273 !important;
       transform: translateX(-50%);
@@ -65,7 +66,16 @@ const criticalStyle = `  <style id="rrLampCriticalHide">
       height: 100% !important;
       pointer-events: none !important;
     }
-    [data-roulette-game] #rrLampPng { visibility: visible !important; opacity: 1 !important; }
+    [data-roulette-game] #rrLampPng {
+      position: absolute !important;
+      left: calc(50% - .75%) !important;
+      top: 90.5% !important;
+      width: 94% !important;
+      height: auto !important;
+      transform: translate(-50%,-50%) scale(1.1) !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+    }
     @media (min-width:701px) {
       [data-roulette-game] .rr126-lamp-rig { height:51% !important; }
       [data-roulette-game] .rr126-swing { width:31% !important; max-width:230px !important; }
@@ -77,9 +87,9 @@ const criticalStyle = `  <style id="rrLampCriticalHide">
   </style>`;
 const block = `${startMarker}\n` +
   `${criticalStyle}\n` +
-  '  <script src="/assets/roulette/lamp-config.js?v=17" defer></script>\n' +
-  '  <script src="/assets/roulette/lamp.js?v=17" defer></script>\n' +
-  '  <script src="/assets/roulette/lamp-bootstrap.js?v=17" defer></script>\n' +
+  '  <script src="/assets/roulette/lamp-config.js?v=18" defer></script>\n' +
+  '  <script src="/assets/roulette/lamp.js?v=18" defer></script>\n' +
+  '  <script src="/assets/roulette/lamp-bootstrap.js?v=18" defer></script>\n' +
   `${endMarker}`;
 
 let html = await readFile(indexUrl, 'utf8');
@@ -94,4 +104,4 @@ if (markerPattern.test(html)) {
 }
 
 await writeFile(indexUrl, html);
-console.log('Injected self-contained lamp structure and isolated lamp assets; gun animation remains owned by the game.');
+console.log('Injected replacement-safe lamp structure and isolated lamp assets; gun animation remains owned by the game.');
