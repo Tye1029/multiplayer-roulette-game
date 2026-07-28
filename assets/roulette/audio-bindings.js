@@ -40,6 +40,8 @@
   let visibleResultSerial = 0;
   let lastResultCue = '';
   let lastResultAt = -Infinity;
+  const resultAudioPool = Object.create(null);
+  let resultAudioPrimed = false;
 
   function silenceLegacy() {
     const noop = function () { return null; };
@@ -274,6 +276,7 @@
   }
 
   function handleSpinGesture(event) {
+    primeResultAudio();
     const control = nearestInteractive(event.target);
     if (isSpinControl(control)) playSpinButtonChamber();
   }
@@ -330,30 +333,118 @@
     ].join(':');
   }
 
-  function playResultCue(game, cue, key) {
-    const file = RESULT_FILES[cue];
-    if (!file || document.hidden) {
-      seenResults.delete(key);
-      return;
-    }
+  function resultVolume(cue) {
+    return cue === 'victory' ? 0.48 : 0.42;
+  }
 
-    stopClip(activeResultClip);
+  function makeResultClip(cue) {
+    if (resultAudioPool[cue]) return resultAudioPool[cue];
+
+    const file = RESULT_FILES[cue];
+    if (!file) return null;
+
     const clip = new Audio(BASE + file);
     clip.__rrAuthorizedResultCue = true;
     clip.preload = 'auto';
     clip.playsInline = true;
-    clip.volume = cue === 'victory' ? 0.48 : 0.42;
+    clip.volume = resultVolume(cue);
+    clip.playbackRate = 1;
+
+    clip.addEventListener('ended', () => {
+      if (activeResultClip === clip) activeResultClip = null;
+      try { clip.currentTime = 0; } catch {}
+    });
+
+    clip.addEventListener('error', () => {
+      if (activeResultClip === clip) activeResultClip = null;
+      delete resultAudioPool[cue];
+      resultAudioPrimed = false;
+    });
+
+    resultAudioPool[cue] = clip;
+    return clip;
+  }
+
+  function primeResultAudio() {
+    if (resultAudioPrimed) return;
+
+    const play =
+      nativeMediaPlay ||
+      HTMLMediaElement.prototype.__rrOriginalPlay;
+
+    if (typeof play !== 'function') return;
+
+    resultAudioPrimed = true;
+
+    for (const cue of Object.keys(RESULT_FILES)) {
+      const clip = makeResultClip(cue);
+      if (!clip) continue;
+
+      const targetVolume = resultVolume(cue);
+      clip.volume = 0;
+
+      try {
+        clip.pause();
+        clip.currentTime = 0;
+      } catch {}
+
+      Promise.resolve(play.call(clip)).then(() => {
+        try {
+          clip.pause();
+          clip.currentTime = 0;
+          clip.volume = targetVolume;
+        } catch {}
+      }).catch(() => {
+        clip.volume = targetVolume;
+        resultAudioPrimed = false;
+      });
+    }
+  }
+
+  function playResultCue(game, cue, key) {
+    if (!RESULT_FILES[cue] || document.hidden) {
+      seenResults.delete(key);
+      return;
+    }
+
+    const clip = makeResultClip(cue);
+    if (!clip) {
+      seenResults.delete(key);
+      return;
+    }
+
+    if (activeResultClip && activeResultClip !== clip) {
+      try {
+        activeResultClip.pause();
+        activeResultClip.currentTime = 0;
+      } catch {}
+    }
+
+    try {
+      clip.pause();
+      clip.currentTime = 0;
+    } catch {}
+
+    clip.muted = false;
+    clip.volume = resultVolume(cue);
     clip.playbackRate = 1;
     activeResultClip = clip;
 
     audio.duckForShot?.();
-    const cleanup = () => {
+
+    const play =
+      nativeMediaPlay ||
+      HTMLMediaElement.prototype.__rrOriginalPlay;
+
+    if (typeof play !== 'function') {
+      activeResultClip = null;
+      seenResults.delete(key);
+      return;
+    }
+
+    Promise.resolve(play.call(clip)).catch(() => {
       if (activeResultClip === clip) activeResultClip = null;
-    };
-    clip.addEventListener('ended', cleanup, { once: true });
-    clip.addEventListener('error', cleanup, { once: true });
-    clip.play().catch(() => {
-      cleanup();
+      resultAudioPrimed = false;
       seenResults.delete(key);
     });
   }
@@ -376,6 +467,26 @@
     'h3'
   ].join(',');
 
+  function cueFromResultText(value, shortLine = false) {
+    const text = String(value || '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase();
+
+    if (!text) return '';
+    if (shortLine && text.length > 64) return '';
+
+    if (
+      /\byou\s+(?:win|won|survived)\b|\bvictory\b/.test(text)
+    ) return 'victory';
+
+    if (
+      /\byou\s+(?:lose|lost|died)\b|\bdefeat\b|\beliminated\b/.test(text)
+    ) return 'defeat';
+
+    return '';
+  }
+
   function documentResultCue() {
     const candidates = document.querySelectorAll(RESULT_ELEMENT_SELECTOR);
 
@@ -393,20 +504,22 @@
       const rect = element.getBoundingClientRect?.();
       if (rect && (rect.width < 1 || rect.height < 1)) continue;
 
-      const text = String(element.textContent || '')
-        .replace(/\s+/g, ' ')
-        .trim()
-        .toLowerCase();
+      const cue = cueFromResultText(element.textContent);
+      if (cue) return cue;
+    }
 
-      if (!text || text.length > 800) continue;
+    const scope =
+      document.querySelector('#duelActive,#duel-active') ||
+      document.body;
 
-      if (/\byou\s+(?:win|won)\b|\bvictory\b/.test(text)) {
-        return 'victory';
-      }
+    const lines = String(scope?.innerText || '')
+      .split(/\n+/)
+      .map(line => line.trim())
+      .filter(Boolean);
 
-      if (/\byou\s+(?:lose|lost)\b|\bdefeat\b|\beliminated\b/.test(text)) {
-        return 'defeat';
-      }
+    for (const line of lines) {
+      const cue = cueFromResultText(line, true);
+      if (cue) return cue;
     }
 
     return '';
