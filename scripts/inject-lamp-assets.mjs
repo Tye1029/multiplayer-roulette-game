@@ -85,7 +85,7 @@ const criticalStyle = `  <link id="rrLampExternalStyles" rel="stylesheet" href="
 const block = `${startMarker}\n` +
   `${criticalStyle}\n` +
   '  <script src="/assets/roulette/lamp-config.js?v=19" defer></script>\n' +
-  '  <script src="/assets/roulette/lamp.js?v=19" defer></script>\n' +
+  '  <script src="/assets/roulette/lamp.js?v=20" defer></script>\n' +
   '  <script src="/assets/roulette/lamp-bootstrap.js?v=19" defer></script>\n' +
   '  <script src="/assets/roulette/turn-animation.js?v=5" defer></script>\n' +
   '  <script src="/assets/roulette/turn-fire.js?v=2" defer></script>\n' +
@@ -104,4 +104,4 @@ if (markerPattern.test(html)) {
 }
 
 await writeFile(indexUrl, html);
-console.log('Injected lamp assets plus strict per-turn facing lock with animation timing slowed by about 12.5%.');
+console.log('Injected a gun-independent lamp timeline plus strict locked turn and firing modules.');
