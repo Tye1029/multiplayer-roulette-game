@@ -1,11 +1,24 @@
 (function () {
   'use strict';
 
-  const styleId = 'rrCleanTurnAnimationStyles';
+  const styleId = 'rrStrictTurnLockStyles';
   const facingSelector = ':scope > [data-roulette-facing]';
   const recoilSelector = ':scope > [data-roulette-recoil]';
+  const lock = {
+    gameId: '',
+    turnId: '',
+    angle: -4,
+    pendingTurnId: '',
+    pendingAngle: -4,
+    queuedTurnId: '',
+    epoch: 0,
+    opening: false,
+    firing: false,
+    animatingFacing: null
+  };
 
   function installStyles() {
+    document.getElementById('rrCleanTurnAnimationStyles')?.remove();
     document.getElementById(styleId)?.remove();
     const style = document.createElement('style');
     style.id = styleId;
@@ -32,15 +45,29 @@
         transform: rotate(-4deg);
         transform-style: flat !important;
         backface-visibility: visible !important;
+        transition: none !important;
         will-change: transform;
       }
       html body [data-roulette-game] .rr-gun-recoil {
         transform: none;
+        transition: none !important;
         will-change: transform;
+      }
+      html body [data-roulette-game] .rr-gun-recoil > .rr-revolver,
+      html body [data-roulette-game] .rr-gun-recoil .rr-gun-photo {
+        animation: none !important;
+        transition: none !important;
+      }
+      html body [data-roulette-game] .rr-gun-recoil > .rr-revolver {
+        transform: none !important;
+      }
+      html body [data-roulette-game] .rr-gun-recoil .rr-gun-photo {
+        transform: none !important;
       }
       html body [data-roulette-game].rr-fired {
         animation: none !important;
         transform: none !important;
+        transition: none !important;
       }
       html body [data-roulette-game] .rr-table {
         animation: none !important;
@@ -62,13 +89,15 @@
     ) || null;
   }
 
-  function angleForPlayer(game, userId) {
-    return String(userId || '') === String(game?.creator?.userId || '') ? -4 : 176;
-  }
-
   function normalizeAngle(angle) {
     const value = Number(angle) || 0;
     return ((value % 360) + 360) % 360;
+  }
+
+  function angleForPlayer(game, userId) {
+    return normalizeAngle(
+      String(userId || '') === String(game?.creator?.userId || '') ? -4 : 176
+    );
   }
 
   function shortestDelta(from, target) {
@@ -98,103 +127,183 @@
     }
 
     for (const element of Array.from(motion.children)) {
-      if (element !== facing && element.matches('.rr-revolver,.rr-shot-flash,.rr-shot-smoke')) recoil.append(element);
+      if (
+        element !== facing &&
+        element.matches('.rr-revolver,.rr-shot-flash,.rr-shot-smoke')
+      ) recoil.append(element);
     }
     for (const element of Array.from(facing.children)) {
-      if (element !== recoil && element.matches('.rr-revolver,.rr-shot-flash,.rr-shot-smoke')) recoil.append(element);
+      if (
+        element !== recoil &&
+        element.matches('.rr-revolver,.rr-shot-flash,.rr-shot-smoke')
+      ) recoil.append(element);
     }
 
     return { root, motion, facing, recoil };
   }
 
-  function readFacingAngle(facing, fallback = -4) {
-    const stored = Number(facing?.dataset.rouletteFacingAngle);
-    return Number.isFinite(stored) ? stored : normalizeAngle(fallback);
+  function latestGameFor(gameId, fallback) {
+    const latest = rouletteLatestGame;
+    if (String(latest?.gameId || '') === String(gameId || '')) return latest;
+    return fallback || null;
   }
 
-  function settleFacing(gameId, angle, turnId = '') {
-    const layers = ensureLayers(currentRoot(gameId));
+  function openingIsDone(gameId) {
+    return Boolean(
+      rouletteVisualRuntime.openingDone ||
+      rouletteOpeningCompletedGames?.has?.(String(gameId || ''))
+    );
+  }
+
+  function setRuntimeLock(gameId, turnId, angle) {
+    const normalized = normalizeAngle(angle);
+    lock.gameId = String(gameId || '');
+    lock.turnId = String(turnId || '');
+    lock.angle = normalized;
+    lock.pendingTurnId = '';
+    lock.pendingAngle = normalized;
+    lock.queuedTurnId = '';
+    lock.animatingFacing = null;
+
+    rouletteVisualRuntime.currentAngle = normalized;
+    rouletteVisualRuntime.angleHydrated = true;
+    rouletteVisualRuntime.lastTurnId = lock.turnId;
+    rouletteVisualRuntime.displayTurnId = lock.turnId;
+    rouletteVisualRuntime.rotationTargetId = '';
+  }
+
+  function applyFacing(layers, angle, turnId, cancelAnimation = true) {
     if (!layers) return null;
     const normalized = normalizeAngle(angle);
-    layers.facing.getAnimations?.().forEach(animation => animation.cancel());
+    if (cancelAnimation) {
+      layers.facing.getAnimations?.().forEach(animation => animation.cancel());
+    }
     layers.facing.style.transform = `rotate(${normalized}deg)`;
     layers.facing.dataset.rouletteFacingAngle = String(normalized);
     layers.facing.dataset.rouletteFacingTurnId = String(turnId || '');
+    layers.root.dataset.rouletteLockedTurnId = String(turnId || '');
+    layers.root.dataset.rouletteLockedAngle = String(normalized);
     return layers;
   }
 
-  async function animateFacing(game, gameId, turnId, duration = 900) {
-    const latest = rouletteLatestGame || game;
+  function enforceLockedFacing(gameId) {
+    const layers = ensureLayers(currentRoot(gameId));
+    if (!layers) return null;
+
+    if (lock.gameId !== String(gameId || '')) {
+      applyFacing(layers, -4, '', true);
+      return layers;
+    }
+
+    if (lock.pendingTurnId) {
+      if (layers.facing !== lock.animatingFacing) {
+        // A rerender during the permitted rotation inherits the target angle.
+        lock.epoch += 1;
+        applyFacing(layers, lock.pendingAngle, lock.pendingTurnId, true);
+        setRuntimeLock(gameId, lock.pendingTurnId, lock.pendingAngle);
+      }
+      return layers;
+    }
+
+    applyFacing(layers, lock.angle, lock.turnId, true);
+    return layers;
+  }
+
+  function queueTurnRotation(game, gameId, turnId, duration) {
+    const requested = String(turnId || '');
+    if (!requested || lock.queuedTurnId === requested || lock.pendingTurnId === requested) return;
+    lock.queuedTurnId = requested;
+    rouletteQueueVisual(async () => {
+      lock.queuedTurnId = '';
+      await rotateToLockedTurn(game, gameId, requested, duration);
+    });
+  }
+
+  async function rotateToLockedTurn(game, gameId, requestedTurnId, duration = 900) {
+    const latest = latestGameFor(gameId, game);
     const authoritativeTurnId = String(latest?.rouletteState?.turnId || '');
     if (
-      String(latest?.gameId || '') !== String(gameId) ||
+      String(latest?.gameId || '') !== String(gameId || '') ||
       latest?.status !== 'playing' ||
       !authoritativeTurnId ||
-      authoritativeTurnId !== String(turnId || '')
+      authoritativeTurnId !== String(requestedTurnId || '')
     ) return;
+
+    const target = angleForPlayer(latest, authoritativeTurnId);
+    if (
+      lock.gameId === String(gameId || '') &&
+      lock.turnId === authoritativeTurnId &&
+      Math.abs(shortestDelta(lock.angle, target)) < 0.5
+    ) {
+      applyFacing(ensureLayers(currentRoot(gameId)), target, authoritativeTurnId, true);
+      setRuntimeLock(gameId, authoritativeTurnId, target);
+      return;
+    }
+    if (lock.pendingTurnId === authoritativeTurnId) return;
 
     const layers = ensureLayers(currentRoot(gameId));
     if (!layers) return;
 
-    const target = normalizeAngle(angleForPlayer(latest, authoritativeTurnId));
-    const runtimeFallback = Number.isFinite(rouletteVisualRuntime.currentAngle)
-      ? normalizeAngle(rouletteVisualRuntime.currentAngle)
-      : target;
-    const from = readFacingAngle(layers.facing, runtimeFallback);
+    const mountedAngle = Number(layers.facing.dataset.rouletteFacingAngle);
+    const from = Number.isFinite(mountedAngle)
+      ? normalizeAngle(mountedAngle)
+      : (lock.gameId === String(gameId || '') ? lock.angle : target);
     const delta = shortestDelta(from, target);
-    const mountedTurnId = String(layers.facing.dataset.rouletteFacingTurnId || '');
+    const sign = delta >= 0 ? 1 : -1;
+    const epoch = ++lock.epoch;
 
-    if (mountedTurnId === authoritativeTurnId && Math.abs(delta) < 0.5) {
-      settleFacing(gameId, target, authoritativeTurnId);
-      rouletteVisualRuntime.currentAngle = target;
-      rouletteVisualRuntime.angleHydrated = true;
-      rouletteVisualRuntime.lastTurnId = authoritativeTurnId;
-      rouletteVisualRuntime.displayTurnId = authoritativeTurnId;
-      rouletteVisualRuntime.rotationTargetId = '';
-      return;
-    }
-    if (rouletteVisualRuntime.rotationTargetId === authoritativeTurnId) return;
-
-    const epoch = ++rouletteVisualRuntime.rotationEpoch;
+    lock.gameId = String(gameId || '');
+    lock.pendingTurnId = authoritativeTurnId;
+    lock.pendingAngle = target;
+    lock.animatingFacing = layers.facing;
     rouletteVisualRuntime.rotationTargetId = authoritativeTurnId;
     layers.root.classList.add('rr-animation-lock');
     layers.facing.getAnimations?.().forEach(animation => animation.cancel());
 
     try {
       if (Math.abs(delta) >= 0.5) {
+        // Same Web Animations path and easing as the opening spin.
         await Promise.all([
           rouletteAnimate(
             layers.facing,
             [
-              { transform: `rotate(${from}deg)` },
-              { transform: `rotate(${from + delta}deg)` }
+              { transform: `rotate(${from}deg)`, offset: 0 },
+              { transform: `rotate(${from + delta * 0.72}deg)`, offset: 0.72 },
+              { transform: `rotate(${from + delta - 9 * sign}deg)`, offset: 0.94 },
+              { transform: `rotate(${from + delta}deg)`, offset: 1 }
             ],
-            { duration, easing: 'cubic-bezier(.22,.58,.12,1)', fill: 'forwards' }
+            {
+              duration,
+              easing: 'cubic-bezier(.22,.58,.12,1)',
+              fill: 'forwards'
+            }
           ),
-          rouletteRotationGlint(layers.root.querySelector('.rr-metal-glint'), duration, 0.18)
+          rouletteRotationGlint(
+            layers.root.querySelector('.rr-metal-glint'),
+            duration,
+            0.18
+          )
         ]);
       }
     } finally {
-      settleFacing(gameId, target, authoritativeTurnId)?.root.classList.remove('rr-animation-lock');
       layers.root.classList.remove('rr-animation-lock');
     }
 
-    if (epoch !== rouletteVisualRuntime.rotationEpoch) return;
-    rouletteVisualRuntime.currentAngle = target;
-    rouletteVisualRuntime.angleHydrated = true;
-    rouletteVisualRuntime.lastTurnId = authoritativeTurnId;
-    rouletteVisualRuntime.displayTurnId = authoritativeTurnId;
-    rouletteVisualRuntime.rotationTargetId = '';
+    if (epoch !== lock.epoch) return;
 
-    const newest = rouletteLatestGame;
+    const newest = latestGameFor(gameId, latest);
     const newestTurnId = String(newest?.rouletteState?.turnId || '');
-    if (
-      String(newest?.gameId || '') === String(gameId) &&
-      newest?.status === 'playing' &&
-      newestTurnId &&
-      newestTurnId !== authoritativeTurnId
-    ) {
-      await animateFacing(newest, gameId, newestTurnId, Math.min(700, duration));
+    if (newest?.status === 'playing' && newestTurnId === authoritativeTurnId) {
+      applyFacing(ensureLayers(currentRoot(gameId)), target, authoritativeTurnId, true);
+      setRuntimeLock(gameId, authoritativeTurnId, target);
+      return;
+    }
+
+    lock.pendingTurnId = '';
+    lock.animatingFacing = null;
+    rouletteVisualRuntime.rotationTargetId = '';
+    if (newest?.status === 'playing' && newestTurnId) {
+      await rotateToLockedTurn(newest, gameId, newestTurnId, Math.min(700, duration));
     }
   }
 
@@ -205,20 +314,51 @@
     const layers = ensureLayers(currentRoot(gameId));
     if (!layers) return;
 
-    const state = game?.rouletteState || {};
-    const turnId = String(state.turnId || '');
-    const openingDone = Boolean(rouletteVisualRuntime.openingDone || rouletteOpeningCompletedGames?.has?.(gameId));
-    const angle = openingDone && Number.isFinite(rouletteVisualRuntime.currentAngle)
-      ? rouletteVisualRuntime.currentAngle
-      : -4;
-    const displayedTurnId = openingDone
-      ? String(rouletteVisualRuntime.displayTurnId || rouletteVisualRuntime.lastTurnId || '')
-      : '';
-    settleFacing(gameId, angle, displayedTurnId);
-
-    if (openingDone && turnId && !rouletteVisualRuntime.busy && displayedTurnId !== turnId) {
-      rouletteQueueVisual(() => animateFacing(game, gameId, turnId, 700));
+    if (lock.opening) {
+      if (layers.facing !== lock.animatingFacing && lock.pendingTurnId) {
+        applyFacing(layers, lock.pendingAngle, lock.pendingTurnId, true);
+      }
+      return;
     }
+
+    const turnId = String(game?.rouletteState?.turnId || '');
+    if (!openingIsDone(gameId)) {
+      if (lock.gameId !== gameId || lock.turnId) {
+        lock.gameId = gameId;
+        lock.turnId = '';
+        lock.angle = normalizeAngle(-4);
+        lock.pendingTurnId = '';
+        lock.queuedTurnId = '';
+      }
+      applyFacing(layers, -4, '', true);
+      return;
+    }
+
+    if (!turnId) {
+      enforceLockedFacing(gameId);
+      return;
+    }
+
+    if (lock.gameId !== gameId || !lock.turnId) {
+      const angle = angleForPlayer(game, turnId);
+      applyFacing(layers, angle, turnId, true);
+      setRuntimeLock(gameId, turnId, angle);
+      return;
+    }
+
+    if (lock.pendingTurnId) {
+      enforceLockedFacing(gameId);
+      return;
+    }
+
+    if (lock.turnId === turnId) {
+      enforceLockedFacing(gameId);
+      return;
+    }
+
+    // Keep the previous owner locked until the one permitted rotation runs.
+    applyFacing(layers, lock.angle, lock.turnId, true);
+    if (!rouletteVisualRuntime.busy) queueTurnRotation(game, gameId, turnId, 900);
   }
 
   installStyles();
@@ -235,17 +375,32 @@
   };
 
   rouletteOrientToShotActor = async function () {
+    // Shot effects are never allowed to alter direction.
   };
 
   rouletteRotateToTurn = async function (game, state, gameId, options = {}) {
-    const latest = rouletteLatestGame || game;
-    const turnId = String(options.targetTurnId || latest?.rouletteState?.turnId || state?.turnId || '');
-    if (turnId) await animateFacing(latest, gameId, turnId, Number(options.duration) || 900);
+    const latest = latestGameFor(gameId, game);
+    const turnId = String(
+      options.targetTurnId || latest?.rouletteState?.turnId || state?.turnId || ''
+    );
+    if (turnId) {
+      await rotateToLockedTurn(latest, gameId, turnId, Number(options.duration) || 900);
+    }
   };
 
   rouletteOpeningSequence = async function (game, state, gameId) {
     const layers = ensureLayers(currentRoot(gameId));
     if (!layers) throw new Error('Opening spin scene was not mounted.');
+
+    const epoch = ++lock.epoch;
+    lock.gameId = String(gameId || '');
+    lock.turnId = '';
+    lock.angle = normalizeAngle(-4);
+    lock.pendingTurnId = String(state?.openingSpinWinnerId || state?.turnId || '');
+    lock.pendingAngle = angleForPlayer(game, lock.pendingTurnId);
+    lock.queuedTurnId = '';
+    lock.opening = true;
+    lock.animatingFacing = layers.facing;
 
     layers.root.classList.add('rr-animation-lock', 'rr-opening-active');
     layers.root.dataset.rouletteOpening = '1';
@@ -258,11 +413,12 @@
     }
     banner.textContent = 'Choosing First Player';
 
-    const finalTurnId = String(state?.openingSpinWinnerId || state?.turnId || '');
-    const finalAngle = normalizeAngle(angleForPlayer(game, finalTurnId));
+    const finalTurnId = lock.pendingTurnId;
+    const finalAngle = lock.pendingAngle;
     const duration = 4700;
-    settleFacing(gameId, -4, '');
+    applyFacing(layers, -4, '', true);
     rouletteSpinSound(1.35);
+
     await Promise.all([
       rouletteAnimate(
         layers.facing,
@@ -274,121 +430,52 @@
           { transform: `rotate(${finalAngle + 711}deg)`, offset: 0.955 },
           { transform: `rotate(${finalAngle + 720}deg)`, offset: 1 }
         ],
-        { duration, easing: 'cubic-bezier(.22,.58,.12,1)', fill: 'forwards' }
+        {
+          duration,
+          easing: 'cubic-bezier(.22,.58,.12,1)',
+          fill: 'forwards'
+        }
       ),
-      rouletteRotationGlint(layers.root.querySelector('.rr-metal-glint'), duration, 0.28)
+      rouletteRotationGlint(
+        layers.root.querySelector('.rr-metal-glint'),
+        duration,
+        0.28
+      )
     ]);
 
-    settleFacing(gameId, finalAngle, finalTurnId);
-    rouletteVisualRuntime.currentAngle = finalAngle;
-    rouletteVisualRuntime.angleHydrated = true;
-    rouletteVisualRuntime.lastTurnId = String(state?.turnId || finalTurnId);
-    rouletteVisualRuntime.displayTurnId = rouletteVisualRuntime.lastTurnId;
-    rouletteVisualRuntime.rotationTargetId = '';
+    if (epoch === lock.epoch) {
+      applyFacing(ensureLayers(currentRoot(gameId)), finalAngle, finalTurnId, true);
+      setRuntimeLock(gameId, finalTurnId, finalAngle);
+    }
+    lock.opening = false;
 
-    banner.textContent = String(state?.turnId || '') === String(game?.creator?.userId || '')
+    banner.textContent = String(finalTurnId) === String(game?.creator?.userId || '')
       ? `${String(game?.creator?.name || 'PLAYER 1').toUpperCase()} GOES FIRST`
       : `${String(game?.joiner?.name || 'PLAYER 2').toUpperCase()} GOES FIRST`;
     await rouletteWait(850);
     banner.remove();
     layers.root.classList.remove('rr-animation-lock', 'rr-opening-active');
     layers.root.dataset.rouletteOpening = '0';
-  };
 
-  rouletteShotSequence = async function (_game, state, gameId) {
-    const layers = ensureLayers(currentRoot(gameId));
-    if (!layers) return;
-
-    const hammer = layers.root.querySelector('.rr-hammer-photo');
-    const cover = layers.root.querySelector('.rr-hammer-cover');
-    const glint = layers.root.querySelector('.rr-metal-glint');
-    const flash = layers.root.querySelector('.rr-shot-flash');
-    const smoke = [...layers.root.querySelectorAll('.rr-shot-smoke i')];
-
-    layers.root.classList.add('rr-animation-lock');
-    for (const element of [layers.recoil, hammer, cover, glint, flash, ...smoke].filter(Boolean)) {
-      element.getAnimations?.().forEach(animation => animation.cancel());
-    }
-    layers.recoil.style.transform = 'none';
-    if (cover) cover.style.opacity = '0';
-
-    if (hammer) {
-      hammer.style.opacity = '1';
-      rouletteShotIndexSound();
-      layers.root._rrHammerMotion = rouletteAnimate(
-        hammer,
-        [
-          { transform: 'rotate(0deg)', offset: 0 },
-          { transform: 'rotate(23deg)', offset: 0.46 },
-          { transform: 'rotate(23deg)', offset: 0.6 },
-          { transform: 'rotate(-2.5deg)', offset: 0.76 },
-          { transform: 'rotate(0deg)', offset: 1 }
-        ],
-        { duration: 420, easing: 'cubic-bezier(.22,.03,.16,1)', fill: 'none' }
-      );
-      await rouletteWait(255);
-    } else {
-      await rouletteWait(255);
-    }
-
-    const live = state?.lastOutcome === 'live';
-    if (live) {
-      rouletteGunshotSound();
-      navigator.vibrate?.([90, 35, 220]);
-      const effects = [];
-      if (flash) effects.push(rouletteAnimate(flash, [
-        { opacity: 0, transform: 'translate(-50%,-50%) scale(.1)' },
-        { opacity: 1, transform: 'translate(-50%,-50%) scale(1.7)', offset: 0.16 },
-        { opacity: 0.75, transform: 'translate(-50%,-50%) scale(2.7)', offset: 0.42 },
-        { opacity: 0, transform: 'translate(-50%,-50%) scale(4.2)' }
-      ], { duration: 380, easing: 'ease-out' }));
-      smoke.forEach((particle, index) => effects.push(rouletteAnimate(particle, [
-        { opacity: 0, transform: 'translate(0,0) scale(.25)' },
-        { opacity: 0.62, transform: `translate(${-18 - index * 7}px,${-8 - index * 5}px) scale(${0.85 + index * 0.14})`, offset: 0.24 },
-        { opacity: 0, transform: `translate(${-55 - index * 18}px,${-32 - index * 13}px) scale(${1.7 + index * 0.26})` }
-      ], { duration: 1050 + index * 170, delay: index * 55, easing: 'cubic-bezier(.2,.55,.2,1)' })));
-      const recoilMotion = rouletteAnimate(layers.recoil, [
-        { transform: 'translate(0,0) rotate(0deg) scale(1)', offset: 0 },
-        { transform: 'translate(20px,7px) rotate(10deg) scale(1.035)', offset: 0.2 },
-        { transform: 'translate(-5px,-2px) rotate(-2deg) scale(1)', offset: 0.55 },
-        { transform: 'translate(0,0) rotate(0deg) scale(1)', offset: 1 }
-      ], { duration: 560, easing: 'cubic-bezier(.16,.85,.2,1)' });
-      await Promise.all([layers.root._rrHammerMotion || Promise.resolve(), recoilMotion, ...effects]);
-    } else {
-      rouletteBlankSound();
-      navigator.vibrate?.(30);
-      await Promise.all([
-        layers.root._rrHammerMotion || Promise.resolve(),
-        rouletteAnimate(layers.recoil, [
-          { transform: 'translateX(0)' },
-          { transform: 'translateX(-3px)', offset: 0.42 },
-          { transform: 'translateX(0)' }
-        ], { duration: 165, easing: 'ease-out' })
-      ]);
-    }
-
-    delete layers.root._rrHammerMotion;
-    const mounted = ensureLayers(currentRoot(gameId));
-    for (const element of new Set([layers.recoil, mounted?.recoil].filter(Boolean))) {
-      element.getAnimations?.().forEach(animation => animation.cancel());
-      element.style.transform = 'none';
-    }
-    if (hammer) {
-      hammer.style.opacity = '1';
-      hammer.style.transform = 'rotate(0deg)';
-    }
-    if (cover) cover.style.opacity = '0';
-    await rouletteWait(live ? 420 : 120);
-    layers.root.classList.remove('rr-animation-lock');
-    mounted?.root.classList.remove('rr-animation-lock');
-
-    const newest = rouletteLatestGame;
+    const newest = latestGameFor(gameId, game);
     const newestTurnId = String(newest?.rouletteState?.turnId || '');
-    if (String(newest?.gameId || '') === String(gameId) && newest?.status === 'playing' && newestTurnId) {
-      await animateFacing(newest, gameId, newestTurnId, 900);
+    if (newest?.status === 'playing' && newestTurnId && newestTurnId !== lock.turnId) {
+      await rotateToLockedTurn(newest, gameId, newestTurnId, 700);
     }
   };
 
-  window.addEventListener('resize', mountCurrentScene, { passive: true });
+  window.RouletteTurnLock = {
+    lock,
+    ensureLayers,
+    latestGameFor,
+    applyFacing,
+    enforceLockedFacing,
+    rotateToLockedTurn
+  };
+
+  window.addEventListener('resize', () => {
+    enforceLockedFacing(lock.gameId);
+  }, { passive: true });
+
   mountCurrentScene();
 })();
