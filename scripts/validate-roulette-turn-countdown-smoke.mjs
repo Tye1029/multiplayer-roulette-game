@@ -69,12 +69,16 @@ for (const required of [
 }
 
 for (const required of [
-  '<style id="rr-v151-reactive-smoke-priority">',
+  '<style id="rr-v153-adjustable-smoke-priority">',
+  '--rr-smoke-ambient-opacity:.63;',
+  '--rr-smoke-lit-opacity:.69;',
+  'opacity:var(--rr-smoke-ambient-opacity,.63)!important;',
+  'opacity:var(--rr-smoke-lit-opacity,.69)!important;',
   'visibility:visible!important;',
   '[data-roulette-game] .rr-smoke-lit{',
   'background-size:125% 100%,100% 100%!important'
 ]) {
-  if (!html.includes(required)) throw new Error(`Final-priority reactive smoke styling is missing ${required}`);
+  if (!html.includes(required)) throw new Error(`Final-priority adjustable smoke styling is missing ${required}`);
 }
 
 for (const required of [
@@ -88,4 +92,4 @@ for (const required of [
   if (!injector.includes(required)) throw new Error(`Fresh patched asset loading is missing ${required}`);
 }
 
-console.log('Roulette turn/countdown/smoke validation passed: every pass has a revision-keyed movement cue, the wood knock is removed, countdown is red and audible, and final-priority smoke tracks the calibrated lamp light.');
+console.log('Roulette turn/countdown/smoke validation passed: every pass has a revision-keyed movement cue, the wood knock is removed, countdown is red and audible, and versioned adjustable smoke tracks the calibrated lamp light.');
