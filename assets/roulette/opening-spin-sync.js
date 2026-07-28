@@ -9,9 +9,51 @@
   const MIN_PLAYBACK_RATE = 0.25;
   const MAX_PLAYBACK_RATE = 4;
   const MAX_SYNC_ATTEMPTS = 20;
+  const RAPID_FADE_START_PROGRESS = 0.50;
+  const RAPID_FADE_END_PROGRESS = 0.68;
+  const RAPID_FADE_LEVEL = 0.20;
+  const SETTLE_FADE_END_PROGRESS = 0.92;
+  const SETTLE_FADE_LEVEL = 0.05;
 
   function clamp(value, minimum, maximum) {
     return Math.max(minimum, Math.min(maximum, value));
+  }
+
+  function smoothstep(value) {
+    const progress = clamp(value, 0, 1);
+    return progress * progress * (3 - 2 * progress);
+  }
+
+  function mix(from, to, progress) {
+    return from + (to - from) * progress;
+  }
+
+  function openingVolumeEnvelope(progress) {
+    const position = clamp(progress, 0, 1);
+
+    if (position <= RAPID_FADE_START_PROGRESS) return 1;
+
+    if (position <= RAPID_FADE_END_PROGRESS) {
+      const localProgress = smoothstep(
+        (position - RAPID_FADE_START_PROGRESS) /
+        (RAPID_FADE_END_PROGRESS - RAPID_FADE_START_PROGRESS)
+      );
+      return mix(1, RAPID_FADE_LEVEL, localProgress);
+    }
+
+    if (position <= SETTLE_FADE_END_PROGRESS) {
+      const localProgress = smoothstep(
+        (position - RAPID_FADE_END_PROGRESS) /
+        (SETTLE_FADE_END_PROGRESS - RAPID_FADE_END_PROGRESS)
+      );
+      return mix(RAPID_FADE_LEVEL, SETTLE_FADE_LEVEL, localProgress);
+    }
+
+    const localProgress = smoothstep(
+      (position - SETTLE_FADE_END_PROGRESS) /
+      (1 - SETTLE_FADE_END_PROGRESS)
+    );
+    return mix(SETTLE_FADE_LEVEL, 0, localProgress);
   }
 
   function sourcePath(value) {
@@ -125,17 +167,64 @@
 
   function armOpeningClip(clip) {
     let stopped = false;
+    let envelopeFrame = 0;
+    let baseVolume = null;
+
+    const stopEnvelope = () => {
+      if (envelopeFrame) cancelAnimationFrame(envelopeFrame);
+      envelopeFrame = 0;
+    };
+
+    const trackEnvelope = () => {
+      if (stopped || clip.ended) {
+        stopEnvelope();
+        return;
+      }
+
+      const timing = findOpeningAnimation();
+      if (!timing) {
+        envelopeFrame = requestAnimationFrame(trackEnvelope);
+        return;
+      }
+
+      const progress = clamp(timing.currentTime / timing.duration, 0, 1);
+      if (!Number.isFinite(baseVolume)) {
+        baseVolume = Math.max(0, Number(clip.volume) || 0);
+      }
+
+      clip.volume = baseVolume * openingVolumeEnvelope(progress);
+      clip.__rrOpeningProgress = progress;
+      clip.__rrOpeningVolumeEnvelope = openingVolumeEnvelope(progress);
+
+      if (progress < 1) {
+        envelopeFrame = requestAnimationFrame(trackEnvelope);
+        return;
+      }
+
+      clip.volume = 0;
+      stopEnvelope();
+    };
 
     const synchronize = () => {
       if (!stopped) synchronizeClip(clip);
     };
+
+    const startTracking = () => {
+      if (stopped) return;
+      baseVolume = Math.max(0, Number(clip.volume) || 0);
+      synchronizeClip(clip);
+      stopEnvelope();
+      envelopeFrame = requestAnimationFrame(trackEnvelope);
+    };
+
     const cleanup = () => {
       stopped = true;
+      stopEnvelope();
     };
 
     clip.addEventListener('loadedmetadata', synchronize);
     clip.addEventListener('durationchange', synchronize);
-    clip.addEventListener('playing', synchronize);
+    clip.addEventListener('playing', startTracking);
     clip.addEventListener('ended', cleanup, { once: true });
     clip.addEventListener('error', cleanup, { once: true });
   }
