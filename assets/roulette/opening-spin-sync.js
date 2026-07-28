@@ -9,12 +9,12 @@
   const MIN_PLAYBACK_RATE = 0.25;
   const MAX_PLAYBACK_RATE = 4;
   const MAX_SYNC_ATTEMPTS = 20;
-  const RAPID_FADE_START_PROGRESS = 0.42;
-  const RAPID_FADE_END_PROGRESS = 0.56;
-  const RAPID_FADE_LEVEL = 0.10;
-  const SETTLE_FADE_END_PROGRESS = 0.70;
-  const SETTLE_FADE_LEVEL = 0.02;
-  const SILENT_PROGRESS = 0.78;
+  const RAPID_FADE_START_PROGRESS = 0.40;
+  const RAPID_FADE_END_PROGRESS = 0.53;
+  const RAPID_FADE_LEVEL = 0.08;
+  const SETTLE_FADE_END_PROGRESS = 0.66;
+  const SETTLE_FADE_LEVEL = 0.015;
+  const SILENT_PROGRESS = 0.74;
 
   function clamp(value, minimum, maximum) {
     return Math.max(minimum, Math.min(maximum, value));
