@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 
 const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 const audio = await readFile(new URL('../assets/roulette/audio-manager.js', import.meta.url), 'utf8');
+const injector = await readFile(new URL('./inject-lamp-assets.mjs', import.meta.url), 'utf8');
 
 for (const required of [
   "else if(!countdownFinished){status='GET READY';sub='';controlNote='Game starts after countdown';}",
@@ -12,9 +13,14 @@ for (const required of [
   "const fundamental=label==='3'?92.50:label==='2'?82.41:label==='1'?73.42:55;",
   '<style id="rr-v149-ui-audio-cleanup">',
   '[data-roulette-game] .rr-scene-countdown{transform:translateY(clamp(42px,7.5vh,62px))!important}',
-  '@keyframes rrDreadCountdown'
+  '@keyframes rrDreadCountdown',
+  '/assets/roulette/audio-manager.js?v=4&ambience=2'
 ]) {
   if (!html.includes(required)) throw new Error(`Roulette presentation validation is missing ${required}`);
+}
+
+if (!injector.includes('/assets/roulette/audio-manager.js?v=4&ambience=2')) {
+  throw new Error('The Roulette ambience cache key is not preserved by the asset injector.');
 }
 
 for (const forbidden of [
