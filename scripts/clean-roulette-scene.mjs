@@ -121,6 +121,9 @@ const replacementSafeTurnFinalize = `      }finally{
           const finalMotion=mountedMotion||motion;
           for(const candidate of new Set([motion,mountedMotion].filter(Boolean))){
             candidate.getAnimations?.().forEach(a=>a.cancel());
+            candidate.style.removeProperty('translate');
+            candidate.style.removeProperty('rotate');
+            candidate.style.removeProperty('scale');
           }
           if(finalMotion)finalMotion.style.transform=rouletteMotionTransform(angle,rouletteMotionScale());
         };
@@ -145,12 +148,102 @@ const replacementSafeTurnFinalize = `      }finally{
         mountedRoot?.classList.remove('rr-animation-lock');
       }`;
 
-const shotOrientationPattern = /\n    async function rouletteOrientToShotActor\(game,st,gameId\)\{[\s\S]*?\n    \}\n    async function rouletteShotSequence\(game,st,gameId\)\{\n      await rouletteOrientToShotActor\(game,st,gameId\);/;
-const shotSequenceStart = `
+const shotSystemPattern = /\n    (?:async function rouletteOrientToShotActor\(game,st,gameId\)\{[\s\S]*?\n    \}\n    )?async function rouletteShotSequence\(game,st,gameId\)\{[\s\S]*?\n    \}\n    function rouletteHandleEffects/;
+
+const replacementShotSystem = `
     async function rouletteShotSequence(game,st,gameId){
-      // Shot effects never rotate the revolver. The mounted gun is already
-      // facing the authoritative turn owner; only rouletteRotateToTurn may
-      // change its direction after the shot finishes.`;
+      // Firing never rewrites the authoritative facing transform. Recoil uses
+      // additive individual transform properties so the 176deg opponent pose
+      // never crosses the browser's +/-180deg matrix interpolation boundary.
+      const liveRoot=duelActive?.querySelector(\`[data-roulette-game][data-game-id="\${CSS.escape(gameId)}"]\`);
+      const motion=liveRoot?.querySelector('[data-roulette-motion]');
+      const hammer=liveRoot?.querySelector('.rr-hammer-photo');
+      const cover=liveRoot?.querySelector('.rr-hammer-cover');
+      const glint=liveRoot?.querySelector('.rr-metal-glint');
+      const flash=liveRoot?.querySelector('.rr-shot-flash');
+      const smoke=[...(liveRoot?.querySelectorAll('.rr-shot-smoke i')||[])];
+      if(!liveRoot||!motion)return;
+      const shotActorId=String(st?.lastActorId||rouletteVisualRuntime.displayTurnId||st?.turnId||'');
+      const base=shotActorId?rouletteAngleForPlayer(game,shotActorId):(Number.isFinite(rouletteVisualRuntime.currentAngle)?rouletteVisualRuntime.currentAngle:rouletteOpeningFinalAngle(game,st));
+      const scale=rouletteMotionScale();
+      const facingSign=Math.cos((base+4)*Math.PI/180)>=0?1:-1;
+      const clearShotOffsets=element=>{
+        if(!element)return;
+        element.style.removeProperty('translate');
+        element.style.removeProperty('rotate');
+        element.style.removeProperty('scale');
+      };
+      rouletteVisualRuntime.currentAngle=base;
+      rouletteVisualRuntime.angleHydrated=true;
+      motion.style.transform=rouletteMotionTransform(base,scale);
+      clearShotOffsets(motion);
+      liveRoot.classList.add('rr-animation-lock');
+      [motion,hammer,cover,glint,flash,...smoke].filter(Boolean).forEach(el=>el.getAnimations?.().forEach(a=>a.cancel()));
+      if(cover)cover.style.opacity='0';
+      if(hammer){
+        hammer.style.opacity='1';
+        rouletteShotIndexSound();
+        const hammerMotion=rouletteAnimate(hammer,[
+          {transform:'rotate(0deg)',offset:0},
+          {transform:'rotate(23deg)',offset:.46},
+          {transform:'rotate(23deg)',offset:.60},
+          {transform:'rotate(-2.5deg)',offset:.76},
+          {transform:'rotate(0deg)',offset:1}
+        ],{duration:420,easing:'cubic-bezier(.22,.03,.16,1)',fill:'none'});
+        await rouletteWait(255);
+        liveRoot._rrHammerMotion=hammerMotion;
+      }else await rouletteWait(255);
+      const live=st.lastOutcome==='live';
+      if(live){
+        rouletteGunshotSound();navigator.vibrate?.([90,35,220]);
+        const shotFx=[];
+        if(flash)shotFx.push(rouletteAnimate(flash,[
+          {opacity:0,transform:'translate(-50%,-50%) scale(.1)'},
+          {opacity:1,transform:'translate(-50%,-50%) scale(1.7)',offset:.16},
+          {opacity:.75,transform:'translate(-50%,-50%) scale(2.7)',offset:.42},
+          {opacity:0,transform:'translate(-50%,-50%) scale(4.2)'}
+        ],{duration:380,easing:'ease-out'}));
+        smoke.forEach((p,i)=>shotFx.push(rouletteAnimate(p,[
+          {opacity:0,transform:'translate(0,0) scale(.25)'},
+          {opacity:.62,transform:\`translate(\${-18-i*7}px,\${-8-i*5}px) scale(\${.85+i*.14})\`,offset:.24},
+          {opacity:0,transform:\`translate(\${-55-i*18}px,\${-32-i*13}px) scale(\${1.7+i*.26})\`}
+        ],{duration:1050+i*170,delay:i*55,easing:'cubic-bezier(.2,.55,.2,1)'})));
+        const recoilMotion=rouletteAnimate(motion,[
+          {translate:'0px 0px',rotate:'0deg',scale:'1',offset:0},
+          {translate:\`\${20*facingSign}px \${7*facingSign}px\`,rotate:'10deg',scale:'1.035',offset:.2},
+          {translate:\`\${-5*facingSign}px \${-2*facingSign}px\`,rotate:'-2deg',scale:'1',offset:.55},
+          {translate:'0px 0px',rotate:'0deg',scale:'1',offset:1}
+        ],{duration:560,easing:'cubic-bezier(.16,.85,.2,1)'});
+        await Promise.all([liveRoot._rrHammerMotion||Promise.resolve(),recoilMotion,...shotFx]);
+      }else{
+        rouletteBlankSound();navigator.vibrate?.(30);
+        await Promise.all([liveRoot._rrHammerMotion||Promise.resolve(),rouletteAnimate(motion,[
+          {translate:'0px 0px',rotate:'0deg',scale:'1',offset:0},
+          {translate:\`\${-3*facingSign}px 0px\`,rotate:'0deg',scale:'1',offset:.42},
+          {translate:'0px 0px',rotate:'0deg',scale:'1',offset:1}
+        ],{duration:165,easing:'ease-out'})]);
+      }
+      delete liveRoot._rrHammerMotion;
+      const mountedRoot=duelActive?.querySelector(\`[data-roulette-game][data-game-id="\${CSS.escape(gameId)}"]\`);
+      const mountedMotion=mountedRoot?.querySelector('[data-roulette-motion]');
+      const mountedHammer=mountedRoot?.querySelector('.rr-hammer-photo');
+      const mountedCover=mountedRoot?.querySelector('.rr-hammer-cover');
+      for(const candidate of new Set([motion,mountedMotion].filter(Boolean))){
+        candidate.getAnimations?.().forEach(a=>a.cancel());
+        clearShotOffsets(candidate);
+      }
+      const finalMotion=mountedMotion||motion;
+      if(finalMotion)finalMotion.style.transform=rouletteMotionTransform(base,rouletteMotionScale());
+      for(const candidate of new Set([hammer,mountedHammer].filter(Boolean))){candidate.style.opacity='1';candidate.style.transform='rotate(0deg)'}
+      for(const candidate of new Set([cover,mountedCover].filter(Boolean)))candidate.style.opacity='0';
+      await rouletteWait(live?420:120);
+      liveRoot.classList.remove('rr-animation-lock');
+      mountedRoot?.classList.remove('rr-animation-lock');
+    }
+    function rouletteHandleEffects`;
+
+const liveCameraShakeRule = ".rr-game.rr-fired{animation:rrLiveCameraShake .42s cubic-bezier(.18,.8,.2,1) 1}";
+const stableLiveSceneRule = ".rr-game.rr-fired{animation:none!important}";
 
 let html = await readFile(indexUrl, 'utf8');
 html = removeObsoleteSceneBlocks(html);
@@ -173,10 +266,16 @@ if (html.includes(oldTurnFinalize)) {
   throw new Error('Could not make the turn rotation replacement-safe.');
 }
 
-if (shotOrientationPattern.test(html)) {
-  html = html.replace(shotOrientationPattern, shotSequenceStart);
-} else if (!html.includes('Shot effects never rotate the revolver.')) {
-  throw new Error('Could not remove the redundant pre-shot gun orientation.');
+if (shotSystemPattern.test(html)) {
+  html = html.replace(shotSystemPattern, replacementShotSystem);
+} else if (!html.includes('additive individual transform properties')) {
+  throw new Error('Could not rebuild the opponent-safe firing animation.');
+}
+
+if (html.includes(liveCameraShakeRule)) {
+  html = html.replace(liveCameraShakeRule, stableLiveSceneRule);
+} else if (!html.includes(stableLiveSceneRule)) {
+  throw new Error('Could not isolate live-shot recoil from the lamp and room root.');
 }
 
 for (const id of obsoleteSceneBlockIds) {
@@ -194,9 +293,15 @@ if (html.includes("rouletteAnimate(motion,[{opacity:1},{opacity:.12}]")) {
 if (html.includes('rouletteOrientToShotActor(') || html.includes('shot actor orientation locked')) {
   throw new Error('A shot effect can still independently rotate the gun.');
 }
+if (html.includes('rouletteMotionTransform(base+10') || html.includes('rouletteMotionTransform(base-2')) {
+  throw new Error('Shot recoil still crosses the opponent-facing 180 degree boundary.');
+}
+if (html.includes(liveCameraShakeRule)) {
+  throw new Error('Live shots can still move the lamp and whole room.');
+}
 if (!html.includes('const mountedMotion=mountedRoot?.querySelector')) {
   throw new Error('A completed turn rotation can still finish on a detached gun node.');
 }
 
 await writeFile(indexUrl, html);
-console.log(`Cleaned ${obsoleteSceneBlockIds.length} obsolete scene patch IDs; turn rotation repairs the currently mounted gun after rerenders.`);
+console.log(`Cleaned ${obsoleteSceneBlockIds.length} obsolete scene patch IDs; opponent-facing shots use additive recoil and never move the lamp root.`);
