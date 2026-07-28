@@ -40,6 +40,10 @@
     try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch { return null; }
   }
 
+  function readCollapsed() {
+    try { return localStorage.getItem(collapsedKey) !== '0'; } catch { return true; }
+  }
+
   function loadAtmosphere() {
     const saved = readJson(atmosphereKey) || {};
     return {
@@ -79,8 +83,12 @@
 
   function applyAtmosphere(root) {
     if (!root) return;
+    const ambientOpacity = Math.min(0.96, atmosphere.smokeDensity * 0.60);
+    const litOpacity = Math.min(0.98, atmosphere.smokeLight * 0.62);
     root.style.setProperty('--rr-smoke-density', String(atmosphere.smokeDensity));
     root.style.setProperty('--rr-smoke-light', String(atmosphere.smokeLight));
+    root.style.setProperty('--rr-smoke-ambient-opacity', String(ambientOpacity));
+    root.style.setProperty('--rr-smoke-lit-opacity', String(litOpacity));
     root.style.setProperty('--rr-smoke-blur', `${atmosphere.smokeBlur}px`);
     root.style.setProperty('--rr-smoke-speed', `${atmosphere.smokeSpeed}s`);
   }
@@ -134,7 +142,7 @@
     element.className = 'rr-atmosphere-settings';
     element.setAttribute('aria-label', 'Scene settings');
 
-    let collapsed = localStorage.getItem(collapsedKey) !== '0';
+    let collapsed = readCollapsed();
     if (collapsed) element.classList.add('is-collapsed');
 
     const toggle = document.createElement('button');
@@ -223,6 +231,7 @@
       mount();
       panel?.classList.remove('is-collapsed');
       panel?.querySelector('.rr-atmosphere-toggle')?.setAttribute('aria-expanded', 'true');
+      try { localStorage.setItem(collapsedKey, '0'); } catch {}
     },
     apply: mount,
     values() { return { lamp: { ...lampConfig }, smoke: { ...atmosphere } }; }
