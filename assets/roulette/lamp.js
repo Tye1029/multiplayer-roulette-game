@@ -8,7 +8,12 @@
   const styleAsset = '/assets/roulette/lamp.css?v=18';
   const styleMarker = 'rrLampExternalStyles';
   const imageId = 'rrLampPng';
-  const staleOverlayIds = ['rrLampTrackedLight', 'rrRoomDarknessOverlay', 'rrGunGlintOverlay', 'rrLampVisualOverlayRoot'];
+  const staleOverlayIds = [
+    'rrLampTrackedLight',
+    'rrRoomDarknessOverlay',
+    'rrGunGlintOverlay',
+    'rrLampVisualOverlayRoot'
+  ];
   const phaseEpoch = Number(global.__rrLampPhaseEpoch) || Date.now();
   global.__rrLampPhaseEpoch = phaseEpoch;
 
@@ -58,10 +63,84 @@
     if (element) element.style.setProperty(property, value, 'important');
   }
 
-  function animationDelayFor(duration) {
-    const seconds = Math.max(0.1, Number(duration) || 0.1);
-    const elapsed = Math.max(0, (Date.now() - phaseEpoch) / 1000);
-    return `${-(elapsed % seconds)}s`;
+  function phaseMilliseconds(durationSeconds) {
+    const duration = Math.max(100, (Number(durationSeconds) || 0.1) * 1000);
+    const elapsed = Math.max(0, Date.now() - phaseEpoch);
+    return elapsed % duration;
+  }
+
+  function ensureElementTimeline(element, stateKey, signature, frames, timing, phase) {
+    if (!element?.animate) return null;
+    const previous = element[stateKey];
+    if (
+      previous?.signature === signature &&
+      previous.animation &&
+      previous.animation.playState !== 'idle'
+    ) {
+      return previous.animation;
+    }
+
+    previous?.animation?.cancel?.();
+    const animation = element.animate(frames, timing);
+    try {
+      animation.currentTime = phase;
+      animation.play();
+    } catch (_) {
+      // The animation still starts normally on browsers that reject currentTime before play().
+    }
+    element[stateKey] = { signature, animation };
+    return animation;
+  }
+
+  function ensureSwingTimeline(swing, cfg) {
+    if (!swing) return null;
+    setImportant(swing, 'animation', 'none');
+    const duration = Math.max(0.1, Number(cfg.speed) || 0.1);
+    const negative = -Math.abs(Number(cfg.swing) || 0);
+    const positive = Math.abs(Number(cfg.swing) || 0);
+    const signature = `${duration}|${negative}|${positive}`;
+    return ensureElementTimeline(
+      swing,
+      '__rrLampSwingTimeline',
+      signature,
+      [
+        { transform: `translateX(-50%) rotate(${negative}deg)`, offset: 0 },
+        { transform: `translateX(-50%) rotate(${positive}deg)`, offset: 0.5 },
+        { transform: `translateX(-50%) rotate(${negative}deg)`, offset: 1 }
+      ],
+      {
+        duration: duration * 1000,
+        iterations: Infinity,
+        easing: 'ease-in-out',
+        fill: 'both'
+      },
+      phaseMilliseconds(duration)
+    );
+  }
+
+  function ensureLightTimeline(sceneLight, cfg) {
+    if (!sceneLight) return null;
+    setImportant(sceneLight, 'animation', 'none');
+    const duration = Math.max(0.1, Number(cfg.trackSpeed) || 0.1);
+    const distance = Math.max(0, Number(cfg.track) || 0);
+    const signature = `${duration}|${distance}`;
+    return ensureElementTimeline(
+      sceneLight,
+      '__rrLampLightTimeline',
+      signature,
+      [
+        { backgroundPosition: `calc(50% - ${distance}%) 50%`, offset: 0 },
+        { backgroundPosition: `calc(50% + ${distance}%) 50%`, offset: 0.5 },
+        { backgroundPosition: `calc(50% - ${distance}%) 50%`, offset: 1 }
+      ],
+      {
+        duration: duration * 1000,
+        iterations: Infinity,
+        easing: 'ease-in-out',
+        fill: 'both'
+      },
+      phaseMilliseconds(duration)
+    );
   }
 
   function applyLightingVariables(scene, cfg) {
@@ -80,16 +159,18 @@
     scene.game.style.setProperty('--rr-room-darkness', `${cfg.wallDark}`);
     scene.game.style.setProperty('--rr-gun-gleam', `${cfg.gunGleam}`);
 
-    if (scene.sceneLight) {
-      setImportant(scene.sceneLight, 'animation-duration', `${cfg.trackSpeed}s`);
-      setImportant(scene.sceneLight, 'animation-delay', animationDelayFor(cfg.trackSpeed));
-    }
+    ensureLightTimeline(scene.sceneLight, cfg);
     return Boolean(scene.sceneLight);
   }
 
   function apply(doc, rawConfig = {}) {
     if (!doc || !doc.head) {
-      return { mounted: false, connectedCount: 0, totalControls: Object.keys(configApi.bindings).length, targets: {} };
+      return {
+        mounted: false,
+        connectedCount: 0,
+        totalControls: Object.keys(configApi.bindings).length,
+        targets: {}
+      };
     }
 
     ensureStyles(doc);
@@ -112,10 +193,9 @@
 
     setImportant(scene.swing, 'left', `${cfg.lampX}%`);
     setImportant(scene.swing, 'top', `calc(20% + ${cfg.lampY}px)`);
-    setImportant(scene.swing, 'animation-duration', `${cfg.speed}s`);
-    setImportant(scene.swing, 'animation-delay', animationDelayFor(cfg.speed));
     scene.swing.style.setProperty('--rr-lamp-swing-positive', `${cfg.swing}deg`);
     scene.swing.style.setProperty('--rr-lamp-swing-negative', `${-cfg.swing}deg`);
+    ensureSwingTimeline(scene.swing, cfg);
 
     image.style.setProperty('--rr-lamp-art-x', `${cfg.lampArtX}%`);
     image.style.setProperty('--rr-lamp-art-y', `${cfg.lampArtY}%`);
@@ -218,11 +298,18 @@
 
     const lampNeedsRepair = () => {
       const scene = queryScene(doc);
-      if (scene.game !== lastGame || scene.swing !== lastSwing || scene.chain !== lastChain || scene.sceneLight !== lastLight) return true;
+      if (
+        scene.game !== lastGame ||
+        scene.swing !== lastSwing ||
+        scene.chain !== lastChain ||
+        scene.sceneLight !== lastLight
+      ) return true;
       return Boolean(scene.swing && !scene.swing.querySelector(`#${imageId}`));
     };
 
     const repairImmediately = () => {
+      // Gun, hammer, recoil, controls and turn-lock mutations are ignored unless
+      // the roulette render actually replaced a lamp or light node.
       if (!stopped && !applying && lampNeedsRepair()) run();
     };
 
@@ -246,6 +333,9 @@
     styleAsset,
     ensureStyles,
     queryScene,
+    phaseMilliseconds,
+    ensureSwingTimeline,
+    ensureLightTimeline,
     apply,
     watch
   });
