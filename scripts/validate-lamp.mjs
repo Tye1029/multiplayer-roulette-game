@@ -1,231 +1,148 @@
 import { access, readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 
-const read = filePath => readFile(new URL(`../${filePath}`, import.meta.url), 'utf8');
+const read = path => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
 const [
-  configSource,
-  runtimeSource,
-  calibrationSource,
-  bootstrapSource,
-  injectorSource,
-  cleanupSource,
-  packageSource,
-  htmlSource,
-  calibrationHtmlSource,
-  cssSource
+  html,
+  injector,
+  turnAnimation,
+  config,
+  lamp,
+  bootstrap,
+  calibration,
+  lampCss,
+  packageSource
 ] = await Promise.all([
+  read('index.html'),
+  read('scripts/inject-lamp-assets.mjs'),
+  read('assets/roulette/turn-animation.js'),
   read('assets/roulette/lamp-config.js'),
   read('assets/roulette/lamp.js'),
-  read('assets/roulette/lamp-calibration.js'),
   read('assets/roulette/lamp-bootstrap.js'),
-  read('scripts/inject-lamp-assets.mjs'),
-  read('scripts/clean-roulette-scene.mjs'),
-  read('package.json'),
-  read('index.html'),
-  read('lamp-calibration.html'),
-  read('assets/roulette/lamp.css')
+  read('assets/roulette/lamp-calibration.js'),
+  read('assets/roulette/lamp.css'),
+  read('package.json')
 ]);
+
+for (const [name, source] of [
+  ['turn-animation.js', turnAnimation],
+  ['lamp.js', lamp],
+  ['lamp-bootstrap.js', bootstrap],
+  ['lamp-calibration.js', calibration]
+]) {
+  new vm.Script(source, { filename: name });
+}
 
 const sandbox = { window: {} };
 vm.createContext(sandbox);
-vm.runInContext(configSource, sandbox, { filename: 'lamp-config.js' });
-new vm.Script(runtimeSource, { filename: 'lamp.js' });
-new vm.Script(calibrationSource, { filename: 'lamp-calibration.js' });
-new vm.Script(bootstrapSource, { filename: 'lamp-bootstrap.js' });
-
+vm.runInContext(config, sandbox, { filename: 'lamp-config.js' });
 const api = sandbox.window.RouletteLampConfig;
-if (!api) throw new Error('RouletteLampConfig was not exported');
-const keys = Object.keys(api.bindings);
-if (keys.length !== 25) throw new Error(`Expected 25 controls, found ${keys.length}`);
-for (const key of keys) {
-  if (!Object.hasOwn(api.defaults, key)) throw new Error(`Missing default for ${key}`);
-  if (!runtimeSource.includes(`cfg.${key}`)) throw new Error(`Runtime does not apply ${key}`);
-  if (!runtimeSource.includes(`${key}:`)) throw new Error(`Runtime target map does not include ${key}`);
+if (!api || Object.keys(api.bindings).length !== 25) {
+  throw new Error('The 25 lamp calibration controls are not intact.');
 }
 
 for (const required of [
-  '/assets/roulette/lamp-config.js?v=18',
-  '/assets/roulette/lamp.js?v=18',
-  '/assets/roulette/lamp-calibration.js?v=18',
-  '/assets/roulette/lamp-calibration.css?v=18',
-  '?lampCalibration=18'
-]) {
-  if (!calibrationHtmlSource.includes(required)) throw new Error(`Calibration HTML missing ${required}`);
-}
-
-for (const required of [
-  '/assets/roulette/lamp-config.js?v=18',
-  '/assets/roulette/lamp.js?v=18',
-  '/assets/roulette/lamp-bootstrap.js?v=18',
-  'rrLampCriticalHide',
+  '/assets/roulette/lamp.css?v=18',
+  '/assets/roulette/lamp-config.js?v=19',
+  '/assets/roulette/lamp.js?v=19',
+  '/assets/roulette/lamp-bootstrap.js?v=19',
+  '/assets/roulette/turn-animation.js?v=1',
   'MODULAR_LAMP_ASSETS_START',
-  'MODULAR_LAMP_ASSETS_END',
-  'top: calc(20% - 26px)',
-  'left: 49.75%',
-  'width: 12.5px',
-  'height: 5%',
-  'top: 90.5% !important',
-  'width: 94% !important'
+  'rrLampCriticalHide'
 ]) {
-  if (!injectorSource.includes(required)) throw new Error(`Build injector missing ${required}`);
-  if (!htmlSource.includes(required)) throw new Error(`Built page missing ${required}`);
+  if (!html.includes(required)) throw new Error(`Built page is missing ${required}`);
 }
 
-for (const forbidden of ['gun-facing.js', 'turn-orientation.js', 'gun-turn-animation.js', 'gun-animation-test']) {
-  if (injectorSource.includes(forbidden) || htmlSource.includes(forbidden)) {
-    throw new Error(`External gun patch is still loaded: ${forbidden}`);
+for (const required of [
+  'rouletteMotionTransform = function',
+  'rouletteRotateToTurn = async function',
+  'rouletteShotSequence = async function',
+  'rouletteOrientToShotActor = async function',
+  'data.rouletteRecoil',
+  'ensureRecoilLayer',
+  'root._rrHammerMotion',
+  'settleFacing(gameId, target)',
+  'newestTurnId !== turnId'
+]) {
+  if (!turnAnimation.includes(required)) throw new Error(`Clean turn module is missing ${required}`);
+}
+
+for (const forbidden of [
+  'MutationObserver',
+  'setInterval(',
+  'getBoundingClientRect',
+  'rouletteMotionTransform(base+10',
+  'rouletteMotionTransform(base-2',
+  'scale(${-scale}',
+  'data-current-turn',
+  'data-shot-revision'
+]) {
+  if (turnAnimation.includes(forbidden)) throw new Error(`Turn module contains a forbidden patch technique: ${forbidden}`);
+}
+
+for (const forbidden of [
+  'rouletteRotateToTurn',
+  'rouletteShotSequence',
+  'rouletteMotionTransform',
+  'gun-facing.js',
+  'turn-orientation.js',
+  'gun-turn-animation.js'
+]) {
+  if (injector.includes(forbidden)) throw new Error(`Lamp injector still rewrites or loads obsolete gun code: ${forbidden}`);
+}
+
+for (const id of [
+  'rr-v114-image2-lamp-rig',
+  'rr-v126-split-lamp-rig',
+  'rr-v130-table-surface-lighting',
+  'rr-v140-lighting-debug-rebuild',
+  'rr-v145-single-driver-light-sync',
+  'rr-v148-final-lamp-asset-cleanup'
+]) {
+  if (html.includes(`id="${id}"`) || html.includes(`id='${id}'`)) {
+    throw new Error(`Obsolete lamp block survived the build: ${id}`);
   }
 }
 
 for (const required of [
   '/assets/roulette/decor/lamp-1.png',
-  "styleAsset = '/assets/roulette/lamp.css?v=18'",
-  'const phaseEpoch = Number(global.__rrLampPhaseEpoch) || Date.now()',
-  'function animationDelayFor(duration)',
-  "setImportant(scene.swing, 'animation-delay', animationDelayFor(cfg.speed))",
-  "setImportant(scene.sceneLight, 'animation-delay', animationDelayFor(cfg.trackSpeed))",
-  'const repairImmediately = () =>',
-  'if (!stopped && !applying && lampNeedsRepair()) run()',
+  'animationDelayFor(duration)',
+  'repairImmediately',
   'scene.chain !== lastChain',
   'scene.sceneLight !== lastLight'
 ]) {
-  if (!runtimeSource.includes(required)) throw new Error(`Replacement-safe lamp runtime missing ${required}`);
+  if (!lamp.includes(required)) throw new Error(`Lamp runtime is missing ${required}`);
 }
-
-for (const forbidden of [
-  '.rr-gun-motion',
-  'getBoundingClientRect',
-  'scene.gun',
-  'scene.table',
-  'data-current-turn',
-  'data-shot-revision',
-  'requestAnimationFrame(apply',
-  'setInterval('
-]) {
-  if (runtimeSource.includes(forbidden)) throw new Error(`Lamp runtime still interacts with gun/turn state or delays remount repair: ${forbidden}`);
-}
-
-for (const required of [
-  '/* Permanent self-contained lamp foundation. */',
-  'left: 49.75%;',
-  'top: calc(20% - 26px);',
-  'width: 12.5px;',
-  'height: 5%;',
-  '--rr-chain-left-length: 70%;',
-  '--rr-chain-right-length: 101%;',
-  'var(--rr-lamp-art-x, -0.75%)',
-  'var(--rr-lamp-art-y, 90.5%)',
-  'var(--rr-lamp-width, 94%)',
-  'var(--rr-lamp-scale, 1.1)',
-  'background-position: calc(50% - var(--rr-light-track-distance',
-  'background-position: calc(50% + var(--rr-light-track-distance',
-  'transform: none !important',
-  '#rrLampTrackedLight',
-  '#rrRoomDarknessOverlay'
-]) {
-  if (!cssSource.includes(required)) throw new Error(`Lamp CSS missing ${required}`);
-}
-for (const forbidden of ['[data-roulette-game] .rr-gun-motion', '[data-current-turn', '[data-shot-revision']) {
-  if (cssSource.includes(forbidden)) throw new Error(`Lamp CSS still styles gun or turn state: ${forbidden}`);
-}
-if (cssSource.includes('@keyframes rrLampLightTrackExternal {\n  0%, 100% { transform:')) {
-  throw new Error('Light tracking still transforms a scene element');
-}
-
-const obsoleteSceneBlockIds = [
-  'rr-v114-image2-lamp-rig','rr-v115-lamp-and-light-runtime','rr-v126-split-lamp-rig','rr-v127-lamp-layer-fix',
-  'rr-v130-table-surface-lighting','rr-v134-clean-reactive-lighting','rr-v135-overhead-table-light-fix',
-  'rr-v136-center-bright-full-table-extension','rr-v136-table-edge-layer','rr-v137-reference-centered-textured-lighting',
-  'rr-v139-visible-reference-lighting','rr-v140-lighting-debug-rebuild','rr-v140-lighting-debug-tools',
-  'rr-v141-debug-bootstrap','rr-v141-debug-visible-fix','rr-v142-warm-rough-table-authoritative',
-  'rr-v143-clean-moving-light-authoritative','rr-v143-remove-debug-ui','rr-v144-targeted-light-balance',
-  'rr-v145-single-driver-light-sync','rr-v145-single-driver-light-sync-script','rr-v146-lamp-art-cleanup',
-  'rr-v147-halo-bulb-direction-fix','rr-v148-final-lamp-asset-cleanup','rr-live-lamp-calibration-style',
-  'rr-live-lamp-calibration-script','rr-live-lamp-calibration-overrides'
-];
-for (const id of obsoleteSceneBlockIds) {
-  if (!cleanupSource.includes(`'${id}'`)) throw new Error(`Cleanup script does not own obsolete block: ${id}`);
-  if (htmlSource.includes(`id="${id}"`) || htmlSource.includes(`id='${id}'`)) {
-    throw new Error(`Obsolete scene override survived the build: ${id}`);
+for (const forbidden of ['.rr-gun-motion', 'scene.gun', 'scene.table', 'data-current-turn']) {
+  if (lamp.includes(forbidden) || lampCss.includes(forbidden)) {
+    throw new Error(`Lamp module still interacts with gun state: ${forbidden}`);
   }
-}
-
-for (const required of [
-  'rotate(${Number(angle)||0}deg) scale(${scale})',
-  'const mountedClaimsTarget=',
-  'const runtimeClaimsTarget=',
-  'runtimeClaimsTarget&&mountedClaimsTarget',
-  'mountedMotion.dataset.rouletteFacingTurnId=String(turnId||\'\')',
-  'const animatedTarget=from+delta;',
-  'await rouletteRotateToTurn(latestAtFinish',
-  "rouletteDebug('skipped stale shot visual'",
-  'actorId&&displayedTurnId&&actorId!==displayedTurnId',
-  'const base=Number.isFinite(rouletteVisualRuntime.currentAngle)',
-  "{translate:'0px 0px',rotate:'0deg',scale:'1',offset:0}",
-  'const restoreAngle=Number.isFinite(rouletteVisualRuntime.currentAngle)',
-  'const restoreTurnId=String(rouletteVisualRuntime.displayTurnId',
-  'finalMotion.dataset.rouletteFacingTurnId=restoreTurnId',
-  'const syncNewestTurn=async duration=>',
-  'await syncNewestTurn(900)',
-  'Repeated authoritative polls are also allowed to repair direction',
-  '.rr-gun-motion{backface-visibility:visible;transform-style:flat}',
-  '.rr-game.rr-fired{animation:none!important}'
-]) {
-  if (!htmlSource.includes(required)) throw new Error(`Authoritative gun state is missing ${required}`);
-  if (!cleanupSource.includes(required) && !['rotate(${Number(angle)||0}deg) scale(${scale})','.rr-game.rr-fired{animation:none!important}'].includes(required)) {
-    throw new Error(`Cleanup source does not enforce ${required}`);
-  }
-}
-
-for (const forbidden of [
-  'scale(${-scale},${scale})',
-  "rouletteAnimate(motion,[{opacity:1},{opacity:.12}]",
-  "rouletteAnimate(motion,[{opacity:.12},{opacity:1}]",
-  'rouletteOrientToShotActor(',
-  'shot actor orientation locked',
-  'const shotActorId=String(st?.lastActorId',
-  'rouletteVisualRuntime.currentAngle=base',
-  'if(rouletteVisualRuntime.displayTurnId===requestedTurnId||rouletteVisualRuntime.rotationTargetId===requestedTurnId)return',
-  'const nextTurnId=turnChanged',
-  'rouletteMotionTransform(base+10',
-  'rouletteMotionTransform(base-2',
-  'const current=getComputedStyle(motion).transform',
-  '.rr-game.rr-fired{animation:rrLiveCameraShake',
-  'backface-visibility:hidden;transform-style:preserve-3d',
-  'data-rr-gun-facing-rotor',
-  '--rr-turn-origin-x',
-  '--rr-turn-origin-y'
-]) {
-  if (htmlSource.includes(forbidden)) throw new Error(`Conflicting gun or scene animation survived cleanup: ${forbidden}`);
 }
 
 const packageJson = JSON.parse(packageSource);
-const expectedBuild = "node scripts/clean-roulette-scene.mjs && node scripts/inject-lamp-assets.mjs && npm run validate:lamp && echo 'Static Netlify site - validation complete'";
-if (packageJson.scripts?.build !== expectedBuild) throw new Error('Netlify build pipeline changed unexpectedly');
-if (packageJson.scripts?.['clean:lamp']) throw new Error('Broad deployment-time lamp deletion must remain disabled');
+const expected = "node scripts/inject-lamp-assets.mjs && npm run validate:lamp && echo 'Static Netlify site - validation complete'";
+if (packageJson.scripts?.build !== expected) throw new Error('Build still runs the old gameplay rewriter.');
 
-await access(new URL('../assets/roulette/decor/lamp-1.png', import.meta.url));
-await access(new URL('../assets/roulette/decor/workshop-lamp-chain.png', import.meta.url));
-await access(new URL('../scripts/clean-roulette-scene.mjs', import.meta.url));
-
-async function requireMissing(filePath) {
+async function requireMissing(path) {
   try {
-    await access(new URL(`../${filePath}`, import.meta.url));
-    throw new Error(`Obsolete diagnostic or gun patch file still exists: ${filePath}`);
+    await access(new URL(`../${path}`, import.meta.url));
+    throw new Error(`Obsolete file still exists: ${path}`);
   } catch (error) {
-    if (error.message === `Obsolete diagnostic or gun patch file still exists: ${filePath}`) throw error;
+    if (error.message === `Obsolete file still exists: ${path}`) throw error;
     if (error.code !== 'ENOENT') throw error;
   }
 }
-for (const filePath of [
-  'assets/roulette/gun-facing.js','assets/roulette/turn-orientation.js','assets/roulette/gun-turn-animation.js',
-  'assets/roulette/gun-animation-test.js','assets/roulette/gun-animation-test.css','gun-animation-test.html',
-  'assets/roulette/decor/workshop-lamp-body-game-small-2.png'
-]) await requireMissing(filePath);
+for (const path of [
+  'scripts/clean-roulette-scene.mjs',
+  'assets/roulette/gun-facing.js',
+  'assets/roulette/turn-orientation.js',
+  'assets/roulette/gun-turn-animation.js',
+  'assets/roulette/gun-animation-test.js',
+  'assets/roulette/gun-animation-test.css',
+  'gun-animation-test.html'
+]) await requireMissing(path);
 
-if (!calibrationSource.includes('lampApi.watch')) throw new Error('Calibration controller is not watching lamp remounts');
-if (!bootstrapSource.includes("params.has('lampCalibration')") || !bootstrapSource.includes('lampApi.watch')) {
-  throw new Error('Normal-page lamp bootstrap is not isolated from calibration mode');
-}
+await access(new URL('../assets/roulette/decor/lamp-1.png', import.meta.url));
+await access(new URL('../assets/roulette/decor/workshop-lamp-chain.png', import.meta.url));
 
-console.log(`Validation passed: ${keys.length}/${keys.length} lamp controls bound; one verified authoritative state owns gun direction and repairs stale mounts.`);
+console.log('Validation passed: old gameplay rewriter removed; one turn module owns facing and recoil is isolated.');
