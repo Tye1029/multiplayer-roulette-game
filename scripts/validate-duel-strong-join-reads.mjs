@@ -1,13 +1,16 @@
 import { readFile } from 'node:fs/promises';
 
 const data = await readFile(new URL('../netlify/functions/_data.js', import.meta.url), 'utf8');
+const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 const injector = await readFile(new URL('./inject-lamp-assets.mjs', import.meta.url), 'utf8');
 
 for (const required of [
   'async function duelGetRaw(gameId, options = {})',
   'if (options?.consistency === "strong") readOptions.consistency = "strong";',
-  'async function duelGetRawStrong(gameId, attempts = 3)',
-  'const game = await duelGetRaw(gameId, { consistency: "strong" });',
+  'function duelGetStrongStore()',
+  'const options = { name: STORE_NAME, consistency: "strong" };',
+  'async function duelGetRawStrong(gameId, attempts = 4)',
+  'const store = duelGetStrongStore();',
   'async function duelJoinGame(user, gameId) {\n  await duelEnsureSchemaMigration();\n  let game = await duelGetRawStrong(gameId);',
   'async function duelAddSimpleNpc(user, gameId) {\n  const viewer = cleanUserId(user.id);\n  let game = await duelGetRawStrong(gameId);',
   'async function duelAddRemoteNetworkBot(user, gameId, profile = "normal") {\n  const viewer = cleanUserId(user.id);\n  let game = await duelGetRawStrong(gameId);',
@@ -17,8 +20,21 @@ for (const required of [
   if (!data.includes(required)) throw new Error(`Strong duel-read validation is missing ${required}`);
 }
 
-if (!injector.includes("await import('./patch-duel-strong-join-reads.mjs');")) {
-  throw new Error('Strong duel-read patch is not part of the Netlify build.');
+for (const required of [
+  'async function rnbAttachBotWithRetry(gameId,profile)',
+  'const delays=[0,900,1500,2200,3000,3500];',
+  "line(botLogs,'attach retry scheduled'",
+  'const data=await rnbAttachBotWithRetry(gameId,profile);',
+  'const adopted=rnbAdoptGame(data.game,true)'
+]) {
+  if (!html.includes(required)) throw new Error(`One-click Remote Bot validation is missing ${required}`);
 }
 
-console.log('Strong duel-read validation passed: newly created games are immediately joinable through strong exact reads, bounded retries, and retry-safe Remote Bot attachment.');
+for (const required of [
+  "await import('./patch-duel-strong-join-reads.mjs');",
+  "await import('./patch-remote-bot-attach-retry.mjs');"
+]) {
+  if (!injector.includes(required)) throw new Error(`Strong join build is missing ${required}`);
+}
+
+console.log('Strong duel-read validation passed: store-level strong exact reads, bounded retries, authoritative snapshot adoption, and one-click Remote Bot recovery are present.');
