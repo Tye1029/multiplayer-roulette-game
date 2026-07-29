@@ -1,12 +1,12 @@
 import { readFile } from 'node:fs/promises';
 
 const read = path => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
-const [html, audio, policy, lamp, lampCss, injector] = await Promise.all([
+const [html, audio, policy, smoke, smokeCss, injector] = await Promise.all([
   read('index.html'),
   read('assets/roulette/audio-manager.js'),
   read('assets/roulette/spin-audio-policy.js'),
-  read('assets/roulette/lamp.js'),
-  read('assets/roulette/lamp.css'),
+  read('assets/roulette/smoke.js'),
+  read('assets/roulette/smoke.css'),
   read('scripts/inject-lamp-assets.mjs')
 ]);
 
@@ -48,48 +48,40 @@ for (const required of [
 }
 
 for (const required of [
-  "smoke: doc.querySelector('.rr-smoke')",
-  'function ensureSmokeLayers(doc, smoke)',
-  'function ensureSmokeTimeline(smokeLit, cfg)',
-  "'__rrLampSmokeTimeline'",
-  'phaseMilliseconds(duration)',
-  'ensureSmokeTimeline(smokeLayers.lit, cfg)'
+  'global.__rrPermanentSmokeV1 = true',
+  "ensureLayer(smoke, 'rr-smoke-ambient')",
+  "ensureLayer(smoke, 'rr-smoke-lit')",
+  'synchronizeLitSmoke(lit, readLampConfig())',
+  'animation.currentTime = Math.max(0, Date.now() - phaseEpoch)'
 ]) {
-  if (!lamp.includes(required)) throw new Error(`Lamp-synchronized smoke is missing ${required}`);
+  if (!smoke.includes(required)) throw new Error(`Permanent lamp-synchronized smoke is missing ${required}`);
 }
 
 for (const required of [
-  '/* Lamp-synchronized room smoke. */',
+  '[data-roulette-game] .rr-smoke {',
   '[data-roulette-game] .rr-smoke-ambient',
   '[data-roulette-game] .rr-smoke-lit',
-  '@keyframes rrRoomSmokeDrift',
-  'mix-blend-mode:screen!important'
+  'opacity: .72 !important;',
+  'opacity: .78 !important;',
+  '@keyframes rrPermanentSmokeDrift',
+  'mix-blend-mode: screen !important;'
 ]) {
-  if (!lampCss.includes(required)) throw new Error(`Room smoke styling is missing ${required}`);
+  if (!smokeCss.includes(required)) throw new Error(`Permanent room smoke styling is missing ${required}`);
 }
 
-for (const required of [
-  '<style id="rr-v153-adjustable-smoke-priority">',
-  '--rr-smoke-ambient-opacity:.63;',
-  '--rr-smoke-lit-opacity:.69;',
-  'opacity:var(--rr-smoke-ambient-opacity,.63)!important;',
-  'opacity:var(--rr-smoke-lit-opacity,.69)!important;',
-  'visibility:visible!important;',
-  '[data-roulette-game] .rr-smoke-lit{',
-  'background-size:125% 100%,100% 100%!important'
-]) {
-  if (!html.includes(required)) throw new Error(`Final-priority adjustable smoke styling is missing ${required}`);
+if (html.includes('rr-v153-adjustable-smoke-priority')) {
+  throw new Error('Obsolete adjustable-smoke priority styling remains in the built page.');
 }
 
 for (const required of [
   "import './patch-roulette-turn-countdown-smoke.mjs';",
   "import './patch-roulette-smoke-priority.mjs';",
-  '/assets/roulette/lamp.css?v=18&smoke=1',
-  '/assets/roulette/lamp.js?v=20&smoke=1',
+  '/assets/roulette/smoke.css?v=1',
+  '/assets/roulette/smoke.js?v=1',
   '/assets/roulette/audio-manager.js?v=4&ambience=2&countdown=2',
   '/assets/roulette/spin-audio-policy.js?v=3&turn-audio=2'
 ]) {
   if (!injector.includes(required)) throw new Error(`Fresh patched asset loading is missing ${required}`);
 }
 
-console.log('Roulette turn/countdown/smoke validation passed: every pass has a revision-keyed movement cue, the wood knock is removed, countdown is red and audible, and versioned adjustable smoke tracks the calibrated lamp light.');
+console.log('Roulette turn/countdown/smoke validation passed: pass audio is revision-keyed without a terminal knock, countdown is red and audible, and strong permanent smoke follows the lamp phase without a settings menu.');
