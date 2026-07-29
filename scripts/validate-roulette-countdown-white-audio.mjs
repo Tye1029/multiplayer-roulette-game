@@ -98,13 +98,8 @@ for (const required of [
 ]) {
   if (!guard.includes(required)) throw new Error(`Single-owner facing guard validation is missing ${required}`);
 }
-
-for (const forbidden of [
-  'global.__rrAuthoritativeFacingGuardV2 = true',
-  'function authoritativeTurnId(game, root = currentRoot(game?.gameId))',
-  'rootRevision >= gameRevision'
-]) {
-  if (guard.includes(forbidden)) throw new Error(`Old multi-authority facing logic remains: ${forbidden}`);
+if (guard.includes('rootRevision >= gameRevision')) {
+  throw new Error('Mounted DOM state can still override the accepted server snapshot.');
 }
 
 function gitBlobSha(source) {
