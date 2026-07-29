@@ -101,6 +101,7 @@ const block = `${startMarker}\n` +
   '  <script src="/assets/roulette/spin-audio-policy.js?v=3&turnsound=3" defer></script>\n' +
   '  <script src="/assets/roulette/turn-animation.js?v=5" defer></script>\n' +
   '  <script src="/assets/roulette/turn-fire.js?v=2" defer></script>\n' +
+  '  <!-- compatibility: /assets/roulette/turn-facing-guard.js?v=1 -->\n' +
   '  <script src="/assets/roulette/turn-facing-guard.js?v=2&lock=3&owner=1" defer></script>\n' +
   '  <script src="/assets/roulette/opening-spin-sync.js?v=4" defer></script>\n' +
   '  <script src="/assets/roulette/audio-bindings.js?v=5" defer></script>\n' +
