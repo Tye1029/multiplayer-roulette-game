@@ -347,12 +347,12 @@
       stopGroup('turn-move', 45);
       playClip(TABLE_MOVE, {
         group: 'turn-move',
-        volume: 0.044,
-        rate: 1.08,
-        start: 0.22,
-        duration: 0.56,
-        fadeIn: 0.03,
-        fadeOut: 0.30
+        volume: 0.052,
+        rate: 1.06,
+        start: 0.14,
+        duration: 0.82,
+        fadeIn: 0.04,
+        fadeOut: 0.22
       });
     }
     lastGameId = gameId;

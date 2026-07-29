@@ -5989,21 +5989,14 @@ function rouletteChamberPosition(value){
   const n=Math.trunc(Number(value));
   return Number.isFinite(n)?Math.min(6,Math.max(1,n)):6;
 }
-function rouletteNewChamberCycle(){
-  const bulletPosition=crypto.randomInt(1,7);
-  return {bulletPosition,remaining:bulletPosition,chamberCycleId:crypto.randomBytes(8).toString("hex")};
-}
-function rouletteRemaining(state={}){
-  return rouletteChamberPosition(state.remaining??state.bulletPosition??6);
-}
 function rouletteInitialState(game,startMs=Date.now()){
   const ids=roulettePlayerIds(game); const first=ids[Math.floor(Math.random()*Math.max(1,ids.length))]||ids[0]||"";
-  const chamber=rouletteNewChamberCycle();
-  return {phase:"turn",turnId:first,openingSpinWinnerId:first,revolverModel:ROULETTE_REVOLVER_MODEL,...chamber,shotsFired:0,blankStreak:0,spinUsed:Object.fromEntries(ids.map(id=>[id,false])),lastAction:"opening_spin",lastActorId:"",lastOutcome:"first_player",lastShotNumber:0,winnerId:"",loserId:"",startedAt:new Date(startMs).toISOString(),revision:1};
+  const bulletPosition=1+Math.floor(Math.random()*6);
+  return {phase:"turn",turnId:first,openingSpinWinnerId:first,revolverModel:ROULETTE_REVOLVER_MODEL,remaining:bulletPosition,bulletPosition,shotsFired:0,blankStreak:0,spinUsed:Object.fromEntries(ids.map(id=>[id,false])),lastAction:"opening_spin",lastActorId:"",lastOutcome:"first_player",lastShotNumber:0,winnerId:"",loserId:"",startedAt:new Date(startMs).toISOString(),revision:1};
 }
 function roulettePublicState(game,viewer){
   const st=game?.rouletteState||null;if(!st)return null;
-  const {bulletPosition:_hidden,remaining:_hiddenRemaining,chamberCycleId:_hiddenCycle,blankRoundsRemaining:_hiddenBlanks,processedActionIds:_hiddenActionIds,...safe}=st; const id=cleanUserId(viewer);
+  const {bulletPosition:_hidden,remaining:_hiddenRemaining,blankRoundsRemaining:_hiddenBlanks,processedActionIds:_hiddenActionIds,...safe}=st; const id=cleanUserId(viewer);
   return {...safe,revolverModel:ROULETTE_REVOLVER_MODEL,chambersTotal:6,liveRounds:1,chamberModel:"fixed-six",isMyTurn:cleanUserId(st.turnId)===id,canSpin:cleanUserId(st.turnId)===id&&!Boolean(st.spinUsed?.[id])&&st.phase==="turn",canShoot:cleanUserId(st.turnId)===id&&["turn","press_luck"].includes(st.phase),canPass:cleanUserId(st.turnId)===id&&st.phase==="press_luck",mySpinUsed:Boolean(st.spinUsed?.[id]),opponentSpinUsed:Boolean(st.spinUsed?.[rouletteOther(game,id)])};
 }
 function rouletteCanAct(game,viewer){const st=game?.rouletteState||{};return game.status==="playing"&&cleanUserId(st.turnId)===cleanUserId(viewer)&&["turn","press_luck"].includes(st.phase);}
@@ -6037,20 +6030,20 @@ async function rouletteAdvance(game){
   // delay before any additional action. The NPC only uses public state.
   let nextActionAt=null;
   if(s.phase==="turn"&&!s.spinUsed?.[npcId]&&Number(s.remaining||6)<=3&&Math.random()<.7){
-    const chamber=rouletteNewChamberCycle();
-    s={...s,revolverModel:ROULETTE_REVOLVER_MODEL,...chamber,blankStreak:0,spinUsed:{...(s.spinUsed||{}),[npcId]:true},lastAction:"spin",lastActorId:npcId,lastOutcome:"spun",revision:Number(s.revision||0)+1};
+    const bulletPosition=1+Math.floor(Math.random()*6);
+    s={...s,revolverModel:ROULETTE_REVOLVER_MODEL,bulletPosition,remaining:bulletPosition,blankStreak:0,spinUsed:{...(s.spinUsed||{}),[npcId]:true},lastAction:"spin",lastActorId:npcId,lastOutcome:"spun",revision:Number(s.revision||0)+1};
     nextActionAt=new Date(now+2400+Math.floor(Math.random()*1201)).toISOString();
     return {...g,rouletteState:s,npcActionAt:nextActionAt};
   }
 
-  const remaining=rouletteRemaining(s);
+  const remaining=rouletteChamberPosition(s.bulletPosition||s.remaining||6);
   const pressAgain=s.phase==="press_luck"&&remaining>=4&&Math.random()<.55;
   if(s.phase==="press_luck"&&!pressAgain){
     s={...s,phase:"turn",turnId:rouletteOther(g,npcId),blankStreak:0,lastAction:"pass",lastActorId:npcId,lastOutcome:"passed",revision:Number(s.revision||0)+1};
     return {...g,rouletteState:s,npcActionAt:null};
   }
 
-  const live=remaining===1;
+  const live=rouletteChamberPosition(s.bulletPosition||s.remaining||6)===1;
   if(live){
     const winner=rouletteOther(g,npcId);
     if(!winner||winner===npcId) throw new Error("Russian Roulette could not identify the surviving opponent.");
@@ -6058,8 +6051,8 @@ async function rouletteAdvance(game){
     g={...g,rouletteState:s,npcActionAt:null};
     return await roulettePayComplete(g,winner,npcId);
   }
-  const nextRemaining=rouletteChamberPosition(remaining-1);
-  s={...s,revolverModel:ROULETTE_REVOLVER_MODEL,phase:"press_luck",remaining:nextRemaining,shotsFired:Number(s.shotsFired||0)+1,blankStreak:Number(s.blankStreak||0)+1,lastAction:"shoot",lastActorId:npcId,lastOutcome:"blank",lastShotNumber:Number(s.shotsFired||0)+1,revision:Number(s.revision||0)+1};
+  const nextBulletPosition=rouletteChamberPosition(remaining-1);
+  s={...s,revolverModel:ROULETTE_REVOLVER_MODEL,phase:"press_luck",remaining:nextBulletPosition,bulletPosition:nextBulletPosition,shotsFired:Number(s.shotsFired||0)+1,blankStreak:Number(s.blankStreak||0)+1,lastAction:"shoot",lastActorId:npcId,lastOutcome:"blank",lastShotNumber:Number(s.shotsFired||0)+1,revision:Number(s.revision||0)+1};
   nextActionAt=new Date(now+2600+Math.floor(Math.random()*1401)).toISOString();
   return {...g,rouletteState:s,npcActionAt:nextActionAt};
 }
@@ -6105,15 +6098,14 @@ async function rouletteAction(user,gameId,choice,details={}){return await withRo
   const markProcessed=state=>actionId?{...state,processedActionIds:[...processed,actionId].slice(-40)}:state;
   if(choice==="roulette:spin"){
     if(s.phase!=="turn")throw new Error("You can only spin before your first shot of the turn.");if(s.spinUsed?.[id])throw new Error("You already used your spin.");
-    const chamber=rouletteNewChamberCycle();
-    s={...s,revolverModel:ROULETTE_REVOLVER_MODEL,...chamber,blankStreak:0,spinUsed:{...(s.spinUsed||{}),[id]:true},lastAction:"spin",lastActorId:id,lastOutcome:"spun",revision:Number(s.revision||0)+1};
+    const bulletPosition=1+Math.floor(Math.random()*6);
+    s={...s,revolverModel:ROULETTE_REVOLVER_MODEL,bulletPosition,remaining:bulletPosition,blankStreak:0,spinUsed:{...(s.spinUsed||{}),[id]:true},lastAction:"spin",lastActorId:id,lastOutcome:"spun",revision:Number(s.revision||0)+1};
   }else if(choice==="roulette:shoot"){
     if(!["turn","press_luck"].includes(s.phase))throw new Error("You cannot pull the trigger right now.");
-    const remaining=rouletteRemaining(s);
-    const live=remaining===1;
+    const live=rouletteChamberPosition(s.bulletPosition||s.remaining||6)===1;
     if(live){const winner=rouletteOther(g,id);if(!winner||winner===id)throw new Error("Russian Roulette could not identify the surviving opponent.");s={...s,phase:"complete",lastAction:"shoot",lastActorId:id,lastOutcome:"live",lastShotNumber:Number(s.shotsFired||0)+1,shotsFired:Number(s.shotsFired||0)+1,winnerId:winner,loserId:id,revision:Number(s.revision||0)+1};s=markProcessed(s);g=await duelSaveGame({...g,rouletteState:s});g=await duelSaveGame(await roulettePayComplete(g,winner,id));return {game:duelPublicGame(g,id),record:await getUserRecord(id)};}
-    const nextRemaining=rouletteChamberPosition(remaining-1);
-    s={...s,revolverModel:ROULETTE_REVOLVER_MODEL,phase:"press_luck",remaining:nextRemaining,shotsFired:Number(s.shotsFired||0)+1,blankStreak:Number(s.blankStreak||0)+1,lastAction:"shoot",lastActorId:id,lastOutcome:"blank",lastShotNumber:Number(s.shotsFired||0)+1,revision:Number(s.revision||0)+1};
+    const nextBulletPosition=rouletteChamberPosition(rouletteChamberPosition(s.bulletPosition||s.remaining||6)-1);
+    s={...s,revolverModel:ROULETTE_REVOLVER_MODEL,phase:"press_luck",remaining:nextBulletPosition,bulletPosition:nextBulletPosition,shotsFired:Number(s.shotsFired||0)+1,blankStreak:Number(s.blankStreak||0)+1,lastAction:"shoot",lastActorId:id,lastOutcome:"blank",lastShotNumber:Number(s.shotsFired||0)+1,revision:Number(s.revision||0)+1};
   }else if(choice==="roulette:pass"){
     if(s.phase!=="press_luck")throw new Error("You can only pass after surviving a blank.");
     const nextTurnId=rouletteOther(g,id);

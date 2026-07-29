@@ -12440,76 +12440,6 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
   overflow:visible!important;overscroll-behavior:auto!important;touch-action:auto!important
 }
 </style>
-<style id="rr-v149-ui-audio-cleanup">
-  [data-roulette-game] .rr-neon{display:none!important}
-  [data-roulette-game] .rr-scene-countdown{transform:translateY(clamp(42px,7.5vh,62px))!important}
-  [data-roulette-game] .rr-scene-countdown .duel-countdown-number{
-    color:#c7a175!important;
-    text-shadow:0 7px 0 rgba(0,0,0,.62),0 0 22px rgba(110,28,8,.48),0 0 46px rgba(0,0,0,.86)!important;
-    animation:rrDreadCountdown .48s cubic-bezier(.16,.7,.2,1)!important;
-  }
-  [data-roulette-game] .rr-scene-countdown .duel-countdown-number.go{color:#ac8463!important}
-  @keyframes rrDreadCountdown{
-    0%{opacity:0;transform:scale(1.32);filter:blur(3px)}
-    42%{opacity:1;transform:scale(.96);filter:blur(0)}
-    100%{opacity:1;transform:scale(1);filter:blur(0)}
-  }
-  @media(max-width:600px){[data-roulette-game] .rr-scene-countdown{transform:translateY(38px)!important}}
-</style>
-<style id="rr-v154-white-countdown-audio">
-  [data-roulette-game] .rr-scene-countdown .duel-countdown-number,
-  [data-roulette-game] .rr-scene-countdown .duel-countdown-number.go {
-    color:#fff!important;
-    text-shadow:
-      0 7px 0 rgba(0,0,0,.68),
-      0 0 14px rgba(255,255,255,.55),
-      0 0 34px rgba(0,0,0,.9)!important;
-  }
-</style>
-<!-- MODULAR_LAMP_ASSETS_START -->
-  <link id="rrLampExternalStyles" rel="stylesheet" href="/assets/roulette/lamp.css?v=18">
-  <style id="rrLampCriticalHide">
-    [data-roulette-game] > .rr-lamp,
-    [data-roulette-game] .rr-lamp-fixture,
-    [data-roulette-game] .rr-v106-lamp-art,
-    [data-roulette-game] .rr-v114-lamp-art,
-    [data-roulette-game] .rr-v120-lamp-rig,
-    [data-roulette-game] .rr-v122-lamp-rig,
-    [data-roulette-game] .rr-v123-lamp-layer,
-    [data-roulette-game] .rr-v124-lamp-fixture,
-    [data-roulette-game] .rr126-swing::before,
-    [data-roulette-game] .rr126-swing::after,
-    [data-roulette-game] .rr126-bulb-glow,
-    [data-roulette-game] .rr126-room-glow,
-    [data-roulette-game] .rr126-beam,
-    [data-roulette-game] .rr126-swing > img:not(#rrLampPng),
-    [data-roulette-game] .rr126-swing > [class*="lamp-body"],
-    [data-roulette-game] .rr126-swing > [class*="lamp-shade"],
-    [data-roulette-game] .rr126-swing > [class*="shade-art"],
-    [data-roulette-game] .rr126-swing > [class*="underside"] {
-      display:none!important;visibility:hidden!important;opacity:0!important;
-    }
-    [data-roulette-game] .rr126-lamp-rig{position:absolute!important;inset:0 0 auto 0!important;width:100%!important;height:58%!important;z-index:4!important;pointer-events:none!important;overflow:visible!important}
-    [data-roulette-game] .rr126-chain{position:absolute!important;top:0!important;left:49.75%;width:12.5px;height:5%;transform:translateX(-50%) scaleX(.56);background:url('/assets/roulette/decor/workshop-lamp-chain.png') center top/12.5px auto repeat-y!important;z-index:2!important}
-    [data-roulette-game] .rr126-swing{position:absolute!important;top:calc(20% - 26px);left:49.75%;width:44%!important;aspect-ratio:325/273!important;transform:translateX(-50%);transform-origin:50% 0!important;overflow:visible!important;visibility:visible!important;opacity:1!important;z-index:3!important}
-    [data-roulette-game] #rrLampPng{position:absolute!important;left:calc(50% - .75%)!important;top:90.5%!important;width:94%!important;height:auto!important;transform:translate(-50%,-50%) scale(1.1)!important;visibility:visible!important;opacity:1!important}
-    [data-roulette-game] .rr130-table-illumination{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;pointer-events:none!important}
-    [data-roulette-game] .rr-smoke{display:none!important;visibility:hidden!important;opacity:0!important}
-    @media(min-width:701px){[data-roulette-game] .rr126-lamp-rig{height:51%!important}[data-roulette-game] .rr126-swing{width:31%!important;max-width:230px!important}}
-    @media(max-width:700px),(hover:none) and (pointer:coarse){[data-roulette-game] .rr126-lamp-rig{height:57%!important}[data-roulette-game] .rr126-swing{width:43%!important;max-width:none!important}}
-  </style>
-  <script src="/assets/roulette/lamp-config.js?v=19" defer></script>
-  <script src="/assets/roulette/lamp.js?v=20" defer></script>
-  <script src="/assets/roulette/lamp-bootstrap.js?v=19" defer></script>
-  <script src="/assets/roulette/audio-manager.js?v=4&ambience=2&media=2&countdown=2" defer></script>
-  <script src="/assets/roulette/spin-audio-policy.js?v=3&turnsound=2" defer></script>
-  <script src="/assets/roulette/turn-animation.js?v=5" defer></script>
-  <script src="/assets/roulette/turn-fire.js?v=2" defer></script>
-  <script src="/assets/roulette/turn-facing-guard.js?v=1" defer></script>
-  <script src="/assets/roulette/opening-spin-sync.js?v=4" defer></script>
-  <script src="/assets/roulette/audio-bindings.js?v=5" defer></script>
-  <script src="/assets/roulette/reaction-audio.js?v=1" defer></script>
-<!-- MODULAR_LAMP_ASSETS_END -->
 </head>
 <body class="test-shell-loading">
 
@@ -18866,7 +18796,7 @@ function updateRunnerBalanceDisplay() {
       const sub=root.querySelector('.rr-status small');
       const localPlayerWasHit=String(st.loserId||game.loserUserId||'')===rouletteMyUserId(game);
       if(title)title.textContent=localPlayerWasHit?"YOU'VE BEEN SHOT":'LIVE ROUND';
-      if(sub)sub.textContent=localPlayerWasHit?'':'The shot was fired…';
+      if(sub)sub.textContent=localPlayerWasHit?rouletteStableMessage(game):'The shot was fired…';
       const effectKey=`${gameId}:${st.revision}:${st.lastAction}:${st.lastOutcome}`;
       rouletteVisualRuntime.processed.add(effectKey);
       rouletteQueueVisual(async()=>{
@@ -19040,11 +18970,11 @@ function updateRunnerBalanceDisplay() {
       let status,sub,controlNote;
       if(!hasOpponent){status='WAITING FOR A PLAYER TO JOIN';sub='';controlNote='Waiting for other player';}
       else if(!bothReady){status='WAITING FOR BOTH PLAYERS';sub='Both players must press Ready before the countdown begins.';controlNote='Waiting for both players to ready up';}
-      else if(!countdownFinished){status='GET READY';sub='';controlNote='Game starts after countdown';}
+      else if(!countdownFinished){status='GET READY';sub='The opening spin begins after the 3-2-1 countdown.';controlNote='Game starts after countdown';}
       else if(openingConcealed){status='CHOOSING FIRST PLAYER';sub='The revolver is spinning. The starting player stays hidden until it stops.';controlNote='Choosing first player…';}
       else if(complete){
         status=meWon?'YOU SURVIVED':'YOU\'VE BEEN SHOT';
-        sub=meWon?`You won ${money(game.payout||0)}.`:'';
+        sub=meWon?`You won ${money(game.payout||0)}.`:rouletteStableMessage(game);
         controlNote='';
 
         globalThis.RouletteAudioBindings?.playResult?.(
@@ -19086,7 +19016,7 @@ function updateRunnerBalanceDisplay() {
       const runtimeOwnsAngle=rouletteVisualRuntime.gameId===rouletteGameId&&rouletteVisualRuntime.angleHydrated&&Number.isFinite(rouletteVisualRuntime.currentAngle);
       const neutralAngle=!openingAlreadyCompleted?-4:(runtimeOwnsAngle?rouletteVisualRuntime.currentAngle:rouletteTurnAngle(game,st));
       return `<div class="rr-game ${!hasOpponent?'rr-waiting-player ':''}${openingConcealed?'rr-opening-active ':''}${st.lastOutcome==='live'?'rr-fired':''}" data-roulette-opening="${openingConcealed?'1':'0'}" data-roulette-game data-game-id="${escapeHtml(String(game.gameId||''))}" data-revision="${Number(st.revision||0)}" data-status="${escapeHtml(String(game.status||''))}" data-turn-id="${escapeHtml(String(st.turnId||''))}" data-my-turn="${myTurn?'1':'0'}" data-phase="${escapeHtml(String(st.phase||''))}" data-controls-locked="${controlsLocked?'1':'0'}" data-opening-ready="${openingCanStart?'1':'0'}">
-        <div class="rr-backwall"></div><div class="rr-smoke"></div><div class="rr126-lamp-rig" aria-hidden="true"><div class="rr126-chain"></div><div class="rr126-swing"><div class="rr126-beam"></div><div class="rr126-room-glow"></div><img class="rr126-lamp-body" src="assets/roulette/decor/workshop-lamp-body.png" alt="" draggable="false"><div class="rr126-bulb-glow"></div></div></div><div class="rr-lamp"></div><div class="rr-rain"></div><div class="rr-turn-pulse"></div>
+        <div class="rr-backwall"></div><div class="rr-smoke"></div><div class="rr126-lamp-rig" aria-hidden="true"><div class="rr126-chain"></div><div class="rr126-swing"><div class="rr126-beam"></div><div class="rr126-room-glow"></div><img class="rr126-lamp-body" src="assets/roulette/decor/workshop-lamp-body.png" alt="" draggable="false"><div class="rr126-bulb-glow"></div></div></div><div class="rr-lamp"></div><div class="rr-rain"></div><div class="rr-neon">ONE ROUND · ONE LIFE</div><div class="rr-turn-pulse"></div>
         <div class="rr-top"><div class="rr-player ${openingAlreadyCompleted&&String(st.turnId||'')===String(creator.userId||'')?'active':''}">${roulettePlayerAvatar(creator)}<b>${escapeHtml(creator.name||'Player 1')}</b><span>${rouletteSpinWasUsed(game,creator.userId)?'SPIN USED':'SPIN READY'}</span></div><div class="rr-pot"><span>Pot</span><b>${rouletteCompactPot(game.pot||game.wager||0)}</b><small>Tickets</small></div><div class="rr-player ${openingAlreadyCompleted&&String(st.turnId||'')===String(joiner.userId||'')?'active':''}">${roulettePlayerAvatar(joiner)}<b>${escapeHtml(joiner.name||'Waiting for Player')}</b><span>${!hasOpponent?'OPEN SEAT':(rouletteSpinWasUsed(game,joiner.userId)?'SPIN USED':'SPIN READY')}</span></div></div>
         <div class="rr-status"><strong>${status}</strong><small>${sub}</small></div>
         ${clientCountdownActive?`<div class="rr-scene-countdown" data-roulette-countdown><div class="duel-countdown-number cue">${escapeHtml(rouletteClientCountdownLabel()||'3')}</div></div>`:''}
@@ -19854,18 +19784,9 @@ function updateRunnerBalanceDisplay() {
       const soundKey=`${gameId}:${label}`;
       if(duelSharedCountdownSoundKey===soundKey)return;
       duelSharedCountdownSoundKey=soundKey;
-      if(game?.mode==='roulette'&&globalThis.RouletteAudio?.countdownCue?.(label))return;
       try{
         const ctx=getAudioContext();if(!ctx||!sfxGain)return;const now=ctx.currentTime+.012;
-        if(game?.mode==='roulette'){
-          const fundamental=label==='3'?92.50:label==='2'?82.41:label==='1'?73.42:55;
-          const duration=label==='GO!'?.70:.48;
-          const bodyLevel=label==='GO!'?.082:.066;
-          scheduleTone(fundamental,now,duration,'sine',sfxGain,bodyLevel,{attack:.014,release:duration*.78,filterFrequency:250});
-          scheduleTone(fundamental*2,now+.026,duration*.58,'triangle',sfxGain,label==='GO!'?.020:.016,{attack:.006,release:duration*.48,filterFrequency:620});
-          if(label==='GO!')scheduleTone(41.20,now+.045,.78,'sine',sfxGain,.052,{attack:.018,release:.66,filterFrequency:170});
-        }
-        else if(label==='DRAW!'){scheduleTone(196,now,.10,'sawtooth',sfxGain,.060,{attack:.002,release:.05,filterFrequency:1200});scheduleTone(587.33,now+.025,.18,'triangle',sfxGain,.085,{attack:.004,release:.09});scheduleTone(880,now+.055,.22,'triangle',sfxGain,.070,{attack:.004,release:.12});}
+        if(label==='DRAW!'){scheduleTone(196,now,.10,'sawtooth',sfxGain,.060,{attack:.002,release:.05,filterFrequency:1200});scheduleTone(587.33,now+.025,.18,'triangle',sfxGain,.085,{attack:.004,release:.09});scheduleTone(880,now+.055,.22,'triangle',sfxGain,.070,{attack:.004,release:.12});}
         else if(label==='GO!'){scheduleTone(523.25,now,.18,'triangle',sfxGain,.050,{attack:.008,release:.08});scheduleTone(783.99,now+.03,.24,'triangle',sfxGain,.038,{attack:.008,release:.12});}
         else{const f=(label==='READY'||label==='3')?330:(label==='SET'||label==='2')?415.30:493.88;scheduleTone(f,now,.16,'triangle',sfxGain,.080,{attack:.004,release:.07});scheduleTone(f/2,now,.13,'sine',sfxGain,.040,{attack:.003,release:.06});}
       }catch(_){}
@@ -22407,8 +22328,635 @@ body.roulette-viewport-lock .page,body.roulette-viewport-lock .duel-screen{heigh
 }
 @media(prefers-reduced-motion:reduce){[data-roulette-game] .rr-v111-smoke{animation:none!important}}
 </style>
-\n
-\n
+<style id="rr-v114-image2-lamp-rig">
+/* V114: second-reference lamp as one centered physical rig. */
+[data-roulette-game] .rr-neon{display:none!important}
+[data-roulette-game] .rr-lamp-fixture{
+  position:absolute!important;
+  left:50%!important;
+  top:34px!important;
+  width:210px!important;
+  height:259px!important;
+  margin:0!important;
+  transform-origin:50% 2px!important;
+  animation:rrV114LampSwing 7.6s ease-in-out infinite!important;
+  animation-delay:var(--rr-lamp-phase,0s)!important;
+  z-index:5!important;
+  overflow:visible!important;
+  pointer-events:none!important;
+  filter:none!important;
+  will-change:transform!important;
+}
+@keyframes rrV114LampSwing{
+  0%,100%{transform:translateX(-50%) rotate(-3.8deg)}
+  50%{transform:translateX(-50%) rotate(3.8deg)}
+}
+[data-roulette-game] .rr-v114-lamp-art{
+  position:absolute!important;
+  left:50%!important;
+  top:0!important;
+  width:210px!important;
+  height:auto!important;
+  max-width:none!important;
+  transform:translateX(-50%)!important;
+  display:block!important;
+  z-index:9!important;
+  border:0!important;
+  outline:0!important;
+  background:transparent!important;
+  filter:brightness(1.08) saturate(1.12)
+    drop-shadow(0 14px 15px rgba(0,0,0,.72))
+    drop-shadow(0 8px 17px rgba(240,118,19,.24))!important;
+}
+/* Old drawn lamp pieces stay only as hidden geometry and cannot show through. */
+[data-roulette-game] .rr-lamp-chain,
+[data-roulette-game] .rr-lamp-cap,
+[data-roulette-game] .rr-lamp-rim{display:none!important}
+[data-roulette-game] .rr-lamp-shade{
+  position:absolute!important;inset:0!important;
+  background:none!important;border:0!important;box-shadow:none!important;
+  clip-path:none!important;overflow:visible!important;z-index:8!important;
+}
+[data-roulette-game] .rr-lamp-shade::before,
+[data-roulette-game] .rr-lamp-shade::after{display:none!important;content:none!important}
+/* Invisible physical source point aligned to the PNG bulb center. */
+[data-roulette-game] .rr-lamp-bulb{
+  display:block!important;visibility:visible!important;opacity:0!important;
+  position:absolute!important;left:50%!important;top:236px!important;bottom:auto!important;
+  width:3px!important;height:3px!important;transform:translateX(-50%)!important;
+  background:transparent!important;border:0!important;box-shadow:none!important;filter:none!important;
+  z-index:10!important;
+}
+/* Glow is behind the PNG bulb and attached to the same swinging rig. */
+[data-roulette-game] .rr-v114-reflector-glow{
+  position:absolute;left:50%;top:205px;width:145px;height:66px;
+  transform:translateX(-50%);z-index:7;pointer-events:none;border-radius:50%;
+  background:radial-gradient(ellipse at 50% 25%,rgba(255,250,209,.92) 0 7%,rgba(255,198,82,.68) 25%,rgba(235,112,17,.29) 51%,transparent 79%);
+  filter:blur(10px);mix-blend-mode:screen;opacity:.92;
+}
+[data-roulette-game] .rr-v114-source-beam{
+  position:absolute;left:50%;top:235px;width:min(1220px,190vw);height:600px;
+  transform:translateX(-50%);transform-origin:50% 0;z-index:4;pointer-events:none;
+  border-radius:0 0 50% 50%;
+  background:
+    radial-gradient(ellipse 12% 40% at 50% 0%,rgba(255,238,174,.55),rgba(255,184,69,.31) 38%,rgba(213,84,10,.09) 70%,transparent 92%),
+    radial-gradient(ellipse 56% 93% at 50% 2%,rgba(255,190,76,.23),rgba(224,103,17,.13) 50%,rgba(113,30,2,.035) 79%,transparent 96%);
+  filter:blur(38px);opacity:.86;mix-blend-mode:screen;
+}
+/* Keep existing single-source room/table response visible and broad. */
+[data-roulette-game] .rr-v100-table-pool,
+[data-roulette-game] .rr-v111-table-pool{display:block!important;opacity:.94!important}
+[data-roulette-game] .rr-v100-room-light,
+[data-roulette-game] .rr-v111-room-light{display:block!important;opacity:.96!important}
+[data-roulette-game] .rr-status,
+[data-roulette-game] .rr-controls,
+[data-roulette-game] .rr-player,
+[data-roulette-game] .rr-pot,
+[data-roulette-game] .rr-waiting,
+[data-roulette-game] .rr-final{position:relative;z-index:40!important}
+@media(max-width:700px){
+  [data-roulette-game] .rr-lamp-fixture{top:39px!important;width:174px!important;height:215px!important}
+  [data-roulette-game] .rr-v114-lamp-art{width:174px!important}
+  [data-roulette-game] .rr-lamp-bulb{top:195px!important}
+  [data-roulette-game] .rr-v114-reflector-glow{top:169px;width:124px;height:57px}
+  [data-roulette-game] .rr-v114-source-beam{top:194px;width:210vw;height:530px}
+}
+@media(prefers-reduced-motion:reduce){
+  [data-roulette-game] .rr-lamp-fixture{animation:rrV114LampSwing 7.6s ease-in-out infinite!important}
+}
+</style>
+\n<script id="rr-v115-lamp-and-light-runtime">
+(()=>{
+ const SRC='assets/roulette/decor/workshop-lamp-image2.png';
+ let raf=0,last=0,observer=null;
+ function one(parent,cls,tag='div'){
+  let el=parent.querySelector(':scope > .'+cls);
+  parent.querySelectorAll(':scope > .'+cls).forEach((n,i)=>{if(i)n.remove()});
+  if(!el){el=document.createElement(tag);el.className=cls;parent.appendChild(el)}
+  return el;
+ }
+ function ensure(root){
+  if(!root)return null;
+  const fixture=root.querySelector('.rr-lamp-fixture');
+  if(!fixture)return null;
+  fixture.querySelectorAll(':scope > .rr-v106-lamp-art,:scope > .rr-v110-lamp-art').forEach(n=>n.remove());
+  const art=one(fixture,'rr-v114-lamp-art','img');
+  if(art.getAttribute('src')!==SRC)art.setAttribute('src',SRC);
+  art.alt='';art.setAttribute('aria-hidden','true');
+  one(fixture,'rr-v114-reflector-glow');
+  one(fixture,'rr-v114-source-beam');
+  let bulb=fixture.querySelector('.rr-lamp-bulb');
+  if(!bulb){bulb=document.createElement('i');bulb.className='rr-lamp-bulb';fixture.appendChild(bulb)}
+  return {fixture,bulb,table:root.querySelector('.rr-table')};
+ }
+ function update(root){
+  const parts=ensure(root);
+  if(!parts?.bulb||!parts.table)return;
+  const br=parts.bulb.getBoundingClientRect(),gr=root.getBoundingClientRect(),tr=parts.table.getBoundingClientRect();
+  if(!br.width||!gr.width||!tr.width)return;
+  const bx=br.left+br.width/2;
+  const gameRaw=((bx-gr.left)/gr.width)*100;
+  const tableRaw=((bx-tr.left)/tr.width)*100;
+  const gameX=Math.max(18,Math.min(82,50+(gameRaw-50)*1.75));
+  const tableX=Math.max(14,Math.min(86,50+(tableRaw-50)*1.95));
+  root.style.setProperty('--v100-game-x',gameX.toFixed(2)+'%');
+  root.style.setProperty('--v105-game-x',gameX.toFixed(2)+'%');
+  parts.table.style.setProperty('--v100-table-x',tableX.toFixed(2)+'%');
+  parts.table.style.setProperty('--v105-table-x',tableX.toFixed(2)+'%');
+  const gun=root.querySelector('.rr-gun-motion');
+  if(gun){
+   const r=gun.getBoundingClientRect();
+   if(r.width){
+    const gx=r.left+r.width/2,d=Math.min(1,Math.abs(gx-bx)/(gr.width*.52));
+    gun.style.setProperty('--v100-gun-light',(1.14-d*.15).toFixed(3));
+    gun.style.setProperty('--v100-gun-warm',(.11-d*.05).toFixed(3));
+    gun.style.setProperty('--v101-specular-strength',(.20+(1-d)*.40).toFixed(3));
+   }
+  }
+ }
+ function frame(now){
+  const roots=[...document.querySelectorAll('[data-roulette-game]')];
+  if(!roots.length){raf=0;return}
+  if(now-last>=50){last=now;roots.forEach(update)} // 20fps is smooth for a slow lamp swing.
+  raf=requestAnimationFrame(frame);
+ }
+ function start(){if(!raf&&!document.hidden&&document.querySelector('[data-roulette-game]'))raf=requestAnimationFrame(frame)}
+ function scan(){document.querySelectorAll('[data-roulette-game]').forEach(ensure);start()}
+ scan();
+ const host=document.getElementById('duelActive')||document.body;
+ observer=new MutationObserver(scan);
+ observer.observe(host,{childList:true,subtree:true});
+ document.addEventListener('visibilitychange',()=>{
+  if(document.hidden&&raf){cancelAnimationFrame(raf);raf=0}
+  else start();
+ });
+})();
+</script>\n
+<style id="rr-v126-split-lamp-rig">
+/* V126: one board-owned lamp. Legacy fixtures and legacy cone are fully suppressed. */
+[data-roulette-game] > .rr-lamp,
+[data-roulette-game] .rr-lamp-fixture,
+[data-roulette-game] .rr-v106-lamp-art,
+[data-roulette-game] .rr-v114-lamp-art,
+[data-roulette-game] .rr-v120-lamp-rig,
+[data-roulette-game] .rr-v122-lamp-rig,
+[data-roulette-game] .rr-v123-lamp-layer,
+[data-roulette-game] .rr-v124-lamp-fixture{display:none!important;visibility:hidden!important;opacity:0!important}
+[data-roulette-game]{position:relative!important;overflow:hidden!important;isolation:isolate!important}
+.rr126-lamp-rig{
+  position:absolute;
+  inset:0 0 auto 0;
+  width:100%;
+  height:58%;
+  z-index:2;
+  pointer-events:none;
+  overflow:visible;
+}
+.rr126-chain{
+  position:absolute;
+  top:0;
+  left:50%;
+  width:14px;
+  height:27%;
+  transform:translateX(-50%);
+  background-image:url('assets/roulette/decor/workshop-lamp-chain.png');
+  background-repeat:repeat-y;
+  background-position:center top;
+  background-size:14px auto;
+  filter:drop-shadow(0 2px 2px rgba(0,0,0,.9));
+  z-index:2;
+}
+.rr126-swing{
+  position:absolute;
+  top:22%;
+  left:50%;
+  width:44%;
+  aspect-ratio:325/273;
+  transform:translateX(-50%);
+  transform-origin:50% -22%;
+  animation:rr126Swing 5.6s ease-in-out infinite;
+  z-index:3;
+}
+.rr126-lamp-body{
+  position:absolute;
+  inset:0;
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  z-index:5;
+  filter:drop-shadow(0 16px 13px rgba(0,0,0,.72));
+}
+.rr126-bulb-glow{
+  position:absolute;
+  left:50%;
+  top:88%;
+  width:15%;
+  aspect-ratio:1;
+  transform:translate(-50%,-50%);
+  border-radius:50%;
+  background:radial-gradient(circle,#fffbe7 0 16%,#ffe2a0 30%,rgba(255,174,63,.72) 52%,rgba(255,129,35,.18) 72%,transparent 78%);
+  box-shadow:0 0 12px rgba(255,244,199,.95),0 0 34px rgba(255,174,67,.72),0 0 72px rgba(211,94,24,.38);
+  mix-blend-mode:screen;
+  z-index:6;
+}
+.rr126-room-glow{
+  position:absolute;
+  left:50%;
+  top:75%;
+  width:250%;
+  height:170%;
+  transform:translate(-50%,-15%);
+  background:radial-gradient(ellipse at 50% 0,rgba(255,218,145,.35) 0,rgba(255,164,65,.17) 28%,rgba(173,74,22,.055) 55%,transparent 76%);
+  filter:blur(8px);
+  mix-blend-mode:screen;
+  z-index:1;
+}
+.rr126-beam{
+  position:absolute;
+  left:50%;
+  top:86%;
+  width:245%;
+  height:250%;
+  transform:translateX(-50%);
+  clip-path:polygon(43% 0,57% 0,88% 100%,12% 100%);
+  background:linear-gradient(180deg,rgba(255,239,199,.18),rgba(255,179,80,.10) 42%,rgba(217,100,29,.025) 76%,transparent);
+  filter:blur(7px);
+  mix-blend-mode:screen;
+  z-index:0;
+}
+/* Keep the lamp behind all interface text and controls. */
+[data-roulette-game] .rr-top,
+[data-roulette-game] .rr-status,
+[data-roulette-game] .rr-scene-countdown,
+[data-roulette-game] .rr-opening-banner,
+[data-roulette-game] .rr-controls,
+[data-roulette-game] .rr-final{position:relative;z-index:8!important}
+[data-roulette-game] .rr-table{z-index:4!important}
+@keyframes rr126Swing{
+  0%,100%{transform:translateX(-50%) rotate(-1.35deg)}
+  50%{transform:translateX(-50%) rotate(1.35deg)}
+}
+/* Desktop: smaller and a little higher. */
+@media (min-width:701px){
+  .rr126-lamp-rig{height:51%}
+  .rr126-chain{width:11px;height:25%;background-size:11px auto}
+  .rr126-swing{top:19%;width:31%;max-width:230px}
+}
+/* Mobile/touch layout: reference-like size, centered directly under the pot. */
+@media (max-width:700px), (hover:none) and (pointer:coarse){
+  .rr126-lamp-rig{height:57%}
+  .rr126-chain{width:12px;height:25%;background-size:12px auto}
+  .rr126-swing{top:20%;width:43%}
+}
+@media (max-width:390px){
+  .rr126-swing{width:42%;top:20.5%}
+}
+@media (prefers-reduced-motion:reduce){.rr126-swing{animation:none;transform:translateX(-50%)}}
+</style>
+
+<style id="rr-v127-lamp-layer-fix">
+/* V127: the physical lamp hangs in front of wall art, while remaining behind gameplay UI. */
+[data-roulette-game] .rr126-lamp-rig{z-index:4!important}
+[data-roulette-game] .rr-wall-decor,
+[data-roulette-game] .rr-wall-decor-png,
+[data-roulette-game] .rr-decor-png{z-index:3!important}
+[data-roulette-game] .rr-top,
+[data-roulette-game] .rr-status,
+[data-roulette-game] .rr-scene-countdown,
+[data-roulette-game] .rr-opening-banner,
+[data-roulette-game] .rr-controls,
+[data-roulette-game] .rr-final{z-index:8!important}
+</style>
+
+
+<style id="rr-v130-table-surface-lighting">
+/* V130: light is painted on the real tabletop layer, not behind the scene. */
+[data-roulette-game] .rr126-beam{display:none!important}
+
+/* Keep the existing room bounce subtle; the table is now the visual focus. */
+[data-roulette-game] .rr126-room-glow{
+  display:block!important;
+  opacity:.42!important;
+  filter:blur(22px)!important;
+  background:radial-gradient(ellipse at 50% 0,
+    rgba(255,226,166,.24) 0%,
+    rgba(255,170,76,.105) 34%,
+    rgba(174,70,18,.025) 64%,
+    transparent 82%)!important;
+}
+
+[data-roulette-game] .rr-table{
+  isolation:isolate!important;
+}
+
+/* Warm pool placed above the table texture and below the revolver. */
+[data-roulette-game] .rr130-table-illumination{
+  display:block!important;
+  position:absolute!important;
+  left:50%!important;
+  top:-24%!important;
+  width:92%!important;
+  height:88%!important;
+  z-index:2!important;
+  pointer-events:none!important;
+  border-radius:50%!important;
+  transform:translateX(-50%)!important;
+  transform-origin:50% 0!important;
+  background:
+    radial-gradient(ellipse 56% 58% at 50% 23%,
+      rgba(255,247,211,.62) 0%,
+      rgba(255,216,144,.48) 19%,
+      rgba(255,174,76,.29) 42%,
+      rgba(209,88,21,.105) 65%,
+      transparent 86%),
+    radial-gradient(ellipse 88% 70% at 50% 35%,
+      rgba(255,151,48,.13) 0%,
+      rgba(180,61,12,.035) 61%,
+      transparent 84%)!important;
+  filter:blur(13px)!important;
+  mix-blend-mode:screen!important;
+  opacity:.9!important;
+  animation:rr130TableLampFollow 5.6s ease-in-out infinite!important;
+  will-change:transform,opacity!important;
+}
+
+/* Preserve the wood grain over the light slightly, while keeping the light visible. */
+[data-roulette-game] .rr-table::before{z-index:3!important}
+[data-roulette-game] .rr-table::after{z-index:3!important}
+[data-roulette-game] .rr-table-shadow{z-index:3!important}
+[data-roulette-game] .rr-gun-motion{z-index:5!important}
+[data-roulette-game] .rr-shell{z-index:5!important}
+
+@keyframes rr130TableLampFollow{
+  0%,100%{transform:translateX(-55%) skewX(-2deg) scaleX(.94);opacity:.78}
+  50%{transform:translateX(-45%) skewX(2deg) scaleX(.94);opacity:.78}
+  25%,75%{transform:translateX(-50%) skewX(0) scaleX(1.02);opacity:.93}
+}
+
+@media (max-width:700px), (hover:none) and (pointer:coarse){
+  [data-roulette-game] .rr130-table-illumination{
+    top:-22%!important;
+    width:102%!important;
+    height:91%!important;
+    filter:blur(11px)!important;
+    opacity:.94!important;
+  }
+}
+
+@media (prefers-reduced-motion:reduce){
+  [data-roulette-game] .rr130-table-illumination{
+    animation:none!important;
+    transform:translateX(-50%)!important;
+  }
+}
+</style>
+
+<style id="rr-v134-clean-reactive-lighting">
+/* V134: cleaned physical-light model. No visible beam graphic. */
+[data-roulette-game]{isolation:isolate!important;background-color:#120906!important}
+
+/* Remove every explicit cone/beam from older lamp passes. */
+[data-roulette-game] .rr126-beam,
+[data-roulette-game] > .rr-lamp,
+[data-roulette-game] .rr-table-light,
+[data-roulette-game] .rr-v100-source-beam,
+[data-roulette-game] .rr-v100-table-pool,
+[data-roulette-game] .rr-haze-wide,
+[data-roulette-game] .rr-haze-drift{
+  display:none!important;opacity:0!important;animation:none!important;
+}
+
+/* Darker room perimeter; center remains readable from reflected lamp light. */
+[data-roulette-game]::after{
+  content:""!important;position:absolute!important;inset:0!important;z-index:2!important;
+  pointer-events:none!important;
+  background:
+    radial-gradient(ellipse 62% 62% at 50% 43%,transparent 0 34%,rgba(13,5,2,.12) 60%,rgba(4,1,0,.52) 100%),
+    linear-gradient(180deg,rgba(4,2,1,.27),rgba(3,1,0,.08) 48%,rgba(2,0,0,.20))!important;
+  mix-blend-mode:multiply!important;
+}
+
+/* Soft reflected room light. It shifts with the same cadence as the lamp but never forms a visible cone. */
+[data-roulette-game]::before{
+  content:""!important;position:absolute!important;inset:-5% -8% 18%!important;z-index:3!important;
+  pointer-events:none!important;
+  background:
+    radial-gradient(ellipse 42% 48% at 50% 28%,rgba(255,190,91,.16) 0%,rgba(229,105,25,.075) 43%,rgba(142,43,5,.018) 72%,transparent 91%),
+    radial-gradient(ellipse 78% 74% at 50% 46%,rgba(255,133,31,.035),transparent 76%)!important;
+  filter:blur(24px)!important;mix-blend-mode:screen!important;opacity:.78!important;
+  transform-origin:50% 0!important;animation:rr134RoomSwing 5.6s ease-in-out infinite!important;
+}
+
+/* Keep the bulb unmistakably bright and warm. This layer already swings with the fixture. */
+[data-roulette-game] .rr126-bulb-glow{
+  opacity:1!important;
+  background:radial-gradient(circle,#fffbe1 0 10%,#ffd78d 25%,rgba(255,145,36,.86) 46%,rgba(223,71,10,.32) 65%,transparent 80%)!important;
+  box-shadow:0 0 13px rgba(255,250,220,1),0 0 42px rgba(255,159,48,.92),0 0 105px rgba(208,62,8,.48)!important;
+}
+[data-roulette-game] .rr126-room-glow{
+  display:block!important;left:50%!important;top:82%!important;width:315%!important;height:245%!important;
+  transform:translate(-50%,-8%)!important;
+  background:radial-gradient(ellipse 38% 48% at 50% 0%,rgba(255,211,132,.29),rgba(255,133,31,.13) 47%,rgba(151,42,5,.032) 74%,transparent 92%)!important;
+  filter:blur(38px)!important;opacity:.82!important;mix-blend-mode:screen!important;z-index:0!important;
+}
+
+[data-roulette-game] .rr-table{isolation:isolate!important;overflow:hidden!important}
+
+/* One broad table response above the wood and gun artwork. Its center is bright, while all edges taper naturally. */
+[data-roulette-game] .rr130-table-illumination{
+  display:block!important;position:absolute!important;
+  inset:-7% -16% -11% -16%!important;width:auto!important;height:auto!important;left:auto!important;top:auto!important;
+  z-index:7!important;pointer-events:none!important;border-radius:50% 50% 44% 44%!important;
+  transform-origin:50% 5%!important;
+  background:
+    radial-gradient(ellipse 36% 48% at 50% 30%,rgba(255,244,205,.48) 0%,rgba(255,210,132,.37) 28%,rgba(255,154,55,.23) 53%,rgba(209,72,12,.075) 75%,transparent 93%),
+    radial-gradient(ellipse 80% 108% at 50% 48%,rgba(255,157,55,.18) 0%,rgba(224,89,17,.105) 48%,rgba(112,24,2,.024) 76%,transparent 97%)!important;
+  filter:blur(23px)!important;mix-blend-mode:screen!important;opacity:.90!important;
+  animation:rr134TableSwing 5.6s ease-in-out infinite!important;will-change:transform,opacity!important;
+}
+[data-roulette-game] .rr130-table-illumination::after{
+  content:""!important;position:absolute!important;inset:0!important;border-radius:inherit!important;
+  background:radial-gradient(ellipse 72% 88% at 50% 43%,transparent 0 48%,rgba(38,9,1,.055) 69%,rgba(10,2,0,.21) 89%,rgba(2,0,0,.36) 100%)!important;
+  mix-blend-mode:multiply!important;
+}
+
+/* Preserve controls and text above the light while allowing the light to wash over the table and revolver. */
+[data-roulette-game] .rr-status,[data-roulette-game] .rr-controls,[data-roulette-game] .rr-player,
+[data-roulette-game] .rr-pot,[data-roulette-game] .rr-scene-countdown,[data-roulette-game] .rr-opening-banner{z-index:30!important}
+[data-roulette-game] .rr-shell{z-index:8!important}
+
+@keyframes rr134TableSwing{
+  0%,100%{transform:translateX(-7.5%) skewX(-1.4deg);opacity:.84}
+  25%,75%{transform:translateX(0) skewX(0);opacity:.94}
+  50%{transform:translateX(7.5%) skewX(1.4deg);opacity:.84}
+}
+@keyframes rr134RoomSwing{
+  0%,100%{transform:translateX(-3.2%) rotate(-.3deg);opacity:.68}
+  25%,75%{transform:translateX(0);opacity:.80}
+  50%{transform:translateX(3.2%) rotate(.3deg);opacity:.68}
+}
+
+@media(max-width:700px),(hover:none) and (pointer:coarse){
+  [data-roulette-game] .rr130-table-illumination{inset:-5% -18% -10% -18%!important;filter:blur(18px)!important}
+  [data-roulette-game] .rr126-room-glow{width:345%!important;height:260%!important;filter:blur(31px)!important}
+  [data-roulette-game]::before{filter:blur(19px)!important}
+}
+@media(prefers-reduced-motion:reduce){
+  [data-roulette-game]::before,[data-roulette-game] .rr130-table-illumination{animation:none!important;transform:none!important}
+}
+</style>
+
+
+<script id="rr-v141-debug-bootstrap">
+(function(){
+  function ensure(){
+    var toggle=document.getElementById('rrLightDebugToggle');
+    var panel=document.getElementById('rrLightDebugPanel');
+    if(!toggle){
+      toggle=document.createElement('button');
+      toggle.id='rrLightDebugToggle';
+      toggle.type='button';
+      toggle.textContent='LIGHT DEBUG';
+      document.body.appendChild(toggle);
+    }
+    if(!panel){
+      panel=document.createElement('div');
+      panel.id='rrLightDebugPanel';
+      panel.innerHTML='<b>Roulette lighting calibration</b>'+
+        '<label>Center X<input id="rrDbgX" type="range" min="15" max="85" step="0.5" value="50"><span id="rrDbgXVal">50</span></label>'+
+        '<label>Center Y<input id="rrDbgY" type="range" min="15" max="80" step="0.5" value="39"><span id="rrDbgYVal">39</span></label>'+
+        '<label>Spread X<input id="rrDbgRX" type="range" min="25" max="95" step="1" value="58"><span id="rrDbgRXVal">58</span></label>'+
+        '<label>Spread Y<input id="rrDbgRY" type="range" min="30" max="110" step="1" value="64"><span id="rrDbgRYVal">64</span></label>'+
+        '<label>Strength<input id="rrDbgS" type="range" min="0.15" max="1" step="0.01" value="0.55"><span id="rrDbgSVal">0.55</span></label>'+
+        '<button id="rrDbgGun" type="button">Center on gun</button><button id="rrDbgReset" type="button">Reset</button>'+
+        '<div style="margin-top:7px;color:#aaa">Blue: board · Green: table · Red: gun · Yellow: light center</div>';
+      document.body.appendChild(panel);
+    }
+    function game(){return document.querySelector('[data-roulette-game]')}
+    function table(){var g=game();return g&&g.querySelector('.rr-table')}
+    function gun(){var g=game();return g&&g.querySelector('.rr-gun-motion')}
+    function set(name,val,suffix){var t=table();if(t)t.style.setProperty(name,String(val)+(suffix===undefined?'%':suffix))}
+    function val(id){return document.getElementById(id)}
+    function sync(){['X','Y','RX','RY','S'].forEach(function(k){var i=val('rrDbg'+k),o=val('rrDbg'+k+'Val');if(i&&o)o.textContent=i.value})}
+    ['X','Y','RX','RY'].forEach(function(k){var el=val('rrDbg'+k);if(el)el.oninput=function(){set('--rr-light-'+k.toLowerCase(),this.value);sync()}});
+    var st=val('rrDbgS');if(st)st.oninput=function(){set('--rr-light-strength',this.value,'');sync()};
+    function centerGun(){var t=table(),g=gun();if(!t||!g)return;var tr=t.getBoundingClientRect(),gr=g.getBoundingClientRect();var x=((gr.left+gr.width/2-tr.left)/tr.width)*100;var y=((gr.top+gr.height/2-tr.top)/tr.height)*100;x=Math.max(15,Math.min(85,x));y=Math.max(15,Math.min(80,y));set('--rr-light-x',x);set('--rr-light-y',y);if(val('rrDbgX'))val('rrDbgX').value=x.toFixed(1);if(val('rrDbgY'))val('rrDbgY').value=y.toFixed(1);sync()}
+    var cg=val('rrDbgGun');if(cg)cg.onclick=centerGun;
+    var rs=val('rrDbgReset');if(rs)rs.onclick=function(){[['X',50],['Y',39],['RX',58],['RY',64],['S',.55]].forEach(function(a){var e=val('rrDbg'+a[0]);if(e)e.value=a[1]});set('--rr-light-x',50);set('--rr-light-y',43);set('--rr-light-rx',58);set('--rr-light-ry',64);set('--rr-light-strength',.55,'');sync()};
+    toggle.onclick=function(){panel.classList.toggle('open');document.body.classList.toggle('rr-light-debug',panel.classList.contains('open'));if(panel.classList.contains('open'))centerGun()};
+    sync();
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ensure);else ensure();
+  setTimeout(ensure,500);setTimeout(ensure,1800);
+})();
+</script>
+
+<style id="rr-v144-targeted-light-balance">
+/* V144: darker poster wall, slightly brighter table, all lighting locked to rr126Swing phase. */
+[data-roulette-game]::after{
+  background:
+    radial-gradient(ellipse 34% 30% at 50% 29%,transparent 0 16%,rgba(8,2,0,.22) 48%,rgba(1,0,0,.79) 100%),
+    linear-gradient(180deg,rgba(1,0,0,.53),rgba(1,0,0,.24) 42%,rgba(1,0,0,.40))!important;
+}
+/* Restrained reflected wall halo; this follows the lamp because it lives inside rr126-swing. */
+[data-roulette-game] .rr126-room-glow{
+  display:block!important;
+  left:50%!important;
+  top:76%!important;
+  width:250%!important;
+  height:175%!important;
+  transform:translate(-50%,-14%)!important;
+  background:radial-gradient(ellipse at 50% 0,
+    rgba(255,190,92,.22) 0%,
+    rgba(235,122,39,.105) 30%,
+    rgba(137,47,10,.035) 58%,
+    transparent 77%)!important;
+  filter:blur(18px)!important;
+  opacity:.72!important;
+  mix-blend-mode:screen!important;
+}
+/* Slightly brighter table while retaining the rough photographic texture. */
+[data-roulette-game] .rr-table{
+  background:
+    linear-gradient(rgba(10,3,1,.28),rgba(3,1,0,.46)),
+    url('assets/roulette/decor/table-wood-texture.png') center 44%/cover no-repeat!important;
+}
+[data-roulette-game] .rr130-table-illumination{
+  opacity:.91!important;
+  filter:blur(12px)!important;
+  background:
+    radial-gradient(ellipse 47% 51% at 50% 40%,
+      rgba(255,226,166,.51) 0%,
+      rgba(255,162,65,.40) 21%,
+      rgba(226,83,15,.22) 45%,
+      rgba(123,31,3,.065) 69%,
+      transparent 91%),
+    radial-gradient(ellipse 76% 78% at 50% 47%,
+      rgba(255,117,23,.115) 0%,
+      rgba(113,27,3,.032) 63%,
+      transparent 96%)!important;
+  animation:rr144UnifiedTableTrack 5.6s ease-in-out infinite!important;
+}
+@keyframes rr144UnifiedTableTrack{
+  0%,100%{transform:translate3d(-6%,0,0) rotate(-.34deg);opacity:.82}
+  50%{transform:translate3d(6%,0,0) rotate(.34deg);opacity:.91}
+}
+/* Gun exposure and warm gleam use the identical endpoints and duration as the lamp. */
+[data-roulette-game] .rr-gun-motion{
+  animation:rr144UnifiedGunTrack 5.6s ease-in-out infinite!important;
+}
+@keyframes rr144UnifiedGunTrack{
+  0%,100%{
+    filter:brightness(.96) contrast(1.09) saturate(1.05)
+      drop-shadow(0 13px 12px rgba(0,0,0,.75))
+      drop-shadow(-7px -3px 8px rgba(255,132,35,.27))!important;
+  }
+  50%{
+    filter:brightness(1.035) contrast(1.10) saturate(1.08)
+      drop-shadow(0 13px 12px rgba(0,0,0,.71))
+      drop-shadow(7px -3px 8px rgba(255,132,35,.30))!important;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  [data-roulette-game] .rr130-table-illumination,
+  [data-roulette-game] .rr-gun-motion{animation:none!important;transform:none!important}
+}
+</style>
+
+<style id="rr-v147-halo-bulb-direction-fix">
+/* V147: scoped correction only—no geometry or layout changes. */
+[data-roulette-game] .rr126-lamp-body{
+  filter:none!important;
+}
+[data-roulette-game] .rr126-bulb-glow{
+  display:block!important;
+  left:50%!important;
+  top:89.2%!important;
+  width:14.5%!important;
+  aspect-ratio:1/1!important;
+  transform:translate(-50%,-50%)!important;
+  z-index:4!important;
+  border:0!important;
+  outline:0!important;
+  border-radius:50%!important;
+  overflow:visible!important;
+  clip-path:none!important;
+  background:radial-gradient(circle at 50% 42%,
+    #fffef4 0 24%,
+    #ffe8a9 42%,
+    #ffc86c 64%,
+    #e98c2f 82%,
+    rgba(201,78,14,.92) 94%,
+    rgba(201,78,14,0) 100%)!important;
+  box-shadow:
+    0 0 7px rgba(255,249,224,.92),
+    0 0 18px rgba(255,176,69,.52),
+    0 0 34px rgba(219,91,18,.18)!important;
+  filter:none!important;
+  mix-blend-mode:screen!important;
+}
+</style>
 </body>
 
 <style id="rr-v77-authoritative-shot-lamp-wall">
@@ -24636,5 +25184,952 @@ body.roulette-viewport-lock .page,body.roulette-viewport-lock .duel-screen{heigh
  [data-roulette-game] .rr-lamp-fixture{left:43%!important;transform:scale(.88) translateX(0)!important}
  [data-roulette-game] .rr-v100-source-beam{width:225vw!important;height:610px!important}
  [data-roulette-game] .rr-v100-table-pool{width:215%!important;height:190%!important;top:-37%!important}
+}
+</style>
+
+<style id="rr-v135-overhead-table-light-fix">
+/* V135 authoritative correction: light reads as overhead illumination, not glowing table edges. */
+[data-roulette-game] .rr130-table-illumination{
+  display:block!important;
+  position:absolute!important;
+  inset:0!important;
+  left:0!important;top:0!important;width:100%!important;height:100%!important;
+  z-index:6!important;
+  border-radius:inherit!important;
+  overflow:hidden!important;
+  pointer-events:none!important;
+  opacity:1!important;
+  filter:none!important;
+  mix-blend-mode:normal!important;
+  transform-origin:50% 8%!important;
+  background:
+    /* concentrated overhead pool directly below the bulb */
+    radial-gradient(ellipse 57% 72% at 50% 34%,
+      rgba(255,239,190,.31) 0%,
+      rgba(255,201,116,.26) 25%,
+      rgba(238,143,54,.17) 50%,
+      rgba(171,70,18,.065) 72%,
+      transparent 91%),
+    /* broad low-level fill that reaches the full tabletop */
+    radial-gradient(ellipse 91% 100% at 50% 49%,
+      rgba(255,178,73,.13) 0%,
+      rgba(218,102,29,.085) 53%,
+      rgba(119,39,8,.025) 76%,
+      transparent 96%)!important;
+  box-shadow:none!important;
+  animation:rr135OverheadSweep 5.6s ease-in-out infinite!important;
+  will-change:transform,opacity!important;
+}
+/* Independent edge falloff keeps the perimeter darker without creating a bright rim. */
+[data-roulette-game] .rr130-table-illumination::after{
+  content:""!important;
+  position:absolute!important;
+  inset:0!important;
+  border-radius:inherit!important;
+  background:
+    radial-gradient(ellipse 72% 84% at 50% 43%,
+      transparent 0 48%,
+      rgba(21,5,1,.07) 70%,
+      rgba(7,1,0,.28) 88%,
+      rgba(2,0,0,.48) 100%)!important;
+  mix-blend-mode:multiply!important;
+  pointer-events:none!important;
+}
+/* A soft specular response over the gun/table center, subtle enough to avoid a painted overlay. */
+[data-roulette-game] .rr130-table-illumination::before{
+  content:""!important;
+  position:absolute!important;
+  left:18%!important;right:18%!important;top:29%!important;height:46%!important;
+  border-radius:50%!important;
+  background:radial-gradient(ellipse at 50% 45%,rgba(255,226,161,.13),rgba(255,159,56,.055) 48%,transparent 78%)!important;
+  filter:blur(18px)!important;
+  mix-blend-mode:screen!important;
+  pointer-events:none!important;
+}
+/* Darken the room slightly so the centered tabletop pool becomes the visual focus. */
+[data-roulette-game]::after{
+  background:
+    radial-gradient(ellipse 56% 56% at 50% 43%,transparent 0 30%,rgba(12,4,1,.18) 62%,rgba(3,1,0,.61) 100%),
+    linear-gradient(180deg,rgba(3,1,0,.32),rgba(3,1,0,.10) 47%,rgba(2,0,0,.25))!important;
+}
+/* Reflected room light is weaker than the direct tabletop response. */
+[data-roulette-game]::before{opacity:.56!important;filter:blur(27px)!important}
+
+@keyframes rr135OverheadSweep{
+  0%,100%{transform:translateX(-5.2%) skewX(-.7deg);opacity:.92}
+  25%,75%{transform:translateX(0) skewX(0);opacity:1}
+  50%{transform:translateX(5.2%) skewX(.7deg);opacity:.92}
+}
+@media(max-width:700px),(hover:none) and (pointer:coarse){
+  [data-roulette-game] .rr130-table-illumination{
+    background:
+      radial-gradient(ellipse 59% 74% at 50% 34%,rgba(255,240,194,.34) 0%,rgba(255,202,117,.28) 25%,rgba(239,143,54,.18) 50%,rgba(171,70,18,.07) 72%,transparent 91%),
+      radial-gradient(ellipse 93% 103% at 50% 49%,rgba(255,178,73,.14) 0%,rgba(218,102,29,.09) 53%,rgba(119,39,8,.028) 76%,transparent 96%)!important;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  [data-roulette-game] .rr130-table-illumination{animation:none!important;transform:none!important}
+}
+</style>
+
+<style id="rr-v136-center-bright-full-table-extension">
+/* V136 final table correction: brightest at the gun, darkening smoothly to all edges. */
+[data-roulette-game] .rr-table{
+  /* Preserve the original upper edge while extending the same wood surface behind the controls. */
+  bottom:4px!important;
+  height:350px!important;
+  overflow:hidden!important;
+  isolation:isolate!important;
+  background:
+    repeating-linear-gradient(8deg,transparent 0 22px,rgba(255,255,255,.012) 23px 24px),
+    linear-gradient(106deg,#24120c 0%,#4b2818 40%,#371b11 72%,#180b08 100%)!important;
+  box-shadow:inset 0 20px 32px rgba(255,155,72,.035),inset 0 -72px 100px rgba(0,0,0,.48)!important;
+}
+/* Keep the revolver and its shadow at the same visual height after the table grows downward. */
+[data-roulette-game] .rr-gun-motion{top:38.3%!important;z-index:8!important}
+[data-roulette-game] .rr-table-shadow{top:42.5%!important;z-index:5!important}
+
+/* Remove the previous inverted dark mask and specular patch. */
+[data-roulette-game] .rr130-table-illumination::before,
+[data-roulette-game] .rr130-table-illumination::after{display:none!important;content:none!important}
+
+/* One positive overhead pool. The gun area is unmistakably brightest. */
+[data-roulette-game] .rr130-table-illumination{
+  display:block!important;
+  position:absolute!important;
+  inset:0!important;
+  width:100%!important;height:100%!important;
+  left:0!important;top:0!important;
+  z-index:12!important;
+  border-radius:inherit!important;
+  pointer-events:none!important;
+  opacity:1!important;
+  filter:none!important;
+  mix-blend-mode:screen!important;
+  background:
+    radial-gradient(ellipse 42% 42% at 50% 39%,
+      rgba(255,247,214,.46) 0%,
+      rgba(255,219,151,.38) 22%,
+      rgba(255,172,79,.25) 46%,
+      rgba(218,91,25,.105) 68%,
+      transparent 88%),
+    radial-gradient(ellipse 78% 82% at 50% 47%,
+      rgba(255,190,94,.18) 0%,
+      rgba(236,126,43,.12) 46%,
+      rgba(154,54,14,.045) 70%,
+      transparent 94%)!important;
+  animation:rr136LampPoolSwing 5.6s ease-in-out infinite!important;
+  transform-origin:50% 0!important;
+  will-change:transform,opacity!important;
+}
+
+/* A separate non-glowing vignette makes every outer edge darker, including the new button area. */
+[data-roulette-game] .rr-table > .rr136-edge-falloff{
+  position:absolute!important;inset:0!important;z-index:13!important;pointer-events:none!important;
+  border-radius:inherit!important;
+  background:radial-gradient(ellipse 62% 66% at 50% 42%,
+    transparent 0 48%,
+    rgba(18,5,2,.08) 66%,
+    rgba(7,1,0,.28) 84%,
+    rgba(2,0,0,.55) 100%)!important;
+  mix-blend-mode:multiply!important;
+}
+
+/* UI remains crisp above the extended tabletop and light. */
+[data-roulette-game] .rr-controls,[data-roulette-game] .rr-status,[data-roulette-game] .rr-top,
+[data-roulette-game] .rr-pot,[data-roulette-game] .rr-player,[data-roulette-game] .rr-wait,
+[data-roulette-game] .rr-final{z-index:30!important}
+
+@keyframes rr136LampPoolSwing{
+  0%,100%{transform:translateX(-7%) skewX(-.8deg);opacity:.92}
+  25%,75%{transform:translateX(0) skewX(0);opacity:1}
+  50%{transform:translateX(7%) skewX(.8deg);opacity:.92}
+}
+
+@media(max-width:600px){
+  [data-roulette-game] .rr-table{bottom:4px!important;height:321px!important}
+  [data-roulette-game] .rr-gun-motion{top:38.2%!important}
+  [data-roulette-game] .rr-table-shadow{top:42%!important}
+  [data-roulette-game] .rr130-table-illumination{
+    background:
+      radial-gradient(ellipse 45% 43% at 50% 39%,rgba(255,248,218,.50) 0%,rgba(255,221,153,.41) 22%,rgba(255,173,79,.27) 47%,rgba(218,91,25,.11) 69%,transparent 89%),
+      radial-gradient(ellipse 81% 84% at 50% 47%,rgba(255,190,94,.19) 0%,rgba(236,126,43,.125) 46%,rgba(154,54,14,.048) 71%,transparent 95%)!important;
+  }
+}
+@media(max-width:390px){
+  [data-roulette-game] .rr-table{bottom:4px!important;height:298px!important}
+  [data-roulette-game] .rr-gun-motion{top:37.9%!important}
+}
+@media(max-height:680px) and (max-width:600px){
+  [data-roulette-game] .rr-table{bottom:4px!important;height:271px!important}
+  [data-roulette-game] .rr-gun-motion{top:37.8%!important}
+}
+@media(prefers-reduced-motion:reduce){
+  [data-roulette-game] .rr130-table-illumination{animation:none!important;transform:none!important}
+}
+</style>
+
+<script id="rr-v136-table-edge-layer">
+(()=>{
+  const addEdgeLayer=()=>{
+    document.querySelectorAll('[data-roulette-game] .rr-table').forEach(table=>{
+      if(!table.querySelector(':scope > .rr136-edge-falloff')){
+        const edge=document.createElement('div');
+        edge.className='rr136-edge-falloff';
+        edge.setAttribute('aria-hidden','true');
+        table.appendChild(edge);
+      }
+    });
+  };
+  addEdgeLayer();
+  document.addEventListener('duel:render',addEdgeLayer);
+  const root=document.getElementById('duelActive');
+  if(root){
+    const observer=new MutationObserver(records=>{
+      if(records.some(r=>[...r.addedNodes].some(n=>n.nodeType===1&&(n.matches?.('[data-roulette-game]')||n.querySelector?.('[data-roulette-game]'))))) addEdgeLayer();
+    });
+    observer.observe(root,{childList:true,subtree:true});
+  }
+})();
+</script>
+
+<style id="rr-v137-reference-centered-textured-lighting">
+/* V137: match the supplied reference — crisp rough wood, brightest over the gun, dark perimeter. */
+[data-roulette-game] .rr-table{
+  bottom:4px!important;
+  height:350px!important;
+  overflow:hidden!important;
+  isolation:isolate!important;
+  background:
+    radial-gradient(ellipse 68% 58% at 48% 35%,rgba(128,66,31,.24),transparent 74%),
+    repeating-linear-gradient(3deg,rgba(255,214,165,.025) 0 1px,transparent 1px 9px),
+    repeating-linear-gradient(91deg,rgba(12,5,3,.22) 0 2px,transparent 2px 38px),
+    linear-gradient(102deg,#1b0d08 0%,#4b2818 26%,#3c1f13 53%,#27120c 78%,#130806 100%)!important;
+  box-shadow:inset 0 16px 24px rgba(255,153,70,.025),inset 0 -75px 110px rgba(0,0,0,.50)!important;
+}
+/* Restore visible grain, scratches and knots over the base wood. */
+[data-roulette-game] .rr-table::before{
+  content:""!important;
+  display:block!important;
+  position:absolute!important;
+  inset:0!important;
+  z-index:3!important;
+  opacity:.72!important;
+  pointer-events:none!important;
+  background:
+    radial-gradient(circle at 18% 61%,#080504 0 3px,#2a160e 4px 7px,transparent 8px),
+    radial-gradient(circle at 81% 50%,#070403 0 2px,#2b170f 3px 6px,transparent 7px),
+    linear-gradient(12deg,transparent 0 26%,rgba(236,183,126,.27) 26.2% 26.45%,transparent 26.8%),
+    linear-gradient(-8deg,transparent 0 70%,rgba(17,7,4,.72) 70.2% 70.5%,transparent 70.8%),
+    linear-gradient(5deg,transparent 0 48%,rgba(223,159,99,.18) 48.1% 48.35%,transparent 48.6%),
+    repeating-linear-gradient(2deg,transparent 0 16px,rgba(255,220,170,.028) 17px,transparent 18px)!important;
+  mix-blend-mode:overlay!important;
+}
+[data-roulette-game] .rr-table::after{display:none!important;content:none!important}
+
+/* Light sits above the wood texture but below the gun and interface. */
+[data-roulette-game] .rr130-table-illumination{
+  inset:0!important;
+  left:0!important;top:0!important;width:100%!important;height:100%!important;
+  z-index:5!important;
+  opacity:1!important;
+  filter:none!important;
+  mix-blend-mode:screen!important;
+  border-radius:inherit!important;
+  background:
+    radial-gradient(ellipse 39% 42% at 48% 38%,
+      rgba(255,244,207,.48) 0%,
+      rgba(255,214,140,.36) 23%,
+      rgba(255,165,68,.22) 47%,
+      rgba(206,78,18,.075) 70%,
+      transparent 90%),
+    radial-gradient(ellipse 72% 76% at 48% 46%,
+      rgba(255,181,81,.16) 0%,
+      rgba(221,104,31,.09) 51%,
+      rgba(121,35,8,.025) 75%,
+      transparent 96%)!important;
+  animation:rr137ReferenceSweep 5.6s ease-in-out infinite!important;
+  transform-origin:48% 0!important;
+  will-change:transform,opacity!important;
+}
+/* Keep the center stable; movement is visible but never throws the pool off the gun. */
+@keyframes rr137ReferenceSweep{
+  0%,100%{transform:translateX(-2.8%) skewX(-.35deg);opacity:.94}
+  25%,75%{transform:translateX(0) skewX(0);opacity:1}
+  50%{transform:translateX(2.8%) skewX(.35deg);opacity:.94}
+}
+/* Perimeter falloff, centered on the gun/table centerpiece rather than the canvas midpoint. */
+[data-roulette-game] .rr-table > .rr136-edge-falloff{
+  z-index:6!important;
+  background:radial-gradient(ellipse 60% 64% at 48% 41%,
+    transparent 0 48%,
+    rgba(16,4,1,.07) 66%,
+    rgba(6,1,0,.24) 84%,
+    rgba(1,0,0,.50) 100%)!important;
+  mix-blend-mode:multiply!important;
+}
+/* Gun remains crisp and above the table wash. */
+[data-roulette-game] .rr-gun-motion{top:38.3%!important;z-index:9!important;filter:drop-shadow(0 13px 12px rgba(0,0,0,.68)) drop-shadow(0 -2px 5px rgba(255,173,79,.12))!important}
+[data-roulette-game] .rr-table-shadow{top:42.5%!important;z-index:7!important}
+
+/* Background stays darker so the table and gun remain the focus. */
+[data-roulette-game]::after{
+  background:
+    radial-gradient(ellipse 52% 53% at 50% 42%,transparent 0 27%,rgba(10,3,1,.16) 61%,rgba(2,0,0,.58) 100%),
+    linear-gradient(180deg,rgba(2,0,0,.30),rgba(2,0,0,.08) 48%,rgba(1,0,0,.22))!important;
+}
+[data-roulette-game]::before{opacity:.44!important;filter:blur(30px)!important}
+
+@media(max-width:600px){
+  [data-roulette-game] .rr-table{height:321px!important}
+  [data-roulette-game] .rr130-table-illumination{
+    background:
+      radial-gradient(ellipse 41% 43% at 48% 38%,rgba(255,246,212,.52) 0%,rgba(255,216,143,.39) 23%,rgba(255,166,69,.24) 48%,rgba(206,78,18,.08) 71%,transparent 90%),
+      radial-gradient(ellipse 75% 79% at 48% 46%,rgba(255,182,82,.17) 0%,rgba(221,104,31,.095) 52%,rgba(121,35,8,.028) 76%,transparent 96%)!important;
+  }
+}
+@media(max-width:390px){[data-roulette-game] .rr-table{height:298px!important}}
+@media(max-height:680px) and (max-width:600px){[data-roulette-game] .rr-table{height:271px!important}}
+@media(prefers-reduced-motion:reduce){[data-roulette-game] .rr130-table-illumination{animation:none!important;transform:none!important}}
+</style>
+
+<style id="rr-v139-visible-reference-lighting">
+/* V139 authoritative lighting: preserve V138 wood, make bulb-driven table light clearly visible. */
+[data-roulette-game] .rr130-table-illumination{
+  display:block!important;
+  position:absolute!important;
+  inset:0!important;
+  left:0!important;top:0!important;width:100%!important;height:100%!important;
+  z-index:5!important;
+  opacity:1!important;
+  border-radius:inherit!important;
+  pointer-events:none!important;
+  overflow:hidden!important;
+  filter:none!important;
+  mix-blend-mode:normal!important;
+  transform-origin:50% 0!important;
+  background:
+    radial-gradient(ellipse 44% 43% at 50% 41%,
+      rgba(255,235,184,.42) 0%,
+      rgba(255,200,116,.31) 24%,
+      rgba(240,143,54,.19) 48%,
+      rgba(165,67,17,.075) 70%,
+      transparent 91%),
+    radial-gradient(ellipse 82% 82% at 50% 48%,
+      rgba(255,176,74,.16) 0%,
+      rgba(215,104,30,.095) 48%,
+      rgba(112,34,7,.035) 73%,
+      transparent 97%)!important;
+  animation:rr139BulbPoolSwing 5.6s ease-in-out infinite!important;
+  will-change:transform,opacity!important;
+}
+/* A very soft highlight above the gun makes the metal and wood read as directly lit. */
+[data-roulette-game] .rr-table::after{
+  content:""!important;
+  display:block!important;
+  position:absolute!important;
+  inset:0!important;
+  z-index:10!important;
+  pointer-events:none!important;
+  border-radius:inherit!important;
+  opacity:.72!important;
+  mix-blend-mode:screen!important;
+  background:
+    radial-gradient(ellipse 34% 25% at 50% 40%,
+      rgba(255,247,218,.32) 0%,
+      rgba(255,205,126,.18) 38%,
+      rgba(255,150,55,.06) 66%,
+      transparent 88%)!important;
+  animation:rr139BulbHighlightSwing 5.6s ease-in-out infinite!important;
+  transform-origin:50% 0!important;
+}
+/* Keep the center bright and taper naturally toward all four edges. */
+[data-roulette-game] .rr-table > .rr136-edge-falloff{
+  display:block!important;
+  z-index:11!important;
+  opacity:1!important;
+  background:radial-gradient(ellipse 68% 70% at 50% 44%,
+    transparent 0 53%,
+    rgba(14,4,1,.055) 69%,
+    rgba(5,1,0,.18) 86%,
+    rgba(1,0,0,.42) 100%)!important;
+  mix-blend-mode:multiply!important;
+}
+/* Keep wood detail crisp; only lower the unlit room, not the tabletop texture. */
+[data-roulette-game] .rr-table::before{z-index:4!important;opacity:.72!important}
+[data-roulette-game] .rr-gun-motion{z-index:9!important;filter:drop-shadow(0 13px 12px rgba(0,0,0,.68)) drop-shadow(0 -2px 7px rgba(255,185,95,.22))!important}
+[data-roulette-game] .rr-table-shadow{z-index:7!important}
+[data-roulette-game]::after{
+  background:
+    radial-gradient(ellipse 47% 46% at 50% 37%,transparent 0 23%,rgba(9,3,1,.13) 59%,rgba(1,0,0,.61) 100%),
+    linear-gradient(180deg,rgba(1,0,0,.32),rgba(1,0,0,.09) 48%,rgba(1,0,0,.25))!important;
+}
+@keyframes rr139BulbPoolSwing{
+  0%,100%{transform:translateX(-2.2%) rotate(-.18deg);opacity:.93}
+  25%,75%{transform:translateX(0) rotate(0);opacity:1}
+  50%{transform:translateX(2.2%) rotate(.18deg);opacity:.93}
+}
+@keyframes rr139BulbHighlightSwing{
+  0%,100%{transform:translateX(-3.2%);opacity:.60}
+  25%,75%{transform:translateX(0);opacity:.72}
+  50%{transform:translateX(3.2%);opacity:.60}
+}
+@media(max-width:600px){
+  [data-roulette-game] .rr130-table-illumination{
+    background:
+      radial-gradient(ellipse 47% 45% at 50% 41%,rgba(255,238,190,.47) 0%,rgba(255,202,119,.35) 24%,rgba(241,145,55,.22) 49%,rgba(166,67,17,.085) 71%,transparent 91%),
+      radial-gradient(ellipse 86% 86% at 50% 48%,rgba(255,178,76,.18) 0%,rgba(216,105,31,.105) 49%,rgba(113,35,7,.04) 74%,transparent 97%)!important;
+  }
+  [data-roulette-game] .rr-table::after{opacity:.78!important}
+}
+@media(prefers-reduced-motion:reduce){
+  [data-roulette-game] .rr130-table-illumination,[data-roulette-game] .rr-table::after{animation:none!important;transform:none!important}
+}
+</style>
+
+<style id="rr-v140-lighting-debug-rebuild">
+/* V140 authoritative table lighting + temporary visual calibration tools. */
+[data-roulette-game] .rr-table{
+  --rr-light-x:50%;
+  --rr-light-y:39%;
+  --rr-light-rx:68%;
+  --rr-light-ry:55%;
+  --rr-light-strength:.56;
+}
+/* Remove every old shape that can draw boxes, rims or hard cone geometry. */
+[data-roulette-game] .rr-table::after,
+[data-roulette-game] .rr136-edge-falloff{
+  display:none!important;
+  content:none!important;
+  border:0!important;
+  outline:0!important;
+  box-shadow:none!important;
+  background:none!important;
+}
+[data-roulette-game] .rr130-table-illumination,
+[data-roulette-game] .rr130-table-illumination::before,
+[data-roulette-game] .rr130-table-illumination::after{
+  border:0!important;
+  outline:0!important;
+  box-shadow:none!important;
+}
+[data-roulette-game] .rr130-table-illumination::before,
+[data-roulette-game] .rr130-table-illumination::after{display:none!important;content:none!important}
+/* One borderless center-weighted pool. Coordinates are set from the real gun/table geometry. */
+[data-roulette-game] .rr130-table-illumination{
+  display:block!important;
+  position:absolute!important;
+  inset:0!important;
+  width:100%!important;
+  height:100%!important;
+  z-index:5!important;
+  border-radius:inherit!important;
+  pointer-events:none!important;
+  opacity:1!important;
+  overflow:hidden!important;
+  filter:none!important;
+  mix-blend-mode:screen!important;
+  transform:none!important;
+  animation:none!important;
+  background:
+    radial-gradient(ellipse var(--rr-light-rx) var(--rr-light-ry) at var(--rr-light-x) var(--rr-light-y),
+      rgba(255,247,218,calc(var(--rr-light-strength) * .98)) 0%,
+      rgba(255,217,151,calc(var(--rr-light-strength) * .78)) 18%,
+      rgba(255,173,87,calc(var(--rr-light-strength) * .52)) 39%,
+      rgba(224,105,35,calc(var(--rr-light-strength) * .24)) 61%,
+      rgba(125,43,10,calc(var(--rr-light-strength) * .08)) 79%,
+      transparent 100%),
+    radial-gradient(ellipse 92% 94% at var(--rr-light-x) var(--rr-light-y),
+      rgba(255,165,66,calc(var(--rr-light-strength) * .16)) 0%,
+      rgba(174,67,18,calc(var(--rr-light-strength) * .07)) 58%,
+      transparent 100%)!important;
+}
+/* Darken only the perimeter; the center remains untouched. */
+[data-roulette-game] .rr-table{
+  box-shadow:
+    inset 0 0 42px rgba(0,0,0,.20),
+    inset 0 -42px 76px rgba(0,0,0,.30),
+    inset 28px 0 54px rgba(0,0,0,.25),
+    inset -28px 0 54px rgba(0,0,0,.25)!important;
+}
+[data-roulette-game] .rr-table::before{z-index:4!important}
+[data-roulette-game] .rr-gun-motion{z-index:9!important}
+[data-roulette-game] .rr-table-shadow{z-index:7!important}
+
+/* Temporary calibration panel. Hidden until LIGHT DEBUG is opened. */
+#rrLightDebugToggle{
+  position:fixed;right:10px;bottom:10px;z-index:100000;
+  border:1px solid rgba(255,184,78,.7);border-radius:8px;
+  background:#16100d;color:#ffd48b;padding:7px 10px;
+  font:700 11px/1.1 system-ui,sans-serif;letter-spacing:.04em;
+}
+#rrLightDebugPanel{
+  position:fixed;right:10px;bottom:48px;z-index:100001;width:min(310px,calc(100vw - 20px));
+  display:none;background:rgba(14,12,12,.96);color:#eee;border:1px solid #b87328;border-radius:10px;
+  padding:10px;font:12px/1.25 system-ui,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.65)
+}
+#rrLightDebugPanel.open{display:block}
+#rrLightDebugPanel label{display:grid;grid-template-columns:88px 1fr 42px;gap:6px;align-items:center;margin:7px 0}
+#rrLightDebugPanel input[type=range]{width:100%}
+#rrLightDebugPanel button{margin:5px 4px 0 0;padding:6px 8px;border-radius:6px;border:1px solid #78501f;background:#2b2116;color:#ffd38a}
+.rr-debug-board,.rr-debug-table,.rr-debug-gun,.rr-debug-light{
+  position:fixed;z-index:99998;pointer-events:none;display:none;box-sizing:border-box
+}
+body.rr-light-debug .rr-debug-board,body.rr-light-debug .rr-debug-table,body.rr-light-debug .rr-debug-gun,body.rr-light-debug .rr-debug-light{display:block}
+.rr-debug-board{border:2px dashed #40a9ff}
+.rr-debug-table{border:2px dashed #34d058}
+.rr-debug-gun{border:2px dashed #ff4d4f}
+.rr-debug-light{width:18px;height:18px;border:2px solid #ffe066;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 0 1px #000}
+.rr-debug-light::before,.rr-debug-light::after{content:"";position:absolute;background:#ffe066}
+.rr-debug-light::before{left:7px;top:-18px;width:2px;height:50px}
+.rr-debug-light::after{top:7px;left:-18px;height:2px;width:50px}
+</style>
+<script id="rr-v140-lighting-debug-tools">
+(()=>{
+  const id=s=>document.getElementById(s);
+  const clamp=(n,a,b)=>Math.min(b,Math.max(a,n));
+  let panel,toggle,marks={},raf=0;
+  const current=()=>document.querySelector('[data-roulette-game]');
+  const table=()=>current()?.querySelector('.rr-table');
+  const gun=()=>current()?.querySelector('.rr-gun-motion');
+  function removeLegacyEdge(){document.querySelectorAll('.rr136-edge-falloff').forEach(n=>n.remove())}
+  function calibrateFromGun(){
+    const t=table(),g=gun(); if(!t||!g)return;
+    const tr=t.getBoundingClientRect(),gr=g.getBoundingClientRect();
+    const x=clamp(((gr.left+gr.width/2-tr.left)/tr.width)*100,15,85);
+    const y=clamp(((gr.top+gr.height/2-tr.top)/tr.height)*100,15,78);
+    t.style.setProperty('--rr-light-x',x.toFixed(1)+'%');
+    t.style.setProperty('--rr-light-y',y.toFixed(1)+'%');
+    const sx=id('rrDbgX'),sy=id('rrDbgY'); if(sx)sx.value=x;if(sy)sy.value=y;
+    updateValues();
+  }
+  function setVar(name,val,suffix='%'){const t=table();if(t)t.style.setProperty(name,val+suffix)}
+  function updateValues(){
+    ['X','Y','RX','RY','S'].forEach(k=>{const el=id('rrDbg'+k),out=id('rrDbg'+k+'Val');if(el&&out)out.textContent=el.value});
+  }
+  function makeMark(cls){const n=document.createElement('div');n.className=cls;document.body.appendChild(n);return n}
+  function updateMarks(){
+    if(!document.body.classList.contains('rr-light-debug')){raf=0;return}
+    const b=current(),t=table(),g=gun();
+    if(b){const r=b.getBoundingClientRect();Object.assign(marks.board.style,{left:r.left+'px',top:r.top+'px',width:r.width+'px',height:r.height+'px'})}
+    if(t){const r=t.getBoundingClientRect();Object.assign(marks.table.style,{left:r.left+'px',top:r.top+'px',width:r.width+'px',height:r.height+'px'});
+      const x=parseFloat(getComputedStyle(t).getPropertyValue('--rr-light-x'))||50;
+      const y=parseFloat(getComputedStyle(t).getPropertyValue('--rr-light-y'))||43;
+      Object.assign(marks.light.style,{left:(r.left+r.width*x/100)+'px',top:(r.top+r.height*y/100)+'px'});
+    }
+    if(g){const r=g.getBoundingClientRect();Object.assign(marks.gun.style,{left:r.left+'px',top:r.top+'px',width:r.width+'px',height:r.height+'px'})}
+    raf=requestAnimationFrame(updateMarks);
+  }
+  function build(){
+    if(id('rrLightDebugToggle'))return;
+    toggle=document.createElement('button');toggle.id='rrLightDebugToggle';toggle.textContent='LIGHT DEBUG';
+    panel=document.createElement('div');panel.id='rrLightDebugPanel';
+    panel.innerHTML=`<b>Roulette lighting calibration</b>
+      <label>Center X<input id="rrDbgX" type="range" min="20" max="80" step="0.5" value="50"><span id="rrDbgXVal">50</span></label>
+      <label>Center Y<input id="rrDbgY" type="range" min="18" max="78" step="0.5" value="39"><span id="rrDbgYVal">39</span></label>
+      <label>Spread X<input id="rrDbgRX" type="range" min="25" max="95" step="1" value="68"><span id="rrDbgRXVal">68</span></label>
+      <label>Spread Y<input id="rrDbgRY" type="range" min="30" max="110" step="1" value="55"><span id="rrDbgRYVal">55</span></label>
+      <label>Strength<input id="rrDbgS" type="range" min="0.15" max="1" step="0.01" value="0.56"><span id="rrDbgSVal">0.56</span></label>
+      <button id="rrDbgGun">Center on gun</button><button id="rrDbgReset">Reset</button><div style="margin-top:7px;color:#aaa">Blue: board · Green: table · Red: gun · Yellow: light center</div>`;
+    document.body.append(toggle,panel);
+    marks={board:makeMark('rr-debug-board'),table:makeMark('rr-debug-table'),gun:makeMark('rr-debug-gun'),light:makeMark('rr-debug-light')};
+    toggle.onclick=()=>{panel.classList.toggle('open');document.body.classList.toggle('rr-light-debug',panel.classList.contains('open'));if(panel.classList.contains('open')){calibrateFromGun();if(!raf)updateMarks()}};
+    id('rrDbgX').oninput=e=>{setVar('--rr-light-x',e.target.value);updateValues()};
+    id('rrDbgY').oninput=e=>{setVar('--rr-light-y',e.target.value);updateValues()};
+    id('rrDbgRX').oninput=e=>{setVar('--rr-light-rx',e.target.value);updateValues()};
+    id('rrDbgRY').oninput=e=>{setVar('--rr-light-ry',e.target.value);updateValues()};
+    id('rrDbgS').oninput=e=>{setVar('--rr-light-strength',e.target.value,'');updateValues()};
+    id('rrDbgGun').onclick=calibrateFromGun;
+    id('rrDbgReset').onclick=()=>{const t=table();if(t){t.style.setProperty('--rr-light-x','50%');t.style.setProperty('--rr-light-y','39%');t.style.setProperty('--rr-light-rx','55%');t.style.setProperty('--rr-light-ry','55%');t.style.setProperty('--rr-light-strength','.56')}[['X',50],['Y',39],['RX',68],['RY',55],['S',.56]].forEach(([k,v])=>id('rrDbg'+k).value=v);updateValues()};
+    updateValues();
+  }
+  function refresh(){removeLegacyEdge();build();setTimeout(calibrateFromGun,50)}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',refresh,{once:true});else refresh();
+  document.addEventListener('duel:render',refresh);
+})();
+</script>
+
+<style id="rr-v141-debug-visible-fix">
+/* V141: hide all legacy light geometry that can draw boxes/lines. */
+[data-roulette-game] .rr-table-light,
+[data-roulette-game] .rr136-edge-falloff,
+[data-roulette-game] .rr130-table-illumination::before,
+[data-roulette-game] .rr130-table-illumination::after,
+[data-roulette-game] .rr-table::after{
+  display:none!important;content:none!important;background:none!important;
+  border:0!important;outline:0!important;box-shadow:none!important;
+}
+[data-roulette-game] .rr130-table-illumination{
+  display:block!important;position:absolute!important;inset:0!important;
+  width:100%!important;height:100%!important;z-index:5!important;
+  border:0!important;outline:0!important;box-shadow:none!important;
+  border-radius:inherit!important;overflow:hidden!important;pointer-events:none!important;
+  filter:none!important;mix-blend-mode:screen!important;animation:none!important;transform:none!important;
+  background:radial-gradient(ellipse var(--rr-light-rx,58%) var(--rr-light-ry,64%) at var(--rr-light-x,50%) var(--rr-light-y,43%),
+    rgba(255,245,213,calc(var(--rr-light-strength,.55)*.88)) 0%,
+    rgba(255,208,134,calc(var(--rr-light-strength,.55)*.63)) 22%,
+    rgba(244,150,65,calc(var(--rr-light-strength,.55)*.38)) 46%,
+    rgba(188,78,23,calc(var(--rr-light-strength,.55)*.14)) 68%,
+    transparent 92%)!important;
+}
+#rrLightDebugToggle{
+  display:block!important;position:fixed!important;top:196px!important;right:10px!important;bottom:auto!important;
+  z-index:2147483646!important;padding:9px 11px!important;background:#21150c!important;color:#ffd48b!important;
+  border:2px solid #ffad3b!important;border-radius:8px!important;font:800 12px/1 system-ui,sans-serif!important;
+  box-shadow:0 4px 18px rgba(0,0,0,.8)!important;opacity:1!important;visibility:visible!important;
+}
+#rrLightDebugPanel{
+  position:fixed!important;top:238px!important;right:10px!important;bottom:auto!important;z-index:2147483647!important;
+  max-height:calc(100vh - 250px)!important;overflow:auto!important;
+}
+</style>
+
+<style id="rr-v142-warm-rough-table-authoritative">
+/* V142: preserve calibrated geometry, restore rough dark wood, and warm the lamp response. */
+[data-roulette-game] .rr-table{
+  background:
+    linear-gradient(rgba(20,8,3,.46),rgba(8,3,1,.62)),
+    url('assets/roulette/decor/table-wood-texture.png') center 44%/cover no-repeat!important;
+  box-shadow:
+    inset 0 15px 28px rgba(255,119,35,.055),
+    inset 0 -82px 120px rgba(0,0,0,.66),
+    inset 34px 0 72px rgba(0,0,0,.28),
+    inset -34px 0 72px rgba(0,0,0,.28),
+    0 -5px 18px rgba(0,0,0,.58)!important;
+}
+/* Reinforce scratches, dirt, knots and uneven grain without covering the photo texture. */
+[data-roulette-game] .rr-table::before{
+  content:""!important;
+  display:block!important;
+  position:absolute!important;
+  inset:0!important;
+  z-index:4!important;
+  pointer-events:none!important;
+  opacity:.58!important;
+  mix-blend-mode:multiply!important;
+  background:
+    radial-gradient(circle at 18% 61%,rgba(0,0,0,.72) 0 3px,rgba(38,15,7,.48) 4px 8px,transparent 9px),
+    radial-gradient(circle at 82% 49%,rgba(0,0,0,.68) 0 2px,rgba(39,16,8,.42) 3px 7px,transparent 8px),
+    linear-gradient(12deg,transparent 0 26%,rgba(13,5,2,.50) 26.15% 26.45%,transparent 26.8%),
+    linear-gradient(-8deg,transparent 0 70%,rgba(4,1,0,.66) 70.15% 70.5%,transparent 70.85%),
+    linear-gradient(5deg,transparent 0 48%,rgba(24,8,3,.44) 48.1% 48.4%,transparent 48.7%),
+    repeating-linear-gradient(2deg,transparent 0 17px,rgba(8,2,0,.13) 18px,transparent 20px)!important;
+}
+/* Warmer orange pool, centered using the existing calibrated debug variables. */
+[data-roulette-game] .rr130-table-illumination{
+  z-index:5!important;
+  mix-blend-mode:screen!important;
+  opacity:1!important;
+  filter:none!important;
+  border:0!important;
+  outline:0!important;
+  box-shadow:none!important;
+  background:
+    radial-gradient(ellipse var(--rr-light-rx,68%) var(--rr-light-ry,55%) at var(--rr-light-x,50%) var(--rr-light-y,39%),
+      rgba(255,241,202,calc(var(--rr-light-strength,.56)*.78)) 0%,
+      rgba(255,186,91,calc(var(--rr-light-strength,.56)*.70)) 18%,
+      rgba(246,126,36,calc(var(--rr-light-strength,.56)*.48)) 42%,
+      rgba(178,61,12,calc(var(--rr-light-strength,.56)*.20)) 68%,
+      rgba(91,21,3,calc(var(--rr-light-strength,.56)*.06)) 84%,
+      transparent 100%),
+    radial-gradient(ellipse 94% 90% at var(--rr-light-x,50%) var(--rr-light-y,39%),
+      rgba(255,127,30,calc(var(--rr-light-strength,.56)*.13)) 0%,
+      rgba(143,39,5,calc(var(--rr-light-strength,.56)*.05)) 62%,
+      transparent 100%)!important;
+}
+/* A restrained warm reflection on the revolver while preserving its crisp artwork. */
+[data-roulette-game] .rr-gun-motion{
+  filter:
+    drop-shadow(0 13px 12px rgba(0,0,0,.72))
+    drop-shadow(0 -2px 6px rgba(255,130,42,.24))!important;
+}
+/* Keep the walls darker so the table remains the centerpiece. */
+[data-roulette-game]::after{
+  background:
+    radial-gradient(ellipse 43% 40% at 50% 34%,transparent 0 22%,rgba(10,3,1,.16) 58%,rgba(1,0,0,.66) 100%),
+    linear-gradient(180deg,rgba(2,0,0,.34),rgba(2,0,0,.10) 46%,rgba(1,0,0,.27))!important;
+}
+</style>
+
+<style id="rr-v143-clean-moving-light-authoritative">
+/* V143: remove calibration artifacts, lower exposure, and make the bulb response move clearly. */
+#rrLightDebugToggle,#rrLightDebugPanel,
+.rr-debug-board,.rr-debug-table,.rr-debug-gun,.rr-debug-light{display:none!important;visibility:hidden!important;pointer-events:none!important}
+
+/* Keep the original photographic wood crisp. Remove generated stripe/scratch overlays that caused lines. */
+[data-roulette-game] .rr-table{
+  --rr-light-x:50%;
+  --rr-light-y:39%;
+  --rr-light-rx:64%;
+  --rr-light-ry:59%;
+  --rr-light-strength:.42;
+  background:
+    linear-gradient(rgba(12,4,1,.35),rgba(4,1,0,.54)),
+    url('assets/roulette/decor/table-wood-texture.png') center 44%/cover no-repeat!important;
+  box-shadow:
+    inset 0 8px 20px rgba(255,118,33,.025),
+    inset 0 -74px 120px rgba(0,0,0,.72),
+    inset 34px 0 70px rgba(0,0,0,.34),
+    inset -34px 0 70px rgba(0,0,0,.34),
+    0 -5px 18px rgba(0,0,0,.62)!important;
+}
+[data-roulette-game] .rr-table::before,
+[data-roulette-game] .rr-table::after,
+[data-roulette-game] .rr136-edge-falloff,
+[data-roulette-game] .rr-table-light{
+  display:none!important;content:none!important;background:none!important;
+  border:0!important;outline:0!important;box-shadow:none!important;
+}
+
+/* One clean borderless pool. It stays centered over the cylinder and visibly follows the lamp swing. */
+[data-roulette-game] .rr130-table-illumination{
+  display:block!important;
+  position:absolute!important;
+  inset:-3% -6% -4% -6%!important;
+  width:auto!important;height:auto!important;
+  z-index:6!important;
+  border:0!important;outline:0!important;box-shadow:none!important;
+  border-radius:inherit!important;overflow:hidden!important;pointer-events:none!important;
+  opacity:.84!important;
+  filter:blur(10px)!important;
+  mix-blend-mode:screen!important;
+  transform-origin:50% 0!important;
+  will-change:transform,opacity!important;
+  background:
+    radial-gradient(ellipse 48% 50% at 50% 40%,
+      rgba(255,226,174,.44) 0%,
+      rgba(255,170,76,.35) 20%,
+      rgba(239,105,25,.20) 43%,
+      rgba(151,45,7,.075) 68%,
+      transparent 91%),
+    radial-gradient(ellipse 78% 78% at 50% 46%,
+      rgba(255,130,28,.10) 0%,
+      rgba(132,35,5,.035) 61%,
+      transparent 96%)!important;
+  animation:rr143TableLightSwing 5.6s ease-in-out infinite!important;
+}
+@keyframes rr143TableLightSwing{
+  0%,100%{transform:translate3d(-4.5%,0,0) rotate(-.25deg);opacity:.76}
+  25%,75%{transform:translate3d(0,0,0) rotate(0);opacity:.84}
+  50%{transform:translate3d(4.5%,0,0) rotate(.25deg);opacity:.76}
+}
+
+/* Remove the broad fake shadow band while keeping contact shadow beneath the gun. */
+[data-roulette-game] .rr-table-shadow{
+  opacity:.30!important;
+  filter:blur(13px)!important;
+  transform:scale(.78,.58)!important;
+}
+
+/* Gun reacts visibly: warm metallic glint and slight exposure change follow the same swing. */
+[data-roulette-game] .rr-gun-motion{
+  z-index:10!important;
+  will-change:filter,transform!important;
+  animation:rr143GunLightReaction 5.6s ease-in-out infinite!important;
+}
+@keyframes rr143GunLightReaction{
+  0%,100%{
+    filter:brightness(.92) contrast(1.06) saturate(1.02)
+      drop-shadow(0 13px 12px rgba(0,0,0,.76))
+      drop-shadow(-5px -2px 7px rgba(255,117,30,.16))!important;
+  }
+  25%,75%{
+    filter:brightness(1.01) contrast(1.08) saturate(1.05)
+      drop-shadow(0 13px 12px rgba(0,0,0,.72))
+      drop-shadow(0 -3px 9px rgba(255,145,48,.25))!important;
+  }
+  50%{
+    filter:brightness(.92) contrast(1.06) saturate(1.02)
+      drop-shadow(0 13px 12px rgba(0,0,0,.76))
+      drop-shadow(5px -2px 7px rgba(255,117,30,.16))!important;
+  }
+}
+
+/* Darker room; only a restrained halo remains around the bulb. */
+[data-roulette-game]::after{
+  background:
+    radial-gradient(ellipse 38% 34% at 50% 29%,transparent 0 18%,rgba(8,2,0,.17) 53%,rgba(1,0,0,.72) 100%),
+    linear-gradient(180deg,rgba(1,0,0,.42),rgba(1,0,0,.15) 43%,rgba(1,0,0,.34))!important;
+}
+[data-roulette-game]::before{opacity:.28!important;filter:blur(34px)!important}
+
+@media(prefers-reduced-motion:reduce){
+  [data-roulette-game] .rr130-table-illumination,
+  [data-roulette-game] .rr-gun-motion{animation:none!important;transform:none!important}
+}
+</style>
+<script id="rr-v143-remove-debug-ui">
+(function(){
+  function clean(){
+    document.body&&document.body.classList.remove('rr-light-debug');
+    ['rrLightDebugToggle','rrLightDebugPanel'].forEach(function(id){var n=document.getElementById(id);if(n)n.remove();});
+    document.querySelectorAll('.rr-debug-board,.rr-debug-table,.rr-debug-gun,.rr-debug-light').forEach(function(n){n.remove();});
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',clean,{once:true});else clean();
+  document.addEventListener('duel:render',function(){setTimeout(clean,0)});
+})();
+</script>
+
+<style id="rr-v145-single-driver-light-sync">
+/* V145 authoritative: one real-time driver controls lamp and every lighting response. */
+[data-roulette-game] .rr126-swing,
+[data-roulette-game] .rr130-table-illumination,
+[data-roulette-game] .rr-gun-motion{
+  animation:none!important;
+}
+/* Darker poster wall, slightly brighter textured table. */
+[data-roulette-game]::after{
+  background:
+    radial-gradient(ellipse 31% 27% at 50% 29%,transparent 0 14%,rgba(7,2,0,.25) 46%,rgba(0,0,0,.83) 100%),
+    linear-gradient(180deg,rgba(0,0,0,.57),rgba(2,0,0,.27) 43%,rgba(0,0,0,.43))!important;
+}
+[data-roulette-game] .rr-table{
+  background:
+    linear-gradient(rgba(9,3,1,.22),rgba(2,0,0,.39)),
+    url('assets/roulette/decor/table-wood-texture.png') center 44%/cover no-repeat!important;
+}
+[data-roulette-game] .rr130-table-illumination{
+  display:block!important;
+  opacity:.94!important;
+  filter:blur(11px)!important;
+  background:
+    radial-gradient(ellipse 46% 50% at 50% 40%,
+      rgba(255,232,183,.54) 0%,
+      rgba(255,170,72,.43) 22%,
+      rgba(231,92,18,.24) 47%,
+      rgba(126,33,4,.07) 71%,
+      transparent 92%),
+    radial-gradient(ellipse 76% 80% at 50% 47%,
+      rgba(255,124,25,.13) 0%,
+      rgba(105,24,2,.035) 64%,
+      transparent 97%)!important;
+  will-change:transform,opacity!important;
+}
+[data-roulette-game] .rr126-room-glow{will-change:transform,opacity!important}
+[data-roulette-game] .rr-gun-motion{will-change:filter!important}
+@media(prefers-reduced-motion:reduce){
+  [data-roulette-game] .rr126-swing{transform:translateX(-50%) rotate(0deg)!important}
+  [data-roulette-game] .rr130-table-illumination{transform:translate3d(0,0,0)!important}
+}
+</style>
+<script id="rr-v145-single-driver-light-sync-script">
+(function(){
+  'use strict';
+  var PERIOD=5600, raf=0, start=performance.now();
+  var lamp=null, light=null, gun=null;
+  function bind(){
+    var game=document.querySelector('[data-roulette-game]');
+    if(!game){lamp=light=gun=null;return false;}
+    if(!lamp||!lamp.isConnected) lamp=game.querySelector('.rr126-swing');
+    if(!light||!light.isConnected) light=game.querySelector('.rr130-table-illumination');
+    if(!gun||!gun.isConnected) gun=game.querySelector('.rr-gun-motion');
+    return !!(lamp&&light&&gun);
+  }
+  function frame(now){
+    if(!document.hidden && bind()){
+      /* Starts left, crosses center, reaches right, and returns—one value for everything. */
+      var phase=((now-start)%PERIOD)/PERIOD;
+      var swing=-Math.cos(phase*Math.PI*2); // -1 left, 0 center, +1 right
+      var center=Math.abs(swing);
+      var angle=swing*1.35;
+      var lightShift=-swing*5.8;
+      var lightOpacity=.94-(center*.08);
+      lamp.style.setProperty('transform','translateX(-50%) rotate('+angle.toFixed(3)+'deg)','important');
+      light.style.setProperty('transform','translate3d('+lightShift.toFixed(3)+'%,0,0) rotate('+(swing*.28).toFixed(3)+'deg)','important');
+      light.style.setProperty('opacity',lightOpacity.toFixed(3),'important');
+      var side=swing<0?1:-1;
+      var glowX=(side*(3+center*5)).toFixed(2);
+      var bright=(1.035-center*.065).toFixed(3);
+      var warm=(.31-center*.08).toFixed(3);
+      gun.style.setProperty('filter',
+        'brightness('+bright+') contrast(1.10) saturate(1.08) '+
+        'drop-shadow(0 13px 12px rgba(0,0,0,.72)) '+
+        'drop-shadow('+glowX+'px -3px 9px rgba(255,137,38,'+warm+'))','important');
+    }
+    raf=requestAnimationFrame(frame);
+  }
+  function startDriver(){if(!raf){start=performance.now();raf=requestAnimationFrame(frame);}}
+  function stopDriver(){if(raf){cancelAnimationFrame(raf);raf=0;}}
+  document.addEventListener('visibilitychange',function(){document.hidden?stopDriver():startDriver();});
+  document.addEventListener('duel:render',function(){lamp=light=gun=null;});
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',startDriver,{once:true});else startDriver();
+})();
+</script>
+
+<style id="rr-v146-lamp-art-cleanup">
+/* V146: visual cleanup only. Preserve lamp geometry, swing, and scene lighting. */
+[data-roulette-game] .rr126-room-glow{
+  display:none!important;
+  opacity:0!important;
+  background:none!important;
+  box-shadow:none!important;
+  filter:none!important;
+}
+[data-roulette-game] .rr126-lamp-body{
+  filter:drop-shadow(0 16px 13px rgba(0,0,0,.72))!important;
+}
+/* Rebuild the bulb as a clean circular source behind the rim. */
+[data-roulette-game] .rr126-bulb-glow{
+  display:block!important;
+  left:50%!important;
+  top:91.5%!important;
+  width:13.5%!important;
+  aspect-ratio:1!important;
+  transform:translate(-50%,-50%)!important;
+  z-index:4!important;
+  border:0!important;
+  outline:0!important;
+  border-radius:50%!important;
+  overflow:visible!important;
+  background:radial-gradient(circle,
+    #fffdf1 0 16%,
+    #ffe4a2 30%,
+    rgba(255,174,61,.86) 49%,
+    rgba(255,119,24,.34) 66%,
+    transparent 78%)!important;
+  box-shadow:
+    0 0 10px rgba(255,247,211,.96),
+    0 0 24px rgba(255,172,62,.64),
+    0 0 46px rgba(220,86,17,.24)!important;
+  filter:none!important;
+  mix-blend-mode:screen!important;
+  clip-path:circle(50% at 50% 50%)!important;
+}
+</style>
+
+<style id="rr-v148-final-lamp-asset-cleanup">
+/* V148: lamp-art-only correction. No geometry, swing, room, table or game changes. */
+[data-roulette-game] .rr126-swing{isolation:isolate!important;}
+[data-roulette-game] .rr126-lamp-body{
+  filter:none!important;
+  box-shadow:none!important;
+}
+[data-roulette-game] .rr126-bulb-glow{
+  display:block!important;
+  left:50%!important;
+  top:89.7%!important;
+  width:14.2%!important;
+  height:auto!important;
+  aspect-ratio:1/1!important;
+  transform:translate(-50%,-50%)!important;
+  z-index:4!important;
+  border:0!important;
+  outline:0!important;
+  border-radius:50%!important;
+  overflow:visible!important;
+  clip-path:circle(50% at 50% 50%)!important;
+  background:radial-gradient(circle at 50% 38%,
+    #fffef7 0 18%,
+    #fff1b9 36%,
+    #ffd477 58%,
+    #f2a23e 79%,
+    #c96820 100%)!important;
+  box-shadow:
+    0 0 5px 2px rgba(255,249,220,.92),
+    0 0 13px 5px rgba(255,183,70,.46),
+    0 8px 24px 8px rgba(214,92,20,.18)!important;
+  filter:brightness(1.12) saturate(1.08)!important;
+  mix-blend-mode:normal!important;
+  opacity:1!important;
 }
 </style>
