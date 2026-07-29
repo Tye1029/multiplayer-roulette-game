@@ -9,6 +9,7 @@ import './patch-roulette-media-settings.mjs';
 const indexUrl = new URL('../index.html', import.meta.url);
 const startMarker = '<!-- MODULAR_LAMP_ASSETS_START -->';
 const endMarker = '<!-- MODULAR_LAMP_ASSETS_END -->';
+const lateSmokeLink = '  <link id="rrPermanentSmokeStyles" rel="stylesheet" href="/assets/roulette/smoke.css?v=2">';
 
 // Confirmed obsolete lamp and lighting experiments only. Protected animation
 // source is never rewritten; the imported server patch only normalizes the
@@ -59,7 +60,6 @@ function removeObsoleteLampBlocks(source) {
 }
 
 const criticalStyle = `  <link id="rrLampExternalStyles" rel="stylesheet" href="/assets/roulette/lamp.css?v=18&smoke=2">
-  <link id="rrPermanentSmokeStyles" rel="stylesheet" href="/assets/roulette/smoke.css?v=1">
   <style id="rrLampCriticalHide">
     [data-roulette-game] > .rr-lamp,
     [data-roulette-game] .rr-lamp-fixture,
@@ -95,7 +95,7 @@ const block = `${startMarker}\n` +
   '  <script src="/assets/roulette/lamp-config.js?v=19" defer></script>\n' +
   '  <script src="/assets/roulette/lamp.js?v=20&smoke=2" defer></script>\n' +
   '  <script src="/assets/roulette/lamp-bootstrap.js?v=19&smoke=2" defer></script>\n' +
-  '  <script src="/assets/roulette/smoke.js?v=1" defer></script>\n' +
+  '  <script src="/assets/roulette/smoke.js?v=2" defer></script>\n' +
   '  <script src="/assets/roulette/audio-manager.js?v=4&ambience=2&countdown=2&audible=3&media=2" defer></script>\n' +
   '  <script src="/assets/roulette/spin-audio-policy.js?v=3&turn-audio=2" defer></script>\n' +
   '  <script src="/assets/roulette/turn-animation.js?v=5" defer></script>\n' +
@@ -117,5 +117,11 @@ if (markerPattern.test(html)) {
   throw new Error('Cannot inject isolated assets: index.html has no </head> tag');
 }
 
+// Older scene CSS appears late in index.html and sets .rr-smoke to 30% opacity.
+// Put the permanent smoke stylesheet after every inline style so it wins.
+html = html.replace(/\s*<link\b[^>]*\bid=["']rrPermanentSmokeStyles["'][^>]*>\s*/gi, '\n');
+if (!html.includes('</head>')) throw new Error('Cannot append final smoke stylesheet: index.html has no </head> tag');
+html = html.replace('</head>', `${lateSmokeLink}\n</head>`);
+
 await writeFile(indexUrl, html);
-console.log('Injected independent lamp, permanent lamp-synchronized smoke, synchronized opening spin, authoritative six-chamber Roulette rules, reliable pass audio, deep-red audible countdown, media-safe ambience, result cues, and unchanged protected animations.');
+console.log('Injected independent lamp, full-strength permanent lamp-synchronized smoke, synchronized opening spin, authoritative six-chamber Roulette rules, reliable pass audio, deep-red audible countdown, media-safe ambience, result cues, and unchanged protected animations.');
