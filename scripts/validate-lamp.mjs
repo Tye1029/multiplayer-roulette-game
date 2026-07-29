@@ -120,21 +120,30 @@ for (const required of [
   'const CHAIN_STOP_AFTER = 340',
   'function openingSpin(game, state, gameId)',
   'function shotSequence(game, state, gameId)',
-  'function syncTurnMovement()',
-  "claimAction('turn-move', `${gameId}:${turnId}`, 12000)",
+  'function playTurnMovement(details = {})',
+  'const key = `${gameId}:${fromTurnId}:${turnId}:${epoch}`',
   'volume: 0.044',
-  'start: 0.22',
-  'duration: 0.56',
+  'start: 0.12',
+  'duration: 0.62',
   'fadeOut: 0.30',
   'global.RouletteAudio = Object.freeze({',
   'shotSequence,',
-  'turnRotate() { return null; }'
+  "if (!details || typeof details !== 'object') return false;",
+  'return playTurnMovement(details);'
 ]) if (!spinPolicy.includes(required)) throw new Error(`Audio policy is missing ${required}`);
+if (spinPolicy.includes('function syncTurnMovement()') || spinPolicy.includes('pollTimer')) {
+  throw new Error('Audio policy still polls snapshots for turn movement.');
+}
 
 for (const required of [
-  'global.__rrAuthoritativeFacingGuardV1 = true',
+  'global.__rrAuthoritativeFacingGuardV2 = true',
+  'function snapshotStamp(game)',
+  'function authoritativeTurnId(game, root = currentRoot(game?.gameId))',
   'function animationIsAuthorized(element)',
+  'function startTurnMovementSound()',
   'function installAnimationGate()',
+  'state.cancelledStaleRotations += 1',
+  'global.RouletteAudio?.turnRotate?.({',
   'await api.rotateToLockedTurn(game, gameId, turnId, 1020)',
   'api.enforceLockedFacing(gameId)',
   "scheduleReconcile('hard-lock-poll')"
