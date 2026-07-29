@@ -1,0 +1,1 @@
+Temporary file used only to ensure the validation workflow runs against the latest lamp-development head.
