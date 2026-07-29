@@ -127,3 +127,4 @@ if (policy.includes('function syncTurnMovement()') || policy.includes('pollTimer
 await writeFile(policyUrl, policy);
 console.log('Patched Roulette turn movement: the real animation starts an earlier sound every time and fades before the terminal knock.');
 await import('./patch-roulette-turn-facing-guard.mjs');
+await import('./patch-roulette-active-rotation-hold.mjs');
