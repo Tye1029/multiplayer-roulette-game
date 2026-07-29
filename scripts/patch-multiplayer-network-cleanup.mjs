@@ -130,8 +130,8 @@ const adoptionBlock = `  function rnbStateRevision(game){
 html = replaceSection(
   html,
   'the Remote Bot snapshot adoption helper',
-  `  function rnbAdoptGame(game,force=false){`,
-  `  async function rnbFetchAuthoritativeGame(gameId){`,
+  `function rnbAdoptGame(game,force=false){`,
+  `async function rnbFetchAuthoritativeGame(gameId){`,
   adoptionBlock
 );
 
