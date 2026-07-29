@@ -27,25 +27,28 @@ const directTurnMovement = `  function playTurnMovement(details = {}) {
     const turnId = String(details.turnId || '');
     const epoch = Number(details.epoch || 0);
     const duration = Math.max(500, Number(details.duration) || 1020);
-    if (!gameId || !turnId || performance.now() < chamberSpinUntil) return false;
+    const rotationToken = String(details.rotationToken || '');
+    if (!gameId || !turnId || document.hidden) return false;
 
-    const key = \`${'${gameId}:${fromTurnId}:${turnId}:${epoch}'}\`;
+    const key = rotationToken || \`${'${gameId}:${fromTurnId}:${turnId}:${epoch}'}\`;
     const now = performance.now();
     if (key === lastTurnMovementKey && now - lastTurnMovementAt < 1600) return false;
     if (!claimAction('turn-move', key, Math.max(1800, duration + 600))) return false;
+
+    stopGroup('turn-move', 24);
+    const clip = playClip(TABLE_MOVE, {
+      group: 'turn-move',
+      volume: 0.048,
+      rate: 1.06,
+      start: 0,
+      duration: 0.72,
+      fadeIn: 0.015,
+      fadeOut: 0.26,
+      turnMovement: true
+    });
+    if (!clip) return false;
     lastTurnMovementKey = key;
     lastTurnMovementAt = now;
-
-    stopGroup('turn-move', 32);
-    playClip(TABLE_MOVE, {
-      group: 'turn-move',
-      volume: 0.044,
-      rate: 1.08,
-      start: 0.12,
-      duration: 0.62,
-      fadeIn: 0.02,
-      fadeOut: 0.30
-    });
     return true;
   }
 
@@ -107,14 +110,29 @@ if (!policy.includes('function playTurnMovement(details = {})')) {
   policy = policy.replace('    clearTimeout(pollTimer);\n', '');
 }
 
+if (!policy.includes('if (options.turnMovement === true) clip.__rrAuthorizedTurnMove = true;')) {
+  policy = replaceOnce(
+    policy,
+    'the authorized turn movement media marker',
+    `    if (options.chamber === true) clip.__rrSpinSequenceChamber = true;`,
+    `    if (options.chamber === true) clip.__rrSpinSequenceChamber = true;
+    if (options.turnMovement === true) clip.__rrAuthorizedTurnMove = true;`
+  );
+}
+
 for (const required of [
   'function playTurnMovement(details = {})',
-  'const key = `${gameId}:${fromTurnId}:${turnId}:${epoch}`',
+  "const rotationToken = String(details.rotationToken || '');",
+  'const key = rotationToken || `${gameId}:${fromTurnId}:${turnId}:${epoch}`',
   "group: 'turn-move'",
-  'volume: 0.044',
-  'start: 0.12',
-  'duration: 0.62',
-  'fadeOut: 0.30',
+  'volume: 0.048',
+  'start: 0',
+  'duration: 0.72',
+  'fadeOut: 0.26',
+  'turnMovement: true',
+  'if (options.turnMovement === true) clip.__rrAuthorizedTurnMove = true;',
+  'const clip = playClip(TABLE_MOVE, {',
+  'if (!clip) return false;',
   "if (!details || typeof details !== 'object') return false;",
   'return playTurnMovement(details);'
 ]) {
@@ -123,8 +141,12 @@ for (const required of [
 if (policy.includes('function syncTurnMovement()') || policy.includes('pollTimer')) {
   throw new Error('Turn movement audio is still driven by polling.');
 }
+if (policy.includes('performance.now() < chamberSpinUntil) return false') {
+  throw new Error('Turn movement audio is still suppressed by the stale opening chamber window.');
+}
 
 await writeFile(policyUrl, policy);
-console.log('Patched Roulette turn movement: the real animation starts an earlier sound every time and fades before the terminal knock.');
+console.log('Patched Roulette turn movement: approved rotations start a no-seek authorized sound immediately and fade before the terminal knock.');
 await import('./patch-roulette-turn-facing-guard.mjs');
 await import('./patch-roulette-active-rotation-hold.mjs');
+await import('./patch-roulette-reliable-turn-sound.mjs');
