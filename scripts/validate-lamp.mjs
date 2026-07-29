@@ -4,13 +4,14 @@ import vm from 'node:vm';
 
 const read = path => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
 const [
-  html, injector, turnLock, turnFire, audio, spinPolicy, bindings, config,
+  html, injector, turnLock, turnFire, facingGuard, audio, spinPolicy, bindings, config,
   lamp, bootstrap, calibration, lampCss, calibrationHtml, packageSource
 ] = await Promise.all([
   read('index.html'),
   read('scripts/inject-lamp-assets.mjs'),
   read('assets/roulette/turn-animation.js'),
   read('assets/roulette/turn-fire.js'),
+  read('assets/roulette/turn-facing-guard.js'),
   read('assets/roulette/audio-manager.js'),
   read('assets/roulette/spin-audio-policy.js'),
   read('assets/roulette/audio-bindings.js'),
@@ -26,6 +27,7 @@ const [
 for (const [name, source] of [
   ['turn-animation.js', turnLock],
   ['turn-fire.js', turnFire],
+  ['turn-facing-guard.js', facingGuard],
   ['audio-manager.js', audio],
   ['spin-audio-policy.js', spinPolicy],
   ['audio-bindings.js', bindings],
@@ -66,6 +68,7 @@ const requiredAssets = [
   '/assets/roulette/spin-audio-policy.js?v=3',
   '/assets/roulette/turn-animation.js?v=5',
   '/assets/roulette/turn-fire.js?v=2',
+  '/assets/roulette/turn-facing-guard.js?v=1',
   '/assets/roulette/audio-bindings.js?v=5',
   'MODULAR_LAMP_ASSETS_START',
   'rrLampCriticalHide'
@@ -79,10 +82,11 @@ const ordered = [
   '/assets/roulette/spin-audio-policy.js?v=3',
   '/assets/roulette/turn-animation.js?v=5',
   '/assets/roulette/turn-fire.js?v=2',
+  '/assets/roulette/turn-facing-guard.js?v=1',
   '/assets/roulette/audio-bindings.js?v=5'
 ].map(value => injector.indexOf(value));
 if (ordered.some(index => index < 0) || ordered.some((index, i) => i && index <= ordered[i - 1])) {
-  throw new Error('Roulette audio and protected animation modules are not injected in the required order.');
+  throw new Error('Roulette audio, protected animation modules, and facing guard are not injected in the required order.');
 }
 
 for (const forbidden of [
@@ -100,10 +104,16 @@ for (const required of [
   "hum: 'freesound_community-lamp-electricity-buzzingwav-14609.mp3'",
   "heartbeat: 'pwlpl-heartbeat-tense-377250.mp3'",
   "rumble: 'diff_style-disturbing-low-rumble-183748.mp3'",
-  "play('chair'", "play('tap'", "play('tension'",
+  "play('chair'", "play('tension'",
+  'function countdownSynthAudioContext()',
+  'function countdownCue(label)',
+  "stopGroup('turn-cue', 24)",
   'function trackLampSwing()', 'function silenceLegacyRouletteAudio()',
   'global.RouletteAudio = Object.freeze({'
 ]) if (!audio.includes(required)) throw new Error(`Audio manager is missing ${required}`);
+if (audio.includes("scheduleAction('turn-cue'")) {
+  throw new Error('Audio manager still contains the delayed wooden turn knock.');
+}
 
 for (const required of [
   'const CHAIN_COOLDOWN = 15000',
@@ -112,11 +122,23 @@ for (const required of [
   'function shotSequence(game, state, gameId)',
   'function syncTurnMovement()',
   "claimAction('turn-move', `${gameId}:${turnId}`, 12000)",
-  'volume: 0.052',
+  'volume: 0.044',
+  'start: 0.22',
+  'duration: 0.56',
+  'fadeOut: 0.30',
   'global.RouletteAudio = Object.freeze({',
   'shotSequence,',
   'turnRotate() { return null; }'
 ]) if (!spinPolicy.includes(required)) throw new Error(`Audio policy is missing ${required}`);
+
+for (const required of [
+  'global.__rrAuthoritativeFacingGuardV1 = true',
+  'function animationIsAuthorized(element)',
+  'function installAnimationGate()',
+  'await api.rotateToLockedTurn(game, gameId, turnId, 1020)',
+  'api.enforceLockedFacing(gameId)',
+  "scheduleReconcile('hard-lock-poll')"
+]) if (!facingGuard.includes(required)) throw new Error(`Facing guard is missing ${required}`);
 
 for (const required of [
   "const TABLE_MOVE = 'freesound_community-wood-chest-slid3-90317.mp3'",
@@ -239,4 +261,4 @@ for (const path of [
   'assets/roulette/audio/freesound_community-revolver-cocking-104722.mp3'
 ]) await access(new URL(`../${path}`, import.meta.url));
 
-console.log('Validation passed: opening uses the approved revolver-on-wood mix, Spin button uses one metallic chamber spin, result cues are deduplicated, and protected animation hashes are intact.');
+console.log('Validation passed: opening and Spin audio remain deduplicated, the custom countdown and knock-free turn mix are present, the authoritative facing guard is injected, and protected animation hashes are intact.');
