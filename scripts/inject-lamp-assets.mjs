@@ -11,6 +11,7 @@ await import('./patch-roulette-opening-copy.mjs');
 await import('./patch-roulette-countdown-white-audio.mjs');
 await import('./patch-roulette-turn-facing-audio.mjs');
 await import('./patch-roulette-opening-audio-trim.mjs');
+await import('./patch-roulette-audio-validation.mjs');
 await import('./patch-roulette-opening-default-facing.mjs');
 await import('./patch-roulette-remove-hidden-player-text.mjs');
 
