@@ -21,9 +21,13 @@ for (const [before, after] of [
   ['volume: 0.044', 'volume: 0.048'],
   ['start: 0.12', 'start: 0'],
   ['duration: 0.62', 'duration: 0.72'],
-  ['fadeOut: 0.30', 'fadeOut: 0.26'],
-  ['function startTurnMovementSound()', "function startTurnMovementSound(trigger = 'animation-boundary')"]
+  ['fadeOut: 0.30', 'fadeOut: 0.26']
 ]) lamp = replaceAll(lamp, before, after);
+lamp = replaceAll(
+  lamp,
+  "  'function startTurnMovementSound()',",
+  "  \"function startTurnMovementSound(trigger = 'animation-boundary')\","
+);
 
 if (!lamp.includes("'turnMovement: true',")) {
   lamp = lamp.replace(
