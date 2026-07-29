@@ -1,0 +1,44 @@
+name: Lamp Preview Regression
+
+on:
+  push:
+    branches:
+      - lamp-development
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  preview-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out lamp-development
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install browser test runtime
+        run: npm install --no-save --package-lock=false playwright-core@1.55.0
+
+      - name: Verify Chrome is available
+        run: test -x /usr/bin/google-chrome && /usr/bin/google-chrome --version
+
+      - name: Test Netlify lamp preview
+        env:
+          TARGET_URL: https://lamp-development--famous-piroshki-b621da.netlify.app/
+          CHROME_PATH: /usr/bin/google-chrome
+        run: node scripts/preview-regression.mjs
+
+      - name: Upload regression evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lamp-preview-regression-${{ github.sha }}
+          path: artifacts/preview-regression
+          if-no-files-found: warn
+          retention-days: 14
