@@ -76,12 +76,13 @@ if (html.includes('rr-v153-adjustable-smoke-priority')) {
 for (const required of [
   "import './patch-roulette-turn-countdown-smoke.mjs';",
   "import './patch-roulette-smoke-priority.mjs';",
-  '/assets/roulette/smoke.css?v=1',
-  '/assets/roulette/smoke.js?v=1',
+  '/assets/roulette/smoke.css?v=2',
+  '/assets/roulette/smoke.js?v=2',
+  'const lateSmokeLink =',
   '/assets/roulette/audio-manager.js?v=4&ambience=2&countdown=2',
   '/assets/roulette/spin-audio-policy.js?v=3&turn-audio=2'
 ]) {
   if (!injector.includes(required)) throw new Error(`Fresh patched asset loading is missing ${required}`);
 }
 
-console.log('Roulette turn/countdown/smoke validation passed: pass audio is revision-keyed without a terminal knock, countdown is red and audible, and strong permanent smoke follows the lamp phase without a settings menu.');
+console.log('Roulette turn/countdown/smoke validation passed: pass audio is revision-keyed without a terminal knock, countdown is red and audible, and strong permanent smoke loads after legacy opacity rules and follows the lamp phase without a settings menu.');
