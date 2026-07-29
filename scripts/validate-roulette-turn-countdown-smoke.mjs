@@ -74,8 +74,8 @@ if (html.includes('rr-v153-adjustable-smoke-priority')) {
 }
 
 for (const required of [
-  "import './patch-roulette-turn-countdown-smoke.mjs';",
-  "import './patch-roulette-smoke-priority.mjs';",
+  "await import('./patch-roulette-turn-countdown-smoke.mjs');",
+  "await import('./patch-roulette-smoke-priority.mjs');",
   '/assets/roulette/smoke.css?v=2',
   '/assets/roulette/smoke.js?v=2',
   'const lateSmokeLink =',

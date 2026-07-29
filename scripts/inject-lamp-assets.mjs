@@ -1,10 +1,9 @@
 import { readFile, writeFile } from 'node:fs/promises';
-import './patch-roulette-chamber.mjs';
-import './patch-roulette-presentation.mjs';
-import './patch-roulette-turn-countdown-smoke.mjs';
-import './patch-roulette-smoke-priority.mjs';
-import './patch-roulette-countdown-audio-fix.mjs';
-import './patch-roulette-media-settings.mjs';
+await import('./patch-roulette-chamber.mjs');
+await import('./patch-roulette-presentation.mjs');
+await import('./patch-roulette-turn-countdown-smoke.mjs');
+await import('./patch-roulette-smoke-priority.mjs');
+await import('./patch-roulette-countdown-audio-fix.mjs');
 
 const indexUrl = new URL('../index.html', import.meta.url);
 const startMarker = '<!-- MODULAR_LAMP_ASSETS_START -->';

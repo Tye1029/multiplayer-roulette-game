@@ -22,7 +22,7 @@ if (cueIndex < 0 || contextIndex < 0 || earlyReturnIndex < 0 || cueIndex > conte
 }
 
 for (const required of [
-  "import './patch-roulette-countdown-audio-fix.mjs';",
+  "await import('./patch-roulette-countdown-audio-fix.mjs');",
   '/assets/roulette/audio-manager.js?v=4&ambience=2&countdown=2&audible=3'
 ]) {
   if (!injector.includes(required)) throw new Error(`Fresh final countdown loading is missing ${required}`);

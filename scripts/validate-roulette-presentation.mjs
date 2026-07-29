@@ -44,10 +44,10 @@ for (const required of [
   'function preferAmbientAudioSession()',
   "global.navigator.audioSession.type = 'ambient';",
   "roomWanted = ['waiting', 'open', 'ready', 'countdown', 'playing', 'complete'].includes(status);",
-  'preferAmbientAudioSession();\n    suppressBrowserMediaControls();\n    if (unlocked)',
+  'preferAmbientAudioSession();\n    if (unlocked) return;',
   'function countdownCue(label)'
 ]) {
   if (!audio.includes(required)) throw new Error(`Roulette ambience validation is missing ${required}`);
 }
 
-console.log('Roulette presentation validation passed: center slogan removed, top instructions/taunts removed, end-screen taunt preserved, countdown repositioned, red and audible, ambience raised, ambient mixing requested, and Chrome media controls suppressed.');
+console.log('Roulette presentation validation passed: center slogan removed, top instructions/taunts removed, end-screen taunt preserved, countdown repositioned, red and audible, ambience raised and ambient mixing requested.');
