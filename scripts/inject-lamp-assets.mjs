@@ -2,6 +2,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 await import('./patch-roulette-chamber.mjs');
 await import('./patch-roulette-presentation.mjs');
 await import('./patch-roulette-countdown-white-audio.mjs');
+await import('./patch-roulette-turn-facing-audio.mjs');
 
 const indexUrl = new URL('../index.html', import.meta.url);
 const startMarker = '<!-- MODULAR_LAMP_ASSETS_START -->';
@@ -92,10 +93,11 @@ const block = `${startMarker}\n` +
   '  <script src="/assets/roulette/lamp-config.js?v=19" defer></script>\n' +
   '  <script src="/assets/roulette/lamp.js?v=20" defer></script>\n' +
   '  <script src="/assets/roulette/lamp-bootstrap.js?v=19" defer></script>\n' +
-  '  <script src="/assets/roulette/audio-manager.js?v=4&ambience=2&media=2&countdown=1" defer></script>\n' +
-  '  <script src="/assets/roulette/spin-audio-policy.js?v=3" defer></script>\n' +
+  '  <script src="/assets/roulette/audio-manager.js?v=4&ambience=2&media=2&countdown=2" defer></script>\n' +
+  '  <script src="/assets/roulette/spin-audio-policy.js?v=3&turnsound=2" defer></script>\n' +
   '  <script src="/assets/roulette/turn-animation.js?v=5" defer></script>\n' +
   '  <script src="/assets/roulette/turn-fire.js?v=2" defer></script>\n' +
+  '  <script src="/assets/roulette/turn-facing-guard.js?v=1" defer></script>\n' +
   '  <script src="/assets/roulette/opening-spin-sync.js?v=4" defer></script>\n' +
   '  <script src="/assets/roulette/audio-bindings.js?v=5" defer></script>\n' +
   '  <script src="/assets/roulette/reaction-audio.js?v=1" defer></script>\n' +
@@ -113,6 +115,5 @@ if (markerPattern.test(html)) {
   throw new Error('Cannot inject isolated assets: index.html has no </head> tag');
 }
 
-
 await writeFile(indexUrl, html);
-console.log('Injected independent lamp without smoke, synchronized opening spin, authoritative six-chamber Roulette rules, original turn rotation, white audible countdown, ambience, result cues, and unchanged protected animations.');
+console.log('Injected independent lamp without smoke, synchronized opening spin, authoritative six-chamber rules, hard turn-facing guard, custom countdown synth, knock-free turn movement, ambience, result cues, and unchanged protected animations.');
