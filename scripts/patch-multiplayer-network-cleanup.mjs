@@ -132,7 +132,7 @@ html = replaceSection(
   'the Remote Bot snapshot adoption helper',
   `  function rnbAdoptGame(game,force=false){`,
   `  async function rnbFetchAuthoritativeGame(gameId){`,
-  `${adoptionBlock}  async function rnbFetchAuthoritativeGame(gameId){`
+  adoptionBlock
 );
 
 html = replaceOnce(
@@ -220,7 +220,7 @@ data = replaceSection(
   'the serial multiplayer lobby scan',
   `async function duelListGames(user) {`,
   `async function duelFindActiveFishingGameForUser`,
-  `${optimizedList}async function duelFindActiveFishingGameForUser`
+  optimizedList
 );
 
 for (const required of [
