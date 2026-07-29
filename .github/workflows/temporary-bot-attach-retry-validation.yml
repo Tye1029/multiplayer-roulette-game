@@ -77,3 +77,21 @@ jobs:
         run: |
           test "$(git hash-object assets/roulette/turn-animation.js)" = "24358e84c147d99e7297089e69ed1abd0802379f"
           test "$(git hash-object assets/roulette/turn-fire.js)" = "940e824eae39ddc40dda6200f893f97fc365949b"
+      - name: Verify live Netlify branch preview
+        timeout-minutes: 7
+        run: |
+          url="https://lamp-development--famous-piroshki-b621da.netlify.app/?verify=${GITHUB_SHA}"
+          for attempt in $(seq 1 42); do
+            html="$(curl -fsSL --max-time 20 "$url" || true)"
+            if printf '%s' "$html" | grep -Fq 'spin-audio-policy.js?v=4&turnsound=4&reliable=1' \
+              && printf '%s' "$html" | grep -Fq 'turn-facing-guard.js?v=4&lock=5&owner=3&opening=1&sound=1' \
+              && printf '%s' "$html" | grep -Fq 'opening-spin-sync.js?v=5&trim=1' \
+              && printf '%s' "$html" | grep -Fq 'async function rnbAttachBotWithRetry(gameId,profile)'; then
+              echo "Live Netlify preview contains the one-click bot retry and reliable audio build."
+              exit 0
+            fi
+            echo "Waiting for Netlify branch preview deployment (attempt ${attempt}/42)..."
+            sleep 10
+          done
+          echo "Netlify branch preview did not expose the new build in time."
+          exit 1
