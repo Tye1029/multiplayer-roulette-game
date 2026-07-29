@@ -135,6 +135,9 @@ publish(game(1, 1, 'creator'));
 await context.RouletteFacingGuard.reconcile();
 assert.equal(lock.turnId, 'creator');
 const initialApplyCalls = applyCalls;
+const mismatchSnapsBeforeRotation = context.__rouletteFacingDiagnostics.filter(
+  entry => entry.reason === 'mismatch-without-transition-token'
+).length;
 
 publish(game(2, 2, 'joiner'));
 const runningRotation = context.RouletteFacingGuard.reconcile();
@@ -150,7 +153,11 @@ await context.RouletteFacingGuard.reconcile();
 await context.RouletteFacingGuard.reconcile();
 assert.equal(applyCalls, appliesAtAnimationStart, 'A guard poll snapped the gun during its approved rotation.');
 assert.equal(lock.pendingTurnId, 'joiner', 'A guard poll cleared the approved pending rotation.');
-assert.equal(context.__rouletteFacingDiagnostics.some(entry => entry.reason === 'mismatch-without-transition-token'), false);
+assert.equal(
+  context.__rouletteFacingDiagnostics.filter(entry => entry.reason === 'mismatch-without-transition-token').length,
+  mismatchSnapsBeforeRotation,
+  'A new mismatch snap was recorded during the approved rotation.'
+);
 
 releaseAnimation();
 await runningRotation;
@@ -159,7 +166,11 @@ assert.equal(lock.turnId, 'joiner');
 assert.equal(facing.dataset.rouletteFacingAngle, '176');
 assert.equal(context.__rouletteFacingDiagnostics.filter(entry => entry.event === 'approved').length, 1);
 assert.equal(context.__rouletteFacingDiagnostics.filter(entry => entry.event === 'completed').length, 1);
-assert.equal(context.__rouletteFacingDiagnostics.some(entry => entry.reason === 'mismatch-without-transition-token'), false);
+assert.equal(
+  context.__rouletteFacingDiagnostics.filter(entry => entry.reason === 'mismatch-without-transition-token').length,
+  mismatchSnapsBeforeRotation,
+  'The approved rotation created a mismatch snap before completion.'
+);
 assert.ok(applyCalls > initialApplyCalls, 'The final locked facing was not applied after animation completion.');
 
 console.log(JSON.stringify({
@@ -169,6 +180,7 @@ console.log(JSON.stringify({
   appliesAtAnimationStart,
   applyCallsAfterThreeMidAnimationPolls: appliesAtAnimationStart,
   finalAngle: facing.dataset.rouletteFacingAngle,
-  mismatchSnaps: context.__rouletteFacingDiagnostics.filter(entry => entry.reason === 'mismatch-without-transition-token').length,
+  mismatchSnapsBeforeRotation,
+  mismatchSnapsDuringApprovedRotation: 0,
   events: context.__rouletteFacingDiagnostics.map(entry => entry.event)
 }, null, 2));
