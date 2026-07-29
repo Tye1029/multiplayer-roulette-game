@@ -57,6 +57,10 @@ try {
     window.rouletteRotationGlint = async () => {};
     window.rouletteWait = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
     window.rouletteSpinSound = () => {};
+    window.rouletteMotionTransform = () => '';
+    window.rouletteOrientToShotActor = async () => {};
+    window.rouletteRotateToTurn = async () => {};
+    window.rouletteOpeningSequence = async () => {};
     window.__rotationEvents = [];
     window.__soundEvents = [];
     window.RouletteAudio = {
