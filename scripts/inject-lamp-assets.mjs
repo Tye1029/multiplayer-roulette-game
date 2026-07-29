@@ -102,7 +102,7 @@ const block = `${startMarker}\n` +
   '  <script src="/assets/roulette/turn-animation.js?v=5" defer></script>\n' +
   '  <script src="/assets/roulette/turn-fire.js?v=2" defer></script>\n' +
   '  <!-- compatibility: /assets/roulette/turn-facing-guard.js?v=1 -->\n' +
-  '  <script src="/assets/roulette/turn-facing-guard.js?v=2&lock=3&owner=1" defer></script>\n' +
+  '  <script src="/assets/roulette/turn-facing-guard.js?v=2&lock=4&owner=2" defer></script>\n' +
   '  <script src="/assets/roulette/opening-spin-sync.js?v=4" defer></script>\n' +
   '  <script src="/assets/roulette/audio-bindings.js?v=5" defer></script>\n' +
   '  <script src="/assets/roulette/reaction-audio.js?v=1" defer></script>\n' +
@@ -121,4 +121,4 @@ if (markerPattern.test(html)) {
 }
 
 await writeFile(indexUrl, html);
-console.log('Injected independent lamp without smoke, synchronized opening spin, authoritative six-chamber rules, multiplayer network cleanup, one authoritative rotation owner with diagnostics, custom countdown synth, knock-free turn movement, duplicate opening copy removed, hidden-player text removed, ambience, result cues, and unchanged protected animations.');
+console.log('Injected independent lamp without smoke, synchronized opening spin, authoritative six-chamber rules, multiplayer network cleanup, one authoritative rotation owner with active-animation hold diagnostics, custom countdown synth, knock-free turn movement, duplicate opening copy removed, hidden-player text removed, ambience, result cues, and unchanged protected animations.');
