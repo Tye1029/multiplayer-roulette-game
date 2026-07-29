@@ -95,10 +95,10 @@ const block = `${startMarker}\n` +
   '  <script src="/assets/roulette/lamp.js?v=20" defer></script>\n' +
   '  <script src="/assets/roulette/lamp-bootstrap.js?v=19" defer></script>\n' +
   '  <script src="/assets/roulette/audio-manager.js?v=4&ambience=2&media=2&countdown=2" defer></script>\n' +
-  '  <script src="/assets/roulette/spin-audio-policy.js?v=3&turnsound=2" defer></script>\n' +
+  '  <script src="/assets/roulette/spin-audio-policy.js?v=3&turnsound=3" defer></script>\n' +
   '  <script src="/assets/roulette/turn-animation.js?v=5" defer></script>\n' +
   '  <script src="/assets/roulette/turn-fire.js?v=2" defer></script>\n' +
-  '  <script src="/assets/roulette/turn-facing-guard.js?v=1" defer></script>\n' +
+  '  <script src="/assets/roulette/turn-facing-guard.js?v=1&lock=2" defer></script>\n' +
   '  <script src="/assets/roulette/opening-spin-sync.js?v=4" defer></script>\n' +
   '  <script src="/assets/roulette/audio-bindings.js?v=5" defer></script>\n' +
   '  <script src="/assets/roulette/reaction-audio.js?v=1" defer></script>\n' +
