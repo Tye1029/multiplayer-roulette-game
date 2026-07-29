@@ -1,1 +1,0 @@
-Temporary validation note: the Roulette countdown text is white and each 3, 2, 1, and GO label routes through RouletteAudio.countdownCue with the original Web Audio tone retained as fallback.
