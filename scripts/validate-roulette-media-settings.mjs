@@ -69,20 +69,23 @@ for (const required of [
 }
 
 const smokeAssets = [
-  '/assets/roulette/smoke.css?v=1',
-  '/assets/roulette/smoke.js?v=1'
+  '/assets/roulette/smoke.css?v=2',
+  '/assets/roulette/smoke.js?v=2'
 ];
 for (const asset of smokeAssets) {
   if (!injector.includes(asset)) throw new Error(`Asset injector is missing ${asset}`);
+}
+if (!injector.includes('const lateSmokeLink =')) {
+  throw new Error('The smoke stylesheet is not forced after the legacy inline scene styles.');
 }
 if (injector.includes('/assets/roulette/atmosphere-settings.js') || injector.includes('rrAtmosphereSettingsStyles')) {
   throw new Error('The abandoned Scene Settings menu is still injected into the Roulette page.');
 }
 
 for (const required of [
-  '<!-- rr-edge-permanent-smoke-v1 -->',
-  '/assets/roulette/smoke.css?v=1',
-  '/assets/roulette/smoke.js?v=1',
+  '<!-- rr-edge-permanent-smoke-v2 -->',
+  '/assets/roulette/smoke.css?v=2',
+  '/assets/roulette/smoke.js?v=2',
   "headers.set('cache-control', 'no-store, no-cache, must-revalidate')"
 ]) {
   if (!edge.includes(required)) throw new Error(`Edge smoke fallback is missing ${required}`);
@@ -91,9 +94,14 @@ if (edge.includes('Scene Settings') || edge.includes('atmosphere-settings')) {
   throw new Error('The edge fallback still injects the abandoned settings menu.');
 }
 
-// The built page must contain the permanent smoke assets when the full build succeeds.
 for (const asset of smokeAssets) {
   if (!html.includes(asset)) throw new Error(`Built page is missing ${asset}`);
+}
+
+const smokeLinkIndex = html.lastIndexOf('/assets/roulette/smoke.css?v=2');
+const legacySmokeIndex = html.lastIndexOf('.rr-smoke{\n  animation:rrV90AmbientSmoke');
+if (smokeLinkIndex < 0 || (legacySmokeIndex >= 0 && smokeLinkIndex <= legacySmokeIndex)) {
+  throw new Error('The permanent smoke stylesheet does not load after the legacy 30% opacity rule.');
 }
 
 const sandbox = { window: {} };
@@ -119,4 +127,4 @@ for (const [name, expected, source] of [
   if (actual !== expected) throw new Error(`${name} hash changed: ${actual}`);
 }
 
-console.log('Media/smoke validation passed: the settings menu is removed, strong smoke mounts in every Roulette scene, its warm layer follows the lamp phase, ambience avoids Chrome media controls, and protected gun files remain intact.');
+console.log('Media/smoke validation passed: the settings menu is removed, full-strength smoke mounts in every Roulette scene after legacy styles, its warm layer follows the lamp phase, ambience avoids Chrome media controls, and protected gun files remain intact.');
