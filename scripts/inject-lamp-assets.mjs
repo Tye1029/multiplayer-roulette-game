@@ -1,5 +1,6 @@
 import { readFile, writeFile } from 'node:fs/promises';
 await import('./patch-roulette-chamber.mjs');
+await import('./patch-multiplayer-network-cleanup.mjs');
 await import('./patch-roulette-presentation.mjs');
 await import('./patch-roulette-opening-copy.mjs');
 await import('./patch-roulette-countdown-white-audio.mjs');
@@ -118,4 +119,4 @@ if (markerPattern.test(html)) {
 }
 
 await writeFile(indexUrl, html);
-console.log('Injected independent lamp without smoke, synchronized opening spin, authoritative six-chamber rules, hard turn-facing guard, custom countdown synth, knock-free turn movement, duplicate opening copy removed, hidden-player text removed, ambience, result cues, and unchanged protected animations.');
+console.log('Injected independent lamp without smoke, synchronized opening spin, authoritative six-chamber rules, multiplayer network cleanup, hard turn-facing guard, custom countdown synth, knock-free turn movement, duplicate opening copy removed, hidden-player text removed, ambience, result cues, and unchanged protected animations.');
