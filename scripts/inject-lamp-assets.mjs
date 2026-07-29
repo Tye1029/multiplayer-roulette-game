@@ -10,6 +10,7 @@ await import('./patch-roulette-presentation.mjs');
 await import('./patch-roulette-opening-copy.mjs');
 await import('./patch-roulette-countdown-white-audio.mjs');
 await import('./patch-roulette-turn-facing-audio.mjs');
+await import('./patch-roulette-opening-audio-trim.mjs');
 await import('./patch-roulette-opening-default-facing.mjs');
 await import('./patch-roulette-remove-hidden-player-text.mjs');
 
@@ -103,13 +104,13 @@ const block = `${startMarker}\n` +
   '  <script src="/assets/roulette/lamp.js?v=20" defer></script>\n' +
   '  <script src="/assets/roulette/lamp-bootstrap.js?v=19" defer></script>\n' +
   '  <script src="/assets/roulette/audio-manager.js?v=4&ambience=2&media=2&countdown=2" defer></script>\n' +
-  '  <script src="/assets/roulette/spin-audio-policy.js?v=3&turnsound=3" defer></script>\n' +
+  '  <script src="/assets/roulette/spin-audio-policy.js?v=4&turnsound=4&reliable=1" defer></script>\n' +
   '  <script src="/assets/roulette/turn-animation.js?v=5" defer></script>\n' +
   '  <script src="/assets/roulette/turn-fire.js?v=2" defer></script>\n' +
   '  <!-- compatibility: /assets/roulette/turn-facing-guard.js?v=1 -->\n' +
-  '  <script src="/assets/roulette/turn-facing-guard.js?v=3&lock=5&owner=3&opening=1" defer></script>\n' +
-  '  <script src="/assets/roulette/opening-spin-sync.js?v=4" defer></script>\n' +
-  '  <script src="/assets/roulette/audio-bindings.js?v=5" defer></script>\n' +
+  '  <script src="/assets/roulette/turn-facing-guard.js?v=4&lock=5&owner=3&opening=1&sound=1" defer></script>\n' +
+  '  <script src="/assets/roulette/opening-spin-sync.js?v=5&trim=1" defer></script>\n' +
+  '  <script src="/assets/roulette/audio-bindings.js?v=6&turnmove=1" defer></script>\n' +
   '  <script src="/assets/roulette/reaction-audio.js?v=1" defer></script>\n' +
   `${endMarker}`;
 
@@ -126,4 +127,4 @@ if (markerPattern.test(html)) {
 }
 
 await writeFile(indexUrl, html);
-console.log('Injected independent lamp without smoke, synchronized opening spin, authoritative six-chamber rules, multiplayer network and polling cleanup, recoverable idempotent game creation, strong one-click retry-safe new-game joins, one authoritative rotation owner with pre-spin left-facing lock and active-animation hold diagnostics, custom countdown synth, knock-free turn movement, duplicate opening copy removed, hidden-player text removed, ambience, result cues, and unchanged protected animations.');
+console.log('Injected independent lamp without smoke, synchronized shorter opening audio, authoritative six-chamber rules, multiplayer network and polling cleanup, recoverable idempotent game creation, strong one-click retry-safe new-game joins, one authoritative rotation owner with reliable approved-transition audio, pre-spin left-facing lock and active-animation hold diagnostics, custom countdown synth, knock-free turn movement, duplicate opening copy removed, hidden-player text removed, ambience, result cues, and unchanged protected animations.');
