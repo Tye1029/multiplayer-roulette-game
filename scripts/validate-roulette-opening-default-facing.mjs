@@ -8,7 +8,7 @@ for (const required of [
   'if (openingIsActive(root, lock)) return;',
   "const defaultTurnId = String(game?.creator?.userId || turnId);",
   "snapFacing(game, defaultTurnId, 'pre-opening-default-left'",
-  'turn-facing-guard.js?v=3&lock=5&owner=3&opening=1'
+  'turn-facing-guard.js?v=4&lock=5&owner=3&opening=1&sound=1'
 ]) {
   const source = required.includes('turn-facing-guard.js?') ? injector : guard;
   if (!source.includes(required)) throw new Error(`Opening default-facing validation is missing ${required}`);
@@ -25,4 +25,4 @@ if (!(reconcileStart < completeLock && completeLock < defaultLeft && defaultLeft
   throw new Error('The opening-facing branches are not in the required order.');
 }
 
-console.log('Roulette opening-facing validation passed: neutral left before the opening spin, protected spin ownership during countdown, and final direction retained after completion.');
+console.log('Roulette opening-facing validation passed: neutral left before the opening spin, protected spin ownership during countdown, reliable turn sound cache version, and final direction retained after completion.');
