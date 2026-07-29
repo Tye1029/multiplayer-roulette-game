@@ -13,10 +13,17 @@ for (const required of [
   'function rnbSnapshotStamp(game)',
   'function rnbCompareSnapshots(left,right)',
   "line(botLogs,'ignored stale game snapshot'",
-  "const adopted=rnbAdoptGame(data.game,true)",
+  'const adopted=rnbAdoptGame(data.game,true)',
   '<b>Game revision</b>',
   '<b>State revision</b>',
-  'gameRevision,stateRevision'
+  'gameRevision,stateRevision',
+  'let duelCompletedActivityAt = 0;',
+  'completedPollRate = Date.now() - duelCompletedActivityAt < 15000 ? 2000 : 5000;',
+  'if (!duelScreen || duelScreen.hidden || document.hidden) return;',
+  'if(document.hidden)return;',
+  'rnbScheduleRematch(g);\n  },1000);',
+  'duelCompletedActivityAt = Date.now();',
+  'queueMicrotask(() => duelRefresh(true));'
 ]) {
   if (!html.includes(required)) throw new Error(`Multiplayer client validation is missing ${required}`);
 }
@@ -26,7 +33,11 @@ for (const forbidden of [
   '!duelCachedGames.length || !focusedGameOpen',
   "lastRevision=-1",
   "if(data?.game){rnbAdoptGame(data.game,false);return data.game}",
-  "duelRenderActive({...data.game,status:'ready'},true)"
+  "duelRenderActive({...data.game,status:'ready'},true)",
+  'completedAwaitingRematch ? 700',
+  `if(g?.remoteNetworkTest&&g.status==='complete')g=await rnbFetchAuthoritativeGame`,
+  '},650);',
+  'if (!duelScreen || duelScreen.hidden) return;'
 ]) {
   if (html.includes(forbidden)) throw new Error(`Removed multiplayer client behavior remains: ${forbidden}`);
 }
@@ -41,8 +52,11 @@ for (const required of [
   if (!data.includes(required)) throw new Error(`Multiplayer server validation is missing ${required}`);
 }
 
-if (!injector.includes("await import('./patch-multiplayer-network-cleanup.mjs');")) {
-  throw new Error('The multiplayer network cleanup patch is not part of the Netlify build.');
+for (const required of [
+  "await import('./patch-multiplayer-network-cleanup.mjs');",
+  "await import('./patch-multiplayer-polling-load.mjs');"
+]) {
+  if (!injector.includes(required)) throw new Error(`The multiplayer build pipeline is missing ${required}`);
 }
 
-console.log('Multiplayer network validation passed: focused polling is isolated, stale bot snapshots are rejected, completed turns are false, and lobby Blob reads are batched.');
+console.log('Multiplayer network validation passed: focused polling is isolated, stale bot snapshots are rejected, completed polling backs off, hidden tabs pause, duplicate Remote Bot GETs are removed, and lobby Blob reads are batched.');
