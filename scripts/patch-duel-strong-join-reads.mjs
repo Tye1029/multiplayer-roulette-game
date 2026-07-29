@@ -97,8 +97,7 @@ data = replaceOnce(
     stress:{label:"Stress Test",minDelayMs:100,maxDelayMs:3500,stallChance:.25,duplicateChance:.18,reconnectChance:.18}
   };
   const key = Object.prototype.hasOwnProperty.call(profiles, String(profile)) ? String(profile) : "normal";
-  const network = profiles[key];
-  const botId = `remote-bot-${game.mode}-${crypto.randomBytes(4).toString("hex")}`;`,
+  const network = profiles[key];`,
   `  if (!["roulette", "draw", "fishing"].includes(String(game.mode || ""))) throw new Error("Remote Network Bot supports Roulette, Draw, and Fishing.");
   const profiles = {
     normal:{label:"Normal",minDelayMs:100,maxDelayMs:400,stallChance:0,duplicateChance:0,reconnectChance:0},
@@ -112,8 +111,7 @@ data = replaceOnce(
   if (existingRemoteBot && game.npcTest) {
     return {game:duelPublicGame(game,viewer),record:await getUserRecord(viewer),remoteNetworkProfile:key,remoteNetworkConfig:network,recoveredExistingBot:true};
   }
-  if (game.status !== "waiting" || game.joiner) throw new Error("The Remote Network Bot can only join a waiting duel.");
-  const botId = `remote-bot-${game.mode}-${crypto.randomBytes(4).toString("hex")}`;`
+  if (game.status !== "waiting" || game.joiner) throw new Error("The Remote Network Bot can only join a waiting duel.");`
 );
 
 for (const required of [
