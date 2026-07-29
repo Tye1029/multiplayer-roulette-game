@@ -23,7 +23,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
 
       - name: Install browser test runtime
         run: npm install --no-save --package-lock=false playwright-core@1.55.0
@@ -35,7 +35,7 @@ jobs:
         env:
           TARGET_URL: https://lamp-development--famous-piroshki-b621da.netlify.app/
           CHROME_PATH: /usr/bin/google-chrome
-        run: node scripts/preview-regression.mjs
+        run: node scripts/run-preview-regression.mjs
 
       - name: Upload regression evidence
         if: always()
