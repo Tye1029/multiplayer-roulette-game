@@ -1,4 +1,4 @@
-const SMOKE_MARKER = '<!-- rr-edge-permanent-smoke-v1 -->';
+const SMOKE_MARKER = '<!-- rr-edge-permanent-smoke-v2 -->';
 
 export default async function injectRouletteSmoke(request, context) {
   const response = await context.next();
@@ -19,14 +19,14 @@ export default async function injectRouletteSmoke(request, context) {
   }
 
   const tags = [SMOKE_MARKER];
-  if (!html.includes('/assets/roulette/smoke.css')) {
-    tags.push('<link id="rrEdgePermanentSmokeStyles" rel="stylesheet" href="/assets/roulette/smoke.css?v=1">');
+  if (!html.includes('/assets/roulette/smoke.css?v=2')) {
+    tags.push('<link id="rrEdgePermanentSmokeStyles" rel="stylesheet" href="/assets/roulette/smoke.css?v=2">');
   }
   if (!html.includes('/assets/roulette/lamp-config.js')) {
     tags.push('<script src="/assets/roulette/lamp-config.js?v=19"></script>');
   }
-  if (!html.includes('/assets/roulette/smoke.js')) {
-    tags.push('<script src="/assets/roulette/smoke.js?v=1"></script>');
+  if (!html.includes('/assets/roulette/smoke.js?v=2')) {
+    tags.push('<script src="/assets/roulette/smoke.js?v=2"></script>');
   }
 
   const assets = tags.join('\n');
