@@ -3,8 +3,8 @@ import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 
 const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
-const startMarker = '  function rnbStateRevision(game){';
-const endMarker = '  async function rnbFetchAuthoritativeGame(gameId){';
+const startMarker = 'function rnbStateRevision(game){';
+const endMarker = 'async function rnbFetchAuthoritativeGame(gameId){';
 const start = html.indexOf(startMarker);
 const end = html.indexOf(endMarker, start + startMarker.length);
 assert.ok(start >= 0 && end > start, 'Remote Bot adoption helper was not generated.');
@@ -30,7 +30,7 @@ const context = {
     updatedAt: '2026-07-29T15:00:08.000Z', rouletteState: { revision: 4, turnId: 'creator' }
   },
   line(arr, message, data) { arr.push({ message, data }); },
-  rouletteAcceptSnapshot(game) { return !context.rejectedByRouletteGuard; },
+  rouletteAcceptSnapshot() { return !context.rejectedByRouletteGuard; },
   rouletteNormalizeSnapshot(game) { return { ...game, normalized: true }; },
   duelRememberCurrentGame(gameId) { context.remembered.push(gameId); },
   duelRenderActive(game, force) { context.rendered.push({ game, force }); }
