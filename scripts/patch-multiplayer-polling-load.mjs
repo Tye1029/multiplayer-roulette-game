@@ -13,6 +13,23 @@ function replaceOnce(source, label, before, after) {
   return source.slice(0, first) + after + source.slice(first + before.length);
 }
 
+function replaceRemoteBotCompletedLoop(source) {
+  const replacement = ` setInterval(()=>{
+   if(document.hidden)return;
+   const g=(typeof duelLastActiveGame!=='undefined'&&duelLastActiveGame)||(typeof rouletteLatestGame!=='undefined'&&rouletteLatestGame)||null;
+   rnbScheduleRematch(g);
+  },1000);`;
+  if (source.includes(replacement)) return source;
+  const marker = `if(g?.remoteNetworkTest&&g.status==='complete')g=await rnbFetchAuthoritativeGame`;
+  const markerAt = source.indexOf(marker);
+  if (markerAt < 0) throw new Error('Multiplayer polling cleanup could not find the Remote Bot completed-game GET marker.');
+  const start = source.lastIndexOf('setInterval(async()=>{', markerAt);
+  const endMarker = '},650);';
+  const end = source.indexOf(endMarker, markerAt);
+  if (start < 0 || end < 0) throw new Error('Multiplayer polling cleanup could not isolate the Remote Bot completed-game polling loop.');
+  return source.slice(0, start) + replacement.trimStart() + source.slice(end + endMarker.length);
+}
+
 html = replaceOnce(
   html,
   'the completed polling state',
@@ -86,20 +103,7 @@ html = replaceOnce(
     });`
 );
 
-html = replaceOnce(
-  html,
-  'the Remote Bot completed-game polling loop',
-  `  setInterval(async()=>{
-   let g=(typeof duelLastActiveGame!=='undefined'&&duelLastActiveGame)||(typeof rouletteLatestGame!=='undefined'&&rouletteLatestGame)||null;
-   if(g?.remoteNetworkTest&&g.status==='complete')g=await rnbFetchAuthoritativeGame(String(g.gameId||''))||g;
-   rnbScheduleRematch(g);
-  },650);`,
-  `  setInterval(()=>{
-   if(document.hidden)return;
-   const g=(typeof duelLastActiveGame!=='undefined'&&duelLastActiveGame)||(typeof rouletteLatestGame!=='undefined'&&rouletteLatestGame)||null;
-   rnbScheduleRematch(g);
-  },1000);`
-);
+html = replaceRemoteBotCompletedLoop(html);
 
 html = replaceOnce(
   html,
