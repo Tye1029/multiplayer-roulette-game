@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright-core';
-import { fileURLToPath } from 'node:url';
+import { readFile } from 'node:fs/promises';
 
 const chromePath = process.env.CHROME_PATH || '/usr/bin/google-chrome';
-const turnAnimationPath = fileURLToPath(new URL('../assets/roulette/turn-animation.js', import.meta.url));
-const guardPath = fileURLToPath(new URL('../assets/roulette/turn-facing-guard.js', import.meta.url));
+const turnAnimationSource = await readFile(new URL('../assets/roulette/turn-animation.js', import.meta.url), 'utf8');
+const guardSource = await readFile(new URL('../assets/roulette/turn-facing-guard.js', import.meta.url), 'utf8');
 
 const browser = await chromium.launch({
   headless: true,
@@ -79,14 +79,34 @@ try {
     window.rouletteBind = root => root;
   });
 
-  await page.addScriptTag({ path: turnAnimationPath });
-  await page.addScriptTag({ path: guardPath });
-  await page.waitForFunction(() => Boolean(window.RouletteTurnLock && window.RouletteFacingGuard));
+  await page.evaluate(({ turnAnimationSource, guardSource }) => {
+    (0, eval)(turnAnimationSource);
+    (0, eval)(guardSource);
+  }, { turnAnimationSource, guardSource });
 
-  await page.waitForFunction(() => {
-    const facing = document.querySelector('[data-roulette-facing]');
-    return facing?.dataset.rouletteFacingTurnId === 'creator' && facing.style.transform === 'rotate(356deg)';
-  }, null, { timeout: 5000 });
+  const loaded = await page.evaluate(() => ({
+    turnLock: Boolean(window.RouletteTurnLock),
+    facingGuard: Boolean(window.RouletteFacingGuard)
+  }));
+  assert.deepEqual(loaded, { turnLock: true, facingGuard: true });
+
+  async function waitForFacing(turnId, transform, timeoutMs = 6500) {
+    const started = Date.now();
+    while (Date.now() - started < timeoutMs) {
+      const state = await page.evaluate(() => {
+        const facing = document.querySelector('[data-roulette-facing]');
+        return {
+          turnId: facing?.dataset.rouletteFacingTurnId || '',
+          transform: facing?.style.transform || ''
+        };
+      });
+      if (state.turnId === turnId && state.transform === transform) return state;
+      await page.waitForTimeout(50);
+    }
+    throw new Error(`Timed out waiting for ${turnId} at ${transform}`);
+  }
+
+  await waitForFacing('creator', 'rotate(356deg)');
 
   const initial = await page.evaluate(() => ({
     turnId: document.querySelector('[data-roulette-facing]')?.dataset.rouletteFacingTurnId,
@@ -96,7 +116,7 @@ try {
   assert.equal(initial.turnId, 'creator');
   assert.equal(initial.transform, 'rotate(356deg)');
 
-  async function setTurn(turnId, revision) {
+  async function setTurn(turnId, revision, transform) {
     await page.evaluate(({ turnId, revision }) => {
       const game = window.__makeSyncGame(revision, turnId);
       window.rouletteLatestGame = game;
@@ -108,14 +128,11 @@ try {
       window.rouletteBind(window.duelActive);
       window.RouletteFacingGuard.reconcile();
     }, { turnId, revision });
-    await page.waitForFunction(expected => {
-      const facing = document.querySelector('[data-roulette-facing]');
-      return facing?.dataset.rouletteFacingTurnId === expected;
-    }, turnId, { timeout: 5000 });
+    await waitForFacing(turnId, transform);
   }
 
-  await setTurn('joiner', 12);
-  await setTurn('creator', 13);
+  await setTurn('joiner', 12, 'rotate(176deg)');
+  await setTurn('creator', 13, 'rotate(356deg)');
 
   const alternating = await page.evaluate(() => ({
     transform: document.querySelector('[data-roulette-facing]')?.style.transform,
@@ -128,8 +145,10 @@ try {
   assert.ok(alternating.sounds.length >= 3, 'each real rotation should start a sound, including a quick return to creator');
   assert.equal(alternating.sounds.length, alternating.rotations.length);
   for (let index = 0; index < alternating.sounds.length; index += 1) {
-    assert.ok(alternating.sounds[index].at <= alternating.rotations[index].at + 1,
-      `sound ${index} should start before its animation`);
+    assert.ok(
+      alternating.sounds[index].at <= alternating.rotations[index].at + 1,
+      `sound ${index} should start before its animation`
+    );
   }
 
   const blocked = await page.evaluate(async () => {
