@@ -55,43 +55,71 @@ if (audio.includes("scheduleAction('turn-cue'")) {
 }
 
 for (const required of [
-  'function playTurnMovement(details = {})',
   "group: 'turn-move'",
   'volume: 0.044',
   'start: 0.12',
   'duration: 0.62',
   'fadeOut: 0.30',
+  'function playTurnMovement(details = {})',
+  'const key = `${gameId}:${fromTurnId}:${turnId}:${epoch}`',
+  "if (!details || typeof details !== 'object') return false;",
   'return playTurnMovement(details);'
 ]) {
-  if (!policy.includes(required)) throw new Error(`Turn movement audio validation is missing ${required}`);
+  if (!policy.includes(required)) throw new Error(`Turn movement validation is missing ${required}`);
 }
-for (const forbidden of [
-  'function syncTurnMovement()',
-  'pollTimer',
-  'turn-move.wav'
-]) {
-  if (policy.includes(forbidden)) throw new Error(`Old turn movement polling/audio remains: ${forbidden}`);
+if (policy.includes('function syncTurnMovement()') || policy.includes('pollTimer')) {
+  throw new Error('Turn movement sound is still polling snapshots instead of following the approved animation.');
 }
 
 for (const required of [
-  'global.__rrSingleRotationOwnerV3 = true;',
+  'global.__rrSingleRotationOwnerV3 = true',
+  'global.__rouletteFacingDiagnostics = diagnostics',
+  'function recordDiagnostic(event, details = {})',
+  'function snapshotStamp(game)',
+  'function compareSnapshots(left, right)',
+  'function authoritativeTurnId(game)',
   'function transitionToken(gameId, fromTurnId, turnId, rouletteRevision)',
-  'next.rouletteRevision <= previous.rouletteRevision',
-  "recordDiagnostic('requested', transition);",
-  "recordDiagnostic('approved', transition);",
-  "recordDiagnostic('completed', transition);",
+  'function observeAcceptedSnapshot(game, turnId)',
+  'function installLegacyRotationBlock()',
+  'function installBindGate()',
+  'function installAnimationGate()',
+  "recordDiagnostic('requested', transition)",
+  "recordDiagnostic('approved', transition)",
+  "recordDiagnostic('completed', transition)",
+  "recordDiagnostic('cancelled'",
+  "recordDiagnostic('blocked'",
   "reason: 'legacy-rotation-api'",
-  "reason: 'unauthorized-facing-animation'",
-  'state.activeTransition = transition;',
-  'await api.rotateToLockedTurn(game, transition.gameId, transition.turnId, 1020);',
-  'function activeTransitionStillAuthoritative(game, transition)',
-  "recordDiagnostic('held', { reason: 'approved-transition-active'"
+  "reason: 'duplicate-rotation-token'",
+  'await api.rotateToLockedTurn(game, transition.gameId, transition.turnId, 1020)',
+  "if (game.status !== 'playing')",
+  "snapFacing(game, turnId, 'non-playing-final-lock'",
+  "snapFacing(game, defaultTurnId, 'pre-opening-default-left'",
+  'if (state.activeTransition)',
+  "cancelTransition('active-transition-no-longer-authoritative'",
+  'An approved rotation temporarily leaves the protected lock in its pending',
+  "state.timer = global.setInterval(() => scheduleReconcile('single-owner-poll'), 80)",
+  'global.RouletteFacingGuard = Object.freeze({'
 ]) {
   if (!guard.includes(required)) throw new Error(`Single-owner facing guard validation is missing ${required}`);
 }
+if (guard.includes('rootRevision >= gameRevision')) {
+  throw new Error('Mounted DOM state can still override the accepted server snapshot.');
+}
 
-const hash = source => createHash('sha1').update(source).digest('hex');
-if (hash(turnAnimation) !== '24358e84c147d99e7297089e69ed1abd0802379f') throw new Error('Protected turn-animation.js changed.');
-if (hash(turnFire) !== '940e824eae39ddc40dda6200f893f97fc365949b') throw new Error('Protected turn-fire.js changed.');
+function gitBlobSha(source) {
+  const bytes = Buffer.from(source, 'utf8');
+  return createHash('sha1')
+    .update(Buffer.from(`blob ${bytes.length}\0`, 'utf8'))
+    .update(bytes)
+    .digest('hex');
+}
+
+for (const [name, expected, source] of [
+  ['turn-animation.js', '24358e84c147d99e7297089e69ed1abd0802379f', turnAnimation],
+  ['turn-fire.js', '940e824eae39ddc40dda6200f893f97fc365949b', turnFire]
+]) {
+  const actual = gitBlobSha(source);
+  if (actual !== expected) throw new Error(`${name} protected hash changed: ${actual}`);
+}
 
 console.log('Roulette validation passed: white countdown, one revision-token rotation owner, active approved rotations remain visible, pre-spin left-facing lock, final-state direction lock, diagnostic export, synchronized movement audio, no terminal knock, and protected animation hashes intact.');
