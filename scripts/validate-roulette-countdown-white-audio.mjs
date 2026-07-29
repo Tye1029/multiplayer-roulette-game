@@ -24,7 +24,7 @@ for (const required of [
   "globalThis.RouletteAudio?.countdownCue?.(label)",
   '/assets/roulette/audio-manager.js?v=4&ambience=2&media=2&countdown=2',
   '/assets/roulette/spin-audio-policy.js?v=3&turnsound=3',
-  '/assets/roulette/turn-facing-guard.js?v=2&lock=3&owner=1',
+  '/assets/roulette/turn-facing-guard.js?v=2&lock=4&owner=2',
   'Shot visuals own recoil and hammer movement only.',
   'Direction changes are owned exclusively by turn-facing-guard.js.',
   "window.addEventListener('roulette-facing-diagnostic'",
@@ -93,6 +93,9 @@ for (const required of [
   'await api.rotateToLockedTurn(game, transition.gameId, transition.turnId, 1020)',
   "if (game.status !== 'playing')",
   "snapFacing(game, turnId, 'non-playing-final-lock'",
+  'if (state.activeTransition)',
+  "cancelTransition('active-transition-no-longer-authoritative'",
+  'An approved rotation temporarily leaves the protected lock in its pending',
   "state.timer = global.setInterval(() => scheduleReconcile('single-owner-poll'), 80)",
   'global.RouletteFacingGuard = Object.freeze({'
 ]) {
@@ -118,4 +121,4 @@ for (const [name, expected, source] of [
   if (actual !== expected) throw new Error(`${name} protected hash changed: ${actual}`);
 }
 
-console.log('Roulette validation passed: white countdown, one revision-token rotation owner, final-state direction lock, diagnostic export, synchronized movement audio, no terminal knock, and protected animation hashes intact.');
+console.log('Roulette validation passed: white countdown, one revision-token rotation owner, active approved rotations remain visible, final-state direction lock, diagnostic export, synchronized movement audio, no terminal knock, and protected animation hashes intact.');
