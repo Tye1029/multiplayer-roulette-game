@@ -1,4 +1,4 @@
-name: Temporary Remote Bot Retry Validation
+name: Temporary Remote Bot and Audio Validation
 
 on:
   pull_request:
@@ -28,6 +28,51 @@ jobs:
           grep -Fq 'const delays=[0,900,1500,2200,3000,3500];' index.html
           grep -Fq "line(botLogs,'attach retry scheduled'" index.html
           grep -Fq 'recoveredExistingBot:true' netlify/functions/_data.js
+      - name: Verify approved turn sound and opening trim
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFile } from 'node:fs/promises';
+          const guard = await readFile('assets/roulette/turn-facing-guard.js', 'utf8');
+          const policy = await readFile('assets/roulette/spin-audio-policy.js', 'utf8');
+          const bindings = await readFile('assets/roulette/audio-bindings.js', 'utf8');
+          const sync = await readFile('assets/roulette/opening-spin-sync.js', 'utf8');
+          const animation = await readFile('assets/roulette/turn-animation.js', 'utf8');
+
+          const approved = guard.indexOf("recordDiagnostic('approved', transition)");
+          const sound = guard.indexOf("startTurnMovementSound('approved-transition')", approved);
+          const rotate = guard.indexOf('await api.rotateToLockedTurn(game, gameId, turnId, 1020)', sound);
+          if (!(approved >= 0 && approved < sound && sound < rotate)) {
+            throw new Error('Approved transition does not start sound before rotation.');
+          }
+          for (const required of [
+            "startTurnMovementSound('animation-wrapper-fallback')",
+            "recordDiagnostic('sound-started'",
+            "recordDiagnostic('sound-deferred'",
+            'if (started === true) {',
+            'state.soundToken = active.token;'
+          ]) if (!guard.includes(required)) throw new Error(`Guard is missing ${required}`);
+
+          for (const required of [
+            'start: 0',
+            'turnMovement: true',
+            'if (options.turnMovement === true) clip.__rrAuthorizedTurnMove = true;',
+            'const key = rotationToken || `${gameId}:${fromTurnId}:${turnId}:${epoch}`'
+          ]) if (!policy.includes(required)) throw new Error(`Turn policy is missing ${required}`);
+          if (!bindings.includes('this.__rrAuthorizedTurnMove !== true')) {
+            throw new Error('Opening filter still blocks approved turn movement.');
+          }
+
+          const animationMs = Number(sync.match(/FALLBACK_ANIMATION_MS\s*=\s*(\d+)/)?.[1]);
+          const silentProgress = Number(sync.match(/SILENT_PROGRESS\s*=\s*([\d.]+)/)?.[1]);
+          const trimmedMs = (0.74 - silentProgress) * animationMs;
+          if (!(animationMs === 5300 && trimmedMs >= 475 && trimmedMs <= 525)) {
+            throw new Error(`Opening trim is ${trimmedMs} ms instead of about 500 ms.`);
+          }
+          if (!/duration\s*=\s*5300/i.test(animation)) {
+            throw new Error('Protected opening visual duration is no longer 5300 ms.');
+          }
+          console.log(JSON.stringify({ approvedSoundBeforeRotation: true, wrapperDedupFallback: true, openingTrimMs: trimmedMs }));
+          NODE
       - name: Verify protected animation hashes
         run: |
           test "$(git hash-object assets/roulette/turn-animation.js)" = "24358e84c147d99e7297089e69ed1abd0802379f"
