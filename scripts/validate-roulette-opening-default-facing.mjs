@@ -14,11 +14,15 @@ for (const required of [
   if (!source.includes(required)) throw new Error(`Opening default-facing validation is missing ${required}`);
 }
 
-const nonPlayingStart = guard.indexOf("    if (game.status !== 'playing') {");
-const playingStart = guard.indexOf("    if (openingIsActive(root, lock)) return;", nonPlayingStart + 1);
-if (nonPlayingStart < 0 || playingStart < 0) throw new Error('Could not locate the non-playing facing branch.');
-const branch = guard.slice(nonPlayingStart, playingStart + 48);
-if (!branch.includes("game.status === 'complete'")) throw new Error('Completed games no longer keep their final authoritative direction.');
-if (!branch.includes('pre-opening-default-left')) throw new Error('Waiting/Ready/Countdown do not use the neutral left-facing direction.');
+const reconcileStart = guard.indexOf("  async function reconcile(reason = 'poll') {");
+const completeLock = guard.indexOf("if (game.status === 'complete')", reconcileStart);
+const defaultLeft = guard.indexOf("const defaultTurnId = String(game?.creator?.userId || turnId);", completeLock);
+const playingBranch = guard.indexOf("\n\n    if (openingIsActive(root, lock)) return;", defaultLeft);
+if (reconcileStart < 0 || completeLock < 0 || defaultLeft < 0 || playingBranch < 0) {
+  throw new Error('Could not verify the ordered reconcile branches for final locking, pre-opening left facing, and protected opening-spin ownership.');
+}
+if (!(reconcileStart < completeLock && completeLock < defaultLeft && defaultLeft < playingBranch)) {
+  throw new Error('The opening-facing branches are not in the required order.');
+}
 
 console.log('Roulette opening-facing validation passed: neutral left before the opening spin, protected spin ownership during countdown, and final direction retained after completion.');
