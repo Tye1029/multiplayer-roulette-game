@@ -160,7 +160,7 @@ if (!bindings.includes('this.__rrAuthorizedTurnMove !== true')) {
 if (policy.includes('function syncTurnMovement()') || policy.includes('pollTimer')) {
   throw new Error('Turn movement audio is still driven by polling.');
 }
-if (policy.includes('performance.now() < chamberSpinUntil) return false') {
+if (policy.includes('performance.now() < chamberSpinUntil) return false')) {
   throw new Error('Turn movement audio is still suppressed by the stale opening chamber window.');
 }
 
