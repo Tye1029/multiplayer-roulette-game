@@ -1,6 +1,7 @@
 import { readFile, writeFile } from 'node:fs/promises';
 await import('./patch-roulette-chamber.mjs');
 await import('./patch-multiplayer-network-cleanup.mjs');
+await import('./patch-roulette-single-rotation-owner.mjs');
 await import('./patch-roulette-presentation.mjs');
 await import('./patch-roulette-opening-copy.mjs');
 await import('./patch-roulette-countdown-white-audio.mjs');
@@ -100,7 +101,7 @@ const block = `${startMarker}\n` +
   '  <script src="/assets/roulette/spin-audio-policy.js?v=3&turnsound=3" defer></script>\n' +
   '  <script src="/assets/roulette/turn-animation.js?v=5" defer></script>\n' +
   '  <script src="/assets/roulette/turn-fire.js?v=2" defer></script>\n' +
-  '  <script src="/assets/roulette/turn-facing-guard.js?v=1&lock=2" defer></script>\n' +
+  '  <script src="/assets/roulette/turn-facing-guard.js?v=2&lock=3&owner=1" defer></script>\n' +
   '  <script src="/assets/roulette/opening-spin-sync.js?v=4" defer></script>\n' +
   '  <script src="/assets/roulette/audio-bindings.js?v=5" defer></script>\n' +
   '  <script src="/assets/roulette/reaction-audio.js?v=1" defer></script>\n' +
@@ -119,4 +120,4 @@ if (markerPattern.test(html)) {
 }
 
 await writeFile(indexUrl, html);
-console.log('Injected independent lamp without smoke, synchronized opening spin, authoritative six-chamber rules, multiplayer network cleanup, hard turn-facing guard, custom countdown synth, knock-free turn movement, duplicate opening copy removed, hidden-player text removed, ambience, result cues, and unchanged protected animations.');
+console.log('Injected independent lamp without smoke, synchronized opening spin, authoritative six-chamber rules, multiplayer network cleanup, one authoritative rotation owner with diagnostics, custom countdown synth, knock-free turn movement, duplicate opening copy removed, hidden-player text removed, ambience, result cues, and unchanged protected animations.');
