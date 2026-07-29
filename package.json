@@ -3,7 +3,7 @@
   "version": "2.0.0",
   "private": true,
   "scripts": {
-    "validate:lamp": "node scripts/validate-lamp.mjs && node --check assets/roulette/opening-spin-sync.js && node scripts/validate-opening-spin-sync.mjs && node --check netlify/functions/_data.js && node scripts/validate-roulette-chamber.mjs && node scripts/validate-roulette-presentation.mjs && node scripts/validate-roulette-turn-countdown-smoke.mjs && node scripts/validate-roulette-countdown-audio-fix.mjs",
+    "validate:lamp": "node scripts/validate-lamp.mjs && node --check assets/roulette/opening-spin-sync.js && node scripts/validate-opening-spin-sync.mjs && node --check netlify/functions/_data.js && node scripts/validate-roulette-chamber.mjs && node scripts/validate-roulette-presentation.mjs",
     "build": "node scripts/inject-lamp-assets.mjs && npm run validate:lamp && echo 'Static Netlify site - validation complete'"
   },
   "dependencies": {

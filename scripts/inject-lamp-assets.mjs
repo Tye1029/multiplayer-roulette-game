@@ -1,14 +1,10 @@
 import { readFile, writeFile } from 'node:fs/promises';
 await import('./patch-roulette-chamber.mjs');
 await import('./patch-roulette-presentation.mjs');
-await import('./patch-roulette-turn-countdown-smoke.mjs');
-await import('./patch-roulette-smoke-priority.mjs');
-await import('./patch-roulette-countdown-audio-fix.mjs');
 
 const indexUrl = new URL('../index.html', import.meta.url);
 const startMarker = '<!-- MODULAR_LAMP_ASSETS_START -->';
 const endMarker = '<!-- MODULAR_LAMP_ASSETS_END -->';
-const lateSmokeLink = '  <link id="rrPermanentSmokeStyles" rel="stylesheet" href="/assets/roulette/smoke.css?v=2">';
 
 // Confirmed obsolete lamp and lighting experiments only. Protected animation
 // source is never rewritten; the imported server patch only normalizes the
@@ -58,7 +54,7 @@ function removeObsoleteLampBlocks(source) {
   return html;
 }
 
-const criticalStyle = `  <link id="rrLampExternalStyles" rel="stylesheet" href="/assets/roulette/lamp.css?v=18&smoke=2">
+const criticalStyle = `  <link id="rrLampExternalStyles" rel="stylesheet" href="/assets/roulette/lamp.css?v=18">
   <style id="rrLampCriticalHide">
     [data-roulette-game] > .rr-lamp,
     [data-roulette-game] .rr-lamp-fixture,
@@ -85,6 +81,7 @@ const criticalStyle = `  <link id="rrLampExternalStyles" rel="stylesheet" href="
     [data-roulette-game] .rr126-swing{position:absolute!important;top:calc(20% - 26px);left:49.75%;width:44%!important;aspect-ratio:325/273!important;transform:translateX(-50%);transform-origin:50% 0!important;overflow:visible!important;visibility:visible!important;opacity:1!important;z-index:3!important}
     [data-roulette-game] #rrLampPng{position:absolute!important;left:calc(50% - .75%)!important;top:90.5%!important;width:94%!important;height:auto!important;transform:translate(-50%,-50%) scale(1.1)!important;visibility:visible!important;opacity:1!important}
     [data-roulette-game] .rr130-table-illumination{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;pointer-events:none!important}
+    [data-roulette-game] .rr-smoke{display:none!important;visibility:hidden!important;opacity:0!important}
     @media(min-width:701px){[data-roulette-game] .rr126-lamp-rig{height:51%!important}[data-roulette-game] .rr126-swing{width:31%!important;max-width:230px!important}}
     @media(max-width:700px),(hover:none) and (pointer:coarse){[data-roulette-game] .rr126-lamp-rig{height:57%!important}[data-roulette-game] .rr126-swing{width:43%!important;max-width:none!important}}
   </style>`;
@@ -92,11 +89,10 @@ const criticalStyle = `  <link id="rrLampExternalStyles" rel="stylesheet" href="
 const block = `${startMarker}\n` +
   `${criticalStyle}\n` +
   '  <script src="/assets/roulette/lamp-config.js?v=19" defer></script>\n' +
-  '  <script src="/assets/roulette/lamp.js?v=20&smoke=2" defer></script>\n' +
-  '  <script src="/assets/roulette/lamp-bootstrap.js?v=19&smoke=2" defer></script>\n' +
-  '  <script src="/assets/roulette/smoke.js?v=2" defer></script>\n' +
-  '  <script src="/assets/roulette/audio-manager.js?v=4&ambience=2&countdown=2&audible=3&media=2" defer></script>\n' +
-  '  <script src="/assets/roulette/spin-audio-policy.js?v=3&turn-audio=2" defer></script>\n' +
+  '  <script src="/assets/roulette/lamp.js?v=20" defer></script>\n' +
+  '  <script src="/assets/roulette/lamp-bootstrap.js?v=19" defer></script>\n' +
+  '  <script src="/assets/roulette/audio-manager.js?v=4&ambience=2&media=2" defer></script>\n' +
+  '  <script src="/assets/roulette/spin-audio-policy.js?v=3" defer></script>\n' +
   '  <script src="/assets/roulette/turn-animation.js?v=5" defer></script>\n' +
   '  <script src="/assets/roulette/turn-fire.js?v=2" defer></script>\n' +
   '  <script src="/assets/roulette/opening-spin-sync.js?v=4" defer></script>\n' +
@@ -116,11 +112,6 @@ if (markerPattern.test(html)) {
   throw new Error('Cannot inject isolated assets: index.html has no </head> tag');
 }
 
-// Older scene CSS appears late in index.html and sets .rr-smoke to 30% opacity.
-// Put the permanent smoke stylesheet after every inline style so it wins.
-html = html.replace(/\s*<link\b[^>]*\bid=["']rrPermanentSmokeStyles["'][^>]*>\s*/gi, '\n');
-if (!html.includes('</head>')) throw new Error('Cannot append final smoke stylesheet: index.html has no </head> tag');
-html = html.replace('</head>', `${lateSmokeLink}\n</head>`);
 
 await writeFile(indexUrl, html);
-console.log('Injected independent lamp, full-strength permanent lamp-synchronized smoke, synchronized opening spin, authoritative six-chamber Roulette rules, reliable pass audio, deep-red audible countdown, media-safe ambience, result cues, and unchanged protected animations.');
+console.log('Injected independent lamp without smoke, synchronized opening spin, authoritative six-chamber Roulette rules, original turn rotation, ambience, result cues, and unchanged protected animations.');
