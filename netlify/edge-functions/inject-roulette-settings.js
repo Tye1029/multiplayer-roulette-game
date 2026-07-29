@@ -1,6 +1,6 @@
-const SETTINGS_MARKER = '<!-- rr-edge-scene-settings-v2 -->';
+const SMOKE_MARKER = '<!-- rr-edge-permanent-smoke-v1 -->';
 
-export default async function injectRouletteSettings(request, context) {
+export default async function injectRouletteSmoke(request, context) {
   const response = await context.next();
   const contentType = response.headers.get('content-type') || '';
   if (!contentType.toLowerCase().includes('text/html')) return response;
@@ -10,7 +10,7 @@ export default async function injectRouletteSettings(request, context) {
   headers.delete('content-length');
   headers.set('cache-control', 'no-store, no-cache, must-revalidate');
 
-  if (html.includes(SETTINGS_MARKER)) {
+  if (html.includes(SMOKE_MARKER)) {
     return new Response(html, {
       status: response.status,
       statusText: response.statusText,
@@ -18,23 +18,15 @@ export default async function injectRouletteSettings(request, context) {
     });
   }
 
-  const tags = [SETTINGS_MARKER];
-  if (!html.includes('/assets/roulette/atmosphere-settings.css')) {
-    tags.push('<link id="rrEdgeAtmosphereSettingsStyles" rel="stylesheet" href="/assets/roulette/atmosphere-settings.css?v=6">');
+  const tags = [SMOKE_MARKER];
+  if (!html.includes('/assets/roulette/smoke.css')) {
+    tags.push('<link id="rrEdgePermanentSmokeStyles" rel="stylesheet" href="/assets/roulette/smoke.css?v=1">');
   }
-
-  const builtSettingsPresent = html.includes('/assets/roulette/atmosphere-settings.js');
-  if (!builtSettingsPresent) {
-    if (!html.includes('/assets/roulette/lamp-config.js')) {
-      tags.push('<script src="/assets/roulette/lamp-config.js?v=19"></script>');
-    }
-    if (!html.includes('/assets/roulette/lamp.js')) {
-      tags.push('<script src="/assets/roulette/lamp.js?v=20&edge-settings=2"></script>');
-    }
-    if (!html.includes('/assets/roulette/lamp-bootstrap.js')) {
-      tags.push('<script src="/assets/roulette/lamp-bootstrap.js?v=19&edge-settings=2"></script>');
-    }
-    tags.push('<script src="/assets/roulette/atmosphere-edge-fallback.js?v=2"></script>');
+  if (!html.includes('/assets/roulette/lamp-config.js')) {
+    tags.push('<script src="/assets/roulette/lamp-config.js?v=19"></script>');
+  }
+  if (!html.includes('/assets/roulette/smoke.js')) {
+    tags.push('<script src="/assets/roulette/smoke.js?v=1"></script>');
   }
 
   const assets = tags.join('\n');
