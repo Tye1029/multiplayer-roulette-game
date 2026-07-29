@@ -35,7 +35,7 @@ if (!html.includes('async function rnbAttachBotWithRetry(gameId,profile)')) {
    }
    throw lastError||new Error('Unable to add Remote Network Bot.');
   }
-  $('rnbAddBot').addEventListener('click',async()=>{const b=$('rnbAddBot');try{const gameId=String((typeof duelLastActiveGame!=='undefined'&&duelLastActiveGame?.gameId)||(typeof duelCurrentGameId!=='undefined'&&duelCurrentGameId)||'');if(!gameId)throw new Error('Create a game first.');b.disabled=true;const profile=$('rnbProfile').value;line(botLogs,'attach requested',{gameId,profile});render();const data=await rnbAttachBotWithRetry(gameId,profile);if(typeof duelRememberCurrentGame==='function')duelRememberCurrentGame(data.game.gameId);if(typeof duelLastActiveGame!=='undefined')duelLastActiveGame=data.game;if(typeof duelResetReadyUi==='function')duelResetReadyUi(data.game);if(typeof duelRenderActive==='function')duelRenderActive({...data.game,status:'ready'},true);if(typeof duelSetPollRate==='function')duelSetPollRate(data.game);line(botLogs,data.recoveredExistingBot?'attached recovered':'attached',{profile:data.remoteNetworkProfile,bot:data.game.joiner?.name});render()}catch(err){line(botLogs,'attach failed',{error:String(err?.message||err)});if(typeof duelSetStatus==='function')duelSetStatus(err.message||'Unable to add Remote Network Bot.','bad');render()}finally{b.disabled=false}});
+  $('rnbAddBot').addEventListener('click',async()=>{const b=$('rnbAddBot');try{const gameId=String((typeof duelLastActiveGame!=='undefined'&&duelLastActiveGame?.gameId)||(typeof duelCurrentGameId!=='undefined'&&duelCurrentGameId)||'');if(!gameId)throw new Error('Create a game first.');b.disabled=true;const profile=$('rnbProfile').value;line(botLogs,'attach requested',{gameId,profile});render();const data=await rnbAttachBotWithRetry(gameId,profile);const adopted=rnbAdoptGame(data.game,true);if(!adopted)throw new Error('The Remote Bot response could not be adopted.');if(typeof duelResetReadyUi==='function')duelResetReadyUi(adopted);if(typeof duelSetPollRate==='function')duelSetPollRate(adopted);line(botLogs,data.recoveredExistingBot?'attached recovered':'attached',{profile:data.remoteNetworkProfile,bot:adopted.joiner?.name,gameRevision:Number(adopted.revision??-1),stateRevision:rnbStateRevision(adopted)});render()}catch(err){line(botLogs,'attach failed',{error:String(err?.message||err)});if(typeof duelSetStatus==='function')duelSetStatus(err.message||'Unable to add Remote Network Bot.','bad');render()}finally{b.disabled=false}});
 `;
 
   html = html.slice(0, start) + replacement + html.slice(end);
@@ -46,10 +46,11 @@ for (const required of [
   'const delays=[0,900,1500,2200,3000,3500];',
   "line(botLogs,'attach retry scheduled'",
   "const data=await rnbAttachBotWithRetry(gameId,profile);",
+  'const adopted=rnbAdoptGame(data.game,true)',
   "data.recoveredExistingBot?'attached recovered':'attached'"
 ]) {
   if (!html.includes(required)) throw new Error(`Remote Bot attach retry patch is missing ${required}`);
 }
 
 await writeFile(indexUrl, html);
-console.log('Patched Remote Bot attachment: one click automatically retries the same new game until it is visible or a real error occurs.');
+console.log('Patched Remote Bot attachment: one click automatically retries the same new game while preserving authoritative snapshot adoption.');
