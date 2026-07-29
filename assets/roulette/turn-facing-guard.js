@@ -1,8 +1,8 @@
 (function (global) {
   'use strict';
 
-  if (global.__rrAuthoritativeFacingGuardV1) return;
-  global.__rrAuthoritativeFacingGuardV1 = true;
+  if (global.__rrAuthoritativeFacingGuardV2) return;
+  global.__rrAuthoritativeFacingGuardV2 = true;
 
   const state = {
     scheduled: false,
@@ -10,21 +10,52 @@
     observer: null,
     inFlightKey: '',
     lastReason: '',
-    blockedAnimations: 0
+    blockedAnimations: 0,
+    cancelledStaleRotations: 0,
+    turnSoundsStarted: 0
   };
 
+  function snapshotStamp(game) {
+    return {
+      gameRevision: Number(game?.revision ?? -1),
+      rouletteRevision: Number(game?.rouletteState?.revision ?? -1),
+      updatedAt: Date.parse(String(game?.updatedAt || '')) || 0
+    };
+  }
+
+  function compareSnapshots(left, right) {
+    const a = snapshotStamp(left);
+    const b = snapshotStamp(right);
+    if (a.gameRevision !== b.gameRevision) return a.gameRevision - b.gameRevision;
+    if (a.rouletteRevision !== b.rouletteRevision) return a.rouletteRevision - b.rouletteRevision;
+    return a.updatedAt - b.updatedAt;
+  }
+
+  function mountedRoot() {
+    try { return duelActive?.querySelector('[data-roulette-game]') || null; } catch { return null; }
+  }
+
   function currentGame() {
+    const candidates = [];
     try {
       if (typeof rouletteLatestGame !== 'undefined' && rouletteLatestGame?.mode === 'roulette') {
-        return rouletteLatestGame;
+        candidates.push(rouletteLatestGame);
       }
     } catch {}
     try {
       if (typeof duelLastActiveGame !== 'undefined' && duelLastActiveGame?.mode === 'roulette') {
-        return duelLastActiveGame;
+        candidates.push(duelLastActiveGame);
       }
     } catch {}
-    return null;
+    if (!candidates.length) return null;
+
+    const root = mountedRoot();
+    const mountedGameId = String(root?.dataset?.gameId || '');
+    const sameMountedGame = mountedGameId
+      ? candidates.filter(game => String(game?.gameId || '') === mountedGameId)
+      : candidates;
+    const pool = sameMountedGame.length ? sameMountedGame : candidates;
+    return pool.reduce((newest, game) => !newest || compareSnapshots(game, newest) > 0 ? game : newest, null);
   }
 
   function currentRoot(gameId) {
@@ -35,6 +66,19 @@
     } catch {
       return null;
     }
+  }
+
+  function authoritativeTurnId(game, root = currentRoot(game?.gameId)) {
+    const gameTurnId = String(game?.rouletteState?.turnId || '');
+    const rootTurnId = String(root?.dataset?.turnId || '');
+    const rootRevision = Number(root?.dataset?.revision ?? -1);
+    const gameRevision = Number(game?.rouletteState?.revision ?? -1);
+    if (
+      rootTurnId &&
+      String(root?.dataset?.status || game?.status || '') === 'playing' &&
+      rootRevision >= gameRevision
+    ) return rootTurnId;
+    return gameTurnId;
   }
 
   function normalizedAngle(value) {
@@ -63,22 +107,51 @@
     const lock = api?.lock;
     if (!lock || !element?.matches?.('[data-roulette-facing]')) return true;
     if (lock.opening) return true;
-    return Boolean(lock.pendingTurnId && lock.animatingFacing === element);
+    const game = currentGame();
+    const root = currentRoot(game?.gameId);
+    const turnId = authoritativeTurnId(game, root);
+    return Boolean(
+      lock.pendingTurnId &&
+      lock.pendingTurnId === turnId &&
+      lock.animatingFacing === element
+    );
+  }
+
+  function startTurnMovementSound() {
+    const api = global.RouletteTurnLock;
+    const lock = api?.lock;
+    if (!lock || lock.opening || !lock.pendingTurnId) return;
+    const game = currentGame();
+    const gameId = String(game?.gameId || lock.gameId || '');
+    const root = currentRoot(gameId);
+    const turnId = authoritativeTurnId(game, root);
+    if (!gameId || !turnId || turnId !== lock.pendingTurnId) return;
+    const started = global.RouletteAudio?.turnRotate?.({
+      gameId,
+      fromTurnId: String(lock.turnId || ''),
+      turnId,
+      epoch: Number(lock.epoch || 0),
+      duration: 1020
+    });
+    if (started === true) state.turnSoundsStarted += 1;
   }
 
   function installAnimationGate() {
     try {
-      if (typeof rouletteAnimate !== 'function' || rouletteAnimate.__rrAuthoritativeFacingGateV1) return;
+      if (typeof rouletteAnimate !== 'function' || rouletteAnimate.__rrAuthoritativeFacingGateV2) return;
       const original = rouletteAnimate;
       const guarded = function (element, frames, timing) {
-        if (element?.matches?.('[data-roulette-facing]') && !animationIsAuthorized(element)) {
+        const isFacing = element?.matches?.('[data-roulette-facing]');
+        if (isFacing && !animationIsAuthorized(element)) {
           state.blockedAnimations += 1;
+          element.getAnimations?.().forEach(animation => animation.cancel());
           scheduleReconcile('blocked-unauthorized-facing-animation');
           return Promise.resolve(null);
         }
+        if (isFacing && !global.RouletteTurnLock?.lock?.opening) startTurnMovementSound();
         return original.call(this, element, frames, timing);
       };
-      Object.defineProperty(guarded, '__rrAuthoritativeFacingGateV1', {
+      Object.defineProperty(guarded, '__rrAuthoritativeFacingGateV2', {
         value: true,
         configurable: true
       });
@@ -94,10 +167,10 @@
     const api = global.RouletteTurnLock;
     const game = currentGame();
     const gameId = String(game?.gameId || '');
-    const turnId = String(game?.rouletteState?.turnId || '');
+    const root = currentRoot(gameId);
+    const turnId = authoritativeTurnId(game, root);
     if (!api || !gameId || game?.status !== 'playing' || !turnId) return;
 
-    const root = currentRoot(gameId);
     if (!root) return;
     const layers = api.ensureLayers(root);
     if (!layers) return;
@@ -116,8 +189,20 @@
     // During that one permitted rotation, enforceLockedFacing also handles a DOM
     // rerender without cancelling the active animation on the original element.
     if (lock.pendingTurnId) {
-      api.enforceLockedFacing(gameId);
-      return;
+      if (lock.pendingTurnId === turnId) {
+        api.enforceLockedFacing(gameId);
+        return;
+      }
+      // A newer accepted snapshot changed the turn while an older rotation was
+      // starting. Cancel that stale movement before it can visibly flip back.
+      lock.epoch += 1;
+      layers.facing.getAnimations?.().forEach(animation => animation.cancel());
+      lock.pendingTurnId = '';
+      lock.pendingAngle = lock.angle;
+      lock.queuedTurnId = '';
+      lock.animatingFacing = null;
+      state.inFlightKey = '';
+      state.cancelledStaleRotations += 1;
     }
 
     const targetAngle = angleForTurn(game, turnId);
@@ -139,7 +224,7 @@
       const newest = currentGame();
       if (
         String(newest?.gameId || '') === gameId &&
-        String(newest?.rouletteState?.turnId || '') === turnId &&
+        authoritativeTurnId(newest, currentRoot(gameId)) === turnId &&
         !api.lock.opening &&
         !api.lock.firing &&
         !api.lock.pendingTurnId
@@ -190,6 +275,8 @@
         inFlightKey: state.inFlightKey,
         lastReason: state.lastReason,
         blockedAnimations: state.blockedAnimations,
+        cancelledStaleRotations: state.cancelledStaleRotations,
+        turnSoundsStarted: state.turnSoundsStarted,
         timerActive: Boolean(state.timer),
         observerActive: Boolean(state.observer)
       };
