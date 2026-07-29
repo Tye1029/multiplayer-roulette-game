@@ -1,7 +1,9 @@
 import { readFile, writeFile } from 'node:fs/promises';
 
 const policyUrl = new URL('../assets/roulette/spin-audio-policy.js', import.meta.url);
+const bindingsUrl = new URL('../assets/roulette/audio-bindings.js', import.meta.url);
 let policy = await readFile(policyUrl, 'utf8');
+let bindings = await readFile(bindingsUrl, 'utf8');
 
 function replaceOnce(source, label, before, after) {
   if (source.includes(after)) return source;
@@ -120,6 +122,20 @@ if (!policy.includes('if (options.turnMovement === true) clip.__rrAuthorizedTurn
   );
 }
 
+if (!bindings.includes('this.__rrAuthorizedTurnMove !== true')) {
+  bindings = replaceOnce(
+    bindings,
+    'the opening-window media exception for approved turn movement',
+    `        now < openingWoodUntil &&
+        this.__rrAuthorizedOpeningSpin !== true &&
+        OPENING_BLOCKED_SOURCES.some(file => src.includes(file))`,
+    `        now < openingWoodUntil &&
+        this.__rrAuthorizedOpeningSpin !== true &&
+        this.__rrAuthorizedTurnMove !== true &&
+        OPENING_BLOCKED_SOURCES.some(file => src.includes(file))`
+  );
+}
+
 for (const required of [
   'function playTurnMovement(details = {})',
   "const rotationToken = String(details.rotationToken || '');",
@@ -138,6 +154,9 @@ for (const required of [
 ]) {
   if (!policy.includes(required)) throw new Error(`Final turn movement audio is missing ${required}`);
 }
+if (!bindings.includes('this.__rrAuthorizedTurnMove !== true')) {
+  throw new Error('Approved turn movement is still blocked by the opening audio window.');
+}
 if (policy.includes('function syncTurnMovement()') || policy.includes('pollTimer')) {
   throw new Error('Turn movement audio is still driven by polling.');
 }
@@ -145,8 +164,11 @@ if (policy.includes('performance.now() < chamberSpinUntil) return false') {
   throw new Error('Turn movement audio is still suppressed by the stale opening chamber window.');
 }
 
-await writeFile(policyUrl, policy);
-console.log('Patched Roulette turn movement: approved rotations start a no-seek authorized sound immediately and fade before the terminal knock.');
+await Promise.all([
+  writeFile(policyUrl, policy),
+  writeFile(bindingsUrl, bindings)
+]);
+console.log('Patched Roulette turn movement: approved rotations start a no-seek authorized sound immediately and are not blocked by the opening-audio window.');
 await import('./patch-roulette-turn-facing-guard.mjs');
 await import('./patch-roulette-active-rotation-hold.mjs');
 await import('./patch-roulette-reliable-turn-sound.mjs');
