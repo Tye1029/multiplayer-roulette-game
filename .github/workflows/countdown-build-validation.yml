@@ -1,0 +1,37 @@
+name: Countdown Build Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out lamp-development
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install dependencies
+        run: npm install --ignore-scripts
+
+      - name: Run Netlify build and validators
+        run: npm run build
+
+      - name: Verify generated countdown output
+        run: |
+          grep -F 'rr-v154-white-countdown-audio' index.html
+          grep -F 'color:#fff!important' index.html
+          grep -F "RouletteAudio?.countdownCue?.(label)" index.html
+          grep -F 'function countdownCue(label)' assets/roulette/audio-manager.js
+          grep -F 'countdownCue,' assets/roulette/audio-manager.js
+          node --check assets/roulette/audio-manager.js
