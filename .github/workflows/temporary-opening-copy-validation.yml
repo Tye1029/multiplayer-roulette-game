@@ -1,0 +1,32 @@
+name: Temporary Opening Copy Validation
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out lamp-development
+        uses: actions/checkout@v4
+        with:
+          ref: lamp-development
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        run: npm install --package-lock=false
+      - name: Run complete Netlify build and validators
+        run: npm run build
+      - name: Verify opening copy
+        run: |
+          grep -Fq "else if(openingConcealed){status='';sub='';controlNote='';}" index.html
+          ! grep -Fq "The revolver is spinning. The starting player stays hidden until it stops." index.html
+          grep -Fq '<div class="rr-opening-banner">Choosing First Player</div>' index.html
+          test "$(grep -Fo '<div class="rr-opening-banner">Choosing First Player</div>' index.html | wc -l)" -eq 1
+      - name: Verify protected animation hashes
+        run: |
+          test "$(git hash-object assets/roulette/turn-animation.js)" = "24358e84c147d99e7297089e69ed1abd0802379f"
+          test "$(git hash-object assets/roulette/turn-fire.js)" = "940e824eae39ddc40dda6200f893f97fc365949b"
