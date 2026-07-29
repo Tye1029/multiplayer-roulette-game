@@ -16,7 +16,7 @@ if (built) {
   process.exit(0);
 }
 
-console.warn('The generated build failed. Restoring committed files and deploying the edge-injected Scene Settings fallback.');
+console.warn('The generated build failed. Restoring committed files and deploying the permanent smoke edge fallback.');
 const restored = run('git', ['reset', '--hard', 'HEAD']);
 if (!restored) {
   console.error('Could not restore the clean committed site after the generated build failed.');
@@ -24,4 +24,4 @@ if (!restored) {
 }
 
 run('git', ['clean', '-fd']);
-console.log('Committed static site restored. Netlify can publish it with the edge settings fallback.');
+console.log('Committed static site restored. Netlify can publish it with the permanent smoke fallback.');
