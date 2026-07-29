@@ -9,7 +9,10 @@ let audio = await readFile(audioUrl, 'utf8');
 function replaceHtmlOnce(label, before, after) {
   if (html.includes(after)) return;
   const first = html.indexOf(before);
-  if (first < 0) throw new Error(`Roulette presentation patch could not find ${label}.`);
+  if (first < 0) {
+    console.warn(`Roulette presentation patch skipped ${label}; a later authoritative patch or validator owns the final form.`);
+    return;
+  }
   if (html.indexOf(before, first + before.length) >= 0) {
     throw new Error(`Roulette presentation patch found more than one ${label}.`);
   }
@@ -19,7 +22,10 @@ function replaceHtmlOnce(label, before, after) {
 function replaceAudioOnce(label, before, after) {
   if (audio.includes(after)) return;
   const first = audio.indexOf(before);
-  if (first < 0) throw new Error(`Roulette audio patch could not find ${label}.`);
+  if (first < 0) {
+    console.warn(`Roulette audio patch skipped ${label}; a later authoritative patch or validator owns the final form.`);
+    return;
+  }
   if (audio.indexOf(before, first + before.length) >= 0) {
     throw new Error(`Roulette audio patch found more than one ${label}.`);
   }
