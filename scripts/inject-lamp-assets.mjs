@@ -3,6 +3,7 @@ await import('./patch-roulette-chamber.mjs');
 await import('./patch-roulette-presentation.mjs');
 await import('./patch-roulette-countdown-white-audio.mjs');
 await import('./patch-roulette-turn-facing-audio.mjs');
+await import('./patch-roulette-remove-hidden-player-text.mjs');
 
 const indexUrl = new URL('../index.html', import.meta.url);
 const startMarker = '<!-- MODULAR_LAMP_ASSETS_START -->';
@@ -116,4 +117,4 @@ if (markerPattern.test(html)) {
 }
 
 await writeFile(indexUrl, html);
-console.log('Injected independent lamp without smoke, synchronized opening spin, authoritative six-chamber rules, hard turn-facing guard, custom countdown synth, knock-free turn movement, ambience, result cues, and unchanged protected animations.');
+console.log('Injected independent lamp without smoke, synchronized opening spin, authoritative six-chamber rules, hard turn-facing guard, custom countdown synth, knock-free turn movement, hidden-player text removed, ambience, result cues, and unchanged protected animations.');
