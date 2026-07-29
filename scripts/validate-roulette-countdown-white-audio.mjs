@@ -24,9 +24,19 @@ for (const required of [
   "globalThis.RouletteAudio?.countdownCue?.(label)",
   '/assets/roulette/audio-manager.js?v=4&ambience=2&media=2&countdown=2',
   '/assets/roulette/spin-audio-policy.js?v=3&turnsound=3',
-  '/assets/roulette/turn-facing-guard.js?v=1&lock=2'
+  '/assets/roulette/turn-facing-guard.js?v=2&lock=3&owner=1',
+  'Shot visuals own recoil and hammer movement only.',
+  'Direction changes are owned exclusively by turn-facing-guard.js.',
+  "window.addEventListener('roulette-facing-diagnostic'",
+  'rotationDiagnostics=Array.isArray(window.__rouletteFacingDiagnostics)'
 ]) {
   if (!html.includes(required)) throw new Error(`Countdown/turn HTML validation is missing ${required}`);
+}
+for (const forbidden of [
+  'if(nextTurnId)await rouletteRotateToTurn',
+  "rouletteQueueVisual(()=>rouletteRotateToTurn(game,st,gameId,{duration:900,targetTurnId:incomingTurnId}))"
+]) {
+  if (html.includes(forbidden)) throw new Error(`A duplicate legacy turn-rotation owner remains: ${forbidden}`);
 }
 
 for (const required of [
@@ -49,41 +59,52 @@ for (const required of [
   'volume: 0.044',
   'start: 0.12',
   'duration: 0.62',
-  'fadeOut: 0.30'
-]) {
-  if (!policy.includes(required)) throw new Error(`Knock-free turn movement validation is missing ${required}`);
-}
-
-for (const required of [
+  'fadeOut: 0.30',
   'function playTurnMovement(details = {})',
   'const key = `${gameId}:${fromTurnId}:${turnId}:${epoch}`',
   "if (!details || typeof details !== 'object') return false;",
   'return playTurnMovement(details);'
 ]) {
-  if (!policy.includes(required)) throw new Error(`Direct turn movement validation is missing ${required}`);
+  if (!policy.includes(required)) throw new Error(`Turn movement validation is missing ${required}`);
 }
 if (policy.includes('function syncTurnMovement()') || policy.includes('pollTimer')) {
-  throw new Error('Turn movement sound is still polling snapshots instead of following the real animation.');
+  throw new Error('Turn movement sound is still polling snapshots instead of following the approved animation.');
 }
 
 for (const required of [
-  'global.__rrAuthoritativeFacingGuardV2 = true',
+  'global.__rrSingleRotationOwnerV3 = true',
+  'global.__rouletteFacingDiagnostics = diagnostics',
+  'function recordDiagnostic(event, details = {})',
   'function snapshotStamp(game)',
   'function compareSnapshots(left, right)',
-  'function authoritativeTurnId(game, root = currentRoot(game?.gameId))',
-  'function angleForTurn(game, turnId)',
-  'function animationIsAuthorized(element)',
-  'function startTurnMovementSound()',
+  'function authoritativeTurnId(game)',
+  'function transitionToken(gameId, fromTurnId, turnId, rouletteRevision)',
+  'function observeAcceptedSnapshot(game, turnId)',
+  'function installLegacyRotationBlock()',
+  'function installBindGate()',
   'function installAnimationGate()',
-  "scheduleReconcile('blocked-unauthorized-facing-animation')",
-  'state.cancelledStaleRotations += 1',
-  'global.RouletteAudio?.turnRotate?.({',
-  'await api.rotateToLockedTurn(game, gameId, turnId, 1020)',
-  'api.enforceLockedFacing(gameId)',
-  "state.timer = global.setInterval(() => scheduleReconcile('hard-lock-poll'), 80)",
+  "recordDiagnostic('requested', transition)",
+  "recordDiagnostic('approved', transition)",
+  "recordDiagnostic('completed', transition)",
+  "recordDiagnostic('cancelled'",
+  "recordDiagnostic('blocked'",
+  "reason: 'legacy-rotation-api'",
+  "reason: 'duplicate-rotation-token'",
+  'await api.rotateToLockedTurn(game, transition.gameId, transition.turnId, 1020)',
+  "if (game.status !== 'playing')",
+  "snapFacing(game, turnId, 'non-playing-final-lock'",
+  "state.timer = global.setInterval(() => scheduleReconcile('single-owner-poll'), 80)",
   'global.RouletteFacingGuard = Object.freeze({'
 ]) {
-  if (!guard.includes(required)) throw new Error(`Authoritative facing guard validation is missing ${required}`);
+  if (!guard.includes(required)) throw new Error(`Single-owner facing guard validation is missing ${required}`);
+}
+
+for (const forbidden of [
+  'global.__rrAuthoritativeFacingGuardV2 = true',
+  'function authoritativeTurnId(game, root = currentRoot(game?.gameId))',
+  'rootRevision >= gameRevision'
+]) {
+  if (guard.includes(forbidden)) throw new Error(`Old multi-authority facing logic remains: ${forbidden}`);
 }
 
 function gitBlobSha(source) {
@@ -102,4 +123,4 @@ for (const [name, expected, source] of [
   if (actual !== expected) throw new Error(`${name} protected hash changed: ${actual}`);
 }
 
-console.log('Roulette validation passed: white countdown, freshest-snapshot turn lock, animation-synchronized early movement sound, no terminal knock, and protected animation hashes intact.');
+console.log('Roulette validation passed: white countdown, one revision-token rotation owner, final-state direction lock, diagnostic export, synchronized movement audio, no terminal knock, and protected animation hashes intact.');
