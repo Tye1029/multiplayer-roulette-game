@@ -14,6 +14,8 @@ const browser = await chromium.launch({
 
 try {
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  const pageErrors = [];
+  page.on('pageerror', error => pageErrors.push(String(error?.stack || error)));
   await page.setContent(`<!doctype html><html><head></head><body>
     <main id="duelActive">
       <section data-roulette-game data-game-id="guard-test" data-status="playing" data-turn-id="creator">
@@ -51,6 +53,10 @@ try {
     window.rouletteOpeningCompletedGames = new Set(['guard-test']);
     window.rouletteBind = root => root;
     window.rouletteMotionScale = () => 0.78;
+    window.rouletteMotionTransform = () => '';
+    window.rouletteOrientToShotActor = async () => {};
+    window.rouletteRotateToTurn = async () => {};
+    window.rouletteOpeningSequence = async () => {};
     window.rouletteQueueVisual = callback => Promise.resolve().then(callback);
     window.rouletteAnimate = async (element, frames, timing) => {
       const animation = element.animate(frames, timing);
@@ -64,7 +70,10 @@ try {
 
   await page.addScriptTag({ path: turnAnimationPath });
   await page.addScriptTag({ path: guardPath });
-  await page.waitForFunction(() => Boolean(window.RouletteTurnLock && window.RouletteFacingGuard));
+  await page.waitForTimeout(120);
+  assert.deepEqual(pageErrors, [], `Scripts raised page errors:\n${pageErrors.join('\n')}`);
+  assert.equal(await page.evaluate(() => Boolean(window.RouletteTurnLock)), true);
+  assert.equal(await page.evaluate(() => Boolean(window.RouletteFacingGuard)), true);
   await page.waitForTimeout(180);
 
   const initial = await page.evaluate(() => {
@@ -161,6 +170,7 @@ try {
     pendingTurnId: ''
   });
 
+  assert.deepEqual(pageErrors, [], `Runtime raised page errors:\n${pageErrors.join('\n')}`);
   console.log(JSON.stringify({
     status: 'passed',
     checks: [
