@@ -23,8 +23,8 @@ for (const required of [
   'color:#fff!important',
   "globalThis.RouletteAudio?.countdownCue?.(label)",
   '/assets/roulette/audio-manager.js?v=4&ambience=2&media=2&countdown=2',
-  '/assets/roulette/spin-audio-policy.js?v=3&turnsound=2',
-  '/assets/roulette/turn-facing-guard.js?v=1'
+  '/assets/roulette/spin-audio-policy.js?v=3&turnsound=3',
+  '/assets/roulette/turn-facing-guard.js?v=1&lock=2'
 ]) {
   if (!html.includes(required)) throw new Error(`Countdown/turn HTML validation is missing ${required}`);
 }
@@ -47,19 +47,37 @@ if (audio.includes("scheduleAction('turn-cue'")) {
 for (const required of [
   "group: 'turn-move'",
   'volume: 0.044',
-  'start: 0.22',
-  'duration: 0.56',
+  'start: 0.12',
+  'duration: 0.62',
   'fadeOut: 0.30'
 ]) {
   if (!policy.includes(required)) throw new Error(`Knock-free turn movement validation is missing ${required}`);
 }
 
 for (const required of [
-  'global.__rrAuthoritativeFacingGuardV1 = true',
+  'function playTurnMovement(details = {})',
+  'const key = `${gameId}:${fromTurnId}:${turnId}:${epoch}`',
+  "if (!details || typeof details !== 'object') return false;",
+  'return playTurnMovement(details);'
+]) {
+  if (!policy.includes(required)) throw new Error(`Direct turn movement validation is missing ${required}`);
+}
+if (policy.includes('function syncTurnMovement()') || policy.includes('pollTimer')) {
+  throw new Error('Turn movement sound is still polling snapshots instead of following the real animation.');
+}
+
+for (const required of [
+  'global.__rrAuthoritativeFacingGuardV2 = true',
+  'function snapshotStamp(game)',
+  'function compareSnapshots(left, right)',
+  'function authoritativeTurnId(game, root = currentRoot(game?.gameId))',
   'function angleForTurn(game, turnId)',
   'function animationIsAuthorized(element)',
+  'function startTurnMovementSound()',
   'function installAnimationGate()',
   "scheduleReconcile('blocked-unauthorized-facing-animation')",
+  'state.cancelledStaleRotations += 1',
+  'global.RouletteAudio?.turnRotate?.({',
   'await api.rotateToLockedTurn(game, gameId, turnId, 1020)',
   'api.enforceLockedFacing(gameId)',
   "state.timer = global.setInterval(() => scheduleReconcile('hard-lock-poll'), 80)",
@@ -84,4 +102,4 @@ for (const [name, expected, source] of [
   if (actual !== expected) throw new Error(`${name} protected hash changed: ${actual}`);
 }
 
-console.log('Roulette validation passed: white custom-synth countdown, authoritative turn-facing hard lock, shortened wood movement without the terminal knock, and protected animation hashes intact.');
+console.log('Roulette validation passed: white countdown, freshest-snapshot turn lock, animation-synchronized early movement sound, no terminal knock, and protected animation hashes intact.');
