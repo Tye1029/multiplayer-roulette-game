@@ -40,12 +40,26 @@ data = replaceOnce(
   }
 }
 
-async function duelGetRawStrong(gameId, attempts = 3) {
-  const total = Math.max(1, Math.min(4, int(attempts, 3)));
+function duelGetStrongStore() {
+  const siteID = process.env.NETLIFY_SITE_ID || process.env.SITE_ID || "";
+  const token = process.env.NETLIFY_BLOBS_TOKEN || process.env.NETLIFY_TOKEN || "";
+  const options = { name: STORE_NAME, consistency: "strong" };
+  if (siteID) options.siteID = siteID;
+  if (token) options.token = token;
+  return getStore(options);
+}
+
+async function duelGetRawStrong(gameId, attempts = 4) {
+  const id = mpCleanId(gameId);
+  if (!id) return null;
+  const total = Math.max(1, Math.min(6, int(attempts, 4)));
+  const store = duelGetStrongStore();
   for (let attempt = 0; attempt < total; attempt++) {
-    const game = await duelGetRaw(gameId, { consistency: "strong" });
-    if (game) return game;
-    if (attempt + 1 < total) await sleep(120 * (attempt + 1));
+    try {
+      const raw = await store.get(duelGameKey(id), { type: "json" });
+      if (raw) return duelSanitizeGame(raw);
+    } catch {}
+    if (attempt + 1 < total) await sleep(Math.min(900, 180 * (attempt + 1)));
   }
   return null;
 }
@@ -115,8 +129,10 @@ data = replaceOnce(
 );
 
 for (const required of [
-  'async function duelGetRawStrong(gameId, attempts = 3)',
-  'duelGetRaw(gameId, { consistency: "strong" })',
+  'function duelGetStrongStore()',
+  'const options = { name: STORE_NAME, consistency: "strong" };',
+  'async function duelGetRawStrong(gameId, attempts = 4)',
+  'const store = duelGetStrongStore();',
   'let game = await duelGetRawStrong(gameId);',
   'const existingRemoteBot = String(game.joiner?.userId || "").startsWith("remote-bot-");',
   'recoveredExistingBot:true'
@@ -125,4 +141,4 @@ for (const required of [
 }
 
 await writeFile(dataUrl, data);
-console.log('Patched new-duel joins: exact game reads use strong consistency with bounded retries, and Remote Bot attachment is retry-safe.');
+console.log('Patched new-duel joins: store-level strong exact reads, bounded retries, and retry-safe Remote Bot attachment.');
