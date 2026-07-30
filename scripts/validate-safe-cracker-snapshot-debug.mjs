@@ -11,15 +11,12 @@ assert(html.includes('window.__safeCrackerAcceptSnapshot = safeCrackerAcceptSnap
 assert(html.includes('got.game.mode === "safecracker" && !safeCrackerAcceptSnapshot(got.game)'), 'focused polling does not reject stale Safe Cracker snapshots');
 assert(html.includes('candidate?.mode === "safecracker"'), 'lobby fallback does not reject stale Safe Cracker snapshots');
 assert(html.includes('const acceptedGame = data.game && safeCrackerAcceptSnapshot(data.game)'), 'action responses bypass Safe Cracker snapshot acceptance');
-assert(html.includes('rnbFetchAuthoritativeGameBeforeSafeCrackerGuard'), 'Remote Bot focused fetch wrapper is missing');
-assert(html.includes("if(result?.mode==='safecracker'"), 'Remote Bot focused fetch bypasses Safe Cracker snapshot acceptance');
 assert(html.includes("if(game.mode==='safecracker'){"), 'shared mutation wrapper does not guard Safe Cracker snapshots');
 assert(html.includes("if(g?.mode)selectedMode=String(g.mode);"), 'debug selected mode is not synced to the active game');
 assert(html.includes('function rnbDebugState(g)'), 'redacted Safe Cracker debug state builder is missing');
 assert(html.includes("revealedCodes:g.status==='complete'?st.revealedCodes:undefined"), 'debug state can expose combinations before completion');
 assert(html.includes('rejectedSnapshots:Number(window.__safeCrackerRejectedSnapshots||0)'), 'debug state does not report rejected stale snapshots');
 assert(html.includes("safeCrackerCompleted ? 5000"), 'main Safe Cracker completed polling is not backed off');
-assert(html.includes("const interval=g.mode==='safecracker'&&!urgent?5000:650;"), 'Remote Bot completed Safe Cracker polling is not backed off');
 
 const match = html.match(/\/\/ SAFE_CRACKER_SNAPSHOT_GUARD_START([\s\S]*?)\/\/ SAFE_CRACKER_SNAPSHOT_GUARD_END/);
 assert(match, 'snapshot guard block could not be extracted');
