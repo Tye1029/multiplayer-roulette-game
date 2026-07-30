@@ -15,7 +15,8 @@ assert(html.includes("if(g?.mode)selectedMode=String(g.mode);"), 'debug selected
 assert(html.includes('function rnbDebugState(g)'), 'redacted Safe Cracker debug state builder is missing');
 assert(html.includes("revealedCodes:g.status==='complete'?st.revealedCodes:undefined"), 'debug state can expose combinations before completion');
 assert(html.includes('rejectedSnapshots:Number(window.__safeCrackerRejectedSnapshots||0)'), 'debug state does not report rejected stale snapshots');
-assert(html.includes("safeCrackerCompleted ? 5000"), 'main Safe Cracker completed polling is not backed off');
+assert(html.includes('["draw", "fishing", "roulette", "safecracker"].includes(String(game.mode || ""))'), 'completed Safe Cracker games do not enter the shared polling backoff');
+assert(html.includes('game?.mode === "safecracker" ? 5000 : 2000'), 'completed Safe Cracker polling does not immediately back off to five seconds');
 
 const match = html.match(/\/\/ SAFE_CRACKER_SNAPSHOT_GUARD_START([\s\S]*?)\/\/ SAFE_CRACKER_SNAPSHOT_GUARD_END/);
 assert(match, 'snapshot guard block could not be extracted');
