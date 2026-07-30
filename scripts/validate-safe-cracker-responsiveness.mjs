@@ -16,10 +16,12 @@ assert(data.includes('const requestedGameId = mpCleanId(gameId);'), 'Ready does 
 assert(data.includes('for (let attempt = 0; attempt < 6 && !game; attempt += 1)'), 'Ready does not recover through transient storage visibility');
 assert(data.includes('const active = await duelFindActiveGameForUser(user.id);'), 'Ready does not recover the player’s active game');
 assert(data.includes('const versioned = await safeCrackerReadVersioned(gameId);'), 'bot advancement does not use the atomic strong-read path');
-assert(data.includes("getWithMetadata(duelGameKey(id), { consistency: 'strong', type: 'json' })"), 'guess writes do not use a strongly versioned read');
+assert(data.includes("getWithMetadata(key, { consistency: 'strong', type: 'text' })"), 'guess writes do not use a compatible strongly versioned read');
+assert(data.includes("const raw = await store.get(key, { consistency: 'strong', type: 'text' });"), 'versioned-read compatibility fallback is missing its strong payload');
 assert(data.includes("setJSON(duelGameKey(gameId), clean, { onlyIfMatch: expectedEtag })"), 'guess writes are not protected by compare-and-set');
 assert(data.includes('const saved = await safeCrackerSaveVersioned(candidate, versioned.etag);'), 'guess writes do not save against the version they read');
 assert(data.includes('if (!saved.modified)'), 'concurrent write conflicts are not retried');
+assert(!data.includes('if (!versioned.etag) return latest;'), 'missing storage versions still return unchanged successful responses');
 assert(data.includes('secondsLeft: complete ? 0 :'), 'completed Safe Cracker timers continue counting down');
 assert(data.includes('return await safeCrackerComplete(authoritative, safeCrackerEnsureState(authoritative), id,'), 'a correct third digit does not return completion immediately after its atomic claim');
 assert(!data.includes('const confirmedComplete = await duelGetRawStrong(gameId, 2) || completed;'), 'stale post-finish confirmation can still discard completion');
@@ -39,6 +41,6 @@ assert(html.includes('window.__safeCrackerReadyRetryInFlight'), 'background poll
 assert(html.includes('/assets/safe-cracker/safe-cracker.js?v=8'), 'responsive Safe Cracker JavaScript is not visual-sequence v8');
 assert(html.includes('/assets/safe-cracker/safe-cracker.css?v=8'), 'responsive Safe Cracker stylesheet is not visual-sequence v8');
 assert(action.includes('const DUEL_FUNCTION_BUILD = "safecracker-direct-v8";'), 'immediate-completion function bundle marker is missing');
-assert(action.includes('"X-Safe-Cracker-Bot-Guard": "atomic-cas-v9"'), 'atomic bot-stop function marker is missing');
+assert(action.includes('"X-Safe-Cracker-Bot-Guard": "atomic-cas-v10"'), 'atomic bot-stop v10 function marker is missing');
 
-console.log('Safe Cracker responsiveness validation passed: Ready retries, poll cancellation, atomic completion, and visual-sequence v8 remain intact.');
+console.log('Safe Cracker responsiveness validation passed: Ready retries, poll cancellation, compatible atomic writes, immediate completion, and visual-sequence v8 remain intact.');
