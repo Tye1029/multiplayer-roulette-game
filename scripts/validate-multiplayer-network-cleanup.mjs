@@ -20,7 +20,7 @@ for (const required of [
   'let duelCompletedActivityAt = 0;',
   '["draw", "fishing", "roulette", "safecracker"].includes(String(game.mode || ""))',
   'completedPollRate = Date.now() - duelCompletedActivityAt < 15000 ? (game?.mode === "safecracker" ? 5000 : 2000) : 5000;',
-  'if (!duelScreen || duelScreen.hidden || document.hidden || Number(window.__duelMutationRequestsInFlight || 0) > 0) return;',
+  'if (!duelScreen || duelScreen.hidden || document.hidden || Number(window.__duelMutationRequestsInFlight || 0) > 0 || Number(window.__safeCrackerReadyRetryInFlight || 0) > 0) return;',
   'if(document.hidden)return;',
   'rnbScheduleRematch(g);\n  },1000);',
   'duelCompletedActivityAt = Date.now();',
@@ -60,4 +60,4 @@ for (const required of [
   if (!injector.includes(required)) throw new Error(`The multiplayer build pipeline is missing ${required}`);
 }
 
-console.log('Multiplayer network validation passed: focused polling is isolated and pauses during mutations, stale bot snapshots are rejected, completed polling backs off, hidden tabs pause, duplicate Remote Bot GETs are removed, and lobby Blob reads are batched.');
+console.log('Multiplayer network validation passed: focused polling is isolated and pauses during mutations and Safe Cracker Ready retries, stale bot snapshots are rejected, completed polling backs off, hidden tabs pause, duplicate Remote Bot GETs are removed, and lobby Blob reads are batched.');
