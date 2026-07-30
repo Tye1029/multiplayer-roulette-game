@@ -1,5 +1,5 @@
 const crypto = require("crypto");
-const DUEL_FUNCTION_BUILD = "safecracker-remote-bot-v2";
+const DUEL_FUNCTION_BUILD = "safecracker-start-flow-v3";
 const {
   initBlobs,
   resolveSiteUser,
