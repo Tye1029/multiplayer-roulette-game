@@ -11,7 +11,10 @@ for (const required of [
   'function duelGetStrongStore()',
   'const options = { name: STORE_NAME, consistency: "strong" };',
   'async function duelGetRawStrong(gameId, attempts = 4)',
-  'const store = duelGetStrongStore();',
+  'const primaryStore = getUsersStore();',
+  'primaryStore.get(duelGameKey(id), { type: "json", consistency: "strong" })',
+  'explicitStrongStore ||= duelGetStrongStore();',
+  'explicitStrongStore.get(duelGameKey(id), { type: "json", consistency: "strong" })',
   'async function duelJoinGame(user, gameId) {\n  await duelEnsureSchemaMigration();\n  let game = await duelGetRawStrong(gameId);',
   'async function duelAddSimpleNpc(user, gameId) {\n  const viewer = cleanUserId(user.id);\n  let game = await duelGetRawStrong(gameId);',
   'async function duelAddRemoteNetworkBot(user, gameId, profile = "normal") {\n  const viewer = cleanUserId(user.id);\n  let game = await duelGetRawStrong(gameId);',
@@ -44,4 +47,4 @@ if (!compatibilityPatch.includes("await import('./patch-duel-atomic-bot-and-acti
   throw new Error('Atomic Remote Bot patch is not chained after the compatibility pass.');
 }
 
-console.log('Strong duel-read validation passed: store-level strong exact reads remain available, while Remote Bot attachment now creates or recovers and attaches atomically in one request.');
+console.log('Strong duel-read validation passed: operation-level strong reads use the configured store with an explicit strong-store fallback, while Remote Bot attachment creates or recovers and attaches atomically in one request.');
