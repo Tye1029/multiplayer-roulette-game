@@ -15,12 +15,13 @@ assert(data.includes('primaryStore.get(duelGameKey(id), { type: "json", consiste
 assert(data.includes('const requestedGameId = mpCleanId(gameId);'), 'Ready does not normalize the requested game');
 assert(data.includes('for (let attempt = 0; attempt < 6 && !game; attempt += 1)'), 'Ready does not recover through transient storage visibility');
 assert(data.includes('const active = await duelFindActiveGameForUser(user.id);'), 'Ready does not recover the player’s active game');
-assert(data.includes('let latest = await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId) || game;'), 'bot advancement does not use the corrected strong-first read path');
-assert(data.includes('let latest = await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId) || fallback;'), 'guess writes do not use the corrected strong-first read path');
-assert(data.includes('const beforeSave = await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId);'), 'pre-save race verification was removed');
-assert(data.includes('confirmedState.processedActionIds.includes(cleanActionId)'), 'post-write action verification was removed');
+assert(data.includes('const versioned = await safeCrackerReadVersioned(gameId);'), 'bot advancement does not use the atomic strong-read path');
+assert(data.includes("getWithMetadata(duelGameKey(id), { consistency: 'strong', type: 'json' })"), 'guess writes do not use a strongly versioned read');
+assert(data.includes("setJSON(duelGameKey(gameId), clean, { onlyIfMatch: expectedEtag })"), 'guess writes are not protected by compare-and-set');
+assert(data.includes('const saved = await safeCrackerSaveVersioned(candidate, versioned.etag);'), 'guess writes do not save against the version they read');
+assert(data.includes('if (!saved.modified)'), 'concurrent write conflicts are not retried');
 assert(data.includes('secondsLeft: complete ? 0 :'), 'completed Safe Cracker timers continue counting down');
-assert(data.includes('return await safeCrackerComplete(candidate, state, id,'), 'a correct third digit does not return completion immediately');
+assert(data.includes('return await safeCrackerComplete(authoritative, safeCrackerEnsureState(authoritative), id,'), 'a correct third digit does not return completion immediately after its atomic claim');
 assert(!data.includes('const confirmedComplete = await duelGetRawStrong(gameId, 2) || completed;'), 'stale post-finish confirmation can still discard completion');
 
 const helperStart = html.indexOf('// SAFE_CRACKER_READY_RETRY_START');
@@ -38,5 +39,6 @@ assert(html.includes('window.__safeCrackerReadyRetryInFlight'), 'background poll
 assert(html.includes('/assets/safe-cracker/safe-cracker.js?v=8'), 'responsive Safe Cracker JavaScript is not visual-sequence v8');
 assert(html.includes('/assets/safe-cracker/safe-cracker.css?v=8'), 'responsive Safe Cracker stylesheet is not visual-sequence v8');
 assert(action.includes('const DUEL_FUNCTION_BUILD = "safecracker-direct-v8";'), 'immediate-completion function bundle marker is missing');
+assert(action.includes('"X-Safe-Cracker-Bot-Guard": "atomic-cas-v9"'), 'atomic bot-stop function marker is missing');
 
-console.log('Safe Cracker responsiveness validation passed: Ready retries, poll cancellation, immediate completion, and visual-sequence v8 remain intact.');
+console.log('Safe Cracker responsiveness validation passed: Ready retries, poll cancellation, atomic completion, and visual-sequence v8 remain intact.');
