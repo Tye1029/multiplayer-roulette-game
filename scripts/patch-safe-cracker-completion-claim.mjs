@@ -36,7 +36,7 @@ function safeCrackerCompletionClaimKey(game, state) {
   const gameId = mpCleanId(game?.gameId);
   const roundId = String(state?.roundId || '').replace(/[^A-Za-z0-9._:-]/g, '').slice(0, 120);
   if (!gameId || !roundId) throw new Error('Safe Cracker could not identify the finishing round.');
-  return \`duel-safecracker-completion/\${gameId}/\${roundId}.json\`;
+  return 'duel-safecracker-completion/' + gameId + '/' + roundId + '.json';
 }
 
 function safeCrackerNormalizeCompletionClaim(raw, fallback) {
