@@ -1,5 +1,8 @@
 import { readFile, writeFile } from 'node:fs/promises';
 
+await import('./patch-safe-cracker-sample-mix.mjs');
+await import('./validate-safe-cracker-sample-mix.mjs');
+
 const packageUrl = new URL('../package.json', import.meta.url);
 const validatorUrl = new URL('./validate-lamp.mjs', import.meta.url);
 const packageJson = JSON.parse(await readFile(packageUrl, 'utf8'));
