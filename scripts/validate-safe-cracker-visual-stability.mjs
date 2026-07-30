@@ -32,10 +32,10 @@ assert(css.includes('.sc-known-code span.known'), 'locked digit styling is missi
 assert(css.includes('-webkit-tap-highlight-color: transparent'), 'mobile button tap flash suppression is missing');
 assert(css.includes(".safe-cracker-game.sc-stable-render[data-sc-status='playing']"), 'repeated playing renders do not suppress structural entrance animations');
 assert(css.includes(".safe-cracker-game.sc-stable-render[data-sc-status='complete'] .sc-result-content"), 'completed result rerenders do not preserve their final visual state');
-assert(index.includes('/assets/safe-cracker/safe-cracker.css?v=8&polish=1'), 'polished stylesheet URL is not cache-busted');
-assert(index.includes('/assets/safe-cracker/safe-cracker.js?v=8&polish=1'), 'polished runtime URL is not cache-busted');
+assert(index.includes('/assets/safe-cracker/safe-cracker.css?v=8&polish=2'), 'polished stylesheet URL is not carried into mobile-fit pass');
+assert(index.includes('/assets/safe-cracker/safe-cracker.js?v=8&polish=2'), 'polished runtime URL is not carried into mobile-fit pass');
 assert(!patch.includes('assets/roulette/turn-animation.js'), 'visual stability patch references the protected turn animation');
 assert(!patch.includes('assets/roulette/turn-fire.js'), 'visual stability patch references the protected firing animation');
 assert(!patch.includes('netlify/functions/_data.js'), 'visual stability patch must not modify server gameplay logic');
 
-console.log('Safe Cracker visual-stability validation passed: button flashes are suppressed, warm ambience is visible, locked digits are shown, and gameplay remains untouched.');
+console.log('Safe Cracker visual-stability validation passed: button flashes remain suppressed, warm ambience and locked digits remain visible, and mobile-fit cache busting is current.');
