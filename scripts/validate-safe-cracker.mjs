@@ -51,12 +51,13 @@ assert(data.includes('return await safeCrackerAction(actorUser, gameId, rawChoic
 assert(data.includes('safecrackerState = safeCrackerInitialState(next, startMs)'), 'codes are not initialized from the authoritative countdown');
 assert(data.includes('Remote Network Bot supports Roulette, Draw, Fishing, and Safe Cracker.'), 'Remote Network Bot support is missing');
 assert(!data.includes('if (!["roulette", "draw", "fishing"].includes(String(game.mode || ""))) throw new Error("Remote Network Bot supports Roulette, Draw, and Fishing.");'), 'legacy Remote Bot allowlist still rejects Safe Cracker');
-assert(action.includes('const DUEL_FUNCTION_BUILD = "safecracker-direct-v7";'), 'direct-completion duel function bundle version is missing');
+assert(action.includes('const DUEL_FUNCTION_BUILD = "safecracker-direct-v8";'), 'immediate-completion duel function bundle version is missing');
 assert(action.includes('"X-Duel-Function-Build": DUEL_FUNCTION_BUILD'), 'duel function build header is missing');
 assert(data.includes('["draw","fishing","roulette","blackjack","safecracker"].includes(clean.mode)'), 'Safe Cracker is not isolated from generic NPC completion');
 assert(!data.includes('revealedCodes: { my:'), 'active responses must not unconditionally expose combinations');
 assert(data.includes('revealedCodes: complete ? { my:'), 'completed matches must provide transparent code reveal');
 assert(data.includes('// SAFE_CRACKER_DIRECT_COMPLETION_START'), 'direct Safe Cracker completion path is missing');
+assert(data.includes('safeCrackerCompletedPlayerId'), 'stage-three completion repair is missing');
 assert(!data.includes('safeCrackerClaimCompletion'), 'obsolete completion claim loop is still bundled');
 
 assert(index.includes('/assets/safe-cracker/safe-cracker.css?v=4'), 'Safe Cracker stylesheet is not injected');
@@ -79,4 +80,4 @@ assert(styles.includes('.sc-result-overlay'), 'win/loss presentation is missing'
 assert(!patch.includes("writeFile(new URL('../assets/roulette/turn-animation.js'"), 'patch must never write the protected turn animation');
 assert(!patch.includes("writeFile(new URL('../assets/roulette/turn-fire.js'"), 'patch must never write the protected firing animation');
 
-console.log('Safe Cracker validation passed: authoritative race, v7 direct-completion function bundle, compact controls, rematches, persistence, and protected Roulette hashes are intact.');
+console.log('Safe Cracker validation passed: authoritative race, v8 immediate-completion function bundle, stage-three recovery, compact controls, persistence, and protected Roulette hashes are intact.');
