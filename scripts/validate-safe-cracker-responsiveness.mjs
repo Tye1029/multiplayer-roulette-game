@@ -15,8 +15,8 @@ assert(data.includes('primaryStore.get(duelGameKey(id), { type: "json", consiste
 assert(data.includes('const requestedGameId = mpCleanId(gameId);'), 'Ready does not normalize the requested game');
 assert(data.includes('for (let attempt = 0; attempt < 6 && !game; attempt += 1)'), 'Ready does not recover through transient storage visibility');
 assert(data.includes('const active = await duelFindActiveGameForUser(user.id);'), 'Ready does not recover the player’s active game');
-assert(data.includes('let latest = await duelGetRaw(gameId) || await duelGetRawStrong(gameId, 1) || game;'), 'bot advancement no longer uses the responsive read path');
-assert(data.includes('let latest = await duelGetRaw(gameId) || await duelGetRawStrong(gameId, 1) || fallback;'), 'guess writes no longer use the responsive read path');
+assert(data.includes('let latest = await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId) || game;'), 'bot advancement does not use the corrected strong-first read path');
+assert(data.includes('let latest = await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId) || fallback;'), 'guess writes do not use the corrected strong-first read path');
 assert(data.includes('const beforeSave = await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId);'), 'pre-save race verification was removed');
 assert(data.includes('confirmedState.processedActionIds.includes(cleanActionId)'), 'post-write action verification was removed');
 assert(data.includes('secondsLeft: complete ? 0 :'), 'completed Safe Cracker timers continue counting down');
@@ -37,4 +37,4 @@ assert(html.includes('/assets/safe-cracker/safe-cracker.js?v=4'), 'responsive Sa
 assert(html.includes('/assets/safe-cracker/safe-cracker.css?v=4'), 'responsive Safe Cracker stylesheet is not cache-busted');
 assert(action.includes('const DUEL_FUNCTION_BUILD = "safecracker-storage-v5";'), 'storage-consistent function bundle marker is missing');
 
-console.log('Safe Cracker responsiveness validation passed: one Ready tap survives transient storage visibility, obsolete polls are cancelled, polling stays light, and write verification remains intact.');
+console.log('Safe Cracker responsiveness validation passed: one Ready tap survives transient storage visibility, obsolete polls are cancelled, polling stays light, and strong-first write verification remains intact.');
