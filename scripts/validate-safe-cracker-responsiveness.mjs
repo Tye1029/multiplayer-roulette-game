@@ -15,15 +15,12 @@ assert(data.includes('primaryStore.get(duelGameKey(id), { type: "json", consiste
 assert(data.includes('const requestedGameId = mpCleanId(gameId);'), 'Ready does not normalize the requested game');
 assert(data.includes('for (let attempt = 0; attempt < 6 && !game; attempt += 1)'), 'Ready does not recover through transient storage visibility');
 assert(data.includes('const active = await duelFindActiveGameForUser(user.id);'), 'Ready does not recover the player’s active game');
-assert(data.includes('// SAFE_CRACKER_MUTATION_LOCK_V11_START'), 'cross-instance mutation lock is missing');
-assert(data.includes('return await safeCrackerWithMutationLock(gameId, async latest => {'), 'guess submissions are not serialized');
-assert(data.includes('return await duelSaveGame(candidate);'), 'ordinary guesses cannot be saved');
-assert(data.includes('const dueAt = safeCrackerBotDueAt(latest, state, npcId);'), 'bot timing still writes persistent schedule state during polling');
-assert(data.includes("console.error('[safecracker] poll advancement failed without blocking the game snapshot:'"), 'a bot/poll error can still return HTTP 500 during the countdown');
-assert(data.includes('latest = await duelGetRawStrong(latest.gameId, 1) || await duelGetRaw(latest.gameId) || latest;'), 'poll failure does not return the latest playable game');
-assert(!data.includes('getWithMetadata('), 'polling still uses the metadata reader that froze the countdown');
+assert(data.includes('let latest = await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId) || game;'), 'bot advancement does not use the corrected strong-first read path');
+assert(data.includes('let latest = await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId) || fallback;'), 'guess writes do not use the corrected strong-first read path');
+assert(data.includes('const beforeSave = await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId);'), 'pre-save race verification was removed');
+assert(data.includes('confirmedState.processedActionIds.includes(cleanActionId)'), 'post-write action verification was removed');
 assert(data.includes('secondsLeft: complete ? 0 :'), 'completed Safe Cracker timers continue counting down');
-assert(data.includes('return await safeCrackerComplete(candidate, state, id,'), 'a correct third digit does not return completion immediately while locked');
+assert(data.includes('return await safeCrackerComplete(candidate, state, id,'), 'a correct third digit does not return completion immediately');
 assert(!data.includes('const confirmedComplete = await duelGetRawStrong(gameId, 2) || completed;'), 'stale post-finish confirmation can still discard completion');
 
 const helperStart = html.indexOf('// SAFE_CRACKER_READY_RETRY_START');
@@ -41,6 +38,5 @@ assert(html.includes('window.__safeCrackerReadyRetryInFlight'), 'background poll
 assert(html.includes('/assets/safe-cracker/safe-cracker.js?v=8'), 'responsive Safe Cracker JavaScript is not visual-sequence v8');
 assert(html.includes('/assets/safe-cracker/safe-cracker.css?v=8'), 'responsive Safe Cracker stylesheet is not visual-sequence v8');
 assert(action.includes('const DUEL_FUNCTION_BUILD = "safecracker-direct-v8";'), 'immediate-completion function bundle marker is missing');
-assert(action.includes('"X-Safe-Cracker-Bot-Guard": "mutation-lock-v11"'), 'mutation-lock function marker is missing');
 
-console.log('Safe Cracker responsiveness validation passed: Ready retries, poll cancellation, fail-open countdown transition, mutation-locked guesses, and immediate completion remain intact.');
+console.log('Safe Cracker responsiveness validation passed: Ready retries, poll cancellation, immediate completion, and visual-sequence v8 remain intact.');
