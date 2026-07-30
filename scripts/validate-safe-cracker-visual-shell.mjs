@@ -24,10 +24,10 @@ assert(css.includes('.sc-safe-shell::after'), 'safe cabinet lighting pass is mis
 assert(css.includes('.sc-safe-door::after'), 'safe-door rivet and surface pass is missing');
 assert(css.includes('repeating-linear-gradient(98deg'), 'brushed-steel safe texture is missing');
 assert(css.includes('@media (max-width: 700px)'), 'mobile vault-shell treatment is missing');
-assert(index.includes('/assets/safe-cracker/safe-cracker.css?v=5'), 'visual-shell stylesheet cache version is not v5');
-assert(index.includes('/assets/safe-cracker/safe-cracker.js?v=5'), 'Safe Cracker runtime cache version is not synchronized with v5');
+assert(index.includes('/assets/safe-cracker/safe-cracker.css?v=6'), 'visual-shell stylesheet is not carried into visual-dial v6');
+assert(index.includes('/assets/safe-cracker/safe-cracker.js?v=6'), 'Safe Cracker runtime is not synchronized with visual-dial v6');
 assert(!patch.includes('assets/roulette/turn-animation.js'), 'visual shell patch references the protected turn animation');
 assert(!patch.includes('assets/roulette/turn-fire.js'), 'visual shell patch references the protected firing animation');
 assert(!patch.includes('netlify/functions/_data.js'), 'visual shell patch must not modify gameplay or server logic');
 
-console.log('Safe Cracker visual-shell validation passed: cinematic vault background and professional safe surfaces are present without gameplay or Roulette changes.');
+console.log('Safe Cracker visual-shell validation passed: cinematic vault background remains intact beneath the precision dial pass without gameplay or Roulette changes.');
