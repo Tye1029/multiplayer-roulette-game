@@ -51,14 +51,14 @@ assert(data.includes('return await safeCrackerAction(actorUser, gameId, rawChoic
 assert(data.includes('safecrackerState = safeCrackerInitialState(next, startMs)'), 'codes are not initialized from the authoritative countdown');
 assert(data.includes('Remote Network Bot supports Roulette, Draw, Fishing, and Safe Cracker.'), 'Remote Network Bot support is missing');
 assert(!data.includes('if (!["roulette", "draw", "fishing"].includes(String(game.mode || ""))) throw new Error("Remote Network Bot supports Roulette, Draw, and Fishing.");'), 'legacy Remote Bot allowlist still rejects Safe Cracker');
-assert(action.includes('const DUEL_FUNCTION_BUILD = "safecracker-start-flow-v3";'), 'duel function bundle version is missing');
+assert(action.includes('const DUEL_FUNCTION_BUILD = "safecracker-responsive-v4";'), 'duel function bundle version is missing');
 assert(action.includes('"X-Duel-Function-Build": DUEL_FUNCTION_BUILD'), 'duel function build header is missing');
 assert(data.includes('["draw","fishing","roulette","blackjack","safecracker"].includes(clean.mode)'), 'Safe Cracker is not isolated from generic NPC completion');
 assert(!data.includes('revealedCodes: { my:'), 'active responses must not unconditionally expose combinations');
 assert(data.includes('revealedCodes: complete ? { my:'), 'completed matches must provide transparent code reveal');
 
-assert(index.includes('/assets/safe-cracker/safe-cracker.css?v=3'), 'Safe Cracker stylesheet is not injected');
-assert(index.includes('/assets/safe-cracker/safe-cracker.js?v=3'), 'Safe Cracker runtime is not injected');
+assert(index.includes('/assets/safe-cracker/safe-cracker.css?v=4'), 'Safe Cracker stylesheet is not injected');
+assert(index.includes('/assets/safe-cracker/safe-cracker.js?v=4'), 'Safe Cracker runtime is not injected');
 assert(index.includes('data-safe-cracker-mount'), 'Safe Cracker UI mount is missing');
 assert(index.includes('window.__safeCrackerBridge'), 'Safe Cracker client bridge is missing');
 assert(!index.includes('id="safeGuessInput"'), 'temporary three-digit text input still exists');
@@ -77,4 +77,4 @@ assert(styles.includes('.sc-result-overlay'), 'win/loss presentation is missing'
 assert(!patch.includes("writeFile(new URL('../assets/roulette/turn-animation.js'"), 'patch must never write the protected turn animation');
 assert(!patch.includes("writeFile(new URL('../assets/roulette/turn-fire.js'"), 'patch must never write the protected firing animation');
 
-console.log('Safe Cracker validation passed: authoritative race, fresh Remote Bot function bundle, compact controls, rematches, persistence, and protected Roulette hashes are intact.');
+console.log('Safe Cracker validation passed: authoritative race, responsive function bundle, compact controls, rematches, persistence, and protected Roulette hashes are intact.');
