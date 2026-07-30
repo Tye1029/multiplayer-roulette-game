@@ -30,6 +30,6 @@ assert(styles.includes('.sc-start-countdown-overlay'), 'countdown overlay stylin
 assert(index.includes("if(game.mode==='safecracker')"), 'shared countdown portal still owns Safe Cracker');
 assert(index.includes('/assets/safe-cracker/safe-cracker.js?v=4'), 'fresh Safe Cracker runtime is not cache-busted');
 assert(index.includes('/assets/safe-cracker/safe-cracker.css?v=4'), 'fresh Safe Cracker styles are not cache-busted');
-assert(action.includes('const DUEL_FUNCTION_BUILD = "safecracker-direct-v7";'), 'fresh direct-completion Safe Cracker function bundle marker is missing');
+assert(action.includes('const DUEL_FUNCTION_BUILD = "safecracker-direct-v8";'), 'fresh immediate-completion Safe Cracker function bundle marker is missing');
 
 console.log('Safe Cracker start-flow validation passed: one Ready tap strongly recovers the game, starts a dedicated 3-2-1-GO countdown, and all race actions use strong-first storage reads.');
