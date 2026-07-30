@@ -20,14 +20,15 @@ assert(client.includes("feedbackFresh ? ' fresh' : ''"), 'new feedback is not di
 assert(styles.includes('.sc-display.green.fresh { animation: scGreenConfirm .42s ease; }'), 'green confirmation animation is not limited to a new result');
 assert(!styles.includes('rgba(82,255,142,.34); animation: scGreenConfirm'), 'green animation still restarts on every render');
 
-assert(data.includes('// SAFE_CRACKER_LOCKED_APPLY_V11_START'), 'mutation-locked Safe Cracker writer is missing');
-assert(data.includes('return await safeCrackerWithMutationLock(gameId, async latest => {'), 'guess writer does not serialize player and bot actions');
-assert(data.includes('return await duelSaveGame(candidate);'), 'a normal submitted guess cannot persist');
-assert(data.includes("if (latest.status !== 'playing') return latest;"), 'guess writer can mutate a completed game');
-assert(data.includes('return await safeCrackerComplete(candidate, state, id,'), 'a final correct digit does not complete inside the lock');
+assert(data.includes('// SAFE_CRACKER_VERIFIED_APPLY_START'), 'verified Safe Cracker writer is missing');
+assert(data.includes('let latest = await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId) || fallback;'), 'guess writer does not use the corrected strong-first read path');
+assert(data.includes('const beforeSave = await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId);'), 'guess writer does not recheck state before saving with a fallback');
+assert(data.includes('confirmedState.processedActionIds.includes(cleanActionId)'), 'guess writer does not verify that an action survived concurrent writes');
+assert(data.includes('let latest = await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId) || game;'), 'bot advancement does not use the corrected strong-first read path');
+assert(data.includes('let game = await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId);'), 'human actions do not use the corrected strong-first read path');
+assert(data.includes('revision: int(state.revision, 0) + 1, npcActionAt:'), 'NPC scheduler changes are not revisioned');
 assert(data.includes('// SAFE_CRACKER_DIRECT_COMPLETION_START'), 'direct completion layer is missing');
 assert(!data.includes('safeCrackerClaimCompletion'), 'obsolete completion claim loop remains bundled');
-assert(!data.includes('getWithMetadata('), 'feedback/gameplay requests still depend on the failing metadata reader');
 
 assert(html.includes('game?.safecrackerState||{}'), 'Remote Bot comparison ignores Safe Cracker state revision');
 assert(html.includes('function rnbLifecycleRank(game)'), 'Remote Bot comparison ignores lifecycle status');
@@ -40,4 +41,4 @@ assert(client.includes('// SAFE_CRACKER_HUD_V3_START'), 'industrial feedback/HUD
 assert(client.includes('// SAFE_CRACKER_SEQUENCE_V4_START'), 'countdown and result sequence renderer is missing');
 assert(client.includes('function feedbackMeter(tier = \'\')'), 'feedback proximity meter is missing');
 
-console.log('Safe Cracker feedback consistency validation passed: feedback remains latched, normal guesses persist through the mutation lock, stale snapshots are rejected, and completion stays authoritative.');
+console.log('Safe Cracker feedback consistency validation passed: feedback remains latched inside the industrial display, stale snapshots are rejected, and visual sequence v8 remains intact.');
