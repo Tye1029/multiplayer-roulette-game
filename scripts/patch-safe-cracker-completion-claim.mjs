@@ -90,7 +90,7 @@ async function safeCrackerComplete(game, state, winnerId = '', reason = '') {
 data = replaceSection(data, 'async function safeCrackerComplete(game, state, winnerId = \'\', reason = \'\') {', 'function safeCrackerCandidateMatches', completionBlock, 'direct Safe Cracker completion');
 
 const blockingFinish = `      const completed = await safeCrackerComplete(candidate, state, id, ((latest.creator?.userId === id ? latest.creator?.name : latest.joiner?.name) || 'A player') + ' opened the safe first.');
-      const confirmedComplete = await duelGetRawStrong(gameId, 2) || completed;
+      const confirmedComplete = await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId) || completed;
       if (confirmedComplete?.status === 'complete') return confirmedComplete;
       fallback = confirmedComplete;
       continue;`;
