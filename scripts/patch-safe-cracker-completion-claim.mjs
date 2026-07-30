@@ -42,7 +42,9 @@ function safeCrackerCompletionClaimKey(game, state) {
 function safeCrackerNormalizeCompletionClaim(raw, fallback) {
   const source = raw && typeof raw === 'object' ? raw : fallback;
   return {
+    schemaVersion: 2,
     claimId: String(source.claimId || fallback.claimId),
+    ownerToken: String(source.ownerToken || fallback.ownerToken || ''),
     gameId: mpCleanId(source.gameId || fallback.gameId),
     roundId: String(source.roundId || fallback.roundId),
     winnerUserId: cleanUserId(source.winnerUserId || ''),
@@ -55,12 +57,14 @@ function safeCrackerNormalizeCompletionClaim(raw, fallback) {
 async function safeCrackerClaimCompletion(game, state, winnerId = '', reason = '') {
   const cleanWinner = cleanUserId(winnerId);
   const claimId = safeCrackerCompletionClaimKey(game, state);
+  const ownerToken = crypto.randomBytes(16).toString('hex');
   const winnerCompletedAt = cleanWinner ? state?.players?.[cleanWinner]?.completedAt : null;
   const at = String(winnerCompletedAt || game?.completedAt || nowIso());
   const finalState = { ...state, winnerUserId: cleanWinner, revision: int(state.revision, 0) + 1, npcActionAt: null };
   const proposed = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     claimId,
+    ownerToken,
     gameId: mpCleanId(game?.gameId),
     roundId: String(state?.roundId || ''),
     winnerUserId: cleanWinner,
@@ -72,13 +76,24 @@ async function safeCrackerClaimCompletion(game, state, winnerId = '', reason = '
   for (let attempt = 0; attempt < 7; attempt += 1) {
     try {
       const existing = await store.get(claimId, { type: 'json', consistency: 'strong' });
-      if (existing) return { claim: safeCrackerNormalizeCompletionClaim(existing, proposed), owner: false };
+      if (existing) {
+        const claim = safeCrackerNormalizeCompletionClaim(existing, proposed);
+        return { claim, owner: claim.ownerToken === ownerToken };
+      }
     } catch {}
     try {
-      const written = await store.setJSON(claimId, proposed, { onlyIfNew: true });
-      if (written?.modified) return { claim: proposed, owner: true };
+      // @netlify/blobs 10+ performs this write atomically. Do not depend on the
+      // return object: read the stored owner token back strongly instead.
+      await store.setJSON(claimId, proposed, { onlyIfNew: true });
     } catch {}
-    if (attempt < 6) await sleep(120 + attempt * 120);
+    try {
+      const confirmed = await store.get(claimId, { type: 'json', consistency: 'strong' });
+      if (confirmed) {
+        const claim = safeCrackerNormalizeCompletionClaim(confirmed, proposed);
+        return { claim, owner: claim.ownerToken === ownerToken };
+      }
+    } catch {}
+    if (attempt < 6) await sleep(100 + attempt * 100);
   }
   throw new Error('Safe Cracker could not lock the finishing result. Please try again.');
 }
@@ -118,7 +133,7 @@ data = replaceInsideFunction(data, 'async function duelCompleteWithResolved(game
 await writeFile(dataUrl, data);
 
 let action = await readFile(actionUrl, 'utf8');
-action = replaceRequired(action, 'const DUEL_FUNCTION_BUILD = "safecracker-responsive-v4";', 'const DUEL_FUNCTION_BUILD = "safecracker-storage-v5";', 'storage-consistent function bundle marker');
+action = replaceRequired(action, 'const DUEL_FUNCTION_BUILD = "safecracker-responsive-v4";', 'const DUEL_FUNCTION_BUILD = "safecracker-storage-v6";', 'storage-consistent function bundle marker');
 await writeFile(actionUrl, action);
 
-console.log('Patched Safe Cracker atomic completion ownership and deterministic completion timestamps.');
+console.log('Patched Safe Cracker read-back verified completion ownership and deterministic completion timestamps.');
