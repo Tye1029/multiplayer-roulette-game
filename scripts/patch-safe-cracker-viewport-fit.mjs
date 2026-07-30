@@ -45,8 +45,9 @@ if (!client.includes(jsStart)) {
   ].join('\n');
   client = replaceRequired(client, '  function resultOverlay(game) {', `${helpers}  function resultOverlay(game) {`, 'countdown centering helper insertion');
 
-  const attemptPanel = String.raw`        <aside class="sc-attempt-panel"><h3><span>TUMBLER \${Math.min(STAGES, Number(me.stage || 0) + 1)} LOG</span><b>\${Number(me.attemptCount || 0)} TOTAL</b></h3><div class="sc-attempt-list">\${attemptRows(me.attempts || [], me.stage || 0)}</div></aside>`;
-  client = replaceRequired(client, attemptPanel, '', 'bottom attempt history panel');
+  const attemptPanelPattern = /\n\s*<aside class="sc-attempt-panel">[\s\S]*?<\/aside>/m;
+  if (!attemptPanelPattern.test(client)) throw new Error('Safe Cracker viewport-fit patch could not find bottom attempt history panel.');
+  client = client.replace(attemptPanelPattern, '');
 
   client = replaceRequired(
     client,
