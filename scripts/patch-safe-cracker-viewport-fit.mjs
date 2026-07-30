@@ -18,32 +18,49 @@ if (!client.includes(jsStart)) {
   client = replaceRequired(
     client,
     "    visualStatus: ''",
-    "    visualStatus: '',\n    countdownCenteredKey: ''",
-    'countdown viewport state'
+    "    visualStatus: '',\n    countdownPortalGameId: ''",
+    'countdown portal state'
   );
 
   const helpers = [
     `  ${jsStart}`,
-    '  function centerCountdownViewport(game, mount) {',
-    "    if (String(game?.status || '') !== 'countdown') return;",
-    "    const key = String(game?.gameId || '') + ':' + String(game?.startAt || stateFor(game)?.startAt || '');",
-    '    if (!key || runtime.countdownCenteredKey === key) return;',
-    '    runtime.countdownCenteredKey = key;',
-    '    window.requestAnimationFrame(() => {',
-    "      const target = mount?.querySelector('.safe-cracker-game') || mount;",
-    "      if (!target || typeof target.scrollIntoView !== 'function') return;",
-    '      try {',
-    "        target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });",
-    '      } catch {',
-    '        target.scrollIntoView();',
+    '  function mountCountdownPortal(game, mount) {',
+    "    const active = String(game?.status || '') === 'countdown';",
+    "    const fresh = mount?.querySelector('[data-sc-start-countdown]') || null;",
+    "    const existing = document.querySelector('body > [data-sc-start-countdown][data-sc-countdown-portal]');",
+    '    if (!active || !fresh) {',
+    '      existing?.remove();',
+    "      runtime.countdownPortalGameId = '';",
+    '      return;',
+    '    }',
+    "    const gameId = String(game?.gameId || '');",
+    '    const syncCountdown = (target, source) => {',
+    "      target.dataset.scCountdownLabel = source.dataset.scCountdownLabel || '';",
+    "      const sourceValue = source.querySelector('[data-sc-countdown-value]');",
+    "      const targetValue = target.querySelector('[data-sc-countdown-value]');",
+    '      if (sourceValue && targetValue) {',
+    '        targetValue.textContent = sourceValue.textContent;',
+    '        targetValue.className = sourceValue.className;',
     '      }',
-    '    });',
+    "      const sourceStatus = source.querySelector('[data-sc-countdown-status]');",
+    "      const targetStatus = target.querySelector('[data-sc-countdown-status]');",
+    '      if (sourceStatus && targetStatus) targetStatus.textContent = sourceStatus.textContent;',
+    '    };',
+    '    if (existing) {',
+    '      syncCountdown(existing, fresh);',
+    '      fresh.remove();',
+    '      runtime.countdownPortalGameId = gameId;',
+    '      return;',
+    '    }',
+    "    fresh.setAttribute('data-sc-countdown-portal', '');",
+    '    document.body.appendChild(fresh);',
+    '    runtime.countdownPortalGameId = gameId;',
     '  }',
     '  // SAFE_CRACKER_VIEWPORT_FIT_V7_END',
     '',
     ''
   ].join('\n');
-  client = replaceRequired(client, '  function resultOverlay(game) {', `${helpers}  function resultOverlay(game) {`, 'countdown centering helper insertion');
+  client = replaceRequired(client, '  function resultOverlay(game) {', `${helpers}  function resultOverlay(game) {`, 'countdown portal helper insertion');
 
   const attemptPanelPattern = /\n\s*<aside class="sc-attempt-panel">[\s\S]*?<\/aside>/m;
   if (!attemptPanelPattern.test(client)) throw new Error('Safe Cracker viewport-fit patch could not find bottom attempt history panel.');
@@ -52,8 +69,8 @@ if (!client.includes(jsStart)) {
   client = replaceRequired(
     client,
     `    bindControls(mount, game);\n    updateTimerOnly();`,
-    `    centerCountdownViewport(game, mount);\n    bindControls(mount, game);\n    updateTimerOnly();`,
-    'countdown viewport centering call'
+    `    mountCountdownPortal(game, mount);\n    bindControls(mount, game);\n    updateTimerOnly();`,
+    'countdown portal call'
   );
 }
 await writeFile(clientUrl, client);
@@ -91,17 +108,36 @@ const viewportFit = String.raw`${cssStart}
   transform: none !important;
 }
 
-.sc-start-countdown-overlay {
+.sc-start-countdown-overlay[data-sc-countdown-portal] {
   position: fixed !important;
   inset: 0 !important;
+  z-index: 100000 !important;
   width: 100vw !important;
   height: 100dvh !important;
   min-height: 100svh;
   margin: 0 !important;
+  padding: 0 !important;
+  display: grid !important;
+  place-items: center !important;
+  align-content: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
 }
 
-html:has(.sc-start-countdown-overlay),
-body:has(.sc-start-countdown-overlay) {
+.sc-start-countdown-overlay[data-sc-countdown-portal] .sc-countdown-vault {
+  left: 50% !important;
+  top: 50% !important;
+}
+
+.sc-start-countdown-overlay[data-sc-countdown-portal] .sc-countdown-copy {
+  grid-area: 1 / 1;
+  align-self: center;
+  justify-self: center;
+  margin: 0;
+}
+
+html:has(.sc-start-countdown-overlay[data-sc-countdown-portal]),
+body:has(.sc-start-countdown-overlay[data-sc-countdown-portal]) {
   overflow: hidden !important;
   overscroll-behavior: none;
 }
@@ -216,8 +252,8 @@ css = css.replace(markerPattern, '').trimEnd() + `\n\n${viewportFit}\n`;
 await writeFile(cssUrl, css);
 
 let html = await readFile(indexUrl, 'utf8');
-html = html.replaceAll('/assets/safe-cracker/safe-cracker.css?v=8&polish=2', '/assets/safe-cracker/safe-cracker.css?v=8&polish=2&fit=1');
-html = html.replaceAll('/assets/safe-cracker/safe-cracker.js?v=8&polish=2', '/assets/safe-cracker/safe-cracker.js?v=8&polish=2&fit=1');
+html = html.replaceAll('/assets/safe-cracker/safe-cracker.css?v=8&polish=2', '/assets/safe-cracker/safe-cracker.css?v=8&polish=2&fit=2');
+html = html.replaceAll('/assets/safe-cracker/safe-cracker.js?v=8&polish=2', '/assets/safe-cracker/safe-cracker.js?v=8&polish=2&fit=2');
 await writeFile(indexUrl, html);
 
-console.log('Applied Safe Cracker viewport-fit polish: fitted code slots, centered countdown, removed history, and clear dial controls.');
+console.log('Applied Safe Cracker viewport-fit polish: countdown portal centered in the phone viewport, fitted code slots, removed history, and clear dial controls.');
