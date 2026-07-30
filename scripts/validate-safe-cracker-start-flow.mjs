@@ -16,9 +16,9 @@ function assert(condition, message) {
 assert(data.includes('const startMs = atMs + (game?.mode === "safecracker" ? 3000 : DUEL_COUNTDOWN_MS);'), 'Safe Cracker does not have an authoritative three-second countdown');
 assert(data.includes('if (game.mode === "roulette" || game.mode === "safecracker")'), 'Remote Bot is not confirmed Ready in the same Safe Cracker transaction');
 assert(data.includes('const requestedGameId = mpCleanId(gameId);'), 'Ready does not strongly recover the requested Safe Cracker game');
-assert(data.includes('let latest = await duelGetRaw(gameId) || await duelGetRawStrong(gameId, 1) || game;'), 'bot advancement does not use the available exact game read with strong fallback');
-assert(data.includes('let latest = await duelGetRaw(gameId) || await duelGetRawStrong(gameId, 1) || fallback;'), 'verified guess writes do not have a responsive normal-read path');
-assert(data.includes('const beforeSave = await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId);'), 'pre-save verification has no normal-read fallback');
+assert(data.includes('let latest = await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId) || game;'), 'bot advancement does not use the corrected strong-first read path');
+assert(data.includes('let latest = await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId) || fallback;'), 'verified guess writes do not use the corrected strong-first read path');
+assert(data.includes('const beforeSave = await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId);'), 'pre-save verification has no strong-read fallback');
 
 assert(client.includes('function safeCrackerStartCountdownLabel'), 'dedicated countdown clock is missing');
 assert(client.includes("if (remaining > 2000) return '3';"), 'countdown does not show 3');
@@ -32,4 +32,4 @@ assert(index.includes('/assets/safe-cracker/safe-cracker.js?v=4'), 'fresh Safe C
 assert(index.includes('/assets/safe-cracker/safe-cracker.css?v=4'), 'fresh Safe Cracker styles are not cache-busted');
 assert(action.includes('const DUEL_FUNCTION_BUILD = "safecracker-storage-v5";'), 'fresh storage-consistent Safe Cracker function bundle marker is missing');
 
-console.log('Safe Cracker start-flow validation passed: one Ready tap strongly recovers the game, starts a dedicated 3-2-1-GO countdown, and fresh assets/functions are bundled.');
+console.log('Safe Cracker start-flow validation passed: one Ready tap strongly recovers the game, starts a dedicated 3-2-1-GO countdown, and all race actions use strong-first storage reads.');
