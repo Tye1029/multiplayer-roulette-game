@@ -26,3 +26,19 @@ jobs:
         run: npm install
       - name: Run exact Netlify build command
         run: npm run build
+      - name: Verify live Netlify preview
+        shell: bash
+        run: |
+          url='https://deploy-preview-19--famous-piroshki-b621da.netlify.app/'
+          for attempt in $(seq 1 36); do
+            html="$(curl -fsSL --max-time 20 "${url}?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            if grep -Fq 'class="sth-game" data-mode="safecracker"' <<<"$html" && \
+               grep -Fq 'data-rnb-game="safecracker"' <<<"$html"; then
+              echo "Verified live Safe Cracker launcher and Remote Bot selector at ${url}"
+              exit 0
+            fi
+            echo "Waiting for Netlify preview (${attempt}/36)..."
+            sleep 10
+          done
+          echo 'Netlify preview did not become available with both Safe Cracker controls.' >&2
+          exit 1
