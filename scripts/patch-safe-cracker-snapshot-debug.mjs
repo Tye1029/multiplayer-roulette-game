@@ -114,17 +114,6 @@ html = replaceRequired(
 
 html = replaceRequired(
   html,
-  `  function render(){
-   const g=(typeof duelLastActiveGame!=='undefined'&&duelLastActiveGame)||(typeof rouletteLatestGame!=='undefined'&&rouletteLatestGame)||null, st=g?.rouletteState||g?.drawState||g?.fishingState||g?.safecrackerState||{};`,
-  `  function render(){
-   const g=(typeof duelLastActiveGame!=='undefined'&&duelLastActiveGame)||(typeof rouletteLatestGame!=='undefined'&&rouletteLatestGame)||null;
-   if(g?.mode)selectedMode=String(g.mode);
-   const st=g?.rouletteState||g?.drawState||g?.fishingState||g?.safecrackerState||{};`,
-  'debug selected mode synchronization'
-);
-
-html = replaceRequired(
-  html,
   `  function debugSnapshot(kind){const g=(typeof duelLastActiveGame!=='undefined'&&duelLastActiveGame)||(typeof rouletteLatestGame!=='undefined'&&rouletteLatestGame)||null;const st=g?.rouletteState||g?.drawState||g?.fishingState||g?.safecrackerState||{};const base={capturedAt:new Date().toISOString(),kind,selectedMode,game:g?{gameId:g.gameId,mode:g.mode,status:g.status,revision:g.revision,creator:g.creator,joiner:g.joiner,remoteNetworkTest:g.remoteNetworkTest,remoteNetworkProfile:g.remoteNetworkProfile,npcActionAt:g.npcActionAt,state:st}:null};if(kind==='game')base.logs=[...logs];else base.logs=[...botLogs];return JSON.stringify(base,null,2)}`,
   `  function rnbDebugState(g){
    if(!g)return{};
@@ -155,4 +144,4 @@ html = replaceRequired(
 );
 
 await writeFile(indexUrl, html);
-console.log('Patched Safe Cracker monotonic snapshots, synced debug mode/state, and completed polling backoff.');
+console.log('Patched Safe Cracker monotonic snapshots, synced debug export state, and completed polling backoff.');
