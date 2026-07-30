@@ -9,17 +9,29 @@ function replaceRequired(source, before, after, label) {
   return source.replace(before, after);
 }
 
-function replaceInsideFunction(source, functionMarker, before, after, label) {
+function functionBounds(source, functionMarker, label) {
   const start = source.indexOf(functionMarker);
   if (start < 0) throw new Error(`Safe Cracker Ready-storage patch could not find ${label} function.`);
   const nextAsync = source.indexOf('\nasync function ', start + functionMarker.length);
   const nextPlain = source.indexOf('\nfunction ', start + functionMarker.length);
   const candidates = [nextAsync, nextPlain].filter(value => value >= 0);
-  const end = candidates.length ? Math.min(...candidates) : source.length;
+  return { start, end: candidates.length ? Math.min(...candidates) : source.length };
+}
+
+function replaceInsideFunction(source, functionMarker, before, after, label) {
+  const { start, end } = functionBounds(source, functionMarker, label);
   const section = source.slice(start, end);
   if (section.includes(after)) return source;
   if (!section.includes(before)) throw new Error(`Safe Cracker Ready-storage patch could not find ${label}.`);
   return source.slice(0, start) + section.replace(before, after) + source.slice(end);
+}
+
+function replaceRegexInsideFunction(source, functionMarker, pattern, replacement, label) {
+  const { start, end } = functionBounds(source, functionMarker, label);
+  const section = source.slice(start, end);
+  if (section.includes(replacement)) return source;
+  if (!pattern.test(section)) throw new Error(`Safe Cracker Ready-storage patch could not find ${label}.`);
+  return source.slice(0, start) + section.replace(pattern, replacement) + source.slice(end);
 }
 
 function replaceSection(source, startMarker, endMarker, replacement, label) {
@@ -75,9 +87,9 @@ const stableReadyLookup = `    const requestedGameId = mpCleanId(gameId);
     }`;
 data = replaceInsideFunction(data, 'async function duelReadyGame(user, gameId, options = {}) {', oldReadyLookup, stableReadyLookup, 'authoritative Ready recovery loop');
 
-data = replaceRequired(data, '    let game = await duelGetRaw(gameId) || await duelGetRawStrong(gameId, 1);', '    let game = await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId);', 'strong-first player action read');
-data = replaceRequired(data, '    let latest = await duelGetRaw(gameId) || await duelGetRawStrong(gameId, 1) || game;', '    let latest = await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId) || game;', 'strong-first bot advancement read');
-data = replaceRequired(data, '    let latest = await duelGetRaw(gameId) || await duelGetRawStrong(gameId, 1) || fallback;', '    let latest = await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId) || fallback;', 'strong-first verified guess read');
+data = replaceRegexInsideFunction(data, 'async function safeCrackerAction(user, gameId, rawChoice, details = {}) {', /    let game = await [^\n;]+;/, '    let game = await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId);', 'strong-first player action read');
+data = replaceRegexInsideFunction(data, 'async function safeCrackerAdvanceAndSave(game) {', /    let latest = await [^\n;]+;/, '    let latest = await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId) || game;', 'strong-first bot advancement read');
+data = replaceRegexInsideFunction(data, 'async function safeCrackerApplyGuess(game, actorId, guess, actionId = \'\', isBot = false) {', /    let latest = await [^\n;]+;/, '    let latest = await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId) || fallback;', 'strong-first verified guess read');
 await writeFile(dataUrl, data);
 
 let html = await readFile(indexUrl, 'utf8');
