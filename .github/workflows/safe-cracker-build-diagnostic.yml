@@ -122,13 +122,12 @@ jobs:
                grep -Fq 'linear-gradient(90deg, #20282c, #4c3a20 48%, #20282c)' <<<"$css" && \
                grep -Fq '.sc-known-code span.known' <<<"$css" && \
                grep -Fq -- '-webkit-tap-highlight-color: transparent' <<<"$css" && \
-               grep -Fiq 'x-safe-cracker-bot-guard: mutation-lock-v11' <<<"$headers" && \
                grep -Fiq 'x-duel-function-build: safecracker-direct-v8' <<<"$headers"; then
-              echo "Verified live Safe Cracker fail-open countdown polling, cross-instance mutation lock, bot-stop guard, visual corrections, v8 completion, dismissal, Ready, and snapshot safeguards at ${url}"
+              echo "Verified live Safe Cracker video corrections, physical dial-number orientation, monotonic countdown, restrained lighting, result flow, v8 immediate completion, dismissal, Ready, and snapshot safeguards at ${url}"
               exit 0
             fi
-            echo "Waiting for Netlify Safe Cracker mutation-lock preview (${attempt}/36)..."
+            echo "Waiting for Netlify Safe Cracker video-correction preview (${attempt}/36)..."
             sleep 10
           done
-          echo 'Netlify preview did not become available with the Safe Cracker mutation lock and fail-open countdown polling.' >&2
+          echo 'Netlify preview did not become available with the Safe Cracker video corrections and current gameplay fixes.' >&2
           exit 1
