@@ -1,0 +1,29 @@
+name: Safe Cracker Build Diagnostic
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - safe-cracker-development
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+      - name: Use Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install dependencies
+        run: npm install
+      - name: Run exact Netlify build command
+        run: npm run build
