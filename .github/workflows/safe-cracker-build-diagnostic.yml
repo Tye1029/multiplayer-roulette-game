@@ -34,7 +34,8 @@ jobs:
           for attempt in $(seq 1 36); do
             html="$(curl -fsSL --max-time 20 "${url}?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             headers="$(curl -fsS --max-time 20 -D - -o /dev/null -X OPTIONS "${function_url}?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            js="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/safe-cracker.js?v=4&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            js="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/safe-cracker.js?v=5&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            css="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/safe-cracker.css?v=5&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             if grep -Fq 'class="sth-game" data-mode="safecracker"' <<<"$html" && \
                grep -Fq 'data-rnb-game="safecracker"' <<<"$html" && \
                grep -Fq 'id="safe-cracker-compact-debug-dock"' <<<"$html" && \
@@ -47,15 +48,20 @@ jobs:
                grep -Fq 'DUEL_COMPLETED_DISMISSAL_START' <<<"$html" && \
                grep -Fq 'duel-end-screen-close' <<<"$html" && \
                grep -Fq 'torn-duel-completed-seen-v1' <<<"$html" && \
+               grep -Fq '/assets/safe-cracker/safe-cracker.css?v=5' <<<"$html" && \
+               grep -Fq '/assets/safe-cracker/safe-cracker.js?v=5' <<<"$html" && \
                grep -Fq "if(game.mode==='safecracker')" <<<"$html" && \
                grep -Fq 'SAFE_CRACKER_START_COUNTDOWN_START' <<<"$js" && \
                grep -Fq 'data-sc-start-countdown' <<<"$js" && \
+               grep -Fq 'SAFE_CRACKER_VISUAL_SHELL_V1_START' <<<"$css" && \
+               grep -Fq '.sc-safe-shell::after' <<<"$css" && \
+               grep -Fq '.sc-safe-door::after' <<<"$css" && \
                grep -Fiq 'x-duel-function-build: safecracker-direct-v8' <<<"$headers"; then
-              echo "Verified live Safe Cracker v8 immediate completion, stage-three repair, persistent completed-game dismissal, close controls, one-tap Ready, focused-poll cancellation, countdown, snapshot guard, debug state, and compact controls at ${url}"
+              echo "Verified live Safe Cracker visual pass 1, v8 immediate completion, stage-three repair, result dismissal, one-tap Ready, countdown, snapshot guard, and compact controls at ${url}"
               exit 0
             fi
-            echo "Waiting for Netlify Safe Cracker v8 immediate-completion preview (${attempt}/36)..."
+            echo "Waiting for Netlify Safe Cracker visual-shell v1 preview (${attempt}/36)..."
             sleep 10
           done
-          echo 'Netlify preview did not become available with the Safe Cracker v8 immediate completion and stage-three recovery fixes.' >&2
+          echo 'Netlify preview did not become available with the Safe Cracker visual shell and current gameplay fixes.' >&2
           exit 1
