@@ -65,7 +65,7 @@ const strongReader = `async function duelGetRawStrong(gameId, attempts = 4) {
 }
 
 `;
-data = replaceSection(data, 'async function duelGetRawStrong(gameId, attempts = 4) {', 'async function duelJoinGame', strongReader, 'operation-level strong game reader');
+data = replaceSection(data, 'async function duelGetRawStrong(gameId, attempts = 4) {', 'async function duelSaveGame', strongReader, 'operation-level strong game reader');
 
 data = replaceRequired(data, '    const pointer=await store.get(duelActiveKey(viewer),{type:"json"});', '    const pointer=await store.get(duelActiveKey(viewer),{type:"json",consistency:"strong"});', 'strong active-game pointer read');
 data = replaceRequired(data, '      const g=await duelGetRaw(pointer.gameId);', '      const g=await duelGetRawStrong(pointer.gameId,2) || await duelGetRaw(pointer.gameId);', 'strong active-game record read');
