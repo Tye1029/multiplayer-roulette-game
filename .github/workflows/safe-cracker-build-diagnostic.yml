@@ -41,17 +41,18 @@ jobs:
                grep -Fq 'id="rnbControlPanel" data-collapsed="1"' <<<"$html" && \
                grep -Fq 'SAFE_CRACKER_SNAPSHOT_GUARD_START' <<<"$html" && \
                grep -Fq 'SAFE_CRACKER_READY_RETRY_START' <<<"$html" && \
+               grep -Fq 'const deadlineAt = Date.now() + 12000' <<<"$html" && \
                grep -Fq 'window.__safeCrackerFocusedGetAbort' <<<"$html" && \
                grep -Fq 'game.status === "playing" ? 2200 : 650' <<<"$html" && \
                grep -Fq "if(game.mode==='safecracker')" <<<"$html" && \
                grep -Fq 'SAFE_CRACKER_START_COUNTDOWN_START' <<<"$js" && \
                grep -Fq 'data-sc-start-countdown' <<<"$js" && \
-               grep -Fiq 'x-duel-function-build: safecracker-responsive-v4' <<<"$headers"; then
-              echo "Verified live responsive Safe Cracker action bundle, automatic Ready retry, focused-poll cancellation, dedicated countdown, snapshot guard, debug state, and compact controls at ${url}"
+               grep -Fiq 'x-duel-function-build: safecracker-storage-v5' <<<"$headers"; then
+              echo "Verified live storage-consistent Safe Cracker bundle, deadline-bound one-tap Ready, deterministic completion claims, focused-poll cancellation, countdown, snapshot guard, debug state, and compact controls at ${url}"
               exit 0
             fi
-            echo "Waiting for Netlify responsive Safe Cracker preview (${attempt}/36)..."
+            echo "Waiting for Netlify storage-consistent Safe Cracker preview (${attempt}/36)..."
             sleep 10
           done
-          echo 'Netlify preview did not become available with the responsive Safe Cracker Ready, polling, action, and countdown fixes.' >&2
+          echo 'Netlify preview did not become available with the Safe Cracker strong Ready and deterministic completion fixes.' >&2
           exit 1
