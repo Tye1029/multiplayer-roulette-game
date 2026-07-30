@@ -60,8 +60,8 @@ assert(data.includes('// SAFE_CRACKER_DIRECT_COMPLETION_START'), 'direct Safe Cr
 assert(data.includes('safeCrackerCompletedPlayerId'), 'stage-three completion repair is missing');
 assert(!data.includes('safeCrackerClaimCompletion'), 'obsolete completion claim loop is still bundled');
 
-assert(index.includes('/assets/safe-cracker/safe-cracker.css?v=5'), 'Safe Cracker stylesheet is not injected at visual-shell v5');
-assert(index.includes('/assets/safe-cracker/safe-cracker.js?v=5'), 'Safe Cracker runtime is not synchronized at visual-shell v5');
+assert(index.includes('/assets/safe-cracker/safe-cracker.css?v=6'), 'Safe Cracker stylesheet is not injected at visual-dial v6');
+assert(index.includes('/assets/safe-cracker/safe-cracker.js?v=6'), 'Safe Cracker runtime is not synchronized at visual-dial v6');
 assert(index.includes('data-safe-cracker-mount'), 'Safe Cracker UI mount is missing');
 assert(index.includes('window.__safeCrackerBridge'), 'Safe Cracker client bridge is missing');
 assert(!index.includes('id="safeGuessInput"'), 'temporary three-digit text input still exists');
@@ -73,12 +73,14 @@ assert(client.includes('setPointerCapture'), 'dial pointer capture is missing');
 assert(client.includes('playDetent'), 'mechanical dial click audio is missing');
 assert(client.includes('opponent.lastTier'), 'opponent progress feedback is missing');
 assert(client.includes('funnyLosses'), 'rotating funny loss messages are missing');
+assert(client.includes('// SAFE_CRACKER_DIAL_PHYSICS_V2_START'), 'visual dial interaction pass is missing');
 assert(styles.includes('.sc-dial'), 'dial styling is missing');
 assert(styles.includes('touch-action: none'), 'dial must block page scrolling while rotating');
 assert(styles.includes('.sc-result-overlay'), 'win/loss presentation is missing');
 assert(styles.includes('/* SAFE_CRACKER_VISUAL_SHELL_V1_START */'), 'visual shell pass is missing');
+assert(styles.includes('/* SAFE_CRACKER_VISUAL_DIAL_V2_START */'), 'visual dial pass is missing');
 
 assert(!patch.includes("writeFile(new URL('../assets/roulette/turn-animation.js'"), 'patch must never write the protected turn animation');
 assert(!patch.includes("writeFile(new URL('../assets/roulette/turn-fire.js'"), 'patch must never write the protected firing animation');
 
-console.log('Safe Cracker validation passed: authoritative race, v8 immediate completion, visual shell v1, persistence, and protected Roulette hashes are intact.');
+console.log('Safe Cracker validation passed: authoritative race, v8 immediate completion, visual shell and precision dial passes, persistence, and protected Roulette hashes are intact.');
