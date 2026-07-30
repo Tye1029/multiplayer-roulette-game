@@ -120,12 +120,20 @@ html = replaceRequired(
 
 html = replaceRequired(
   html,
-  `    if(data?.game){rnbAdoptGame(data.game,false);return data.game}`,
-  `    if(data?.game){
-     if(data.game.mode==='safecracker'&&typeof window.__safeCrackerAcceptSnapshot==='function'&&!window.__safeCrackerAcceptSnapshot(data.game))return typeof duelLastActiveGame!=='undefined'?duelLastActiveGame:null;
-     rnbAdoptGame(data.game,false);return data.game
-    }`,
-  'Remote Bot focused Safe Cracker snapshot acceptance'
+  `  function rnbScheduleRematch(game){`,
+  `  const rnbFetchAuthoritativeGameBeforeSafeCrackerGuard=rnbFetchAuthoritativeGame;
+  rnbFetchAuthoritativeGame=async function(gameId){
+   const previous=typeof duelLastActiveGame!=='undefined'?duelLastActiveGame:null;
+   if(previous?.mode==='safecracker'&&typeof window.__safeCrackerAcceptSnapshot==='function')window.__safeCrackerAcceptSnapshot(previous);
+   const result=await rnbFetchAuthoritativeGameBeforeSafeCrackerGuard(gameId);
+   if(result?.mode==='safecracker'&&typeof window.__safeCrackerAcceptSnapshot==='function'&&!window.__safeCrackerAcceptSnapshot(result)){
+    if(typeof duelLastActiveGame!=='undefined')duelLastActiveGame=previous;
+    return previous;
+   }
+   return result;
+  };
+  function rnbScheduleRematch(game){`,
+  'Remote Bot focused Safe Cracker snapshot wrapper'
 );
 
 html = replaceRequired(
