@@ -28,8 +28,8 @@ assert(client.includes("return 'GO!';"), 'countdown does not show GO');
 assert(client.includes('data-sc-start-countdown'), 'countdown overlay is missing from the Safe Cracker renderer');
 assert(styles.includes('.sc-start-countdown-overlay'), 'countdown overlay styling is missing');
 assert(index.includes("if(game.mode==='safecracker')"), 'shared countdown portal still owns Safe Cracker');
-assert(index.includes('/assets/safe-cracker/safe-cracker.js?v=4'), 'fresh Safe Cracker runtime is not cache-busted');
-assert(index.includes('/assets/safe-cracker/safe-cracker.css?v=4'), 'fresh Safe Cracker styles are not cache-busted');
+assert(index.includes('/assets/safe-cracker/safe-cracker.js?v=5'), 'fresh Safe Cracker runtime is not visual-shell v5');
+assert(index.includes('/assets/safe-cracker/safe-cracker.css?v=5'), 'fresh Safe Cracker styles are not visual-shell v5');
 assert(action.includes('const DUEL_FUNCTION_BUILD = "safecracker-direct-v8";'), 'fresh immediate-completion Safe Cracker function bundle marker is missing');
 
-console.log('Safe Cracker start-flow validation passed: one Ready tap strongly recovers the game, starts a dedicated 3-2-1-GO countdown, and all race actions use strong-first storage reads.');
+console.log('Safe Cracker start-flow validation passed: one Ready tap, dedicated countdown, strong reads, direct completion, and visual-shell v5 remain intact.');
