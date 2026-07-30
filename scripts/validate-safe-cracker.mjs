@@ -55,10 +55,10 @@ assert(action.includes('const DUEL_FUNCTION_BUILD = "safecracker-remote-bot-v2";
 assert(action.includes('"X-Duel-Function-Build": DUEL_FUNCTION_BUILD'), 'duel function build header is missing');
 assert(data.includes('["draw","fishing","roulette","blackjack","safecracker"].includes(clean.mode)'), 'Safe Cracker is not isolated from generic NPC completion');
 assert(!data.includes('revealedCodes: { my:'), 'active responses must not unconditionally expose combinations');
-assert(data.includes("revealedCodes: complete ? { my:"), 'completed matches must provide transparent code reveal');
+assert(data.includes('revealedCodes: complete ? { my:'), 'completed matches must provide transparent code reveal');
 
-assert(index.includes('/assets/safe-cracker/safe-cracker.css?v=1'), 'Safe Cracker stylesheet is not injected');
-assert(index.includes('/assets/safe-cracker/safe-cracker.js?v=1'), 'Safe Cracker runtime is not injected');
+assert(index.includes('/assets/safe-cracker/safe-cracker.css?v=2'), 'Safe Cracker stylesheet is not injected');
+assert(index.includes('/assets/safe-cracker/safe-cracker.js?v=2'), 'Safe Cracker runtime is not injected');
 assert(index.includes('data-safe-cracker-mount'), 'Safe Cracker UI mount is missing');
 assert(index.includes('window.__safeCrackerBridge'), 'Safe Cracker client bridge is missing');
 assert(!index.includes('id="safeGuessInput"'), 'temporary three-digit text input still exists');
