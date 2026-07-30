@@ -72,7 +72,7 @@ jobs:
                grep -Fq 'SAFE_CRACKER_VISUAL_SEQUENCE_V4_START' <<<"$css" && \
                grep -Fq 'SAFE_CRACKER_VISUAL_STABILITY_V5_START' <<<"$css" && \
                grep -Fq '.sc-known-code span.known' <<<"$css" && \
-               grep -Fq '-webkit-tap-highlight-color: transparent' <<<"$css" && \
+               grep -Fq -- '-webkit-tap-highlight-color: transparent' <<<"$css" && \
                grep -Fq '@keyframes scResultDoorOpen' <<<"$css" && \
                grep -Fq '.sc-countdown-vault' <<<"$css" && \
                grep -Fiq 'x-duel-function-build: safecracker-direct-v8' <<<"$headers"; then
