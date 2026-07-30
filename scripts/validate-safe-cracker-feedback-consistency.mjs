@@ -27,7 +27,8 @@ assert(data.includes('confirmedState.processedActionIds.includes(cleanActionId)'
 assert(data.includes('let latest = await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId) || game;'), 'bot advancement does not use the corrected strong-first read path');
 assert(data.includes('let game = await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId);'), 'human actions do not use the corrected strong-first read path');
 assert(data.includes('revision: int(state.revision, 0) + 1, npcActionAt:'), 'NPC scheduler changes are not revisioned');
-assert(data.includes('// SAFE_CRACKER_COMPLETION_CLAIM_START'), 'deterministic completion claim layer is missing');
+assert(data.includes('// SAFE_CRACKER_DIRECT_COMPLETION_START'), 'direct completion layer is missing');
+assert(!data.includes('safeCrackerClaimCompletion'), 'obsolete completion claim loop remains bundled');
 
 assert(html.includes('game?.safecrackerState||{}'), 'Remote Bot comparison ignores Safe Cracker state revision');
 assert(html.includes('function rnbLifecycleRank(game)'), 'Remote Bot comparison ignores lifecycle status');
@@ -36,4 +37,4 @@ assert(html.includes("ignored rejected Safe Cracker snapshot"), 'Remote Bot adop
 assert(html.includes('/assets/safe-cracker/safe-cracker.js?v=4'), 'Safe Cracker JavaScript cache version was not bumped');
 assert(html.includes('/assets/safe-cracker/safe-cracker.css?v=4'), 'Safe Cracker stylesheet cache version was not bumped');
 
-console.log('Safe Cracker feedback consistency validation passed: feedback remains latched, animations fire once, stale lifecycle snapshots are rejected, and actions use strong-first verified storage with deterministic completion claims.');
+console.log('Safe Cracker feedback consistency validation passed: feedback remains latched, animations fire once, stale lifecycle snapshots are rejected, and a correct final digit uses direct completion.');
