@@ -24,7 +24,7 @@ assert(client.includes('class="sc-stage-bolt"'), 'physical tumbler bolt markup i
 assert(client.includes('class="sc-display-glass"'), 'industrial display glass markup is missing');
 assert(client.includes('class="sc-display-meta"'), 'display metadata row is missing');
 assert(client.includes('class="sc-race-progress"'), 'compact opponent race HUD is missing');
-assert(client.includes('class="sc-attempt-list"'), 'compact attempt console is missing');
+assert(!client.includes('class="sc-attempt-panel"'), 'removed bottom attempt console still renders');
 assert(client.includes("choice: `safecracker:guess:${runtime.selected}`"), 'visual HUD pass changed authoritative guess submission');
 assert(css.includes('.sc-stage-bolt'), 'physical tumbler bolt styling is missing');
 assert(css.includes('.sc-stage-light.locked .sc-stage-bolt'), 'sealed tumbler state is missing');
@@ -34,11 +34,13 @@ assert(css.includes('.sc-timer::before'), 'instrument-style timer label is missi
 assert(css.includes('.sc-race-signal'), 'race status signal styling is missing');
 assert(css.includes('@media (max-width: 390px)'), 'small-mobile HUD treatment is missing');
 assert(css.includes('/* SAFE_CRACKER_VISUAL_SEQUENCE_V4_START */'), 'cinematic sequence pass is missing above the HUD');
+assert(css.includes('/* SAFE_CRACKER_VIEWPORT_FIT_V7_START */'), 'viewport-fit pass is missing above the HUD');
 assert(client.includes('// SAFE_CRACKER_SEQUENCE_V4_START'), 'sequence renderer is missing above the HUD');
+assert(client.includes('// SAFE_CRACKER_VIEWPORT_FIT_V7_START'), 'viewport-fit renderer is missing above the HUD');
 assert(index.includes('/assets/safe-cracker/safe-cracker.css?v=8'), 'visual-HUD stylesheet is not carried into visual-sequence v8');
 assert(index.includes('/assets/safe-cracker/safe-cracker.js?v=8'), 'visual-HUD runtime is not carried into visual-sequence v8');
 assert(!patch.includes('assets/roulette/turn-animation.js'), 'visual HUD patch references the protected turn animation');
 assert(!patch.includes('assets/roulette/turn-fire.js'), 'visual HUD patch references the protected firing animation');
 assert(!patch.includes('netlify/functions/_data.js'), 'visual HUD patch must not modify server gameplay logic');
 
-console.log('Safe Cracker visual-HUD validation passed: industrial feedback display, physical progress locks, and compact HUD remain intact beneath the cinematic sequence pass.');
+console.log('Safe Cracker visual-HUD validation passed: industrial feedback display, physical progress locks, compact race HUD, and the no-history viewport layout remain intact.');
