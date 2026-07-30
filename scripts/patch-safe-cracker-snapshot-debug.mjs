@@ -120,24 +120,6 @@ html = replaceRequired(
 
 html = replaceRequired(
   html,
-  `  function rnbScheduleRematch(game){`,
-  `  const rnbFetchAuthoritativeGameBeforeSafeCrackerGuard=rnbFetchAuthoritativeGame;
-  rnbFetchAuthoritativeGame=async function(gameId){
-   const previous=typeof duelLastActiveGame!=='undefined'?duelLastActiveGame:null;
-   if(previous?.mode==='safecracker'&&typeof window.__safeCrackerAcceptSnapshot==='function')window.__safeCrackerAcceptSnapshot(previous);
-   const result=await rnbFetchAuthoritativeGameBeforeSafeCrackerGuard(gameId);
-   if(result?.mode==='safecracker'&&typeof window.__safeCrackerAcceptSnapshot==='function'&&!window.__safeCrackerAcceptSnapshot(result)){
-    if(typeof duelLastActiveGame!=='undefined')duelLastActiveGame=previous;
-    return previous;
-   }
-   return result;
-  };
-  function rnbScheduleRematch(game){`,
-  'Remote Bot focused Safe Cracker snapshot wrapper'
-);
-
-html = replaceRequired(
-  html,
   `    if(game.mode==='roulette'){
      if(typeof rouletteAcceptSnapshot==='function'&&!rouletteAcceptSnapshot(game))return current||game;`,
   `    if(game.mode==='safecracker'){
@@ -188,27 +170,6 @@ html = replaceRequired(
   `      const desired = sharedLifecycleLive ? 200 : drawPlaying ? 650 : rouletteLive ? 800 : fishingLive ? 450 : completedAwaitingRematch ? 700 : noFocusedGame ? 750 : 1800;`,
   `      const desired = sharedLifecycleLive ? 200 : drawPlaying ? 650 : rouletteLive ? 800 : fishingLive ? 450 : completedAwaitingRematch ? 700 : safeCrackerCompleted ? 5000 : noFocusedGame ? 750 : 1800;`,
   'completed Safe Cracker poll-rate backoff'
-);
-
-html = replaceRequired(
-  html,
-  `  const rnbRematchRuntime={gameId:'',timer:0,requesting:false,handledKey:'',monitoring:false,lastFocusedFetchAt:0};`,
-  `  const rnbRematchRuntime={gameId:'',timer:0,requesting:false,handledKey:'',monitoring:false,lastFocusedFetchAt:0,lastCompleteFetchAt:0};`,
-  'Remote Bot completed polling timestamp'
-);
-
-html = replaceRequired(
-  html,
-  `   if(g?.remoteNetworkTest&&g.status==='complete')g=await rnbFetchAuthoritativeGame(String(g.gameId||''))||g;
-   rnbScheduleRematch(g);`,
-  `   if(g?.remoteNetworkTest&&g.status==='complete'){
-    const rem=g.rematch&&typeof g.rematch==='object'?g.rematch:{};
-    const urgent=Boolean(g.rematchGameId)||(rem.requestedBy&&Object.keys(rem.requestedBy).length>0);
-    const interval=g.mode==='safecracker'&&!urgent?5000:650;
-    if(Date.now()-rnbRematchRuntime.lastCompleteFetchAt>=interval){rnbRematchRuntime.lastCompleteFetchAt=Date.now();g=await rnbFetchAuthoritativeGame(String(g.gameId||''))||g}
-   }
-   rnbScheduleRematch(g);`,
-  'completed Safe Cracker polling backoff'
 );
 
 await writeFile(indexUrl, html);
