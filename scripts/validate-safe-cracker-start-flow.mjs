@@ -16,9 +16,9 @@ function assert(condition, message) {
 assert(data.includes('const startMs = atMs + (game?.mode === "safecracker" ? 3000 : DUEL_COUNTDOWN_MS);'), 'Safe Cracker does not have an authoritative three-second countdown');
 assert(data.includes('if (game.mode === "roulette" || game.mode === "safecracker")'), 'Remote Bot is not confirmed Ready in the same Safe Cracker transaction');
 assert(data.includes('const requestedGameId = mpCleanId(gameId);'), 'Ready does not strongly recover the requested Safe Cracker game');
-assert(data.includes('let latest = await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId) || game;'), 'bot advancement does not use the corrected strong-first read path');
-assert(data.includes('let latest = await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId) || fallback;'), 'verified guess writes do not use the corrected strong-first read path');
-assert(data.includes('const beforeSave = await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId);'), 'pre-save verification has no strong-read fallback');
+assert(data.includes('const versioned = await safeCrackerReadVersioned(gameId);'), 'bot advancement does not use the atomic strong-read path');
+assert(data.includes("getWithMetadata(duelGameKey(id), { consistency: 'strong', type: 'json' })"), 'versioned Safe Cracker reads are not strongly consistent');
+assert(data.includes("setJSON(duelGameKey(gameId), clean, { onlyIfMatch: expectedEtag })"), 'Safe Cracker writes are not protected by compare-and-set');
 
 assert(client.includes('function safeCrackerStartCountdownLabel'), 'dedicated countdown clock is missing');
 assert(client.includes("if (remaining > 2000) return '3';"), 'countdown does not show 3');
@@ -37,5 +37,6 @@ assert(client.includes('// SAFE_CRACKER_DIAL_PHYSICS_V2_START'), 'dial interacti
 assert(client.includes('// SAFE_CRACKER_HUD_V3_START'), 'visual HUD pass is missing');
 assert(client.includes('// SAFE_CRACKER_SEQUENCE_V4_START'), 'visual sequence pass is missing');
 assert(action.includes('const DUEL_FUNCTION_BUILD = "safecracker-direct-v8";'), 'fresh immediate-completion Safe Cracker function bundle marker is missing');
+assert(action.includes('"X-Safe-Cracker-Bot-Guard": "atomic-cas-v9"'), 'atomic bot-stop function marker is missing');
 
-console.log('Safe Cracker start-flow validation passed: one Ready tap, authoritative countdown, mechanical sequence presentation, strong reads, and direct completion remain intact.');
+console.log('Safe Cracker start-flow validation passed: one Ready tap, authoritative countdown, atomic writes, mechanical presentation, and direct completion remain intact.');
