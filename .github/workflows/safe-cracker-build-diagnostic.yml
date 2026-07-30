@@ -44,15 +44,18 @@ jobs:
                grep -Fq 'const deadlineAt = Date.now() + 12000' <<<"$html" && \
                grep -Fq 'window.__safeCrackerFocusedGetAbort' <<<"$html" && \
                grep -Fq 'game.status === "playing" ? 2200 : 650' <<<"$html" && \
+               grep -Fq 'DUEL_COMPLETED_DISMISSAL_START' <<<"$html" && \
+               grep -Fq 'duel-end-screen-close' <<<"$html" && \
+               grep -Fq 'torn-duel-completed-seen-v1' <<<"$html" && \
                grep -Fq "if(game.mode==='safecracker')" <<<"$html" && \
                grep -Fq 'SAFE_CRACKER_START_COUNTDOWN_START' <<<"$js" && \
                grep -Fq 'data-sc-start-countdown' <<<"$js" && \
-               grep -Fiq 'x-duel-function-build: safecracker-storage-v5' <<<"$headers"; then
-              echo "Verified live storage-consistent Safe Cracker bundle, deadline-bound one-tap Ready, deterministic completion claims, focused-poll cancellation, countdown, snapshot guard, debug state, and compact controls at ${url}"
+               grep -Fiq 'x-duel-function-build: safecracker-storage-v6' <<<"$headers"; then
+              echo "Verified live Safe Cracker v6 claim recovery, persistent completed-game dismissal, close controls, one-tap Ready, focused-poll cancellation, countdown, snapshot guard, debug state, and compact controls at ${url}"
               exit 0
             fi
-            echo "Waiting for Netlify storage-consistent Safe Cracker preview (${attempt}/36)..."
+            echo "Waiting for Netlify Safe Cracker v6 and completed-game dismissal preview (${attempt}/36)..."
             sleep 10
           done
-          echo 'Netlify preview did not become available with the Safe Cracker strong Ready and deterministic completion fixes.' >&2
+          echo 'Netlify preview did not become available with the Safe Cracker v6 completion and completed-game dismissal fixes.' >&2
           exit 1
