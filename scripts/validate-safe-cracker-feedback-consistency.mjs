@@ -34,7 +34,7 @@ assert(html.includes('game?.safecrackerState||{}'), 'Remote Bot comparison ignor
 assert(html.includes('function rnbLifecycleRank(game)'), 'Remote Bot comparison ignores lifecycle status');
 assert(html.includes('if(a.statusRank!==b.statusRank)return a.statusRank-b.statusRank;'), 'completed snapshots can be replaced by playing snapshots');
 assert(html.includes("ignored rejected Safe Cracker snapshot"), 'Remote Bot adoption bypasses the Safe Cracker snapshot guard');
-assert(html.includes('/assets/safe-cracker/safe-cracker.js?v=4'), 'Safe Cracker JavaScript cache version was not bumped');
-assert(html.includes('/assets/safe-cracker/safe-cracker.css?v=4'), 'Safe Cracker stylesheet cache version was not bumped');
+assert(html.includes('/assets/safe-cracker/safe-cracker.js?v=5'), 'Safe Cracker JavaScript cache version is not visual-shell v5');
+assert(html.includes('/assets/safe-cracker/safe-cracker.css?v=5'), 'Safe Cracker stylesheet cache version is not visual-shell v5');
 
-console.log('Safe Cracker feedback consistency validation passed: feedback remains latched, animations fire once, stale lifecycle snapshots are rejected, and a correct final digit uses direct completion.');
+console.log('Safe Cracker feedback consistency validation passed: feedback remains latched, stale snapshots are rejected, direct completion remains intact, and visual-shell assets are current.');
