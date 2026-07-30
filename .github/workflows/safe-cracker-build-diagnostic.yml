@@ -38,12 +38,14 @@ jobs:
                grep -Fq 'data-rnb-game="safecracker"' <<<"$html" && \
                grep -Fq 'id="safe-cracker-compact-debug-dock"' <<<"$html" && \
                grep -Fq 'id="rnbControlPanel" data-collapsed="1"' <<<"$html" && \
+               grep -Fq 'SAFE_CRACKER_SNAPSHOT_GUARD_START' <<<"$html" && \
+               grep -Fq 'function rnbDebugState(g)' <<<"$html" && \
                grep -Fiq 'x-duel-function-build: safecracker-remote-bot-v2' <<<"$headers"; then
-              echo "Verified live Safe Cracker launcher, compact controls, and fresh Remote Bot function at ${url}"
+              echo "Verified live Safe Cracker snapshot guard, debug state, compact controls, and fresh Remote Bot function at ${url}"
               exit 0
             fi
             echo "Waiting for Netlify preview and function bundle (${attempt}/36)..."
             sleep 10
           done
-          echo 'Netlify preview did not become available with the Safe Cracker controls and fresh function bundle.' >&2
+          echo 'Netlify preview did not become available with the Safe Cracker snapshot/debug fixes and fresh function bundle.' >&2
           exit 1
