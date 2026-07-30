@@ -30,11 +30,13 @@ assert(css.includes('.sc-dial-number.selected > span'), 'selected engraved numbe
 assert(css.includes('.sc-dial-face.settling'), 'settling state styling is missing');
 assert(css.includes('repeating-conic-gradient(from -1.8deg'), 'fine dial graduations are missing');
 assert(css.includes('/* SAFE_CRACKER_VISUAL_HUD_V3_START */'), 'industrial HUD pass is missing above the dial');
+assert(css.includes('/* SAFE_CRACKER_VISUAL_SEQUENCE_V4_START */'), 'cinematic sequence pass is missing above the dial');
 assert(client.includes('// SAFE_CRACKER_HUD_V3_START'), 'HUD renderer is missing above the dial runtime');
-assert(index.includes('/assets/safe-cracker/safe-cracker.css?v=7'), 'visual-dial stylesheet is not carried into visual-HUD v7');
-assert(index.includes('/assets/safe-cracker/safe-cracker.js?v=7'), 'visual-dial runtime is not carried into visual-HUD v7');
+assert(client.includes('// SAFE_CRACKER_SEQUENCE_V4_START'), 'sequence renderer is missing above the dial runtime');
+assert(index.includes('/assets/safe-cracker/safe-cracker.css?v=8'), 'visual-dial stylesheet is not carried into visual-sequence v8');
+assert(index.includes('/assets/safe-cracker/safe-cracker.js?v=8'), 'visual-dial runtime is not carried into visual-sequence v8');
 assert(!patch.includes('assets/roulette/turn-animation.js'), 'visual dial patch references the protected turn animation');
 assert(!patch.includes('assets/roulette/turn-fire.js'), 'visual dial patch references the protected firing animation');
 assert(!patch.includes('netlify/functions/_data.js'), 'visual dial patch must not modify server gameplay logic');
 
-console.log('Safe Cracker visual-dial validation passed: precision materials and tactile settle motion remain intact beneath the industrial HUD pass.');
+console.log('Safe Cracker visual-dial validation passed: precision materials and tactile settle motion remain intact beneath later visual passes.');
