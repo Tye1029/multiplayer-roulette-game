@@ -60,8 +60,8 @@ assert(data.includes('// SAFE_CRACKER_DIRECT_COMPLETION_START'), 'direct Safe Cr
 assert(data.includes('safeCrackerCompletedPlayerId'), 'stage-three completion repair is missing');
 assert(!data.includes('safeCrackerClaimCompletion'), 'obsolete completion claim loop is still bundled');
 
-assert(index.includes('/assets/safe-cracker/safe-cracker.css?v=7'), 'Safe Cracker stylesheet is not injected at visual-HUD v7');
-assert(index.includes('/assets/safe-cracker/safe-cracker.js?v=7'), 'Safe Cracker runtime is not synchronized at visual-HUD v7');
+assert(index.includes('/assets/safe-cracker/safe-cracker.css?v=8'), 'Safe Cracker stylesheet is not injected at visual-sequence v8');
+assert(index.includes('/assets/safe-cracker/safe-cracker.js?v=8'), 'Safe Cracker runtime is not synchronized at visual-sequence v8');
 assert(index.includes('data-safe-cracker-mount'), 'Safe Cracker UI mount is missing');
 assert(index.includes('window.__safeCrackerBridge'), 'Safe Cracker client bridge is missing');
 assert(!index.includes('id="safeGuessInput"'), 'temporary three-digit text input still exists');
@@ -75,14 +75,16 @@ assert(client.includes('opponent.lastTier'), 'opponent progress feedback is miss
 assert(client.includes('funnyLosses'), 'rotating funny loss messages are missing');
 assert(client.includes('// SAFE_CRACKER_DIAL_PHYSICS_V2_START'), 'visual dial interaction pass is missing');
 assert(client.includes('// SAFE_CRACKER_HUD_V3_START'), 'visual HUD renderer pass is missing');
+assert(client.includes('// SAFE_CRACKER_SEQUENCE_V4_START'), 'countdown and result sequence pass is missing');
 assert(styles.includes('.sc-dial'), 'dial styling is missing');
 assert(styles.includes('touch-action: none'), 'dial must block page scrolling while rotating');
 assert(styles.includes('.sc-result-overlay'), 'win/loss presentation is missing');
 assert(styles.includes('/* SAFE_CRACKER_VISUAL_SHELL_V1_START */'), 'visual shell pass is missing');
 assert(styles.includes('/* SAFE_CRACKER_VISUAL_DIAL_V2_START */'), 'visual dial pass is missing');
 assert(styles.includes('/* SAFE_CRACKER_VISUAL_HUD_V3_START */'), 'visual HUD pass is missing');
+assert(styles.includes('/* SAFE_CRACKER_VISUAL_SEQUENCE_V4_START */'), 'visual countdown/result pass is missing');
 
 assert(!patch.includes("writeFile(new URL('../assets/roulette/turn-animation.js'"), 'patch must never write the protected turn animation');
 assert(!patch.includes("writeFile(new URL('../assets/roulette/turn-fire.js'"), 'patch must never write the protected firing animation');
 
-console.log('Safe Cracker validation passed: authoritative race, v8 immediate completion, visual shell, precision dial, industrial HUD, persistence, and protected Roulette hashes are intact.');
+console.log('Safe Cracker validation passed: authoritative race, v8 immediate completion, four visual passes, persistence, and protected Roulette hashes are intact.');
