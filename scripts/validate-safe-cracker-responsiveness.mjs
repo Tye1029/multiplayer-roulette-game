@@ -35,8 +35,8 @@ assert(html.includes('window.__safeCrackerFocusedGetAbort = controller'), 'focus
 assert(html.includes('window.__safeCrackerFocusedGetAbort?.abort()'), 'a guess does not cancel its obsolete focused GET');
 assert(html.includes('game.status === "playing" ? 2200 : 650'), 'Safe Cracker polling cadence was not reduced');
 assert(html.includes('window.__safeCrackerReadyRetryInFlight'), 'background polling can compete with Ready retries');
-assert(html.includes('/assets/safe-cracker/safe-cracker.js?v=5'), 'responsive Safe Cracker JavaScript is not visual-shell v5');
-assert(html.includes('/assets/safe-cracker/safe-cracker.css?v=5'), 'responsive Safe Cracker stylesheet is not visual-shell v5');
+assert(html.includes('/assets/safe-cracker/safe-cracker.js?v=6'), 'responsive Safe Cracker JavaScript is not visual-dial v6');
+assert(html.includes('/assets/safe-cracker/safe-cracker.css?v=6'), 'responsive Safe Cracker stylesheet is not visual-dial v6');
 assert(action.includes('const DUEL_FUNCTION_BUILD = "safecracker-direct-v8";'), 'immediate-completion function bundle marker is missing');
 
-console.log('Safe Cracker responsiveness validation passed: Ready retries, poll cancellation, immediate completion, and visual-shell v5 remain intact.');
+console.log('Safe Cracker responsiveness validation passed: Ready retries, poll cancellation, immediate completion, and visual-dial v6 remain intact.');
