@@ -133,19 +133,16 @@ html = replaceDebugSnapshot(html, debugBlock);
 
 html = replaceRequired(
   html,
-  `      const completedAwaitingRematch = Boolean(game && game.status === "complete" && ["draw", "fishing", "roulette"].includes(String(game.mode || "")));
-      const noFocusedGame = !game && !duelCurrentGameId;`,
-  `      const completedAwaitingRematch = Boolean(game && game.status === "complete" && ["draw", "fishing", "roulette"].includes(String(game.mode || "")));
-      const safeCrackerCompleted = Boolean(game && game.mode === "safecracker" && game.status === "complete");
-      const noFocusedGame = !game && !duelCurrentGameId;`,
-  'completed Safe Cracker poll-rate state'
+  '["draw", "fishing", "roulette"].includes(String(game.mode || ""))',
+  '["draw", "fishing", "roulette", "safecracker"].includes(String(game.mode || ""))',
+  'completed Safe Cracker polling eligibility'
 );
 
 html = replaceRequired(
   html,
-  `      const desired = sharedLifecycleLive ? 200 : drawPlaying ? 650 : rouletteLive ? 800 : fishingLive ? 450 : completedAwaitingRematch ? 700 : noFocusedGame ? 750 : 1800;`,
-  `      const desired = sharedLifecycleLive ? 200 : drawPlaying ? 650 : rouletteLive ? 800 : fishingLive ? 450 : completedAwaitingRematch ? 700 : safeCrackerCompleted ? 5000 : noFocusedGame ? 750 : 1800;`,
-  'completed Safe Cracker poll-rate backoff'
+  'completedPollRate = Date.now() - duelCompletedActivityAt < 15000 ? 2000 : 5000;',
+  'completedPollRate = Date.now() - duelCompletedActivityAt < 15000 ? (game?.mode === "safecracker" ? 5000 : 2000) : 5000;',
+  'completed Safe Cracker immediate polling backoff'
 );
 
 await writeFile(indexUrl, html);
