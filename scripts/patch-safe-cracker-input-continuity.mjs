@@ -132,11 +132,11 @@ if (!client.includes(jsStart)) {
 
   client = replaceRequired(
     client,
-    `        runtime.rotation = nearestRotationForDigit(runtime.selected, runtime.rotation);
-        applyDialVisual();
+    `        animateDialSettle(releasedRotation, runtime.rotation, runtime.lastDragDirection);
+        runtime.lastDragDirection = 0;
         event.preventDefault();`,
-    `        runtime.rotation = nearestRotationForDigit(runtime.selected, runtime.rotation);
-        applyDialVisual();
+    `        animateDialSettle(releasedRotation, runtime.rotation, runtime.lastDragDirection);
+        runtime.lastDragDirection = 0;
         const pendingGame = runtime.pendingDragGame;
         runtime.pendingDragGame = null;
         if (pendingGame) render(pendingGame);
