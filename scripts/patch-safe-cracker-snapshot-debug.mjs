@@ -118,13 +118,14 @@ html = replaceRequired(
   'Safe Cracker action response acceptance'
 );
 
-html = replacePatternRequired(
+html = replaceRequired(
   html,
-  /function rnbAdoptGame\(game,force=false\)\s*\{\s*if\(!game\?\.gameId\)return;/,
-  `function rnbAdoptGame(game,force=false){
-   if(!game?.gameId)return;
-   if(game.mode==='safecracker'&&typeof window.__safeCrackerAcceptSnapshot==='function'&&!window.__safeCrackerAcceptSnapshot(game))return;`,
-  'Remote Bot Safe Cracker snapshot adoption guard'
+  `    if(data?.game){rnbAdoptGame(data.game,false);return data.game}`,
+  `    if(data?.game){
+     if(data.game.mode==='safecracker'&&typeof window.__safeCrackerAcceptSnapshot==='function'&&!window.__safeCrackerAcceptSnapshot(data.game))return typeof duelLastActiveGame!=='undefined'?duelLastActiveGame:null;
+     rnbAdoptGame(data.game,false);return data.game
+    }`,
+  'Remote Bot focused Safe Cracker snapshot acceptance'
 );
 
 html = replaceRequired(
