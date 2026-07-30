@@ -9,7 +9,7 @@ for (const required of [
   'async function duelCreateRemoteNetworkBotGame(user, details = {})',
   'function duelRebuildWaitingGameFromCreateResult',
   'duelGetRawStrong(clientGameId, 1)',
-  'clientGameId: details.clientGameId || details.gameId',
+  'duelClientCreateGameId(mode, details.clientGameId || details.gameId || "")',
   'atomicCreateAndAttach: true',
   'duelCreateRemoteNetworkBotGame,'
 ]) {
