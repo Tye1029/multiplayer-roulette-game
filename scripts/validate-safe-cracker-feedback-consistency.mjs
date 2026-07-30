@@ -34,10 +34,11 @@ assert(html.includes('game?.safecrackerState||{}'), 'Remote Bot comparison ignor
 assert(html.includes('function rnbLifecycleRank(game)'), 'Remote Bot comparison ignores lifecycle status');
 assert(html.includes('if(a.statusRank!==b.statusRank)return a.statusRank-b.statusRank;'), 'completed snapshots can be replaced by playing snapshots');
 assert(html.includes("ignored rejected Safe Cracker snapshot"), 'Remote Bot adoption bypasses the Safe Cracker snapshot guard');
-assert(html.includes('/assets/safe-cracker/safe-cracker.js?v=7'), 'Safe Cracker JavaScript cache version is not visual-HUD v7');
-assert(html.includes('/assets/safe-cracker/safe-cracker.css?v=7'), 'Safe Cracker stylesheet cache version is not visual-HUD v7');
+assert(html.includes('/assets/safe-cracker/safe-cracker.js?v=8'), 'Safe Cracker JavaScript cache version is not visual-sequence v8');
+assert(html.includes('/assets/safe-cracker/safe-cracker.css?v=8'), 'Safe Cracker stylesheet cache version is not visual-sequence v8');
 assert(client.includes('// SAFE_CRACKER_DIAL_PHYSICS_V2_START'), 'visual dial interaction pass is missing');
 assert(client.includes('// SAFE_CRACKER_HUD_V3_START'), 'industrial feedback/HUD renderer is missing');
+assert(client.includes('// SAFE_CRACKER_SEQUENCE_V4_START'), 'countdown and result sequence renderer is missing');
 assert(client.includes('function feedbackMeter(tier = \'\')'), 'feedback proximity meter is missing');
 
-console.log('Safe Cracker feedback consistency validation passed: feedback remains latched inside the industrial display, stale snapshots are rejected, and direct completion remains intact.');
+console.log('Safe Cracker feedback consistency validation passed: feedback remains latched inside the industrial display, stale snapshots are rejected, and visual sequence v8 remains intact.');
