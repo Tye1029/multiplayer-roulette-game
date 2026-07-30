@@ -158,15 +158,17 @@ if (!client.includes(jsStart)) {
   client = replaceRequired(
     client,
     `      const nextGame = data?.game || runtime.game;
-      const result = nextGame?.safecrackerState?.me?.lastResult;
-      if (result?.at && result.at !== myState(game)?.lastResult?.at) playFeedback(result.tier);
+      const resultChanged = adoptSubmittedFeedback(nextGame);
+      const result = runtime.feedbackResult;
+      if (resultChanged && result?.tier) playFeedback(result.tier);
       runtime.busy = false;
       render(nextGame);
       const cooldown = Number(nextGame?.safecrackerState?.cooldownMs || 0);
       if (cooldown > 0) window.setTimeout(() => window.__safeCrackerBridge?.refresh?.(), cooldown + 30);`,
     `      const nextGame = data?.game || runtime.game || activeGame;
-      const result = nextGame?.safecrackerState?.me?.lastResult;
-      if (result?.at && result.at !== myState(activeGame)?.lastResult?.at) playFeedback(result.tier);
+      const resultChanged = adoptSubmittedFeedback(nextGame);
+      const result = runtime.feedbackResult;
+      if (resultChanged && result?.tier) playFeedback(result.tier);
       runtime.busy = false;
       safeCrackerArmLocalCooldown(nextGame, Number(nextGame?.safecrackerState?.cooldownMs || 0));
       render(nextGame);
