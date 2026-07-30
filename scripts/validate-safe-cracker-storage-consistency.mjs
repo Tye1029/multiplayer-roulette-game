@@ -20,17 +20,14 @@ assert(data.includes('const requestedGameId = mpCleanId(gameId);'), 'Ready does 
 assert(data.includes('for (let attempt = 0; attempt < 6 && !game; attempt += 1)'), 'Ready does not retry the authoritative record');
 assert(data.includes('const active = await duelFindActiveGameForUser(user.id);'), 'Ready cannot recover the user’s active Safe Cracker game');
 
-assert(String(packageJson.dependencies?.['@netlify/blobs'] || '') === '10.7.10', 'conditional writes require the pinned Netlify Blobs 10.7.10 client');
-assert(data.includes('// SAFE_CRACKER_COMPLETION_CLAIM_START'), 'completion claim layer is missing');
-assert(data.includes('duel-safecracker-completion/'), 'completion claims are not isolated per game and round');
-assert(data.includes("const ownerToken = crypto.randomBytes(16).toString('hex');"), 'completion writers do not have unique ownership tokens');
-assert(data.includes("store.get(claimId, { type: 'json', consistency: 'strong' })"), 'completion claims are not read strongly');
-assert(data.includes('store.setJSON(claimId, proposed, { onlyIfNew: true })'), 'completion ownership is not atomic');
-assert(data.includes('const claim = safeCrackerNormalizeCompletionClaim(confirmed, proposed);'), 'completion ownership is not verified by reading the stored claim back');
-assert(data.includes('owner: claim.ownerToken === ownerToken'), 'the stored ownership token does not decide the winner');
-assert(!data.includes('if (written?.modified) return { claim: proposed, owner: true };'), 'completion still depends on a version-specific setJSON return object');
-assert(data.includes('safeCrackerWaitForClaimedCompletion'), 'duplicate finishers do not wait for the claimed result');
-assert(data.includes('completionClaimId: claim.claimId'), 'completed games do not expose a stable internal claim ID');
+assert(String(packageJson.dependencies?.['@netlify/blobs'] || '') === '10.7.10', 'Netlify Blobs must remain pinned to the verified client version');
+assert(data.includes('// SAFE_CRACKER_DIRECT_COMPLETION_START'), 'direct completion layer is missing');
+assert(!data.includes('duel-safecracker-completion/'), 'obsolete completion-claim blobs are still in the finish path');
+assert(!data.includes('safeCrackerClaimCompletion'), 'obsolete completion ownership loop is still present');
+assert(data.includes("if (latest?.status === 'complete') return latest;"), 'duplicate finish requests do not return the completed game');
+assert(data.includes("completionMode: 'direct-v7'"), 'completed games do not identify the direct finish path');
+assert(data.includes("if (confirmed?.status === 'complete') return confirmed;"), 'completion does not prefer a confirmed completed snapshot');
+assert(data.includes('return completed;'), 'confirmation failure can still block a correct final digit');
 assert(data.includes('const at = String(resolved?.completionAt || clean.completedAt || nowIso());'), 'completion timestamps are not stable across duplicate execution');
 
 const readyStart = html.indexOf('// SAFE_CRACKER_READY_RETRY_START');
@@ -40,6 +37,6 @@ const readyHelper = html.slice(readyStart, readyEnd);
 assert(readyHelper.includes('const deadlineAt = Date.now() + 12000;'), 'one Ready tap does not remain pending through transient storage visibility');
 assert(readyHelper.includes('while (Date.now() < deadlineAt)'), 'Ready retry is not deadline-based');
 assert(!readyHelper.includes('duelRequest("get"'), 'Ready retries still create competing GET traffic');
-assert(action.includes('const DUEL_FUNCTION_BUILD = "safecracker-storage-v6";'), 'storage-consistent function bundle marker is missing');
+assert(action.includes('const DUEL_FUNCTION_BUILD = "safecracker-direct-v7";'), 'direct-completion function bundle marker is missing');
 
-console.log('Safe Cracker storage-consistency validation passed: Ready strongly recovers fresh games and read-back verified atomic claims own deterministic completions.');
+console.log('Safe Cracker storage-consistency validation passed: Ready strongly recovers fresh games and a correct final digit completes directly without a separate claim blob.');
