@@ -16,11 +16,11 @@ function assert(condition, message) {
 assert(data.includes('const startMs = atMs + (game?.mode === "safecracker" ? 3000 : DUEL_COUNTDOWN_MS);'), 'Safe Cracker does not have an authoritative three-second countdown');
 assert(data.includes('if (game.mode === "roulette" || game.mode === "safecracker")'), 'Remote Bot is not confirmed Ready in the same Safe Cracker transaction');
 assert(data.includes('const requestedGameId = mpCleanId(gameId);'), 'Ready does not strongly recover the requested Safe Cracker game');
-assert(data.includes('const versioned = await safeCrackerReadVersioned(gameId);'), 'bot advancement does not use the atomic strong-read path');
-assert(data.includes("getWithMetadata(key, { consistency: 'strong', type: 'text' })"), 'versioned Safe Cracker reads are not strongly consistent and compatibility-safe');
-assert(data.includes("const before = await store.getMetadata(key, { consistency: 'strong' });"), 'versioned Safe Cracker reads have no metadata fallback');
-assert(data.includes("setJSON(duelGameKey(gameId), clean, { onlyIfMatch: expectedEtag })"), 'Safe Cracker writes are not protected by compare-and-set');
-assert(!data.includes('if (!versioned.etag) return latest;'), 'missing ETags still produce fake successful actions');
+assert(data.includes('// SAFE_CRACKER_MUTATION_LOCK_V11_START'), 'cross-instance Safe Cracker mutation lock is missing');
+assert(data.includes("setJSON(key, lease, { onlyIfNew: true })"), 'mutation lock is not acquired atomically');
+assert(data.includes('const dueAt = safeCrackerBotDueAt(latest, state, npcId);'), 'bot timing still requires a countdown-blocking schedule write');
+assert(data.includes("console.error('[safecracker] poll advancement failed without blocking the game snapshot:'"), 'poll errors can still trap the client on the countdown screen');
+assert(!data.includes('getWithMetadata('), 'start transition still depends on the failing metadata API');
 
 assert(client.includes('function safeCrackerStartCountdownLabel'), 'dedicated countdown clock is missing');
 assert(client.includes("if (remaining > 2000) return '3';"), 'countdown does not show 3');
@@ -39,6 +39,6 @@ assert(client.includes('// SAFE_CRACKER_DIAL_PHYSICS_V2_START'), 'dial interacti
 assert(client.includes('// SAFE_CRACKER_HUD_V3_START'), 'visual HUD pass is missing');
 assert(client.includes('// SAFE_CRACKER_SEQUENCE_V4_START'), 'visual sequence pass is missing');
 assert(action.includes('const DUEL_FUNCTION_BUILD = "safecracker-direct-v8";'), 'fresh immediate-completion Safe Cracker function bundle marker is missing');
-assert(action.includes('"X-Safe-Cracker-Bot-Guard": "atomic-cas-v10"'), 'atomic bot-stop v10 function marker is missing');
+assert(action.includes('"X-Safe-Cracker-Bot-Guard": "mutation-lock-v11"'), 'mutation-lock function marker is missing');
 
-console.log('Safe Cracker start-flow validation passed: one Ready tap, authoritative countdown, compatible atomic writes, mechanical presentation, and direct completion remain intact.');
+console.log('Safe Cracker start-flow validation passed: one Ready tap, authoritative countdown, fail-open polling, mutation-locked gameplay, mechanical presentation, and direct completion remain intact.');
