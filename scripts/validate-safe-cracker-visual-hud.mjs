@@ -33,10 +33,12 @@ assert(css.includes('.sc-feedback-meter i.active.green'), 'four-stage feedback m
 assert(css.includes('.sc-timer::before'), 'instrument-style timer label is missing');
 assert(css.includes('.sc-race-signal'), 'race status signal styling is missing');
 assert(css.includes('@media (max-width: 390px)'), 'small-mobile HUD treatment is missing');
-assert(index.includes('/assets/safe-cracker/safe-cracker.css?v=7'), 'visual-HUD stylesheet cache version is not v7');
-assert(index.includes('/assets/safe-cracker/safe-cracker.js?v=7'), 'visual-HUD runtime cache version is not v7');
+assert(css.includes('/* SAFE_CRACKER_VISUAL_SEQUENCE_V4_START */'), 'cinematic sequence pass is missing above the HUD');
+assert(client.includes('// SAFE_CRACKER_SEQUENCE_V4_START'), 'sequence renderer is missing above the HUD');
+assert(index.includes('/assets/safe-cracker/safe-cracker.css?v=8'), 'visual-HUD stylesheet is not carried into visual-sequence v8');
+assert(index.includes('/assets/safe-cracker/safe-cracker.js?v=8'), 'visual-HUD runtime is not carried into visual-sequence v8');
 assert(!patch.includes('assets/roulette/turn-animation.js'), 'visual HUD patch references the protected turn animation');
 assert(!patch.includes('assets/roulette/turn-fire.js'), 'visual HUD patch references the protected firing animation');
 assert(!patch.includes('netlify/functions/_data.js'), 'visual HUD patch must not modify server gameplay logic');
 
-console.log('Safe Cracker visual-HUD validation passed: industrial feedback display, physical progress locks, and compact HUD are present without server or Roulette changes.');
+console.log('Safe Cracker visual-HUD validation passed: industrial feedback display, physical progress locks, and compact HUD remain intact beneath the cinematic sequence pass.');
