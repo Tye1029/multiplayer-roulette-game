@@ -10,12 +10,6 @@ function replaceRequired(source, search, replacement, label) {
   return source.replace(search, replacement);
 }
 
-function replacePatternRequired(source, pattern, replacement, label) {
-  if (source.includes(replacement)) return source;
-  if (!pattern.test(source)) throw new Error(`Safe Cracker snapshot/debug patch could not find ${label}.`);
-  return source.replace(pattern, replacement);
-}
-
 function upsertAfter(source, start, end, block, anchor, label) {
   const escapedStart = start.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const escapedEnd = end.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -116,18 +110,6 @@ html = replaceRequired(
             if (acceptedGame) duelRenderActive(acceptedGame, true);
             return acceptedGame === data.game ? data : { ...data, game: acceptedGame };`,
   'Safe Cracker action response acceptance'
-);
-
-html = replaceRequired(
-  html,
-  `    if(game.mode==='roulette'){
-     if(typeof rouletteAcceptSnapshot==='function'&&!rouletteAcceptSnapshot(game))return current||game;`,
-  `    if(game.mode==='safecracker'){
-     if(typeof window.__safeCrackerAcceptSnapshot==='function'&&!window.__safeCrackerAcceptSnapshot(game))return current||game;
-    }
-    if(game.mode==='roulette'){
-     if(typeof rouletteAcceptSnapshot==='function'&&!rouletteAcceptSnapshot(game))return current||game;`,
-  'shared mutation Safe Cracker snapshot adoption guard'
 );
 
 html = replaceRequired(
