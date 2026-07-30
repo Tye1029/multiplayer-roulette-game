@@ -10,12 +10,11 @@ function replaceRequired(source, search, replacement, label) {
   return source.replace(search, replacement);
 }
 
-function replaceSection(source, startMarker, endMarker, replacement, label) {
+function replaceDebugSnapshot(source, replacement) {
   if (source.includes('function rnbDebugState(g)')) return source;
-  const start = source.indexOf(startMarker);
-  const end = source.indexOf(endMarker, start + startMarker.length);
-  if (start < 0 || end < 0 || end <= start) throw new Error(`Safe Cracker snapshot/debug patch could not isolate ${label}.`);
-  return source.slice(0, start) + replacement + source.slice(end);
+  const pattern = /[ \t]*function debugSnapshot\(kind\)\{[^\r\n]*return JSON\.stringify\(base,null,2\)\}/;
+  if (!pattern.test(source)) throw new Error('Safe Cracker snapshot/debug patch could not isolate the Remote Bot debug snapshot function.');
+  return source.replace(pattern, replacement.trimEnd());
 }
 
 function upsertAfter(source, start, end, block, anchor, label) {
@@ -130,13 +129,7 @@ html = replaceRequired(
   'Safe Cracker action response acceptance'
 );
 
-html = replaceSection(
-  html,
-  '  function debugSnapshot(kind){',
-  "  $('rnbCopyGame')",
-  debugBlock,
-  'Remote Bot debug snapshot function'
-);
+html = replaceDebugSnapshot(html, debugBlock);
 
 html = replaceRequired(
   html,
