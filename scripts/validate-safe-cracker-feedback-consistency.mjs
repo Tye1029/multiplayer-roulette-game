@@ -21,18 +21,18 @@ assert(styles.includes('.sc-display.green.fresh { animation: scGreenConfirm .42s
 assert(!styles.includes('rgba(82,255,142,.34); animation: scGreenConfirm'), 'green animation still restarts on every render');
 
 assert(data.includes('// SAFE_CRACKER_VERIFIED_APPLY_START'), 'verified Safe Cracker writer is missing');
-assert(data.includes('let latest = await duelGetRawStrong(gameId, 2) || await duelGetRaw(gameId) || fallback;'), 'guess writer does not prefer a strong snapshot with an availability fallback');
+assert(data.includes('let latest = await duelGetRaw(gameId) || await duelGetRawStrong(gameId, 1) || fallback;'), 'guess writer does not use the responsive exact read with a strong fallback');
 assert(data.includes('const beforeSave = await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId);'), 'guess writer does not recheck state before saving with a fallback');
 assert(data.includes('confirmedState.processedActionIds.includes(cleanActionId)'), 'guess writer does not verify that an action survived concurrent writes');
-assert(data.includes('let latest = await duelGetRawStrong(gameId, 2) || await duelGetRaw(gameId) || game;'), 'bot advancement does not prefer a strong read with a fallback');
-assert(data.includes('let game = await duelGetRawStrong(gameId, 2) || await duelGetRaw(gameId);'), 'human actions do not prefer a strong read with a fallback');
+assert(data.includes('let latest = await duelGetRaw(gameId) || await duelGetRawStrong(gameId, 1) || game;'), 'bot advancement does not use the responsive exact read with a strong fallback');
+assert(data.includes('let game = await duelGetRaw(gameId) || await duelGetRawStrong(gameId, 1);'), 'human actions do not use the responsive exact read with a strong fallback');
 assert(data.includes('revision: int(state.revision, 0) + 1, npcActionAt:'), 'NPC scheduler changes are not revisioned');
 
 assert(html.includes('game?.safecrackerState||{}'), 'Remote Bot comparison ignores Safe Cracker state revision');
 assert(html.includes('function rnbLifecycleRank(game)'), 'Remote Bot comparison ignores lifecycle status');
 assert(html.includes('if(a.statusRank!==b.statusRank)return a.statusRank-b.statusRank;'), 'completed snapshots can be replaced by playing snapshots');
 assert(html.includes("ignored rejected Safe Cracker snapshot"), 'Remote Bot adoption bypasses the Safe Cracker snapshot guard');
-assert(html.includes('/assets/safe-cracker/safe-cracker.js?v=3'), 'Safe Cracker JavaScript cache version was not bumped');
-assert(html.includes('/assets/safe-cracker/safe-cracker.css?v=3'), 'Safe Cracker stylesheet cache version was not bumped');
+assert(html.includes('/assets/safe-cracker/safe-cracker.js?v=4'), 'Safe Cracker JavaScript cache version was not bumped');
+assert(html.includes('/assets/safe-cracker/safe-cracker.css?v=4'), 'Safe Cracker stylesheet cache version was not bumped');
 
-console.log('Safe Cracker feedback consistency validation passed: feedback remains latched, animations fire once, stale lifecycle snapshots are rejected, and concurrent writes are verified with strong-read fallback.');
+console.log('Safe Cracker feedback consistency validation passed: feedback remains latched, animations fire once, stale lifecycle snapshots are rejected, and concurrent writes remain verified with a faster fallback path.');
