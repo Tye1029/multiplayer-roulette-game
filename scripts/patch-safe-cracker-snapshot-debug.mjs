@@ -10,6 +10,14 @@ function replaceRequired(source, search, replacement, label) {
   return source.replace(search, replacement);
 }
 
+function replaceSection(source, startMarker, endMarker, replacement, label) {
+  if (source.includes('function rnbDebugState(g)')) return source;
+  const start = source.indexOf(startMarker);
+  const end = source.indexOf(endMarker, start + startMarker.length);
+  if (start < 0 || end < 0 || end <= start) throw new Error(`Safe Cracker snapshot/debug patch could not isolate ${label}.`);
+  return source.slice(0, start) + replacement + source.slice(end);
+}
+
 function upsertAfter(source, start, end, block, anchor, label) {
   const escapedStart = start.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const escapedEnd = end.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -46,6 +54,16 @@ const guardBlock = `${guardStart}
     }
     window.__safeCrackerAcceptSnapshot = safeCrackerAcceptSnapshot;
 ${guardEnd}`;
+
+const debugBlock = `  function rnbDebugState(g){
+   if(!g)return{};
+   if(g.mode!=='safecracker')return g.rouletteState||g.drawState||g.fishingState||{};
+   const st=g.safecrackerState&&typeof g.safecrackerState==='object'?g.safecrackerState:{};
+   const player=value=>value&&typeof value==='object'?{stage:Number(value.stage||0),attemptCount:Number(value.attemptCount||0),lastTier:String(value.lastTier||''),completed:Boolean(value.completed),completedAt:value.completedAt||null,lastResult:value.lastResult||null,attempts:Array.isArray(value.attempts)?value.attempts:undefined}:null;
+   return{roundId:String(st.roundId||''),revision:Number(st.revision||0),startAt:st.startAt||null,endAt:st.endAt||null,secondsLeft:Number(st.secondsLeft||0),canSubmit:Boolean(st.canSubmit),cooldownMs:Number(st.cooldownMs||0),stagesTotal:Number(st.stagesTotal||3),me:player(st.me),opponent:player(st.opponent),revealedCodes:g.status==='complete'?st.revealedCodes:undefined,rejectedSnapshots:Number(window.__safeCrackerRejectedSnapshots||0)};
+  }
+  function debugSnapshot(kind){const g=(typeof duelLastActiveGame!=='undefined'&&duelLastActiveGame)||(typeof rouletteLatestGame!=='undefined'&&rouletteLatestGame)||null;if(g?.mode)selectedMode=String(g.mode);const st=rnbDebugState(g);const rotationDiagnostics=Array.isArray(window.__rouletteFacingDiagnostics)?window.__rouletteFacingDiagnostics.slice(-120):[];const base={capturedAt:new Date().toISOString(),kind,selectedMode,game:g?{gameId:g.gameId,mode:g.mode,status:g.status,revision:g.revision,creator:g.creator,joiner:g.joiner,remoteNetworkTest:g.remoteNetworkTest,remoteNetworkProfile:g.remoteNetworkProfile,npcActionAt:g.npcActionAt,state:st}:null,rotationDiagnostics};if(kind==='game')base.logs=[...logs];else base.logs=[...botLogs];return JSON.stringify(base,null,2)}
+`;
 
 let html = await readFile(indexUrl, 'utf8');
 
@@ -112,18 +130,12 @@ html = replaceRequired(
   'Safe Cracker action response acceptance'
 );
 
-html = replaceRequired(
+html = replaceSection(
   html,
-  `  function debugSnapshot(kind){const g=(typeof duelLastActiveGame!=='undefined'&&duelLastActiveGame)||(typeof rouletteLatestGame!=='undefined'&&rouletteLatestGame)||null;const st=g?.rouletteState||g?.drawState||g?.fishingState||g?.safecrackerState||{};const base={capturedAt:new Date().toISOString(),kind,selectedMode,game:g?{gameId:g.gameId,mode:g.mode,status:g.status,revision:g.revision,creator:g.creator,joiner:g.joiner,remoteNetworkTest:g.remoteNetworkTest,remoteNetworkProfile:g.remoteNetworkProfile,npcActionAt:g.npcActionAt,state:st}:null};if(kind==='game')base.logs=[...logs];else base.logs=[...botLogs];return JSON.stringify(base,null,2)}`,
-  `  function rnbDebugState(g){
-   if(!g)return{};
-   if(g.mode!=='safecracker')return g.rouletteState||g.drawState||g.fishingState||{};
-   const st=g.safecrackerState&&typeof g.safecrackerState==='object'?g.safecrackerState:{};
-   const player=value=>value&&typeof value==='object'?{stage:Number(value.stage||0),attemptCount:Number(value.attemptCount||0),lastTier:String(value.lastTier||''),completed:Boolean(value.completed),completedAt:value.completedAt||null,lastResult:value.lastResult||null,attempts:Array.isArray(value.attempts)?value.attempts:undefined}:null;
-   return{roundId:String(st.roundId||''),revision:Number(st.revision||0),startAt:st.startAt||null,endAt:st.endAt||null,secondsLeft:Number(st.secondsLeft||0),canSubmit:Boolean(st.canSubmit),cooldownMs:Number(st.cooldownMs||0),stagesTotal:Number(st.stagesTotal||3),me:player(st.me),opponent:player(st.opponent),revealedCodes:g.status==='complete'?st.revealedCodes:undefined,rejectedSnapshots:Number(window.__safeCrackerRejectedSnapshots||0)};
-  }
-  function debugSnapshot(kind){const g=(typeof duelLastActiveGame!=='undefined'&&duelLastActiveGame)||(typeof rouletteLatestGame!=='undefined'&&rouletteLatestGame)||null;if(g?.mode)selectedMode=String(g.mode);const st=rnbDebugState(g);const base={capturedAt:new Date().toISOString(),kind,selectedMode,game:g?{gameId:g.gameId,mode:g.mode,status:g.status,revision:g.revision,creator:g.creator,joiner:g.joiner,remoteNetworkTest:g.remoteNetworkTest,remoteNetworkProfile:g.remoteNetworkProfile,npcActionAt:g.npcActionAt,state:st}:null};if(kind==='game')base.logs=[...logs];else base.logs=[...botLogs];return JSON.stringify(base,null,2)}`,
-  'redacted Safe Cracker debug state'
+  '  function debugSnapshot(kind){',
+  "  $('rnbCopyGame')",
+  debugBlock,
+  'Remote Bot debug snapshot function'
 );
 
 html = replaceRequired(
