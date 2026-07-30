@@ -25,9 +25,11 @@ assert(data.includes('// SAFE_CRACKER_DIRECT_COMPLETION_START'), 'direct complet
 assert(!data.includes('duel-safecracker-completion/'), 'obsolete completion-claim blobs are still in the finish path');
 assert(!data.includes('safeCrackerClaimCompletion'), 'obsolete completion ownership loop is still present');
 assert(data.includes("if (latest?.status === 'complete') return latest;"), 'duplicate finish requests do not return the completed game');
-assert(data.includes("completionMode: 'direct-v7'"), 'completed games do not identify the direct finish path');
-assert(data.includes("if (confirmed?.status === 'complete') return confirmed;"), 'completion does not prefer a confirmed completed snapshot');
-assert(data.includes('return completed;'), 'confirmation failure can still block a correct final digit');
+assert(data.includes("completionMode: 'direct-v8'"), 'completed games do not identify the immediate finish path');
+assert(data.includes('return await safeCrackerComplete(candidate, state, id,'), 'the third digit does not return completion immediately');
+assert(!data.includes('const confirmedComplete = await duelGetRawStrong(gameId, 2) || completed;'), 'a stale confirmation read can still discard a completed result');
+assert(data.includes('const alreadyCompletedPlayerId = safeCrackerCompletedPlayerId(latest, state);'), 'polling cannot repair games already stuck at stage three');
+assert(data.includes('repairedCompletion: true'), 'an action cannot repair an already completed stage-three state');
 assert(data.includes('const at = String(resolved?.completionAt || clean.completedAt || nowIso());'), 'completion timestamps are not stable across duplicate execution');
 
 const readyStart = html.indexOf('// SAFE_CRACKER_READY_RETRY_START');
@@ -37,6 +39,6 @@ const readyHelper = html.slice(readyStart, readyEnd);
 assert(readyHelper.includes('const deadlineAt = Date.now() + 12000;'), 'one Ready tap does not remain pending through transient storage visibility');
 assert(readyHelper.includes('while (Date.now() < deadlineAt)'), 'Ready retry is not deadline-based');
 assert(!readyHelper.includes('duelRequest("get"'), 'Ready retries still create competing GET traffic');
-assert(action.includes('const DUEL_FUNCTION_BUILD = "safecracker-direct-v7";'), 'direct-completion function bundle marker is missing');
+assert(action.includes('const DUEL_FUNCTION_BUILD = "safecracker-direct-v8";'), 'immediate-completion function bundle marker is missing');
 
-console.log('Safe Cracker storage-consistency validation passed: Ready strongly recovers fresh games and a correct final digit completes directly without a separate claim blob.');
+console.log('Safe Cracker storage-consistency validation passed: a correct third digit returns completion immediately and stage-three games repair automatically.');
