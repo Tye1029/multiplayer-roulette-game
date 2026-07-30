@@ -8,7 +8,7 @@ const cssEnd = '/* SAFE_CRACKER_VIEWPORT_FIT_V7_END */';
 const jsStart = '// SAFE_CRACKER_VIEWPORT_FIT_V7_START';
 
 function replaceRequired(source, before, after, label) {
-  if (source.includes(after)) return source;
+  if (after && source.includes(after)) return source;
   if (!source.includes(before)) throw new Error(`Safe Cracker viewport-fit patch could not find ${label}.`);
   return source.replace(before, after);
 }
