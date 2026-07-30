@@ -34,8 +34,8 @@ jobs:
           for attempt in $(seq 1 36); do
             html="$(curl -fsSL --max-time 20 "${url}?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             headers="$(curl -fsS --max-time 20 -D - -o /dev/null -X OPTIONS "${function_url}?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            js="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/safe-cracker.js?v=8&polish=2&fit=2&result=1&final=1&refine=1&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            css="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/safe-cracker.css?v=8&polish=2&fit=2&result=1&final=1&refine=1&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            js="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/safe-cracker.js?v=8&polish=2&fit=2&result=1&final=1&refine=1&correct=1&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            css="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/safe-cracker.css?v=8&polish=2&fit=2&result=1&final=1&refine=1&correct=1&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             if grep -Fq 'class="sth-game" data-mode="safecracker"' <<<"$html" && \
                grep -Fq 'data-rnb-game="safecracker"' <<<"$html" && \
                grep -Fq 'id="safe-cracker-compact-debug-dock"' <<<"$html" && \
@@ -49,8 +49,8 @@ jobs:
                grep -Fq 'duel-end-screen-close' <<<"$html" && \
                grep -Fq 'torn-duel-completed-seen-v1' <<<"$html" && \
                grep -Fq "document.querySelector('body > .sc-result-overlay[data-sc-result-portal] .sc-result-card')" <<<"$html" && \
-               grep -Fq '/assets/safe-cracker/safe-cracker.css?v=8&polish=2&fit=2&result=1&final=1&refine=1' <<<"$html" && \
-               grep -Fq '/assets/safe-cracker/safe-cracker.js?v=8&polish=2&fit=2&result=1&final=1&refine=1' <<<"$html" && \
+               grep -Fq '/assets/safe-cracker/safe-cracker.css?v=8&polish=2&fit=2&result=1&final=1&refine=1&correct=1' <<<"$html" && \
+               grep -Fq '/assets/safe-cracker/safe-cracker.js?v=8&polish=2&fit=2&result=1&final=1&refine=1&correct=1' <<<"$html" && \
                grep -Fq "if(game.mode==='safecracker')" <<<"$html" && \
                grep -Fq 'SAFE_CRACKER_START_COUNTDOWN_START' <<<"$js" && \
                grep -Fq 'data-sc-start-countdown' <<<"$js" && \
@@ -82,6 +82,13 @@ jobs:
                grep -Fq 'function playSafeCrackerResultSequence(game, won, tied)' <<<"$js" && \
                grep -Fq "portal.setAttribute('aria-modal', 'true');" <<<"$js" && \
                grep -Fq 'const safeCrackerResultPortalObserver = new MutationObserver' <<<"$js" && \
+               grep -Fq 'SAFE_CRACKER_VIDEO_CORRECTION_V8_START' <<<"$js" && \
+               grep -Fq 'function safeCrackerMonotonicCountdownLabel(game = runtime.game)' <<<"$js" && \
+               grep -Fq 'if (proposedRank < runtime.countdownProgressRank) return runtime.countdownProgressLabel;' <<<"$js" && \
+               grep -Fq '<small>OPPONENT STATUS</small>' <<<"$js" && \
+               grep -Fq "const confirmLabel = runtime.busy" <<<"$js" && \
+               grep -Fq "? 'RESETTING…'" <<<"$js" && \
+               grep -Fq "=== 1 ? 'ATTEMPT' : 'ATTEMPTS'" <<<"$js" && \
                grep -Fq 'SAFE_CRACKER_VISUAL_SHELL_V1_START' <<<"$css" && \
                grep -Fq 'SAFE_CRACKER_VISUAL_DIAL_V2_START' <<<"$css" && \
                grep -Fq 'SAFE_CRACKER_VISUAL_HUD_V3_START' <<<"$css" && \
@@ -92,10 +99,14 @@ jobs:
                grep -Fq 'SAFE_CRACKER_RESULT_FLOW_V5_START' <<<"$css" && \
                grep -Fq 'SAFE_CRACKER_FINAL_POLISH_V6_START' <<<"$css" && \
                grep -Fq 'SAFE_CRACKER_VISUAL_REFINEMENT_V7_START' <<<"$css" && \
+               grep -Fq 'SAFE_CRACKER_VIDEO_CORRECTION_V8_START' <<<"$css" && \
                grep -Fq -- '--sc-refine-steel-hi' <<<"$css" && \
                grep -Fq '.safe-cracker-game:has(.sc-display.green)' <<<"$css" && \
                grep -Fq 'border-right: 7px solid #171d20' <<<"$css" && \
                grep -Fq '@media (max-width: 700px) and (max-height: 760px)' <<<"$css" && \
+               grep -Fq 'transform: rotate(var(--digit-angle)) translateY(calc(var(--radius) * -1));' <<<"$css" && \
+               grep -Fq -- '--sc-refine-state-strength: .07' <<<"$css" && \
+               grep -Fq 'color: rgba(245, 226, 181, .66)' <<<"$css" && \
                grep -Fq '@keyframes scGameplaySafeDoorOpen' <<<"$css" && \
                grep -Fq '@keyframes scGameplayGoldSpill' <<<"$css" && \
                grep -Fq 'body > .sc-result-overlay[data-sc-result-portal]' <<<"$css" && \
@@ -112,11 +123,11 @@ jobs:
                grep -Fq '.sc-known-code span.known' <<<"$css" && \
                grep -Fq -- '-webkit-tap-highlight-color: transparent' <<<"$css" && \
                grep -Fiq 'x-duel-function-build: safecracker-direct-v8' <<<"$headers"; then
-              echo "Verified live Safe Cracker pass 7 safe depth, unified materials, HUD hierarchy, state lighting, phone composition, result flow, v8 immediate completion, dismissal, Ready, and snapshot safeguards at ${url}"
+              echo "Verified live Safe Cracker video corrections, physical dial-number orientation, monotonic countdown, restrained lighting, result flow, v8 immediate completion, dismissal, Ready, and snapshot safeguards at ${url}"
               exit 0
             fi
-            echo "Waiting for Netlify Safe Cracker visual-refinement preview (${attempt}/36)..."
+            echo "Waiting for Netlify Safe Cracker video-correction preview (${attempt}/36)..."
             sleep 10
           done
-          echo 'Netlify preview did not become available with the Safe Cracker pass 7 visual refinement and current gameplay fixes.' >&2
+          echo 'Netlify preview did not become available with the Safe Cracker video corrections and current gameplay fixes.' >&2
           exit 1
