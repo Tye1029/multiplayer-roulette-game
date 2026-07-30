@@ -15,7 +15,7 @@ function assert(condition, message) {
 
 assert(data.includes('const startMs = atMs + (game?.mode === "safecracker" ? 3000 : DUEL_COUNTDOWN_MS);'), 'Safe Cracker does not have an authoritative three-second countdown');
 assert(data.includes('if (game.mode === "roulette" || game.mode === "safecracker")'), 'Remote Bot is not confirmed Ready in the same Safe Cracker transaction');
-assert(data.includes('let game = await duelGetRaw(gameId) || await duelGetRawStrong(gameId, 1);'), 'player actions do not use the available exact game read with strong fallback');
+assert(data.includes('const requestedGameId = mpCleanId(gameId);'), 'Ready does not strongly recover the requested Safe Cracker game');
 assert(data.includes('let latest = await duelGetRaw(gameId) || await duelGetRawStrong(gameId, 1) || game;'), 'bot advancement does not use the available exact game read with strong fallback');
 assert(data.includes('let latest = await duelGetRaw(gameId) || await duelGetRawStrong(gameId, 1) || fallback;'), 'verified guess writes do not have a responsive normal-read path');
 assert(data.includes('const beforeSave = await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId);'), 'pre-save verification has no normal-read fallback');
@@ -30,6 +30,6 @@ assert(styles.includes('.sc-start-countdown-overlay'), 'countdown overlay stylin
 assert(index.includes("if(game.mode==='safecracker')"), 'shared countdown portal still owns Safe Cracker');
 assert(index.includes('/assets/safe-cracker/safe-cracker.js?v=4'), 'fresh Safe Cracker runtime is not cache-busted');
 assert(index.includes('/assets/safe-cracker/safe-cracker.css?v=4'), 'fresh Safe Cracker styles are not cache-busted');
-assert(action.includes('const DUEL_FUNCTION_BUILD = "safecracker-responsive-v4";'), 'fresh responsive Safe Cracker function bundle marker is missing');
+assert(action.includes('const DUEL_FUNCTION_BUILD = "safecracker-storage-v5";'), 'fresh storage-consistent Safe Cracker function bundle marker is missing');
 
-console.log('Safe Cracker start-flow validation passed: one Ready tap starts a dedicated 3-2-1-GO countdown, actions use fast fallback reads, and fresh assets/functions are bundled.');
+console.log('Safe Cracker start-flow validation passed: one Ready tap strongly recovers the game, starts a dedicated 3-2-1-GO countdown, and fresh assets/functions are bundled.');
