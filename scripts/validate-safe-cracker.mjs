@@ -51,7 +51,7 @@ assert(data.includes('return await safeCrackerAction(actorUser, gameId, rawChoic
 assert(data.includes('safecrackerState = safeCrackerInitialState(next, startMs)'), 'codes are not initialized from the authoritative countdown');
 assert(data.includes('Remote Network Bot supports Roulette, Draw, Fishing, and Safe Cracker.'), 'Remote Network Bot support is missing');
 assert(!data.includes('if (!["roulette", "draw", "fishing"].includes(String(game.mode || ""))) throw new Error("Remote Network Bot supports Roulette, Draw, and Fishing.");'), 'legacy Remote Bot allowlist still rejects Safe Cracker');
-assert(action.includes('const DUEL_FUNCTION_BUILD = "safecracker-storage-v5";'), 'storage-consistent duel function bundle version is missing');
+assert(action.includes('const DUEL_FUNCTION_BUILD = "safecracker-storage-v6";'), 'storage-consistent duel function bundle version is missing');
 assert(action.includes('"X-Duel-Function-Build": DUEL_FUNCTION_BUILD'), 'duel function build header is missing');
 assert(data.includes('["draw","fishing","roulette","blackjack","safecracker"].includes(clean.mode)'), 'Safe Cracker is not isolated from generic NPC completion');
 assert(!data.includes('revealedCodes: { my:'), 'active responses must not unconditionally expose combinations');
@@ -77,4 +77,4 @@ assert(styles.includes('.sc-result-overlay'), 'win/loss presentation is missing'
 assert(!patch.includes("writeFile(new URL('../assets/roulette/turn-animation.js'"), 'patch must never write the protected turn animation');
 assert(!patch.includes("writeFile(new URL('../assets/roulette/turn-fire.js'"), 'patch must never write the protected firing animation');
 
-console.log('Safe Cracker validation passed: authoritative race, storage-consistent function bundle, compact controls, rematches, persistence, and protected Roulette hashes are intact.');
+console.log('Safe Cracker validation passed: authoritative race, v6 storage-consistent function bundle, compact controls, rematches, persistence, and protected Roulette hashes are intact.');
