@@ -1,0 +1,28 @@
+name: Temporary Bot Lifecycle Diagnostic
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out lamp-development
+        uses: actions/checkout@v4
+        with:
+          ref: lamp-development
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        run: npm install --package-lock=false
+      - name: Generate site
+        run: npm run build
+      - name: Show Roulette snapshot acceptance paths
+        run: |
+          grep -n -C 18 'rouletteAcceptSnapshot' index.html || true
+          grep -n -C 30 'async function duelRefresh' index.html || true
+          grep -n -C 25 'function duelAdoptMutationResponseGame' index.html || true
+          grep -n -C 25 'function rnbAdoptGame' index.html || true
