@@ -3,7 +3,7 @@
   "version": "2.0.0",
   "private": true,
   "scripts": {
-    "validate:lamp": "node scripts/validate-lamp.mjs && node --check assets/roulette/opening-spin-sync.js && node scripts/validate-opening-spin-sync.mjs && node --check netlify/functions/_data.js && node --check netlify/functions/duel-action.js && node scripts/validate-roulette-chamber.mjs && node scripts/validate-roulette-presentation.mjs && node scripts/validate-roulette-countdown-white-audio.mjs && node scripts/validate-multiplayer-network-cleanup.mjs && node scripts/validate-duel-create-recovery.mjs && node scripts/validate-duel-strong-join-reads.mjs && node scripts/validate-duel-atomic-bot-and-action-polling.mjs && node scripts/validate-roulette-opening-default-facing.mjs",
+    "validate:lamp": "node scripts/validate-lamp.mjs && node --check assets/roulette/opening-spin-sync.js && node scripts/validate-opening-spin-sync.mjs && node --check netlify/functions/_data.js && node --check netlify/functions/duel-action.js && node scripts/validate-roulette-chamber.mjs && node scripts/validate-roulette-presentation.mjs && node scripts/validate-roulette-countdown-white-audio.mjs && node scripts/validate-multiplayer-network-cleanup.mjs && node scripts/validate-duel-create-recovery.mjs && node scripts/validate-duel-strong-join-reads.mjs && node scripts/validate-duel-atomic-bot-and-action-polling.mjs && node scripts/validate-roulette-lifecycle-snapshot-adoption.mjs && node scripts/validate-roulette-opening-default-facing.mjs",
     "build": "node scripts/inject-lamp-assets.mjs && npm run validate:lamp && echo 'Static Netlify site - validation complete'"
   },
   "dependencies": {
