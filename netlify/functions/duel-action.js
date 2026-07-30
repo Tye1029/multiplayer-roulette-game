@@ -1,4 +1,5 @@
 const crypto = require("crypto");
+const DUEL_FUNCTION_BUILD = "safecracker-remote-bot-v2";
 const {
   initBlobs,
   resolveSiteUser,
@@ -26,7 +27,8 @@ exports.handler = async (event) => {
     "Cache-Control": "no-store",
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "Content-Type",
-    "Access-Control-Allow-Methods": "POST, OPTIONS"
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "X-Duel-Function-Build": DUEL_FUNCTION_BUILD
   };
 
   if (event.httpMethod === "OPTIONS") return { statusCode: 204, headers, body: "" };
