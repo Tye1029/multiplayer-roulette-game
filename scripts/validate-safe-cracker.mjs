@@ -5,6 +5,7 @@ const root = new URL('../', import.meta.url);
 const paths = {
   index: new URL('index.html', root),
   data: new URL('netlify/functions/_data.js', root),
+  action: new URL('netlify/functions/duel-action.js', root),
   client: new URL('assets/safe-cracker/safe-cracker.js', root),
   styles: new URL('assets/safe-cracker/safe-cracker.css', root),
   patch: new URL('scripts/patch-safe-cracker.mjs', root),
@@ -25,9 +26,10 @@ function gitBlobSha(buffer) {
   return createHash('sha1').update(header).update(buffer).digest('hex');
 }
 
-const [index, data, client, styles, patch, turnAnimation, turnFire] = await Promise.all([
+const [index, data, action, client, styles, patch, turnAnimation, turnFire] = await Promise.all([
   readFile(paths.index, 'utf8'),
   readFile(paths.data, 'utf8'),
+  readFile(paths.action, 'utf8'),
   readFile(paths.client, 'utf8'),
   readFile(paths.styles, 'utf8'),
   readFile(paths.patch, 'utf8'),
@@ -48,6 +50,9 @@ assert(data.includes('safecrackerState: game.safecrackerState'), 'Safe Cracker s
 assert(data.includes('return await safeCrackerAction(actorUser, gameId, rawChoice, details);'), 'Safe Cracker actions are not routed');
 assert(data.includes('safecrackerState = safeCrackerInitialState(next, startMs)'), 'codes are not initialized from the authoritative countdown');
 assert(data.includes('Remote Network Bot supports Roulette, Draw, Fishing, and Safe Cracker.'), 'Remote Network Bot support is missing');
+assert(!data.includes('if (!["roulette", "draw", "fishing"].includes(String(game.mode || ""))) throw new Error("Remote Network Bot supports Roulette, Draw, and Fishing.");'), 'legacy Remote Bot allowlist still rejects Safe Cracker');
+assert(action.includes('const DUEL_FUNCTION_BUILD = "safecracker-remote-bot-v2";'), 'duel function bundle version is missing');
+assert(action.includes('"X-Duel-Function-Build": DUEL_FUNCTION_BUILD'), 'duel function build header is missing');
 assert(data.includes('["draw","fishing","roulette","blackjack","safecracker"].includes(clean.mode)'), 'Safe Cracker is not isolated from generic NPC completion');
 assert(!data.includes('revealedCodes: { my:'), 'active responses must not unconditionally expose combinations');
 assert(data.includes("revealedCodes: complete ? { my:"), 'completed matches must provide transparent code reveal');
@@ -72,4 +77,4 @@ assert(styles.includes('.sc-result-overlay'), 'win/loss presentation is missing'
 assert(!patch.includes("writeFile(new URL('../assets/roulette/turn-animation.js'"), 'patch must never write the protected turn animation');
 assert(!patch.includes("writeFile(new URL('../assets/roulette/turn-fire.js'"), 'patch must never write the protected firing animation');
 
-console.log('Safe Cracker validation passed: authoritative race, finger dial, feedback, bots, rematches, persistence, and protected Roulette hashes are intact.');
+console.log('Safe Cracker validation passed: authoritative race, fresh Remote Bot function bundle, compact controls, rematches, persistence, and protected Roulette hashes are intact.');
