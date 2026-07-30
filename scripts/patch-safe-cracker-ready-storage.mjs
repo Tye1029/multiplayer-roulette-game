@@ -74,6 +74,10 @@ const stableReadyLookup = `    const requestedGameId = mpCleanId(gameId);
       if (!game && attempt < 5) await sleep(180 + attempt * 180);
     }`;
 data = replaceInsideFunction(data, 'async function duelReadyGame(user, gameId, options = {}) {', oldReadyLookup, stableReadyLookup, 'authoritative Ready recovery loop');
+
+data = replaceRequired(data, '    let game = await duelGetRaw(gameId) || await duelGetRawStrong(gameId, 1);', '    let game = await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId);', 'strong-first player action read');
+data = replaceRequired(data, '    let latest = await duelGetRaw(gameId) || await duelGetRawStrong(gameId, 1) || game;', '    let latest = await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId) || game;', 'strong-first bot advancement read');
+data = replaceRequired(data, '    let latest = await duelGetRaw(gameId) || await duelGetRawStrong(gameId, 1) || fallback;', '    let latest = await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId) || fallback;', 'strong-first verified guess read');
 await writeFile(dataUrl, data);
 
 let html = await readFile(indexUrl, 'utf8');
