@@ -5,6 +5,7 @@ await import('./patch-multiplayer-polling-load.mjs');
 await import('./patch-duel-create-recovery.mjs');
 await import('./patch-duel-strong-join-reads.mjs');
 await import('./patch-remote-bot-attach-retry.mjs');
+await import('./patch-roulette-lifecycle-snapshot-adoption.mjs');
 await import('./patch-roulette-single-rotation-owner.mjs');
 await import('./patch-roulette-presentation.mjs');
 await import('./patch-roulette-opening-copy.mjs');
@@ -128,4 +129,4 @@ if (markerPattern.test(html)) {
 }
 
 await writeFile(indexUrl, html);
-console.log('Injected independent lamp without smoke, synchronized shorter opening audio, authoritative six-chamber rules, multiplayer network and polling cleanup, recoverable idempotent game creation, strong one-click retry-safe new-game joins, one authoritative rotation owner with reliable approved-transition audio, pre-spin left-facing lock and active-animation hold diagnostics, custom countdown synth, knock-free turn movement, duplicate opening copy removed, hidden-player text removed, ambience, result cues, and unchanged protected animations.');
+console.log('Injected independent lamp without smoke, synchronized shorter opening audio, authoritative six-chamber rules, multiplayer network and polling cleanup, recoverable idempotent game creation, strong one-click retry-safe new-game joins, immediate lifecycle snapshot adoption for Remote Bot attachment, one authoritative rotation owner with reliable approved-transition audio, pre-spin left-facing lock and active-animation hold diagnostics, custom countdown synth, knock-free turn movement, duplicate opening copy removed, hidden-player text removed, ambience, result cues, and unchanged protected animations.');
