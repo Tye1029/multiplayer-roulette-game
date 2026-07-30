@@ -2,7 +2,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 
 const dataUrl = new URL('../netlify/functions/_data.js', import.meta.url);
 const actionUrl = new URL('../netlify/functions/duel-action.js', import.meta.url);
-const marker = '// SAFE_CRACKER_ATOMIC_BOT_STOP_V9_START';
+const marker = '// SAFE_CRACKER_ATOMIC_BOT_STOP_V10_START';
 
 function functionBounds(source, functionMarker, label) {
   const start = source.indexOf(functionMarker);
@@ -18,54 +18,112 @@ function replaceFunction(source, functionMarker, replacement, label) {
   return source.slice(0, start) + replacement + source.slice(end);
 }
 
-function replaceInsideFunction(source, functionMarker, before, after, label) {
-  const { start, end } = functionBounds(source, functionMarker, label);
-  const section = source.slice(start, end);
-  if (section.includes(after)) return source;
-  if (!section.includes(before)) throw new Error(`Safe Cracker bot-stop patch could not find ${label}.`);
-  return source.slice(0, start) + section.replace(before, after) + source.slice(end);
-}
-
 let data = await readFile(dataUrl, 'utf8');
 if (!data.includes(marker)) {
   const helpers = String.raw`${marker}
+function safeCrackerParseVersionedGame(raw) {
+  if (raw === null || raw === undefined || raw === '') return null;
+  let value = raw;
+  if (typeof Buffer !== 'undefined' && Buffer.isBuffer?.(value)) value = value.toString('utf8');
+  if (typeof value === 'string') value = JSON.parse(value);
+  if (!value || typeof value !== 'object') throw new Error('Safe Cracker storage returned an invalid game payload.');
+  return duelSanitizeGame(value);
+}
+
 async function safeCrackerReadVersioned(gameId) {
   const id = mpCleanId(gameId);
-  if (!id) return { game: null, etag: '' };
-  try {
-    const entry = await getUsersStore().getWithMetadata(duelGameKey(id), { consistency: 'strong', type: 'json' });
-    return {
-      game: entry?.data ? duelSanitizeGame(entry.data) : null,
-      etag: String(entry?.etag || '')
-    };
-  } catch {
-    return { game: await duelGetRawStrong(id, 1) || await duelGetRaw(id), etag: '' };
+  if (!id) return { game: null, etag: '', source: 'invalid-id' };
+  const store = getUsersStore();
+  const key = duelGameKey(id);
+  let lastError = null;
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      // Reading as text avoids runtime-specific JSON decoding differences while
+      // preserving the exact ETag required by onlyIfMatch.
+      const entry = await store.getWithMetadata(key, { consistency: 'strong', type: 'text' });
+      if (entry === null) return { game: null, etag: '', source: 'missing' };
+      const game = safeCrackerParseVersionedGame(entry.data);
+      const etag = String(entry.etag || '');
+      if (game && etag) return { game, etag, source: 'combined' };
+      throw new Error('Safe Cracker combined storage read did not include an ETag.');
+    } catch (error) {
+      lastError = error;
+    }
+
+    try {
+      // Compatibility fallback for runtimes where getWithMetadata is unavailable
+      // or cannot decode the object. Matching metadata reads around one strong data
+      // read prove that the payload and ETag came from the same unchanged version.
+      const before = await store.getMetadata(key, { consistency: 'strong' });
+      const raw = await store.get(key, { consistency: 'strong', type: 'text' });
+      const after = await store.getMetadata(key, { consistency: 'strong' });
+      if (raw === null) return { game: null, etag: '', source: 'missing' };
+      const beforeEtag = String(before?.etag || '');
+      const afterEtag = String(after?.etag || '');
+      if (beforeEtag && beforeEtag === afterEtag) {
+        return { game: safeCrackerParseVersionedGame(raw), etag: afterEtag, source: 'split' };
+      }
+      throw new Error('Safe Cracker storage changed during the compatibility read.');
+    } catch (error) {
+      lastError = error;
+    }
+
+    await sleep(35 * (attempt + 1));
   }
+
+  const detail = String(lastError?.message || lastError || '').slice(0, 180);
+  throw new Error('Safe Cracker could not obtain a versioned game record' + (detail ? ': ' + detail : '.'));
 }
 
 async function safeCrackerSaveVersioned(game, expectedEtag) {
   const gameId = mpCleanId(game?.gameId);
-  if (!gameId || !expectedEtag) {
-    return { modified: false, game: await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId) || game };
-  }
+  if (!gameId || !expectedEtag) throw new Error('Safe Cracker could not obtain the storage version required to save that action.');
   const clean = duelSanitizeGame({
     ...game,
     schemaVersion: DUEL_SCHEMA_VERSION,
     revision: int(game?.revision, 0) + 1,
     updatedAt: nowIso()
   });
-  const result = await getUsersStore().setJSON(duelGameKey(gameId), clean, { onlyIfMatch: expectedEtag });
-  if (!result?.modified) {
+
+  let result;
+  try {
+    result = await getUsersStore().setJSON(duelGameKey(gameId), clean, { onlyIfMatch: expectedEtag });
+  } catch (error) {
+    const current = await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId);
+    if (current?.status !== 'playing') return { modified: false, game: current };
+    throw error;
+  }
+
+  if (result?.modified === false) {
     return { modified: false, game: await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId) || game };
   }
-  if (duelIsActiveStatus(clean.status)) {
-    await Promise.all([clean.creator?.userId, clean.joiner?.userId].filter(Boolean).map(id => duelSetActivePointer(id, clean)));
-  } else {
-    await duelClearPointers(clean);
+
+  // Some compatible Blobs clients resolve a successful conditional set without
+  // a result object. Confirm that the targeted state revision actually persisted
+  // instead of treating an undefined return value as a silent failed guess.
+  let savedGame = clean;
+  if (result?.modified !== true) {
+    const confirmed = await safeCrackerReadVersioned(gameId);
+    const targetStateRevision = int(clean.safecrackerState?.revision, 0);
+    const confirmedStateRevision = int(confirmed.game?.safecrackerState?.revision, 0);
+    const survived = Boolean(
+      confirmed.game &&
+      int(confirmed.game.revision, 0) >= int(clean.revision, 0) &&
+      confirmedStateRevision >= targetStateRevision
+    );
+    if (!survived) return { modified: false, game: confirmed.game || game };
+    savedGame = confirmed.game;
   }
-  return { modified: true, game: clean };
+
+  if (duelIsActiveStatus(savedGame.status)) {
+    await Promise.all([savedGame.creator?.userId, savedGame.joiner?.userId].filter(Boolean).map(id => duelSetActivePointer(id, savedGame)));
+  } else {
+    await duelClearPointers(savedGame);
+  }
+  return { modified: true, game: savedGame };
 }
-// SAFE_CRACKER_ATOMIC_BOT_STOP_V9_END
+// SAFE_CRACKER_ATOMIC_BOT_STOP_V10_END
 
 `;
   const insertAt = data.indexOf('async function safeCrackerApplyGuess(');
@@ -73,7 +131,7 @@ async function safeCrackerSaveVersioned(game, expectedEtag) {
   data = data.slice(0, insertAt) + helpers + data.slice(insertAt);
 
   const atomicApply = String.raw`async function safeCrackerApplyGuess(game, actorId, guess, actionId = '', isBot = false) {
-  // SAFE_CRACKER_ATOMIC_APPLY_V9_START
+  // SAFE_CRACKER_ATOMIC_APPLY_V10_START
   const id = cleanUserId(actorId);
   const gameId = mpCleanId(game?.gameId);
   const cleanActionId = String(actionId || '').replace(/[^A-Za-z0-9._:-]/g, '').slice(0, 120);
@@ -85,7 +143,7 @@ async function safeCrackerSaveVersioned(game, expectedEtag) {
     if (!latest) throw new Error('That Safe Cracker duel was not found.');
     if (latest.mode !== 'safecracker') throw new Error('That duel is not Safe Cracker.');
     if (latest.status !== 'playing') return latest;
-    if (!versioned.etag) return latest;
+    if (!versioned.etag) throw new Error('Safe Cracker could not obtain the storage version required to submit that number.');
 
     let state = safeCrackerEnsureState(latest);
     const alreadyCompletedPlayerId = safeCrackerCompletedPlayerId(latest, state);
@@ -121,7 +179,9 @@ async function safeCrackerSaveVersioned(game, expectedEtag) {
       revision: int(state.revision, 0) + 1,
       players: { ...(state.players || {}), [id]: player },
       processedActionIds: processed,
-      npcActionAt: isBot && player.stage < SAFE_CRACKER_STAGES ? new Date(now + safeCrackerBotDelay(latest)).toISOString() : null
+      npcActionAt: isBot
+        ? (player.stage < SAFE_CRACKER_STAGES ? new Date(now + safeCrackerBotDelay(latest)).toISOString() : null)
+        : (state.npcActionAt || latest.npcActionAt || null)
     };
 
     const candidate = { ...latest, safecrackerState: state, npcActionAt: state.npcActionAt };
@@ -138,8 +198,8 @@ async function safeCrackerSaveVersioned(game, expectedEtag) {
     }
     return authoritative;
   }
-  return await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId) || fallback;
-  // SAFE_CRACKER_ATOMIC_APPLY_V9_END
+  throw new Error('Safe Cracker could not save that number after repeated concurrent updates. Please try it again.');
+  // SAFE_CRACKER_ATOMIC_APPLY_V10_END
 }
 
 `;
@@ -165,12 +225,14 @@ async function safeCrackerSaveVersioned(game, expectedEtag) {
 await writeFile(dataUrl, data);
 
 let action = await readFile(actionUrl, 'utf8');
-if (!action.includes('X-Safe-Cracker-Bot-Guard')) {
+if (action.includes('"X-Safe-Cracker-Bot-Guard": "atomic-cas-v9"')) {
+  action = action.replace('"X-Safe-Cracker-Bot-Guard": "atomic-cas-v9"', '"X-Safe-Cracker-Bot-Guard": "atomic-cas-v10"');
+} else if (!action.includes('X-Safe-Cracker-Bot-Guard')) {
   action = action.replace(
     '    "X-Duel-Function-Build": DUEL_FUNCTION_BUILD',
-    '    "X-Duel-Function-Build": DUEL_FUNCTION_BUILD,\n    "X-Safe-Cracker-Bot-Guard": "atomic-cas-v9"'
+    '    "X-Duel-Function-Build": DUEL_FUNCTION_BUILD,\n    "X-Safe-Cracker-Bot-Guard": "atomic-cas-v10"'
   );
 }
 await writeFile(actionUrl, action);
 
-console.log('Applied Safe Cracker atomic bot-stop guard: all guess and NPC schedule writes use strong ETag compare-and-set and cannot overwrite a completed match.');
+console.log('Applied Safe Cracker atomic bot-stop v10: versioned reads have a compatibility fallback, successful writes are confirmed, storage failures are explicit, and late bot requests cannot overwrite completion.');
