@@ -1,0 +1,38 @@
+name: Temporary Atomic Bot Action Polling Validation
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out lamp-development
+        uses: actions/checkout@v4
+        with:
+          ref: lamp-development
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        run: npm install --package-lock=false
+      - name: Run complete Netlify build and validators
+        run: npm run build
+      - name: Verify atomic bot server action
+        run: |
+          grep -Fq 'async function duelCreateRemoteNetworkBotGame(user, details = {})' netlify/functions/_data.js
+          grep -Fq 'action === "create-remote-bot"' netlify/functions/duel-action.js
+          grep -Fq "duelRequest('create-remote-bot'" index.html
+          ! grep -Fq 'attach retry scheduled' index.html
+      - name: Verify mutation polling suspension
+        run: |
+          grep -Fq 'const duelRequestBeforeMutationPause=duelRequest;' index.html
+          grep -Fq 'window.__duelMutationRequestsInFlight' index.html
+          grep -Fq 'duelPausePollingForMutation()' index.html
+          grep -Fq 'data.game=duelAdoptMutationResponseGame(data.game)' index.html
+      - name: Verify protected animation hashes
+        run: |
+          test "$(git hash-object assets/roulette/turn-animation.js)" = "24358e84c147d99e7297089e69ed1abd0802379f"
+          test "$(git hash-object assets/roulette/turn-fire.js)" = "940e824eae39ddc40dda6200f893f97fc365949b"
