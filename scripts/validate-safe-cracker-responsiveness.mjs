@@ -35,6 +35,6 @@ assert(html.includes('game.status === "playing" ? 2200 : 650'), 'Safe Cracker po
 assert(html.includes('window.__safeCrackerReadyRetryInFlight'), 'background polling can compete with Ready retries');
 assert(html.includes('/assets/safe-cracker/safe-cracker.js?v=4'), 'responsive Safe Cracker JavaScript is not cache-busted');
 assert(html.includes('/assets/safe-cracker/safe-cracker.css?v=4'), 'responsive Safe Cracker stylesheet is not cache-busted');
-assert(action.includes('const DUEL_FUNCTION_BUILD = "safecracker-storage-v6";'), 'storage-consistent function bundle marker is missing');
+assert(action.includes('const DUEL_FUNCTION_BUILD = "safecracker-direct-v7";'), 'direct-completion function bundle marker is missing');
 
-console.log('Safe Cracker responsiveness validation passed: one Ready tap survives transient storage visibility, obsolete polls are cancelled, polling stays light, and strong-first write verification remains intact.');
+console.log('Safe Cracker responsiveness validation passed: one Ready tap survives transient storage visibility, obsolete polls are cancelled, polling stays light, and direct completion cannot be blocked by confirmation reads.');
