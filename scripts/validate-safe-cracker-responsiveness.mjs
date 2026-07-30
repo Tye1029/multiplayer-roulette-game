@@ -20,6 +20,8 @@ assert(data.includes('let latest = await duelGetRawStrong(gameId, 1) || await du
 assert(data.includes('const beforeSave = await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId);'), 'pre-save race verification was removed');
 assert(data.includes('confirmedState.processedActionIds.includes(cleanActionId)'), 'post-write action verification was removed');
 assert(data.includes('secondsLeft: complete ? 0 :'), 'completed Safe Cracker timers continue counting down');
+assert(data.includes('return await safeCrackerComplete(candidate, state, id,'), 'a correct third digit does not return completion immediately');
+assert(!data.includes('const confirmedComplete = await duelGetRawStrong(gameId, 2) || completed;'), 'stale post-finish confirmation can still discard completion');
 
 const helperStart = html.indexOf('// SAFE_CRACKER_READY_RETRY_START');
 const helperEnd = html.indexOf('// SAFE_CRACKER_READY_RETRY_END', helperStart);
@@ -35,6 +37,6 @@ assert(html.includes('game.status === "playing" ? 2200 : 650'), 'Safe Cracker po
 assert(html.includes('window.__safeCrackerReadyRetryInFlight'), 'background polling can compete with Ready retries');
 assert(html.includes('/assets/safe-cracker/safe-cracker.js?v=4'), 'responsive Safe Cracker JavaScript is not cache-busted');
 assert(html.includes('/assets/safe-cracker/safe-cracker.css?v=4'), 'responsive Safe Cracker stylesheet is not cache-busted');
-assert(action.includes('const DUEL_FUNCTION_BUILD = "safecracker-direct-v7";'), 'direct-completion function bundle marker is missing');
+assert(action.includes('const DUEL_FUNCTION_BUILD = "safecracker-direct-v8";'), 'immediate-completion function bundle marker is missing');
 
-console.log('Safe Cracker responsiveness validation passed: one Ready tap survives transient storage visibility, obsolete polls are cancelled, polling stays light, and direct completion cannot be blocked by confirmation reads.');
+console.log('Safe Cracker responsiveness validation passed: one Ready tap survives transient storage visibility, obsolete polls are cancelled, and the third digit completes immediately without a stale confirmation read.');
