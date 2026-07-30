@@ -10,6 +10,12 @@ function replaceRequired(source, search, replacement, label) {
   return source.replace(search, replacement);
 }
 
+function replacePatternRequired(source, pattern, replacement, label) {
+  if (source.includes(replacement)) return source;
+  if (!pattern.test(source)) throw new Error(`Safe Cracker snapshot/debug patch could not find ${label}.`);
+  return source.replace(pattern, replacement);
+}
+
 function upsertAfter(source, start, end, block, anchor, label) {
   const escapedStart = start.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const escapedEnd = end.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -112,14 +118,25 @@ html = replaceRequired(
   'Safe Cracker action response acceptance'
 );
 
-html = replaceRequired(
+html = replacePatternRequired(
   html,
-  `  function rnbAdoptGame(game,force=false){
-   if(!game?.gameId)return;`,
-  `  function rnbAdoptGame(game,force=false){
+  /function rnbAdoptGame\(game,force=false\)\s*\{\s*if\(!game\?\.gameId\)return;/,
+  `function rnbAdoptGame(game,force=false){
    if(!game?.gameId)return;
    if(game.mode==='safecracker'&&typeof window.__safeCrackerAcceptSnapshot==='function'&&!window.__safeCrackerAcceptSnapshot(game))return;`,
   'Remote Bot Safe Cracker snapshot adoption guard'
+);
+
+html = replaceRequired(
+  html,
+  `    if(game.mode==='roulette'){
+     if(typeof rouletteAcceptSnapshot==='function'&&!rouletteAcceptSnapshot(game))return current||game;`,
+  `    if(game.mode==='safecracker'){
+     if(typeof window.__safeCrackerAcceptSnapshot==='function'&&!window.__safeCrackerAcceptSnapshot(game))return current||game;
+    }
+    if(game.mode==='roulette'){
+     if(typeof rouletteAcceptSnapshot==='function'&&!rouletteAcceptSnapshot(game))return current||game;`,
+  'shared mutation Safe Cracker snapshot adoption guard'
 );
 
 html = replaceRequired(
@@ -145,6 +162,23 @@ html = replaceRequired(
   }
   function debugSnapshot(kind){const g=(typeof duelLastActiveGame!=='undefined'&&duelLastActiveGame)||(typeof rouletteLatestGame!=='undefined'&&rouletteLatestGame)||null;if(g?.mode)selectedMode=String(g.mode);const st=rnbDebugState(g);const base={capturedAt:new Date().toISOString(),kind,selectedMode,game:g?{gameId:g.gameId,mode:g.mode,status:g.status,revision:g.revision,creator:g.creator,joiner:g.joiner,remoteNetworkTest:g.remoteNetworkTest,remoteNetworkProfile:g.remoteNetworkProfile,npcActionAt:g.npcActionAt,state:st}:null};if(kind==='game')base.logs=[...logs];else base.logs=[...botLogs];return JSON.stringify(base,null,2)}`,
   'redacted Safe Cracker debug state'
+);
+
+html = replaceRequired(
+  html,
+  `      const completedAwaitingRematch = Boolean(game && game.status === "complete" && ["draw", "fishing", "roulette"].includes(String(game.mode || "")));
+      const noFocusedGame = !game && !duelCurrentGameId;`,
+  `      const completedAwaitingRematch = Boolean(game && game.status === "complete" && ["draw", "fishing", "roulette"].includes(String(game.mode || "")));
+      const safeCrackerCompleted = Boolean(game && game.mode === "safecracker" && game.status === "complete");
+      const noFocusedGame = !game && !duelCurrentGameId;`,
+  'completed Safe Cracker poll-rate state'
+);
+
+html = replaceRequired(
+  html,
+  `      const desired = sharedLifecycleLive ? 200 : drawPlaying ? 650 : rouletteLive ? 800 : fishingLive ? 450 : completedAwaitingRematch ? 700 : noFocusedGame ? 750 : 1800;`,
+  `      const desired = sharedLifecycleLive ? 200 : drawPlaying ? 650 : rouletteLive ? 800 : fishingLive ? 450 : completedAwaitingRematch ? 700 : safeCrackerCompleted ? 5000 : noFocusedGame ? 750 : 1800;`,
+  'completed Safe Cracker poll-rate backoff'
 );
 
 html = replaceRequired(
