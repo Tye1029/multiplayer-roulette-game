@@ -5,6 +5,7 @@ await import('./validate-safe-cracker-sample-mix.mjs');
 await import('./patch-safe-cracker-runtime-stability.mjs');
 await import('./validate-safe-cracker-runtime-stability.mjs');
 await import('./patch-safe-cracker-reference-visuals.mjs');
+await import('./patch-safe-cracker-reference-cache.mjs');
 await import('./validate-safe-cracker-reference-visuals.mjs');
 
 const packageUrl = new URL('../package.json', import.meta.url);
