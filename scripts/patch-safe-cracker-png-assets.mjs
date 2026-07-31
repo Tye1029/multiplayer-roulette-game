@@ -5,12 +5,7 @@ const chunkDirectoryUrl = new URL('assets/safe-cracker/png-ui-v2-data/', rootUrl
 const outputDirectoryUrl = new URL('assets/safe-cracker/png-ui/', rootUrl);
 const expectedNames = Object.freeze([
   'safe-body.png',
-  'dial-face.png',
-  'dial-rim-pointer.png',
-  'dial-hub.png',
-  'button-minus.png',
-  'button-plus.png',
-  'button-check-frame.png'
+  'dial-face.png'
 ]);
 const expectedSet = new Set(expectedNames);
 const pngSignature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
@@ -32,9 +27,9 @@ const encoded = rawEncoded + '='.repeat((4 - (rawEncoded.length % 4)) % 4);
 
 const bundle = Buffer.from(encoded, 'base64');
 let offset = 0;
-const magic = Buffer.from('SCPNG1\n', 'ascii');
+const magic = Buffer.from('SCPNG2\n', 'ascii');
 if (bundle.length < magic.length + 2 || !bundle.subarray(0, magic.length).equals(magic)) {
-  fail('the bundle magic header is invalid');
+  fail('the supplied-reference bundle magic header is invalid');
 }
 offset += magic.length;
 const fileCount = bundle.readUInt16BE(offset);
@@ -70,4 +65,4 @@ await mkdir(outputDirectoryUrl, { recursive: true });
 for (const name of expectedNames) await writeFile(new URL(name, outputDirectoryUrl), entries.get(name));
 
 const summary = expectedNames.map(name => `${name} (${entries.get(name).length.toLocaleString('en-US')} bytes)`).join(', ');
-console.log(`Reconstructed Safe Cracker hybrid PNG assets from v2 bundle: ${summary}.`);
+console.log(`Reconstructed the supplied Safe Cracker reference as two live-site PNG layers: ${summary}.`);
