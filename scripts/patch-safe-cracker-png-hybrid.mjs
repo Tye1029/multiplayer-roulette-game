@@ -11,20 +11,20 @@ if (!css.includes('/* SAFE_CRACKER_REFLECTION_DEPTH_V14_START */')) {
 }
 
 const hybridCss = String.raw`${cssStart}
-/* The reference artwork supplies the static metal, hinges, trim, scratches,
-   shadows, and photographed reflections. Live controls remain real DOM. */
+/* The user's supplied reference provides the static photographed safe body:
+   steel, hinges, gold trim, pointer, shadows, reflections and button frames. */
 .safe-cracker-game.sc-reference-visuals .sc-safe-shell {
   position: relative;
-  display: block;
-  width: calc(100% - 8px);
-  max-width: 620px;
-  margin: 0 4px;
-  padding: 0;
-  overflow: visible;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
+  display: block !important;
+  width: min(100%, 620px) !important;
+  max-width: 620px !important;
+  margin-inline: auto !important;
+  padding: 0 !important;
+  overflow: visible !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
 .safe-cracker-game.sc-reference-visuals .sc-safe-shell::before,
@@ -34,22 +34,23 @@ const hybridCss = String.raw`${cssStart}
 }
 
 .safe-cracker-game.sc-reference-visuals .sc-safe-door {
-  position: relative;
-  width: 100%;
-  height: auto;
-  min-height: 0;
-  aspect-ratio: 450 / 606;
-  margin: 0;
-  overflow: hidden;
-  border: 0;
-  border-radius: 0;
-  outline: 0;
-  background-color: #050606;
-  background-image: url('/assets/safe-cracker/png-ui/safe-body.png');
-  background-position: center top;
-  background-repeat: no-repeat;
-  background-size: 100% 100%;
-  box-shadow: 0 20px 34px rgba(0, 0, 0, .62);
+  position: relative !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  aspect-ratio: 432 / 561;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  outline: 0 !important;
+  background-color: transparent !important;
+  background-image: url('/assets/safe-cracker/png-ui/safe-body.png?v=2') !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-size: 100% 100% !important;
+  box-shadow: 0 22px 38px rgba(0, 0, 0, .6) !important;
   isolation: isolate;
 }
 
@@ -61,28 +62,33 @@ const hybridCss = String.raw`${cssStart}
   content: none !important;
 }
 
-/* Dynamic feedback is fitted into the empty photographed display window. */
+/* Live feedback is fitted into the transparent display opening. */
 .safe-cracker-game.sc-reference-visuals .sc-display,
 .safe-cracker-game.sc-reference-visuals .sc-display.red,
 .safe-cracker-game.sc-reference-visuals .sc-display.orange,
 .safe-cracker-game.sc-reference-visuals .sc-display.yellow,
 .safe-cracker-game.sc-reference-visuals .sc-display.green {
-  position: absolute;
-  left: 19.4%;
-  top: 7.45%;
-  z-index: 20;
-  width: 61.2%;
-  height: 14.45%;
-  min-height: 0;
-  margin: 0;
-  padding: 7% 6% 4%;
-  overflow: hidden;
-  border: 0;
-  border-radius: 0;
-  color: #efc974;
-  background: transparent;
-  box-shadow: none;
-  transform: none;
+  position: absolute !important;
+  left: 23.495% !important;
+  top: 9.002% !important;
+  z-index: 20 !important;
+  width: 53.01% !important;
+  height: 11.41% !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 2.1% 3.4% !important;
+  overflow: hidden !important;
+  border: 0 !important;
+  border-radius: 3.5% !important;
+  color: #efc979 !important;
+  background:
+    linear-gradient(118deg, rgba(255,255,255,.075), transparent 24% 72%, rgba(255,184,48,.035)),
+    linear-gradient(180deg, rgba(19,21,21,.98), rgba(4,5,5,.99)) !important;
+  box-shadow:
+    inset 0 2px 0 rgba(255,245,214,.07),
+    inset 0 -16px 24px rgba(0,0,0,.56),
+    0 0 8px rgba(255,177,40,.035) !important;
+  transform: none !important;
 }
 
 .safe-cracker-game.sc-reference-visuals .sc-display::before,
@@ -96,102 +102,104 @@ const hybridCss = String.raw`${cssStart}
 }
 
 .safe-cracker-game.sc-reference-visuals .sc-display-glass {
-  width: 100%;
-  height: 100%;
-  display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
-  align-items: center;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
+  width: 100% !important;
+  height: 100% !important;
+  padding: 0 !important;
+  display: grid !important;
+  grid-template-rows: minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
 .safe-cracker-game.sc-reference-visuals .sc-display-status {
-  align-self: end;
-  color: #f1cc79;
-  font: 900 clamp(.84rem, 4.3vw, 1.7rem)/.92 Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
-  letter-spacing: .055em;
-  text-align: center;
-  text-shadow: 0 2px 2px #000, 0 0 8px rgba(255, 188, 60, .24);
+  align-self: end !important;
+  color: #f1cc79 !important;
+  font: 900 clamp(.92rem, 4.5vw, 1.72rem)/.96 Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif !important;
+  letter-spacing: .065em !important;
+  text-align: center !important;
+  text-shadow: 0 2px 2px #000, 0 0 8px rgba(255, 188, 60, .24) !important;
 }
 
 .safe-cracker-game.sc-reference-visuals .sc-display-meta {
-  align-self: start;
-  margin-top: clamp(3px, .8vw, 7px);
-  display: flex;
-  justify-content: space-between;
-  gap: 7px;
-  color: rgba(224, 214, 194, .62);
+  align-self: start !important;
+  margin-top: clamp(3px, .7vw, 6px) !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  gap: 6px !important;
+  color: rgba(224, 214, 194, .62) !important;
 }
 
 .safe-cracker-game.sc-reference-visuals .sc-display-meta small,
 .safe-cracker-game.sc-reference-visuals .sc-display-meta b {
-  color: inherit;
-  font-size: clamp(.42rem, 1.75vw, .66rem);
-  line-height: 1;
-  letter-spacing: .05em;
-  white-space: nowrap;
+  color: inherit !important;
+  font-size: clamp(.4rem, 1.7vw, .62rem) !important;
+  line-height: 1 !important;
+  letter-spacing: .05em !important;
+  white-space: nowrap !important;
 }
 
-/* Rim/pointer and hub stay fixed while only the number plate rotates. */
+.safe-cracker-game.sc-reference-visuals .sc-display.red .sc-display-status { color: #ff7468 !important; }
+.safe-cracker-game.sc-reference-visuals .sc-display.orange .sc-display-status { color: #ffad5c !important; }
+.safe-cracker-game.sc-reference-visuals .sc-display.yellow .sc-display-status { color: #f3d472 !important; }
+.safe-cracker-game.sc-reference-visuals .sc-display.green .sc-display-status { color: #91e8aa !important; }
+
+/* Only the numbered plate rotates. The photographed outer rim and pointer remain
+   fixed in the safe-body PNG, so its reflections stay anchored to the room. */
 .safe-cracker-game.sc-reference-visuals .sc-dial-wrap {
-  position: absolute;
-  left: 13.33%;
-  top: 20.46%;
-  z-index: 12;
-  width: 72.22%;
-  height: auto;
-  max-width: none;
-  max-height: none;
-  aspect-ratio: 325 / 328;
-  margin: 0;
-  overflow: visible;
-  filter: none;
+  position: absolute !important;
+  left: 23.73% !important;
+  top: 28.16% !important;
+  z-index: 22 !important;
+  width: 52.55% !important;
+  height: 40.46% !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  overflow: visible !important;
+  filter: none !important;
 }
 
 .safe-cracker-game.sc-reference-visuals .sc-dial-wrap::before,
 .safe-cracker-game.sc-reference-visuals .sc-dial-wrap::after {
-  content: '';
-  position: absolute;
-  pointer-events: none;
-  transform: none;
-  clip-path: none;
-}
-
-.safe-cracker-game.sc-reference-visuals .sc-dial-wrap::before {
-  inset: 0;
-  z-index: 8;
-  background: url('/assets/safe-cracker/png-ui/dial-rim-pointer.png') center / 100% 100% no-repeat;
-  filter: drop-shadow(0 12px 14px rgba(0, 0, 0, .5));
-}
-
-.safe-cracker-game.sc-reference-visuals .sc-dial-wrap::after {
-  left: 29.23%;
-  top: 29.27%;
-  z-index: 10;
-  width: 41.54%;
-  aspect-ratio: 1;
-  border-radius: 50%;
-  background: url('/assets/safe-cracker/png-ui/dial-hub.png') center / 100% 100% no-repeat;
+  display: none !important;
+  content: none !important;
 }
 
 .safe-cracker-game.sc-reference-visuals .sc-dial {
-  position: absolute;
-  left: 11.69%;
-  top: 12.2%;
-  z-index: 5;
-  width: 76.92%;
-  height: 76.22%;
-  inset: auto;
-  border: 0;
-  border-radius: 50%;
-  filter: none;
-  box-shadow: none;
-  touch-action: none;
-  user-select: none;
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 5 !important;
+  width: 100% !important;
+  height: 100% !important;
+  overflow: visible !important;
+  border: 0 !important;
+  border-radius: 50% !important;
+  filter: none !important;
+  box-shadow: none !important;
+  touch-action: none !important;
+  user-select: none !important;
 }
 
-.safe-cracker-game.sc-reference-visuals .sc-dial::before,
+/* A restrained screen-fixed crescent adds life without covering the artwork. */
+.safe-cracker-game.sc-reference-visuals .sc-dial::before {
+  content: '' !important;
+  position: absolute !important;
+  inset: 1.5% !important;
+  z-index: 9 !important;
+  display: block !important;
+  border-radius: 50% !important;
+  background:
+    radial-gradient(ellipse 38% 13% at 35% 8%, rgba(255,255,255,.22), rgba(255,235,186,.055) 43%, transparent 76%),
+    radial-gradient(ellipse 12% 31% at 8% 39%, rgba(255,255,255,.07), transparent 72%) !important;
+  mix-blend-mode: screen !important;
+  opacity: .68 !important;
+  pointer-events: none !important;
+  transform: none !important;
+  clip-path: none !important;
+}
+
 .safe-cracker-game.sc-reference-visuals .sc-dial::after,
 .safe-cracker-game.sc-reference-visuals .sc-dial-pointer {
   display: none !important;
@@ -199,15 +207,19 @@ const hybridCss = String.raw`${cssStart}
 }
 
 .safe-cracker-game.sc-reference-visuals .sc-dial-face {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  border: 0;
-  border-radius: 50%;
-  background: url('/assets/safe-cracker/png-ui/dial-face.png') center / 100% 100% no-repeat;
-  box-shadow: none;
-  transform-origin: 50% 50%;
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  border: 0 !important;
+  border-radius: 50% !important;
+  background-color: transparent !important;
+  background-image: url('/assets/safe-cracker/png-ui/dial-face.png?v=2') !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-size: 100% 100% !important;
+  box-shadow: none !important;
+  transform-origin: 50% 50% !important;
   will-change: transform;
 }
 
@@ -217,96 +229,100 @@ const hybridCss = String.raw`${cssStart}
 }
 
 .safe-cracker-game.sc-reference-visuals .sc-current-number {
-  left: 50%;
-  top: 50%;
-  z-index: 14;
-  width: 30%;
-  height: 30%;
-  border: 0;
-  border-radius: 50%;
-  color: #ffe6a0;
-  background: transparent;
-  box-shadow: none;
-  font-size: clamp(2rem, 12vw, 4.15rem);
-  text-shadow: 0 3px 3px #000, 0 0 12px rgba(255, 187, 53, .62);
+  left: 50% !important;
+  top: 50% !important;
+  z-index: 14 !important;
+  width: 36.3% !important;
+  height: 36.3% !important;
+  border: 0 !important;
+  border-radius: 50% !important;
+  color: #ffe6a0 !important;
+  background:
+    radial-gradient(ellipse at 38% 23%, rgba(255,239,197,.12), transparent 30%),
+    radial-gradient(circle, #120d04 0%, #040404 69%, #000 100%) !important;
+  box-shadow:
+    inset 0 0 22px rgba(255,170,25,.09),
+    inset 5px 4px 8px rgba(255,255,255,.022),
+    0 0 16px rgba(255,174,31,.08) !important;
+  font: 900 clamp(2rem, 9vw, 4.6rem)/1 ui-monospace, SFMono-Regular, Menlo, monospace !important;
+  text-shadow: 0 3px 3px #000, 0 0 12px rgba(255, 187, 53, .62) !important;
+  pointer-events: none !important;
 }
 
-/* The real buttons sit exactly over the blank photographed button wells. */
+/* Real controls occupy the transparent interiors of the photographed frames. */
 .safe-cracker-game.sc-reference-visuals .sc-step-controls {
-  position: absolute;
-  left: 26%;
-  top: 71.12%;
-  z-index: 30;
-  width: 49.33%;
-  height: 12.38%;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1.82%;
-  align-items: stretch;
+  position: absolute !important;
+  left: 31.25% !important;
+  top: 73.44% !important;
+  z-index: 30 !important;
+  width: 37.5% !important;
+  height: 6.35% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 12% !important;
+  align-items: stretch !important;
 }
 
 .safe-cracker-game.sc-reference-visuals .sc-step-controls button {
-  position: relative;
-  z-index: 31;
-  width: 100%;
-  height: 100%;
-  min-width: 0;
-  padding: 0;
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-  border: 0;
-  border-radius: 0;
-  color: transparent;
-  background-color: transparent;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: 100% 100%;
-  box-shadow: none;
-  font-size: 0;
-  line-height: 0;
-  text-shadow: none;
+  position: relative !important;
+  z-index: 31 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  padding: 0 0 4% !important;
+  display: grid !important;
+  place-items: center !important;
+  overflow: hidden !important;
+  border: 0 !important;
+  border-radius: 9% !important;
+  color: #f3c86e !important;
+  background:
+    radial-gradient(ellipse at 38% 0, rgba(255,245,211,.11), transparent 44%),
+    linear-gradient(180deg, rgba(49,48,43,.98), rgba(8,9,9,.99)) !important;
+  box-shadow:
+    inset 0 2px 0 rgba(255,239,196,.12),
+    inset 0 -10px 17px rgba(0,0,0,.54) !important;
+  font: 900 clamp(1.2rem, 6vw, 2.3rem)/1 Arial, sans-serif !important;
+  text-shadow: 0 2px 2px #000, 0 0 6px rgba(255,187,53,.14) !important;
   -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
+  touch-action: manipulation !important;
 }
 
-.safe-cracker-game.sc-reference-visuals .sc-step-controls button:first-child {
-  background-image: url('/assets/safe-cracker/png-ui/button-minus.png');
-}
-.safe-cracker-game.sc-reference-visuals .sc-step-controls button:last-child {
-  background-image: url('/assets/safe-cracker/png-ui/button-plus.png');
-}
 .safe-cracker-game.sc-reference-visuals .sc-step-controls button:not(:disabled):active {
-  transform: translateY(2px) scale(.985);
-  filter: brightness(.9);
-  box-shadow: none;
+  transform: translateY(2px) scale(.985) !important;
+  filter: brightness(.9) !important;
+  box-shadow: inset 0 1px 0 rgba(255,239,196,.08), inset 0 -7px 12px rgba(0,0,0,.58) !important;
 }
 
 .safe-cracker-game.sc-reference-visuals .sc-confirm-button {
-  position: absolute;
-  left: 12.67%;
-  top: 82.84%;
-  z-index: 30;
-  width: 76%;
-  height: 15.35%;
-  min-height: 0;
-  margin: 0;
-  padding: 5% 9% 7%;
-  display: grid;
-  place-items: center;
-  overflow: visible;
-  border: 0;
-  border-radius: 0;
-  color: #f5d38c;
-  background: transparent url('/assets/safe-cracker/png-ui/button-check-frame.png') center / 100% 100% no-repeat;
-  box-shadow: none;
-  font: 900 clamp(.85rem, 4.3vw, 1.45rem)/1 Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
-  letter-spacing: .075em;
-  text-shadow: 0 2px 2px #000, 0 0 7px rgba(255, 187, 53, .2);
+  position: absolute !important;
+  left: 20.6% !important;
+  top: 86.81% !important;
+  z-index: 30 !important;
+  width: 58.8% !important;
+  height: 7.4% !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 4% !important;
+  display: grid !important;
+  place-items: center !important;
+  overflow: hidden !important;
+  border: 0 !important;
+  border-radius: 7% !important;
+  color: #f5d38c !important;
+  background:
+    radial-gradient(ellipse at 43% 0, rgba(255,239,196,.13), transparent 42%),
+    linear-gradient(180deg, rgba(55,50,41,.99), rgba(8,9,9,.99)) !important;
+  box-shadow:
+    inset 0 2px 0 rgba(255,245,216,.13),
+    inset 0 -14px 21px rgba(0,0,0,.61) !important;
+  font: 900 clamp(.8rem, 4.2vw, 1.4rem)/1 Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif !important;
+  letter-spacing: .07em !important;
+  text-shadow: 0 2px 2px #000, 0 0 7px rgba(255,187,53,.16) !important;
   -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
+  touch-action: manipulation !important;
 }
 
 .safe-cracker-game.sc-reference-visuals .sc-confirm-button::before,
@@ -316,47 +332,38 @@ const hybridCss = String.raw`${cssStart}
 }
 
 .safe-cracker-game.sc-reference-visuals .sc-confirm-button span {
-  position: relative;
-  z-index: 1;
-  transform: translateY(-2%);
+  position: relative !important;
+  z-index: 1 !important;
 }
 
 .safe-cracker-game.sc-reference-visuals .sc-confirm-button:not(:disabled):active {
-  transform: translateY(2px) scale(.992);
-  filter: brightness(.91);
-  box-shadow: none;
+  transform: translateY(2px) scale(.992) !important;
+  filter: brightness(.91) !important;
+  box-shadow: inset 0 1px 0 rgba(255,245,216,.08), inset 0 -10px 16px rgba(0,0,0,.65) !important;
 }
+
 .safe-cracker-game.sc-reference-visuals .sc-confirm-button:disabled {
-  opacity: .78;
-  filter: saturate(.55) brightness(.72);
+  opacity: 1 !important;
+  color: rgba(229,207,158,.48) !important;
+  filter: saturate(.55) brightness(.74) !important;
 }
 
-@media (max-width: 700px) {
-  .safe-cracker-game.sc-reference-visuals .sc-safe-shell {
-    width: calc(100% - 4px);
-    margin-inline: 2px;
-  }
-  .safe-cracker-game.sc-reference-visuals .sc-display {
-    padding-top: 6%;
-  }
+@media (max-width: 430px) {
   .safe-cracker-game.sc-reference-visuals .sc-display-status {
-    font-size: clamp(.78rem, 5.6vw, 1.35rem);
+    font-size: clamp(.82rem, 5.1vw, 1.25rem) !important;
   }
-  .safe-cracker-game.sc-reference-visuals .sc-current-number {
-    font-size: clamp(1.9rem, 13vw, 3.45rem);
-  }
-  .safe-cracker-game.sc-reference-visuals .sc-confirm-button {
-    font-size: clamp(.78rem, 5vw, 1.18rem);
-  }
-}
-
-@media (max-width: 380px) {
   .safe-cracker-game.sc-reference-visuals .sc-display-meta {
-    gap: 3px;
+    margin-top: 3px !important;
   }
   .safe-cracker-game.sc-reference-visuals .sc-display-meta small,
   .safe-cracker-game.sc-reference-visuals .sc-display-meta b {
-    font-size: clamp(.35rem, 1.65vw, .5rem);
+    font-size: clamp(.36rem, 1.85vw, .51rem) !important;
+  }
+  .safe-cracker-game.sc-reference-visuals .sc-current-number {
+    font-size: clamp(1.75rem, 10vw, 3.2rem) !important;
+  }
+  .safe-cracker-game.sc-reference-visuals .sc-confirm-button {
+    font-size: clamp(.68rem, 4.35vw, .98rem) !important;
   }
 }
 
@@ -377,8 +384,8 @@ let html = await readFile(indexUrl, 'utf8');
 html = html.replaceAll('&depth=1&png=1', '&depth=1');
 html = html.replaceAll('&depth=1', '&depth=1&png=1');
 if (!html.includes('&reference=1&depth=1&png=1')) {
-  throw new Error('Safe Cracker PNG hybrid could not version the reference assets.');
+  throw new Error('Safe Cracker PNG hybrid could not version the supplied reference assets.');
 }
 await writeFile(indexUrl, html);
 
-console.log('Applied Safe Cracker PNG hybrid v15: photographed static safe, independently rotating dial plate, fixed rim and hub, and live aligned controls.');
+console.log('Applied Safe Cracker PNG hybrid v15: supplied static safe body, independently rotating numbered plate, fixed photographed pointer and reflections, and live aligned controls.');
