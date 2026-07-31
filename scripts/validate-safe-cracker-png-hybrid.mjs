@@ -1,10 +1,8 @@
+import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 
 const root = new URL('../', import.meta.url);
-const pngNames = Object.freeze([
-  'safe-body.png',
-  'dial-face.png'
-]);
+const pngNames = Object.freeze(['safe-body.png', 'dial-face.png']);
 const [client, css, index, assetPatch, hybridPatch, turnAnimation, turnFire, audioBindings, ...pngs] = await Promise.all([
   readFile(new URL('assets/safe-cracker/safe-cracker.js', root), 'utf8'),
   readFile(new URL('assets/safe-cracker/safe-cracker.css', root), 'utf8'),
@@ -28,16 +26,19 @@ function pngDimensions(buffer) {
   assert(buffer.length >= 24 && buffer.subarray(0, 8).equals(signature), 'asset does not have a PNG signature');
   return [buffer.readUInt32BE(16), buffer.readUInt32BE(20)];
 }
+function sha256(buffer) {
+  return createHash('sha256').update(buffer).digest('hex');
+}
 
 assert(occurrences(css, '/* SAFE_CRACKER_PNG_HYBRID_V15_START */') === 1, 'hybrid CSS marker must appear exactly once');
 assert(occurrences(css, '/* SAFE_CRACKER_PNG_HYBRID_V15_END */') === 1, 'hybrid CSS end marker must appear exactly once');
 assert(css.includes("background-image: url('/assets/safe-cracker/png-ui/safe-body.png?v=2')"), 'supplied static safe body PNG is not mounted');
 assert(css.includes("background-image: url('/assets/safe-cracker/png-ui/dial-face.png?v=2')"), 'supplied rotating dial-face PNG is not mounted');
 assert(css.includes('aspect-ratio: 432 / 561'), 'static safe geometry is not bounded to the supplied artwork ratio');
-assert(css.includes('left: 23.495%') && css.includes('top: 9.002%'), 'live display is not aligned to the transparent display opening');
+assert(css.includes('left: 23.495%') && css.includes('top: 9.002%'), 'live display is not aligned to the display opening');
 assert(css.includes('left: 23.73%') && css.includes('top: 28.16%'), 'rotating dial plate is not aligned to the static body');
-assert(css.includes('left: 31.25%') && css.includes('top: 73.44%'), 'minus and plus controls are not aligned to their photographed frames');
-assert(css.includes('left: 20.6%') && css.includes('top: 86.81%'), 'confirmation control is not aligned to its photographed frame');
+assert(css.includes('left: 31.25%') && css.includes('top: 73.44%'), 'minus and plus controls are not aligned to their frames');
+assert(css.includes('left: 20.6%') && css.includes('top: 86.81%'), 'confirmation control is not aligned to its frame');
 assert(css.includes('.sc-dial-number,') && css.includes('.sc-dial-hub {\n  display: none !important;'), 'legacy CSS dial numbers or hub are still visible');
 assert(css.includes('.sc-safe-handle') && css.includes('content: none !important;'), 'legacy CSS safe hardware is still visible');
 assert(css.includes('.sc-display-status') && css.includes('.sc-display-meta'), 'live status and attempt text were removed');
@@ -56,16 +57,19 @@ assert(css.includes('/* SAFE_CRACKER_REFLECTION_DEPTH_V14_START */'), 'reflectio
 const [bodyWidth, bodyHeight] = pngDimensions(pngs[0]);
 const [dialWidth, dialHeight] = pngDimensions(pngs[1]);
 assert(bodyWidth === 432 && bodyHeight === 561, `safe-body.png dimensions changed to ${bodyWidth}x${bodyHeight}`);
-assert(dialWidth === 226 && dialHeight === 226, `dial-face.png dimensions changed to ${dialWidth}x${dialHeight}`);
-assert(pngs[0].length > 40_000, 'safe-body.png is unexpectedly small');
-assert(pngs[1].length > 10_000, 'dial-face.png is unexpectedly small');
+assert(dialWidth === 170 && dialHeight === 170, `dial-face.png dimensions changed to ${dialWidth}x${dialHeight}`);
+assert(pngs[0].length === 14_233, `safe-body.png size changed to ${pngs[0].length}`);
+assert(pngs[1].length === 7_772, `dial-face.png size changed to ${pngs[1].length}`);
+assert(sha256(pngs[0]) === 'e22b685648785a0e829235a37774802b9ed4f48bcabead86abc726748ac71eba', 'safe-body.png checksum changed');
+assert(sha256(pngs[1]) === 'c23d03bd2bba8c9d0ca1b6e7091fd3c29ef887296d6147226da33081140aca33', 'dial-face.png checksum changed');
 
-assert(assetPatch.includes("Buffer.from('SCPNG2\\n'"), 'asset patch does not verify the supplied-reference bundle header');
-assert(assetPatch.includes('pngSignature'), 'asset patch does not validate PNG signatures');
+assert(assetPatch.includes('Verified directly committed Safe Cracker PNG layers'), 'asset patch does not validate directly committed PNGs');
+assert(assetPatch.includes('createHash') && assetPatch.includes('pngSignature'), 'asset patch does not validate PNG signatures and checksums');
+assert(!assetPatch.includes('png-ui-v2-data'), 'obsolete Base64 reconstruction is still active');
 assert(turnAnimation.length > 0 && turnFire.length > 0 && audioBindings.length > 0, 'protected Roulette assets are unreadable');
 for (const patch of [assetPatch, hybridPatch]) {
   assert(!patch.includes("writeFile(new URL('../netlify/functions/"), 'PNG patch must not write networking files');
   assert(!patch.includes("writeFile(new URL('../assets/roulette/"), 'PNG patch must not write Roulette files');
 }
 
-console.log('Safe Cracker PNG-hybrid validation passed: the supplied static safe body, independently rotating numbered plate, fixed photographed reflections, live display and controls, responsive alignment, runtime stability, authoritative gameplay, audio, and protected Roulette boundaries are intact.');
+console.log('Safe Cracker PNG-hybrid validation passed: directly committed supplied safe artwork, independently rotating dial, live controls, runtime stability, authoritative gameplay, audio, and protected Roulette boundaries are intact.');
