@@ -7,6 +7,8 @@ await import('./validate-safe-cracker-runtime-stability.mjs');
 await import('./patch-safe-cracker-reference-visuals.mjs');
 await import('./patch-safe-cracker-reference-cache.mjs');
 await import('./validate-safe-cracker-reference-visuals.mjs');
+await import('./patch-safe-cracker-reflection-depth.mjs');
+await import('./validate-safe-cracker-reflection-depth.mjs');
 
 const packageUrl = new URL('../package.json', import.meta.url);
 const validatorUrl = new URL('./validate-lamp.mjs', import.meta.url);
