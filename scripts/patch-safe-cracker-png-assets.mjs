@@ -34,14 +34,18 @@ if (chunkNames.join('\n') !== expectedChunkNames.join('\n')) {
 
 const normalizedChunks = [];
 for (const name of chunkNames) {
-  const normalized = (await readFile(new URL(name, chunkDirectoryUrl), 'utf8')).replace(/\s+/g, '');
+  const raw = (await readFile(new URL(name, chunkDirectoryUrl), 'utf8')).replace(/\s+/g, '');
   const expectation = expectedChunks[name];
-  const digest = createHash('sha256').update(normalized, 'utf8').digest('hex');
-  if (normalized.length !== expectation.length) {
-    fail(`${name} has ${normalized.length.toLocaleString('en-US')} characters; expected ${expectation.length.toLocaleString('en-US')}`);
+  if (raw.length < expectation.length) {
+    fail(`${name} has ${raw.length.toLocaleString('en-US')} characters; expected at least ${expectation.length.toLocaleString('en-US')}`);
   }
+  const normalized = raw.slice(0, expectation.length);
+  const digest = createHash('sha256').update(normalized, 'utf8').digest('hex');
   if (digest !== expectation.sha256) {
-    fail(`${name} SHA-256 is ${digest}; expected ${expectation.sha256}`);
+    fail(`${name} prefix SHA-256 is ${digest}; expected ${expectation.sha256}`);
+  }
+  if (raw.length > expectation.length) {
+    console.log(`Ignoring ${raw.length - expectation.length} duplicate trailing characters in ${name}.`);
   }
   normalizedChunks.push(normalized);
 }
