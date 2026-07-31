@@ -24,10 +24,11 @@ const chunkNames = (await readdir(chunkDirectoryUrl))
   .sort((left, right) => left.localeCompare(right, 'en', { numeric: true }));
 if (!chunkNames.length) fail('no Base64 bundle chunks were found');
 
-const encoded = (await Promise.all(
+const rawEncoded = (await Promise.all(
   chunkNames.map(name => readFile(new URL(name, chunkDirectoryUrl), 'utf8'))
 )).join('').replace(/\s+/g, '');
-if (!encoded.length || encoded.length % 4 !== 0) fail('the Base64 bundle is empty or truncated');
+if (!rawEncoded.length) fail('the Base64 bundle is empty');
+const encoded = rawEncoded + '='.repeat((4 - (rawEncoded.length % 4)) % 4);
 
 const bundle = Buffer.from(encoded, 'base64');
 let offset = 0;
@@ -52,7 +53,9 @@ for (let index = 0; index < fileCount; index += 1) {
   offset += 4;
   if (!expectedSet.has(name)) fail(`unexpected file ${name}`);
   if (entries.has(name)) fail(`duplicate file ${name}`);
-  if (!dataLength || offset + dataLength > bundle.length) fail(`file ${name} is truncated`);
+  if (!dataLength || offset + dataLength > bundle.length) {
+    fail(`file ${name} is truncated (${Math.max(0, bundle.length - offset).toLocaleString('en-US')} of ${dataLength.toLocaleString('en-US')} bytes available)`);
+  }
   const data = bundle.subarray(offset, offset + dataLength);
   offset += dataLength;
   if (data.length < pngSignature.length || !data.subarray(0, pngSignature.length).equals(pngSignature)) {
