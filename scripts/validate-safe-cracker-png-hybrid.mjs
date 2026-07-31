@@ -63,13 +63,14 @@ assert(pngs[1].length === 7_772, `dial-face.png size changed to ${pngs[1].length
 assert(sha256(pngs[0]) === 'e22b685648785a0e829235a37774802b9ed4f48bcabead86abc726748ac71eba', 'safe-body.png checksum changed');
 assert(sha256(pngs[1]) === 'c23d03bd2bba8c9d0ca1b6e7091fd3c29ef887296d6147226da33081140aca33', 'dial-face.png checksum changed');
 
-assert(assetPatch.includes('Verified directly committed Safe Cracker PNG layers'), 'asset patch does not validate directly committed PNGs');
+assert(assetPatch.includes("Buffer.from('SCPNG5\\n'"), 'asset patch does not verify the compact supplied-artwork bundle header');
+assert(assetPatch.includes('png-ui-v5-data') && assetPatch.includes('expectedChunks'), 'asset patch does not use the verified compact chunks');
 assert(assetPatch.includes('createHash') && assetPatch.includes('pngSignature'), 'asset patch does not validate PNG signatures and checksums');
-assert(!assetPatch.includes('png-ui-v2-data'), 'obsolete Base64 reconstruction is still active');
+assert(assetPatch.includes('writeFile') && !assetPatch.includes('png-ui-v2-data'), 'obsolete PNG reconstruction path is still active');
 assert(turnAnimation.length > 0 && turnFire.length > 0 && audioBindings.length > 0, 'protected Roulette assets are unreadable');
 for (const patch of [assetPatch, hybridPatch]) {
   assert(!patch.includes("writeFile(new URL('../netlify/functions/"), 'PNG patch must not write networking files');
   assert(!patch.includes("writeFile(new URL('../assets/roulette/"), 'PNG patch must not write Roulette files');
 }
 
-console.log('Safe Cracker PNG-hybrid validation passed: directly committed supplied safe artwork, independently rotating dial, live controls, runtime stability, authoritative gameplay, audio, and protected Roulette boundaries are intact.');
+console.log('Safe Cracker PNG-hybrid validation passed: verified supplied safe artwork, independently rotating dial, live controls, runtime stability, authoritative gameplay, audio, and protected Roulette boundaries are intact.');
