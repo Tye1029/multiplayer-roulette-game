@@ -1,7 +1,7 @@
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 
 const rootUrl = new URL('../', import.meta.url);
-const chunkDirectoryUrl = new URL('assets/safe-cracker/png-ui-tiny-data/', rootUrl);
+const chunkDirectoryUrl = new URL('assets/safe-cracker/png-ui-v2-data/', rootUrl);
 const outputDirectoryUrl = new URL('assets/safe-cracker/png-ui/', rootUrl);
 const expectedNames = Object.freeze([
   'safe-body.png',
@@ -70,4 +70,4 @@ await mkdir(outputDirectoryUrl, { recursive: true });
 for (const name of expectedNames) await writeFile(new URL(name, outputDirectoryUrl), entries.get(name));
 
 const summary = expectedNames.map(name => `${name} (${entries.get(name).length.toLocaleString('en-US')} bytes)`).join(', ');
-console.log(`Reconstructed Safe Cracker hybrid PNG assets: ${summary}.`);
+console.log(`Reconstructed Safe Cracker hybrid PNG assets from v2 bundle: ${summary}.`);
