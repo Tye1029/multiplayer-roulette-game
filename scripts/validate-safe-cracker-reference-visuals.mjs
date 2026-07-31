@@ -1,11 +1,12 @@
 import { readFile } from 'node:fs/promises';
 
 const root = new URL('../', import.meta.url);
-const [client, css, index, patch, turnAnimation, turnFire, audioBindings] = await Promise.all([
+const [client, css, index, patch, cachePatch, turnAnimation, turnFire, audioBindings] = await Promise.all([
   readFile(new URL('assets/safe-cracker/safe-cracker.js', root), 'utf8'),
   readFile(new URL('assets/safe-cracker/safe-cracker.css', root), 'utf8'),
   readFile(new URL('index.html', root), 'utf8'),
   readFile(new URL('scripts/patch-safe-cracker-reference-visuals.mjs', root), 'utf8'),
+  readFile(new URL('scripts/patch-safe-cracker-reference-cache.mjs', root), 'utf8'),
   readFile(new URL('assets/roulette/turn-animation.js', root)),
   readFile(new URL('assets/roulette/turn-fire.js', root)),
   readFile(new URL('assets/roulette/audio-bindings.js', root))
@@ -30,16 +31,17 @@ const checks = [
   ['premium gold dial and illuminated number are present', css.includes('.safe-cracker-game.sc-reference-visuals .sc-dial-face') && css.includes('.safe-cracker-game.sc-reference-visuals .sc-current-number')],
   ['gold-trimmed controls are present', css.includes('.safe-cracker-game.sc-reference-visuals .sc-step-controls button') && css.includes('.safe-cracker-game.sc-reference-visuals .sc-confirm-button')],
   ['mobile hierarchy remains bounded', css.includes('@media (max-width: 700px)') && css.includes('@media (max-width: 700px) and (max-height: 780px)')],
-  ['reference cache bust is present', index.includes('&audio=1&samples=1&stability=1&reference=1')],
+  ['reference JavaScript cache bust is present', index.includes('&audio=1&samples=1&stability=1&reference=1')],
+  ['reference stylesheet cache bust is present', index.includes('safe-cracker.css?v=8&polish=2&fit=2&result=1&final=1&refine=1&correct=1&input=1&reference=1')],
   ['runtime stability remains installed', client.includes('// SAFE_CRACKER_RUNTIME_STABILITY_V12_START')],
   ['sample mix remains installed', client.includes('// SAFE_CRACKER_SAMPLE_MIX_V11_START')],
   ['input continuity remains installed', client.includes('// SAFE_CRACKER_INPUT_CONTINUITY_V9_START')],
   ['authoritative number submission is unchanged', client.includes('choice: `safecracker:guess:${runtime.selected}`')],
   ['protected Roulette assets remain readable', turnAnimation.length > 0 && turnFire.length > 0 && audioBindings.length > 0],
-  ['visual patch cannot write networking files', !patch.includes("writeFile(new URL('../netlify/functions/")],
-  ['visual patch cannot write Roulette files', !patch.includes("writeFile(new URL('../assets/roulette/")]
+  ['visual patches cannot write networking files', !patch.includes("writeFile(new URL('../netlify/functions/") && !cachePatch.includes("writeFile(new URL('../netlify/functions/")],
+  ['visual patches cannot write Roulette files', !patch.includes("writeFile(new URL('../assets/roulette/") && !cachePatch.includes("writeFile(new URL('../assets/roulette/")]
 ];
 
 for (const [label, condition] of checks) assert(condition, label);
 
-console.log('Safe Cracker reference visuals passed: gold framing, shadowed steel, fixed reflections, premium dial lighting, responsive mobile hierarchy, runtime stability, audio, gameplay submission, and protected Roulette boundaries are intact.');
+console.log('Safe Cracker reference visuals passed: gold framing, shadowed steel, fixed reflections, premium dial lighting, mobile hierarchy, cache boundaries, runtime stability, audio, gameplay submission, and protected Roulette boundaries are intact.');
