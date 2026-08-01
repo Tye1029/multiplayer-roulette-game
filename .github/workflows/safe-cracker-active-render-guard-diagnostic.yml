@@ -1,0 +1,55 @@
+name: Safe Cracker Active Render Guard Diagnostic
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - safe-cracker-development
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+      - name: Use Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install dependencies
+        run: npm install
+      - name: Run exact Netlify build and regressions
+        run: npm run build
+      - name: Verify live active render guard
+        shell: bash
+        run: |
+          url='https://deploy-preview-19--famous-piroshki-b621da.netlify.app/'
+          function_url="${url}.netlify/functions/duel-action"
+          js_path='assets/safe-cracker/safe-cracker.js?v=8&polish=2&fit=2&result=1&final=1&refine=1&correct=1&input=1&audio=1&samples=1&texture=1'
+          for attempt in $(seq 1 36); do
+            html="$(curl -fsSL --max-time 20 "${url}?render_guard_commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            js="$(curl -fsSL --max-time 20 "${url}${js_path}&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            headers="$(curl -fsS --max-time 20 -D - -o /dev/null -X OPTIONS "${function_url}?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            if grep -Fq 'SAFE_CRACKER_ACTIVE_RENDER_GUARD_V13_START' <<<"$html" && \
+               grep -Fq "['ready', 'countdown', 'playing']" <<<"$html" && \
+               grep -Fq 'window.__safeCrackerRenderGuardRecoveries' <<<"$html" && \
+               grep -Fq 'duelRenderActive(safeCrackerActiveRenderGame, true);' <<<"$html" && \
+               ! grep -Fq 'duelRenderActive(data.game, true);' <<<"$html" && \
+               grep -Fq 'SAFE_CRACKER_INPUT_CONTINUITY_V9_START' <<<"$js" && \
+               grep -Fq 'SAFE_CRACKER_SAMPLE_MIX_V11_START' <<<"$js" && \
+               grep -Fq 'choice: `safecracker:guess:${runtime.selected}`' <<<"$js" && \
+               grep -Fiq 'x-duel-function-build: safecracker-direct-v8' <<<"$headers"; then
+              echo "Verified live Safe Cracker active render guard v13, authoritative gameplay, audio, input continuity, and protected server boundary at ${url}"
+              exit 0
+            fi
+            echo "Waiting for Netlify Safe Cracker active render guard (${attempt}/36)..."
+            sleep 10
+          done
+          echo 'Netlify preview did not become available with the Safe Cracker active render guard.' >&2
+          exit 1
