@@ -21,12 +21,13 @@ function occurrences(source, value) {
   return source.split(value).length - 1;
 }
 
-const start = '/* SAFE_CRACKER_LIGHT_SOURCE_V3_START */';
-const end = '/* SAFE_CRACKER_LIGHT_SOURCE_V3_END */';
+const start = '/* SAFE_CRACKER_LIGHT_SOURCE_V4_START */';
+const end = '/* SAFE_CRACKER_LIGHT_SOURCE_V4_END */';
 assert(occurrences(css, start) === 1, 'scene-light start marker must appear exactly once');
 assert(occurrences(css, end) === 1, 'scene-light end marker must appear exactly once');
-assert(!css.includes('/* SAFE_CRACKER_LIGHT_SOURCE_V1_START */'), 'legacy warm light block remains');
-assert(!css.includes('/* SAFE_CRACKER_LIGHT_SOURCE_V2_START */'), 'legacy dial-local light block remains');
+for (const version of [1, 2, 3]) {
+  assert(!css.includes(`/* SAFE_CRACKER_LIGHT_SOURCE_V${version}_START */`), `legacy light v${version} block remains`);
+}
 const blockStart = css.indexOf(start);
 const blockEnd = css.indexOf(end, blockStart);
 assert(blockStart >= 0 && blockEnd > blockStart, 'scene-light marker order is invalid');
@@ -45,26 +46,25 @@ assert(block.includes('inset 0 0 48px rgba(0, 0, 0, .46)'), 'recessed safe areas
 assert(block.includes('.safe-cracker-game .sc-safe-door'), 'safe-door material response is missing');
 assert(block.includes('.safe-cracker-game .sc-display'), 'display edge response is missing');
 assert(block.includes('.safe-cracker-game .sc-dial-wrap'), 'dial cavity response is missing');
-assert(block.includes('.safe-cracker-game .sc-dial-face'), 'dial material restoration is missing');
-assert(block.includes('.safe-cracker-game .sc-dial-hub'), 'dial hub restoration is missing');
-assert(block.includes('.safe-cracker-game .sc-step-controls button'), 'step-button material is missing');
-assert(block.includes('.safe-cracker-game .sc-confirm-button'), 'confirmation-button material is missing');
+assert(block.includes('.safe-cracker-game .sc-dial-face'), 'dial edge response is missing');
+assert(block.includes('.safe-cracker-game .sc-dial-hub'), 'dial hub edge response is missing');
+assert(block.includes('.safe-cracker-game .sc-step-controls button'), 'step-button edge response is missing');
+assert(block.includes('.safe-cracker-game .sc-confirm-button'), 'confirmation-button edge response is missing');
 
-const dialFaceStart = block.indexOf('.safe-cracker-game .sc-dial-face');
-const dialHubStart = block.indexOf('.safe-cracker-game .sc-dial-hub', dialFaceStart);
-const dialFaceBlock = block.slice(dialFaceStart, dialHubStart);
-assert(!dialFaceBlock.includes('circle at 38% 28%'), 'directional baked highlight remains on the rotating face');
-assert(!dialFaceBlock.includes('--sc-scene-key'), 'scene light is still painted directly onto the rotating face');
-assert(dialFaceBlock.includes('radial-gradient(circle at 50% 50%'), 'rotating dial face is not directionally neutral');
-assert(dialFaceBlock.includes("url('/assets/safe-cracker/textures/dial-machined.svg?v=1')"), 'rotating dial texture was not preserved');
-assert(block.includes("url('/assets/safe-cracker/textures/safe-steel-base.svg?v=1')"), 'approved steel texture was not preserved');
-assert(block.includes("url('/assets/safe-cracker/textures/metal-wear.svg?v=1')"), 'approved wear texture was not preserved');
-assert(css.includes('/* SAFE_CRACKER_TEXTURE_PASS_V3_START */'), 'A2 image texture pass is missing');
+assert(!block.includes('background-image:'), 'light pass is still replacing texture artwork');
+assert(!block.includes('safe-steel-base.svg'), 'light pass still owns the steel texture');
+assert(!block.includes('metal-wear.svg'), 'light pass still owns the wear texture');
+assert(!block.includes('dial-machined.svg'), 'light pass still owns the dial texture');
+assert(!block.includes('repeating-conic-gradient'), 'light pass reintroduced rotating directional wedges');
+assert(!block.includes('circle at 38% 28%'), 'directional baked highlight remains on the rotating face');
+assert(css.includes('/* SAFE_CRACKER_TEXTURE_PASS_V4_START */'), 'corrected A2 image texture pass is missing');
+assert(css.includes("url('/assets/safe-cracker/textures/dial-machined.svg?v=2')"), 'neutral dial texture is missing');
+assert(css.includes('.safe-cracker-game .sc-dial-wrap::after'), 'fixed dial highlight is missing');
 assert(css.includes('/* SAFE_CRACKER_SHADOW_DEPTH_V1_START */'), 'structural shadow pass is missing');
-assert(index.includes('&texture=3'), 'A2 texture cache boundary changed');
+assert(index.includes('&texture=4'), 'A2 texture cache boundary changed');
 assert(index.includes('&shadow=1'), 'shadow cache boundary changed');
-assert(index.includes('&light=3'), 'scene-light cache boundary is missing');
-assert(!index.includes('&light=1') && !index.includes('&light=2'), 'legacy light cache boundary remains');
+assert(index.includes('&light=4'), 'scene-light cache boundary is missing');
+assert(!index.includes('&light=1') && !index.includes('&light=2') && !index.includes('&light=3'), 'legacy light cache boundary remains');
 assert(texturePatch.includes("await import('./patch-safe-cracker-shadow-depth.mjs')"), 'texture pipeline no longer invokes shadow depth');
 assert(lampPipeline.indexOf("await import('./patch-safe-cracker-texture-pass.mjs')") < lampPipeline.indexOf("await import('./patch-safe-cracker-light-source.mjs')"), 'light pass does not run after texture and shadow depth');
 assert(lampPipeline.includes("await import('./validate-safe-cracker-shadow-depth.mjs')"), 'shadow-depth validation is missing from the build pipeline');
@@ -85,4 +85,4 @@ assert(client.includes('// SAFE_CRACKER_SAMPLE_MIX_V11_START'), 'sample mix v11 
 assert(duelAction.includes('safecracker'), 'Safe Cracker server mode is unreadable');
 assert(turnAnimation.length > 0 && turnFire.length > 0 && audioBindings.length > 0, 'protected Roulette assets are unreadable');
 
-console.log('Safe Cracker light-source validation passed: one broad cool-white scene overlay spans the complete safe, shadowed recesses receive soft fill, and rotating dial materials contain no directional light.');
+console.log('Safe Cracker light-source validation passed: one fixed scene overlay spans the complete safe, material artwork remains owned by the corrected A2 texture pass, and no dial-bound directional lighting is reintroduced.');
