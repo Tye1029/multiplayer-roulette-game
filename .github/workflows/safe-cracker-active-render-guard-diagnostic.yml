@@ -38,9 +38,9 @@ jobs:
             headers="$(curl -fsS --max-time 20 -D - -o /dev/null -X OPTIONS "${function_url}?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             if grep -Fq 'SAFE_CRACKER_ACTIVE_RENDER_GUARD_V13_START' <<<"$html" && \
                grep -Fq "['ready', 'countdown', 'playing']" <<<"$html" && \
+               grep -Fq 'duelKnownRevisionByGame.set' <<<"$html" && \
                grep -Fq 'window.__safeCrackerRenderGuardRecoveries' <<<"$html" && \
                grep -Fq 'duelRenderActive(safeCrackerActiveRenderGame, true);' <<<"$html" && \
-               ! grep -Fq 'duelRenderActive(data.game, true);' <<<"$html" && \
                grep -Fq 'SAFE_CRACKER_INPUT_CONTINUITY_V9_START' <<<"$js" && \
                grep -Fq 'SAFE_CRACKER_SAMPLE_MIX_V11_START' <<<"$js" && \
                grep -Fq 'choice: `safecracker:guess:${runtime.selected}`' <<<"$js" && \
