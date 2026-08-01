@@ -36,17 +36,27 @@ jobs:
           set -euo pipefail
           block="$(sed -n '/SAFE_CRACKER_LATCH_SEQUENCE_V1_START/,/SAFE_CRACKER_LATCH_SEQUENCE_V1_END/p' assets/safe-cracker/safe-cracker.css)"
           grep -Fq 'background-color: #aab4b8 !important' <<<"$block"
-          grep -Fq '0 5px 10px rgba(0,0,0,.48) !important' <<<"$block"
+          grep -Fq 'background-clip: padding-box !important' <<<"$block"
+          grep -Fq 'border: 3px solid #050708 !important' <<<"$block"
+          grep -Fq 'filter: none !important' <<<"$block"
+          grep -Fq '.sc-confirm-button::after' <<<"$block"
+          grep -Fq 'bottom: -7px' <<<"$block"
+          grep -Fq 'height: 7px' <<<"$block"
+          grep -Fq 'background: #050708 !important' <<<"$block"
+          grep -Fq '.sc-confirm-button:active::after' <<<"$block"
+          grep -Fq 'bottom: -3px' <<<"$block"
+          grep -Fq 'height: 3px' <<<"$block"
           grep -Fq 'transform: translateY(4px) !important' <<<"$block"
           ! grep -Fq '#c98b29' <<<"$block"
           ! grep -Fq '#855515' <<<"$block"
+          ! grep -Fq '#4d3010' <<<"$block"
           ! grep -Fq '0 7px 0' <<<"$block"
           grep -Fq '.sc-bolts.right i.sc-latch-released' <<<"$block"
-          grep -Fq 'transform .58s cubic-bezier(.2,.85,.28,1)' <<<"$block"
-          grep -Fq 'filter .4s ease' <<<"$block"
-          grep -Fq 'opacity .4s ease' <<<"$block"
-          grep -Fq 'animation: scSafeCrackerLatchReleaseV1 .82s' <<<"$block"
-          ! grep -Fq 'animation: scSafeCrackerLatchReleaseV1 .58s' <<<"$block"
+          grep -Fq 'transform .82s cubic-bezier(.2,.85,.28,1)' <<<"$block"
+          grep -Fq 'filter .58s ease' <<<"$block"
+          grep -Fq 'opacity .58s ease' <<<"$block"
+          grep -Fq 'animation: scSafeCrackerLatchReleaseV1 1.15s' <<<"$block"
+          ! grep -Fq 'animation: scSafeCrackerLatchReleaseV1 .82s' <<<"$block"
           grep -Fq 'right: -4px' <<<"$block"
           grep -Fq 'SAFE_CRACKER_LATCH_SEQUENCE_V1_RUNTIME' assets/safe-cracker/safe-cracker.js
           grep -Fq 'SAFE_CRACKER_LATCH_SEQUENCE_V1_HELPER' assets/safe-cracker/safe-cracker.js
@@ -57,7 +67,7 @@ jobs:
           grep -Fq 'latchClass(3)' assets/safe-cracker/safe-cracker.js
           grep -Fq 'safeCrackerLatchBank(game, me)' assets/safe-cracker/safe-cracker.js
           ! grep -Fiq 'RESETTING' assets/safe-cracker/safe-cracker.js
-          grep -Fq '&layout=7&latch=2' index.html
+          grep -Fq '&layout=7&latch=3' index.html
 
       - name: Verify live Netlify latch sequence
         shell: bash
@@ -67,23 +77,28 @@ jobs:
           function_url="${url}.netlify/functions/duel-action"
 
           for attempt in $(seq 1 42); do
-            html="$(curl -fsSL --max-time 20 "${url}?latch_sequence=2&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            css="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/safe-cracker.css?v=8&polish=2&dial=7&layout=7&latch=2&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            js="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/safe-cracker.js?v=8&polish=2&dial=7&layout=7&latch=2&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            html="$(curl -fsSL --max-time 20 "${url}?latch_sequence=3&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            css="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/safe-cracker.css?v=8&polish=2&dial=7&layout=7&latch=3&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            js="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/safe-cracker.js?v=8&polish=2&dial=7&layout=7&latch=3&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             headers="$(curl -fsS --max-time 20 -D - -o /dev/null -X OPTIONS "${function_url}?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             block="$(sed -n '/SAFE_CRACKER_LATCH_SEQUENCE_V1_START/,/SAFE_CRACKER_LATCH_SEQUENCE_V1_END/p' <<<"$css")"
 
-            if grep -Fq '&layout=7&latch=2' <<<"$html" && \
+            if grep -Fq '&layout=7&latch=3' <<<"$html" && \
                grep -Fq 'background-color: #aab4b8 !important' <<<"$block" && \
-               grep -Fq '0 5px 10px rgba(0,0,0,.48) !important' <<<"$block" && \
-               grep -Fq 'transform: translateY(4px) !important' <<<"$block" && \
+               grep -Fq 'background-clip: padding-box !important' <<<"$block" && \
+               grep -Fq 'border: 3px solid #050708 !important' <<<"$block" && \
+               grep -Fq '.sc-confirm-button::after' <<<"$block" && \
+               grep -Fq 'bottom: -7px' <<<"$block" && \
+               grep -Fq 'height: 7px' <<<"$block" && \
+               grep -Fq 'background: #050708 !important' <<<"$block" && \
                ! grep -Fq '#c98b29' <<<"$block" && \
                ! grep -Fq '#855515' <<<"$block" && \
+               ! grep -Fq '#4d3010' <<<"$block" && \
                ! grep -Fq '0 7px 0' <<<"$block" && \
                grep -Fq '.sc-bolts.right i.sc-latch-released' <<<"$block" && \
-               grep -Fq 'transform .58s cubic-bezier(.2,.85,.28,1)' <<<"$block" && \
-               grep -Fq 'animation: scSafeCrackerLatchReleaseV1 .82s' <<<"$block" && \
-               ! grep -Fq 'animation: scSafeCrackerLatchReleaseV1 .58s' <<<"$block" && \
+               grep -Fq 'transform .82s cubic-bezier(.2,.85,.28,1)' <<<"$block" && \
+               grep -Fq 'animation: scSafeCrackerLatchReleaseV1 1.15s' <<<"$block" && \
+               ! grep -Fq 'animation: scSafeCrackerLatchReleaseV1 .82s' <<<"$block" && \
                grep -Fq 'SAFE_CRACKER_LATCH_SEQUENCE_V1_RUNTIME' <<<"$js" && \
                grep -Fq 'SAFE_CRACKER_LATCH_SEQUENCE_V1_HELPER' <<<"$js" && \
                grep -Fq 'function safeCrackerLatchBank(game, me)' <<<"$js" && \
@@ -95,13 +110,13 @@ jobs:
                ! grep -Fiq 'RESETTING' <<<"$js" && \
                grep -Fq 'SAFE_CRACKER_DIAL_ACTIVITY_V16_START' <<<"$js" && \
                grep -Fiq 'x-duel-function-build: safecracker-direct-v8' <<<"$headers"; then
-              echo "Verified live Safe Cracker slower staged latch release at ${url}"
+              echo "Verified live Safe Cracker 1.15-second latch release and black Check Number base at ${url}"
               exit 0
             fi
 
-            echo "Waiting for Netlify Safe Cracker slower latch sequence (${attempt}/42)..."
+            echo "Waiting for Netlify Safe Cracker latch sequence v3 (${attempt}/42)..."
             sleep 10
           done
 
-          echo 'Netlify preview did not serve the slower staged Safe Cracker latch release and current safeguards.' >&2
+          echo 'Netlify preview did not serve the 1.15-second staged latch release and opaque black Check Number base.' >&2
           exit 1
