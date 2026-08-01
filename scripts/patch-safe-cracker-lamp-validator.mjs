@@ -4,6 +4,9 @@ await import('./patch-safe-cracker-sample-mix.mjs');
 await import('./validate-safe-cracker-sample-mix.mjs');
 await import('./patch-safe-cracker-texture-pass.mjs');
 await import('./validate-safe-cracker-texture-pass.mjs');
+await import('./validate-safe-cracker-shadow-depth.mjs');
+await import('./patch-safe-cracker-light-source.mjs');
+await import('./validate-safe-cracker-light-source.mjs');
 await import('./patch-safe-cracker-active-render-guard.mjs');
 await import('./validate-safe-cracker-active-render-guard.mjs');
 
