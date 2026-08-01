@@ -32,35 +32,37 @@ jobs:
           set -u
           url='https://deploy-preview-19--famous-piroshki-b621da.netlify.app/'
           function_url="${url}.netlify/functions/duel-action"
-          css_path='assets/safe-cracker/safe-cracker.css?v=8&polish=2&fit=2&result=1&final=1&refine=1&correct=1&input=1&texture=3&shadow=1&light=3'
+          css_path='assets/safe-cracker/safe-cracker.css?v=8&polish=2&fit=2&result=1&final=1&refine=1&correct=1&input=1&texture=4&shadow=1&light=4'
           js_path='assets/safe-cracker/safe-cracker.js?v=8&polish=2&fit=2&result=1&final=1&refine=1&correct=1&input=1&audio=1&samples=1'
           for attempt in $(seq 1 36); do
             html="$(curl -fsSL --max-time 20 "${url}?light_commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             css="$(curl -fsSL --max-time 20 "${url}${css_path}&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             js="$(curl -fsSL --max-time 20 "${url}${js_path}&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             headers="$(curl -fsS --max-time 20 -D - -o /dev/null -X OPTIONS "${function_url}?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            light_block="$(sed -n '/SAFE_CRACKER_LIGHT_SOURCE_V3_START/,/SAFE_CRACKER_LIGHT_SOURCE_V3_END/p' <<<"$css")"
-            dial_block="$(sed -n '/\.safe-cracker-game \.sc-dial-face/,/\.safe-cracker-game \.sc-dial-hub/p' <<<"$light_block")"
-            if grep -Fq '&texture=3&shadow=1&light=3' <<<"$html" && \
-               grep -Fq 'SAFE_CRACKER_TEXTURE_PASS_V3_START' <<<"$css" && \
+            light_block="$(sed -n '/SAFE_CRACKER_LIGHT_SOURCE_V4_START/,/SAFE_CRACKER_LIGHT_SOURCE_V4_END/p' <<<"$css")"
+            if grep -Fq '&texture=4&shadow=1&light=4' <<<"$html" && \
+               grep -Fq 'SAFE_CRACKER_TEXTURE_PASS_V4_START' <<<"$css" && \
                grep -Fq 'SAFE_CRACKER_SHADOW_DEPTH_V1_START' <<<"$css" && \
-               grep -Fq 'SAFE_CRACKER_LIGHT_SOURCE_V3_START' <<<"$light_block" && \
+               grep -Fq 'SAFE_CRACKER_LIGHT_SOURCE_V4_START' <<<"$light_block" && \
                grep -Fq -- '--sc-scene-key: rgba(232, 243, 251, .135)' <<<"$light_block" && \
                grep -Fq '.safe-cracker-game .sc-safe-shell::after' <<<"$light_block" && \
                grep -Fq 'radial-gradient(ellipse 112% 72% at 34% -4%' <<<"$light_block" && \
                grep -Fq 'content: none !important' <<<"$light_block" && \
-               ! grep -Fq 'circle at 38% 28%' <<<"$dial_block" && \
-               ! grep -Fq 'SAFE_CRACKER_LIGHT_SOURCE_V1_START' <<<"$css" && \
-               ! grep -Fq 'SAFE_CRACKER_LIGHT_SOURCE_V2_START' <<<"$css" && \
+               ! grep -Fq 'background-image:' <<<"$light_block" && \
+               ! grep -Fq 'repeating-conic-gradient' <<<"$light_block" && \
+               grep -Fq '/assets/safe-cracker/textures/dial-machined.svg?v=2' <<<"$css" && \
+               grep -Fq '.safe-cracker-game .sc-dial-wrap::after' <<<"$css" && \
+               ! grep -Fq 'SAFE_CRACKER_LIGHT_SOURCE_V3_START' <<<"$css" && \
+               grep -Fq 'SAFE_CRACKER_ACTIVE_RENDER_GUARD_V15_START' <<<"$html" && \
                grep -Fq 'SAFE_CRACKER_INPUT_CONTINUITY_V9_START' <<<"$js" && \
                grep -Fq 'SAFE_CRACKER_SAMPLE_MIX_V11_START' <<<"$js" && \
                grep -Fq 'choice: `safecracker:guess:${runtime.selected}`' <<<"$js" && \
                grep -Fiq 'x-duel-function-build: safecracker-direct-v8' <<<"$headers"; then
-              echo "Verified live Safe Cracker scene-wide cool light pass with fixed illumination over the whole safe, neutral rotating dial materials, structural depth, stability, gameplay, audio and protected server boundaries at ${url}"
+              echo "Verified live Safe Cracker scene-wide light pass v4: illumination is fixed over the whole game safe, A2 materials remain independent, rotating light wedges are absent, active-board retention is present, and protected gameplay remains intact at ${url}"
               exit 0
             fi
-            echo "Waiting for Netlify scene-wide Safe Cracker light pass (${attempt}/36)..."
+            echo "Waiting for Netlify scene-wide Safe Cracker light pass v4 (${attempt}/36)..."
             sleep 10
           done
-          echo 'Netlify preview did not become available with the scene-wide cool Safe Cracker light pass and current safeguards.' >&2
+          echo 'Netlify preview did not become available with the scene-wide Safe Cracker light pass v4 and current safeguards.' >&2
           exit 1
