@@ -22,50 +22,56 @@ function occurrences(source, value) {
   return source.split(value).length - 1;
 }
 
-assert(occurrences(css, '/* SAFE_CRACKER_TEXTURE_PASS_V4_START */') === 1, 'texture v4 marker must appear exactly once');
-assert(occurrences(css, '/* SAFE_CRACKER_TEXTURE_PASS_V4_END */') === 1, 'texture v4 end marker must appear exactly once');
-for (const version of [1, 2, 3]) {
+const startMarker = '/* SAFE_CRACKER_TEXTURE_PASS_V6_START */';
+const endMarker = '/* SAFE_CRACKER_TEXTURE_PASS_V6_END */';
+assert(occurrences(css, startMarker) === 1, 'material-reset start marker must appear exactly once');
+assert(occurrences(css, endMarker) === 1, 'material-reset end marker must appear exactly once');
+for (const version of [1, 2, 3, 4, 5]) {
   assert(!css.includes(`/* SAFE_CRACKER_TEXTURE_PASS_V${version}_START */`), `legacy texture v${version} block remains`);
 }
-const start = css.indexOf('/* SAFE_CRACKER_TEXTURE_PASS_V4_START */');
-const end = css.indexOf('/* SAFE_CRACKER_TEXTURE_PASS_V4_END */', start);
+const start = css.indexOf(startMarker);
+const end = css.indexOf(endMarker, start);
 const block = css.slice(start, end);
-assert(block.includes("url('/assets/safe-cracker/textures/safe-steel-base.svg?v=2')"), 'brushed steel image is not mounted');
-assert(block.includes("url('/assets/safe-cracker/textures/metal-wear.svg?v=2')"), 'irregular wear image is not mounted');
-assert(block.includes("url('/assets/safe-cracker/textures/dial-machined.svg?v=2')"), 'neutral machined dial image is not mounted');
-assert(!block.includes('repeating-linear-gradient'), 'crosshatched line texture remains in the v4 block');
-assert(!block.includes('repeating-conic-gradient'), 'rotating directional dial wedges remain in the v4 block');
-assert(!block.includes('repeating-radial-gradient'), 'CSS-generated dial rings remain in the v4 block');
-assert(!block.includes('circle at 38% 28%'), 'off-center highlight still rotates with the dial face');
-assert(!block.includes('circle at 34% 28%'), 'off-center highlight still rotates with the dial hub');
-assert(block.includes('.safe-cracker-game .sc-safe-door'), 'safe-door image texture is missing');
-assert(block.includes('.safe-cracker-game .sc-dial-face'), 'dial image texture is missing');
-assert(block.includes('.safe-cracker-game .sc-dial-wrap::after'), 'dial glare cleanup selector is missing');
-assert(block.includes('content: none !important'), 'dial glare artifact remains active');
-assert(block.includes('pointer-events: none'), 'dial glare cleanup can intercept input');
-assert(block.includes('.safe-cracker-game .sc-step-controls button'), 'button image texture is missing');
-assert(block.includes('.safe-cracker-game .sc-confirm-button'), 'confirmation-button image texture is missing');
-assert(index.includes('&texture=5'), 'texture cache boundary is missing');
-assert(!index.includes('&texture=1') && !index.includes('&texture=2') && !index.includes('&texture=3') && !index.includes('&texture=4'), 'legacy texture cache boundary remains');
+
+assert(block.includes("url('/assets/safe-cracker/textures/safe-steel-base.svg?v=3')"), 'brushed steel image is not mounted');
+assert(block.includes("url('/assets/safe-cracker/textures/metal-wear.svg?v=3')"), 'irregular wear image is not mounted');
+assert(block.includes("url('/assets/safe-cracker/textures/dial-machined.svg?v=3')"), 'neutral machined dial image is not mounted');
+assert(block.includes('.safe-cracker-game .sc-dial-wrap::before'), 'stationary dial construction was not neutralized');
+assert(block.includes('.safe-cracker-game .sc-dial-face::after'), 'legacy rotating glare is not explicitly disabled');
+assert(block.includes('content: none !important'), 'legacy rotating glare can still render');
+assert(block.includes('background: none !important'), 'legacy rotating glare background can still render');
+assert(!block.includes('repeating-linear-gradient'), 'crosshatched CSS line texture remains');
+assert(!block.includes('repeating-conic-gradient'), 'rotating directional dial wedges remain');
+assert(!block.includes('circle at '), 'off-centre dial material highlight remains');
+assert(!block.includes('ellipse at '), 'directional shell material lighting remains');
+assert(!block.includes('mix-blend-mode'), 'material pass still contains a separate light blend');
+assert(block.includes('.safe-cracker-game .sc-safe-door'), 'safe-door material is missing');
+assert(block.includes('.safe-cracker-game .sc-dial-face'), 'dial material is missing');
+assert(block.includes('.safe-cracker-game .sc-dial-hub'), 'dial hub material is missing');
+assert(block.includes('.safe-cracker-game .sc-step-controls button'), 'button material is missing');
+assert(block.includes('.safe-cracker-game .sc-confirm-button'), 'confirmation-button material is missing');
+assert(index.includes('&texture=6'), 'material-reset CSS cache boundary is missing');
+for (const version of [1, 2, 3, 4, 5]) {
+  assert(!index.includes(`&texture=${version}`), `legacy texture cache ${version} remains`);
+}
 
 assert(steel.includes('baseFrequency=".82 .012"'), 'steel texture lost its single-direction grain');
 assert(steel.includes('stitchTiles="stitch"'), 'steel texture is not tile-safe');
 assert(wear.includes('stroke-opacity=".2"') && wear.includes('<ellipse'), 'irregular wear and scuffs are missing');
-assert(dialTexture.includes('data-material="concentric-machining-v2"'), 'dial texture version marker is missing');
-assert(dialTexture.includes('<circle') && dialTexture.includes('stroke-opacity=".095"'), 'concentric dial machining artwork is missing');
-assert(!dialTexture.includes('<path'), 'directional arc artwork can still resemble moving light wedges');
-assert(!patch.includes('animation:'), 'texture pass must not introduce continuous animation');
-assert(!patch.includes('filter: brightness'), 'texture pass must not introduce lighting changes');
-assert(!patch.includes('pointer-events: auto'), 'texture pass must not intercept controls');
+assert(dialTexture.includes('data-material="concentric-machining-v2"'), 'concentric dial artwork marker is missing');
+assert(dialTexture.includes('<circle') && !dialTexture.includes('<path'), 'dial artwork contains directional arc shapes');
+assert(!patch.includes('animation:'), 'material pass must not introduce continuous animation');
+assert(!patch.includes('filter: brightness'), 'material pass must not introduce lighting filters');
+assert(!patch.includes('pointer-events: auto'), 'material pass must not intercept controls');
 assert(client.includes('choice: `safecracker:guess:${runtime.selected}`'), 'authoritative Safe Cracker submission changed');
 assert(client.includes('// SAFE_CRACKER_INPUT_CONTINUITY_V9_START'), 'input continuity v9 is missing');
 assert(client.includes('// SAFE_CRACKER_SAMPLE_MIX_V11_START'), 'sample mix v11 is missing');
 assert(duelAction.includes('safecracker'), 'Safe Cracker server mode is unreadable');
 assert(turnAnimation.length > 0 && turnFire.length > 0 && audioBindings.length > 0, 'protected Roulette assets are unreadable');
-assert(!patch.includes("writeFile(new URL('../netlify/functions/"), 'texture pass must not write networking files');
-assert(!patch.includes("writeFile(new URL('../assets/roulette/"), 'texture pass must not write Roulette files');
-assert(patch.includes("await import('./patch-safe-cracker-shadow-depth.mjs')"), 'texture pipeline does not continue into the separate shadow-depth pass');
+assert(!patch.includes("writeFile(new URL('../netlify/functions/"), 'material pass must not write networking files');
+assert(!patch.includes("writeFile(new URL('../assets/roulette/"), 'material pass must not write Roulette files');
+assert(patch.includes("await import('./patch-safe-cracker-shadow-depth.mjs')"), 'material pipeline does not continue into structural depth');
 
-console.log('Safe Cracker texture-pass validation passed: image-based brushed wear remains, dial machining is rotationally neutral, the oval glare artifact is disabled, and gameplay, networking, audio and Roulette remain protected.');
+console.log('Safe Cracker material-reset validation passed: image-based steel, irregular wear and concentric machining remain, all directional surface lighting and rotating glare are removed, and gameplay, networking, audio and Roulette stay protected.');
 
 await import('./validate-safe-cracker-shadow-depth.mjs');
