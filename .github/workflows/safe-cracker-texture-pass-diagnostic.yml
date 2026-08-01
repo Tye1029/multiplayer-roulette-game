@@ -50,12 +50,13 @@ jobs:
                grep -Fq 'baseFrequency=".82 .012"' <<<"$steel" && \
                grep -Fq 'stroke-opacity=".2"' <<<"$wear" && \
                grep -Fq 'stroke-opacity=".11"' <<<"$dial" && \
-               grep -Fq 'SAFE_CRACKER_ACTIVE_RENDER_GUARD_V13_START' <<<"$html" && \
+               grep -Fq 'SAFE_CRACKER_ACTIVE_RENDER_GUARD_V14_START' <<<"$html" && \
+               grep -Fq 'window.__safeCrackerStableActiveGame' <<<"$html" && \
                grep -Fq 'SAFE_CRACKER_SAMPLE_MIX_V11_START' <<<"$js" && \
                grep -Fq 'SAFE_CRACKER_INPUT_CONTINUITY_V9_START' <<<"$js" && \
                grep -Fq 'choice: `safecracker:guess:${runtime.selected}`' <<<"$js" && \
                grep -Fiq 'x-duel-function-build: safecracker-direct-v8' <<<"$headers"; then
-              echo "Verified live Safe Cracker texture pass v3 with image-based directional steel, irregular wear, machined dial texture, active-board retention and protected gameplay at ${url}"
+              echo "Verified live Safe Cracker texture pass v3 with image-based directional steel, irregular wear, machined dial texture, lifecycle-safe active-board retention and protected gameplay at ${url}"
               exit 0
             fi
             echo "Waiting for Netlify Safe Cracker image texture pass v3 (${attempt}/36)..."
