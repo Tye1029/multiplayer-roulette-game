@@ -97,3 +97,5 @@ index = index.replace(/(safe-cracker\.css[^"']*)/, '$1&texture=3');
 await writeFile(indexUrl, index);
 
 console.log('Applied Safe Cracker texture pass v3: real image assets provide directional steel, irregular wear and circular dial machining without CSS crosshatching or behavior changes.');
+
+await import('./patch-safe-cracker-shadow-depth.mjs');
