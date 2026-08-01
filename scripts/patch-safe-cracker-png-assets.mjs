@@ -9,7 +9,9 @@ const expectedChunks = Object.freeze([
   ['chunk-01.txt', 6_000, 'e1ca2aa85a3758e5622b405a41c1b0e1295f6ee396f8d8032dd0c16b54408aa0'],
   ['chunk-02.txt', 18_000, 'fa698d4e4be37674e7f7fe88fd84953f0c84ccd37ebfde48a22b9d82b1a72bc5'],
   ['chunk-03.txt', 18_000, '13313caed9ff8413b962e4d0c82a732b13768a2b4532d5ab8db2e5cc93b19e5b'],
-  ['chunk-04.txt', 18_000, 'c268144784740633ce70381b56bdd52eea9587b218b8ad2db04f169b387292f3'],
+  ['tail-00.txt', 6_000, 'b07fbf7a2bf3ec4fa9154702b55081c373cb2b3a05079a533b68c2ab8eb060dd'],
+  ['tail-01.txt', 6_000, 'e4594a60f92cc930bb9b3a9d407cae86a5940d021d09169778f957995fc519b5'],
+  ['tail-02.txt', 6_000, '44d42ac3532bfc71350d8d49545a6b5d5072cc6b3cbd388aef43f9a4a4d18450'],
   ['chunk-05.txt', 8_660, '90689e27835479128179ebf15d244343bfd64c512d5a5c47ceca956d37a54c6d']
 ]);
 const knownTransportRepairs = Object.freeze({
