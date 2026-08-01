@@ -39,15 +39,17 @@ jobs:
             css="$(curl -fsSL --max-time 20 "${url}${css_path}&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             js="$(curl -fsSL --max-time 20 "${url}${js_path}&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             headers="$(curl -fsS --max-time 20 -D - -o /dev/null -X OPTIONS "${function_url}?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            light_block="$(sed -n '/SAFE_CRACKER_LIGHT_SOURCE_V3_START/,/SAFE_CRACKER_LIGHT_SOURCE_V3_END/p' <<<"$css")"
+            dial_block="$(sed -n '/\.safe-cracker-game \.sc-dial-face/,/\.safe-cracker-game \.sc-dial-hub/p' <<<"$light_block")"
             if grep -Fq '&texture=3&shadow=1&light=3' <<<"$html" && \
                grep -Fq 'SAFE_CRACKER_TEXTURE_PASS_V3_START' <<<"$css" && \
                grep -Fq 'SAFE_CRACKER_SHADOW_DEPTH_V1_START' <<<"$css" && \
-               grep -Fq 'SAFE_CRACKER_LIGHT_SOURCE_V3_START' <<<"$css" && \
-               grep -Fq -- '--sc-scene-key: rgba(232, 243, 251, .135)' <<<"$css" && \
-               grep -Fq '.safe-cracker-game .sc-safe-shell::after' <<<"$css" && \
-               grep -Fq 'radial-gradient(ellipse 112% 72% at 34% -4%' <<<"$css" && \
-               grep -Fq 'content: none !important' <<<"$css" && \
-               ! grep -Fq 'circle at 38% 28%' <<<"$(sed -n '/\.safe-cracker-game \.sc-dial-face/,/\.safe-cracker-game \.sc-dial-hub/p' <<<"$css")" && \
+               grep -Fq 'SAFE_CRACKER_LIGHT_SOURCE_V3_START' <<<"$light_block" && \
+               grep -Fq -- '--sc-scene-key: rgba(232, 243, 251, .135)' <<<"$light_block" && \
+               grep -Fq '.safe-cracker-game .sc-safe-shell::after' <<<"$light_block" && \
+               grep -Fq 'radial-gradient(ellipse 112% 72% at 34% -4%' <<<"$light_block" && \
+               grep -Fq 'content: none !important' <<<"$light_block" && \
+               ! grep -Fq 'circle at 38% 28%' <<<"$dial_block" && \
                ! grep -Fq 'SAFE_CRACKER_LIGHT_SOURCE_V1_START' <<<"$css" && \
                ! grep -Fq 'SAFE_CRACKER_LIGHT_SOURCE_V2_START' <<<"$css" && \
                grep -Fq 'SAFE_CRACKER_INPUT_CONTINUITY_V9_START' <<<"$js" && \
