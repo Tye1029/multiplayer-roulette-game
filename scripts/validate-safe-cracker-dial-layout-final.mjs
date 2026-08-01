@@ -28,33 +28,49 @@ if (startIndex < css.indexOf('/* SAFE_CRACKER_DIAL_LAYOUT_V2_END */')) {
 const block = css.slice(startIndex, endIndex + end.length);
 
 const requiredCss = [
-  '--radius: 88px',
+  '--radius: 91px',
   'width: 30px',
   'height: 30px',
   'font-size: 1.22rem',
-  'border: 0 !important',
+  '.safe-cracker-game .sc-dial-wrap::after',
+  'top: -46px',
+  '.safe-cracker-game .sc-dial-pointer',
+  'top: -38px',
+  'border: 3px solid #050708 !important',
+  'linear-gradient(180deg,',
+  '#e2e8ea 0%',
+  '#c4cdd1 31%',
+  '#929fa5 67%',
+  '#68757b 100%',
+  'color: #101416',
   '.safe-cracker-game .sc-confirm-button::before',
   '.safe-cracker-game .sc-confirm-button::after',
   'content: none !important',
   'display: none !important',
-  '0 2px 6px rgba(0,0,0,.28)',
-  '--radius: min(22.2vw, 85px)',
-  '--radius: min(18.3vw, 66px)'
+  '--radius: min(23vw, 88px)',
+  'top: -31px',
+  'top: -25px',
+  '--radius: min(19.1vw, 69px)',
+  'top: -24px',
+  'top: -18px'
 ];
 for (const fragment of requiredCss) {
   if (!block.includes(fragment)) {
-    throw new Error(`Safe Cracker final dial-layout validation failed: missing V3 feature: ${fragment}.`);
+    throw new Error(`Safe Cracker final dial-layout validation failed: missing refined feature: ${fragment}.`);
   }
 }
 
 const forbiddenCss = [
+  '--radius: 88px',
+  'border: 0 !important',
   'inset 0 0 0 2px #e1bd72',
   'border: 3px solid #6f4b1e',
+  'linear-gradient(180deg, #c69b52 0%, #8c6633 48%, #5c3f1c 100%)',
   '0 6px 0 #1a1007'
 ];
 for (const fragment of forbiddenCss) {
   if (block.includes(fragment)) {
-    throw new Error(`Safe Cracker final dial-layout validation failed: decorative Check Number frame returned: ${fragment}.`);
+    throw new Error(`Safe Cracker final dial-layout validation failed: superseded styling returned: ${fragment}.`);
   }
 }
 if (/animation(?:-name)?\s*:/i.test(block)) {
@@ -64,18 +80,18 @@ if (/position\s*:\s*fixed/i.test(block) || /backdrop-filter\s*:/i.test(block)) {
   throw new Error('Safe Cracker final dial-layout validation failed: the refinement escaped its component boundary.');
 }
 
-const assetPath = '/assets/safe-cracker/textures/dial-reference-face-v7.svg?dial=7&layout=4';
+const assetPath = '/assets/safe-cracker/textures/dial-reference-face-v7.svg?dial=7&layout=5';
 if (!client.includes(`src="${assetPath}"`)) {
-  throw new Error('Safe Cracker final dial-layout validation failed: the mounted plate does not use layout=4.');
+  throw new Error('Safe Cracker final dial-layout validation failed: the mounted plate does not use layout=5.');
 }
 if ((client.match(/class="sc-dial-reference-plate"/g) || []).length !== 1) {
   throw new Error('Safe Cracker final dial-layout validation failed: the dial plate is not mounted exactly once.');
 }
-if (!/safe-cracker\.css\?[^"'\s]*&dial=7[^"'\s]*&layout=4/.test(html)) {
-  throw new Error('Safe Cracker final dial-layout validation failed: stylesheet cache key layout=4 is missing.');
+if (!/safe-cracker\.css\?[^"'\s]*&dial=7[^"'\s]*&layout=5/.test(html)) {
+  throw new Error('Safe Cracker final dial-layout validation failed: stylesheet cache key layout=5 is missing.');
 }
-if (!/safe-cracker\.js\?[^"'\s]*&dial=7[^"'\s]*&layout=4/.test(html)) {
-  throw new Error('Safe Cracker final dial-layout validation failed: runtime cache key layout=4 is missing.');
+if (!/safe-cracker\.js\?[^"'\s]*&dial=7[^"'\s]*&layout=5/.test(html)) {
+  throw new Error('Safe Cracker final dial-layout validation failed: runtime cache key layout=5 is missing.');
 }
 
 const gameplayFragments = [
@@ -100,4 +116,4 @@ if (patch.includes("writeFile(new URL('../assets/roulette/")) {
   throw new Error('Safe Cracker final dial-layout validation failed: the visual patch writes protected Roulette files.');
 }
 
-console.log('Safe Cracker dial-layout v3 validation passed: every numeral sits farther inward in the black annulus, the Check Number decorative frame and ornaments are removed, cache busting is current, V16 retention is intact, and Roulette remains protected.');
+console.log('Safe Cracker dial-layout refinement validation passed: numerals moved slightly outward while remaining in the black annulus, the pointer assembly sits lower near the numeral ring, the Check Number control is one continuous silver-metal button with a black border, cache busting is current, V16 retention is intact, and Roulette remains protected.');
