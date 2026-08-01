@@ -8,145 +8,107 @@ const cssEnd = '/* SAFE_CRACKER_DIAL_DEPTH_V1_END */';
 const dialDepth = String.raw`${cssStart}
 .safe-cracker-game .sc-dial-wrap {
   isolation: isolate;
+  transform: translateY(-3px);
   filter:
-    drop-shadow(0 7px 5px rgba(255,255,255,.025))
-    drop-shadow(0 14px 10px rgba(0,0,0,.46))
-    drop-shadow(0 25px 23px rgba(0,0,0,.48));
+    drop-shadow(0 7px 3px rgba(255,255,255,.035))
+    drop-shadow(0 14px 7px rgba(0,0,0,.62))
+    drop-shadow(0 30px 24px rgba(0,0,0,.64));
 }
 
 .safe-cracker-game .sc-dial-wrap::before {
-  inset: -20px;
-  border: 1px solid rgba(205,214,218,.22);
+  inset: -29px;
+  border: 2px solid rgba(171,182,187,.26);
   background:
-    radial-gradient(circle at 35% 23%, rgba(255,255,255,.1), transparent 21%),
-    radial-gradient(circle at 50% 49%,
-      transparent 0 71%,
-      rgba(10,14,16,.96) 72% 75%,
-      rgba(129,140,145,.34) 76% 78%,
-      rgba(29,36,40,.94) 79% 86%,
-      #070a0c 87% 100%);
+    radial-gradient(circle at 35% 23%, rgba(255,255,255,.12), transparent 19%),
+    radial-gradient(circle,
+      transparent 0 68%,
+      rgba(1,3,4,.98) 69% 73%,
+      #4c565b 74% 75.5%,
+      #161d20 76% 83%,
+      #070a0c 84% 100%);
   box-shadow:
-    inset 0 0 0 5px rgba(3,6,7,.96),
-    inset 0 13px 18px rgba(255,255,255,.035),
-    inset 0 -24px 30px rgba(0,0,0,.82),
-    0 0 0 2px rgba(131,143,148,.16),
-    0 7px 0 rgba(5,8,9,.82),
-    0 20px 27px rgba(0,0,0,.58);
+    inset 0 0 0 7px rgba(2,4,5,.97),
+    inset 0 15px 23px rgba(255,255,255,.035),
+    inset 0 -31px 38px rgba(0,0,0,.9),
+    0 0 0 3px rgba(109,120,125,.15),
+    0 9px 0 #040607,
+    0 23px 30px rgba(0,0,0,.68);
 }
 
 .safe-cracker-game .sc-dial-wrap::after {
-  top: -31px;
-  width: 58px;
-  height: 27px;
-  border: 2px solid #080b0d;
-  border-radius: 5px 5px 2px 2px;
+  top: -48px;
+  width: 82px;
+  height: 39px;
+  border: 3px solid #070a0c;
+  border-radius: 7px 7px 3px 3px;
   background:
-    linear-gradient(180deg, rgba(255,255,255,.22), transparent 34%),
-    linear-gradient(90deg, #101518 0%, #505b60 20%, #b8c1c4 48%, #5e696e 72%, #111719 100%);
+    linear-gradient(180deg, rgba(255,255,255,.24), transparent 31%),
+    linear-gradient(90deg, #111719 0%, #505b60 18%, #c4cdd0 48%, #626d72 72%, #12181b 100%);
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.27),
-    inset 0 -5px 6px rgba(0,0,0,.54),
-    0 5px 0 #06090a,
-    0 10px 12px rgba(0,0,0,.62);
+    inset 0 2px 0 rgba(255,255,255,.28),
+    inset 0 -7px 9px rgba(0,0,0,.62),
+    0 6px 0 #040607,
+    0 14px 16px rgba(0,0,0,.72);
 }
 
 .safe-cracker-game .sc-dial-pointer {
-  top: -25px;
-  z-index: 12;
-  width: 22px;
-  height: 39px;
+  top: -42px;
+  z-index: 14;
+  width: 29px;
+  height: 57px;
   border: 0;
   border-radius: 0;
-  clip-path: polygon(13% 0, 87% 0, 100% 16%, 67% 67%, 50% 100%, 33% 67%, 0 16%);
+  clip-path: polygon(10% 0, 90% 0, 100% 15%, 64% 74%, 50% 100%, 36% 74%, 0 15%);
   background:
     linear-gradient(90deg,
-      #1c2428 0%,
-      #778287 19%,
-      #e7ecee 45%,
-      #aab4b8 58%,
-      #485257 76%,
-      #111719 100%);
+      #111719 0%,
+      #515c61 16%,
+      #dce4e6 42%,
+      #f4f7f8 50%,
+      #929da1 65%,
+      #343d41 82%,
+      #0a0e10 100%);
   box-shadow:
-    inset 1px 1px 0 rgba(255,255,255,.55),
-    inset -2px -4px 4px rgba(0,0,0,.58),
-    0 5px 0 #070a0c,
-    0 10px 10px rgba(0,0,0,.64);
+    inset 2px 2px 0 rgba(255,255,255,.55),
+    inset -3px -6px 6px rgba(0,0,0,.65),
+    0 6px 0 #050708,
+    0 13px 13px rgba(0,0,0,.72);
   filter:
-    drop-shadow(0 2px 1px rgba(0,0,0,.92))
-    drop-shadow(0 0 5px rgba(213,225,229,.12));
+    drop-shadow(0 2px 1px rgba(0,0,0,.95))
+    drop-shadow(0 0 7px rgba(221,232,235,.14));
 }
 
 .safe-cracker-game .sc-dial {
-  inset: 5px;
+  inset: -7px;
+  transform: translateY(-2px) scale(1.035);
   filter:
-    drop-shadow(0 4px 1px rgba(255,255,255,.035))
-    drop-shadow(0 10px 6px rgba(0,0,0,.55))
-    drop-shadow(0 18px 16px rgba(0,0,0,.6));
+    drop-shadow(0 5px 2px rgba(255,255,255,.04))
+    drop-shadow(0 12px 7px rgba(0,0,0,.62))
+    drop-shadow(0 24px 21px rgba(0,0,0,.7));
 }
 
 .safe-cracker-game .sc-dial.dragging {
-  transform: scale(.995) translateY(1px);
+  transform: translateY(1px) scale(1.018);
   filter:
-    drop-shadow(0 7px 4px rgba(0,0,0,.62))
-    drop-shadow(0 13px 11px rgba(0,0,0,.64));
+    drop-shadow(0 7px 4px rgba(0,0,0,.68))
+    drop-shadow(0 15px 13px rgba(0,0,0,.72));
 }
 
 .safe-cracker-game .sc-dial-face {
   overflow: visible;
-  border: 8px solid #06090a;
+  border: 0;
   background:
-    url('/assets/safe-cracker/textures/dial-machined.svg') center / cover no-repeat,
-    radial-gradient(circle at 34% 23%, rgba(255,255,255,.17), transparent 17%),
-    radial-gradient(circle at 69% 78%, rgba(0,0,0,.38), transparent 34%),
-    radial-gradient(circle,
-      #080b0d 0 27%,
-      #252d31 28% 31%,
-      #aeb8bb 32% 33%,
-      #424c50 34% 39%,
-      #111619 40% 57%,
-      #5c676b 58% 59%,
-      #101416 60% 79%,
-      #d8dfe1 80% 81.5%,
-      #788388 82% 84.2%,
-      #e5eaeb 85% 86.2%,
-      #181e21 87% 100%);
+    url('/assets/safe-cracker/textures/dial-reference-face.svg') center / 100% 100% no-repeat;
   box-shadow:
-    inset 0 0 0 2px rgba(228,235,237,.6),
-    inset 0 0 0 6px rgba(42,51,55,.94),
-    inset 0 12px 18px rgba(255,255,255,.04),
-    inset 0 -27px 34px rgba(0,0,0,.72),
-    inset 0 0 38px rgba(0,0,0,.76),
-    0 0 0 2px rgba(195,205,208,.13),
-    0 5px 0 #050809,
-    0 15px 18px rgba(0,0,0,.62);
+    inset 0 0 0 2px rgba(232,238,240,.16),
+    inset 0 17px 22px rgba(255,255,255,.035),
+    inset 0 -31px 38px rgba(0,0,0,.48),
+    0 0 0 3px #050708,
+    0 7px 0 #020405,
+    0 19px 22px rgba(0,0,0,.72);
 }
 
 .safe-cracker-game .sc-dial-face::before {
-  content: '';
-  position: absolute;
-  inset: 1px;
-  z-index: 1;
-  border-radius: 50%;
-  pointer-events: none;
-  background:
-    repeating-linear-gradient(103deg, rgba(255,255,255,.08) 0 1px, transparent 1px 8px),
-    repeating-linear-gradient(77deg, rgba(0,0,0,.26) 0 1px, transparent 1px 11px),
-    repeating-conic-gradient(from -.8deg,
-      #080b0d 0deg 1.1deg,
-      #343b3f 1.1deg 2.1deg,
-      #111619 2.1deg 7.1deg,
-      #262d31 7.1deg 8.15deg,
-      #6f797d 8.15deg 8.6deg,
-      #d9dfe1 8.6deg 9deg);
-  -webkit-mask: radial-gradient(circle, transparent 0 87%, #000 88% 98%, transparent 99% 100%);
-  mask: radial-gradient(circle, transparent 0 87%, #000 88% 98%, transparent 99% 100%);
-  opacity: .98;
-  filter:
-    drop-shadow(0 -1px 0 rgba(255,255,255,.08))
-    drop-shadow(0 4px 2px rgba(0,0,0,.8));
-}
-
-.safe-cracker-game .sc-dial-face::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -154,37 +116,52 @@ const dialDepth = String.raw`${cssStart}
   border-radius: 50%;
   pointer-events: none;
   background:
-    repeating-conic-gradient(from -.55deg,
-      rgba(226,233,235,.96) 0deg .34deg,
-      rgba(79,89,94,.82) .34deg .58deg,
-      transparent .58deg 3.6deg);
-  -webkit-mask: radial-gradient(circle, transparent 0 74.8%, #000 75.2% 79.1%, transparent 79.6% 100%);
-  mask: radial-gradient(circle, transparent 0 74.8%, #000 75.2% 79.1%, transparent 79.6% 100%);
-  opacity: .92;
+    radial-gradient(ellipse at 34% 20%, rgba(255,255,255,.15), transparent 22%),
+    radial-gradient(circle at 50% 50%, transparent 0 82%, rgba(255,255,255,.04) 83%, transparent 87%),
+    linear-gradient(151deg, rgba(255,255,255,.045), transparent 25% 72%, rgba(0,0,0,.17));
+  box-shadow:
+    inset 0 3px 4px rgba(255,255,255,.05),
+    inset 0 -10px 15px rgba(0,0,0,.36);
+}
+
+.safe-cracker-game .sc-dial-face::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border-radius: 50%;
+  pointer-events: none;
+  background:
+    repeating-conic-gradient(from -1.8deg,
+      rgba(235,240,242,.98) 0deg .54deg,
+      rgba(92,103,108,.88) .54deg .82deg,
+      transparent .82deg 3.6deg);
+  -webkit-mask: radial-gradient(circle, transparent 0 73.8%, #000 74.4% 78.4%, transparent 79% 100%);
+  mask: radial-gradient(circle, transparent 0 73.8%, #000 74.4% 78.4%, transparent 79% 100%);
   filter:
     drop-shadow(0 -1px 0 rgba(255,255,255,.12))
-    drop-shadow(0 1px 0 rgba(0,0,0,.88));
+    drop-shadow(0 2px 1px rgba(0,0,0,.9));
 }
 
 .safe-cracker-game .sc-dial-number {
-  --radius: 105px;
-  z-index: 4;
-  width: 34px;
-  height: 38px;
-  margin: -19px -17px;
-  color: #dce3e5;
-  font-size: 1.2rem;
+  --radius: 112px;
+  z-index: 5;
+  width: 36px;
+  height: 40px;
+  margin: -20px -18px;
+  color: #e3eaec;
+  font-size: 1.32rem;
   font-weight: 800;
-  letter-spacing: -.035em;
+  letter-spacing: -.04em;
   text-shadow:
-    0 3px 3px #000,
-    0 -1px 0 rgba(255,255,255,.22),
-    0 0 5px rgba(207,220,224,.08);
+    0 3px 4px #000,
+    0 -1px 0 rgba(255,255,255,.25),
+    0 0 6px rgba(210,223,227,.1);
 }
 
 .safe-cracker-game .sc-dial-number > span {
-  width: 31px;
-  height: 36px;
+  width: 34px;
+  height: 40px;
   display: grid;
   place-items: center;
   border: 0;
@@ -196,74 +173,65 @@ const dialDepth = String.raw`${cssStart}
 }
 
 .safe-cracker-game .sc-dial-number.selected {
-  color: #f5f8f9;
+  color: #f8fbfc;
   text-shadow:
-    0 3px 3px #000,
-    0 -1px 0 rgba(255,255,255,.34),
-    0 0 8px rgba(222,234,238,.28);
+    0 3px 4px #000,
+    0 -1px 0 rgba(255,255,255,.42),
+    0 0 10px rgba(225,235,238,.32);
 }
 
 .safe-cracker-game .sc-dial-number.selected > span {
   color: inherit;
-  transform: scale(1.09) translateY(-1px);
+  transform: scale(1.1) translateY(-1px);
   border: 0;
   background: transparent;
   box-shadow: none;
 }
 
 .safe-cracker-game .sc-dial-hub {
-  z-index: 5;
-  width: 45%;
+  z-index: 7;
+  width: 39%;
   overflow: visible;
-  border: 7px solid #070a0c;
+  border: 8px solid #070a0c;
   background:
-    radial-gradient(circle at 36% 24%, rgba(255,255,255,.24), transparent 16%),
-    radial-gradient(circle at 50% 54%,
-      #1a2023 0 13%,
-      #090c0e 14% 57%,
-      #222a2e 58% 65%,
-      #717c81 66% 69%,
-      #151b1e 70% 100%);
+    radial-gradient(ellipse at 35% 23%, rgba(255,255,255,.28), transparent 19%),
+    radial-gradient(circle at 50% 55%,
+      #363f43 0 8%,
+      #151a1d 24%,
+      #07090b 62%,
+      #1d2427 80%,
+      #050708 100%);
   box-shadow:
-    inset 0 2px 0 rgba(255,255,255,.17),
-    inset 0 -15px 20px rgba(0,0,0,.66),
-    inset 0 0 20px rgba(0,0,0,.78),
-    0 0 0 3px #c7d0d3,
-    0 0 0 6px #667176,
-    0 0 0 9px #151b1e,
-    0 0 0 12px #aeb8bb,
-    0 0 0 15px #2f393d,
-    0 7px 0 #06090a,
-    0 17px 18px rgba(0,0,0,.66);
+    inset 0 2px 0 rgba(255,255,255,.2),
+    inset 0 -17px 22px rgba(0,0,0,.7),
+    inset 0 0 22px rgba(0,0,0,.82),
+    0 0 0 3px #d6dee0,
+    0 0 0 7px #778287,
+    0 0 0 10px #171d20,
+    0 0 0 14px #bcc6c9,
+    0 0 0 18px #343e42,
+    0 8px 0 #040607,
+    0 20px 21px rgba(0,0,0,.75);
 }
 
 .safe-cracker-game .sc-dial-hub::before {
   content: '';
   position: absolute;
-  inset: -39%;
+  inset: -23%;
   z-index: -1;
   border-radius: 50%;
   pointer-events: none;
+  border: 3px solid rgba(188,199,202,.82);
   background:
-    repeating-conic-gradient(from -1deg,
-      rgba(226,233,235,.82) 0deg .75deg,
-      rgba(67,76,80,.92) .75deg 1.3deg,
-      transparent 1.3deg 35.15deg,
-      rgba(11,15,17,.96) 35.15deg 36deg),
     radial-gradient(circle,
-      transparent 0 57%,
-      #2e373b 58% 60%,
-      #858f93 61% 62.5%,
-      #171d20 63% 78%,
-      #596469 79% 80.5%,
-      #cbd3d5 81% 82%,
-      #222a2e 83% 86%,
-      transparent 87% 100%);
-  -webkit-mask: radial-gradient(circle, transparent 0 56%, #000 57% 86%, transparent 87% 100%);
-  mask: radial-gradient(circle, transparent 0 56%, #000 57% 86%, transparent 87% 100%);
-  filter:
-    drop-shadow(0 -1px 0 rgba(255,255,255,.13))
-    drop-shadow(0 5px 3px rgba(0,0,0,.74));
+      transparent 0 65%,
+      rgba(224,231,233,.78) 66% 68%,
+      #4f5a5f 69% 73%,
+      #151b1e 74% 100%);
+  box-shadow:
+    inset 0 3px 4px rgba(255,255,255,.12),
+    inset 0 -8px 11px rgba(0,0,0,.58),
+    0 5px 4px rgba(0,0,0,.72);
 }
 
 .safe-cracker-game .sc-dial-hub::after {
@@ -273,93 +241,101 @@ const dialDepth = String.raw`${cssStart}
   border-radius: 50%;
   pointer-events: none;
   background:
-    radial-gradient(ellipse at 37% 23%, rgba(255,255,255,.13), transparent 31%),
-    linear-gradient(180deg, rgba(255,255,255,.025), transparent 42%);
-  border-top: 1px solid rgba(255,255,255,.18);
-  border-bottom: 1px solid rgba(0,0,0,.7);
+    radial-gradient(ellipse at 35% 22%, rgba(255,255,255,.16), transparent 31%),
+    linear-gradient(180deg, rgba(255,255,255,.035), transparent 44%);
+  border-top: 1px solid rgba(255,255,255,.2);
+  border-bottom: 1px solid rgba(0,0,0,.74);
   box-shadow:
-    inset 0 7px 11px rgba(255,255,255,.025),
-    inset 0 -12px 14px rgba(0,0,0,.32);
+    inset 0 9px 12px rgba(255,255,255,.025),
+    inset 0 -14px 17px rgba(0,0,0,.38);
 }
 
 .safe-cracker-game .sc-current-number {
-  z-index: 8;
-  width: 84px;
-  height: 84px;
+  z-index: 10;
+  width: 88px;
+  height: 88px;
   border: 0;
-  color: #eef3f4;
+  color: #f0f5f6;
   background:
-    radial-gradient(ellipse at 38% 25%, rgba(255,255,255,.13), transparent 27%),
-    radial-gradient(circle, #151a1d 0 45%, #070a0c 72%);
+    radial-gradient(ellipse at 36% 23%, rgba(255,255,255,.16), transparent 28%),
+    radial-gradient(circle, #171c1f 0 42%, #050708 76%);
   box-shadow:
-    inset 0 2px 0 rgba(255,255,255,.1),
-    inset 0 -17px 22px rgba(0,0,0,.58),
-    inset 0 0 17px rgba(0,0,0,.82);
-  font-size: 2.65rem;
+    inset 0 2px 0 rgba(255,255,255,.12),
+    inset 0 -19px 24px rgba(0,0,0,.64),
+    inset 0 0 20px rgba(0,0,0,.86);
+  font-size: 2.8rem;
   font-weight: 800;
   text-shadow:
-    0 3px 4px #000,
-    0 -1px 0 rgba(255,255,255,.28),
-    0 0 12px rgba(219,232,236,.18);
+    0 4px 5px #000,
+    0 -1px 0 rgba(255,255,255,.32),
+    0 0 13px rgba(222,234,238,.2);
 }
 
 .safe-cracker-game .sc-step-controls {
-  gap: 14px;
-  margin: 10px 0 10px;
+  gap: 22px;
+  margin: 17px 0 11px;
 }
 
 .safe-cracker-game .sc-step-controls button {
-  width: 88px;
-  height: 47px;
-  padding: 0 0 3px;
+  width: 108px;
+  height: 58px;
+  padding: 0 0 4px;
   display: grid;
   place-items: center;
-  border: 3px solid #111719;
-  border-radius: 10px;
-  color: #e5ebed;
+  border: 4px solid #090d0f;
+  border-radius: 12px;
+  color: #eef3f4;
   background:
-    linear-gradient(180deg, rgba(255,255,255,.08), transparent 31%),
-    linear-gradient(180deg, #31393d 0%, #171d20 52%, #080b0d 100%);
+    linear-gradient(180deg, rgba(255,255,255,.12), transparent 28%),
+    linear-gradient(180deg, #3b4448 0%, #1b2225 48%, #070a0c 100%);
   box-shadow:
-    inset 0 0 0 2px #8b969a,
-    inset 0 0 0 4px #222a2e,
-    inset 0 2px 0 rgba(255,255,255,.18),
-    inset 0 -7px 9px rgba(0,0,0,.52),
-    0 5px 0 #050809,
-    0 10px 13px rgba(0,0,0,.55);
-  font-size: 1.7rem;
+    inset 0 0 0 2px #aab4b8,
+    inset 0 0 0 5px #2b3438,
+    inset 0 3px 0 rgba(255,255,255,.2),
+    inset 0 -9px 11px rgba(0,0,0,.58),
+    0 7px 0 #030506,
+    0 14px 17px rgba(0,0,0,.64);
+  font-size: 2.05rem;
   font-weight: 700;
   line-height: 1;
   text-shadow:
-    0 2px 2px #000,
-    0 -1px 0 rgba(255,255,255,.25);
+    0 3px 3px #000,
+    0 -1px 0 rgba(255,255,255,.28);
 }
 
 .safe-cracker-game .sc-step-controls button:active {
-  transform: translateY(3px);
+  transform: translateY(4px);
   box-shadow:
-    inset 0 0 0 2px #788388,
-    inset 0 0 0 4px #1b2225,
-    inset 0 2px 0 rgba(255,255,255,.12),
-    inset 0 -4px 7px rgba(0,0,0,.5),
-    0 2px 0 #050809,
-    0 5px 7px rgba(0,0,0,.52);
+    inset 0 0 0 2px #899499,
+    inset 0 0 0 5px #20282c,
+    inset 0 2px 0 rgba(255,255,255,.13),
+    inset 0 -5px 8px rgba(0,0,0,.56),
+    0 3px 0 #030506,
+    0 7px 9px rgba(0,0,0,.58);
 }
 
 @media (max-width: 700px) {
-  .safe-cracker-game .sc-dial-wrap::before { inset: -14px; }
-  .safe-cracker-game .sc-dial-wrap::after { top: -27px; width: 50px; height: 24px; }
-  .safe-cracker-game .sc-dial-pointer { top: -21px; width: 19px; height: 34px; }
-  .safe-cracker-game .sc-dial-number { --radius: min(27.4vw, 105px); }
-  .safe-cracker-game .sc-current-number { width: min(22vw, 84px); height: min(22vw, 84px); font-size: min(11vw, 2.65rem); }
-  .safe-cracker-game .sc-step-controls button { width: 82px; height: 44px; }
+  .safe-cracker-game .sc-dial-wrap { transform: translateY(-2px); }
+  .safe-cracker-game .sc-dial-wrap::before { inset: -20px; }
+  .safe-cracker-game .sc-dial-wrap::after { top: -39px; width: 70px; height: 33px; }
+  .safe-cracker-game .sc-dial-pointer { top: -34px; width: 24px; height: 48px; }
+  .safe-cracker-game .sc-dial { inset: -4px; transform: translateY(-1px) scale(1.025); }
+  .safe-cracker-game .sc-dial.dragging { transform: translateY(1px) scale(1.01); }
+  .safe-cracker-game .sc-dial-number { --radius: min(29.2vw, 112px); font-size: min(5.4vw, 1.32rem); }
+  .safe-cracker-game .sc-current-number { width: min(23vw, 88px); height: min(23vw, 88px); font-size: min(11.7vw, 2.8rem); }
+  .safe-cracker-game .sc-step-controls { gap: 17px; margin-top: 13px; }
+  .safe-cracker-game .sc-step-controls button { width: min(28vw, 104px); height: 52px; font-size: 1.9rem; }
 }
 
 @media (max-height: 720px) and (max-width: 700px) {
-  .safe-cracker-game .sc-dial-number { --radius: min(22.9vw, 84px); }
-  .safe-cracker-game .sc-current-number { width: 66px; height: 66px; font-size: 2rem; }
-  .safe-cracker-game .sc-step-controls { margin-top: 5px; margin-bottom: 7px; }
-  .safe-cracker-game .sc-step-controls button { width: 74px; height: 39px; font-size: 1.48rem; }
+  .safe-cracker-game .sc-dial-wrap::before { inset: -15px; }
+  .safe-cracker-game .sc-dial-wrap::after { top: -31px; width: 60px; height: 28px; }
+  .safe-cracker-game .sc-dial-pointer { top: -27px; width: 21px; height: 40px; }
+  .safe-cracker-game .sc-dial { inset: -2px; transform: scale(1.012); }
+  .safe-cracker-game .sc-dial-number { --radius: min(24.2vw, 89px); font-size: min(4.8vw, 1.08rem); }
+  .safe-cracker-game .sc-current-number { width: 68px; height: 68px; font-size: 2.08rem; }
+  .safe-cracker-game .sc-step-controls { gap: 14px; margin: 7px 0 8px; }
+  .safe-cracker-game .sc-step-controls button { width: 78px; height: 41px; font-size: 1.55rem; }
 }
 ${cssEnd}`;
 
@@ -371,8 +347,8 @@ await writeFile(cssUrl, css);
 let html = await readFile(indexUrl, 'utf8');
 html = html.replace(/\/assets\/safe-cracker\/safe-cracker\.css\?[^"'\s]*/g, value => {
   const clean = value.replace(/&dial=\d+/g, '');
-  return `${clean}&dial=2`;
+  return `${clean}&dial=3`;
 });
 await writeFile(indexUrl, html);
 
-console.log('Applied Safe Cracker reference dial pass: silver layered rings, upright radial numerals, precision ticks, raised grip ribs, deep center knob, and reference-style step controls.');
+console.log('Applied Safe Cracker reference dial rebuild: separate recessed cavity, tactile ribbed grip, thick brushed silver bezel, black numeral band, precision silver ticks, sloped segmented inner plate, convex center knob, raised pointer, and large reference-style step controls.');
