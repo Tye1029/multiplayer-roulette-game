@@ -11,6 +11,11 @@ const helperMarker = '// SAFE_CRACKER_LATCH_SEQUENCE_V1_HELPER';
 
 const latchCss = String.raw`${cssStart}
 .safe-cracker-game .sc-confirm-button {
+  overflow: visible !important;
+  isolation: isolate;
+  -webkit-appearance: none;
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
   background-color: #aab4b8 !important;
   background-image:
     linear-gradient(180deg,
@@ -18,18 +23,74 @@ const latchCss = String.raw`${cssStart}
       #c4cdd1 31%,
       #929fa5 67%,
       #68757b 100%) !important;
+  background-clip: padding-box !important;
+  border: 3px solid #050708 !important;
+  border-bottom-color: #050708 !important;
+  outline: 0 !important;
+  filter: none !important;
   box-shadow:
     inset 0 2px 0 rgba(255,255,255,.72),
     inset 0 -4px 6px rgba(10,14,16,.28),
     0 5px 10px rgba(0,0,0,.48) !important;
 }
 
+.safe-cracker-game .sc-confirm-button > span {
+  position: relative;
+  z-index: 2;
+  color: #ddb362;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  text-shadow:
+    -1px -1px 0 #050708,
+    0 -1px 0 #050708,
+    1px -1px 0 #050708,
+    -1px 0 0 #050708,
+    1px 0 0 #050708,
+    -1px 1px 0 #050708,
+    0 1px 0 #050708,
+    1px 1px 0 #050708,
+    0 2px 2px #000;
+}
+
+.safe-cracker-game .sc-confirm-button::before {
+  content: none !important;
+  display: none !important;
+}
+
+.safe-cracker-game .sc-confirm-button::after {
+  content: '' !important;
+  display: block !important;
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  bottom: -7px;
+  height: 7px;
+  border: 0 !important;
+  border-radius: 0 0 6px 6px;
+  background: #050708 !important;
+  box-shadow: none !important;
+  z-index: -1;
+  pointer-events: none;
+  transition: bottom .08s ease, height .08s ease;
+}
+
+.safe-cracker-game .sc-confirm-button:disabled {
+  filter: none !important;
+}
+
 .safe-cracker-game .sc-confirm-button:active {
   transform: translateY(4px) !important;
+  filter: none !important;
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,.5),
     inset 0 -2px 5px rgba(10,14,16,.42),
     0 1px 4px rgba(0,0,0,.42) !important;
+}
+
+.safe-cracker-game .sc-confirm-button:active::after {
+  bottom: -3px;
+  height: 3px;
 }
 
 .safe-cracker-game .sc-bolts.right {
@@ -44,9 +105,9 @@ const latchCss = String.raw`${cssStart}
   transform-origin: right center;
   will-change: transform, filter, opacity;
   transition:
-    transform .58s cubic-bezier(.2,.85,.28,1),
-    filter .4s ease,
-    opacity .4s ease;
+    transform .82s cubic-bezier(.2,.85,.28,1),
+    filter .58s ease,
+    opacity .58s ease;
 }
 
 .safe-cracker-game .sc-bolts.right i.sc-latch-released {
@@ -59,7 +120,7 @@ const latchCss = String.raw`${cssStart}
 }
 
 .safe-cracker-game .sc-bolts.right i.sc-latch-releasing {
-  animation: scSafeCrackerLatchReleaseV1 .82s cubic-bezier(.16,.82,.3,1) both;
+  animation: scSafeCrackerLatchReleaseV1 1.15s cubic-bezier(.16,.82,.3,1) both;
 }
 
 @keyframes scSafeCrackerLatchReleaseV1 {
@@ -164,12 +225,12 @@ await writeFile(clientUrl, client);
 let html = await readFile(indexUrl, 'utf8');
 html = html.replace(/\/assets\/safe-cracker\/safe-cracker\.css\?[^"'\s]*/g, value => {
   const clean = value.replace(/&latch=\d+/g, '');
-  return `${clean}&latch=2`;
+  return `${clean}&latch=3`;
 });
 html = html.replace(/\/assets\/safe-cracker\/safe-cracker\.js\?[^"'\s]*/g, value => {
   const clean = value.replace(/&latch=\d+/g, '');
-  return `${clean}&latch=2`;
+  return `${clean}&latch=3`;
 });
 await writeFile(indexUrl, html);
 
-console.log('Applied Safe Cracker latch sequence v2: the right-side latches retain their authoritative top-to-bottom release sequence with a slower, heavier mechanical opening motion.');
+console.log('Applied Safe Cracker latch sequence v3: the right-side latches release over 1.15 seconds, and the Check Number control uses a dedicated opaque black mechanical base with all inherited yellow/orange underlayers cleared.');
