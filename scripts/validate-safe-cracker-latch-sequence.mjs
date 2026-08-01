@@ -76,14 +76,16 @@ const requiredClient = [
   '// SAFE_CRACKER_LATCH_SEQUENCE_V1_RUNTIME',
   "latchGameId: ''",
   'latchStage: 0',
-  '// SAFE_CRACKER_LATCH_SEQUENCE_V1_RENDER',
-  'const latchStage = Math.max(0, Math.min(STAGES, Number(me.stage || 0)))',
+  '// SAFE_CRACKER_LATCH_SEQUENCE_V1_HELPER',
+  'function safeCrackerLatchBank(game, me)',
+  'const latchStage = Math.max(0, Math.min(STAGES, Number(me?.stage || 0)))',
   'latchStage > runtime.latchStage',
   'const latchClass = index => [',
   'data-sc-latch-stage="${latchStage}"',
   'class="${latchClass(1)}"',
   'class="${latchClass(2)}"',
   'class="${latchClass(3)}"',
+  '${safeCrackerLatchBank(game, me)}',
   '// SAFE_CRACKER_INPUT_CONTINUITY_V9_START',
   '// SAFE_CRACKER_DIAL_ACTIVITY_V16_START',
   'choice: `safecracker:guess:${runtime.selected}`'
@@ -94,7 +96,10 @@ for (const fragment of requiredClient) {
   }
 }
 if ((client.match(/data-sc-latch-stage=/g) || []).length !== 1) {
-  throw new Error('Safe Cracker latch validation failed: the staged right latch bank is not mounted exactly once.');
+  throw new Error('Safe Cracker latch validation failed: the staged right latch bank is not generated exactly once.');
+}
+if ((client.match(/\$\{safeCrackerLatchBank\(game, me\)\}/g) || []).length !== 1) {
+  throw new Error('Safe Cracker latch validation failed: the right latch bank helper is not mounted exactly once.');
 }
 if (/RESETTING(?:…|\.\.\.)/i.test(client)) {
   throw new Error('Safe Cracker latch validation failed: RESETTING still appears on the Check Number control.');
