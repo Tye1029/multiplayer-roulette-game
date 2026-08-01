@@ -33,10 +33,13 @@ assert(!helper.includes('duelRequest("get"'), 'Ready retry still creates competi
 assert(html.includes('const data = await duelSafeCrackerReadyRequest(duelCurrentGameId);'), 'Ready button bypasses the retry helper');
 assert(html.includes('window.__safeCrackerFocusedGetAbort = controller'), 'focused Safe Cracker GET cannot be cancelled');
 assert(html.includes('window.__safeCrackerFocusedGetAbort?.abort()'), 'a guess does not cancel its obsolete focused GET');
-assert(html.includes('game.status === "playing" ? 2200 : 650'), 'Safe Cracker polling cadence was not reduced');
+assert(html.includes('game.status === "playing" ? 2600 : 1600'), 'Safe Cracker polling cadence was not stabilized');
+assert(!html.includes('game.status === "playing" ? 2200 : 650'), 'obsolete high-frequency Safe Cracker polling remains');
+assert(html.includes('window.__safeCrackerPollBackoffUntil'), 'failed Safe Cracker polls do not back off');
+assert(html.includes('if (!safeCrackerPendingRefresh) queueMicrotask(() => duelRefresh(true));'), 'queued polling ticks can still form an immediate request chain');
 assert(html.includes('window.__safeCrackerReadyRetryInFlight'), 'background polling can compete with Ready retries');
 assert(html.includes('/assets/safe-cracker/safe-cracker.js?v=8'), 'responsive Safe Cracker JavaScript is not visual-sequence v8');
 assert(html.includes('/assets/safe-cracker/safe-cracker.css?v=8'), 'responsive Safe Cracker stylesheet is not visual-sequence v8');
 assert(action.includes('const DUEL_FUNCTION_BUILD = "safecracker-direct-v8";'), 'immediate-completion function bundle marker is missing');
 
-console.log('Safe Cracker responsiveness validation passed: Ready retries, poll cancellation, immediate completion, and visual-sequence v8 remain intact.');
+console.log('Safe Cracker responsiveness validation passed: Ready retries, mutation cancellation, slower polling, bounded failure backoff, immediate completion, and visual-sequence v8 remain intact.');
