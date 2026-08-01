@@ -43,14 +43,14 @@ assert(block.includes('.safe-cracker-game .sc-confirm-button:not(:disabled):acti
 assert(block.includes('.safe-cracker-game .sc-safe-handle'), 'safe hardware depth is missing');
 assert(block.includes('.safe-cracker-game .sc-bolts i'), 'bolt contact shadows are missing');
 
-assert(index.includes('&texture=5'), 'approved A2 texture cache boundary changed');
+assert(index.includes('&texture=6'), 'material-reset cache boundary changed');
 assert(index.includes('&shadow=1'), 'shadow-depth cache boundary is missing');
-assert(css.includes('/* SAFE_CRACKER_TEXTURE_PASS_V4_START */'), 'approved A2 image texture is missing');
-assert(css.includes('.safe-cracker-game .sc-dial-wrap::after'), 'dial glare cleanup selector is missing');
-assert(css.includes('content: none !important'), 'dial glare artifact remains active');
-assert(!css.includes('/* SAFE_CRACKER_TEXTURE_PASS_V3_START */'), 'legacy directional texture block remains');
-assert(texturePatch.includes("await import('./patch-safe-cracker-shadow-depth.mjs')"), 'texture build does not invoke the separate shadow-depth pass');
-assert(!block.includes('background-image:'), 'shadow pass must not replace or add texture images');
+assert(css.includes('/* SAFE_CRACKER_TEXTURE_PASS_V6_START */'), 'material-only reset is missing');
+assert(css.includes('.safe-cracker-game .sc-dial-face::after'), 'rotating glare cleanup selector is missing');
+assert(css.includes('content: none !important'), 'rotating glare remains active');
+assert(!css.includes('/* SAFE_CRACKER_TEXTURE_PASS_V5_START */'), 'legacy directional material block remains');
+assert(texturePatch.includes("await import('./patch-safe-cracker-shadow-depth.mjs')"), 'material build does not invoke structural depth');
+assert(!block.includes('background-image:'), 'shadow pass must not replace or add material images');
 assert(!block.includes('animation:'), 'shadow pass must not add animation');
 assert(!block.includes('filter: brightness'), 'shadow pass must not add a lighting filter');
 assert(!block.includes('pointer-events: auto'), 'shadow pass must not intercept controls');
@@ -63,4 +63,4 @@ assert(client.includes('// SAFE_CRACKER_SAMPLE_MIX_V11_START'), 'sample mix v11 
 assert(duelAction.includes('safecracker'), 'Safe Cracker server mode is unreadable');
 assert(turnAnimation.length > 0 && turnFire.length > 0 && audioBindings.length > 0, 'protected Roulette assets are unreadable');
 
-console.log('Safe Cracker shadow-depth validation passed: localized structural recesses and contact shadows remain installed while the corrected A2 texture, glare cleanup, controls, gameplay, networking, audio and Roulette stay protected.');
+console.log('Safe Cracker shadow-depth validation passed: structural recesses and contact shadows remain intact beneath the material reset and unified stationary scene light while controls, gameplay, networking, audio and Roulette stay protected.');
