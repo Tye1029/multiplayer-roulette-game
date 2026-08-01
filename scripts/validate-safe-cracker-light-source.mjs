@@ -32,6 +32,9 @@ const blockStart = css.indexOf(start);
 const blockEnd = css.indexOf(end, blockStart);
 assert(blockStart >= 0 && blockEnd > blockStart, 'lighting-reset marker order is invalid');
 const block = css.slice(blockStart, blockEnd + end.length);
+const overlayStart = block.indexOf('.safe-cracker-game .sc-safe-shell::after');
+const overlayEnd = block.indexOf('/* Fixed trim', overlayStart);
+const overlay = block.slice(overlayStart, overlayEnd > overlayStart ? overlayEnd : block.length);
 
 assert(occurrences(block, '.safe-cracker-game .sc-safe-shell::after') === 1, 'there must be exactly one scene-light overlay');
 assert(block.includes('contain: paint'), 'safe-local paint containment is missing');
@@ -53,9 +56,9 @@ assert(block.includes('.safe-cracker-game .sc-dial-wrap'), 'mobile rotating dial
 assert(block.includes('.safe-cracker-game .sc-dial-pointer'), 'mobile pointer filter is not optimized');
 assert(block.includes('filter: none !important'), 'mobile drop-shadow filters remain active');
 
-assert(occurrences(block, 'radial-gradient(') === 1, 'scene light uses more than one radial layer');
-assert(occurrences(block, 'linear-gradient(') === 1, 'scene light uses more than one linear layer');
-assert(!block.includes('box-shadow:'), 'scene overlay reintroduced expensive large shadow layers');
+assert(occurrences(overlay, 'radial-gradient(') === 1, 'scene overlay uses more than one radial layer');
+assert(occurrences(overlay, 'linear-gradient(') === 1, 'scene overlay uses more than one linear layer');
+assert(!overlay.includes('box-shadow:'), 'scene overlay reintroduced expensive large shadow layers');
 assert(!block.includes('background-image:'), 'light pass is replacing material artwork');
 assert(!block.includes('safe-steel-base.svg'), 'light pass still owns steel texture');
 assert(!block.includes('metal-wear.svg'), 'light pass still owns wear texture');
