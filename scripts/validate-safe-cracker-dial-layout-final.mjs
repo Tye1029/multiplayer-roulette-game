@@ -37,17 +37,24 @@ const requiredCss = [
   '.safe-cracker-game .sc-dial-pointer',
   'top: -38px',
   'overflow: hidden',
+  'isolation: isolate',
+  '-webkit-appearance: none',
+  'appearance: none',
   'border: 3px solid #050708 !important',
-  'background-color: #aab4b8 !important',
-  'background-image:',
+  'border-bottom-color: #050708 !important',
+  'background: linear-gradient(180deg,',
   '#e2e8ea 0%',
   '#c4cdd1 31%',
   '#929fa5 67%',
   '#68757b 100%',
   'color: #ddb362',
-  '0 7px 0 #030506',
-  'transform: translateY(4px)',
-  '0 3px 0 #030506',
+  '-1px -1px 0 #050708',
+  '1px 1px 0 #050708',
+  '0 7px 0 #050708',
+  'transition: transform .06s ease, box-shadow .06s ease',
+  '.safe-cracker-game .sc-confirm-button:active',
+  'transform: translateY(4px) !important',
+  '0 3px 0 #050708',
   '.safe-cracker-game .sc-confirm-button::before',
   '.safe-cracker-game .sc-confirm-button::after',
   'content: none !important',
@@ -66,16 +73,18 @@ for (const fragment of requiredCss) {
 }
 
 const forbiddenCss = [
-  'color: #101416',
-  'color: #171b1d',
+  '0 7px 0 #030506',
+  '0 3px 0 #030506',
   '0 7px 0 #4d3010',
   '0 3px 0 #4d3010',
   '#855515',
   '#c98b29',
+  '#c69b52',
+  '#8c6633',
+  '#5c3f1c',
   'border: 0 !important',
   'inset 0 0 0 2px #e1bd72',
   'border: 3px solid #6f4b1e',
-  'linear-gradient(180deg, #c69b52 0%, #8c6633 48%, #5c3f1c 100%)',
   '0 6px 0 #1a1007'
 ];
 for (const fragment of forbiddenCss) {
@@ -90,18 +99,24 @@ if (/position\s*:\s*fixed/i.test(block) || /backdrop-filter\s*:/i.test(block)) {
   throw new Error('Safe Cracker final dial-layout validation failed: the refinement escaped its component boundary.');
 }
 
-const assetPath = '/assets/safe-cracker/textures/dial-reference-face-v7.svg?dial=7&layout=6';
+const assetPath = '/assets/safe-cracker/textures/dial-reference-face-v7.svg?dial=7&layout=7';
 if (!client.includes(`src="${assetPath}"`)) {
-  throw new Error('Safe Cracker final dial-layout validation failed: the mounted plate does not use layout=6.');
+  throw new Error('Safe Cracker final dial-layout validation failed: the mounted plate does not use layout=7.');
 }
 if ((client.match(/class="sc-dial-reference-plate"/g) || []).length !== 1) {
   throw new Error('Safe Cracker final dial-layout validation failed: the dial plate is not mounted exactly once.');
 }
-if (!/safe-cracker\.css\?[^"'\s]*&dial=7[^"'\s]*&layout=6/.test(html)) {
-  throw new Error('Safe Cracker final dial-layout validation failed: stylesheet cache key layout=6 is missing.');
+if (!client.includes('<span>CHECK NUMBER</span>')) {
+  throw new Error('Safe Cracker final dial-layout validation failed: the confirmation label is not fixed to CHECK NUMBER.');
 }
-if (!/safe-cracker\.js\?[^"'\s]*&dial=7[^"'\s]*&layout=6/.test(html)) {
-  throw new Error('Safe Cracker final dial-layout validation failed: runtime cache key layout=6 is missing.');
+if (/RESETTING(?:…|\.\.\.)/i.test(client) || /CHECKING(?:…|\.\.\.)/i.test(client)) {
+  throw new Error('Safe Cracker final dial-layout validation failed: a temporary confirmation-button status label remains.');
+}
+if (!/safe-cracker\.css\?[^"'\s]*&dial=7[^"'\s]*&layout=7/.test(html)) {
+  throw new Error('Safe Cracker final dial-layout validation failed: stylesheet cache key layout=7 is missing.');
+}
+if (!/safe-cracker\.js\?[^"'\s]*&dial=7[^"'\s]*&layout=7/.test(html)) {
+  throw new Error('Safe Cracker final dial-layout validation failed: runtime cache key layout=7 is missing.');
 }
 
 const gameplayFragments = [
@@ -126,4 +141,4 @@ if (patch.includes("writeFile(new URL('../assets/roulette/")) {
   throw new Error('Safe Cracker final dial-layout validation failed: the visual patch writes protected Roulette files.');
 }
 
-console.log('Safe Cracker confirmation refinement validation passed: the Check Number control is fully silver with no orange ledge, uses a black mechanical step that collapses on press, its label matches the dial numeral gold, cache busting is current, V16 retention is intact, and Roulette remains protected.');
+console.log('Safe Cracker confirmation refinement validation passed: no yellow/orange underlayer remains, the gold label has a black outline, the button indents against a black mechanical step, temporary status text is removed, cache busting is current, V16 retention is intact, and Roulette remains protected.');
