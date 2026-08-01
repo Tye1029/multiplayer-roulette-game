@@ -55,5 +55,8 @@ assert(duelAction.includes('safecracker'), 'Safe Cracker server mode is unreadab
 assert(turnAnimation.length > 0 && turnFire.length > 0 && audioBindings.length > 0, 'protected Roulette assets are unreadable');
 assert(!patch.includes("writeFile(new URL('../netlify/functions/"), 'texture pass must not write networking files');
 assert(!patch.includes("writeFile(new URL('../assets/roulette/"), 'texture pass must not write Roulette files');
+assert(patch.includes("await import('./patch-safe-cracker-shadow-depth.mjs')"), 'texture pipeline does not continue into the separate shadow-depth pass');
 
 console.log('Safe Cracker texture-pass validation passed: image-based directional steel, irregular wear and circular dial machining replace CSS crosshatching while stability, gameplay, networking, audio and Roulette remain protected.');
+
+await import('./validate-safe-cracker-shadow-depth.mjs');
