@@ -1,12 +1,12 @@
 import { readFile } from 'node:fs/promises';
 
 const root = new URL('../', import.meta.url);
-const [css, index, patch, texturePatch, shadowPatch, client, duelAction, turnAnimation, turnFire, audioBindings] = await Promise.all([
+const [css, index, patch, texturePatch, lampPipeline, client, duelAction, turnAnimation, turnFire, audioBindings] = await Promise.all([
   readFile(new URL('assets/safe-cracker/safe-cracker.css', root), 'utf8'),
   readFile(new URL('index.html', root), 'utf8'),
   readFile(new URL('scripts/patch-safe-cracker-light-source.mjs', root), 'utf8'),
   readFile(new URL('scripts/patch-safe-cracker-texture-pass.mjs', root), 'utf8'),
-  readFile(new URL('scripts/patch-safe-cracker-shadow-depth.mjs', root), 'utf8'),
+  readFile(new URL('scripts/patch-safe-cracker-lamp-validator.mjs', root), 'utf8'),
   readFile(new URL('assets/safe-cracker/safe-cracker.js', root), 'utf8'),
   readFile(new URL('netlify/functions/duel-action.js', root), 'utf8'),
   readFile(new URL('assets/roulette/turn-animation.js', root)),
@@ -52,7 +52,9 @@ assert(index.includes('&texture=3'), 'A2 texture cache boundary changed');
 assert(index.includes('&shadow=1'), 'shadow cache boundary changed');
 assert(index.includes('&light=1'), 'light-source cache boundary is missing');
 assert(texturePatch.includes("await import('./patch-safe-cracker-shadow-depth.mjs')"), 'texture pipeline no longer invokes shadow depth');
-assert(shadowPatch.includes("await import('./patch-safe-cracker-light-source.mjs')"), 'shadow pipeline does not invoke the light pass');
+assert(lampPipeline.indexOf("await import('./patch-safe-cracker-texture-pass.mjs')") < lampPipeline.indexOf("await import('./patch-safe-cracker-light-source.mjs')"), 'light pass does not run after texture and shadow depth');
+assert(lampPipeline.includes("await import('./validate-safe-cracker-shadow-depth.mjs')"), 'shadow-depth validation is missing from the build pipeline');
+assert(lampPipeline.includes("await import('./validate-safe-cracker-light-source.mjs')"), 'light-source validation is missing from the build pipeline');
 
 assert(!block.includes('position: fixed'), 'light pass must not create a fullscreen overlay');
 assert(!block.includes('backdrop-filter'), 'light pass must not use backdrop filtering');
