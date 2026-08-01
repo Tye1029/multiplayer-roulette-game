@@ -3,8 +3,9 @@ import { readFile } from 'node:fs/promises';
 const cssUrl = new URL('../assets/safe-cracker/safe-cracker.css', import.meta.url);
 const clientUrl = new URL('../assets/safe-cracker/safe-cracker.js', import.meta.url);
 const indexUrl = new URL('../index.html', import.meta.url);
-const faceUrl = new URL('../assets/safe-cracker/textures/dial-reference-face-v5.svg', import.meta.url);
+const faceUrl = new URL('../assets/safe-cracker/textures/dial-reference-face-v6.svg', import.meta.url);
 const patchUrl = new URL('./patch-safe-cracker-dial-depth.mjs', import.meta.url);
+
 const [css, client, html, face, patch] = await Promise.all([
   readFile(cssUrl, 'utf8'),
   readFile(clientUrl, 'utf8'),
@@ -13,12 +14,12 @@ const [css, client, html, face, patch] = await Promise.all([
   readFile(patchUrl, 'utf8')
 ]);
 
-const start = '/* SAFE_CRACKER_DIAL_DEPTH_V3_START */';
-const end = '/* SAFE_CRACKER_DIAL_DEPTH_V3_END */';
+const start = '/* SAFE_CRACKER_DIAL_DEPTH_V4_START */';
+const end = '/* SAFE_CRACKER_DIAL_DEPTH_V4_END */';
 const startIndex = css.indexOf(start);
 const endIndex = css.indexOf(end);
 if (startIndex < 0 || endIndex <= startIndex) {
-  throw new Error('Safe Cracker dial-depth validation failed: v3 visual-pass markers are missing.');
+  throw new Error('Safe Cracker dial-depth validation failed: v4 visual-pass markers are missing.');
 }
 const block = css.slice(startIndex, endIndex + end.length);
 
@@ -27,28 +28,26 @@ const requiredCss = [
   '.safe-cracker-game .sc-dial-wrap::after',
   '.safe-cracker-game .sc-dial-pointer',
   '.safe-cracker-game .sc-dial-face::before',
-  '.safe-cracker-game .sc-dial-face::after',
   '.safe-cracker-game .sc-dial-number > span',
   '.safe-cracker-game .sc-dial-hub::before',
-  '.safe-cracker-game .sc-step-controls button',
-  "url('/assets/safe-cracker/textures/dial-reference-face-v5.svg?dial=5')",
-  'inset: -35px',
-  'transform: translateY(-6px) scale(1.04)',
-  'top: -54px',
-  'width: 31px',
-  'height: 57px',
-  '--radius: 109px',
-  'transform: scaleX(.82)',
-  'color: #d9ad5d',
+  "url('/assets/safe-cracker/textures/dial-reference-face-v6.svg?dial=6')",
+  'background-color: #050708',
+  'transform: translateY(-8px) scale(1.045)',
+  'top: -69px',
+  'width: 34px',
+  'height: 54px',
+  '--radius: 110px',
+  '"DIN Condensed"',
+  'color: #ddb362',
   'border-radius: 0',
   'background: transparent',
-  'width: 37%',
-  'width: 84px',
-  'height: 84px'
+  'width: 35%',
+  'width: 78px',
+  'height: 78px'
 ];
 for (const fragment of requiredCss) {
   if (!block.includes(fragment)) {
-    throw new Error(`Safe Cracker dial-depth validation failed: missing v3 reference feature: ${fragment}.`);
+    throw new Error(`Safe Cracker dial-depth validation failed: missing v4 reference feature: ${fragment}.`);
   }
 }
 
@@ -56,7 +55,10 @@ if (!block.includes('pointer-events: none')) {
   throw new Error('Safe Cracker dial-depth validation failed: dial overlays can intercept input.');
 }
 if (block.includes('repeating-conic-gradient')) {
-  throw new Error('Safe Cracker dial-depth validation failed: flat CSS spoke or dot wheel was reintroduced.');
+  throw new Error('Safe Cracker dial-depth validation failed: the old flat spoke-wheel gradient was reintroduced.');
+}
+if (block.includes('dial-reference-face-v5.svg') || block.includes('dial-reference-face.svg')) {
+  throw new Error('Safe Cracker dial-depth validation failed: a stale dial-face asset path remains in the final pass.');
 }
 if (/animation(?:-name)?\s*:/i.test(block)) {
   throw new Error('Safe Cracker dial-depth validation failed: static dial styling added animation.');
@@ -64,50 +66,56 @@ if (/animation(?:-name)?\s*:/i.test(block)) {
 if (/position\s*:\s*fixed/i.test(block) || /backdrop-filter\s*:/i.test(block)) {
   throw new Error('Safe Cracker dial-depth validation failed: dial pass escaped its component boundary.');
 }
-if (block.includes("url('/assets/safe-cracker/textures/dial-reference-face.svg')")) {
-  throw new Error('Safe Cracker dial-depth validation failed: stale unversioned dial asset URL remains active.');
-}
 
 const requiredSvg = [
-  'id="outer-rib"',
+  'id="grip-block"',
+  'id="grip-separator"',
   'id="minor-tick"',
   'id="major-tick"',
-  'id="inner-spoke"',
+  'id="inner-divider"',
   'id="silver"',
-  'id="brush"',
-  'id="raised-slope"',
-  'r="136.5"',
-  'stroke-width="14"',
-  'r="129"',
-  'r="95"',
-  'r="69"',
-  'r="63"',
-  'M152 3.5 L168 3.5 L166.6 25 L153.4 25 Z',
-  'M158.5 68 L161.5 68 L160.8 91 L159.2 91 Z'
+  'id="fine-brush"',
+  'id="number-band"',
+  'id="inner-slope"',
+  'r="135.5"',
+  'stroke-width="15.5"',
+  'r="126"',
+  'r="91.5"',
+  'r="66.5"',
+  'r="64"',
+  'M151.1 3.3H168.9L166.8 27.2H153.2Z',
+  'M158.35 70.5H161.65L160.9 92H159.1Z'
 ];
 for (const fragment of requiredSvg) {
   if (!face.includes(fragment)) {
-    throw new Error(`Safe Cracker dial-depth validation failed: v5 dimensional dial asset is missing ${fragment}.`);
+    throw new Error(`Safe Cracker dial-depth validation failed: rebuilt reference asset is missing ${fragment}.`);
   }
 }
 
 const counts = {
-  ribs: (face.match(/href="#outer-rib"/g) || []).length,
+  grips: (face.match(/href="#grip-block"/g) || []).length,
+  separators: (face.match(/href="#grip-separator"/g) || []).length,
   minorTicks: (face.match(/href="#minor-tick"/g) || []).length,
   majorTicks: (face.match(/href="#major-tick"/g) || []).length,
-  spokes: (face.match(/href="#inner-spoke"/g) || []).length
+  dividers: (face.match(/href="#inner-divider"/g) || []).length
 };
-if (counts.ribs !== 40) {
-  throw new Error(`Safe Cracker dial-depth validation failed: expected 40 tactile grip blocks, found ${counts.ribs}.`);
+if (counts.grips !== 40 || counts.separators !== 40) {
+  throw new Error(`Safe Cracker dial-depth validation failed: expected 40 raised grip blocks and separators, found ${counts.grips}/${counts.separators}.`);
 }
 if (counts.minorTicks !== 90 || counts.majorTicks !== 10) {
-  throw new Error(`Safe Cracker dial-depth validation failed: expected 100 short silver ticks, found ${counts.minorTicks + counts.majorTicks}.`);
+  throw new Error(`Safe Cracker dial-depth validation failed: expected 100 short silver tick marks, found ${counts.minorTicks + counts.majorTicks}.`);
 }
-if (counts.spokes !== 10) {
-  throw new Error(`Safe Cracker dial-depth validation failed: expected 10 short raised inner spokes, found ${counts.spokes}.`);
+if (counts.dividers !== 10) {
+  throw new Error(`Safe Cracker dial-depth validation failed: expected 10 short silver inner dividers, found ${counts.dividers}.`);
 }
 if (/<filter\b|feTurbulence|feGaussianBlur|feDropShadow/i.test(face)) {
-  throw new Error('Safe Cracker dial-depth validation failed: expensive SVG filters were added to the rotating dial.');
+  throw new Error('Safe Cracker dial-depth validation failed: expensive SVG filters were added to the rotating wheel.');
+}
+const forbiddenWarmFaceColors = ['#ddb362', '#e3b968', '#f0ca77', '#a66f28', '#96601a', '#f4d080', '#d09330'];
+for (const color of forbiddenWarmFaceColors) {
+  if (face.toLowerCase().includes(color)) {
+    throw new Error(`Safe Cracker dial-depth validation failed: warm spoke or numeral coloring leaked into the rotating SVG face: ${color}.`);
+  }
 }
 
 const physicalNumberTransform = 'transform: rotate(var(--digit-angle)) translateY(calc(var(--radius) * -1));';
@@ -132,11 +140,11 @@ for (const fragment of gameplayFragments) {
   }
 }
 
-if (!/safe-cracker\.css\?[^"'\s]*&dial=5/.test(html)) {
-  throw new Error('Safe Cracker dial-depth validation failed: dial CSS cache key v5 is missing.');
+if (!/safe-cracker\.css\?[^"'\s]*&dial=6/.test(html)) {
+  throw new Error('Safe Cracker dial-depth validation failed: dial CSS cache key v6 is missing.');
 }
-if (css.includes('SAFE_CRACKER_DIAL_DEPTH_V1_START') || css.includes('SAFE_CRACKER_DIAL_DEPTH_V2_START')) {
-  throw new Error('Safe Cracker dial-depth validation failed: legacy dial blocks remain.');
+if (/SAFE_CRACKER_DIAL_DEPTH_V[123]_START/.test(css)) {
+  throw new Error('Safe Cracker dial-depth validation failed: a legacy dial-depth block remains in the generated stylesheet.');
 }
 if (patch.includes("writeFile(new URL('../netlify/functions/")) {
   throw new Error('Safe Cracker dial-depth validation failed: visual patch writes networking files.');
@@ -145,4 +153,4 @@ if (patch.includes("writeFile(new URL('../assets/roulette/")) {
   throw new Error('Safe Cracker dial-depth validation failed: visual patch writes protected Roulette files.');
 }
 
-console.log('Safe Cracker reference-dial depth v3 validation passed: cache-busted black-and-silver dial face, 40 tactile scratched grip blocks, thick brushed-silver numeral bezel, clean black number band, 100 short silver ticks, 10 compact raised inner spokes, reduced layered hub, elevated faceted pointer, existing number orientation, dial retention, gameplay input, and protected Roulette boundaries are intact.');
+console.log('Safe Cracker reference-dial depth v4 validation passed: deeply protruding wheel, 40 tactile scratched grip blocks with silver separators, thick brushed-silver bezel, wide black numeral annulus, 100 short silver ticks, isolated sloped inner plate, 10 compact silver dividers, smaller layered hub, elevated pointer, existing numeral orientation, dial retention, gameplay, and protected Roulette boundaries are intact.');
