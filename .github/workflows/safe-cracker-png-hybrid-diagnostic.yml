@@ -38,7 +38,6 @@ jobs:
           trap 'rm -rf "$work"' EXIT
           png_signature() { head -c 8 "$1" | od -An -tx1 | tr -d ' \n'; }
           png_dimensions() { node -e "const b=require('fs').readFileSync(process.argv[1]);process.stdout.write(b.readUInt32BE(16)+'x'+b.readUInt32BE(20))" "$1"; }
-          sha256() { sha256sum "$1" | cut -d' ' -f1; }
           for attempt in $(seq 1 36); do
             html="$(curl -fsSL --max-time 20 "${url}?png_commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             js="$(curl -fsSL --max-time 20 "${url}${js_path}&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
@@ -46,29 +45,9 @@ jobs:
             headers="$(curl -fsS --max-time 20 -D - -o /dev/null -X OPTIONS "${function_url}?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             body_ok=0
             face_ok=0
-            if curl -fsSL --max-time 20 "${url}assets/safe-cracker/png-ui/safe-body.png?commit=${GITHUB_SHA}&attempt=${attempt}" -o "$work/safe-body.png" 2>/dev/null && \
-               [ "$(wc -c < "$work/safe-body.png")" -eq 14233 ] && \
-               [ "$(png_signature "$work/safe-body.png")" = '89504e470d0a1a0a' ] && \
-               [ "$(png_dimensions "$work/safe-body.png")" = '432x561' ] && \
-               [ "$(sha256 "$work/safe-body.png")" = 'e22b685648785a0e829235a37774802b9ed4f48bcabead86abc726748ac71eba' ]; then body_ok=1; fi
-            if curl -fsSL --max-time 20 "${url}assets/safe-cracker/png-ui/dial-face.png?commit=${GITHUB_SHA}&attempt=${attempt}" -o "$work/dial-face.png" 2>/dev/null && \
-               [ "$(wc -c < "$work/dial-face.png")" -eq 7772 ] && \
-               [ "$(png_signature "$work/dial-face.png")" = '89504e470d0a1a0a' ] && \
-               [ "$(png_dimensions "$work/dial-face.png")" = '170x170' ] && \
-               [ "$(sha256 "$work/dial-face.png")" = 'c23d03bd2bba8c9d0ca1b6e7091fd3c29ef887296d6147226da33081140aca33' ]; then face_ok=1; fi
-            if grep -Fq '&reference=1&depth=1&png=1' <<<"$html" && \
-               grep -Fq 'SAFE_CRACKER_PNG_HYBRID_V15_START' <<<"$css" && \
-               grep -Fq '/assets/safe-cracker/png-ui/safe-body.png?v=2' <<<"$css" && \
-               grep -Fq '/assets/safe-cracker/png-ui/dial-face.png?v=2' <<<"$css" && \
-               grep -Fq 'aspect-ratio: 432 / 561' <<<"$css" && \
-               grep -Fq 'left: 23.73%' <<<"$css" && \
-               grep -Fq 'left: 31.25%' <<<"$css" && \
-               grep -Fq 'left: 20.6%' <<<"$css" && \
-               grep -Fq 'SAFE_CRACKER_RUNTIME_STABILITY_V12_START' <<<"$js" && \
-               grep -Fq 'SAFE_CRACKER_INPUT_CONTINUITY_V9_START' <<<"$js" && \
-               grep -Fq 'choice: `safecracker:guess:${runtime.selected}`' <<<"$js" && \
-               [ "$body_ok" -eq 1 ] && [ "$face_ok" -eq 1 ] && \
-               grep -Fiq 'x-duel-function-build: safecracker-direct-v8' <<<"$headers"; then
+            if curl -fsSL --max-time 20 "${url}assets/safe-cracker/png-ui/safe-body.png?commit=${GITHUB_SHA}&attempt=${attempt}" -o "$work/safe-body.png" 2>/dev/null && [ "$(png_signature "$work/safe-body.png")" = '89504e470d0a1a0a' ] && [ "$(png_dimensions "$work/safe-body.png")" = '432x561' ] && [ "$(git hash-object "$work/safe-body.png")" = 'dd55e63a55b3d6933e5d3e8819bf3c0d71154cdd' ]; then body_ok=1; fi
+            if curl -fsSL --max-time 20 "${url}assets/safe-cracker/png-ui/dial-face.png?commit=${GITHUB_SHA}&attempt=${attempt}" -o "$work/dial-face.png" 2>/dev/null && [ "$(png_signature "$work/dial-face.png")" = '89504e470d0a1a0a' ] && [ "$(png_dimensions "$work/dial-face.png")" = '170x170' ] && [ "$(git hash-object "$work/dial-face.png")" = '7a6a2d5cfc0657be041862a36c1db074d7c35d86' ]; then face_ok=1; fi
+            if grep -Fq '&reference=1&depth=1&png=1' <<<"$html" && grep -Fq 'SAFE_CRACKER_PNG_HYBRID_V15_START' <<<"$css" && grep -Fq '/assets/safe-cracker/png-ui/safe-body.png?v=2' <<<"$css" && grep -Fq '/assets/safe-cracker/png-ui/dial-face.png?v=2' <<<"$css" && grep -Fq 'aspect-ratio: 432 / 561' <<<"$css" && grep -Fq 'left: 23.73%' <<<"$css" && grep -Fq 'left: 31.25%' <<<"$css" && grep -Fq 'left: 20.6%' <<<"$css" && grep -Fq 'SAFE_CRACKER_RUNTIME_STABILITY_V12_START' <<<"$js" && grep -Fq 'SAFE_CRACKER_INPUT_CONTINUITY_V9_START' <<<"$js" && grep -Fq 'choice: `safecracker:guess:${runtime.selected}`' <<<"$js" && [ "$body_ok" -eq 1 ] && [ "$face_ok" -eq 1 ] && grep -Fiq 'x-duel-function-build: safecracker-direct-v8' <<<"$headers"; then
               echo "Verified live supplied Safe Cracker PNG hybrid v15 and all protected regressions at ${url}"
               exit 0
             fi

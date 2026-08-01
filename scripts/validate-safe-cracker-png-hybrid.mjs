@@ -26,8 +26,11 @@ function pngDimensions(buffer) {
   assert(buffer.length >= 24 && buffer.subarray(0, 8).equals(signature), 'asset does not have a PNG signature');
   return [buffer.readUInt32BE(16), buffer.readUInt32BE(20)];
 }
-function sha256(buffer) {
-  return createHash('sha256').update(buffer).digest('hex');
+function gitBlobSha1(buffer) {
+  return createHash('sha1')
+    .update(Buffer.from(`blob ${buffer.length}\0`, 'utf8'))
+    .update(buffer)
+    .digest('hex');
 }
 
 assert(occurrences(css, '/* SAFE_CRACKER_PNG_HYBRID_V15_START */') === 1, 'hybrid CSS marker must appear exactly once');
@@ -58,13 +61,11 @@ const [bodyWidth, bodyHeight] = pngDimensions(pngs[0]);
 const [dialWidth, dialHeight] = pngDimensions(pngs[1]);
 assert(bodyWidth === 432 && bodyHeight === 561, `safe-body.png dimensions changed to ${bodyWidth}x${bodyHeight}`);
 assert(dialWidth === 170 && dialHeight === 170, `dial-face.png dimensions changed to ${dialWidth}x${dialHeight}`);
-assert(pngs[0].length === 14_233, `safe-body.png size changed to ${pngs[0].length}`);
-assert(pngs[1].length === 7_772, `dial-face.png size changed to ${pngs[1].length}`);
-assert(sha256(pngs[0]) === 'e22b685648785a0e829235a37774802b9ed4f48bcabead86abc726748ac71eba', 'safe-body.png checksum changed');
-assert(sha256(pngs[1]) === 'c23d03bd2bba8c9d0ca1b6e7091fd3c29ef887296d6147226da33081140aca33', 'dial-face.png checksum changed');
+assert(gitBlobSha1(pngs[0]) === 'dd55e63a55b3d6933e5d3e8819bf3c0d71154cdd', 'safe-body.png does not match the committed supplied artwork');
+assert(gitBlobSha1(pngs[1]) === '7a6a2d5cfc0657be041862a36c1db074d7c35d86', 'dial-face.png does not match the committed supplied artwork');
 
 assert(assetPatch.includes('Verified directly committed Safe Cracker PNG layers.'), 'asset patch does not validate directly committed PNGs');
-assert(assetPatch.includes('expectedAssets') && assetPatch.includes('createHash') && assetPatch.includes('pngSignature'), 'asset patch does not validate PNG metadata and checksums');
+assert(assetPatch.includes('expectedAssets') && assetPatch.includes('createHash') && assetPatch.includes('pngSignature') && assetPatch.includes('gitBlobSha1'), 'asset patch does not validate PNG metadata and Git blobs');
 assert(!assetPatch.includes('png-ui-v5-data') && !assetPatch.includes('writeFile'), 'obsolete Base64 reconstruction is still active');
 assert(turnAnimation.length > 0 && turnFire.length > 0 && audioBindings.length > 0, 'protected Roulette assets are unreadable');
 for (const patch of [assetPatch, hybridPatch]) {

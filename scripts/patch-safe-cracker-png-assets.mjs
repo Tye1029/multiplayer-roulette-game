@@ -5,16 +5,14 @@ const rootUrl = new URL('../', import.meta.url);
 const assetDirectoryUrl = new URL('assets/safe-cracker/png-ui/', rootUrl);
 const expectedAssets = Object.freeze({
   'safe-body.png': {
-    bytes: 14_233,
     width: 432,
     height: 561,
-    sha256: 'e22b685648785a0e829235a37774802b9ed4f48bcabead86abc726748ac71eba'
+    gitBlobSha1: 'dd55e63a55b3d6933e5d3e8819bf3c0d71154cdd'
   },
   'dial-face.png': {
-    bytes: 7_772,
     width: 170,
     height: 170,
-    sha256: 'c23d03bd2bba8c9d0ca1b6e7091fd3c29ef887296d6147226da33081140aca33'
+    gitBlobSha1: '7a6a2d5cfc0657be041862a36c1db074d7c35d86'
   }
 });
 const pngSignature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
@@ -22,15 +20,15 @@ const pngSignature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a
 function fail(message) {
   throw new Error(`Safe Cracker PNG asset validation failed: ${message}`);
 }
-function digest(data) {
-  return createHash('sha256').update(data).digest('hex');
+function gitBlobSha1(data) {
+  return createHash('sha1')
+    .update(Buffer.from(`blob ${data.length}\0`, 'utf8'))
+    .update(data)
+    .digest('hex');
 }
 
 for (const [name, expected] of Object.entries(expectedAssets)) {
   const data = await readFile(new URL(name, assetDirectoryUrl));
-  if (data.length !== expected.bytes) {
-    fail(`${name} has ${data.length.toLocaleString('en-US')} bytes; expected ${expected.bytes.toLocaleString('en-US')}`);
-  }
   if (data.length < 24 || !data.subarray(0, pngSignature.length).equals(pngSignature)) {
     fail(`${name} has an invalid PNG signature`);
   }
@@ -39,8 +37,8 @@ for (const [name, expected] of Object.entries(expectedAssets)) {
   if (width !== expected.width || height !== expected.height) {
     fail(`${name} dimensions changed to ${width}x${height}`);
   }
-  if (digest(data) !== expected.sha256) {
-    fail(`${name} checksum does not match the supplied reference`);
+  if (gitBlobSha1(data) !== expected.gitBlobSha1) {
+    fail(`${name} does not match the directly committed reference asset`);
   }
 }
 
