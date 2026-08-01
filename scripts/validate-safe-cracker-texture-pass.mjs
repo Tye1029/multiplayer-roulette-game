@@ -19,14 +19,19 @@ function occurrences(source, value) {
   return source.split(value).length - 1;
 }
 
-assert(occurrences(css, '/* SAFE_CRACKER_TEXTURE_PASS_V1_START */') === 1, 'texture marker must appear exactly once');
-assert(occurrences(css, '/* SAFE_CRACKER_TEXTURE_PASS_V1_END */') === 1, 'texture end marker must appear exactly once');
-assert(css.includes('--sc-texture-bright: rgba(255, 255, 255, .025)'), 'low-contrast steel highlight grain is missing');
-assert(css.includes('repeating-linear-gradient(89.5deg'), 'safe-door brushed grain is missing');
+assert(occurrences(css, '/* SAFE_CRACKER_TEXTURE_PASS_V2_START */') === 1, 'texture v2 marker must appear exactly once');
+assert(occurrences(css, '/* SAFE_CRACKER_TEXTURE_PASS_V2_END */') === 1, 'texture v2 end marker must appear exactly once');
+assert(!css.includes('/* SAFE_CRACKER_TEXTURE_PASS_V1_START */'), 'legacy texture v1 block remains');
+assert(css.includes('--sc-texture-bright: rgba(255, 255, 255, .068)'), 'visible steel highlight grain is missing');
+assert(css.includes('--sc-texture-dark: rgba(0, 0, 0, .078)'), 'visible steel shadow grain is missing');
+assert(css.includes('repeating-linear-gradient(89.5deg, rgba(255, 255, 255, .065)'), 'safe-door brushed grain is missing');
+assert(css.includes('repeating-radial-gradient(circle at 50% 50%, rgba(255, 255, 255, .075)'), 'dial machining rings are missing');
+assert(css.includes('.safe-cracker-game .sc-dial-hub'), 'dial hub machining texture is missing');
 assert(css.includes('background-blend-mode:'), 'texture layers are not blended into the existing material');
 assert(css.includes('.safe-cracker-game .sc-step-controls button'), 'button material texture is missing');
 assert(css.includes('.safe-cracker-game .sc-confirm-button'), 'confirmation-button material texture is missing');
-assert(index.includes('&texture=1'), 'texture CSS cache boundary is missing');
+assert(index.includes('&texture=2'), 'texture v2 CSS cache boundary is missing');
+assert(!index.includes('&texture=1'), 'legacy texture cache boundary remains');
 assert(!patch.includes('animation:'), 'texture pass must not introduce continuous animation');
 assert(!patch.includes('filter: brightness'), 'texture pass must not introduce lighting changes');
 assert(!patch.includes('pointer-events: auto'), 'texture pass must not intercept controls');
@@ -36,4 +41,4 @@ assert(turnAnimation.length > 0 && turnFire.length > 0 && audioBindings.length >
 assert(!patch.includes("writeFile(new URL('../netlify/functions/"), 'texture pass must not write networking files');
 assert(!patch.includes("writeFile(new URL('../assets/roulette/"), 'texture pass must not write Roulette files');
 
-console.log('Safe Cracker texture-pass validation passed: subtle brushed metal is installed, controls and cache boundaries remain intact, and gameplay, networking, audio, and Roulette are protected.');
+console.log('Safe Cracker texture-pass validation passed: visible brushed steel and machined dial texture are installed while controls, gameplay, networking, audio and Roulette remain protected.');
