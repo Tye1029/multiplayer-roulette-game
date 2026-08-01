@@ -15,8 +15,8 @@ let css = await readFile(cssUrl, 'utf8');
 
 const texturePass = String.raw`${start}
 /* A2 surface correction: real texture assets provide brushed steel and
-   irregular wear. The rotating dial carries only rotationally neutral
-   machining; its soft room highlight stays fixed above the moving face. */
+   irregular wear. Rotating dial materials remain directionally neutral,
+   and no local glare layer is attached to the dial assembly. */
 .safe-cracker-game .sc-safe-shell {
   background-image:
     url('/assets/safe-cracker/textures/safe-steel-base.svg?v=2'),
@@ -61,16 +61,11 @@ const texturePass = String.raw`${start}
   background-blend-mode: soft-light, normal !important;
 }
 
+/* Explicitly remove the former oval glare artifact. Scene lighting is owned
+   only by the stationary full-safe light pass. */
 .safe-cracker-game .sc-dial-wrap::after {
-  content: '';
-  position: absolute;
-  inset: 8px;
-  z-index: 3;
-  border-radius: 50%;
-  background:
-    radial-gradient(circle at 34% 25%, rgba(255, 255, 255, .16), transparent 25%),
-    linear-gradient(145deg, rgba(255, 255, 255, .055), transparent 43%, rgba(0, 0, 0, .1) 78%, transparent);
-  box-shadow: inset 0 0 20px rgba(0, 0, 0, .18);
+  content: none !important;
+  display: none !important;
   pointer-events: none;
 }
 
@@ -111,6 +106,6 @@ index = index.replace(/&texture=\d+/g, '');
 index = index.replace(/(safe-cracker\.css[^"']*)/, '$1&texture=4');
 await writeFile(indexUrl, index);
 
-console.log('Applied Safe Cracker texture pass v4: image-based brushed wear remains static, while the dial uses rotationally neutral machining under a fixed highlight with no moving light wedges.');
+console.log('Applied Safe Cracker texture pass v4: brushed image wear and neutral dial machining remain, while the stray dial glare artifact is disabled.');
 
 await import('./patch-safe-cracker-shadow-depth.mjs');
