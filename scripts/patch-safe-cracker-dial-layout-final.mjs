@@ -6,7 +6,7 @@ const indexUrl = new URL('../index.html', import.meta.url);
 
 const start = '/* SAFE_CRACKER_DIAL_LAYOUT_V3_START */';
 const end = '/* SAFE_CRACKER_DIAL_LAYOUT_V3_END */';
-const assetPath = '/assets/safe-cracker/textures/dial-reference-face-v7.svg?dial=7&layout=5';
+const assetPath = '/assets/safe-cracker/textures/dial-reference-face-v7.svg?dial=7&layout=6';
 const plateMarkup = `<img class="sc-dial-reference-plate" src="${assetPath}" alt="" aria-hidden="true" draggable="false">`;
 
 const refinement = String.raw`${start}
@@ -37,21 +37,27 @@ const refinement = String.raw`${start}
 }
 
 .safe-cracker-game .sc-confirm-button {
+  overflow: hidden;
   border: 3px solid #050708 !important;
   outline: 0;
   border-radius: 8px;
-  color: #101416;
-  background:
+  color: #ddb362;
+  background-color: #aab4b8 !important;
+  background-image:
     linear-gradient(180deg,
       #e2e8ea 0%,
       #c4cdd1 31%,
       #929fa5 67%,
       #68757b 100%) !important;
+  background-clip: padding-box;
   box-shadow:
     inset 0 2px 0 rgba(255,255,255,.72),
     inset 0 -4px 6px rgba(10,14,16,.28),
-    0 3px 7px rgba(0,0,0,.3);
-  text-shadow: 0 1px 0 rgba(255,255,255,.56);
+    0 7px 0 #030506,
+    0 13px 15px rgba(0,0,0,.42);
+  text-shadow:
+    0 2px 2px #080a0b,
+    0 -1px 0 rgba(255,240,199,.28);
 }
 
 .safe-cracker-game .sc-confirm-button::before,
@@ -61,23 +67,24 @@ const refinement = String.raw`${start}
 }
 
 .safe-cracker-game .sc-confirm-button:not(:disabled) {
-  color: #101416;
+  color: #ddb362;
   filter: brightness(1.04) saturate(.82);
 }
 
 .safe-cracker-game .sc-confirm-button:disabled {
-  color: #171b1d;
-  opacity: .9;
-  filter: saturate(.68) brightness(.94);
+  color: #ddb362;
+  opacity: .74;
+  filter: saturate(.68) brightness(.92);
 }
 
 .safe-cracker-game .sc-confirm-button:not(:disabled):active {
   border: 3px solid #050708 !important;
-  transform: translateY(1px);
+  transform: translateY(4px);
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,.5),
     inset 0 -2px 4px rgba(10,14,16,.25),
-    0 1px 4px rgba(0,0,0,.26);
+    0 3px 0 #030506,
+    0 7px 9px rgba(0,0,0,.34);
 }
 
 @media (max-width: 700px) {
@@ -146,12 +153,12 @@ await writeFile(clientUrl, client);
 let html = await readFile(indexUrl, 'utf8');
 html = html.replace(/\/assets\/safe-cracker\/safe-cracker\.css\?[^"'\s]*/g, value => {
   const clean = value.replace(/&layout=\d+/g, '');
-  return `${clean}&layout=5`;
+  return `${clean}&layout=6`;
 });
 html = html.replace(/\/assets\/safe-cracker\/safe-cracker\.js\?[^"'\s]*/g, value => {
   const clean = value.replace(/&layout=\d+/g, '');
-  return `${clean}&layout=5`;
+  return `${clean}&layout=6`;
 });
 await writeFile(indexUrl, html);
 
-console.log('Applied Safe Cracker dial layout v3 refinement: numerals moved slightly outward, the pointer assembly was lowered toward the numeral ring, and the Check Number control became one continuous silver-metal button with a black border.');
+console.log('Applied Safe Cracker confirmation refinement: the orange lower ledge is replaced by a black mechanical step, the silver Check Number control indents like the step buttons, and its label matches the dial numeral gold.');
