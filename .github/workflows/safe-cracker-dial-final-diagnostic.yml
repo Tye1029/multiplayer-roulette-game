@@ -54,9 +54,9 @@ jobs:
           ! grep -Fq '0 7px 0 #4d3010' <<<"$block"
           ! grep -Fq '#855515' <<<"$block"
           ! grep -Fq '#c98b29' <<<"$block"
-          grep -Fq '<span>CHECK NUMBER</span>' assets/safe-cracker/safe-cracker.js
+          grep -Fq "function safeCrackerUpdateConfirmControl()" assets/safe-cracker/safe-cracker.js
+          grep -Fq "? 'CHECK NUMBER'" assets/safe-cracker/safe-cracker.js
           ! grep -Fiq 'RESETTING' assets/safe-cracker/safe-cracker.js
-          ! grep -Fiq 'CHECKING…' assets/safe-cracker/safe-cracker.js
           grep -Fq '/assets/safe-cracker/textures/dial-reference-face-v7.svg?dial=7&layout=7' assets/safe-cracker/safe-cracker.js
           grep -Fq '&dial=7&layout=7' index.html
 
@@ -92,9 +92,9 @@ jobs:
                ! grep -Fq '0 7px 0 #030506' <<<"$block" && \
                ! grep -Fq '#855515' <<<"$block" && \
                ! grep -Fq '#c98b29' <<<"$block" && \
-               grep -Fq '<span>CHECK NUMBER</span>' <<<"$js" && \
+               grep -Fq "function safeCrackerUpdateConfirmControl()" <<<"$js" && \
+               grep -Fq "? 'CHECK NUMBER'" <<<"$js" && \
                ! grep -Fiq 'RESETTING' <<<"$js" && \
-               ! grep -Fiq 'CHECKING…' <<<"$js" && \
                grep -Fq '/assets/safe-cracker/textures/dial-reference-face-v7.svg?dial=7&layout=7' <<<"$js" && \
                grep -Fq 'SAFE_CRACKER_DIAL_ACTIVITY_V16_START' <<<"$js" && \
                grep -Fiq 'x-duel-function-build: safecracker-direct-v8' <<<"$headers"; then
