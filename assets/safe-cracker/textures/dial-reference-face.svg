@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" role="img" aria-label="Layered silver safe dial face">
+  <defs>
+    <radialGradient id="face" cx="36%" cy="26%" r="74%">
+      <stop offset="0" stop-color="#31383c"/>
+      <stop offset="0.22" stop-color="#171c1f"/>
+      <stop offset="0.62" stop-color="#090c0e"/>
+      <stop offset="1" stop-color="#020405"/>
+    </radialGradient>
+    <linearGradient id="rib" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#596267"/>
+      <stop offset="0.18" stop-color="#1d2326"/>
+      <stop offset="0.55" stop-color="#0a0d0f"/>
+      <stop offset="0.82" stop-color="#30373b"/>
+      <stop offset="1" stop-color="#050708"/>
+    </linearGradient>
+    <linearGradient id="silver" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#3b4448"/>
+      <stop offset="0.2" stop-color="#dbe2e4"/>
+      <stop offset="0.42" stop-color="#6f797d"/>
+      <stop offset="0.62" stop-color="#eef2f3"/>
+      <stop offset="0.82" stop-color="#687277"/>
+      <stop offset="1" stop-color="#252c30"/>
+    </linearGradient>
+    <radialGradient id="slope" cx="38%" cy="28%" r="72%">
+      <stop offset="0" stop-color="#5f696e"/>
+      <stop offset="0.26" stop-color="#2a3135"/>
+      <stop offset="0.68" stop-color="#121719"/>
+      <stop offset="1" stop-color="#050708"/>
+    </radialGradient>
+    <pattern id="brush" width="4" height="4" patternUnits="userSpaceOnUse">
+      <path d="M0 0.5H4M0 2.5H4" stroke="#fff" stroke-opacity="0.1" stroke-width="0.45"/>
+      <path d="M0 1.5H4M0 3.5H4" stroke="#000" stroke-opacity="0.18" stroke-width="0.45"/>
+    </pattern>
+    <g id="outer-rib">
+      <path d="M153 5 L167 5 L165 28 L155 28 Z" fill="url(#rib)" stroke="#050708" stroke-width="1.4"/>
+      <path d="M155.2 10.5 L164.8 9.4 M155.5 16.3 L164.5 15.1 M156 22.1 L164 21.3" stroke="#aab3b7" stroke-opacity="0.16" stroke-width="0.75"/>
+      <path d="M154.9 12.3 L164.4 13.2 M155.7 19 L164.1 19.8" stroke="#000" stroke-opacity="0.62" stroke-width="0.8"/>
+    </g>
+    <g id="spoke">
+      <path d="M157.7 68 L162.3 68 L161.1 100 L158.9 100 Z" fill="url(#silver)" stroke="#0a0d0f" stroke-width="0.9"/>
+    </g>
+  </defs>
+
+  <circle cx="160" cy="160" r="157" fill="#050708" stroke="#000" stroke-width="5"/>
+  <circle cx="160" cy="160" r="151" fill="url(#face)" stroke="#515b60" stroke-width="2"/>
+
+  <g opacity="0.98">
+    <use href="#outer-rib" transform="rotate(0 160 160)"/><use href="#outer-rib" transform="rotate(9 160 160)"/>
+    <use href="#outer-rib" transform="rotate(18 160 160)"/><use href="#outer-rib" transform="rotate(27 160 160)"/>
+    <use href="#outer-rib" transform="rotate(36 160 160)"/><use href="#outer-rib" transform="rotate(45 160 160)"/>
+    <use href="#outer-rib" transform="rotate(54 160 160)"/><use href="#outer-rib" transform="rotate(63 160 160)"/>
+    <use href="#outer-rib" transform="rotate(72 160 160)"/><use href="#outer-rib" transform="rotate(81 160 160)"/>
+    <use href="#outer-rib" transform="rotate(90 160 160)"/><use href="#outer-rib" transform="rotate(99 160 160)"/>
+    <use href="#outer-rib" transform="rotate(108 160 160)"/><use href="#outer-rib" transform="rotate(117 160 160)"/>
+    <use href="#outer-rib" transform="rotate(126 160 160)"/><use href="#outer-rib" transform="rotate(135 160 160)"/>
+    <use href="#outer-rib" transform="rotate(144 160 160)"/><use href="#outer-rib" transform="rotate(153 160 160)"/>
+    <use href="#outer-rib" transform="rotate(162 160 160)"/><use href="#outer-rib" transform="rotate(171 160 160)"/>
+    <use href="#outer-rib" transform="rotate(180 160 160)"/><use href="#outer-rib" transform="rotate(189 160 160)"/>
+    <use href="#outer-rib" transform="rotate(198 160 160)"/><use href="#outer-rib" transform="rotate(207 160 160)"/>
+    <use href="#outer-rib" transform="rotate(216 160 160)"/><use href="#outer-rib" transform="rotate(225 160 160)"/>
+    <use href="#outer-rib" transform="rotate(234 160 160)"/><use href="#outer-rib" transform="rotate(243 160 160)"/>
+    <use href="#outer-rib" transform="rotate(252 160 160)"/><use href="#outer-rib" transform="rotate(261 160 160)"/>
+    <use href="#outer-rib" transform="rotate(270 160 160)"/><use href="#outer-rib" transform="rotate(279 160 160)"/>
+    <use href="#outer-rib" transform="rotate(288 160 160)"/><use href="#outer-rib" transform="rotate(297 160 160)"/>
+    <use href="#outer-rib" transform="rotate(306 160 160)"/><use href="#outer-rib" transform="rotate(315 160 160)"/>
+    <use href="#outer-rib" transform="rotate(324 160 160)"/><use href="#outer-rib" transform="rotate(333 160 160)"/>
+    <use href="#outer-rib" transform="rotate(342 160 160)"/><use href="#outer-rib" transform="rotate(351 160 160)"/>
+  </g>
+
+  <circle cx="160" cy="160" r="132.5" fill="#07090b" stroke="#0b0e10" stroke-width="8"/>
+  <circle cx="160" cy="160" r="135" fill="none" stroke="url(#silver)" stroke-width="10"/>
+  <circle cx="160" cy="160" r="135" fill="none" stroke="url(#brush)" stroke-width="8" opacity="0.7"/>
+  <circle cx="160" cy="160" r="128.5" fill="none" stroke="#11171a" stroke-width="3"/>
+  <circle cx="160" cy="160" r="104" fill="#080b0d" stroke="#252d31" stroke-width="2.5"/>
+
+  <circle cx="160" cy="160" r="93" fill="url(#slope)" stroke="#7c878b" stroke-width="3"/>
+  <circle cx="160" cy="160" r="91" fill="none" stroke="url(#silver)" stroke-width="2" opacity="0.75"/>
+  <circle cx="160" cy="160" r="66" fill="#111619" stroke="#9fa9ad" stroke-width="3.5"/>
+  <circle cx="160" cy="160" r="63.5" fill="none" stroke="#293236" stroke-width="3"/>
+
+  <g opacity="0.95">
+    <use href="#spoke" transform="rotate(0 160 160)"/><use href="#spoke" transform="rotate(36 160 160)"/>
+    <use href="#spoke" transform="rotate(72 160 160)"/><use href="#spoke" transform="rotate(108 160 160)"/>
+    <use href="#spoke" transform="rotate(144 160 160)"/><use href="#spoke" transform="rotate(180 160 160)"/>
+    <use href="#spoke" transform="rotate(216 160 160)"/><use href="#spoke" transform="rotate(252 160 160)"/>
+    <use href="#spoke" transform="rotate(288 160 160)"/><use href="#spoke" transform="rotate(324 160 160)"/>
+  </g>
+
+  <circle cx="160" cy="160" r="55" fill="#050708" stroke="url(#silver)" stroke-width="7"/>
+  <circle cx="160" cy="160" r="49" fill="none" stroke="#171d20" stroke-width="5"/>
+  <path d="M64 91 A128 128 0 0 1 112 46" fill="none" stroke="#fff" stroke-opacity="0.12" stroke-width="3" stroke-linecap="round"/>
+  <path d="M82 250 A119 119 0 0 0 255 221" fill="none" stroke="#000" stroke-opacity="0.52" stroke-width="5" stroke-linecap="round"/>
+</svg>
