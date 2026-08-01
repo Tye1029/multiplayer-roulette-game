@@ -34,7 +34,8 @@ const guardStart = html.indexOf(start);
 const guardEnd = html.indexOf(end, guardStart);
 assert(guardStart >= 0 && guardEnd > guardStart, 'guard marker order is invalid');
 const guard = html.slice(guardStart, guardEnd + end.length);
-const bridgePrefix = html.slice(Math.max(0, guardStart - 500), guardStart);
+const bridgePrefix = html.slice(Math.max(0, guardStart - 1800), guardStart);
+assert(bridgePrefix.includes('submit: async details =>'), 'guard is not inside the Safe Cracker submission bridge');
 assert(bridgePrefix.includes('duelLastActiveGame = data.game || duelLastActiveGame;'), 'retained-game assignment is missing before guard');
 assert(bridgePrefix.includes('duelKnownRevisionByGame.set'), 'guard is not attached to the Safe Cracker revision bridge');
 assert(guard.includes("['ready', 'countdown', 'playing']"), 'active lifecycle allowlist changed');
@@ -63,6 +64,6 @@ assert(client.includes('// SAFE_CRACKER_SAMPLE_MIX_V11_START'), 'sample mix v11 
 assert(turnAnimation.length > 0 && turnFire.length > 0 && audioBindings.length > 0, 'protected Roulette assets are unreadable');
 assert(!patch.includes("writeFile(new URL('../netlify/functions/"), 'guard patch must not write networking files');
 assert(!patch.includes("writeFile(new URL('../assets/roulette/"), 'guard patch must not write Roulette files');
-assert(patch.includes('duelKnownRevisionByGame') && patch.includes('matches.length !== 1'), 'patch is not anchored to one Safe Cracker revision bridge');
+assert(patch.includes('renderCalls') && patch.includes('candidates.length !== 1') && patch.includes('submit: async details =>'), 'patch is not structurally anchored to one Safe Cracker submission bridge');
 
 console.log('Safe Cracker active render guard validation passed: transient empty submission responses retain ready/countdown/playing boards, completed dismissal remains available, authoritative gameplay and protected Roulette stay intact.');
