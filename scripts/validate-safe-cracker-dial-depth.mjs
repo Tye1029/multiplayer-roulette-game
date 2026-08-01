@@ -129,7 +129,7 @@ for (const fragment of gameplayFragments) {
   }
 }
 
-if (!/safe-cracker\.css\?[^"'\\s]*&dial=4/.test(html)) {
+if (!/safe-cracker\.css\?[^"'\s]*&dial=4/.test(html)) {
   throw new Error('Safe Cracker dial-depth validation failed: dial CSS cache key v4 is missing.');
 }
 if (css.includes('SAFE_CRACKER_DIAL_DEPTH_V1_START')) {
