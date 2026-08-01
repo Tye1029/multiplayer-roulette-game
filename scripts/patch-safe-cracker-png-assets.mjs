@@ -5,16 +5,16 @@ const rootUrl = new URL('../', import.meta.url);
 const assetDirectoryUrl = new URL('assets/safe-cracker/png-ui/', rootUrl);
 const expectedAssets = Object.freeze({
   'safe-body.png': {
-    bytes: 38_522,
+    bytes: 14_233,
     width: 432,
     height: 561,
-    sha256: '163cea3fc0384f3dc95ffaa4de6b9ade9fd3d4059ec3352ffda2497acb064727'
+    sha256: 'e22b685648785a0e829235a37774802b9ed4f48bcabead86abc726748ac71eba'
   },
   'dial-face.png': {
-    bytes: 11_851,
-    width: 226,
-    height: 226,
-    sha256: 'd7996b302dc5acf9574b30f1e9245b4813e94774b63850775430cb7f75de1561'
+    bytes: 7_772,
+    width: 170,
+    height: 170,
+    sha256: 'c23d03bd2bba8c9d0ca1b6e7091fd3c29ef887296d6147226da33081140aca33'
   }
 });
 const pngSignature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
@@ -44,4 +44,4 @@ for (const [name, expected] of Object.entries(expectedAssets)) {
   }
 }
 
-console.log('Verified directly committed near-lossless Safe Cracker PNG layers.');
+console.log('Verified directly committed Safe Cracker PNG layers.');
