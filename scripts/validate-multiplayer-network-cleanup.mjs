@@ -20,11 +20,13 @@ for (const required of [
   'let duelCompletedActivityAt = 0;',
   '["draw", "fishing", "roulette", "safecracker"].includes(String(game.mode || ""))',
   'completedPollRate = Date.now() - duelCompletedActivityAt < 15000 ? (game?.mode === "safecracker" ? 5000 : 2000) : 5000;',
-  'if (!duelScreen || duelScreen.hidden || document.hidden || Number(window.__duelMutationRequestsInFlight || 0) > 0 || Number(window.__safeCrackerReadyRetryInFlight || 0) > 0) return;',
+  'safeCrackerPollBackoffActive',
+  'Number(window.__safeCrackerReadyRetryInFlight || 0) > 0 || safeCrackerPollBackoffActive) return;',
+  'window.__safeCrackerPollBackoffUntil',
+  'if (!safeCrackerPendingRefresh) queueMicrotask(() => duelRefresh(true));',
   'if(document.hidden)return;',
   'rnbScheduleRematch(g);\n  },1000);',
-  'duelCompletedActivityAt = Date.now();',
-  'queueMicrotask(() => duelRefresh(true));'
+  'duelCompletedActivityAt = Date.now();'
 ]) {
   if (!html.includes(required)) throw new Error(`Multiplayer client validation is missing ${required}`);
 }
@@ -38,7 +40,8 @@ for (const forbidden of [
   'completedAwaitingRematch ? 700',
   `if(g?.remoteNetworkTest&&g.status==='complete')g=await rnbFetchAuthoritativeGame`,
   '},650);',
-  'if (!duelScreen || duelScreen.hidden) return;'
+  'if (!duelScreen || duelScreen.hidden) return;',
+  'if (!duelScreen || duelScreen.hidden || document.hidden || Number(window.__duelMutationRequestsInFlight || 0) > 0 || Number(window.__safeCrackerReadyRetryInFlight || 0) > 0) return;'
 ]) {
   if (html.includes(forbidden)) throw new Error(`Removed multiplayer client behavior remains: ${forbidden}`);
 }
@@ -60,4 +63,4 @@ for (const required of [
   if (!injector.includes(required)) throw new Error(`The multiplayer build pipeline is missing ${required}`);
 }
 
-console.log('Multiplayer network validation passed: focused polling is isolated and pauses during mutations and Safe Cracker Ready retries, stale bot snapshots are rejected, completed polling backs off, hidden tabs pause, duplicate Remote Bot GETs are removed, and lobby Blob reads are batched.');
+console.log('Multiplayer network validation passed: focused polling remains isolated, mutations and Ready retries pause reads, Safe Cracker failures back off without request chains, stale bot snapshots are rejected, completed polling backs off, hidden tabs pause, duplicate Remote Bot GETs are removed, and lobby Blob reads are batched.');
