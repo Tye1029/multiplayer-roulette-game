@@ -21,11 +21,11 @@ function occurrences(source, value) {
   return source.split(value).length - 1;
 }
 
-const start = '/* SAFE_CRACKER_LIGHT_SOURCE_V6_START */';
-const end = '/* SAFE_CRACKER_LIGHT_SOURCE_V6_END */';
+const start = '/* SAFE_CRACKER_LIGHT_SOURCE_V7_START */';
+const end = '/* SAFE_CRACKER_LIGHT_SOURCE_V7_END */';
 assert(occurrences(css, start) === 1, 'lighting-reset start marker must appear exactly once');
 assert(occurrences(css, end) === 1, 'lighting-reset end marker must appear exactly once');
-for (const version of [1, 2, 3, 4, 5]) {
+for (const version of [1, 2, 3, 4, 5, 6]) {
   assert(!css.includes(`/* SAFE_CRACKER_LIGHT_SOURCE_V${version}_START */`), `legacy light v${version} block remains`);
 }
 const blockStart = css.indexOf(start);
@@ -34,23 +34,28 @@ assert(blockStart >= 0 && blockEnd > blockStart, 'lighting-reset marker order is
 const block = css.slice(blockStart, blockEnd + end.length);
 
 assert(occurrences(block, '.safe-cracker-game .sc-safe-shell::after') === 1, 'there must be exactly one scene-light overlay');
+assert(block.includes('contain: paint'), 'safe-local paint containment is missing');
 assert(block.includes('z-index: 40'), 'scene overlay is not above the complete safe assembly');
 assert(block.includes('pointer-events: none'), 'scene overlay can intercept dial or button input');
-assert(block.includes('radial-gradient(ellipse 62% 54% at 48% -8%'), 'single overhead source is missing');
-assert(block.includes('rgba(247, 250, 252, .19)'), 'cool white-grey key strength changed');
-assert(block.includes('radial-gradient(ellipse 16% 62% at 42% 43%'), 'continuous safe-and-dial metal reflection is missing');
-assert(block.includes('radial-gradient(ellipse 48% 72% at 104% 54%'), 'right-side reflected fill is missing');
-assert(block.includes('rgba(183, 198, 208, .052)'), 'right-side fill no longer reaches the shadowed recess');
-assert(block.includes('linear-gradient(180deg'), 'natural lower falloff is missing');
+assert(block.includes('radial-gradient(ellipse 76% 56% at 36% -7%'), 'strong overhead source is missing');
+assert(block.includes('rgba(255, 255, 255, .42)'), 'visible key-light strength changed');
+assert(block.includes('linear-gradient(118deg'), 'broad same-source falloff is missing');
+assert(block.includes('rgba(226, 237, 244, .16)'), 'broad cool fill is too weak or missing');
 assert(block.includes('.safe-cracker-game .sc-safe-door::before'), 'door trim does not respond to the overhead source');
-assert(block.includes('border-right-color: rgba(112, 133, 147, .075)'), 'right edge lost its cool reflected fill');
+assert(block.includes('border-top-color: rgba(242, 248, 251, .24)'), 'top trim highlight is not visible');
+assert(block.includes('border-right-color: rgba(132, 154, 169, .11)'), 'right edge lost its reflected fill');
 assert(block.includes('.safe-cracker-game .sc-dial-face::after'), 'rotating dial glare is not explicitly disabled');
 assert(block.includes('.safe-cracker-game .sc-dial::after'), 'legacy dial-local overlay is not explicitly disabled');
 assert(block.includes('content: none !important'), 'dial-local lighting remains active');
 assert(block.includes('background: none !important'), 'dial-local lighting background remains active');
-assert(block.includes('border-color: #151c21 !important'), 'dial face border can still carry rotating side light');
-assert(block.includes('border-color: #171d21 !important'), 'dial hub border can still carry rotating side light');
+assert(block.includes('@media (max-width: 700px)'), 'mobile performance boundary is missing');
+assert(block.includes('.safe-cracker-game .sc-dial-wrap'), 'mobile rotating dial wrapper is not optimized');
+assert(block.includes('.safe-cracker-game .sc-dial-pointer'), 'mobile pointer filter is not optimized');
+assert(block.includes('filter: none !important'), 'mobile drop-shadow filters remain active');
 
+assert(occurrences(block, 'radial-gradient(') === 1, 'scene light uses more than one radial layer');
+assert(occurrences(block, 'linear-gradient(') === 1, 'scene light uses more than one linear layer');
+assert(!block.includes('box-shadow:'), 'scene overlay reintroduced expensive large shadow layers');
 assert(!block.includes('background-image:'), 'light pass is replacing material artwork');
 assert(!block.includes('safe-steel-base.svg'), 'light pass still owns steel texture');
 assert(!block.includes('metal-wear.svg'), 'light pass still owns wear texture');
@@ -68,8 +73,8 @@ assert(css.includes("url('/assets/safe-cracker/textures/dial-machined.svg?v=3')"
 assert(css.includes('/* SAFE_CRACKER_SHADOW_DEPTH_V1_START */'), 'structural shadow pass is missing');
 assert(index.includes('&texture=6'), 'material cache boundary changed');
 assert(index.includes('&shadow=1'), 'shadow cache boundary changed');
-assert(index.includes('&light=6'), 'lighting-reset cache boundary is missing');
-for (const version of [1, 2, 3, 4, 5]) {
+assert(index.includes('&light=7'), 'lighting-reset cache boundary is missing');
+for (const version of [1, 2, 3, 4, 5, 6]) {
   assert(!index.includes(`&light=${version}`), `legacy light cache ${version} remains`);
 }
 assert(texturePatch.includes("await import('./patch-safe-cracker-shadow-depth.mjs')"), 'material pipeline no longer invokes structural depth');
@@ -84,4 +89,4 @@ assert(client.includes('// SAFE_CRACKER_SAMPLE_MIX_V11_START'), 'sample mix v11 
 assert(duelAction.includes('safecracker'), 'Safe Cracker server mode is unreadable');
 assert(turnAnimation.length > 0 && turnFire.length > 0 && audioBindings.length > 0, 'protected Roulette assets are unreadable');
 
-console.log('Safe Cracker lighting-reset validation passed: one stationary cool white-grey source spans the entire safe and dial, supplies a continuous restrained reflection and right-side bounce, preserves lower depth, removes every dial-bound glare layer, and leaves material artwork independent.');
+console.log('Safe Cracker lighting-reset validation passed: a stronger two-layer stationary source is visible across the whole safe, mobile rotating filters are disabled, materials remain independent, and controls, gameplay, networking, audio and Roulette stay protected.');
