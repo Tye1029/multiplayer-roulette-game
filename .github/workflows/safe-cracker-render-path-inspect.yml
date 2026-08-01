@@ -1,6 +1,9 @@
 name: Safe Cracker Render Path Inspect
 
 on:
+  pull_request:
+    branches:
+      - main
   push:
     branches:
       - safe-cracker-development
