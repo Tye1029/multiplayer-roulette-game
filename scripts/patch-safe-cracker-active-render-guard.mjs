@@ -3,7 +3,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 const indexUrl = new URL('../index.html', import.meta.url);
 const start = '// SAFE_CRACKER_ACTIVE_RENDER_GUARD_V13_START';
 const end = '// SAFE_CRACKER_ACTIVE_RENDER_GUARD_V13_END';
-const sourcePattern = /duelRenderActive\(data\.game,\s*true\);/g;
+const sourcePattern = /duelLastActiveGame = data\.game \|\| duelLastActiveGame;\s*if \(data\.game\?\.gameId\) duelKnownRevisionByGame\.set\(String\(data\.game\.gameId\), String\(data\.game\.safecrackerState\?\.revision \|\| ""\)\);\s*duelRenderActive\(data\.game,\s*true\);/g;
 
 let html = await readFile(indexUrl, 'utf8');
 const startCount = html.split(start).length - 1;
@@ -18,10 +18,12 @@ if (startCount === 1 && endCount === 1) {
 
   const matches = [...html.matchAll(sourcePattern)];
   if (matches.length !== 1) {
-    throw new Error(`Safe Cracker active render guard expected one active-game render call, found ${matches.length}.`);
+    throw new Error(`Safe Cracker active render guard expected one Safe Cracker revision-tracked render bridge, found ${matches.length}.`);
   }
 
-  const replacement = String.raw`${start}
+  const replacement = String.raw`duelLastActiveGame = data.game || duelLastActiveGame;
+          if (data.game?.gameId) duelKnownRevisionByGame.set(String(data.game.gameId), String(data.game.safecrackerState?.revision || ""));
+          ${start}
           const safeCrackerActiveRenderGame =
             data.game ||
             (
@@ -39,5 +41,5 @@ if (startCount === 1 && endCount === 1) {
 
   html = html.replace(sourcePattern, replacement);
   await writeFile(indexUrl, html);
-  console.log('Applied Safe Cracker active render guard v13: transient empty active-game responses can no longer close ready, countdown, or playing boards.');
+  console.log('Applied Safe Cracker active render guard v13: transient empty submission responses can no longer close ready, countdown, or playing boards.');
 }
