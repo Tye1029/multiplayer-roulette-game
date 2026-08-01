@@ -12,6 +12,8 @@ await import('./validate-safe-cracker-reflection-depth.mjs');
 await import('./patch-safe-cracker-png-assets.mjs');
 await import('./patch-safe-cracker-png-hybrid.mjs');
 await import('./validate-safe-cracker-png-hybrid.mjs');
+await import('./patch-safe-cracker-png-completeness.mjs');
+await import('./validate-safe-cracker-png-completeness.mjs');
 
 const packageUrl = new URL('../package.json', import.meta.url);
 const validatorUrl = new URL('./validate-lamp.mjs', import.meta.url);
