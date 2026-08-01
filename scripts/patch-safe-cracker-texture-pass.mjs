@@ -103,7 +103,7 @@ await writeFile(cssUrl, css);
 
 let index = await readFile(indexUrl, 'utf8');
 index = index.replace(/&texture=\d+/g, '');
-index = index.replace(/(safe-cracker\.css[^"']*)/, '$1&texture=4');
+index = index.replace(/(safe-cracker\.css[^"']*)/, '$1&texture=5');
 await writeFile(indexUrl, index);
 
 console.log('Applied Safe Cracker texture pass v4: brushed image wear and neutral dial machining remain, while the stray dial glare artifact is disabled.');
