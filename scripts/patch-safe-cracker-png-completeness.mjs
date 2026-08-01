@@ -11,61 +11,63 @@ if (!css.includes('/* SAFE_CRACKER_PNG_HYBRID_V15_START */')) {
 }
 
 const patch = String.raw`${start}
-/* Restore the complete physical safe composition around the supplied PNG while
-   preserving only the dial plate and controls as independently moving layers. */
+/* The complete supplied body now owns every static surface: outer frame,
+   hinges, gold trim, pointer, lower apron, button bezels and reflections. */
 .safe-cracker-game.sc-reference-visuals .sc-safe-shell {
-  width: min(100%, 650px) !important;
-  padding: clamp(8px, 1.8vw, 14px) !important;
-  border: 1px solid rgba(196, 141, 49, .28) !important;
-  border-radius: clamp(18px, 3vw, 28px) !important;
-  background:
-    linear-gradient(110deg, rgba(255, 225, 157, .055), transparent 24% 76%, rgba(153, 87, 18, .045)),
-    linear-gradient(180deg, #111617 0%, #050708 48%, #020304 100%) !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 239, 196, .08),
-    inset 0 0 0 5px rgba(0, 0, 0, .62),
-    0 22px 48px rgba(0, 0, 0, .62) !important;
+  position: relative !important;
+  width: min(100%, 620px) !important;
+  max-width: 620px !important;
+  margin-inline: auto !important;
+  padding: 0 !important;
+  overflow: visible !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
 .safe-cracker-game.sc-reference-visuals .sc-safe-shell::before,
 .safe-cracker-game.sc-reference-visuals .sc-safe-shell::after {
-  content: '' !important;
-  display: block !important;
-  position: absolute !important;
-  z-index: 1 !important;
-  pointer-events: none !important;
-}
-
-.safe-cracker-game.sc-reference-visuals .sc-safe-shell::before {
-  inset: 5px !important;
-  border-radius: inherit !important;
-  border: 1px solid rgba(225, 171, 72, .34) !important;
-  box-shadow: inset 0 0 20px rgba(255, 190, 72, .035) !important;
-}
-
-.safe-cracker-game.sc-reference-visuals .sc-safe-shell::after {
-  left: 9% !important;
-  right: 9% !important;
-  top: 1.1% !important;
-  height: 9% !important;
-  border-radius: 50% !important;
-  background: radial-gradient(ellipse at center, rgba(255, 218, 139, .11), transparent 68%) !important;
-  filter: blur(12px) !important;
-  opacity: .7 !important;
+  display: none !important;
+  content: none !important;
 }
 
 .safe-cracker-game.sc-reference-visuals .sc-safe-door {
+  position: relative !important;
   z-index: 2 !important;
-  overflow: visible !important;
-  border-radius: clamp(9px, 1.8vw, 16px) !important;
-  background-color: #060707 !important;
-  box-shadow:
-    inset 0 0 0 1px rgba(233, 181, 80, .16),
-    inset 0 -28px 40px rgba(0, 0, 0, .5),
-    0 15px 28px rgba(0, 0, 0, .52) !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  aspect-ratio: 432 / 561 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  outline: 0 !important;
+  background-color: transparent !important;
+  background-image: url('/assets/safe-cracker/png-ui/safe-body.png?v=4') !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-size: 100% 100% !important;
+  box-shadow: 0 22px 40px rgba(0, 0, 0, .64) !important;
+  isolation: isolate !important;
 }
 
-/* Remove every inherited trapezoid/legacy clipping rule from the live display. */
+/* No generated steel is allowed to cover the photographed lower frame. */
+.safe-cracker-game.sc-reference-visuals .sc-safe-door::before,
+.safe-cracker-game.sc-reference-visuals .sc-safe-door::after,
+.safe-cracker-game.sc-reference-visuals .sc-bolts,
+.safe-cracker-game.sc-reference-visuals .sc-safe-handle {
+  display: none !important;
+  content: none !important;
+  background: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Fully reset the inherited trapezoid and fit the live display into the
+   transparent 226x61 opening in the supplied body. */
 .safe-cracker-game.sc-reference-visuals .sc-display,
 .safe-cracker-game.sc-reference-visuals .sc-display.red,
 .safe-cracker-game.sc-reference-visuals .sc-display.orange,
@@ -78,131 +80,135 @@ const patch = String.raw`${start}
   mask: none !important;
   -webkit-mask: none !important;
   transform: none !important;
+  filter: none !important;
 }
 
-.safe-cracker-game.sc-reference-visuals .sc-display {
-  border-radius: 4.5% !important;
-  outline: 1px solid rgba(224, 170, 69, .2) !important;
-  outline-offset: -1px !important;
+.safe-cracker-game.sc-reference-visuals .sc-display,
+.safe-cracker-game.sc-reference-visuals .sc-display.red,
+.safe-cracker-game.sc-reference-visuals .sc-display.orange,
+.safe-cracker-game.sc-reference-visuals .sc-display.yellow,
+.safe-cracker-game.sc-reference-visuals .sc-display.green {
+  left: 23.843% !important;
+  top: 9.269% !important;
+  width: 52.315% !important;
+  height: 10.873% !important;
+  padding: 2% 3.2% !important;
+  overflow: hidden !important;
+  border: 0 !important;
+  border-radius: 2.8% !important;
+  outline: 0 !important;
   background:
-    radial-gradient(ellipse at 50% -10%, rgba(255, 215, 130, .07), transparent 48%),
-    linear-gradient(180deg, rgba(21, 23, 22, .99), rgba(3, 4, 4, .995)) !important;
+    radial-gradient(ellipse at 50% -12%, rgba(255, 218, 143, .06), transparent 50%),
+    linear-gradient(180deg, rgba(18, 20, 20, .99), rgba(2, 3, 3, .995)) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 240, 207, .045), inset 0 -14px 22px rgba(0, 0, 0, .58) !important;
 }
 
-/* Complete the missing lower apron and physical confirmation frame. */
-.safe-cracker-game.sc-reference-visuals .sc-safe-door::after {
-  content: '' !important;
-  display: block !important;
-  position: absolute !important;
-  left: 7.2% !important;
-  right: 7.2% !important;
-  top: 81.8% !important;
-  bottom: 2.2% !important;
-  z-index: 18 !important;
-  border: 2px solid rgba(190, 132, 42, .54) !important;
-  border-radius: 5.5% !important;
-  background:
-    linear-gradient(108deg, rgba(255, 238, 196, .08), transparent 23% 76%, rgba(106, 57, 8, .08)),
-    linear-gradient(180deg, #262521 0%, #0b0c0c 34%, #030404 100%) !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 238, 195, .17),
-    inset 0 0 0 5px rgba(0, 0, 0, .48),
-    inset 0 -18px 24px rgba(0, 0, 0, .7),
-    0 8px 12px rgba(0, 0, 0, .38) !important;
-  pointer-events: none !important;
+.safe-cracker-game.sc-reference-visuals .sc-display::before,
+.safe-cracker-game.sc-reference-visuals .sc-display::after,
+.safe-cracker-game.sc-reference-visuals .sc-display-bezel,
+.safe-cracker-game.sc-reference-visuals .sc-display-glass::before,
+.safe-cracker-game.sc-reference-visuals .sc-display-glass::after,
+.safe-cracker-game.sc-reference-visuals .sc-feedback-meter {
+  display: none !important;
+  content: none !important;
 }
 
-.safe-cracker-game.sc-reference-visuals .sc-confirm-button {
-  left: 15.5% !important;
-  top: 85.25% !important;
-  width: 69% !important;
-  height: 9.25% !important;
-  z-index: 31 !important;
-  border: 1px solid rgba(220, 166, 66, .55) !important;
+/* The complete 226px numbered dial rotates inside the exact circular cutout. */
+.safe-cracker-game.sc-reference-visuals .sc-dial-wrap {
+  left: 24.306% !important;
+  top: 28.520% !important;
+  width: 51.620% !important;
+  height: 39.750% !important;
+}
+
+.safe-cracker-game.sc-reference-visuals .sc-dial-face {
+  background-color: transparent !important;
+  background-image: url('/assets/safe-cracker/png-ui/dial-face.png?v=4') !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-size: 100% 100% !important;
+}
+
+/* Fit the real controls inside the two transparent 65x32 button openings. */
+.safe-cracker-game.sc-reference-visuals .sc-step-controls {
+  left: 31.713% !important;
+  top: 73.797% !important;
+  width: 36.574% !important;
+  height: 5.704% !important;
+  gap: 18.354% !important;
+}
+
+.safe-cracker-game.sc-reference-visuals .sc-step-controls button {
+  border: 0 !important;
   border-radius: 8% !important;
+  color: #f4c76b !important;
   background:
-    radial-gradient(ellipse at 50% 0%, rgba(255, 230, 171, .15), transparent 52%),
-    linear-gradient(180deg, #3a352a 0%, #15130f 35%, #050606 100%) !important;
-  box-shadow:
-    inset 0 2px 0 rgba(255, 241, 207, .18),
-    inset 0 0 0 4px rgba(0, 0, 0, .5),
-    inset 0 -15px 20px rgba(0, 0, 0, .65),
-    0 5px 8px rgba(0, 0, 0, .4) !important;
-  color: #f5d58c !important;
-  font-size: clamp(.88rem, 4.4vw, 1.5rem) !important;
+    radial-gradient(ellipse at 42% 0%, rgba(255, 238, 192, .09), transparent 48%),
+    linear-gradient(180deg, rgba(45, 43, 37, .98), rgba(5, 6, 6, .99)) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 239, 199, .1), inset 0 -9px 14px rgba(0, 0, 0, .6) !important;
+  font-size: clamp(1.05rem, 5.2vw, 2rem) !important;
+}
+
+/* Fit Check Number inside the photographed 251x37 lower opening. */
+.safe-cracker-game.sc-reference-visuals .sc-confirm-button {
+  left: 21.065% !important;
+  top: 87.344% !important;
+  width: 58.102% !important;
+  height: 6.595% !important;
+  z-index: 31 !important;
+  padding: 0 3% !important;
+  border: 0 !important;
+  border-radius: 4% !important;
+  color: #f4ce7d !important;
+  background:
+    radial-gradient(ellipse at 48% 0%, rgba(255, 232, 179, .1), transparent 50%),
+    linear-gradient(180deg, rgba(47, 43, 34, .99), rgba(6, 7, 7, .995)) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 240, 204, .11), inset 0 -12px 18px rgba(0, 0, 0, .64) !important;
+  font-size: clamp(.78rem, 3.9vw, 1.35rem) !important;
+  letter-spacing: .075em !important;
 }
 
 .safe-cracker-game.sc-reference-visuals .sc-confirm-button::before,
 .safe-cracker-game.sc-reference-visuals .sc-confirm-button::after {
-  content: '' !important;
-  display: block !important;
-  position: absolute !important;
-  pointer-events: none !important;
+  display: none !important;
+  content: none !important;
 }
 
-.safe-cracker-game.sc-reference-visuals .sc-confirm-button::before {
-  inset: 7% 3.5% !important;
-  border: 1px solid rgba(235, 190, 94, .22) !important;
-  border-radius: inherit !important;
+/* Restore the warm result hierarchy that was flattened by the prior override. */
+body > .sc-result-overlay[data-sc-result-portal] .sc-result-title {
+  color: #f2c86e !important;
+  text-shadow: 0 2px 3px #000, 0 0 14px rgba(244, 181, 57, .34) !important;
 }
-
-.safe-cracker-game.sc-reference-visuals .sc-confirm-button::after {
-  left: 10% !important;
-  right: 10% !important;
-  bottom: -13% !important;
-  height: 10% !important;
-  border-radius: 50% !important;
-  background: radial-gradient(ellipse, rgba(255, 181, 53, .45), transparent 70%) !important;
-  filter: blur(3px) !important;
+body > .sc-result-overlay[data-sc-result-portal] .sc-result-code-card {
+  border-color: rgba(202, 145, 52, .42) !important;
+  background: linear-gradient(180deg, rgba(35, 33, 28, .96), rgba(5, 6, 6, .98)) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 238, 197, .08), 0 8px 20px rgba(0, 0, 0, .42) !important;
 }
-
-/* Rebuild the missing depth around the two small controls without changing hit areas. */
-.safe-cracker-game.sc-reference-visuals .sc-step-controls {
-  left: 29.2% !important;
-  top: 72.15% !important;
-  width: 41.6% !important;
-  height: 8.25% !important;
-  gap: 13% !important;
+body > .sc-result-overlay[data-sc-result-portal] .sc-result-code-card small,
+body > .sc-result-overlay[data-sc-result-portal] .sc-result-summary {
+  color: rgba(232, 220, 194, .72) !important;
 }
-
-.safe-cracker-game.sc-reference-visuals .sc-step-controls button {
-  border: 1px solid rgba(211, 151, 55, .5) !important;
-  border-radius: 14% !important;
-  box-shadow:
-    inset 0 2px 0 rgba(255, 241, 209, .16),
-    inset 0 0 0 4px rgba(0, 0, 0, .44),
-    inset 0 -12px 17px rgba(0, 0, 0, .62),
-    0 5px 9px rgba(0, 0, 0, .42) !important;
-}
-
-/* Replace the empty black gap below the source PNG with continuous safe steel. */
-.safe-cracker-game.sc-reference-visuals .sc-safe-door {
-  background-image:
-    url('/assets/safe-cracker/png-ui/safe-body.png?v=3'),
-    linear-gradient(180deg, transparent 0 77%, #090a0a 77% 100%) !important;
+body > .sc-result-overlay[data-sc-result-portal] .sc-result-code-card b {
+  color: #f5d27e !important;
+  text-shadow: 0 0 10px rgba(244, 181, 57, .24) !important;
 }
 
 @media (max-width: 560px) {
   .safe-cracker-game.sc-reference-visuals .sc-safe-shell {
-    width: calc(100% - 2px) !important;
-    padding: 7px !important;
-    border-radius: 17px !important;
-  }
-  .safe-cracker-game.sc-reference-visuals .sc-safe-door {
-    border-radius: 9px !important;
+    width: 100% !important;
   }
 }
 ${end}`;
 
-const escapedStart = start.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-const escapedEnd = end.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-const blockPattern = new RegExp(`${escapedStart}[\\s\\S]*?${escapedEnd}\\n?`, 'g');
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+const blockPattern = new RegExp(`${escapeRegExp(start)}[\\s\\S]*?${escapeRegExp(end)}\\n?`, 'g');
 css = css.replace(blockPattern, '').trimEnd() + '\n\n' + patch + '\n';
 await writeFile(cssUrl, css);
 
 let index = await readFile(indexUrl, 'utf8');
-index = index.replaceAll('&png=1', '&png=1&complete=1');
-index = index.replaceAll('&png=1&complete=1&complete=1', '&png=1&complete=1');
+index = index.replace(/&png=1(?:&complete=\d+)?/g, '&png=1&complete=2');
 await writeFile(indexUrl, index);
 
-console.log('Applied Safe Cracker PNG completeness v16: restored lower frame, confirmation plate, control depth, full safe shell, and removed inherited trapezoid clipping.');
+console.log('Applied Safe Cracker PNG completeness v16: mounted the full supplied body and 226px dial, exposed every static frame and reflection, removed trapezoid clipping, aligned all controls, and restored warm result colors.');
