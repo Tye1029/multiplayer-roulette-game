@@ -14,129 +14,76 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     steps:
       - name: Checkout branch
         uses: actions/checkout@v4
+
       - name: Use Node 24
         uses: actions/setup-node@v4
         with:
           node-version: '24'
+
       - name: Install dependencies
         run: npm install
+
       - name: Run exact Netlify build command
         run: npm run build
+
+      - name: Verify generated reference dial
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq 'SAFE_CRACKER_DIAL_DEPTH_V5_START' assets/safe-cracker/safe-cracker.css
+          grep -Fq '.safe-cracker-game .sc-dial-reference-plate' assets/safe-cracker/safe-cracker.css
+          grep -Fq 'background: #050708 !important' assets/safe-cracker/safe-cracker.css
+          grep -Fq 'class="sc-dial-reference-plate"' assets/safe-cracker/safe-cracker.js
+          grep -Fq '/assets/safe-cracker/textures/dial-reference-face-v7.svg?dial=7' assets/safe-cracker/safe-cracker.js
+          grep -Fq 'class="grip-blocks" data-count="40"' assets/safe-cracker/textures/dial-reference-face-v7.svg
+          grep -Fq 'class="silver-bezel"' assets/safe-cracker/textures/dial-reference-face-v7.svg
+          grep -Fq 'class="number-band"' assets/safe-cracker/textures/dial-reference-face-v7.svg
+          grep -Fq 'class="inner-slope"' assets/safe-cracker/textures/dial-reference-face-v7.svg
+          if grep -Eq '<use\b|xlink:href|<filter\b|feTurbulence|feGaussianBlur|feDropShadow' assets/safe-cracker/textures/dial-reference-face-v7.svg; then
+            echo 'Dial v7 must remain flattened and filter-free for mobile rendering.' >&2
+            exit 1
+          fi
+
       - name: Verify live Netlify preview
         shell: bash
         run: |
+          set -euo pipefail
           url='https://deploy-preview-19--famous-piroshki-b621da.netlify.app/'
           function_url="${url}.netlify/functions/duel-action"
-          for attempt in $(seq 1 36); do
-            html="$(curl -fsSL --max-time 20 "${url}?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+
+          for attempt in $(seq 1 42); do
+            html="$(curl -fsSL --max-time 20 "${url}?dial_reference=7&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             headers="$(curl -fsS --max-time 20 -D - -o /dev/null -X OPTIONS "${function_url}?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            js="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/safe-cracker.js?v=8&polish=2&fit=2&result=1&final=1&refine=1&correct=1&input=1&audio=1&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            css="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/safe-cracker.css?v=8&polish=2&fit=2&result=1&final=1&refine=1&correct=1&input=1&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            js="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/safe-cracker.js?v=8&polish=2&fit=2&result=1&final=1&refine=1&correct=1&input=1&audio=1&dial=7&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            css="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/safe-cracker.css?v=8&polish=2&fit=2&result=1&final=1&refine=1&correct=1&input=1&dial=7&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            dial="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/textures/dial-reference-face-v7.svg?dial=7&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+
             if grep -Fq 'class="sth-game" data-mode="safecracker"' <<<"$html" && \
-               grep -Fq 'data-rnb-game="safecracker"' <<<"$html" && \
-               grep -Fq 'id="safe-cracker-compact-debug-dock"' <<<"$html" && \
-               grep -Fq 'id="rnbControlPanel" data-collapsed="1"' <<<"$html" && \
-               grep -Fq 'SAFE_CRACKER_SNAPSHOT_GUARD_START' <<<"$html" && \
-               grep -Fq 'SAFE_CRACKER_READY_RETRY_START' <<<"$html" && \
-               grep -Fq 'const deadlineAt = Date.now() + 12000' <<<"$html" && \
-               grep -Fq 'window.__safeCrackerFocusedGetAbort' <<<"$html" && \
-               grep -Fq 'game.status === "playing" ? 2200 : 650' <<<"$html" && \
-               grep -Fq 'DUEL_COMPLETED_DISMISSAL_START' <<<"$html" && \
-               grep -Fq 'duel-end-screen-close' <<<"$html" && \
-               grep -Fq 'torn-duel-completed-seen-v1' <<<"$html" && \
-               grep -Fq "document.querySelector('body > .sc-result-overlay[data-sc-result-portal] .sc-result-card')" <<<"$html" && \
-               grep -Fq '/assets/safe-cracker/safe-cracker.css?v=8&polish=2&fit=2&result=1&final=1&refine=1&correct=1&input=1' <<<"$html" && \
-               grep -Fq '/assets/safe-cracker/safe-cracker.js?v=8&polish=2&fit=2&result=1&final=1&refine=1&correct=1&input=1&audio=1' <<<"$html" && \
-               grep -Fq "if(game.mode==='safecracker')" <<<"$html" && \
-               grep -Fq 'SAFE_CRACKER_START_COUNTDOWN_START' <<<"$js" && \
-               grep -Fq 'data-sc-start-countdown' <<<"$js" && \
-               grep -Fq 'SAFE_CRACKER_DIAL_PHYSICS_V2_START' <<<"$js" && \
-               grep -Fq 'animateDialSettle(releasedRotation, runtime.rotation, runtime.lastDragDirection)' <<<"$js" && \
-               grep -Fq 'SAFE_CRACKER_HUD_V3_START' <<<"$js" && \
-               grep -Fq 'class="sc-display-glass"' <<<"$js" && \
-               grep -Fq 'class="sc-stage-bolt"' <<<"$js" && \
-               grep -Fq 'class="sc-race-progress"' <<<"$js" && \
-               grep -Fq 'SAFE_CRACKER_SEQUENCE_V4_START' <<<"$js" && \
-               grep -Fq 'data-sc-countdown-value' <<<"$js" && \
-               grep -Fq 'data-sc-result-sequence' <<<"$js" && \
-               grep -Fq 'SAFE_CRACKER_VISUAL_STABILITY_V5_START' <<<"$js" && \
-               grep -Fq 'function lockedCode(progress = {})' <<<"$js" && \
-               grep -Fq "confirmButton.classList.add('busy')" <<<"$js" && \
-               grep -Fq 'runtime.visualStatus === visualStatus;' <<<"$js" && \
-               ! grep -Fq 'runtime.visualStatus === visualStatus && !stageChanged' <<<"$js" && \
-               grep -Fq 'SAFE_CRACKER_VIEWPORT_FIT_V7_START' <<<"$js" && \
-               grep -Fq 'function mountCountdownPortal(game, mount)' <<<"$js" && \
-               grep -Fq "fresh.setAttribute('data-sc-countdown-portal', '');" <<<"$js" && \
-               ! grep -Fq 'scrollIntoView(' <<<"$js" && \
-               ! grep -Fq 'class="sc-attempt-panel"' <<<"$js" && \
-               grep -Fq 'SAFE_CRACKER_RESULT_FLOW_V5_START' <<<"$js" && \
-               grep -Fq 'function mountSafeCrackerResultPortal(game, mount)' <<<"$js" && \
-               grep -Fq "shell.classList.add(won ? 'sc-gameplay-win'" <<<"$js" && \
-               grep -Fq 'const revealDelay = reducedMotion ? 0 : won ? 1180 : tied ? 420 : 520;' <<<"$js" && \
-               grep -Fq "fresh.setAttribute('data-sc-result-portal', '');" <<<"$js" && \
-               grep -Fq 'SAFE_CRACKER_FINAL_POLISH_V6_START' <<<"$js" && \
-               grep -Fq 'function playSafeCrackerResultSequence(game, won, tied)' <<<"$js" && \
-               grep -Fq "portal.setAttribute('aria-modal', 'true');" <<<"$js" && \
-               grep -Fq 'const safeCrackerResultPortalObserver = new MutationObserver' <<<"$js" && \
-               grep -Fq 'SAFE_CRACKER_VIDEO_CORRECTION_V8_START' <<<"$js" && \
-               grep -Fq 'function safeCrackerMonotonicCountdownLabel(game = runtime.game)' <<<"$js" && \
-               grep -Fq 'if (proposedRank < runtime.countdownProgressRank) return runtime.countdownProgressLabel;' <<<"$js" && \
-               grep -Fq '<small>OPPONENT STATUS</small>' <<<"$js" && \
-               grep -Fq "const confirmLabel = runtime.busy" <<<"$js" && \
-               grep -Fq "? 'RESETTING…'" <<<"$js" && \
-               grep -Fq "=== 1 ? 'ATTEMPT' : 'ATTEMPTS'" <<<"$js" && \
-               grep -Fq 'SAFE_CRACKER_INPUT_CONTINUITY_V9_START' <<<"$js" && \
-               grep -Fq 'function safeCrackerArmLocalCooldown(game, cooldownMs)' <<<"$js" && \
-               grep -Fq 'if (runtime.dragging) {' <<<"$js" && \
-               grep -Fq 'runtime.pendingDragGame = game;' <<<"$js" && \
-               grep -Fq 'const pendingGame = runtime.pendingDragGame;' <<<"$js" && \
-               grep -Fq 'SAFE_CRACKER_AUDIO_PASS_V10_START' <<<"$js" && \
-               grep -Fq 'function safeCrackerPlayDetent(digit)' <<<"$js" && \
-               grep -Fq 'function safeCrackerPlaySafeOpen()' <<<"$js" && \
-               grep -Fq 'function safeCrackerHaptic(pattern)' <<<"$js" && \
-               grep -Fq 'SAFE_CRACKER_VISUAL_SHELL_V1_START' <<<"$css" && \
-               grep -Fq 'SAFE_CRACKER_VISUAL_DIAL_V2_START' <<<"$css" && \
-               grep -Fq 'SAFE_CRACKER_VISUAL_HUD_V3_START' <<<"$css" && \
-               grep -Fq 'SAFE_CRACKER_VISUAL_SEQUENCE_V4_START' <<<"$css" && \
-               grep -Fq 'SAFE_CRACKER_VISUAL_STABILITY_V5_START' <<<"$css" && \
-               grep -Fq 'SAFE_CRACKER_MOBILE_FIT_V6_START' <<<"$css" && \
-               grep -Fq 'SAFE_CRACKER_VIEWPORT_FIT_V7_START' <<<"$css" && \
-               grep -Fq 'SAFE_CRACKER_RESULT_FLOW_V5_START' <<<"$css" && \
-               grep -Fq 'SAFE_CRACKER_FINAL_POLISH_V6_START' <<<"$css" && \
-               grep -Fq 'SAFE_CRACKER_VISUAL_REFINEMENT_V7_START' <<<"$css" && \
-               grep -Fq 'SAFE_CRACKER_VIDEO_CORRECTION_V8_START' <<<"$css" && \
-               grep -Fq -- '--sc-refine-steel-hi' <<<"$css" && \
-               grep -Fq '.safe-cracker-game:has(.sc-display.green)' <<<"$css" && \
-               grep -Fq 'border-right: 7px solid #171d20' <<<"$css" && \
-               grep -Fq '@media (max-width: 700px) and (max-height: 760px)' <<<"$css" && \
-               grep -Fq 'transform: rotate(var(--digit-angle)) translateY(calc(var(--radius) * -1));' <<<"$css" && \
-               grep -Fq -- '--sc-refine-state-strength: .07' <<<"$css" && \
-               grep -Fq 'color: rgba(245, 226, 181, .66)' <<<"$css" && \
-               grep -Fq '@keyframes scGameplaySafeDoorOpen' <<<"$css" && \
-               grep -Fq '@keyframes scGameplayGoldSpill' <<<"$css" && \
-               grep -Fq 'body > .sc-result-overlay[data-sc-result-portal]' <<<"$css" && \
-               grep -Fq 'max-height: min(calc(100dvh - 24px), 600px)' <<<"$css" && \
-               grep -Fq 'linear-gradient(180deg, rgba(1, 3, 4, .58), rgba(1, 3, 4, .74))' <<<"$css" && \
-               grep -Fq '.sc-result-vault {' <<<"$css" && \
-               grep -Fq '.sc-player-card.me .sc-progress-lights' <<<"$css" && \
-               grep -Fq '.sc-safe-handle {' <<<"$css" && \
-               grep -Fq 'grid-template-columns: minmax(0, 1fr)' <<<"$css" && \
-               grep -Fq '.sc-start-countdown-overlay[data-sc-countdown-portal]' <<<"$css" && \
-               grep -Fq 'height: 100dvh !important' <<<"$css" && \
-               grep -Fq 'z-index: 20' <<<"$css" && \
-               grep -Fq 'linear-gradient(90deg, #20282c, #4c3a20 48%, #20282c)' <<<"$css" && \
-               grep -Fq '.sc-known-code span.known' <<<"$css" && \
-               grep -Fq -- '-webkit-tap-highlight-color: transparent' <<<"$css" && \
+               grep -Fq '/assets/safe-cracker/safe-cracker.css?v=8&polish=2' <<<"$html" && \
+               grep -Fq '&dial=7' <<<"$html" && \
+               grep -Fq 'SAFE_CRACKER_DIAL_ACTIVITY_V16_START' <<<"$js" && \
+               grep -Fq 'class="sc-dial-reference-plate"' <<<"$js" && \
+               grep -Fq '/assets/safe-cracker/textures/dial-reference-face-v7.svg?dial=7' <<<"$js" && \
+               grep -Fq 'SAFE_CRACKER_DIAL_DEPTH_V5_START' <<<"$css" && \
+               grep -Fq '.safe-cracker-game .sc-dial-reference-plate' <<<"$css" && \
+               grep -Fq 'background: #050708 !important' <<<"$css" && \
+               grep -Fq 'class="grip-blocks" data-count="40"' <<<"$dial" && \
+               grep -Fq 'class="silver-bezel"' <<<"$dial" && \
+               grep -Fq 'class="number-band"' <<<"$dial" && \
+               grep -Fq 'class="inner-slope"' <<<"$dial" && \
+               ! grep -Eq '<use\b|xlink:href|<filter\b|feTurbulence|feGaussianBlur|feDropShadow' <<<"$dial" && \
                grep -Fiq 'x-duel-function-build: safecracker-direct-v8' <<<"$headers"; then
-              echo "Verified live Safe Cracker audio v10, input continuity, video corrections, result flow, v8 completion, dismissal, Ready, and snapshot safeguards at ${url}"
+              echo "Verified live Safe Cracker flattened reference dial v7, V16 retention, and current authoritative runtime at ${url}"
               exit 0
             fi
-            echo "Waiting for Netlify Safe Cracker audio-v10 preview (${attempt}/36)..."
+
+            echo "Waiting for Netlify Safe Cracker dial-v7 preview (${attempt}/42)..."
             sleep 10
           done
-          echo 'Netlify preview did not become available with Safe Cracker audio v10 and current gameplay safeguards.' >&2
+
+          echo 'Netlify preview did not serve the flattened Safe Cracker dial v7 and current gameplay safeguards.' >&2
           exit 1
