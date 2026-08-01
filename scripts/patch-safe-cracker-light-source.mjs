@@ -137,7 +137,7 @@ await writeFile(cssUrl, css);
 
 let index = await readFile(indexUrl, 'utf8');
 index = index.replace(/&light=\d+/g, '');
-index = index.replace(/(safe-cracker\.css[^"']*)/, '$1&light=4');
+index = index.replace(/(safe-cracker\.css[^"']*)/, '$1&light=5');
 await writeFile(indexUrl, index);
 
 console.log('Applied fictional game UI light pass v4 with a restrained overhead source, soft recessed fill, and no dial-attached glare.');
