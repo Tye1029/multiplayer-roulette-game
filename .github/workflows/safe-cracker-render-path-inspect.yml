@@ -1,0 +1,23 @@
+name: Safe Cracker Render Path Inspect
+
+on:
+  push:
+    branches:
+      - safe-cracker-development
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+      - name: Use Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Print Safe Cracker render paths
+        run: node scripts/inspect-safe-cracker-render-path.mjs
