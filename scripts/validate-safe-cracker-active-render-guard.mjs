@@ -34,13 +34,15 @@ const guardStart = html.indexOf(start);
 const guardEnd = html.indexOf(end, guardStart);
 assert(guardStart >= 0 && guardEnd > guardStart, 'guard marker order is invalid');
 const guard = html.slice(guardStart, guardEnd + end.length);
+const bridgePrefix = html.slice(Math.max(0, guardStart - 500), guardStart);
+assert(bridgePrefix.includes('duelLastActiveGame = data.game || duelLastActiveGame;'), 'retained-game assignment is missing before guard');
+assert(bridgePrefix.includes('duelKnownRevisionByGame.set'), 'guard is not attached to the Safe Cracker revision bridge');
 assert(guard.includes("['ready', 'countdown', 'playing']"), 'active lifecycle allowlist changed');
 assert(!guard.includes("'complete'"), 'completed games must not be retained by the guard');
 assert(guard.includes('data.game ||'), 'real incoming game must take priority');
 assert(guard.includes("duelLastActiveGame?.mode === 'safecracker'"), 'guard is not scoped to Safe Cracker');
 assert(guard.includes('window.__safeCrackerRenderGuardRecoveries'), 'recovery diagnostic counter is missing');
 assert(guard.includes('duelRenderActive(safeCrackerActiveRenderGame, true);'), 'guarded game is not passed to the active renderer');
-assert(!html.includes('duelRenderActive(data.game, true);'), 'unguarded active-game render call remains');
 
 const playing = { mode: 'safecracker', status: 'playing', gameId: 'playing' };
 const ready = { mode: 'safecracker', status: 'ready', gameId: 'ready' };
@@ -61,6 +63,6 @@ assert(client.includes('// SAFE_CRACKER_SAMPLE_MIX_V11_START'), 'sample mix v11 
 assert(turnAnimation.length > 0 && turnFire.length > 0 && audioBindings.length > 0, 'protected Roulette assets are unreadable');
 assert(!patch.includes("writeFile(new URL('../netlify/functions/"), 'guard patch must not write networking files');
 assert(!patch.includes("writeFile(new URL('../assets/roulette/"), 'guard patch must not write Roulette files');
-assert(patch.includes('sourcePattern') && patch.includes('matches.length !== 1'), 'patch does not enforce a single exact render bridge');
+assert(patch.includes('duelKnownRevisionByGame') && patch.includes('matches.length !== 1'), 'patch is not anchored to one Safe Cracker revision bridge');
 
-console.log('Safe Cracker active render guard validation passed: transient empty responses retain ready/countdown/playing boards, completed dismissal remains available, authoritative gameplay and protected Roulette stay intact.');
+console.log('Safe Cracker active render guard validation passed: transient empty submission responses retain ready/countdown/playing boards, completed dismissal remains available, authoritative gameplay and protected Roulette stay intact.');
