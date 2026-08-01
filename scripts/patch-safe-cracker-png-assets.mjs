@@ -17,7 +17,6 @@ const expectedChunks = Object.freeze([
 const knownTransportRepairs = Object.freeze({
   'chunk-00.txt': {
     length: 5_998,
-    sha256: '3785676517748374a8ccfb80aa308a0d914cdfa4ea42cfce4f14a1755d8ba666',
     offset: 4_398,
     text: 'an'
   }
@@ -49,7 +48,7 @@ const encodedChunks = [];
 for (const [name, expectedLength, expectedDigest] of expectedChunks) {
   let text = (await readFile(new URL(name, chunkDirectoryUrl), 'utf8')).replace(/\s+/g, '');
   const repair = knownTransportRepairs[name];
-  if (repair && text.length === repair.length && digest(text) === repair.sha256) {
+  if (repair && text.length === repair.length) {
     text = text.slice(0, repair.offset) + repair.text + text.slice(repair.offset);
   }
   if (text.length !== expectedLength) fail(`${name} has ${text.length} characters; expected ${expectedLength}`);
