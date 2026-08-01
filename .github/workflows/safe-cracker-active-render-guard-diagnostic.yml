@@ -37,27 +37,30 @@ jobs:
             js="$(curl -fsSL --max-time 20 "${url}${js_path}&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             headers="$(curl -fsS --max-time 20 -D - -o /dev/null -X OPTIONS "${function_url}?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             if grep -Fq 'SAFE_CRACKER_ACTIVE_RENDER_GUARD_V13_START' <<<"$html" && \
-               grep -Fq 'SAFE_CRACKER_DIAL_BOARD_RETENTION_V14_START' <<<"$html" && \
-               grep -Fq 'window.__safeCrackerDialStableGameV14' <<<"$html" && \
-               grep -Fq 'safeCrackerDialMissingOrForeign || safeCrackerDialRegressed' <<<"$html" && \
+               grep -Fq 'SAFE_CRACKER_DIAL_BOARD_RETENTION_V15_START' <<<"$html" && \
+               grep -Fq 'window.__safeCrackerDialStableGameV15' <<<"$html" && \
+               grep -Fq "window.dispatchEvent(new CustomEvent('safecracker:state', { detail: { game } }))" <<<"$html" && \
+               grep -Fq 'window.__safeCrackerDialInPlaceUpdates' <<<"$html" && \
                grep -Fq 'window.__safeCrackerDialBoardRecoveries' <<<"$html" && \
+               grep -Fq 'game.mode === "safecracker" && ["ready", "countdown", "playing", "complete"]' <<<"$html" && \
                grep -Fq "['ready', 'countdown', 'playing']" <<<"$html" && \
                grep -Fq 'duelKnownRevisionByGame.set' <<<"$html" && \
                grep -Fq 'window.__safeCrackerRenderGuardRecoveries' <<<"$html" && \
                grep -Fq 'duelRenderActive(safeCrackerActiveRenderGame, true);' <<<"$html" && \
-               grep -Fq 'SAFE_CRACKER_DIAL_ACTIVITY_V14_START' <<<"$js" && \
-               grep -Fq 'window.__safeCrackerDialInteractionV14' <<<"$js" && \
+               grep -Fq 'SAFE_CRACKER_DIAL_ACTIVITY_V15_START' <<<"$js" && \
+               grep -Fq 'window.__safeCrackerDialInteractionV15' <<<"$js" && \
                grep -Fq 'expiresAt: Date.now() + 10000' <<<"$js" && \
                grep -Fq 'safeCrackerDialInteraction.expiresAt = Date.now() + 1200' <<<"$js" && \
                grep -Fq 'SAFE_CRACKER_INPUT_CONTINUITY_V9_START' <<<"$js" && \
+               grep -Fq 'runtime.pendingDragGame = game' <<<"$js" && \
                grep -Fq 'SAFE_CRACKER_SAMPLE_MIX_V11_START' <<<"$js" && \
                grep -Fq 'choice: `safecracker:guess:${runtime.selected}`' <<<"$js" && \
                grep -Fiq 'x-duel-function-build: safecracker-direct-v8' <<<"$headers"; then
-              echo "Verified live Safe Cracker active render guard v13 plus dial-board retention v14, authoritative gameplay, audio, input continuity, and protected server boundary at ${url}"
+              echo "Verified live Safe Cracker active render guard v13 plus in-place dial retention v15, lifecycle-correct player labels, authoritative gameplay, audio, input continuity, and protected server boundary at ${url}"
               exit 0
             fi
-            echo "Waiting for Netlify Safe Cracker dial-board retention (${attempt}/36)..."
+            echo "Waiting for Netlify Safe Cracker in-place dial retention (${attempt}/36)..."
             sleep 10
           done
-          echo 'Netlify preview did not become available with Safe Cracker dial-board retention v14.' >&2
+          echo 'Netlify preview did not become available with Safe Cracker in-place dial retention v15.' >&2
           exit 1
