@@ -2,23 +2,24 @@ import { readFile, writeFile } from 'node:fs/promises';
 
 const cssUrl = new URL('../assets/safe-cracker/safe-cracker.css', import.meta.url);
 const indexUrl = new URL('../index.html', import.meta.url);
-const blocks = [1, 2, 3, 4, 5, 6].map(version => [
+const blocks = [1, 2, 3, 4, 5, 6, 7].map(version => [
   `/* SAFE_CRACKER_LIGHT_SOURCE_V${version}_START */`,
   `/* SAFE_CRACKER_LIGHT_SOURCE_V${version}_END */`
 ]);
-const start = blocks[5][0];
-const end = blocks[5][1];
+const start = blocks[6][0];
+const end = blocks[6][1];
 
 let css = await readFile(cssUrl, 'utf8');
 
 const lightPass = String.raw`${start}
-/* Lighting reset v6. One cool white-grey source sits above the complete safe.
-   A single stationary overlay supplies the key, soft metal glare, right-side
-   bounce and lower falloff. Nothing directional is attached to the dial. */
+/* Lighting reset v7. A clearly visible cool overhead source spans the whole
+   safe with only two static gradient layers. The dial rotates beneath this
+   stationary light, and mobile removes expensive rotating drop-shadow filters. */
 .safe-cracker-game .sc-safe-shell {
   position: relative;
   isolation: isolate;
   overflow: hidden;
+  contain: paint;
 }
 
 .safe-cracker-game .sc-safe-shell::after {
@@ -29,47 +30,29 @@ const lightPass = String.raw`${start}
   border-radius: inherit;
   pointer-events: none;
   background:
-    /* Off-screen overhead source and broad key falloff. */
-    radial-gradient(ellipse 62% 54% at 48% -8%,
-      rgba(247, 250, 252, .19) 0%,
-      rgba(224, 232, 238, .092) 30%,
-      rgba(194, 207, 216, .038) 53%,
-      rgba(171, 188, 200, .012) 68%,
+    radial-gradient(ellipse 76% 56% at 36% -7%,
+      rgba(255, 255, 255, .42) 0%,
+      rgba(231, 240, 246, .25) 31%,
+      rgba(184, 202, 214, .12) 55%,
+      rgba(133, 157, 174, .045) 70%,
       transparent 82%),
-    /* One soft stationary metal reflection crossing both safe and dial. */
-    radial-gradient(ellipse 16% 62% at 42% 43%,
-      rgba(244, 248, 250, .062) 0%,
-      rgba(219, 229, 235, .029) 36%,
-      rgba(190, 205, 214, .009) 64%,
-      transparent 78%),
-    /* Cool reflected fill reaches the recessed right side from the same room light. */
-    radial-gradient(ellipse 48% 72% at 104% 54%,
-      rgba(183, 198, 208, .052) 0%,
-      rgba(150, 170, 184, .025) 42%,
-      rgba(121, 144, 160, .008) 67%,
-      transparent 82%),
-    /* Preserve depth as the overhead source falls away toward the bottom. */
-    linear-gradient(180deg,
-      transparent 0%,
-      transparent 48%,
-      rgba(3, 8, 11, .022) 69%,
-      rgba(1, 5, 8, .075) 100%);
-  box-shadow:
-    inset 0 1px 0 rgba(245, 249, 251, .12),
-    inset 0 20px 34px rgba(222, 232, 239, .025);
+    linear-gradient(118deg,
+      rgba(226, 237, 244, .16) 0%,
+      rgba(170, 191, 205, .085) 43%,
+      rgba(70, 91, 106, .025) 67%,
+      rgba(1, 5, 8, .18) 100%);
 }
 
-/* The fixed door trim responds to the same overhead source. The right edge is
-   not blacked out; it receives a small cool bounce while remaining recessed. */
+/* Fixed trim catches the same overhead source while the lower and far-right
+   edges remain recessed instead of disappearing into solid black. */
 .safe-cracker-game .sc-safe-door::before {
-  border-top-color: rgba(224, 234, 240, .13) !important;
-  border-left-color: rgba(184, 199, 209, .07) !important;
-  border-right-color: rgba(112, 133, 147, .075) !important;
-  border-bottom-color: rgba(8, 13, 17, .34) !important;
+  border-top-color: rgba(242, 248, 251, .24) !important;
+  border-left-color: rgba(202, 216, 225, .13) !important;
+  border-right-color: rgba(132, 154, 169, .11) !important;
+  border-bottom-color: rgba(7, 12, 16, .38) !important;
 }
 
-/* Enforce the lighting ownership boundary. These legacy pseudo-elements were
-   the source of the oval artifact and the glare chunk that rotated with the dial. */
+/* Lighting ownership stays outside the rotating dial. */
 .safe-cracker-game .sc-dial::before,
 .safe-cracker-game .sc-dial::after,
 .safe-cracker-game .sc-dial-face::after {
@@ -88,6 +71,16 @@ const lightPass = String.raw`${start}
 .safe-cracker-game .sc-dial-hub {
   border-color: #171d21 !important;
 }
+
+@media (max-width: 700px) {
+  .safe-cracker-game .sc-safe-shell,
+  .safe-cracker-game .sc-safe-door,
+  .safe-cracker-game .sc-dial-wrap,
+  .safe-cracker-game .sc-dial,
+  .safe-cracker-game .sc-dial-pointer {
+    filter: none !important;
+  }
+}
 ${end}`;
 
 function escapeRegExp(value) {
@@ -102,7 +95,7 @@ await writeFile(cssUrl, css);
 
 let index = await readFile(indexUrl, 'utf8');
 index = index.replace(/&light=\d+/g, '');
-index = index.replace(/(safe-cracker\.css[^"']*)/, '$1&light=6');
+index = index.replace(/(safe-cracker\.css[^"']*)/, '$1&light=7');
 await writeFile(indexUrl, index);
 
-console.log('Applied Safe Cracker lighting reset v6: one stationary cool white-grey source now spans the complete safe and dial, adds restrained continuous glare, softly fills the right recess, and leaves no dial-bound lighting.');
+console.log('Applied Safe Cracker lighting reset v7: a stronger two-layer stationary light is visible across the full safe, and mobile rotating drop-shadow filters are disabled to reduce GPU lag.');
