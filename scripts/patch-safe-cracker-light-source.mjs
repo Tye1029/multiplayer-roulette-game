@@ -5,17 +5,17 @@ const indexUrl = new URL('../index.html', import.meta.url);
 const blocks = [
   ['/* SAFE_CRACKER_LIGHT_SOURCE_V1_START */', '/* SAFE_CRACKER_LIGHT_SOURCE_V1_END */'],
   ['/* SAFE_CRACKER_LIGHT_SOURCE_V2_START */', '/* SAFE_CRACKER_LIGHT_SOURCE_V2_END */'],
-  ['/* SAFE_CRACKER_LIGHT_SOURCE_V3_START */', '/* SAFE_CRACKER_LIGHT_SOURCE_V3_END */']
+  ['/* SAFE_CRACKER_LIGHT_SOURCE_V3_START */', '/* SAFE_CRACKER_LIGHT_SOURCE_V3_END */'],
+  ['/* SAFE_CRACKER_LIGHT_SOURCE_V4_START */', '/* SAFE_CRACKER_LIGHT_SOURCE_V4_END */']
 ];
-const start = blocks[2][0];
-const end = blocks[2][1];
+const start = blocks[3][0];
+const end = blocks[3][1];
 
 let css = await readFile(cssUrl, 'utf8');
 
 const lightPass = String.raw`${start}
-/* Corrected Pass 3 v3: one broad cool-white scene light overlays the entire
-   safe shell. No directional highlight is painted onto the rotating dial face,
-   so dial parts move beneath stationary illumination instead of carrying it. */
+/* UI lighting is isolated from material artwork. One fixed overlay spans the
+   game safe, while the texture pass remains the sole owner of all surfaces. */
 .safe-cracker-game {
   --sc-scene-key: rgba(232, 243, 251, .135);
   --sc-scene-key-soft: rgba(193, 215, 232, .062);
@@ -25,13 +25,6 @@ const lightPass = String.raw`${start}
 .safe-cracker-game .sc-safe-shell {
   position: relative;
   isolation: isolate;
-  background-image:
-    url('/assets/safe-cracker/textures/safe-steel-base.svg?v=1'),
-    radial-gradient(ellipse at 26% 14%, rgba(221, 231, 234, .1), transparent 38%),
-    linear-gradient(145deg, #39444a 0%, #171e22 48%, #0d1215 78%, #293238 100%) !important;
-  background-size: 360px 360px, 100% 100%, 100% 100% !important;
-  background-repeat: repeat, no-repeat, no-repeat !important;
-  background-blend-mode: soft-light, screen, normal !important;
 }
 
 .safe-cracker-game .sc-safe-shell::after {
@@ -54,16 +47,6 @@ const lightPass = String.raw`${start}
 }
 
 .safe-cracker-game .sc-safe-door {
-  background-image:
-    url('/assets/safe-cracker/textures/metal-wear.svg?v=1'),
-    url('/assets/safe-cracker/textures/safe-steel-base.svg?v=1'),
-    radial-gradient(ellipse at 32% 16%, rgba(230, 238, 240, .105), transparent 36%),
-    radial-gradient(ellipse at 72% 86%, rgba(0, 0, 0, .085), transparent 50%),
-    linear-gradient(145deg, #58656b 0%, #273136 30%, #101619 69%, #354047 100%) !important;
-  background-position: center !important;
-  background-size: cover, 330px 330px, 100% 100%, 100% 100%, 100% 100% !important;
-  background-repeat: no-repeat, repeat, no-repeat, no-repeat, no-repeat !important;
-  background-blend-mode: soft-light, overlay, screen, multiply, normal !important;
   box-shadow:
     inset 0 0 0 3px #6f7a83,
     inset 0 0 0 8px #242c33,
@@ -97,55 +80,30 @@ const lightPass = String.raw`${start}
     0 14px 24px rgba(0, 0, 0, .25) !important;
 }
 
-/* Remove the former dial-local lighting layer. The scene overlay above is the
-   only directional light and remains fixed while the dial rotates below it. */
 .safe-cracker-game .sc-dial::before {
   content: none !important;
 }
 
-.safe-cracker-game .sc-dial-face {
-  background-image:
-    url('/assets/safe-cracker/textures/dial-machined.svg?v=1'),
-    radial-gradient(circle at 50% 50%, rgba(153, 168, 178, .08) 0 23%, transparent 25%),
-    repeating-conic-gradient(from -2deg, #d2aa5d 0deg 1.5deg, #5c4929 1.5deg 3.3deg, #222a30 3.3deg 36deg),
-    radial-gradient(circle, #64717b 0 66%, #1b2228 67% 73%, #a17a35 74% 78%, #1a2025 79%) !important;
-  background-size: cover, 100% 100%, 100% 100%, 100% 100% !important;
-  background-repeat: no-repeat !important;
-  background-blend-mode: soft-light, normal, normal, normal !important;
+.safe-cracker-game .sc-dial-face,
+.safe-cracker-game .sc-dial-hub {
   border-top-color: #28333b !important;
   border-left-color: #222c33 !important;
   border-right-color: #101519 !important;
   border-bottom-color: #0c1114 !important;
 }
 
-.safe-cracker-game .sc-dial-hub {
-  background-image:
-    url('/assets/safe-cracker/textures/dial-machined.svg?v=1'),
-    radial-gradient(circle at 50% 50%, #748089 0%, #323c44 46%, #11171c 74%) !important;
-  background-size: cover, 100% 100% !important;
-  background-repeat: no-repeat !important;
-  background-blend-mode: soft-light, normal !important;
-}
-
 .safe-cracker-game .sc-step-controls button {
-  background-image:
-    url('/assets/safe-cracker/textures/safe-steel-base.svg?v=1'),
-    linear-gradient(180deg, rgba(150, 163, 170, .42) 0 9%, transparent 10%),
-    linear-gradient(180deg, #4d585e, #252e33 52%, #161d21) !important;
-  background-size: 180px 180px, 100% 100%, 100% 100% !important;
-  background-repeat: repeat, no-repeat, no-repeat !important;
-  background-blend-mode: soft-light, screen, normal !important;
+  border-top-color: rgba(119, 137, 148, .72) !important;
+  border-left-color: rgba(81, 98, 109, .58) !important;
+  border-right-color: #11171b !important;
+  border-bottom-color: #090d10 !important;
 }
 
 .safe-cracker-game .sc-confirm-button {
-  background-image:
-    url('/assets/safe-cracker/textures/metal-wear.svg?v=1'),
-    url('/assets/safe-cracker/textures/safe-steel-base.svg?v=1'),
-    linear-gradient(180deg, rgba(255, 239, 196, .14), transparent 12%),
-    linear-gradient(180deg, #606a71 0 42%, #4c3920 43% 66%, #20272b 67% 100%) !important;
-  background-size: cover, 240px 180px, 100% 100%, 100% 100% !important;
-  background-repeat: no-repeat, repeat, no-repeat, no-repeat !important;
-  background-blend-mode: soft-light, soft-light, screen, normal !important;
+  border-top-color: rgba(128, 143, 152, .72) !important;
+  border-left-color: rgba(91, 105, 114, .58) !important;
+  border-right-color: #11171b !important;
+  border-bottom-color: #090d10 !important;
 }
 
 .safe-cracker-game .sc-safe-handle,
@@ -166,7 +124,7 @@ await writeFile(cssUrl, css);
 
 let index = await readFile(indexUrl, 'utf8');
 index = index.replace(/&light=\d+/g, '');
-index = index.replace(/(safe-cracker\.css[^"']*)/, '$1&light=3');
+index = index.replace(/(safe-cracker\.css[^"']*)/, '$1&light=4');
 await writeFile(indexUrl, index);
 
-console.log('Applied Safe Cracker light source v3: one cool-white scene overlay spans the entire safe while all dial-bound directional highlights are removed.');
+console.log('Applied fictional game UI light pass v4 without replacing material textures.');
