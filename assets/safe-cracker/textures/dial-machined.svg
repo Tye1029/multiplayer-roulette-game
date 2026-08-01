@@ -1,11 +1,20 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-<g fill="none" stroke-linecap="round">
-<g stroke="#eef3f4" stroke-opacity=".11">
-<circle cx="256" cy="256" r="44"/><circle cx="256" cy="256" r="52"/><circle cx="256" cy="256" r="60"/><circle cx="256" cy="256" r="68"/><circle cx="256" cy="256" r="76"/><circle cx="256" cy="256" r="84"/><circle cx="256" cy="256" r="92"/><circle cx="256" cy="256" r="100"/><circle cx="256" cy="256" r="108"/><circle cx="256" cy="256" r="116"/><circle cx="256" cy="256" r="124"/><circle cx="256" cy="256" r="132"/><circle cx="256" cy="256" r="140"/><circle cx="256" cy="256" r="148"/><circle cx="256" cy="256" r="156"/><circle cx="256" cy="256" r="164"/><circle cx="256" cy="256" r="172"/><circle cx="256" cy="256" r="180"/><circle cx="256" cy="256" r="188"/><circle cx="256" cy="256" r="196"/><circle cx="256" cy="256" r="204"/><circle cx="256" cy="256" r="212"/>
-</g>
-<g stroke="#080b0d" stroke-opacity=".1">
-<circle cx="256" cy="256" r="48"/><circle cx="256" cy="256" r="64"/><circle cx="256" cy="256" r="80"/><circle cx="256" cy="256" r="96"/><circle cx="256" cy="256" r="112"/><circle cx="256" cy="256" r="128"/><circle cx="256" cy="256" r="144"/><circle cx="256" cy="256" r="160"/><circle cx="256" cy="256" r="176"/><circle cx="256" cy="256" r="192"/><circle cx="256" cy="256" r="208"/>
-</g>
-<g stroke="#f0dfad" stroke-opacity=".15"><path d="M104 168a178 178 0 0 1 202-78"/><path d="M196 438a190 190 0 0 1-92-86"/><path d="M344 404a174 174 0 0 0 70-92"/><path d="M148 294a118 118 0 0 0 74 68"/></g>
-</g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" data-material="concentric-machining-v2">
+  <defs>
+    <filter id="micro" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency=".045" numOctaves="2" seed="29" result="noise"/>
+      <feColorMatrix in="noise" values=".35 0 0 0 .25  0 .38 0 0 .27  0 0 .4 0 .29  0 0 0 .16 0"/>
+    </filter>
+  </defs>
+  <circle cx="256" cy="256" r="220" fill="#647078" opacity=".2" filter="url(#micro)"/>
+  <g fill="none" stroke-linecap="round">
+    <g stroke="#eef3f4" stroke-opacity=".095" stroke-width="1">
+      <circle cx="256" cy="256" r="44"/><circle cx="256" cy="256" r="52"/><circle cx="256" cy="256" r="60"/><circle cx="256" cy="256" r="68"/><circle cx="256" cy="256" r="76"/><circle cx="256" cy="256" r="84"/><circle cx="256" cy="256" r="92"/><circle cx="256" cy="256" r="100"/><circle cx="256" cy="256" r="108"/><circle cx="256" cy="256" r="116"/><circle cx="256" cy="256" r="124"/><circle cx="256" cy="256" r="132"/><circle cx="256" cy="256" r="140"/><circle cx="256" cy="256" r="148"/><circle cx="256" cy="256" r="156"/><circle cx="256" cy="256" r="164"/><circle cx="256" cy="256" r="172"/><circle cx="256" cy="256" r="180"/><circle cx="256" cy="256" r="188"/><circle cx="256" cy="256" r="196"/><circle cx="256" cy="256" r="204"/><circle cx="256" cy="256" r="212"/>
+    </g>
+    <g stroke="#080b0d" stroke-opacity=".09" stroke-width="1.2">
+      <circle cx="256" cy="256" r="48"/><circle cx="256" cy="256" r="64"/><circle cx="256" cy="256" r="80"/><circle cx="256" cy="256"" r="96"/><circle cx="256" cy="256" r="112"/><circle cx="256" cy="256" r="128"/><circle cx="256" cy="256" r="144"/><circle cx="256" cy="256" r="160"/><circle cx="256" cy="256" r="176"/><circle cx="256" cy="256" r="192"/><circle cx="256" cy="256" r="208"/>
+    </g>
+    <g stroke="#f3e3b8" stroke-opacity=".07" stroke-width="1" stroke-dasharray="2 11">
+      <circle cx="256" cy="256" r="88"/><circle cx="256" cy="256" r="136"/><circle cx="256" cy="256" r="184"/>
+    </g>
+  </g>
 </svg>
