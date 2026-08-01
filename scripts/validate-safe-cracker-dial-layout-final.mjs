@@ -106,11 +106,14 @@ if (!client.includes(`src="${assetPath}"`)) {
 if ((client.match(/class="sc-dial-reference-plate"/g) || []).length !== 1) {
   throw new Error('Safe Cracker final dial-layout validation failed: the dial plate is not mounted exactly once.');
 }
-if (!client.includes('<span>CHECK NUMBER</span>')) {
-  throw new Error('Safe Cracker final dial-layout validation failed: the confirmation label is not fixed to CHECK NUMBER.');
+if (!client.includes('function safeCrackerUpdateConfirmControl()')) {
+  throw new Error('Safe Cracker final dial-layout validation failed: the confirmation-control helper is missing.');
 }
-if (/RESETTING(?:…|\.\.\.)/i.test(client) || /CHECKING(?:…|\.\.\.)/i.test(client)) {
-  throw new Error('Safe Cracker final dial-layout validation failed: a temporary confirmation-button status label remains.');
+if (!client.includes("? 'CHECK NUMBER'")) {
+  throw new Error('Safe Cracker final dial-layout validation failed: the cooldown label was not normalized to CHECK NUMBER.');
+}
+if (/RESETTING(?:…|\.\.\.)/i.test(client)) {
+  throw new Error('Safe Cracker final dial-layout validation failed: the RESETTING label remains.');
 }
 if (!/safe-cracker\.css\?[^"'\s]*&dial=7[^"'\s]*&layout=7/.test(html)) {
   throw new Error('Safe Cracker final dial-layout validation failed: stylesheet cache key layout=7 is missing.');
@@ -141,4 +144,4 @@ if (patch.includes("writeFile(new URL('../assets/roulette/")) {
   throw new Error('Safe Cracker final dial-layout validation failed: the visual patch writes protected Roulette files.');
 }
 
-console.log('Safe Cracker confirmation refinement validation passed: no yellow/orange underlayer remains, the gold label has a black outline, the button indents against a black mechanical step, temporary status text is removed, cache busting is current, V16 retention is intact, and Roulette remains protected.');
+console.log('Safe Cracker confirmation refinement validation passed: no yellow/orange underlayer remains, the gold label has a black outline, the button indents against a black mechanical step, RESETTING is replaced with CHECK NUMBER, cache busting is current, V16 retention is intact, and Roulette remains protected.');
