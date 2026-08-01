@@ -153,9 +153,9 @@ if (!client.includes(helperMarker)) {
   client = client.replace(renderAnchor, helper);
 }
 
-const rightLatchPattern = /<div class="sc-bolts right"[^>]*>\s*<i[^>]*><\/i>\s*<i[^>]*><\/i>\s*<i[^>]*><\/i>\s*<\/div>/;
+const rightLatchPattern = /<div class="sc-bolts right">\s*<i><\/i>\s*<i><\/i>\s*<i><\/i>\s*<\/div>/;
 if (!rightLatchPattern.test(client)) {
-  throw new Error('Safe Cracker latch sequence could not find the three right-side safe bolts.');
+  throw new Error('Safe Cracker latch sequence could not find the original three right-side safe bolts.');
 }
 client = client.replace(rightLatchPattern, '${safeCrackerLatchBank(game, me)}');
 client = client.replace(/RESETTING(?:…|\.\.\.)/gi, 'CHECK NUMBER');
