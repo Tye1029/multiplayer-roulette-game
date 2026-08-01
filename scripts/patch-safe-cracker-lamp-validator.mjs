@@ -6,6 +6,8 @@ await import('./patch-safe-cracker-texture-pass.mjs');
 await import('./validate-safe-cracker-texture-pass.mjs');
 await import('./patch-safe-cracker-active-render-guard.mjs');
 await import('./validate-safe-cracker-active-render-guard.mjs');
+await import('./patch-safe-cracker-dial-board-retention.mjs');
+await import('./validate-safe-cracker-dial-board-retention.mjs');
 
 const packageUrl = new URL('../package.json', import.meta.url);
 const validatorUrl = new URL('./validate-lamp.mjs', import.meta.url);
