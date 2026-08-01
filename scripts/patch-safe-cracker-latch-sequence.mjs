@@ -44,9 +44,9 @@ const latchCss = String.raw`${cssStart}
   transform-origin: right center;
   will-change: transform, filter, opacity;
   transition:
-    transform .42s cubic-bezier(.2,.85,.28,1),
-    filter .28s ease,
-    opacity .28s ease;
+    transform .58s cubic-bezier(.2,.85,.28,1),
+    filter .4s ease,
+    opacity .4s ease;
 }
 
 .safe-cracker-game .sc-bolts.right i.sc-latch-released {
@@ -59,7 +59,7 @@ const latchCss = String.raw`${cssStart}
 }
 
 .safe-cracker-game .sc-bolts.right i.sc-latch-releasing {
-  animation: scSafeCrackerLatchReleaseV1 .58s cubic-bezier(.16,.82,.3,1) both;
+  animation: scSafeCrackerLatchReleaseV1 .82s cubic-bezier(.16,.82,.3,1) both;
 }
 
 @keyframes scSafeCrackerLatchReleaseV1 {
@@ -164,12 +164,12 @@ await writeFile(clientUrl, client);
 let html = await readFile(indexUrl, 'utf8');
 html = html.replace(/\/assets\/safe-cracker\/safe-cracker\.css\?[^"'\s]*/g, value => {
   const clean = value.replace(/&latch=\d+/g, '');
-  return `${clean}&latch=1`;
+  return `${clean}&latch=2`;
 });
 html = html.replace(/\/assets\/safe-cracker\/safe-cracker\.js\?[^"'\s]*/g, value => {
   const clean = value.replace(/&latch=\d+/g, '');
-  return `${clean}&latch=1`;
+  return `${clean}&latch=2`;
 });
 await writeFile(indexUrl, html);
 
-console.log('Applied Safe Cracker latch sequence v1: the final yellow button underlayer is removed, the Check Number control retains tactile press travel, and the three right-side latches release from top to bottom as authoritative tumblers are completed.');
+console.log('Applied Safe Cracker latch sequence v2: the right-side latches retain their authoritative top-to-bottom release sequence with a slower, heavier mechanical opening motion.');
