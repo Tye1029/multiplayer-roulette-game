@@ -29,27 +29,33 @@ jobs:
       - name: Verify live active render guard
         shell: bash
         run: |
+          set -u
           url='https://deploy-preview-19--famous-piroshki-b621da.netlify.app/'
           function_url="${url}.netlify/functions/duel-action"
-          js_path='assets/safe-cracker/safe-cracker.js?v=8&polish=2&fit=2&result=1&final=1&refine=1&correct=1&input=1&audio=1&samples=1&texture=1'
+          js_path='assets/safe-cracker/safe-cracker.js?v=8&polish=2&fit=2&result=1&final=1&refine=1&correct=1&input=1&audio=1&samples=1'
           for attempt in $(seq 1 36); do
             html="$(curl -fsSL --max-time 20 "${url}?render_guard_commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             js="$(curl -fsSL --max-time 20 "${url}${js_path}&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             headers="$(curl -fsS --max-time 20 -D - -o /dev/null -X OPTIONS "${function_url}?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            if grep -Fq 'SAFE_CRACKER_ACTIVE_RENDER_GUARD_V13_START' <<<"$html" && \
+            if grep -Fq 'SAFE_CRACKER_ACTIVE_RENDER_GUARD_V14_START' <<<"$html" && \
                grep -Fq "['ready', 'countdown', 'playing']" <<<"$html" && \
-               grep -Fq 'duelKnownRevisionByGame.set' <<<"$html" && \
-               grep -Fq 'window.__safeCrackerRenderGuardRecoveries' <<<"$html" && \
+               grep -Fq 'waiting: 0' <<<"$html" && \
+               grep -Fq 'complete: 4' <<<"$html" && \
+               grep -Fq 'window.__safeCrackerStableActiveGame' <<<"$html" && \
+               grep -Fq 'safeCrackerLifecycleRegressed' <<<"$html" && \
+               grep -Fq 'safeCrackerRevisionRegressed' <<<"$html" && \
+               grep -Fq 'window.__safeCrackerRenderGuardRegressions' <<<"$html" && \
                grep -Fq 'duelRenderActive(safeCrackerActiveRenderGame, true);' <<<"$html" && \
+               ! grep -Fq 'SAFE_CRACKER_ACTIVE_RENDER_GUARD_V13_START' <<<"$html" && \
                grep -Fq 'SAFE_CRACKER_INPUT_CONTINUITY_V9_START' <<<"$js" && \
                grep -Fq 'SAFE_CRACKER_SAMPLE_MIX_V11_START' <<<"$js" && \
                grep -Fq 'choice: `safecracker:guess:${runtime.selected}`' <<<"$js" && \
                grep -Fiq 'x-duel-function-build: safecracker-direct-v8' <<<"$headers"; then
-              echo "Verified live Safe Cracker active render guard v13, authoritative gameplay, audio, input continuity, and protected server boundary at ${url}"
+              echo "Verified live Safe Cracker active render guard v14: empty, stale-revision and backward-lifecycle responses cannot close live boards; completion, different games, authoritative gameplay, audio, input continuity and protected server boundaries remain intact at ${url}"
               exit 0
             fi
-            echo "Waiting for Netlify Safe Cracker active render guard (${attempt}/36)..."
+            echo "Waiting for Netlify Safe Cracker active render guard v14 (${attempt}/36)..."
             sleep 10
           done
-          echo 'Netlify preview did not become available with the Safe Cracker active render guard.' >&2
+          echo 'Netlify preview did not become available with the Safe Cracker active render guard v14.' >&2
           exit 1
