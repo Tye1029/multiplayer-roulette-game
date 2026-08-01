@@ -160,11 +160,9 @@ if (!existingPlatePattern.test(client)) {
 }
 client = client.replace(existingPlatePattern, plateMarkup);
 
-const confirmBusyLabelPattern = /\$\{runtime\.busy\s*\?\s*'[^']*'\s*:\s*'CHECK NUMBER'\}/;
-if (!confirmBusyLabelPattern.test(client)) {
-  throw new Error('Safe Cracker final dial-layout patch could not find the temporary Check Number status label.');
+if (!/RESETTING(?:…|\.\.\.)/i.test(client)) {
+  throw new Error('Safe Cracker final dial-layout patch could not find the cooldown RESETTING label.');
 }
-client = client.replace(confirmBusyLabelPattern, 'CHECK NUMBER');
 client = client.replace(/RESETTING(?:…|\.\.\.)/gi, 'CHECK NUMBER');
 await writeFile(clientUrl, client);
 
@@ -179,4 +177,4 @@ html = html.replace(/\/assets\/safe-cracker\/safe-cracker\.js\?[^"'\s]*/g, value
 });
 await writeFile(indexUrl, html);
 
-console.log('Applied Safe Cracker confirmation refinement: inherited yellow/orange underlayers are removed, the button has a black mechanical press step, the gold label has a black outline, and temporary RESETTING/CHECKING labels are replaced by CHECK NUMBER.');
+console.log('Applied Safe Cracker confirmation refinement: inherited yellow/orange underlayers are removed, the button has a black mechanical press step, the gold label has a black outline, and the cooldown RESETTING label now remains CHECK NUMBER.');
