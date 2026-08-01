@@ -1,7 +1,6 @@
 import { readFile, writeFile } from 'node:fs/promises';
 
 const cssUrl = new URL('../assets/safe-cracker/safe-cracker.css', import.meta.url);
-const indexUrl = new URL('../index.html', import.meta.url);
 const cssStart = '/* SAFE_CRACKER_DIAL_DEPTH_V1_START */';
 const cssEnd = '/* SAFE_CRACKER_DIAL_DEPTH_V1_END */';
 
@@ -265,9 +264,5 @@ let css = await readFile(cssUrl, 'utf8');
 const markerPattern = /\/\* SAFE_CRACKER_DIAL_DEPTH_V1_START \*\/[\s\S]*?\/\* SAFE_CRACKER_DIAL_DEPTH_V1_END \*\/\s*/m;
 css = css.replace(markerPattern, '').trimEnd() + `\n\n${dialDepth}\n`;
 await writeFile(cssUrl, css);
-
-let html = await readFile(indexUrl, 'utf8');
-html = html.replace(/(\/assets\/safe-cracker\/safe-cracker\.css\?v=)\d+/g, '$115');
-await writeFile(indexUrl, html);
 
 console.log('Applied Safe Cracker dial depth pass: raised grip ring, brushed silver number trim, shortened metal ticks, and sharper index pointer.');
