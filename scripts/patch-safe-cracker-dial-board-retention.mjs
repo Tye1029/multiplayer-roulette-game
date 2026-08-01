@@ -24,8 +24,8 @@ if (!client.includes(clientStart)) {
 
   client = replaceRequired(
     client,
-    `        runtime.lastPointerAngle = angle;\n        runtime.rotation += delta;`,
-    `        runtime.lastPointerAngle = angle;\n        if (\n          window.__safeCrackerDialInteractionV14 &&\n          String(window.__safeCrackerDialInteractionV14.gameId || '') === String(game?.gameId || '')\n        ) {\n          window.__safeCrackerDialInteractionV14.active = true;\n          window.__safeCrackerDialInteractionV14.expiresAt = Date.now() + 10000;\n        }\n        runtime.rotation += delta;`,
+    `        runtime.lastPointerAngle = angle;`,
+    `        runtime.lastPointerAngle = angle;\n        if (\n          window.__safeCrackerDialInteractionV14 &&\n          String(window.__safeCrackerDialInteractionV14.gameId || '') === String(game?.gameId || '')\n        ) {\n          window.__safeCrackerDialInteractionV14.active = true;\n          window.__safeCrackerDialInteractionV14.expiresAt = Date.now() + 10000;\n        }`,
     'dial activity extension while moving'
   );
 
