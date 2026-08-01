@@ -45,6 +45,12 @@ const helper = `    // DUEL_COMPLETED_DISMISSAL_START
       if (String(game?.status || "") !== "complete") return false;
       const id = String(game?.gameId || "");
       if (!id || duelCompletedVisibleThisSession.has(id)) return false;
+      // Safe Cracker owns a cinematic result portal. Never dismiss or mark that
+      // result as seen until the player explicitly closes it or starts a rematch.
+      if (String(game?.mode || "") === "safecracker") {
+        duelCompletedVisibleThisSession.add(id);
+        return false;
+      }
       const alreadySeen = duelReadCompletedSeen().includes(id);
       if (alreadySeen) return true;
       duelCompletedVisibleThisSession.add(id);
@@ -111,4 +117,4 @@ const renderWithDismissal = `    function duelRenderActive(game, force = false) 
 html = replaceRequired(html, renderStart, renderWithDismissal, 'completed-game render guard');
 
 await writeFile(indexUrl, html);
-console.log('Patched persistent completed-game suppression and close buttons for every multiplayer game.');
+console.log('Patched completed-game dismissal: Safe Cracker results remain mounted until an explicit close or rematch, while other completed games retain persistent suppression.');
