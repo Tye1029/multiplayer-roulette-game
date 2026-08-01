@@ -360,7 +360,7 @@ css = css.replace(markerPattern, '').trimEnd() + `\n\n${dialDepth}\n`;
 await writeFile(cssUrl, css);
 
 let html = await readFile(indexUrl, 'utf8');
-html = html.replace(/\/assets\/safe-cracker\/safe-cracker\.css\?[^"'\\s]*/g, value => {
+html = html.replace(/\/assets\/safe-cracker\/safe-cracker\.css\?[^"'\s]*/g, value => {
   const clean = value.replace(/&dial=\d+/g, '');
   return `${clean}&dial=5`;
 });
