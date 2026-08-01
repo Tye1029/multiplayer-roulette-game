@@ -6,7 +6,7 @@ const indexUrl = new URL('../index.html', import.meta.url);
 
 const start = '/* SAFE_CRACKER_DIAL_LAYOUT_V3_START */';
 const end = '/* SAFE_CRACKER_DIAL_LAYOUT_V3_END */';
-const assetPath = '/assets/safe-cracker/textures/dial-reference-face-v7.svg?dial=7&layout=6';
+const assetPath = '/assets/safe-cracker/textures/dial-reference-face-v7.svg?dial=7&layout=7';
 const plateMarkup = `<img class="sc-dial-reference-plate" src="${assetPath}" alt="" aria-hidden="true" draggable="false">`;
 
 const refinement = String.raw`${start}
@@ -38,26 +38,36 @@ const refinement = String.raw`${start}
 
 .safe-cracker-game .sc-confirm-button {
   overflow: hidden;
+  isolation: isolate;
+  -webkit-appearance: none;
+  appearance: none;
   border: 3px solid #050708 !important;
+  border-bottom-color: #050708 !important;
   outline: 0;
   border-radius: 8px;
   color: #ddb362;
-  background-color: #aab4b8 !important;
-  background-image:
-    linear-gradient(180deg,
-      #e2e8ea 0%,
-      #c4cdd1 31%,
-      #929fa5 67%,
-      #68757b 100%) !important;
-  background-clip: padding-box;
+  background: linear-gradient(180deg,
+    #e2e8ea 0%,
+    #c4cdd1 31%,
+    #929fa5 67%,
+    #68757b 100%) !important;
   box-shadow:
     inset 0 2px 0 rgba(255,255,255,.72),
     inset 0 -4px 6px rgba(10,14,16,.28),
-    0 7px 0 #030506,
-    0 13px 15px rgba(0,0,0,.42);
+    0 7px 0 #050708,
+    0 13px 15px rgba(0,0,0,.42) !important;
   text-shadow:
-    0 2px 2px #080a0b,
-    0 -1px 0 rgba(255,240,199,.28);
+    -1px -1px 0 #050708,
+    0 -1px 0 #050708,
+    1px -1px 0 #050708,
+    -1px 0 0 #050708,
+    1px 0 0 #050708,
+    -1px 1px 0 #050708,
+    0 1px 0 #050708,
+    1px 1px 0 #050708,
+    0 2px 2px #000;
+  transform: translateY(0);
+  transition: transform .06s ease, box-shadow .06s ease;
 }
 
 .safe-cracker-game .sc-confirm-button::before,
@@ -77,14 +87,15 @@ const refinement = String.raw`${start}
   filter: saturate(.68) brightness(.92);
 }
 
-.safe-cracker-game .sc-confirm-button:not(:disabled):active {
+.safe-cracker-game .sc-confirm-button:active {
   border: 3px solid #050708 !important;
-  transform: translateY(4px);
+  border-bottom-color: #050708 !important;
+  transform: translateY(4px) !important;
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,.5),
     inset 0 -2px 4px rgba(10,14,16,.25),
-    0 3px 0 #030506,
-    0 7px 9px rgba(0,0,0,.34);
+    0 3px 0 #050708,
+    0 7px 9px rgba(0,0,0,.34) !important;
 }
 
 @media (max-width: 700px) {
@@ -148,17 +159,24 @@ if (!existingPlatePattern.test(client)) {
   throw new Error('Safe Cracker final dial-layout patch could not find the mounted V7 dial plate.');
 }
 client = client.replace(existingPlatePattern, plateMarkup);
+
+const confirmBusyLabelPattern = /\$\{runtime\.busy\s*\?\s*'[^']*'\s*:\s*'CHECK NUMBER'\}/;
+if (!confirmBusyLabelPattern.test(client)) {
+  throw new Error('Safe Cracker final dial-layout patch could not find the temporary Check Number status label.');
+}
+client = client.replace(confirmBusyLabelPattern, 'CHECK NUMBER');
+client = client.replace(/RESETTING(?:…|\.\.\.)/gi, 'CHECK NUMBER');
 await writeFile(clientUrl, client);
 
 let html = await readFile(indexUrl, 'utf8');
 html = html.replace(/\/assets\/safe-cracker\/safe-cracker\.css\?[^"'\s]*/g, value => {
   const clean = value.replace(/&layout=\d+/g, '');
-  return `${clean}&layout=6`;
+  return `${clean}&layout=7`;
 });
 html = html.replace(/\/assets\/safe-cracker\/safe-cracker\.js\?[^"'\s]*/g, value => {
   const clean = value.replace(/&layout=\d+/g, '');
-  return `${clean}&layout=6`;
+  return `${clean}&layout=7`;
 });
 await writeFile(indexUrl, html);
 
-console.log('Applied Safe Cracker confirmation refinement: the orange lower ledge is replaced by a black mechanical step, the silver Check Number control indents like the step buttons, and its label matches the dial numeral gold.');
+console.log('Applied Safe Cracker confirmation refinement: inherited yellow/orange underlayers are removed, the button has a black mechanical press step, the gold label has a black outline, and temporary RESETTING/CHECKING labels are replaced by CHECK NUMBER.');
