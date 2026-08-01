@@ -14,7 +14,7 @@ permissions:
 jobs:
   inspect:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - name: Checkout branch
         uses: actions/checkout@v4
@@ -22,5 +22,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - name: Print Safe Cracker render paths
+      - name: Install dependencies
+        run: npm install
+      - name: Build patched Safe Cracker runtime
+        run: npm run build
+      - name: Print Safe Cracker runtime paths
         run: node scripts/inspect-safe-cracker-render-path.mjs
