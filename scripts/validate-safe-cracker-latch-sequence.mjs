@@ -29,22 +29,38 @@ const block = css.slice(startIndex, endIndex + end.length);
 
 const requiredCss = [
   '.safe-cracker-game .sc-confirm-button',
+  'overflow: visible !important',
   'background-color: #aab4b8 !important',
   '#e2e8ea 0%',
   '#68757b 100%',
+  'background-clip: padding-box !important',
+  'border: 3px solid #050708 !important',
+  'filter: none !important',
   '0 5px 10px rgba(0,0,0,.48) !important',
+  '.safe-cracker-game .sc-confirm-button > span',
+  'color: #ddb362',
+  'background: transparent !important',
+  '.safe-cracker-game .sc-confirm-button::after',
+  "content: '' !important",
+  'bottom: -7px',
+  'height: 7px',
+  'background: #050708 !important',
+  'box-shadow: none !important',
   '.safe-cracker-game .sc-confirm-button:active',
   'transform: translateY(4px) !important',
   '0 1px 4px rgba(0,0,0,.42) !important',
+  '.safe-cracker-game .sc-confirm-button:active::after',
+  'bottom: -3px',
+  'height: 3px',
   '.safe-cracker-game .sc-bolts.right',
   'right: -4px',
-  'transform .58s cubic-bezier(.2,.85,.28,1)',
-  'filter .4s ease',
-  'opacity .4s ease',
+  'transform .82s cubic-bezier(.2,.85,.28,1)',
+  'filter .58s ease',
+  'opacity .58s ease',
   '.safe-cracker-game .sc-bolts.right i.sc-latch-released',
   'translateX(17px) rotate(7deg)',
   '.safe-cracker-game .sc-bolts.right i.sc-latch-releasing',
-  'animation: scSafeCrackerLatchReleaseV1 .82s',
+  'animation: scSafeCrackerLatchReleaseV1 1.15s',
   '@keyframes scSafeCrackerLatchReleaseV1',
   'right: -3px',
   'translateX(13px) rotate(7deg)'
@@ -65,7 +81,9 @@ const forbiddenCss = [
   '#5c3f1c',
   '0 7px 0',
   '0 6px 0',
-  'animation: scSafeCrackerLatchReleaseV1 .58s'
+  'animation: scSafeCrackerLatchReleaseV1 .58s',
+  'animation: scSafeCrackerLatchReleaseV1 .82s',
+  'transform .58s cubic-bezier(.2,.85,.28,1)'
 ];
 for (const fragment of forbiddenCss) {
   if (block.includes(fragment)) {
@@ -108,11 +126,11 @@ if ((client.match(/\$\{safeCrackerLatchBank\(game, me\)\}/g) || []).length !== 1
 if (/RESETTING(?:…|\.\.\.)/i.test(client)) {
   throw new Error('Safe Cracker latch validation failed: RESETTING still appears on the Check Number control.');
 }
-if (!/safe-cracker\.css\?[^"'\s]*&layout=7[^"'\s]*&latch=2/.test(html)) {
-  throw new Error('Safe Cracker latch validation failed: stylesheet latch cache key is missing latch=2.');
+if (!/safe-cracker\.css\?[^"'\s]*&layout=7[^"'\s]*&latch=3/.test(html)) {
+  throw new Error('Safe Cracker latch validation failed: stylesheet latch cache key is missing latch=3.');
 }
-if (!/safe-cracker\.js\?[^"'\s]*&layout=7[^"'\s]*&latch=2/.test(html)) {
-  throw new Error('Safe Cracker latch validation failed: runtime latch cache key is missing latch=2.');
+if (!/safe-cracker\.js\?[^"'\s]*&layout=7[^"'\s]*&latch=3/.test(html)) {
+  throw new Error('Safe Cracker latch validation failed: runtime latch cache key is missing latch=3.');
 }
 
 if (patch.includes("writeFile(new URL('../netlify/functions/")) {
@@ -122,4 +140,4 @@ if (patch.includes("writeFile(new URL('../assets/roulette/")) {
   throw new Error('Safe Cracker latch validation failed: the visual patch writes protected Roulette files.');
 }
 
-console.log('Safe Cracker latch sequence validation passed: the 0.82-second release is slower and heavier, the top-to-bottom authoritative sequence remains intact, the Check Number cleanup remains present, and networking/Roulette are untouched.');
+console.log('Safe Cracker latch sequence validation passed: the 1.15-second release is slower and heavier, the Check Number button uses an opaque black mechanical base with no inherited yellow/orange ledge, the authoritative top-to-bottom sequence remains intact, and networking/Roulette are untouched.');
