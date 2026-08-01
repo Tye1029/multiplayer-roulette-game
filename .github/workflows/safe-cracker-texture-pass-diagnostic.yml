@@ -32,7 +32,7 @@ jobs:
           set -u
           url='https://deploy-preview-19--famous-piroshki-b621da.netlify.app/'
           function_url="${url}.netlify/functions/duel-action"
-          css_path='assets/safe-cracker/safe-cracker.css?v=8&polish=2&fit=2&result=1&final=1&refine=1&correct=1&input=1&texture=4'
+          css_path='assets/safe-cracker/safe-cracker.css?v=8&polish=2&fit=2&result=1&final=1&refine=1&correct=1&input=1&texture=5'
           js_path='assets/safe-cracker/safe-cracker.js?v=8&polish=2&fit=2&result=1&final=1&refine=1&correct=1&input=1&audio=1&samples=1'
           for attempt in $(seq 1 36); do
             html="$(curl -fsSL --max-time 20 "${url}?texture_commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
@@ -42,13 +42,15 @@ jobs:
             wear="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/textures/metal-wear.svg?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             dial="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/textures/dial-machined.svg?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             headers="$(curl -fsS --max-time 20 -D - -o /dev/null -X OPTIONS "${function_url}?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            if grep -Fq '&texture=4' <<<"$html" && \
+            texture_block="$(sed -n '/SAFE_CRACKER_TEXTURE_PASS_V4_START/,/SAFE_CRACKER_TEXTURE_PASS_V4_END/p' <<<"$css")"
+            if grep -Fq '&texture=5' <<<"$html" && \
                grep -Fq 'SAFE_CRACKER_TEXTURE_PASS_V4_START' <<<"$css" && \
                grep -Fq '/assets/safe-cracker/textures/safe-steel-base.svg?v=2' <<<"$css" && \
                grep -Fq '/assets/safe-cracker/textures/metal-wear.svg?v=2' <<<"$css" && \
                grep -Fq '/assets/safe-cracker/textures/dial-machined.svg?v=2' <<<"$css" && \
-               grep -Fq '.safe-cracker-game .sc-dial-wrap::after' <<<"$css" && \
-               ! grep -Fq 'repeating-conic-gradient' <<<"$(sed -n '/SAFE_CRACKER_TEXTURE_PASS_V4_START/,/SAFE_CRACKER_TEXTURE_PASS_V4_END/p' <<<"$css")" && \
+               grep -Fq '.safe-cracker-game .sc-dial-wrap::after' <<<"$texture_block" && \
+               grep -Fq 'content: none !important' <<<"$texture_block" && \
+               ! grep -Fq 'repeating-conic-gradient' <<<"$texture_block" && \
                grep -Fq 'baseFrequency=".82 .012"' <<<"$steel" && \
                grep -Fq 'stroke-opacity=".2"' <<<"$wear" && \
                grep -Fq 'data-material="concentric-machining-v2"' <<<"$dial" && \
@@ -59,11 +61,11 @@ jobs:
                grep -Fq 'SAFE_CRACKER_INPUT_CONTINUITY_V9_START' <<<"$js" && \
                grep -Fq 'choice: `safecracker:guess:${runtime.selected}`' <<<"$js" && \
                grep -Fiq 'x-duel-function-build: safecracker-direct-v8' <<<"$headers"; then
-              echo "Verified live Safe Cracker texture pass v4: brushed image wear is active, rotating directional wedges are absent, the room highlight is fixed, active-board retention is present, and protected gameplay remains intact at ${url}"
+              echo "Verified live Safe Cracker texture pass: brushed image wear is active, rotating wedges and oval glare are absent, active-board retention is present, and protected gameplay remains intact at ${url}"
               exit 0
             fi
-            echo "Waiting for Netlify Safe Cracker image texture pass v4 (${attempt}/36)..."
+            echo "Waiting for Netlify Safe Cracker image texture cleanup (${attempt}/36)..."
             sleep 10
           done
-          echo 'Netlify preview did not become available with Safe Cracker image texture pass v4 and current safeguards.' >&2
+          echo 'Netlify preview did not become available with the Safe Cracker texture cleanup and current safeguards.' >&2
           exit 1
