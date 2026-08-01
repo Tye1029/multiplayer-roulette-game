@@ -26,7 +26,7 @@ if (/SAFE_CRACKER_DIAL_LAYOUT_V1_START/.test(css)) {
   throw new Error('Safe Cracker dial-layout validation failed: the superseded V1 layout block remains.');
 }
 if (startIndex < css.indexOf('/* SAFE_CRACKER_DIAL_DEPTH_V5_END */')) {
-  throw new Error('Safe Cracker dial-layout validation failed: the refinement is not the final dial styling pass.');
+  throw new Error('Safe Cracker dial-layout validation failed: the refinement is not after the dial-depth pass.');
 }
 const block = css.slice(startIndex, endIndex + end.length);
 
@@ -87,18 +87,18 @@ if (/position\s*:\s*fixed/i.test(block) || /backdrop-filter\s*:/i.test(block)) {
   throw new Error('Safe Cracker dial-layout validation failed: the refinement escaped the Safe Cracker component.');
 }
 
-const assetPath = '/assets/safe-cracker/textures/dial-reference-face-v7.svg?dial=7&layout=3';
+const assetPath = '/assets/safe-cracker/textures/dial-reference-face-v7.svg?dial=7&layout=4';
 if (!client.includes(`src="${assetPath}"`)) {
-  throw new Error('Safe Cracker dial-layout validation failed: the mounted plate does not use the layout-v3 asset cache key.');
+  throw new Error('Safe Cracker dial-layout validation failed: the mounted plate does not use the current layout-v4 asset cache key.');
 }
 if ((client.match(/class="sc-dial-reference-plate"/g) || []).length !== 1) {
   throw new Error('Safe Cracker dial-layout validation failed: the dial plate is not mounted exactly once.');
 }
-if (!/safe-cracker\.css\?[^"'\s]*&dial=7[^"'\s]*&layout=3/.test(html)) {
-  throw new Error('Safe Cracker dial-layout validation failed: the final stylesheet cache key is missing layout=3.');
+if (!/safe-cracker\.css\?[^"'\s]*&dial=7[^"'\s]*&layout=4/.test(html)) {
+  throw new Error('Safe Cracker dial-layout validation failed: the final stylesheet cache key is missing layout=4.');
 }
-if (!/safe-cracker\.js\?[^"'\s]*&dial=7[^"'\s]*&layout=3/.test(html)) {
-  throw new Error('Safe Cracker dial-layout validation failed: the final runtime cache key is missing layout=3.');
+if (!/safe-cracker\.js\?[^"'\s]*&dial=7[^"'\s]*&layout=4/.test(html)) {
+  throw new Error('Safe Cracker dial-layout validation failed: the final runtime cache key is missing layout=4.');
 }
 
 const gameplayFragments = [
@@ -123,4 +123,4 @@ if (patch.includes("writeFile(new URL('../assets/roulette/")) {
   throw new Error('Safe Cracker dial-layout validation failed: the visual patch writes protected Roulette files.');
 }
 
-console.log('Safe Cracker dial-layout v2 validation passed: numerals sit fully inside the black annulus, the lower compact housing contains a larger solid pointer, shadows are softened, step symbols remain centered, the brighter Check Number control has no heavy lower ledge, cache busting is current, V16 retention is intact, and Roulette remains protected.');
+console.log('Safe Cracker dial-layout v2 validation passed beneath the final V3 refinement: pointer layout, centered step symbols, brighter base button, current cache busting, V16 retention, and protected Roulette boundaries remain intact.');
