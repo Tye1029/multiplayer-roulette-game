@@ -127,12 +127,11 @@ if (!client.includes(runtimeMarker)) {
 }
 
 if (!client.includes(renderMarker)) {
-  const latestLine = '    const latest = me.lastResult || null;';
-  if (!client.includes(latestLine)) {
-    throw new Error('Safe Cracker latch sequence could not find the authoritative render state.');
+  const mountLine = '    mount.innerHTML = `<section class="safe-cracker-game"';
+  if (!client.includes(mountLine)) {
+    throw new Error('Safe Cracker latch sequence could not find the stable render mount.');
   }
   const latchRender = [
-    latestLine,
     `    ${renderMarker}`,
     "    const latchGameId = String(game?.gameId || '');",
     '    const latchStage = Math.max(0, Math.min(STAGES, Number(me.stage || 0)));',
@@ -144,9 +143,11 @@ if (!client.includes(renderMarker)) {
     '    const latchClass = index => [',
     "      latchStage >= index ? 'sc-latch-released' : '',",
     "      releasingLatch === index ? 'sc-latch-releasing' : ''",
-    "    ].filter(Boolean).join(' ');"
+    "    ].filter(Boolean).join(' ');",
+    '',
+    mountLine
   ].join('\n');
-  client = client.replace(latestLine, latchRender);
+  client = client.replace(mountLine, latchRender);
 }
 
 const rightLatchPattern = /<div class="sc-bolts right"[^>]*>\s*<i[^>]*><\/i>\s*<i[^>]*><\/i>\s*<i[^>]*><\/i>\s*<\/div>/;
