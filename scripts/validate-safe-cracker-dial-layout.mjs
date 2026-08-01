@@ -87,18 +87,18 @@ if (/position\s*:\s*fixed/i.test(block) || /backdrop-filter\s*:/i.test(block)) {
   throw new Error('Safe Cracker dial-layout validation failed: the refinement escaped the Safe Cracker component.');
 }
 
-const assetPath = '/assets/safe-cracker/textures/dial-reference-face-v7.svg?dial=7&layout=5';
+const assetPath = '/assets/safe-cracker/textures/dial-reference-face-v7.svg?dial=7&layout=6';
 if (!client.includes(`src="${assetPath}"`)) {
-  throw new Error('Safe Cracker dial-layout validation failed: the mounted plate does not use the current layout-v5 asset cache key.');
+  throw new Error('Safe Cracker dial-layout validation failed: the mounted plate does not use the current layout-v6 asset cache key.');
 }
 if ((client.match(/class="sc-dial-reference-plate"/g) || []).length !== 1) {
   throw new Error('Safe Cracker dial-layout validation failed: the dial plate is not mounted exactly once.');
 }
-if (!/safe-cracker\.css\?[^"'\s]*&dial=7[^"'\s]*&layout=5/.test(html)) {
-  throw new Error('Safe Cracker dial-layout validation failed: the final stylesheet cache key is missing layout=5.');
+if (!/safe-cracker\.css\?[^"'\s]*&dial=7[^"'\s]*&layout=6/.test(html)) {
+  throw new Error('Safe Cracker dial-layout validation failed: the final stylesheet cache key is missing layout=6.');
 }
-if (!/safe-cracker\.js\?[^"'\s]*&dial=7[^"'\s]*&layout=5/.test(html)) {
-  throw new Error('Safe Cracker dial-layout validation failed: the final runtime cache key is missing layout=5.');
+if (!/safe-cracker\.js\?[^"'\s]*&dial=7[^"'\s]*&layout=6/.test(html)) {
+  throw new Error('Safe Cracker dial-layout validation failed: the final runtime cache key is missing layout=6.');
 }
 
 const gameplayFragments = [
@@ -123,4 +123,4 @@ if (patch.includes("writeFile(new URL('../assets/roulette/")) {
   throw new Error('Safe Cracker dial-layout validation failed: the visual patch writes protected Roulette files.');
 }
 
-console.log('Safe Cracker dial-layout v2 validation passed beneath the final refinement: pointer layout, centered step symbols, brighter base button, current cache busting, V16 retention, and protected Roulette boundaries remain intact.');
+console.log('Safe Cracker dial-layout v2 validation passed beneath the final confirmation refinement: pointer layout, centered step symbols, brighter base button, current cache busting, V16 retention, and protected Roulette boundaries remain intact.');
