@@ -12,6 +12,14 @@ const expectedChunks = Object.freeze([
   ['chunk-04.txt', 18_000, 'c268144784740633ce70381b56bdd52eea9587b218b8ad2db04f169b387292f3'],
   ['chunk-05.txt', 8_660, '90689e27835479128179ebf15d244343bfd64c512d5a5c47ceca956d37a54c6d']
 ]);
+const knownTransportRepairs = Object.freeze({
+  'chunk-00.txt': {
+    length: 5_998,
+    sha256: '3785676517748374a8ccfb80aa308a0d914cdfa4ea42cfce4f14a1755d8ba666',
+    offset: 4_398,
+    text: 'an'
+  }
+});
 const expectedFiles = Object.freeze({
   'safe-body.png': {
     bytes: 42_449,
@@ -37,7 +45,11 @@ function digest(data) {
 
 const encodedChunks = [];
 for (const [name, expectedLength, expectedDigest] of expectedChunks) {
-  const text = (await readFile(new URL(name, chunkDirectoryUrl), 'utf8')).replace(/\s+/g, '');
+  let text = (await readFile(new URL(name, chunkDirectoryUrl), 'utf8')).replace(/\s+/g, '');
+  const repair = knownTransportRepairs[name];
+  if (repair && text.length === repair.length && digest(text) === repair.sha256) {
+    text = text.slice(0, repair.offset) + repair.text + text.slice(repair.offset);
+  }
   if (text.length !== expectedLength) fail(`${name} has ${text.length} characters; expected ${expectedLength}`);
   if (digest(text) !== expectedDigest) fail(`${name} checksum does not match the verified complete artwork bundle`);
   encodedChunks.push(text);
