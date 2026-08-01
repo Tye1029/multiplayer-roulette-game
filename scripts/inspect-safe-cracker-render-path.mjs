@@ -1,15 +1,21 @@
-import { readFile } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 
-const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+const scriptsDir = new URL('./', import.meta.url);
+const names = (await readdir(scriptsDir)).filter(name => name.endsWith('.mjs'));
+const files = [
+  ['assets/safe-cracker/safe-cracker.css', new URL('../assets/safe-cracker/safe-cracker.css', import.meta.url)],
+  ...names.map(name => [`scripts/${name}`, new URL(name, scriptsDir)])
+];
 
-function printRange(label, startNeedle, endNeedle) {
-  const start = html.indexOf(startNeedle);
-  const end = start < 0 ? -1 : html.indexOf(endNeedle, start + startNeedle.length);
+const selectorPattern = /[^\n{}]*\.sc-dial(?:-wrap|-face|-hub)?::(?:before|after)[^\n{]*\{/g;
+for (const [label, url] of files) {
+  const source = await readFile(url, 'utf8');
+  const matches = [...source.matchAll(selectorPattern)];
+  if (!matches.length) continue;
   console.log(`\n===== ${label} =====`);
-  console.log(`start=${start} end=${end}`);
-  if (start < 0 || end < 0) return;
-  console.log(html.slice(start, end));
+  for (const match of matches) {
+    const start = Math.max(0, match.index - 120);
+    const end = Math.min(source.length, match.index + 700);
+    console.log(source.slice(start, end));
+  }
 }
-
-printRange('duelRefresh', 'async function duelRefresh', 'async function duelCreate');
-printRange('duelRenderActive', 'function duelRenderActive(game, force = false)', 'async function duelRefresh');
