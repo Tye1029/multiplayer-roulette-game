@@ -26,7 +26,7 @@ jobs:
         run: npm install
       - name: Run exact Netlify build and regressions
         run: npm run build
-      - name: Verify live active render guard
+      - name: Verify live active render retention and poll stability
         shell: bash
         run: |
           set -u
@@ -39,26 +39,30 @@ jobs:
             headers="$(curl -fsS --max-time 20 -D - -o /dev/null -X OPTIONS "${function_url}?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             if grep -Fq 'SAFE_CRACKER_ACTIVE_RENDER_GUARD_V16_START' <<<"$html" && \
                grep -Fq 'SAFE_CRACKER_REFRESH_SELECTOR_V16_START' <<<"$html" && \
+               grep -Fq 'SAFE_CRACKER_RENDERER_RETENTION_V17_START' <<<"$html" && \
+               grep -Fq 'SAFE_CRACKER_POLL_STABILITY_V17_START' <<<"$html" && \
+               grep -Fq 'safeCrackerRendererUnexpectedReplacement' <<<"$html" && \
+               grep -Fq 'window.__safeCrackerRendererRecoveries' <<<"$html" && \
+               grep -Fq 'game.status === "playing" ? 2600 : 1600' <<<"$html" && \
+               grep -Fq 'window.__safeCrackerPollBackoffUntil' <<<"$html" && \
+               grep -Fq 'window.__safeCrackerPollFailures' <<<"$html" && \
+               grep -Fq 'safeCrackerPendingRefresh' <<<"$html" && \
+               grep -Fq 'if (!safeCrackerPendingRefresh) queueMicrotask(() => duelRefresh(true));' <<<"$html" && \
                grep -Fq 'const safeCrackerRefreshStable =' <<<"$html" && \
-               grep -Fq 'const safeCrackerRefreshIncoming = active || null' <<<"$html" && \
-               grep -Fq 'safeCrackerRefreshMissing' <<<"$html" && \
-               grep -Fq 'safeCrackerRefreshLifecycleRegressed' <<<"$html" && \
-               grep -Fq 'safeCrackerRefreshGameRevisionRegressed' <<<"$html" && \
                grep -Fq 'safeCrackerRefreshStateRevisionRegressed' <<<"$html" && \
-               grep -Fq 'active = safeCrackerRefreshStable' <<<"$html" && \
-               grep -Fq 'window.__safeCrackerRefreshSelectorRecoveries' <<<"$html" && \
-               grep -Fq 'window.__safeCrackerStableActiveGame' <<<"$html" && \
                grep -Fq 'duelRenderActive(safeCrackerActiveRenderGame, true);' <<<"$html" && \
-               ! grep -Fq 'SAFE_CRACKER_ACTIVE_RENDER_GUARD_V15_START' <<<"$html" && \
+               grep -Fq 'String(game?.mode || "") === "safecracker"' <<<"$html" && \
+               grep -Fq 'Never dismiss or mark that' <<<"$html" && \
+               ! grep -Fq 'game.status === "playing" ? 2200 : 650' <<<"$html" && \
                grep -Fq 'SAFE_CRACKER_INPUT_CONTINUITY_V9_START' <<<"$js" && \
                grep -Fq 'SAFE_CRACKER_SAMPLE_MIX_V11_START' <<<"$js" && \
                grep -Fq 'choice: `safecracker:guess:${runtime.selected}`' <<<"$js" && \
                grep -Fiq 'x-duel-function-build: safecracker-direct-v8' <<<"$headers"; then
-              echo "Verified live Safe Cracker guard v16: focused refresh selection retains the current board before lobby/render decisions when a snapshot is missing or regressed, direct response paths remain protected, completion and new games still win, and protected gameplay is intact at ${url}"
+              echo "Verified live Safe Cracker stability v17: renderer-level retention blocks stray null or unrelated mounts, polling no longer outruns normal request latency, failures back off, queued ticks cannot chain, results require explicit dismissal, and protected gameplay remains intact at ${url}"
               exit 0
             fi
-            echo "Waiting for Netlify Safe Cracker active render guard v16 (${attempt}/36)..."
+            echo "Waiting for Netlify Safe Cracker runtime stability v17 (${attempt}/36)..."
             sleep 10
           done
-          echo 'Netlify preview did not become available with the Safe Cracker active render guard v16.' >&2
+          echo 'Netlify preview did not become available with Safe Cracker runtime stability v17.' >&2
           exit 1
