@@ -37,31 +37,28 @@ jobs:
             html="$(curl -fsSL --max-time 20 "${url}?render_guard_commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             js="$(curl -fsSL --max-time 20 "${url}${js_path}&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             headers="$(curl -fsS --max-time 20 -D - -o /dev/null -X OPTIONS "${function_url}?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            if grep -Fq 'SAFE_CRACKER_ACTIVE_RENDER_GUARD_V15_START' <<<"$html" && \
-               grep -Fq "['ready', 'countdown', 'playing']" <<<"$html" && \
-               grep -Fq "['waiting', 'ready', 'countdown']" <<<"$html" && \
-               grep -Fq 'waiting: 0' <<<"$html" && \
-               grep -Fq 'complete: 4' <<<"$html" && \
+            if grep -Fq 'SAFE_CRACKER_ACTIVE_RENDER_GUARD_V16_START' <<<"$html" && \
+               grep -Fq 'SAFE_CRACKER_REFRESH_SELECTOR_V16_START' <<<"$html" && \
+               grep -Fq 'const safeCrackerRefreshStable =' <<<"$html" && \
+               grep -Fq 'const safeCrackerRefreshIncoming = active || null' <<<"$html" && \
+               grep -Fq 'safeCrackerRefreshMissing' <<<"$html" && \
+               grep -Fq 'safeCrackerRefreshLifecycleRegressed' <<<"$html" && \
+               grep -Fq 'safeCrackerRefreshGameRevisionRegressed' <<<"$html" && \
+               grep -Fq 'safeCrackerRefreshStateRevisionRegressed' <<<"$html" && \
+               grep -Fq 'active = safeCrackerRefreshStable' <<<"$html" && \
+               grep -Fq 'window.__safeCrackerRefreshSelectorRecoveries' <<<"$html" && \
                grep -Fq 'window.__safeCrackerStableActiveGame' <<<"$html" && \
-               grep -Fq "typeof duelLastActiveGame !== 'undefined'" <<<"$html" && \
-               grep -Fq 'window.__safeCrackerStableActiveSeenAt' <<<"$html" && \
-               grep -Fq 'safeCrackerRetentionMs = 30000' <<<"$html" && \
-               grep -Fq 'safeCrackerLifecycleRegressed' <<<"$html" && \
-               grep -Fq 'safeCrackerRevisionRegressed' <<<"$html" && \
-               grep -Fq 'safeCrackerDifferentPreActive' <<<"$html" && \
-               grep -Fq '!safeCrackerIncomingIsComplete' <<<"$html" && \
-               grep -Fq 'window.__safeCrackerRenderGuardRegressions' <<<"$html" && \
                grep -Fq 'duelRenderActive(safeCrackerActiveRenderGame, true);' <<<"$html" && \
-               ! grep -Fq 'SAFE_CRACKER_ACTIVE_RENDER_GUARD_V14_START' <<<"$html" && \
+               ! grep -Fq 'SAFE_CRACKER_ACTIVE_RENDER_GUARD_V15_START' <<<"$html" && \
                grep -Fq 'SAFE_CRACKER_INPUT_CONTINUITY_V9_START' <<<"$js" && \
                grep -Fq 'SAFE_CRACKER_SAMPLE_MIX_V11_START' <<<"$js" && \
                grep -Fq 'choice: `safecracker:guess:${runtime.selected}`' <<<"$js" && \
                grep -Fiq 'x-duel-function-build: safecracker-direct-v8' <<<"$headers"; then
-              echo "Verified live Safe Cracker active render guard v15: the selector bootstraps from the existing active cache, transient and competing pre-active snapshots cannot close a live board, retention expires safely, explicit completion still wins, and protected gameplay remains intact at ${url}"
+              echo "Verified live Safe Cracker guard v16: focused refresh selection retains the current board before lobby/render decisions when a snapshot is missing or regressed, direct response paths remain protected, completion and new games still win, and protected gameplay is intact at ${url}"
               exit 0
             fi
-            echo "Waiting for Netlify Safe Cracker active render guard v15 (${attempt}/36)..."
+            echo "Waiting for Netlify Safe Cracker active render guard v16 (${attempt}/36)..."
             sleep 10
           done
-          echo 'Netlify preview did not become available with the Safe Cracker active render guard v15.' >&2
+          echo 'Netlify preview did not become available with the Safe Cracker active render guard v16.' >&2
           exit 1
