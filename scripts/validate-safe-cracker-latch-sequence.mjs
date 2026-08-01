@@ -38,10 +38,13 @@ const requiredCss = [
   '0 1px 4px rgba(0,0,0,.42) !important',
   '.safe-cracker-game .sc-bolts.right',
   'right: -4px',
+  'transform .58s cubic-bezier(.2,.85,.28,1)',
+  'filter .4s ease',
+  'opacity .4s ease',
   '.safe-cracker-game .sc-bolts.right i.sc-latch-released',
   'translateX(17px) rotate(7deg)',
   '.safe-cracker-game .sc-bolts.right i.sc-latch-releasing',
-  'animation: scSafeCrackerLatchReleaseV1 .58s',
+  'animation: scSafeCrackerLatchReleaseV1 .82s',
   '@keyframes scSafeCrackerLatchReleaseV1',
   'right: -3px',
   'translateX(13px) rotate(7deg)'
@@ -61,11 +64,12 @@ const forbiddenCss = [
   '#8c6633',
   '#5c3f1c',
   '0 7px 0',
-  '0 6px 0'
+  '0 6px 0',
+  'animation: scSafeCrackerLatchReleaseV1 .58s'
 ];
 for (const fragment of forbiddenCss) {
   if (block.includes(fragment)) {
-    throw new Error(`Safe Cracker latch validation failed: yellow/orange button underlayer remains: ${fragment}.`);
+    throw new Error(`Safe Cracker latch validation failed: superseded latch/button styling remains: ${fragment}.`);
   }
 }
 if (/position\s*:\s*fixed/i.test(block) || /backdrop-filter\s*:/i.test(block)) {
@@ -104,11 +108,11 @@ if ((client.match(/\$\{safeCrackerLatchBank\(game, me\)\}/g) || []).length !== 1
 if (/RESETTING(?:…|\.\.\.)/i.test(client)) {
   throw new Error('Safe Cracker latch validation failed: RESETTING still appears on the Check Number control.');
 }
-if (!/safe-cracker\.css\?[^"'\s]*&layout=7[^"'\s]*&latch=1/.test(html)) {
-  throw new Error('Safe Cracker latch validation failed: stylesheet latch cache key is missing.');
+if (!/safe-cracker\.css\?[^"'\s]*&layout=7[^"'\s]*&latch=2/.test(html)) {
+  throw new Error('Safe Cracker latch validation failed: stylesheet latch cache key is missing latch=2.');
 }
-if (!/safe-cracker\.js\?[^"'\s]*&layout=7[^"'\s]*&latch=1/.test(html)) {
-  throw new Error('Safe Cracker latch validation failed: runtime latch cache key is missing.');
+if (!/safe-cracker\.js\?[^"'\s]*&layout=7[^"'\s]*&latch=2/.test(html)) {
+  throw new Error('Safe Cracker latch validation failed: runtime latch cache key is missing latch=2.');
 }
 
 if (patch.includes("writeFile(new URL('../netlify/functions/")) {
@@ -118,4 +122,4 @@ if (patch.includes("writeFile(new URL('../assets/roulette/")) {
   throw new Error('Safe Cracker latch validation failed: the visual patch writes protected Roulette files.');
 }
 
-console.log('Safe Cracker latch sequence validation passed: no yellow/orange button ledge remains, Check Number retains tactile press travel, and authoritative tumbler progress releases the right-side latches from top to bottom without touching networking or Roulette.');
+console.log('Safe Cracker latch sequence validation passed: the 0.82-second release is slower and heavier, the top-to-bottom authoritative sequence remains intact, the Check Number cleanup remains present, and networking/Roulette are untouched.');
