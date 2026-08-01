@@ -21,40 +21,41 @@ function occurrences(source, value) {
   return source.split(value).length - 1;
 }
 
-const start = '/* SAFE_CRACKER_LIGHT_SOURCE_V2_START */';
-const end = '/* SAFE_CRACKER_LIGHT_SOURCE_V2_END */';
-assert(occurrences(css, start) === 1, 'corrected light-source start marker must appear exactly once');
-assert(occurrences(css, end) === 1, 'corrected light-source end marker must appear exactly once');
+const start = '/* SAFE_CRACKER_LIGHT_SOURCE_V3_START */';
+const end = '/* SAFE_CRACKER_LIGHT_SOURCE_V3_END */';
+assert(occurrences(css, start) === 1, 'scene-light start marker must appear exactly once');
+assert(occurrences(css, end) === 1, 'scene-light end marker must appear exactly once');
 assert(!css.includes('/* SAFE_CRACKER_LIGHT_SOURCE_V1_START */'), 'legacy warm light block remains');
+assert(!css.includes('/* SAFE_CRACKER_LIGHT_SOURCE_V2_START */'), 'legacy dial-local light block remains');
 const blockStart = css.indexOf(start);
 const blockEnd = css.indexOf(end, blockStart);
-assert(blockStart >= 0 && blockEnd > blockStart, 'light-source marker order is invalid');
+assert(blockStart >= 0 && blockEnd > blockStart, 'scene-light marker order is invalid');
 const block = css.slice(blockStart, blockEnd + end.length);
 
-assert(block.includes('--sc-key-cool: rgba(226, 239, 250, .18)'), 'cool white key-light color is missing');
-assert(block.includes('--sc-fill-cool: rgba(132, 169, 199, .065)'), 'cool reflected fill is missing');
-assert(block.includes('radial-gradient(ellipse at 34% -10%'), 'shell light origin changed');
-assert(block.includes('radial-gradient(ellipse at 82% 75%'), 'door shadow fill is missing');
-assert(block.includes('inset -14px -8px 28px rgba(139, 174, 199, .04)'), 'recessed door shadow is not partially lit');
-assert(block.includes('.safe-cracker-game .sc-dial::before'), 'stationary dial-light layer is missing');
-assert(block.includes('pointer-events: none'), 'stationary dial light can intercept controls');
-assert(block.includes('z-index: 2'), 'stationary dial light is not layered above the rotating face');
-assert(block.includes('radial-gradient(ellipse at 31% 16%'), 'stationary dial highlight shape changed');
-assert(block.includes('.safe-cracker-game .sc-dial-wrap'), 'dial cavity fill is missing');
-assert(block.includes('.safe-cracker-game .sc-safe-shell'), 'shell light response is missing');
-assert(block.includes('.safe-cracker-game .sc-safe-door'), 'door light response is missing');
-assert(block.includes('.safe-cracker-game .sc-safe-door::before'), 'door edge response is missing');
-assert(block.includes('.safe-cracker-game .sc-display'), 'display rim response is missing');
-assert(block.includes('.safe-cracker-game .sc-dial-face'), 'dial-face material restoration is missing');
-assert(block.includes('.safe-cracker-game .sc-dial-hub'), 'dial-hub material restoration is missing');
-assert(block.includes('.safe-cracker-game .sc-step-controls button'), 'step-button response is missing');
-assert(block.includes('.safe-cracker-game .sc-confirm-button'), 'confirmation-button response is missing');
+assert(block.includes('--sc-scene-key: rgba(232, 243, 251, .135)'), 'cool white scene key is missing');
+assert(block.includes('--sc-scene-fill: rgba(143, 176, 202, .042)'), 'cool reflected scene fill is missing');
+assert(block.includes('.safe-cracker-game .sc-safe-shell::after'), 'scene-wide safe overlay is missing');
+assert(block.includes('z-index: 40'), 'scene overlay is not above the complete safe assembly');
+assert(block.includes('pointer-events: none'), 'scene overlay can intercept controls');
+assert(block.includes('radial-gradient(ellipse 112% 72% at 34% -4%'), 'broad overhead scene key changed');
+assert(block.includes('radial-gradient(ellipse 82% 68% at 88% 86%'), 'shadow-region fill is missing');
+assert(block.includes('.safe-cracker-game .sc-dial::before'), 'former dial-local layer is not explicitly disabled');
+assert(block.includes('content: none !important'), 'dial-local lighting remains active');
+assert(block.includes('inset 0 0 48px rgba(0, 0, 0, .46)'), 'recessed safe areas are not partially lifted');
+assert(block.includes('.safe-cracker-game .sc-safe-door'), 'safe-door material response is missing');
+assert(block.includes('.safe-cracker-game .sc-display'), 'display edge response is missing');
+assert(block.includes('.safe-cracker-game .sc-dial-wrap'), 'dial cavity response is missing');
+assert(block.includes('.safe-cracker-game .sc-dial-face'), 'dial material restoration is missing');
+assert(block.includes('.safe-cracker-game .sc-dial-hub'), 'dial hub restoration is missing');
+assert(block.includes('.safe-cracker-game .sc-step-controls button'), 'step-button material is missing');
+assert(block.includes('.safe-cracker-game .sc-confirm-button'), 'confirmation-button material is missing');
 
 const dialFaceStart = block.indexOf('.safe-cracker-game .sc-dial-face');
 const dialHubStart = block.indexOf('.safe-cracker-game .sc-dial-hub', dialFaceStart);
 const dialFaceBlock = block.slice(dialFaceStart, dialHubStart);
-assert(!dialFaceBlock.includes('rgba(255, 215, 150'), 'legacy yellow dial wedge remains on the rotating face');
-assert(!dialFaceBlock.includes('--sc-key-cool'), 'cool light is still painted directly onto the rotating face');
+assert(!dialFaceBlock.includes('circle at 38% 28%'), 'directional baked highlight remains on the rotating face');
+assert(!dialFaceBlock.includes('--sc-scene-key'), 'scene light is still painted directly onto the rotating face');
+assert(dialFaceBlock.includes('radial-gradient(circle at 50% 50%'), 'rotating dial face is not directionally neutral');
 assert(dialFaceBlock.includes("url('/assets/safe-cracker/textures/dial-machined.svg?v=1')"), 'rotating dial texture was not preserved');
 assert(block.includes("url('/assets/safe-cracker/textures/safe-steel-base.svg?v=1')"), 'approved steel texture was not preserved');
 assert(block.includes("url('/assets/safe-cracker/textures/metal-wear.svg?v=1')"), 'approved wear texture was not preserved');
@@ -62,14 +63,14 @@ assert(css.includes('/* SAFE_CRACKER_TEXTURE_PASS_V3_START */'), 'A2 image textu
 assert(css.includes('/* SAFE_CRACKER_SHADOW_DEPTH_V1_START */'), 'structural shadow pass is missing');
 assert(index.includes('&texture=3'), 'A2 texture cache boundary changed');
 assert(index.includes('&shadow=1'), 'shadow cache boundary changed');
-assert(index.includes('&light=2'), 'corrected light-source cache boundary is missing');
-assert(!index.includes('&light=1'), 'legacy warm-light cache boundary remains');
+assert(index.includes('&light=3'), 'scene-light cache boundary is missing');
+assert(!index.includes('&light=1') && !index.includes('&light=2'), 'legacy light cache boundary remains');
 assert(texturePatch.includes("await import('./patch-safe-cracker-shadow-depth.mjs')"), 'texture pipeline no longer invokes shadow depth');
 assert(lampPipeline.indexOf("await import('./patch-safe-cracker-texture-pass.mjs')") < lampPipeline.indexOf("await import('./patch-safe-cracker-light-source.mjs')"), 'light pass does not run after texture and shadow depth');
 assert(lampPipeline.includes("await import('./validate-safe-cracker-shadow-depth.mjs')"), 'shadow-depth validation is missing from the build pipeline');
 assert(lampPipeline.includes("await import('./validate-safe-cracker-light-source.mjs')"), 'light-source validation is missing from the build pipeline');
 
-assert(!block.includes('position: fixed'), 'light pass must not create a fullscreen overlay');
+assert(!block.includes('position: fixed'), 'light pass must not create a fullscreen page overlay');
 assert(!block.includes('backdrop-filter'), 'light pass must not use backdrop filtering');
 assert(!block.includes('mix-blend-mode'), 'light pass must not use unstable element blending');
 assert(!block.includes('animation:'), 'light pass must remain static');
@@ -84,4 +85,4 @@ assert(client.includes('// SAFE_CRACKER_SAMPLE_MIX_V11_START'), 'sample mix v11 
 assert(duelAction.includes('safecracker'), 'Safe Cracker server mode is unreadable');
 assert(turnAnimation.length > 0 && turnFire.length > 0 && audioBindings.length > 0, 'protected Roulette assets are unreadable');
 
-console.log('Safe Cracker light-source validation passed: cool white overhead light, reflected fill in recesses, and a stationary dial-light layer replace the warm rotating wedges while gameplay and protected systems remain intact.');
+console.log('Safe Cracker light-source validation passed: one broad cool-white scene overlay spans the complete safe, shadowed recesses receive soft fill, and rotating dial materials contain no directional light.');
