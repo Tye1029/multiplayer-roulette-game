@@ -40,12 +40,13 @@ assert(!block.includes('circle at 38% 28%'), 'off-center highlight still rotates
 assert(!block.includes('circle at 34% 28%'), 'off-center highlight still rotates with the dial hub');
 assert(block.includes('.safe-cracker-game .sc-safe-door'), 'safe-door image texture is missing');
 assert(block.includes('.safe-cracker-game .sc-dial-face'), 'dial image texture is missing');
-assert(block.includes('.safe-cracker-game .sc-dial-wrap::after'), 'fixed dial highlight is missing');
-assert(block.includes('pointer-events: none'), 'fixed dial highlight can intercept input');
+assert(block.includes('.safe-cracker-game .sc-dial-wrap::after'), 'dial glare cleanup selector is missing');
+assert(block.includes('content: none !important'), 'dial glare artifact remains active');
+assert(block.includes('pointer-events: none'), 'dial glare cleanup can intercept input');
 assert(block.includes('.safe-cracker-game .sc-step-controls button'), 'button image texture is missing');
 assert(block.includes('.safe-cracker-game .sc-confirm-button'), 'confirmation-button image texture is missing');
-assert(index.includes('&texture=4'), 'texture v4 CSS cache boundary is missing');
-assert(!index.includes('&texture=1') && !index.includes('&texture=2') && !index.includes('&texture=3'), 'legacy texture cache boundary remains');
+assert(index.includes('&texture=5'), 'texture cache boundary is missing');
+assert(!index.includes('&texture=1') && !index.includes('&texture=2') && !index.includes('&texture=3') && !index.includes('&texture=4'), 'legacy texture cache boundary remains');
 
 assert(steel.includes('baseFrequency=".82 .012"'), 'steel texture lost its single-direction grain');
 assert(steel.includes('stitchTiles="stitch"'), 'steel texture is not tile-safe');
@@ -65,6 +66,6 @@ assert(!patch.includes("writeFile(new URL('../netlify/functions/"), 'texture pas
 assert(!patch.includes("writeFile(new URL('../assets/roulette/"), 'texture pass must not write Roulette files');
 assert(patch.includes("await import('./patch-safe-cracker-shadow-depth.mjs')"), 'texture pipeline does not continue into the separate shadow-depth pass');
 
-console.log('Safe Cracker texture-pass validation passed: image-based brushed wear replaces CSS crosshatching, dial machining is rotationally neutral, the fixed highlight cannot move with or block the dial, and gameplay, networking, audio and Roulette remain protected.');
+console.log('Safe Cracker texture-pass validation passed: image-based brushed wear remains, dial machining is rotationally neutral, the oval glare artifact is disabled, and gameplay, networking, audio and Roulette remain protected.');
 
 await import('./validate-safe-cracker-shadow-depth.mjs');
