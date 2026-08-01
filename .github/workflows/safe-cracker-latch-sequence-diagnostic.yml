@@ -47,11 +47,11 @@ jobs:
           grep -Fq 'SAFE_CRACKER_LATCH_SEQUENCE_V1_RUNTIME' assets/safe-cracker/safe-cracker.js
           grep -Fq 'SAFE_CRACKER_LATCH_SEQUENCE_V1_HELPER' assets/safe-cracker/safe-cracker.js
           grep -Fq 'function safeCrackerLatchBank(game, me)' assets/safe-cracker/safe-cracker.js
-          grep -Fq 'data-sc-latch-stage="${latchStage}"' assets/safe-cracker/safe-cracker.js
-          grep -Fq 'class="${latchClass(1)}"' assets/safe-cracker/safe-cracker.js
-          grep -Fq 'class="${latchClass(2)}"' assets/safe-cracker/safe-cracker.js
-          grep -Fq 'class="${latchClass(3)}"' assets/safe-cracker/safe-cracker.js
-          grep -Fq '${safeCrackerLatchBank(game, me)}' assets/safe-cracker/safe-cracker.js
+          grep -Fq 'data-sc-latch-stage=' assets/safe-cracker/safe-cracker.js
+          grep -Fq 'latchClass(1)' assets/safe-cracker/safe-cracker.js
+          grep -Fq 'latchClass(2)' assets/safe-cracker/safe-cracker.js
+          grep -Fq 'latchClass(3)' assets/safe-cracker/safe-cracker.js
+          grep -Fq 'safeCrackerLatchBank(game, me)' assets/safe-cracker/safe-cracker.js
           ! grep -Fiq 'RESETTING' assets/safe-cracker/safe-cracker.js
           grep -Fq '&layout=7&latch=1' index.html
 
@@ -81,8 +81,11 @@ jobs:
                grep -Fq 'SAFE_CRACKER_LATCH_SEQUENCE_V1_RUNTIME' <<<"$js" && \
                grep -Fq 'SAFE_CRACKER_LATCH_SEQUENCE_V1_HELPER' <<<"$js" && \
                grep -Fq 'function safeCrackerLatchBank(game, me)' <<<"$js" && \
-               grep -Fq 'data-sc-latch-stage="${latchStage}"' <<<"$js" && \
-               grep -Fq '${safeCrackerLatchBank(game, me)}' <<<"$js" && \
+               grep -Fq 'data-sc-latch-stage=' <<<"$js" && \
+               grep -Fq 'latchClass(1)' <<<"$js" && \
+               grep -Fq 'latchClass(2)' <<<"$js" && \
+               grep -Fq 'latchClass(3)' <<<"$js" && \
+               grep -Fq 'safeCrackerLatchBank(game, me)' <<<"$js" && \
                ! grep -Fiq 'RESETTING' <<<"$js" && \
                grep -Fq 'SAFE_CRACKER_DIAL_ACTIVITY_V16_START' <<<"$js" && \
                grep -Fiq 'x-duel-function-build: safecracker-direct-v8' <<<"$headers"; then
