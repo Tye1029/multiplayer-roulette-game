@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 768" preserveAspectRatio="none">
+<defs><filter id="b"><feGaussianBlur stdDeviation="12"/></filter></defs>
+<g fill="#dce5e8" opacity=".08" filter="url(#b)"><ellipse cx="150" cy="120" rx="110" ry="48"/><ellipse cx="600" cy="180" rx="90" ry="54"/><ellipse cx="250" cy="500" rx="130" ry="68"/><ellipse cx="570" cy="620" rx="120" ry="50"/></g>
+<g fill="none" stroke-linecap="round">
+<g stroke="#edf3f4" stroke-opacity=".2"><path d="M92 74v142M128 186v90M178 40v164M214 292v126M260 126v102M304 358v172M348 64v116M386 234v196M432 118v148M478 332v112M528 74v196M572 442v136M624 170v118M676 302v168"/><path d="M70 548v74M146 438v92M236 572v110M326 522v126M418 586v82M506 496v104M648 568v94"/></g>
+<g stroke="#080b0d" stroke-opacity=".18"><path d="M110 114v96M198 226v72M288 72v118M366 430v104M452 208v82M548 278v96M650 84v116"/><path d="M86 334l116-4M244 664l92 3M470 92l138-5M520 548l106 4"/></g>
+<g stroke="#f1e3bc" stroke-opacity=".12"><path d="M82 252c74-10 146-8 216 2M414 478c80 8 150 6 218-4M168 706c98-6 184-4 258 3"/></g>
+</g>
+</svg>
