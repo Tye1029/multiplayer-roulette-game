@@ -6,12 +6,12 @@ const indexUrl = new URL('../index.html', import.meta.url);
 
 const start = '/* SAFE_CRACKER_DIAL_LAYOUT_V3_START */';
 const end = '/* SAFE_CRACKER_DIAL_LAYOUT_V3_END */';
-const assetPath = '/assets/safe-cracker/textures/dial-reference-face-v7.svg?dial=7&layout=4';
+const assetPath = '/assets/safe-cracker/textures/dial-reference-face-v7.svg?dial=7&layout=5';
 const plateMarkup = `<img class="sc-dial-reference-plate" src="${assetPath}" alt="" aria-hidden="true" draggable="false">`;
 
 const refinement = String.raw`${start}
 .safe-cracker-game .sc-dial-number {
-  --radius: 88px;
+  --radius: 91px;
   width: 30px;
   height: 30px;
   margin: -15px;
@@ -28,14 +28,30 @@ const refinement = String.raw`${start}
   transform: scaleX(.9) scale(1.035);
 }
 
+.safe-cracker-game .sc-dial-wrap::after {
+  top: -46px;
+}
+
+.safe-cracker-game .sc-dial-pointer {
+  top: -38px;
+}
+
 .safe-cracker-game .sc-confirm-button {
-  border: 0 !important;
+  border: 3px solid #050708 !important;
   outline: 0;
   border-radius: 8px;
+  color: #101416;
+  background:
+    linear-gradient(180deg,
+      #e2e8ea 0%,
+      #c4cdd1 31%,
+      #929fa5 67%,
+      #68757b 100%) !important;
   box-shadow:
-    inset 0 2px 0 rgba(255,248,218,.22),
-    inset 0 -5px 7px rgba(55,31,8,.27),
-    0 2px 6px rgba(0,0,0,.28);
+    inset 0 2px 0 rgba(255,255,255,.72),
+    inset 0 -4px 6px rgba(10,14,16,.28),
+    0 3px 7px rgba(0,0,0,.3);
+  text-shadow: 0 1px 0 rgba(255,255,255,.56);
 }
 
 .safe-cracker-game .sc-confirm-button::before,
@@ -44,18 +60,29 @@ const refinement = String.raw`${start}
   display: none !important;
 }
 
+.safe-cracker-game .sc-confirm-button:not(:disabled) {
+  color: #101416;
+  filter: brightness(1.04) saturate(.82);
+}
+
+.safe-cracker-game .sc-confirm-button:disabled {
+  color: #171b1d;
+  opacity: .9;
+  filter: saturate(.68) brightness(.94);
+}
+
 .safe-cracker-game .sc-confirm-button:not(:disabled):active {
-  border: 0 !important;
+  border: 3px solid #050708 !important;
   transform: translateY(1px);
   box-shadow:
-    inset 0 1px 0 rgba(255,246,214,.18),
-    inset 0 -3px 5px rgba(55,31,8,.23),
-    0 1px 4px rgba(0,0,0,.24);
+    inset 0 1px 0 rgba(255,255,255,.5),
+    inset 0 -2px 4px rgba(10,14,16,.25),
+    0 1px 4px rgba(0,0,0,.26);
 }
 
 @media (max-width: 700px) {
   .safe-cracker-game .sc-dial-number {
-    --radius: min(22.2vw, 85px);
+    --radius: min(23vw, 88px);
     width: 28px;
     height: 28px;
     margin: -14px;
@@ -66,11 +93,19 @@ const refinement = String.raw`${start}
     width: 28px;
     height: 28px;
   }
+
+  .safe-cracker-game .sc-dial-wrap::after {
+    top: -31px;
+  }
+
+  .safe-cracker-game .sc-dial-pointer {
+    top: -25px;
+  }
 }
 
 @media (max-height: 720px) and (max-width: 700px) {
   .safe-cracker-game .sc-dial-number {
-    --radius: min(18.3vw, 66px);
+    --radius: min(19.1vw, 69px);
     width: 25px;
     height: 25px;
     margin: -12.5px;
@@ -80,6 +115,14 @@ const refinement = String.raw`${start}
   .safe-cracker-game .sc-dial-number > span {
     width: 25px;
     height: 25px;
+  }
+
+  .safe-cracker-game .sc-dial-wrap::after {
+    top: -24px;
+  }
+
+  .safe-cracker-game .sc-dial-pointer {
+    top: -18px;
   }
 }
 ${end}`;
@@ -103,12 +146,12 @@ await writeFile(clientUrl, client);
 let html = await readFile(indexUrl, 'utf8');
 html = html.replace(/\/assets\/safe-cracker\/safe-cracker\.css\?[^"'\s]*/g, value => {
   const clean = value.replace(/&layout=\d+/g, '');
-  return `${clean}&layout=4`;
+  return `${clean}&layout=5`;
 });
 html = html.replace(/\/assets\/safe-cracker\/safe-cracker\.js\?[^"'\s]*/g, value => {
   const clean = value.replace(/&layout=\d+/g, '');
-  return `${clean}&layout=4`;
+  return `${clean}&layout=5`;
 });
 await writeFile(indexUrl, html);
 
-console.log('Applied Safe Cracker dial layout v3: numerals moved fully inward within the black annulus and the Check Number button decorative border and ornaments were removed.');
+console.log('Applied Safe Cracker dial layout v3 refinement: numerals moved slightly outward, the pointer assembly was lowered toward the numeral ring, and the Check Number control became one continuous silver-metal button with a black border.');
