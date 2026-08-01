@@ -7,7 +7,7 @@ const indexUrl = new URL('../index.html', import.meta.url);
 const cssStart = '/* SAFE_CRACKER_LATCH_SEQUENCE_V1_START */';
 const cssEnd = '/* SAFE_CRACKER_LATCH_SEQUENCE_V1_END */';
 const runtimeMarker = '// SAFE_CRACKER_LATCH_SEQUENCE_V1_RUNTIME';
-const renderMarker = '// SAFE_CRACKER_LATCH_SEQUENCE_V1_RENDER';
+const helperMarker = '// SAFE_CRACKER_LATCH_SEQUENCE_V1_HELPER';
 
 const latchCss = String.raw`${cssStart}
 .safe-cracker-game .sc-confirm-button {
@@ -126,15 +126,16 @@ if (!client.includes(runtimeMarker)) {
   ].join('\n'));
 }
 
-if (!client.includes(renderMarker)) {
-  const mountLine = '    mount.innerHTML = `<section class="safe-cracker-game"';
-  if (!client.includes(mountLine)) {
-    throw new Error('Safe Cracker latch sequence could not find the stable render mount.');
+if (!client.includes(helperMarker)) {
+  const renderAnchor = '  function render(game) {';
+  if (!client.includes(renderAnchor)) {
+    throw new Error('Safe Cracker latch sequence could not find the stable render function.');
   }
-  const latchRender = [
-    `    ${renderMarker}`,
+  const helper = [
+    `  ${helperMarker}`,
+    '  function safeCrackerLatchBank(game, me) {',
     "    const latchGameId = String(game?.gameId || '');",
-    '    const latchStage = Math.max(0, Math.min(STAGES, Number(me.stage || 0)));',
+    '    const latchStage = Math.max(0, Math.min(STAGES, Number(me?.stage || 0)));',
     '    const releasingLatch = runtime.latchGameId === latchGameId && latchStage > runtime.latchStage',
     '      ? latchStage',
     '      : 0;',
@@ -144,18 +145,19 @@ if (!client.includes(renderMarker)) {
     "      latchStage >= index ? 'sc-latch-released' : '',",
     "      releasingLatch === index ? 'sc-latch-releasing' : ''",
     "    ].filter(Boolean).join(' ');",
+    '    return `<div class="sc-bolts right" data-sc-latch-stage="${latchStage}"><i class="${latchClass(1)}"></i><i class="${latchClass(2)}"></i><i class="${latchClass(3)}"></i></div>`;',
+    '  }',
     '',
-    mountLine
+    renderAnchor
   ].join('\n');
-  client = client.replace(mountLine, latchRender);
+  client = client.replace(renderAnchor, helper);
 }
 
 const rightLatchPattern = /<div class="sc-bolts right"[^>]*>\s*<i[^>]*><\/i>\s*<i[^>]*><\/i>\s*<i[^>]*><\/i>\s*<\/div>/;
 if (!rightLatchPattern.test(client)) {
   throw new Error('Safe Cracker latch sequence could not find the three right-side safe bolts.');
 }
-const rightLatchMarkup = '<div class="sc-bolts right" data-sc-latch-stage="${latchStage}"><i class="${latchClass(1)}"></i><i class="${latchClass(2)}"></i><i class="${latchClass(3)}"></i></div>';
-client = client.replace(rightLatchPattern, rightLatchMarkup);
+client = client.replace(rightLatchPattern, '${safeCrackerLatchBank(game, me)}');
 client = client.replace(/RESETTING(?:…|\.\.\.)/gi, 'CHECK NUMBER');
 await writeFile(clientUrl, client);
 
