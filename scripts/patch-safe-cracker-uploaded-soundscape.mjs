@@ -24,7 +24,12 @@ if (!client.includes(start)) {
     incorrect: '/assets/safe-cracker/audio-data-v13/incorrect.b64',
     latchOpen: '/assets/safe-cracker/audio-data-v13/latch-open.b64',
     safeOpen: '/assets/safe-cracker/audio-data-v13/safe-open.b64',
-    ambience: '/assets/safe-cracker/audio-data-v13/ambience.b64'
+    ambience: Object.freeze([
+      '/assets/safe-cracker/audio-data-v13/ambience-1.b64',
+      '/assets/safe-cracker/audio-data-v13/ambience-2.b64',
+      '/assets/safe-cracker/audio-data-v13/ambience-3.b64',
+      '/assets/safe-cracker/audio-data-v13/ambience-4.b64'
+    ])
   });
 
   function safeCrackerRecordedBytes(text) {
@@ -36,19 +41,21 @@ if (!client.includes(start)) {
   }
 
   function safeCrackerLoadRecordedSound(name) {
-    const url = SAFE_CRACKER_RECORDED_SOUNDS[name];
+    const sourceLocation = SAFE_CRACKER_RECORDED_SOUNDS[name];
     const context = audioContext();
-    if (!url || !context) return Promise.resolve(null);
+    if (!sourceLocation || !context) return Promise.resolve(null);
+    const urls = Array.isArray(sourceLocation) ? sourceLocation : [sourceLocation];
     runtime.safeCrackerRecordedBuffers ||= Object.create(null);
     runtime.safeCrackerRecordedPromises ||= Object.create(null);
     if (runtime.safeCrackerRecordedBuffers[name]) return Promise.resolve(runtime.safeCrackerRecordedBuffers[name]);
     if (runtime.safeCrackerRecordedPromises[name]) return runtime.safeCrackerRecordedPromises[name];
-    const promise = fetch(url + '?recorded=13', { cache: 'force-cache' })
-      .then(response => {
-        if (!response.ok) throw new Error('Recorded Safe Cracker sound request failed: ' + name);
+    const promise = Promise.all(urls.map(url =>
+      fetch(url + '?recorded=13', { cache: 'force-cache' }).then(response => {
+        if (!response.ok) throw new Error('Recorded Safe Cracker sound request failed: ' + name + ' at ' + url);
         return response.text();
       })
-      .then(text => context.decodeAudioData(safeCrackerRecordedBytes(text)))
+    ))
+      .then(parts => context.decodeAudioData(safeCrackerRecordedBytes(parts.join(''))))
       .then(buffer => {
         runtime.safeCrackerRecordedBuffers[name] = buffer;
         return buffer;
