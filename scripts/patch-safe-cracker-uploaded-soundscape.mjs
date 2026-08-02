@@ -17,18 +17,27 @@ if (!client.includes(start)) {
   const patch = String.raw`
   ${start}
   const SAFE_CRACKER_RECORDED_SOUNDS = Object.freeze({
-    intro: '/assets/safe-cracker/audio-data-v13/intro.b64',
-    dialA: '/assets/safe-cracker/audio-data-v13/dial-a.b64',
-    dialB: '/assets/safe-cracker/audio-data-v13/dial-b.b64',
-    submit: '/assets/safe-cracker/audio-data-v13/submit.b64',
-    incorrect: '/assets/safe-cracker/audio-data-v13/incorrect.b64',
-    latchOpen: '/assets/safe-cracker/audio-data-v13/latch-open.b64',
-    safeOpen: '/assets/safe-cracker/audio-data-v13/safe-open.b64',
+    intro: Object.freeze([
+      '/assets/safe-cracker/audio-data-v2/intro-sequence-1.b64',
+      '/assets/safe-cracker/audio-data-v2/intro-sequence-2.b64',
+      '/assets/safe-cracker/audio-data-v2/intro-sequence-3.b64',
+      '/assets/safe-cracker/audio-data-v2/intro-sequence-4.b64'
+    ]),
+    dialA: '/assets/safe-cracker/audio-data-v2/dial-detent-a.b64',
+    dialB: '/assets/safe-cracker/audio-data-v2/dial-detent-b.b64',
+    submit: '/assets/safe-cracker/audio-data-v2/submit-mechanism.b64',
+    incorrect: '/assets/safe-cracker/audio-data-v2/incorrect-number.b64',
+    latchOpen: '/assets/safe-cracker/audio-data-v2/correct-latch-open.b64',
+    safeOpen: Object.freeze([
+      '/assets/safe-cracker/audio-data-v2/final-vault-open-1.b64',
+      '/assets/safe-cracker/audio-data-v2/final-vault-open-2.b64',
+      '/assets/safe-cracker/audio-data-v2/final-vault-open-3.b64'
+    ]),
     ambience: Object.freeze([
-      '/assets/safe-cracker/audio-data-v13/ambience-1.b64',
-      '/assets/safe-cracker/audio-data-v13/ambience-2.b64',
-      '/assets/safe-cracker/audio-data-v13/ambience-3.b64',
-      '/assets/safe-cracker/audio-data-v13/ambience-4.b64'
+      '/assets/safe-cracker/audio-data-v2/vault-ambience-loop-1.b64',
+      '/assets/safe-cracker/audio-data-v2/vault-ambience-loop-2.b64',
+      '/assets/safe-cracker/audio-data-v2/vault-ambience-loop-3.b64',
+      '/assets/safe-cracker/audio-data-v2/vault-ambience-loop-4.b64'
     ])
   });
 
