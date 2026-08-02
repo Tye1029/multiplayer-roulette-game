@@ -1,10 +1,27 @@
+import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 
+// The build reaches this validator after the procedural audio pass. Importing
+// the recorded patch installs the uploaded samples before verification.
+await import('./patch-safe-cracker-uploaded-soundscape.mjs');
+
 const root = new URL('../', import.meta.url);
-const [client, index, patch, turnAnimation, turnFire, audioBindings] = await Promise.all([
+const assetSpec = Object.freeze({
+  intro: { files: ['intro.b64'], bytes: 14048, sha256: '7a15ecc1c95f91281bf646cc3fc506d1a22c4b8e7a0d8efa3f2ed42fadc2e541' },
+  dialA: { files: ['dial-a.b64'], bytes: 1244, sha256: '7bd79293ec8345ba3f45ff6bec5cfe416071250a04dd62eb49d4ab00cc0c7cec' },
+  dialB: { files: ['dial-b.b64'], bytes: 1528, sha256: '5bbb474326583a1d5f27089cf93c0d12d96c152e2574ec0a66354ca26a5d6d00' },
+  submit: { files: ['submit.b64'], bytes: 3104, sha256: '6ba8244a330907ba20c5cff48d5725a1e9b81d37165b7d150f57e96e583151ab' },
+  incorrect: { files: ['incorrect.b64'], bytes: 3281, sha256: '2a09cc9abdc736be9a0820f4e5b2e9d378bf9b3a5b7f9a0766dafeca20126307' },
+  latchOpen: { files: ['latch-open.b64'], bytes: 6258, sha256: '368b8e8fe5f6b7795ffbe5754d1ab0cf695a2c75d57f518f5c0e0ec95064798d' },
+  safeOpen: { files: ['safe-open.b64'], bytes: 12159, sha256: '03a2b17f2dbb8e8949b18911f92b62227d58bdfe403e93c4fd0145ccc0f1f44f' },
+  ambience: { files: ['ambience-1.b64', 'ambience-2.b64', 'ambience-3.b64', 'ambience-4.b64'], bytes: 19664, sha256: 'cfcceaf1703a9c2e8fb6f6e9cd6f0e01924b6026cff795088a3b15e3542c4d90' }
+});
+
+const [client, index, proceduralPatch, recordedPatch, turnAnimation, turnFire, audioBindings] = await Promise.all([
   readFile(new URL('assets/safe-cracker/safe-cracker.js', root), 'utf8'),
   readFile(new URL('index.html', root), 'utf8'),
   readFile(new URL('scripts/patch-safe-cracker-audio.mjs', root), 'utf8'),
+  readFile(new URL('scripts/patch-safe-cracker-uploaded-soundscape.mjs', root), 'utf8'),
   readFile(new URL('assets/roulette/turn-animation.js', root)),
   readFile(new URL('assets/roulette/turn-fire.js', root)),
   readFile(new URL('assets/roulette/audio-bindings.js', root))
@@ -18,27 +35,40 @@ function occurrences(source, value) {
   return source.split(value).length - 1;
 }
 
+for (const [name, spec] of Object.entries(assetSpec)) {
+  const parts = await Promise.all(spec.files.map(file =>
+    readFile(new URL(`assets/safe-cracker/audio-data-v13/${file}`, root), 'utf8')
+  ));
+  const bytes = Buffer.from(parts.join('').replace(/\s+/g, ''), 'base64');
+  const hash = createHash('sha256').update(bytes).digest('hex');
+  assert(bytes.length === spec.bytes, `${name} decoded size is ${bytes.length}, expected ${spec.bytes}`);
+  assert(hash === spec.sha256, `${name} checksum is ${hash}, expected ${spec.sha256}`);
+  assert(bytes.subarray(0, 3).toString('ascii') === 'ID3' || bytes[0] === 0xff, `${name} is not a decodable MP3 payload`);
+}
+
 const checks = [
-  ['audio runtime marker is unique', occurrences(client, '// SAFE_CRACKER_AUDIO_PASS_V10_START') === 1 && occurrences(client, '// SAFE_CRACKER_AUDIO_PASS_V10_END') === 1],
-  ['dial detents use layered mechanical ticks', client.includes('function safeCrackerPlayDetent(digit)') && client.includes('safeCrackerPlayMetalTick(pitch, 0.72 + weight * 0.32);')],
-  ['number submission has a dedicated press sound', client.includes('function safeCrackerPlaySubmit()') && client.includes('safeCrackerPlaySubmit();')],
-  ['all proximity tiers have dedicated feedback', client.includes('function safeCrackerPlayFeedback(tier)') && client.includes("if (tier === 'green')") && client.includes("if (tier === 'yellow')") && client.includes("if (tier === 'orange')")],
-  ['successful guesses use a physical tumbler lock', client.includes('function safeCrackerPlayTumblerLock()') && client.includes('safeCrackerPlayNoise(0.11, 0.018, 0.045')],
-  ['countdown audio follows the visible countdown portal', client.includes('function safeCrackerScanCountdown()') && client.includes("document.querySelector('[data-sc-countdown-value]')")],
-  ['last-ten-second urgency is second-gated', client.includes('function safeCrackerUpdateUrgency()') && client.includes('if (seconds > 10 || seconds <= 0)')],
-  ['safe opening uses bolts, scrape, thud, and shimmer layers', client.includes('function safeCrackerPlaySafeOpen()') && client.includes('safeCrackerPlayNoise(0.34, 0.025, 0.24') && client.includes('safeCrackerPlayTone(568, 0.48, 0.014')],
-  ['win, loss, and tie have separate result signatures', client.includes('function safeCrackerPlayResult(won, tied)') && client.includes("if (tied) {") && client.includes("safeCrackerPlayTone(659, 0.42")],
-  ['Safe Cracker buttons are scoped and step/confirm sounds are not doubled', client.includes("button.matches('[data-sc-step], [data-sc-confirm]')") && client.includes('.sth-game[data-mode="safecracker"]')],
-  ['haptics are centralized and throttled', client.includes('function safeCrackerHaptic(pattern)') && client.includes('runtime.safeCrackerLastHapticAt')],
-  ['audio output is compressed through one master bus', client.includes('function safeCrackerAudioBus(context)') && client.includes('context.createDynamicsCompressor()')],
-  ['audio cache bust is present', index.includes('&input=1&audio=1')],
+  ['procedural audio runtime marker is unique', occurrences(client, '// SAFE_CRACKER_AUDIO_PASS_V10_START') === 1 && occurrences(client, '// SAFE_CRACKER_AUDIO_PASS_V10_END') === 1],
+  ['recorded sound runtime marker is unique', occurrences(client, '// SAFE_CRACKER_RECORDED_SOUNDS_V13_START') === 1 && occurrences(client, '// SAFE_CRACKER_RECORDED_SOUNDS_V13_END') === 1],
+  ['recorded assets are mapped', client.includes('const SAFE_CRACKER_RECORDED_SOUNDS = Object.freeze({') && client.includes('/assets/safe-cracker/audio-data-v13/intro.b64') && client.includes('/assets/safe-cracker/audio-data-v13/ambience-1.b64') && client.includes('/assets/safe-cracker/audio-data-v13/ambience-4.b64')],
+  ['Android audio is explicitly unlocked on interaction', client.includes('function safeCrackerUnlockRecordedAudio()') && client.includes("document.addEventListener('pointerdown'")],
+  ['recorded buffers preload before gameplay', client.includes('window.setTimeout(safeCrackerPrimeRecordedSounds, 0);')],
+  ['chunked ambience is reconstructed before decoding', client.includes('const urls = Array.isArray(sourceLocation) ? sourceLocation : [sourceLocation];') && client.includes("parts.join('')")],
+  ['dial detents use uploaded recordings', client.includes('function safeCrackerPlayRecordedDetent(digit)') && client.includes("const name = runtime.safeCrackerRecordedDetentIndex ? 'dialA' : 'dialB';")],
+  ['number submission uses an uploaded recording', client.includes('function safeCrackerPlayRecordedSubmit()') && client.includes("safeCrackerPlayRecordedSound('submit'")],
+  ['incorrect tiers use the uploaded error blend', client.includes('function safeCrackerPlayRecordedFeedback(tier)') && client.includes("safeCrackerPlayRecordedSound('incorrect'")],
+  ['successful guesses use the uploaded latch blend', client.includes('function safeCrackerPlayRecordedTumblerLock()') && client.includes("safeCrackerPlayRecordedSound('latchOpen'")],
+  ['safe opening uses the uploaded full opening blend', client.includes('function safeCrackerPlayRecordedSafeOpen()') && client.includes("safeCrackerPlayRecordedSound('safeOpen'")],
+  ['countdown uses the uploaded intro blend', client.includes('function safeCrackerPlayRecordedCountdown(label)') && client.includes("safeCrackerPlayRecordedSound('intro'")],
+  ['ambience starts and fades only in Safe Cracker', client.includes('function safeCrackerStartRecordedAmbience()') && client.includes('function safeCrackerStopRecordedAmbience()') && client.includes("game?.mode === 'safecracker'")],
+  ['recorded output still uses the compressed Safe Cracker bus', client.includes('gain.connect(safeCrackerAudioBus(context));')],
+  ['recorded cache bust is present', index.includes('&recorded=13')],
   ['authoritative number submission is unchanged', client.includes('choice: `safecracker:guess:${runtime.selected}`')],
   ['input continuity remains installed', client.includes('// SAFE_CRACKER_INPUT_CONTINUITY_V9_START') && client.includes('runtime.pendingDragGame = game;')],
-  ['Pass 8 video correction remains installed', client.includes('// SAFE_CRACKER_VIDEO_CORRECTION_V8_START')],
+  ['dial activity retention remains installed', client.includes('// SAFE_CRACKER_DIAL_ACTIVITY_V16_START')],
   ['protected Roulette assets remain readable', turnAnimation.length > 0 && turnFire.length > 0 && audioBindings.length > 0],
-  ['audio patch cannot write networking or Roulette files', !patch.includes("writeFile(new URL('../netlify/functions/") && !patch.includes("writeFile(new URL('../assets/roulette/")]
+  ['audio patches cannot write networking or Roulette files', !proceduralPatch.includes("writeFile(new URL('../netlify/functions/") && !proceduralPatch.includes("writeFile(new URL('../assets/roulette/") && !recordedPatch.includes("writeFile(new URL('../netlify/functions/") && !recordedPatch.includes("writeFile(new URL('../assets/roulette/")]
 ];
 
 for (const [label, condition] of checks) assert(condition, label);
 
-console.log('Safe Cracker audio validation passed: detents, submission, proximity, tumbler lock, countdown, urgency, safe opening, results, buttons, haptics, continuity, and protected Roulette boundaries are intact.');
+console.log('Safe Cracker recorded audio validation passed: all eight uploaded blends decode exactly, preload, unlock on Android, route through the game audio bus, and preserve protected Roulette and authoritative gameplay boundaries.');
