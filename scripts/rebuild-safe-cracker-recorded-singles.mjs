@@ -23,6 +23,13 @@ const recordings = Object.freeze([
     output: 'correct-latch-open.b64',
     bytes: 6258,
     sha256: '368b8e8fe5f6b7795ffbe5754d1ab0cf695a2c75d57f518f5c0e0ec95064798d'
+  },
+  {
+    name: 'safeOpen',
+    chunks: ['safe-open-source-1.b64', 'safe-open-source-2.b64', 'safe-open-source-3.b64', 'safe-open-source-4.b64'],
+    outputs: ['final-vault-open-1.b64', 'final-vault-open-2.b64', 'final-vault-open-3.b64'],
+    bytes: 12159,
+    sha256: '03a2b17f2dbb8e8949b18911f92b62227d58bdfe403e93c4fd0145ccc0f1f44f'
   }
 ]);
 
@@ -39,7 +46,20 @@ for (const recording of recordings) {
   if (hash !== recording.sha256) {
     throw new Error(`${recording.name} recording checksum ${hash} did not match ${recording.sha256}.`);
   }
-  await writeFile(new URL(`assets/safe-cracker/audio-data-v2/${recording.output}`, root), encoded);
+  if (recording.output) {
+    await writeFile(new URL(`assets/safe-cracker/audio-data-v2/${recording.output}`, root), encoded);
+    continue;
+  }
+  const width = Math.floor(encoded.length / recording.outputs.length);
+  let offset = 0;
+  for (let index = 0; index < recording.outputs.length; index += 1) {
+    const end = index === recording.outputs.length - 1 ? encoded.length : offset + width;
+    await writeFile(
+      new URL(`assets/safe-cracker/audio-data-v2/${recording.outputs[index]}`, root),
+      encoded.slice(offset, end)
+    );
+    offset = end;
+  }
 }
 
-console.log('Rebuilt the submit, incorrect-number, and latch recordings byte-for-byte from transport-safe chunks.');
+console.log('Rebuilt the submit, incorrect-number, latch, and final safe-opening recordings byte-for-byte from transport-safe chunks.');
