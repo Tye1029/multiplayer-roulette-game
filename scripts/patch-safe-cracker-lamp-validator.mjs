@@ -9,6 +9,7 @@ await import('./validate-safe-cracker-active-render-guard.mjs');
 await import('./patch-safe-cracker-dial-board-retention.mjs');
 await import('./validate-safe-cracker-dial-board-retention.mjs');
 await import('./patch-safe-cracker-uploaded-soundscape.mjs');
+await import('./patch-safe-cracker-uploaded-soundscape-chunks.mjs');
 await import('./validate-safe-cracker-uploaded-soundscape.mjs');
 
 const packageUrl = new URL('../package.json', import.meta.url);
