@@ -11,6 +11,8 @@ await import('./validate-safe-cracker-dial-board-retention.mjs');
 await import('./rebuild-safe-cracker-recorded-singles.mjs');
 await import('./patch-safe-cracker-uploaded-soundscape.mjs');
 await import('./validate-safe-cracker-audio.mjs');
+await import('./patch-safe-cracker-click-cues.mjs');
+await import('./validate-safe-cracker-click-cues.mjs');
 
 const packageUrl = new URL('../package.json', import.meta.url);
 const validatorUrl = new URL('./validate-lamp.mjs', import.meta.url);
