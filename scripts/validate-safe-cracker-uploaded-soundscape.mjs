@@ -100,7 +100,7 @@ for (let index = 0; index < sampleGroups.length; index += 1) {
   const hash = createHash('sha256').update(decoded).digest('hex');
   assert(decoded.length >= group.minimumBytes, `${group.name} is unexpectedly small`);
   assert(decoded.subarray(0, 3).toString('ascii') === 'ID3' || decoded[0] === 0xff, `${group.name} is not an MP3 payload`);
-  assert(hash === group.sha256, `${group.name} does not match the approved optimized blend`);
+  assert(hash === group.sha256, `${group.name} does not match the approved optimized blend: expected ${group.sha256}, got ${hash}, decoded ${decoded.length} bytes`);
 }
 
 assert(turnAnimation.length > 0 && turnFire.length > 0 && audioBindings.length > 0, 'protected Roulette assets are unreadable');
