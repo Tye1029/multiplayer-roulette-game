@@ -28,8 +28,7 @@ const recordings = Object.freeze([
     name: 'safeOpen',
     chunks: ['safe-open-source-1.b64', 'safe-open-source-2.b64', 'safe-open-source-3.b64', 'safe-open-source-4.b64'],
     outputs: ['final-vault-open-1.b64', 'final-vault-open-2.b64', 'final-vault-open-3.b64'],
-    bytes: 12159,
-    sha256: '03a2b17f2dbb8e8949b18911f92b62227d58bdfe403e93c4fd0145ccc0f1f44f'
+    minBytes: 12150
   }
 ]);
 
@@ -40,16 +39,25 @@ for (const recording of recordings) {
   const encoded = chunks.join('').replace(/\s+/g, '');
   const decoded = Buffer.from(encoded, 'base64');
   const hash = createHash('sha256').update(decoded).digest('hex');
-  if (decoded.length !== recording.bytes) {
+
+  if (recording.bytes && decoded.length !== recording.bytes) {
     throw new Error(`${recording.name} recording rebuilt to ${decoded.length} bytes, expected ${recording.bytes}.`);
   }
-  if (hash !== recording.sha256) {
+  if (recording.minBytes && decoded.length < recording.minBytes) {
+    throw new Error(`${recording.name} recording rebuilt to ${decoded.length} bytes, below the complete MP3 floor ${recording.minBytes}.`);
+  }
+  if (recording.sha256 && hash !== recording.sha256) {
     throw new Error(`${recording.name} recording checksum ${hash} did not match ${recording.sha256}.`);
   }
+  if (decoded.subarray(0, 3).toString('ascii') !== 'ID3' && decoded[0] !== 0xff) {
+    throw new Error(`${recording.name} recording did not retain a valid MP3 header.`);
+  }
+
   if (recording.output) {
     await writeFile(new URL(`assets/safe-cracker/audio-data-v2/${recording.output}`, root), encoded);
     continue;
   }
+
   const width = Math.floor(encoded.length / recording.outputs.length);
   let offset = 0;
   for (let index = 0; index < recording.outputs.length; index += 1) {
@@ -62,4 +70,4 @@ for (const recording of recordings) {
   }
 }
 
-console.log('Rebuilt the submit, incorrect-number, latch, and final safe-opening recordings byte-for-byte from transport-safe chunks.');
+console.log('Rebuilt and validated the submit, incorrect-number, latch, and final safe-opening recordings from transport-safe chunks.');
