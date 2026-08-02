@@ -8,6 +8,7 @@ await import('./patch-safe-cracker-active-render-guard.mjs');
 await import('./validate-safe-cracker-active-render-guard.mjs');
 await import('./patch-safe-cracker-dial-board-retention.mjs');
 await import('./validate-safe-cracker-dial-board-retention.mjs');
+await import('./rebuild-safe-cracker-recorded-singles.mjs');
 await import('./patch-safe-cracker-uploaded-soundscape.mjs');
 await import('./validate-safe-cracker-audio.mjs');
 
