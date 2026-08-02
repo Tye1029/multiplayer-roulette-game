@@ -23,24 +23,31 @@ if (!client.includes(start)) {
     incorrect: '/assets/safe-cracker/audio-data-v2/incorrect-number.b64',
     latchOpen: '/assets/safe-cracker/audio-data-v2/correct-latch-open.b64',
     finalOpen: '/assets/safe-cracker/audio-data-v2/final-vault-open.b64',
-    ambience: '/assets/safe-cracker/audio-data-v2/vault-ambience-loop.b64',
+    ambience: Object.freeze([
+      '/assets/safe-cracker/audio-data-v2/vault-ambience-loop-1.b64',
+      '/assets/safe-cracker/audio-data-v2/vault-ambience-loop-2.b64',
+      '/assets/safe-cracker/audio-data-v2/vault-ambience-loop-3.b64',
+      '/assets/safe-cracker/audio-data-v2/vault-ambience-loop-4.b64'
+    ]),
     submit: '/assets/safe-cracker/audio-data-v2/submit-mechanism.b64'
   });
 
   function safeCrackerLoadUploadedSound(name) {
-    const url = SAFE_CRACKER_UPLOADED_SOUNDSCAPE[name];
+    const locations = SAFE_CRACKER_UPLOADED_SOUNDSCAPE[name];
     const context = audioContext();
-    if (!url || !context) return Promise.resolve(null);
+    if (!locations || !context) return Promise.resolve(null);
+    const urls = Array.isArray(locations) ? locations : [locations];
     runtime.safeCrackerUploadedBuffers ||= Object.create(null);
     runtime.safeCrackerUploadedPromises ||= Object.create(null);
     if (runtime.safeCrackerUploadedBuffers[name]) return Promise.resolve(runtime.safeCrackerUploadedBuffers[name]);
     if (runtime.safeCrackerUploadedPromises[name]) return runtime.safeCrackerUploadedPromises[name];
-    const promise = fetch(url + '?soundscape=1', { cache: 'force-cache' })
-      .then(response => {
+    const promise = Promise.all(urls.map(url =>
+      fetch(url + '?soundscape=1', { cache: 'force-cache' }).then(response => {
         if (!response.ok) throw new Error('Uploaded sound request failed: ' + name);
         return response.text();
       })
-      .then(encoded => context.decodeAudioData(safeCrackerBase64Bytes(encoded).slice(0)))
+    ))
+      .then(parts => context.decodeAudioData(safeCrackerBase64Bytes(parts.join('')).slice(0)))
       .then(buffer => {
         runtime.safeCrackerUploadedBuffers[name] = buffer;
         return buffer;
@@ -285,7 +292,7 @@ const required = [
   'function safeCrackerPlayUploadedSound(name, options = {})',
   'function safeCrackerStartUploadedAmbience()',
   "safeCrackerPlayUploadedSound('intro'",
-  "safeCrackerPlayUploadedSound('dialA'",
+  "safeCrackerPlayUploadedSound(sample",
   "safeCrackerPlayUploadedSound('incorrect'",
   "safeCrackerPlayUploadedSound('latchOpen'",
   "safeCrackerPlayUploadedSound('finalOpen'",
@@ -312,4 +319,4 @@ html = html.replace(/\/assets\/safe-cracker\/safe-cracker\.js\?[^"'\s]*/g, value
 });
 await writeFile(indexUrl, html);
 
-console.log('Applied uploaded Safe Cracker soundscape v1: blended intro, alternating physical dial detents, tiered incorrect feedback, synchronized latch release, full vault opening, submit mechanism, and low industrial ambience.');
+console.log('Applied uploaded Safe Cracker soundscape v2: blended intro, alternating physical dial detents, tiered incorrect feedback, synchronized latch release, full vault opening, submit mechanism, and low industrial ambience.');
