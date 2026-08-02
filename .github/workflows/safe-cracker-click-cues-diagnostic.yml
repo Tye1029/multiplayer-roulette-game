@@ -1,0 +1,73 @@
+name: Safe Cracker Click Cues Diagnostic
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - safe-cracker-development
+
+permissions:
+  contents: read
+
+jobs:
+  click-cues:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+
+      - name: Use Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run exact Netlify build command
+        run: npm run build
+
+      - name: Verify generated click cues
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/validate-safe-cracker-click-cues.mjs
+          grep -Fq 'SAFE_CRACKER_CLICK_CUES_V14_START' assets/safe-cracker/safe-cracker.js
+          grep -Fq 'safeCrackerPlayDialClick' assets/safe-cracker/safe-cracker.js
+          grep -Fq 'safeCrackerPlayWrongNumberCue' assets/safe-cracker/safe-cracker.js
+          grep -Fq 'safeCrackerPlayCorrectNumberCue' assets/safe-cracker/safe-cracker.js
+          grep -Fq '&clicks=14' index.html
+
+      - name: Verify live Netlify click cues
+        shell: bash
+        run: |
+          set -euo pipefail
+          url='https://deploy-preview-19--famous-piroshki-b621da.netlify.app/'
+          function_url="${url}.netlify/functions/duel-action"
+
+          for attempt in $(seq 1 48); do
+            html="$(curl -fsSL --max-time 20 "${url}?clicks=14&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            js="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/safe-cracker.js?clicks=14&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            headers="$(curl -fsS --max-time 20 -D - -o /dev/null -X OPTIONS "${function_url}?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+
+            if grep -Fq '&clicks=14' <<<"$html" && \
+               grep -Fq 'SAFE_CRACKER_CLICK_CUES_V14_START' <<<"$js" && \
+               grep -Fq 'safeCrackerPlayDialClick' <<<"$js" && \
+               grep -Fq 'safeCrackerPlayWrongNumberCue' <<<"$js" && \
+               grep -Fq 'safeCrackerPlayCorrectNumberCue' <<<"$js" && \
+               grep -Fq 'SAFE_CRACKER_RECORDED_SOUNDS_V13_START' <<<"$js" && \
+               grep -Fq 'SAFE_CRACKER_DIAL_ACTIVITY_V16_START' <<<"$js" && \
+               grep -Fiq 'x-duel-function-build: safecracker-direct-v8' <<<"$headers"; then
+              echo "Verified live Safe Cracker click cues v14 at ${url}"
+              exit 0
+            fi
+
+            echo "Waiting for Netlify Safe Cracker click cues v14 (${attempt}/48)..."
+            sleep 10
+          done
+
+          echo 'Netlify preview did not serve the Safe Cracker click cues v14 and protected runtime.' >&2
+          exit 1
