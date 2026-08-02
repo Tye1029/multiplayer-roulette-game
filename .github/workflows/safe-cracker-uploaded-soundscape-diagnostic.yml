@@ -36,11 +36,13 @@ jobs:
           set -euo pipefail
           node scripts/validate-safe-cracker-uploaded-soundscape.mjs
           grep -Fq 'SAFE_CRACKER_UPLOADED_SOUNDSCAPE_V1_START' assets/safe-cracker/safe-cracker.js
+          grep -Fq 'SAFE_CRACKER_UPLOADED_SOUNDSCAPE_CHUNKS_V2' assets/safe-cracker/safe-cracker.js
           grep -Fq 'safeCrackerPlayUploadedDetent' assets/safe-cracker/safe-cracker.js
           grep -Fq 'safeCrackerPlayUploadedFeedback' assets/safe-cracker/safe-cracker.js
           grep -Fq 'safeCrackerStartUploadedAmbience' assets/safe-cracker/safe-cracker.js
           grep -Fq 'vault-ambience-loop-4.b64' assets/safe-cracker/safe-cracker.js
-          grep -Fq '&soundscape=1' index.html
+          grep -Fq 'final-vault-open-3.b64' assets/safe-cracker/safe-cracker.js
+          grep -Fq '&soundscape=2' index.html
 
       - name: Verify live Netlify uploaded soundscape
         shell: bash
@@ -54,8 +56,12 @@ jobs:
             dial-detent-b
             incorrect-number
             correct-latch-open
-            final-vault-open
             submit-mechanism
+          )
+          final_parts=(
+            final-vault-open-1
+            final-vault-open-2
+            final-vault-open-3
           )
           ambience_parts=(
             vault-ambience-loop-1
@@ -64,29 +70,59 @@ jobs:
             vault-ambience-loop-4
           )
 
+          expected_hash() {
+            case "$1" in
+              intro-sequence) echo '7a15ecc1c95f91281bf646cc3fc506d1a22c4b8e7a0d8efa3f2ed42fadc2e541' ;;
+              dial-detent-a) echo '7bd79293ec8345ba3f45ff6bec5cfe416071250a04dd62eb49d4ab00cc0c7cec' ;;
+              dial-detent-b) echo '5bbb474326583a1d5f27089cf93c0d12d96c152e2574ec0a66354ca26a5d6d00' ;;
+              incorrect-number) echo '2a09cc9abdc736be9a0820f4e5b2e9d378bf9b3a5b7f9a0766dafeca20126307' ;;
+              correct-latch-open) echo '368b8e8fe5f6b7795ffbe5754d1ab0cf695a2c75d57f518f5c0e0ec95064798d' ;;
+              submit-mechanism) echo '6ba8244a330907ba20c5cff48d5725a1e9b81d37165b7d150f57e96e583151ab' ;;
+            esac
+          }
+
           for attempt in $(seq 1 48); do
-            html="$(curl -fsSL --max-time 20 "${url}?uploaded_soundscape=1&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            js="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/safe-cracker.js?v=8&polish=2&soundscape=1&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            html="$(curl -fsSL --max-time 20 "${url}?uploaded_soundscape=2&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            js="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/safe-cracker.js?v=8&polish=2&soundscape=2&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             headers="$(curl -fsS --max-time 20 -D - -o /dev/null -X OPTIONS "${function_url}?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             assets_ok=1
 
             for sample in "${samples[@]}"; do
-              encoded="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/audio-data-v2/${sample}.b64?soundscape=1&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+              encoded="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/audio-data-v2/${sample}.b64?soundscape=2&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
               if [ "${#encoded}" -lt 1500 ]; then
                 assets_ok=0
                 break
               fi
-              signature="$(printf '%s' "$encoded" | base64 -d 2>/dev/null | head -c 3 | xxd -p || true)"
-              if [[ "$signature" != 494433 && "$signature" != ff* ]]; then
+              actual_hash="$(printf '%s' "$encoded" | base64 -d 2>/dev/null | sha256sum | awk '{print $1}' || true)"
+              if [ "$actual_hash" != "$(expected_hash "$sample")" ]; then
                 assets_ok=0
                 break
               fi
             done
 
+            final_open=''
+            if [ "$assets_ok" -eq 1 ]; then
+              for sample in "${final_parts[@]}"; do
+                encoded="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/audio-data-v2/${sample}.b64?soundscape=2&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+                if [ "${#encoded}" -lt 5000 ]; then
+                  assets_ok=0
+                  break
+                fi
+                final_open+="$encoded"
+              done
+            fi
+            if [ "$assets_ok" -eq 1 ]; then
+              final_hash="$(printf '%s' "$final_open" | base64 -d 2>/dev/null | sha256sum | awk '{print $1}' || true)"
+              final_bytes="$(printf '%s' "$final_open" | base64 -d 2>/dev/null | wc -c | tr -d ' ' || true)"
+              if [ "$final_hash" != '03a2b17f2dbb8e8949b18911f92b62227d58bdfe403e93c4fd0145ccc0f1f44f' ] || [ "${final_bytes:-0}" -lt 10000 ]; then
+                assets_ok=0
+              fi
+            fi
+
             ambience=''
             if [ "$assets_ok" -eq 1 ]; then
               for sample in "${ambience_parts[@]}"; do
-                encoded="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/audio-data-v2/${sample}.b64?soundscape=1&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+                encoded="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/audio-data-v2/${sample}.b64?soundscape=2&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
                 if [ "${#encoded}" -lt 6000 ]; then
                   assets_ok=0
                   break
@@ -95,29 +131,31 @@ jobs:
               done
             fi
             if [ "$assets_ok" -eq 1 ]; then
-              ambience_signature="$(printf '%s' "$ambience" | base64 -d 2>/dev/null | head -c 3 | xxd -p || true)"
+              ambience_hash="$(printf '%s' "$ambience" | base64 -d 2>/dev/null | sha256sum | awk '{print $1}' || true)"
               ambience_bytes="$(printf '%s' "$ambience" | base64 -d 2>/dev/null | wc -c | tr -d ' ' || true)"
-              if [[ "$ambience_signature" != 494433 && "$ambience_signature" != ff* ]] || [ "${ambience_bytes:-0}" -lt 17000 ]; then
+              if [ "$ambience_hash" != 'cfcceaf1703a9c2e8fb6f6e9cd6f0e01924b6026cff795088a3b15e3542c4d90' ] || [ "${ambience_bytes:-0}" -lt 17000 ]; then
                 assets_ok=0
               fi
             fi
 
             if [ "$assets_ok" -eq 1 ] && \
-               grep -Fq '&soundscape=1' <<<"$html" && \
+               grep -Fq '&soundscape=2' <<<"$html" && \
                grep -Fq 'SAFE_CRACKER_UPLOADED_SOUNDSCAPE_V1_START' <<<"$js" && \
+               grep -Fq 'SAFE_CRACKER_UPLOADED_SOUNDSCAPE_CHUNKS_V2' <<<"$js" && \
                grep -Fq 'safeCrackerPlayUploadedDetent' <<<"$js" && \
                grep -Fq 'safeCrackerPlayUploadedFeedback' <<<"$js" && \
                grep -Fq 'safeCrackerStartUploadedAmbience' <<<"$js" && \
                grep -Fq 'vault-ambience-loop-4.b64' <<<"$js" && \
+               grep -Fq 'final-vault-open-3.b64' <<<"$js" && \
                grep -Fq 'SAFE_CRACKER_DIAL_ACTIVITY_V16_START' <<<"$js" && \
                grep -Fiq 'x-duel-function-build: safecracker-direct-v8' <<<"$headers"; then
-              echo "Verified live uploaded Safe Cracker soundscape at ${url}"
+              echo "Verified live checksum-matched uploaded Safe Cracker soundscape at ${url}"
               exit 0
             fi
 
-            echo "Waiting for Netlify uploaded Safe Cracker soundscape (${attempt}/48)..."
+            echo "Waiting for Netlify uploaded Safe Cracker soundscape v2 (${attempt}/48)..."
             sleep 10
           done
 
-          echo 'Netlify preview did not serve the uploaded Safe Cracker soundscape and protected runtime.' >&2
+          echo 'Netlify preview did not serve the exact uploaded Safe Cracker soundscape and protected runtime.' >&2
           exit 1
