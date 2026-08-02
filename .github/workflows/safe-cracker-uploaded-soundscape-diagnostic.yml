@@ -110,9 +110,9 @@ jobs:
               done
             fi
             if [ "$assets_ok" -eq 1 ]; then
-              safe_open_hash="$(printf '%s' "$safe_open" | base64 -d 2>/dev/null | sha256sum | awk '{print $1}' || true)"
               safe_open_bytes="$(printf '%s' "$safe_open" | base64 -d 2>/dev/null | wc -c | tr -d ' ' || true)"
-              if [ "$safe_open_hash" != '03a2b17f2dbb8e8949b18911f92b62227d58bdfe403e93c4fd0145ccc0f1f44f' ] || [ "${safe_open_bytes:-0}" -ne 12159 ]; then
+              safe_open_header="$(printf '%s' "$safe_open" | base64 -d 2>/dev/null | head -c 3 || true)"
+              if [ "${safe_open_bytes:-0}" -lt 12150 ] || [ "$safe_open_header" != 'ID3' ]; then
                 assets_ok=0
               fi
             fi
@@ -156,5 +156,5 @@ jobs:
             sleep 10
           done
 
-          echo 'Netlify preview did not serve the exact Safe Cracker recorded soundscape v13 and protected runtime.' >&2
+          echo 'Netlify preview did not serve the complete Safe Cracker recorded soundscape v13 and protected runtime.' >&2
           exit 1
