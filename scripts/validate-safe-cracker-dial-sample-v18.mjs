@@ -2,14 +2,10 @@ import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 
 const root = new URL('../', import.meta.url);
-const chunkPaths = Object.freeze([
-  'assets/safe-cracker/audio-data-v4/metallic-click-v27-part-1.b64',
-  'assets/safe-cracker/audio-data-v4/metallic-click-v27-part-2.b64',
-  'assets/safe-cracker/audio-data-v4/metallic-click-v27-part-3.b64',
-  'assets/safe-cracker/audio-data-v4/metallic-click-v27-part-4.b64',
-  'assets/safe-cracker/audio-data-v4/metallic-click-v27-part-5.b64',
-  'assets/safe-cracker/audio-data-v4/metallic-click-v27-part-6.b64'
-]);
+const chunkPaths = Object.freeze(Array.from({ length: 7 }, (_, index) =>
+  `assets/safe-cracker/audio-data-v4/metallic-click-v27-part-${index + 1}.b64`
+));
+const expectedChunkLengths = Object.freeze([6256, 6256, 6256, 6256, 6256, 6172, 96]);
 const expectedBase64Length = 37548;
 const expectedByteLength = 28160;
 const expectedHash = 'f083e8341eaab8dd5c345128a2f084b9e93f7bdc7c48a2ab5b7fb978b38977cc';
@@ -34,9 +30,10 @@ function occurrences(source, value) {
 }
 
 const cleanChunks = chunkTexts.map(text => text.replace(/\s+/g, ''));
-assert(cleanChunks.length === 6, 'exactly six transport chunks are required');
+const chunkLengths = cleanChunks.map(chunk => chunk.length);
+assert(cleanChunks.length === 7, 'exactly seven transport chunks are required');
+assert(JSON.stringify(chunkLengths) === JSON.stringify(expectedChunkLengths), `chunk lengths ${JSON.stringify(chunkLengths)} do not match ${JSON.stringify(expectedChunkLengths)}`);
 for (const [indexValue, chunk] of cleanChunks.entries()) {
-  assert(chunk.length > 6000, `chunk ${indexValue + 1} is unexpectedly short`);
   assert(/^[A-Za-z0-9+/=]+$/.test(chunk), `chunk ${indexValue + 1} is not valid base64 text`);
 }
 const originalBase64 = cleanChunks.join('');
@@ -69,7 +66,7 @@ const checks = [
   ['dial alias is replaced', dialSection.includes('function safeCrackerPlayOriginalPcmDetentV27(digit)') && dialSection.includes('playDetent = safeCrackerPlayDetent;')],
   ['smooth ambience remains unchanged', section.includes('function safeCrackerSmoothRoomToneBufferV27(context)') && section.includes('const duration = 21;') && section.includes('gain.gain.exponentialRampToValueAtTime(0.026')],
   ['correct and incorrect cues remain separate', client.includes('function safeCrackerPlayAuthoritativeCorrectCue(game, completedStage)') && client.includes('function safeCrackerPlayIncorrectRejectCue(tier)') && !section.includes('safeCrackerPlayFeedback =') && !section.includes('safeCrackerPlayTumblerLock =')],
-  ['source note documents the original-source rebuild honestly', sourceNote.includes('matched back to approximately 4.57 seconds') && sourceNote.includes('32 kHz signed 16-bit PCM') && sourceNote.includes(expectedHash) && sourceNote.includes('no interpolation')],
+  ['source note documents the original-source rebuild honestly', sourceNote.includes('matched back to approximately 4.57 seconds') && sourceNote.includes('32 kHz signed 16-bit PCM') && sourceNote.includes(expectedHash) && sourceNote.includes('no interpolation') && sourceNote.includes('seven text chunks')],
   ['cache bust advances to v27', index.includes('&clicks=27')],
   ['gameplay and Roulette remain protected', client.includes('choice: `safecracker:guess:${runtime.selected}`') && turnAnimation.length > 0 && turnFire.length > 0 && audioBindings.length > 0],
   ['patch cannot write networking or Roulette files', !patch.includes("writeFile(new URL('../netlify/functions/") && !patch.includes("writeFile(new URL('../assets/roulette/")]
