@@ -19,17 +19,18 @@ function occurrences(source, value) {
 }
 
 const checks = [
-  ['click-cue marker is unique', occurrences(client, '// SAFE_CRACKER_CLICK_CUES_V14_START') === 1 && occurrences(client, '// SAFE_CRACKER_CLICK_CUES_V14_END') === 1],
+  ['v15 click-cue marker is unique', occurrences(client, '// SAFE_CRACKER_CLICK_CUES_V15_START') === 1 && occurrences(client, '// SAFE_CRACKER_CLICK_CUES_V15_END') === 1],
+  ['old v14 click layer is absent', !client.includes('// SAFE_CRACKER_CLICK_CUES_V14_START') && !client.includes('// SAFE_CRACKER_CLICK_CUES_V14_END')],
   ['recorded soundscape remains installed', occurrences(client, '// SAFE_CRACKER_RECORDED_SOUNDS_V13_START') === 1 && occurrences(client, '// SAFE_CRACKER_RECORDED_SOUNDS_V13_END') === 1],
-  ['dial uses the new click transient', client.includes('function safeCrackerPlayDialClick(digit)') && client.includes('function safeCrackerPlayClickyDetent(digit)') && client.includes('const played = safeCrackerPlayDialClick(digit);')],
-  ['dial click has noise and a short pitched impact', client.includes('function safeCrackerClickNoiseBuffer(context)') && client.includes('function safeCrackerPlayClickTransient(options = {})') && client.includes("toneType: 'square'")],
-  ['wrong-number cue is distinct and guaranteed', client.includes('function safeCrackerPlayWrongNumberCue(tier)') && client.includes('const cuePlayed = safeCrackerPlayWrongNumberCue(tier);') && client.includes("safeCrackerPlayRecordedSound('incorrect'")],
-  ['correct-number cue is distinct and guaranteed', client.includes('function safeCrackerPlayCorrectNumberCue()') && client.includes('const cuePlayed = safeCrackerPlayCorrectNumberCue();') && client.includes("safeCrackerPlayRecordedSound('latchOpen'")],
-  ['green feedback routes to the correct-number cue', client.includes("if (tier === 'green') {") && client.includes('safeCrackerPlayTumblerLock();')],
-  ['wrong and correct cues have different pitch movement', client.includes('toneFrequency: 285 - severity * 28') && client.includes('toneEnd: 118 - severity * 10') && client.includes('toneFrequency: 1280') && client.includes('toneEnd: 1760')],
+  ['dial uses the new metallic ratchet cue', client.includes('function safeCrackerPlayMetalDialClick(digit)') && client.includes('function safeCrackerPlayMetalRatchetDetent(digit)') && client.includes('const played = safeCrackerPlayMetalDialClick(digit);')],
+  ['dial click contains a sharp tooth and lower ratchet body', client.includes('const tooth = safeCrackerPlayClickTransient({') && client.includes('const ratchetBody = safeCrackerPlayClickTransient({') && client.includes('frequency: 3380 + step * 72') && client.includes('frequency: 1430 + step * 34')],
+  ['incorrect-number cue is clear and guaranteed', client.includes('function safeCrackerPlayIncorrectRejectCue(tier)') && client.includes('const cuePlayed = safeCrackerPlayIncorrectRejectCue(tier);') && client.includes("safeCrackerPlayRecordedSound('incorrect'")],
+  ['incorrect cue has three separate mechanical impacts', client.includes('const metalStop = safeCrackerPlayClickTransient({') && client.includes('const lockKnock = safeCrackerPlayClickTransient({') && client.includes('const rejectClack = safeCrackerPlayClickTransient({') && client.includes('delay: 0.205')],
+  ['correct-number latch cue remains distinct', client.includes('function safeCrackerPlayCorrectNumberCue()') && client.includes('const cuePlayed = safeCrackerPlayCorrectNumberCue();') && client.includes("safeCrackerPlayRecordedSound('latchOpen'")],
+  ['green feedback still routes to the correct-number cue', client.includes("if (tier === 'green') {") && client.includes('safeCrackerPlayTumblerLock();')],
   ['click cues use the Safe Cracker audio bus', client.includes('noiseGain.connect(safeCrackerAudioBus(context));') && client.includes('toneGain.connect(safeCrackerAudioBus(context));')],
-  ['dial and feedback aliases point to the final overrides', client.includes('playDetent = safeCrackerPlayDetent;') && client.includes('playFeedback = safeCrackerPlayFeedback;')],
-  ['new cache bust is present', index.includes('&clicks=14')],
+  ['dial and feedback aliases point to final overrides', client.includes('playDetent = safeCrackerPlayDetent;') && client.includes('playFeedback = safeCrackerPlayFeedback;')],
+  ['v15 cache bust is present', index.includes('&clicks=15')],
   ['dial retention remains installed', client.includes('// SAFE_CRACKER_DIAL_ACTIVITY_V16_START')],
   ['authoritative guess submission remains unchanged', client.includes('choice: `safecracker:guess:${runtime.selected}`')],
   ['patch does not touch networking or Roulette files', !patch.includes("writeFile(new URL('../netlify/functions/") && !patch.includes("writeFile(new URL('../assets/roulette/")],
@@ -38,4 +39,4 @@ const checks = [
 
 for (const [label, condition] of checks) assert(condition, label);
 
-console.log('Safe Cracker click-cue validation passed: dial turns use crisp mechanical clicks, wrong guesses use a descending double clack, correct guesses use a bright rising latch cue, and protected gameplay boundaries remain intact.');
+console.log('Safe Cracker click-cue validation passed: dial turns use a layered metallic ratchet click, incorrect guesses use an unmistakable three-part rejected-lock cue, the correct latch cue remains intact, and protected gameplay boundaries are unchanged.');
