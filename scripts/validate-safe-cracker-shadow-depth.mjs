@@ -20,22 +20,29 @@ function occurrences(source, value) {
   return source.split(value).length - 1;
 }
 
-const start = '/* SAFE_CRACKER_SHADOW_DEPTH_V1_START */';
-const end = '/* SAFE_CRACKER_SHADOW_DEPTH_V1_END */';
-assert(occurrences(css, start) === 1, 'shadow-depth start marker must appear exactly once');
-assert(occurrences(css, end) === 1, 'shadow-depth end marker must appear exactly once');
+const start = '/* SAFE_CRACKER_SHADOW_DEPTH_V2_START */';
+const end = '/* SAFE_CRACKER_SHADOW_DEPTH_V2_END */';
+assert(occurrences(css, start) === 1, 'shadow-depth v2 start marker must appear exactly once');
+assert(occurrences(css, end) === 1, 'shadow-depth v2 end marker must appear exactly once');
+assert(!css.includes('/* SAFE_CRACKER_SHADOW_DEPTH_V1_START */'), 'legacy shadow-depth v1 block remains installed');
 const blockStart = css.indexOf(start);
 const blockEnd = css.indexOf(end, blockStart);
 assert(blockStart >= 0 && blockEnd > blockStart, 'shadow-depth marker order is invalid');
 const block = css.slice(blockStart, blockEnd + end.length);
 
 assert(block.includes('.safe-cracker-game .sc-safe-door'), 'safe-door structural depth is missing');
-assert(block.includes('inset 0 -28px 42px rgba(0, 0, 0, .25)'), 'safe-door lower recess is missing');
+assert(block.includes('inset 0 -28px 42px rgba(0, 0, 0, .17)'), 'lighter safe-door lower recess is missing');
+assert(block.includes('inset 0 0 50px rgba(0, 0, 0, .44)'), 'lighter safe-door full-panel inset is missing');
+assert(block.includes('0 20px 36px rgba(0, 0, 0, .32)'), 'lighter safe-door cast shadow is missing');
 assert(block.includes('.safe-cracker-game .sc-safe-door::before'), 'inner door contact edge is missing');
 assert(block.includes('.safe-cracker-game .sc-display.green'), 'green display feedback depth was not preserved');
+assert(block.includes('inset 0 3px 5px rgba(0, 0, 0, .52)'), 'lighter display recess is missing');
 assert(block.includes('.safe-cracker-game .sc-dial-wrap'), 'dial cavity depth is missing');
+assert(block.includes('inset 0 14px 18px rgba(0, 0, 0, .22)'), 'lighter dial cavity shadow is missing');
 assert(block.includes('.safe-cracker-game .sc-dial-face'), 'dial-face contact depth is missing');
+assert(block.includes('inset 0 -18px 24px rgba(0, 0, 0, .24)'), 'lighter dial-face lower shadow is missing');
 assert(block.includes('.safe-cracker-game .sc-dial-hub'), 'dial-hub depth is missing');
+assert(block.includes('0 9px 14px rgba(0, 0, 0, .42)'), 'lighter hub contact shadow is missing');
 assert(block.includes('.safe-cracker-game .sc-step-controls button:not(:active)'), 'step-button resting depth is missing');
 assert(block.includes('.safe-cracker-game .sc-step-controls button:active'), 'step-button pressed depth is missing');
 assert(block.includes('.safe-cracker-game .sc-confirm-button:not(:disabled):not(:active)'), 'confirmation-button resting depth is missing');
@@ -44,12 +51,12 @@ assert(block.includes('.safe-cracker-game .sc-safe-handle'), 'safe hardware dept
 assert(block.includes('.safe-cracker-game .sc-bolts i'), 'bolt contact shadows are missing');
 
 assert(index.includes('&texture=3'), 'approved A2 texture cache boundary changed');
-assert(index.includes('&shadow=1'), 'shadow-depth cache boundary is missing');
+assert(index.includes('&shadow=2'), 'shadow-depth v2 cache boundary is missing');
 assert(css.includes('/* SAFE_CRACKER_TEXTURE_PASS_V3_START */'), 'approved A2 image texture is missing');
 assert(texturePatch.includes("await import('./patch-safe-cracker-shadow-depth.mjs')"), 'texture build does not invoke the separate shadow-depth pass');
 assert(!block.includes('background-image:'), 'shadow pass must not replace or add texture images');
 assert(!block.includes('animation:'), 'shadow pass must not add animation');
-assert(!block.includes('filter: brightness'), 'shadow pass must not add a lighting filter');
+assert(!block.includes('filter: brightness'), 'shadow pass must not add a global lighting filter');
 assert(!block.includes('pointer-events: auto'), 'shadow pass must not intercept controls');
 assert(!patch.includes("writeFile(new URL('../netlify/functions/"), 'shadow pass must not write networking files');
 assert(!patch.includes("writeFile(new URL('../assets/roulette/"), 'shadow pass must not write Roulette files');
@@ -60,4 +67,4 @@ assert(client.includes('// SAFE_CRACKER_SAMPLE_MIX_V11_START'), 'sample mix v11 
 assert(duelAction.includes('safecracker'), 'Safe Cracker server mode is unreadable');
 assert(turnAnimation.length > 0 && turnFire.length > 0 && audioBindings.length > 0, 'protected Roulette assets are unreadable');
 
-console.log('Safe Cracker shadow-depth validation passed: localized structural recesses and contact shadows are installed while the A2 texture, controls, gameplay, networking, audio and Roulette remain protected.');
+console.log('Safe Cracker shadow-depth v2 validation passed: the darkest recessed and contact shadows are lighter while structural depth, A2 texture, controls, gameplay, networking, audio and Roulette remain protected.');
