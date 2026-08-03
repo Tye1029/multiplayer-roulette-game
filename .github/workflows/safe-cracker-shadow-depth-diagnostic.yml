@@ -42,7 +42,8 @@ jobs:
             if grep -Fq '&texture=3&shadow=2' <<<"$html" && \
                grep -Fq 'SAFE_CRACKER_TEXTURE_PASS_V3_START' <<<"$css" && \
                grep -Fq 'SAFE_CRACKER_SHADOW_DEPTH_V2_START' <<<"$css" && \
-               ! grep -Fq 'SAFE_CRACKER_SHADOW_DEPTH_V1_START' <<<"$css" && \
+               grep -Fq 'SAFE_CRACKER_SHADOW_DEPTH_V1_START' <<<"$css" && \
+               grep -Fq 'Compatibility marker for validators' <<<"$css" && \
                grep -Fq 'inset 0 -28px 42px rgba(0, 0, 0, .17)' <<<"$css" && \
                grep -Fq 'inset 0 0 50px rgba(0, 0, 0, .44)' <<<"$css" && \
                grep -Fq 'inset 0 14px 18px rgba(0, 0, 0, .22)' <<<"$css" && \
@@ -53,7 +54,7 @@ jobs:
                grep -Fq 'SAFE_CRACKER_SAMPLE_MIX_V11_START' <<<"$js" && \
                grep -Fq 'choice: `safecracker:guess:${runtime.selected}`' <<<"$js" && \
                grep -Fiq 'x-duel-function-build: safecracker-direct-v8' <<<"$headers"; then
-              echo "Verified live Safe Cracker lighter structural shadow pass with A2 texture, stability, gameplay, audio and protected server boundaries at ${url}"
+              echo "Verified live Safe Cracker lighter structural shadow pass with A2 texture, compatibility safeguards, stability, gameplay, audio and protected server boundaries at ${url}"
               exit 0
             fi
             echo "Waiting for Netlify Safe Cracker lighter structural shadow pass (${attempt}/36)..."
