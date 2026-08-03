@@ -1,25 +1,35 @@
 .mountain-race-game {
-  --mr-sky-top: #10263a;
-  --mr-sky-bottom: #395d70;
-  --mr-rock-dark: #252b2c;
-  --mr-rock-mid: #485052;
-  --mr-rock-light: #747d7e;
-  --mr-snow: #e7eff0;
-  --mr-accent: #f4b84a;
+  --mr-sky-top: #071725;
+  --mr-sky-mid: #274b60;
+  --mr-sky-bottom: #78909c;
+  --mr-rock-black: #171d1f;
+  --mr-rock-dark: #293234;
+  --mr-rock-mid: #4a5657;
+  --mr-rock-light: #778181;
+  --mr-snow: #eef5f5;
+  --mr-gold: #f2b94f;
+  --mr-gold-deep: #9a5a16;
+  --mr-blue: #72b9d3;
+  --mr-green: #7ed39b;
+  --mr-red: #ef7770;
   position: relative;
   isolation: isolate;
-  width: min(100%, 1040px);
-  min-height: 680px;
+  width: min(100%, 1120px);
+  min-height: min(920px, calc(100dvh - 24px));
   margin: 0 auto;
   overflow: hidden;
-  border: 2px solid rgba(220, 232, 234, .34);
-  border-radius: 22px;
-  color: #f6f7f3;
+  border: 2px solid rgba(222, 234, 236, .32);
+  border-radius: 24px;
+  color: #f5f7f5;
   background:
-    radial-gradient(circle at 50% 12%, rgba(255, 255, 255, .18), transparent 23%),
-    linear-gradient(180deg, var(--mr-sky-top), var(--mr-sky-bottom) 48%, #203138 100%);
-  box-shadow: 0 28px 70px rgba(0, 0, 0, .48);
-  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+    radial-gradient(circle at 50% 12%, rgba(255, 255, 255, .18), transparent 24%),
+    radial-gradient(ellipse at 12% 28%, rgba(255, 255, 255, .08), transparent 28%),
+    radial-gradient(ellipse at 85% 36%, rgba(255, 255, 255, .06), transparent 30%),
+    linear-gradient(180deg, var(--mr-sky-top), var(--mr-sky-mid) 48%, var(--mr-sky-bottom));
+  box-shadow: 0 30px 80px rgba(0, 0, 0, .5);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .mountain-race-game *,
@@ -28,280 +38,1060 @@
   box-sizing: border-box;
 }
 
+.mountain-race-game::before,
+.mountain-race-game::after {
+  content: "";
+  position: absolute;
+  z-index: -2;
+  pointer-events: none;
+}
+
+.mountain-race-game::before {
+  inset: 0;
+  background:
+    linear-gradient(154deg, transparent 0 68%, rgba(255,255,255,.08) 68.5% 69%, transparent 69.5%),
+    linear-gradient(24deg, transparent 0 72%, rgba(255,255,255,.06) 72.5% 73%, transparent 73.5%);
+  opacity: .68;
+}
+
+.mountain-race-game::after {
+  left: -5%;
+  right: -5%;
+  bottom: 0;
+  height: 64%;
+  clip-path: polygon(0 52%, 15% 36%, 24% 47%, 36% 24%, 47% 42%, 61% 17%, 72% 42%, 86% 31%, 100% 52%, 100% 100%, 0 100%);
+  background: linear-gradient(180deg, rgba(26,40,45,.58), rgba(7,12,14,.92));
+  filter: blur(.2px);
+}
+
 .mountain-race-game .mr-titlebar {
   position: relative;
-  z-index: 5;
-  padding: 22px 24px 10px;
-  text-align: center;
-  text-shadow: 0 3px 8px rgba(0, 0, 0, .7);
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  min-height: 94px;
+  padding: 18px 24px 14px;
+  border-bottom: 1px solid rgba(255,255,255,.14);
+  background: linear-gradient(180deg, rgba(6, 13, 18, .78), rgba(8, 18, 23, .42));
+  box-shadow: 0 12px 24px rgba(0,0,0,.18);
+  text-shadow: 0 3px 8px rgba(0, 0, 0, .72);
 }
 
 .mountain-race-game .mr-titlebar p {
-  margin: 0 0 3px;
-  color: #cfdadd;
-  font-size: .72rem;
-  font-weight: 800;
+  margin: 0 0 4px;
+  color: #c8d4d7;
+  font-size: .68rem;
+  font-weight: 850;
   letter-spacing: .24em;
 }
 
 .mountain-race-game .mr-titlebar h2 {
   margin: 0;
-  font-size: clamp(2rem, 5vw, 4rem);
+  font-size: clamp(2rem, 4vw, 3.65rem);
   font-weight: 950;
-  letter-spacing: .045em;
-  line-height: .95;
+  letter-spacing: .055em;
+  line-height: .92;
+}
+
+.mountain-race-game .mr-race-clock {
+  display: grid;
+  place-items: center;
+  min-width: 86px;
+  min-height: 64px;
+  padding: 8px 14px;
+  border: 1px solid rgba(235,243,244,.44);
+  border-radius: 14px;
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.12), transparent 40%),
+    linear-gradient(180deg, rgba(22,31,35,.96), rgba(4,8,10,.96));
+  box-shadow: inset 0 1px rgba(255,255,255,.16), 0 7px 18px rgba(0,0,0,.32);
+}
+
+.mountain-race-game .mr-race-clock small {
+  color: #aebdc1;
+  font-size: .58rem;
+  font-weight: 900;
+  letter-spacing: .18em;
+}
+
+.mountain-race-game .mr-race-clock strong {
+  color: #f5f7f4;
+  font: 950 1.8rem/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.mountain-race-game .mr-race-clock.urgent {
+  border-color: rgba(239,119,112,.75);
+  box-shadow: inset 0 1px rgba(255,255,255,.16), 0 0 24px rgba(239,119,112,.28);
+  animation: mr-clock-pulse .58s steps(2, end) infinite;
 }
 
 .mountain-race-game .mr-race-stage {
   position: relative;
+  z-index: 3;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
-  min-height: 480px;
-  padding: 16px 26px 0;
-}
-
-.mountain-race-game .mr-race-stage::before,
-.mountain-race-game .mr-race-stage::after {
-  content: "";
-  position: absolute;
-  pointer-events: none;
+  gap: 12px;
+  min-height: 548px;
+  padding: 14px 16px 0;
 }
 
 .mountain-race-game .mr-race-stage::before {
+  content: "";
+  position: absolute;
   z-index: -1;
-  left: 6%;
-  right: 6%;
-  bottom: -70px;
-  height: 470px;
-  clip-path: polygon(50% 0, 58% 11%, 64% 18%, 72% 27%, 82% 43%, 100% 100%, 0 100%, 19% 46%, 30% 28%, 41% 12%);
+  left: 4%;
+  right: 4%;
+  bottom: -80px;
+  height: 96%;
+  clip-path: polygon(50% 0, 58% 8%, 65% 17%, 73% 31%, 83% 46%, 100% 100%, 0 100%, 16% 49%, 29% 28%, 41% 10%);
   background:
-    linear-gradient(132deg, transparent 0 42%, rgba(255,255,255,.08) 42.4% 43.2%, transparent 43.7%),
-    linear-gradient(226deg, transparent 0 58%, rgba(0,0,0,.28) 58.5% 60%, transparent 60.5%),
-    linear-gradient(90deg, var(--mr-rock-dark), var(--mr-rock-light) 47%, var(--mr-rock-mid) 60%, #1c2224);
-  filter: drop-shadow(0 -12px 24px rgba(0,0,0,.34));
-}
-
-.mountain-race-game .mr-race-stage::after {
-  z-index: -1;
-  left: 37%;
-  top: 6px;
-  width: 26%;
-  height: 88px;
-  clip-path: polygon(50% 0, 100% 100%, 69% 80%, 49% 100%, 30% 78%, 0 100%);
-  background: linear-gradient(180deg, #ffffff, var(--mr-snow));
-  opacity: .92;
+    linear-gradient(130deg, transparent 0 38%, rgba(255,255,255,.08) 38.4% 39.2%, transparent 39.7%),
+    linear-gradient(226deg, transparent 0 58%, rgba(0,0,0,.25) 58.5% 60%, transparent 60.5%),
+    linear-gradient(90deg, #171d1f, #626c6c 46%, #353f41 64%, #141a1c);
+  filter: drop-shadow(0 -14px 28px rgba(0,0,0,.42));
 }
 
 .mountain-race-game .mr-lane {
   position: relative;
   min-width: 0;
+  border: 1px solid rgba(235,242,243,.2);
+  border-radius: 18px 18px 0 0;
+  overflow: hidden;
+  background: rgba(8, 13, 15, .12);
+  box-shadow: inset 0 0 30px rgba(0,0,0,.18);
+}
+
+.mountain-race-game .mr-lane.me {
+  --mr-player-accent: var(--mr-gold);
+  --mr-player-deep: var(--mr-gold-deep);
+}
+
+.mountain-race-game .mr-lane.opponent {
+  --mr-player-accent: var(--mr-blue);
+  --mr-player-deep: #285f75;
 }
 
 .mountain-race-game .mr-player-card {
   position: relative;
-  z-index: 3;
-  display: flex;
+  z-index: 12;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  min-height: 44px;
-  padding: 10px 14px;
-  border: 1px solid rgba(230, 238, 239, .4);
-  border-radius: 12px;
-  background: linear-gradient(180deg, rgba(21, 27, 30, .94), rgba(8, 12, 14, .9));
-  box-shadow: 0 7px 16px rgba(0,0,0,.32), inset 0 1px rgba(255,255,255,.1);
+  gap: 10px;
+  min-height: 58px;
+  padding: 9px 12px;
+  border-bottom: 1px solid rgba(230, 238, 239, .3);
+  background: linear-gradient(180deg, rgba(20,27,30,.96), rgba(7,11,13,.92));
+  box-shadow: 0 8px 18px rgba(0,0,0,.32), inset 0 1px rgba(255,255,255,.08);
 }
 
-.mountain-race-game .mr-player-card strong {
+.mountain-race-game .mr-player-badge {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 2px solid color-mix(in srgb, var(--mr-player-accent), white 25%);
+  border-radius: 50%;
+  color: #101416;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--mr-player-accent), white 30%), var(--mr-player-accent));
+  box-shadow: 0 4px 9px rgba(0,0,0,.38), inset 0 1px rgba(255,255,255,.48);
+  font-size: .7rem;
+  font-weight: 950;
+}
+
+.mountain-race-game .mr-player-copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.mountain-race-game .mr-player-copy strong {
   overflow: hidden;
+  color: #f4f6f4;
+  font-size: .86rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.mountain-race-game .mr-player-card span {
-  flex: 0 0 auto;
-  color: var(--mr-accent);
+.mountain-race-game .mr-player-copy small {
+  color: #9baaae;
+  font-size: .56rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+
+.mountain-race-game .mr-player-progress {
+  color: var(--mr-player-accent);
   font-size: .72rem;
-  font-weight: 900;
-  letter-spacing: .07em;
+  font-weight: 950;
+  letter-spacing: .06em;
+  white-space: nowrap;
 }
 
-.mountain-race-game .mr-mountain-track {
-  position: absolute;
-  inset: 60px 4% 10px;
-  border-left: 2px dashed rgba(255,255,255,.17);
-  border-right: 2px dashed rgba(255,255,255,.09);
+.mountain-race-game .mr-climb-viewport {
+  position: relative;
+  height: 490px;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 50% 18%, rgba(255,255,255,.07), transparent 23%),
+    linear-gradient(90deg, rgba(5,8,9,.25), transparent 13% 87%, rgba(5,8,9,.28));
 }
 
-.mountain-race-game .mr-climber {
-  position: absolute;
-  left: 50%;
-  bottom: calc(5% + (var(--mr-progress, 0) * 82%));
-  width: 34px;
-  height: 48px;
-  transform: translateX(-50%);
-  transition: bottom 280ms cubic-bezier(.22, .8, .3, 1);
-  filter: drop-shadow(0 4px 4px rgba(0,0,0,.55));
-}
-
-.mountain-race-game .mr-climber::before,
-.mountain-race-game .mr-climber::after,
-.mountain-race-game .mr-climber-body {
+.mountain-race-game .mr-climb-viewport::before,
+.mountain-race-game .mr-climb-viewport::after {
   content: "";
   position: absolute;
-  display: block;
+  z-index: 8;
+  left: 0;
+  right: 0;
+  pointer-events: none;
 }
 
-.mountain-race-game .mr-climber::before {
+.mountain-race-game .mr-climb-viewport::before {
   top: 0;
-  left: 9px;
-  width: 16px;
-  height: 16px;
-  border: 3px solid #182025;
-  border-radius: 50%;
-  background: #e5ae78;
+  height: 76px;
+  background: linear-gradient(180deg, rgba(4,8,10,.8), transparent);
 }
 
-.mountain-race-game .mr-climber-body {
-  top: 14px;
-  left: 8px;
-  width: 18px;
-  height: 24px;
-  border: 3px solid #182025;
-  border-radius: 8px 8px 5px 5px;
-  background: var(--mr-accent);
-}
-
-.mountain-race-game .mr-climber::after {
-  left: 5px;
+.mountain-race-game .mr-climb-viewport::after {
   bottom: 0;
-  width: 24px;
-  height: 16px;
-  border-bottom: 4px solid #182025;
-  border-left: 4px solid #182025;
-  border-right: 4px solid #182025;
-  transform: skewX(-12deg);
+  height: 84px;
+  background: linear-gradient(0deg, rgba(4,8,10,.72), transparent);
 }
 
-.mountain-race-game .mr-lane.opponent .mr-climber-body {
-  background: #79b8d1;
-}
-
-.mountain-race-game .mr-summit-flag {
+.mountain-race-game .mr-mountain-wall {
   position: absolute;
-  z-index: 4;
-  top: 12px;
-  left: calc(50% - 2px);
+  z-index: 2;
+  left: 6%;
+  right: 6%;
+  bottom: -1210px;
+  height: 1700px;
+  transform: translateY(var(--mr-wall-scroll, 0px));
+  transition: transform 260ms cubic-bezier(.22,.84,.28,1);
+  border-left: 1px solid rgba(255,255,255,.12);
+  border-right: 1px solid rgba(0,0,0,.4);
+  clip-path: polygon(15% 0, 86% 0, 96% 7%, 89% 15%, 96% 23%, 91% 34%, 98% 45%, 90% 56%, 97% 68%, 89% 80%, 96% 90%, 86% 100%, 13% 100%, 4% 91%, 10% 80%, 2% 68%, 11% 56%, 3% 44%, 10% 34%, 3% 22%, 11% 12%, 5% 5%);
+  background:
+    radial-gradient(ellipse at 24% 8%, rgba(255,255,255,.12), transparent 18%),
+    radial-gradient(ellipse at 72% 16%, rgba(0,0,0,.3), transparent 19%),
+    radial-gradient(ellipse at 38% 29%, rgba(255,255,255,.07), transparent 17%),
+    radial-gradient(ellipse at 78% 43%, rgba(0,0,0,.28), transparent 20%),
+    radial-gradient(ellipse at 28% 58%, rgba(0,0,0,.24), transparent 18%),
+    radial-gradient(ellipse at 65% 72%, rgba(255,255,255,.07), transparent 22%),
+    linear-gradient(108deg, transparent 0 31%, rgba(255,255,255,.07) 31.4% 32.2%, transparent 32.6%),
+    linear-gradient(248deg, transparent 0 58%, rgba(0,0,0,.24) 58.4% 59.5%, transparent 60%),
+    linear-gradient(90deg, var(--mr-rock-dark), var(--mr-rock-light) 46%, var(--mr-rock-mid) 62%, var(--mr-rock-black));
+  box-shadow: inset 20px 0 34px rgba(0,0,0,.28), inset -18px 0 30px rgba(0,0,0,.42), 0 0 26px rgba(0,0,0,.36);
+}
+
+.mountain-race-game .mr-mountain-wall::before,
+.mountain-race-game .mr-mountain-wall::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+
+.mountain-race-game .mr-mountain-wall::before {
+  inset: 0;
+  background:
+    linear-gradient(18deg, transparent 0 27%, rgba(10,14,15,.28) 27.4% 28%, transparent 28.5%),
+    linear-gradient(152deg, transparent 0 45%, rgba(240,246,246,.08) 45.4% 46%, transparent 46.5%),
+    linear-gradient(31deg, transparent 0 74%, rgba(10,14,15,.22) 74.4% 75.2%, transparent 75.6%);
+  opacity: .85;
+}
+
+.mountain-race-game .mr-mountain-wall::after {
+  top: 0;
+  left: 10%;
+  right: 10%;
+  height: 160px;
+  clip-path: polygon(0 38%, 20% 12%, 38% 28%, 52% 0, 72% 27%, 100% 18%, 91% 100%, 4% 100%);
+  background: linear-gradient(180deg, #ffffff, var(--mr-snow) 50%, rgba(198,213,216,.65));
+  filter: drop-shadow(0 5px 4px rgba(0,0,0,.24));
+}
+
+.mountain-race-game .mr-rock-hold {
+  position: absolute;
+  z-index: 6;
+  left: var(--mr-hold-left);
+  bottom: var(--mr-hold-bottom);
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 36px;
+  transform: translate(-50%, 50%) rotate(var(--mr-hold-rotate, -2deg));
+  border: 2px solid #202729;
+  border-radius: 45% 55% 42% 58% / 56% 42% 58% 44%;
+  color: #dbe2e2;
+  background:
+    linear-gradient(150deg, rgba(255,255,255,.26), transparent 36%),
+    linear-gradient(180deg, #667173, #313a3c 70%, #1a2022);
+  box-shadow: 0 7px 0 rgba(10,13,14,.75), 0 10px 13px rgba(0,0,0,.3), inset 0 1px rgba(255,255,255,.26);
+  transition: opacity 180ms ease, transform 180ms ease, filter 180ms ease;
+}
+
+.mountain-race-game .mr-rock-hold:nth-of-type(3n) {
+  --mr-hold-rotate: 3deg;
+  width: 44px;
+}
+
+.mountain-race-game .mr-rock-hold:nth-of-type(4n) {
+  --mr-hold-rotate: -5deg;
+  height: 39px;
+}
+
+.mountain-race-game .mr-rock-hold b {
+  font-size: 1rem;
+  line-height: 1;
+  text-shadow: 0 2px 2px rgba(0,0,0,.75);
+}
+
+.mountain-race-game .mr-rock-hold.current {
+  z-index: 10;
+  border-color: #ffe1a0;
+  color: #fff8e5;
+  background:
+    radial-gradient(circle at 50% 30%, rgba(255,255,255,.45), transparent 28%),
+    linear-gradient(180deg, #ce8429, #7b4212 72%, #3a1d08);
+  box-shadow: 0 7px 0 #281306, 0 0 0 5px rgba(242,185,79,.18), 0 0 28px rgba(242,185,79,.6), inset 0 1px rgba(255,255,255,.42);
+  animation: mr-hold-pulse .72s ease-in-out infinite alternate;
+}
+
+.mountain-race-game .mr-lane.opponent .mr-rock-hold.current {
+  border-color: #bceafa;
+  background:
+    radial-gradient(circle at 50% 30%, rgba(255,255,255,.38), transparent 28%),
+    linear-gradient(180deg, #4d9ab8, #285f75 72%, #123241);
+  box-shadow: 0 7px 0 #081d26, 0 0 0 5px rgba(114,185,211,.16), 0 0 26px rgba(114,185,211,.44), inset 0 1px rgba(255,255,255,.35);
+  animation: none;
+}
+
+.mountain-race-game .mr-rock-hold.passed {
+  opacity: .46;
+  filter: saturate(.55) brightness(.72);
+}
+
+.mountain-race-game .mr-rock-hold.distant {
+  opacity: .38;
+}
+
+.mountain-race-game .mr-finish-ledge {
+  position: absolute;
+  z-index: 7;
+  left: 50%;
+  bottom: var(--mr-summit-bottom);
+  display: grid;
+  place-items: center;
+  width: 64%;
+  height: 44px;
+  transform: translate(-50%, 50%);
+  border: 2px solid #d8e4e4;
+  border-radius: 50% 50% 14px 14px;
+  color: #172024;
+  background: linear-gradient(180deg, #f5fbfb, #a8babd 62%, #667477);
+  box-shadow: 0 9px 0 #303a3c, 0 14px 20px rgba(0,0,0,.35);
+}
+
+.mountain-race-game .mr-finish-ledge b {
+  font-size: .62rem;
+  font-weight: 950;
+  letter-spacing: .14em;
+}
+
+.mountain-race-game .mr-finish-ledge i {
+  position: absolute;
+  left: 50%;
+  bottom: 34px;
   width: 4px;
   height: 72px;
-  border-radius: 3px;
-  background: #dbe5e7;
-  box-shadow: 0 2px 5px rgba(0,0,0,.5);
+  border-radius: 4px;
+  background: #e8eeee;
+  box-shadow: 0 2px 4px rgba(0,0,0,.45);
 }
 
-.mountain-race-game .mr-summit-flag::after {
+.mountain-race-game .mr-finish-ledge i::after {
   content: "";
   position: absolute;
   top: 5px;
   left: 4px;
   width: 42px;
   height: 24px;
-  clip-path: polygon(0 0, 100% 16%, 78% 52%, 100% 90%, 0 100%);
-  background: var(--mr-accent);
+  clip-path: polygon(0 0, 100% 14%, 78% 52%, 100% 90%, 0 100%);
+  background: var(--mr-player-accent);
 }
 
-.mountain-race-game .mr-prompt-panel {
+.mountain-race-game .mr-climber {
+  position: absolute;
+  z-index: 12;
+  left: 50%;
+  bottom: var(--mr-climber-bottom);
+  width: 46px;
+  height: 66px;
+  transform: translate(-50%, 50%);
+  transition: bottom 245ms cubic-bezier(.2,.82,.25,1), left 190ms ease;
+  filter: drop-shadow(0 6px 5px rgba(0,0,0,.62));
+}
+
+.mountain-race-game .mr-climber-head,
+.mountain-race-game .mr-climber-body,
+.mountain-race-game .mr-arm,
+.mountain-race-game .mr-leg {
+  position: absolute;
+  display: block;
+  transform-origin: center;
+}
+
+.mountain-race-game .mr-climber-head {
+  z-index: 4;
+  top: 2px;
+  left: 14px;
+  width: 19px;
+  height: 19px;
+  border: 3px solid #151b1d;
+  border-radius: 50%;
+  background: #ddb084;
+  box-shadow: inset -3px -2px rgba(92,53,30,.2);
+}
+
+.mountain-race-game .mr-climber-head::before {
+  content: "";
+  position: absolute;
+  left: -3px;
+  right: -3px;
+  top: -5px;
+  height: 10px;
+  border: 3px solid #151b1d;
+  border-radius: 50% 50% 35% 35%;
+  background: var(--mr-player-accent);
+}
+
+.mountain-race-game .mr-climber-body {
+  z-index: 3;
+  top: 19px;
+  left: 12px;
+  width: 23px;
+  height: 29px;
+  border: 3px solid #151b1d;
+  border-radius: 9px 9px 6px 6px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--mr-player-accent), white 22%), var(--mr-player-accent));
+  box-shadow: inset -4px -3px rgba(0,0,0,.18);
+}
+
+.mountain-race-game .mr-arm {
+  z-index: 2;
+  top: 22px;
+  width: 9px;
+  height: 30px;
+  border: 3px solid #151b1d;
+  border-radius: 7px;
+  background: #ddb084;
+}
+
+.mountain-race-game .left-arm {
+  left: 4px;
+  transform: rotate(24deg);
+}
+
+.mountain-race-game .right-arm {
+  right: 4px;
+  transform: rotate(-24deg);
+}
+
+.mountain-race-game .mr-leg {
+  z-index: 1;
+  top: 44px;
+  width: 10px;
+  height: 22px;
+  border: 3px solid #151b1d;
+  border-radius: 6px;
+  background: #252d30;
+}
+
+.mountain-race-game .left-leg {
+  left: 11px;
+  transform: rotate(14deg);
+}
+
+.mountain-race-game .right-leg {
+  right: 11px;
+  transform: rotate(-14deg);
+}
+
+.mountain-race-game .mr-climber.climb-up {
+  animation: mr-climb-up 250ms ease-out;
+}
+
+.mountain-race-game .mr-climber.climb-left {
+  animation: mr-climb-left 250ms ease-out;
+}
+
+.mountain-race-game .mr-climber.climb-right {
+  animation: mr-climb-right 250ms ease-out;
+}
+
+.mountain-race-game .mr-climber.climb-down {
+  animation: mr-climb-up 250ms ease-out reverse;
+}
+
+.mountain-race-game .mr-climber.climb-left .left-arm,
+.mountain-race-game .mr-climber.direction-left .left-arm {
+  transform: translate(-8px, -10px) rotate(58deg);
+}
+
+.mountain-race-game .mr-climber.climb-right .right-arm,
+.mountain-race-game .mr-climber.direction-right .right-arm {
+  transform: translate(8px, -10px) rotate(-58deg);
+}
+
+.mountain-race-game .mr-climber.climb-up .left-arm,
+.mountain-race-game .mr-climber.climb-up .right-arm {
+  transform: translateY(-12px) rotate(0deg);
+}
+
+.mountain-race-game .mr-climber.slip {
+  animation: mr-slip 420ms cubic-bezier(.3,.02,.65,1);
+}
+
+.mountain-race-game .mr-climber.celebrate {
+  animation: mr-celebrate .55s ease-in-out infinite alternate;
+}
+
+.mountain-race-game .mr-climber.celebrate .left-arm {
+  transform: translate(-6px, -13px) rotate(72deg);
+}
+
+.mountain-race-game .mr-climber.celebrate .right-arm {
+  transform: translate(6px, -13px) rotate(-72deg);
+}
+
+.mountain-race-game .mr-altitude-meter {
+  position: absolute;
+  z-index: 14;
+  top: 18px;
+  bottom: 18px;
+  right: 7px;
+  width: 5px;
+  border-radius: 5px;
+  background: rgba(4,8,10,.58);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.14);
+}
+
+.mountain-race-game .mr-altitude-meter i {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(var(--mr-altitude, 0) * 100%);
+  border-radius: inherit;
+  background: linear-gradient(0deg, var(--mr-player-deep), var(--mr-player-accent));
+  box-shadow: 0 0 10px color-mix(in srgb, var(--mr-player-accent), transparent 35%);
+  transition: height 245ms ease;
+}
+
+.mountain-race-game .mr-command-deck {
   position: relative;
-  z-index: 6;
+  z-index: 20;
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 9px 16px;
-  padding: 16px 20px 20px;
+  gap: 18px;
+  min-height: 176px;
+  padding: 14px 18px 18px;
   border-top: 1px solid rgba(255,255,255,.16);
-  background: linear-gradient(180deg, rgba(10, 15, 18, .83), rgba(4, 7, 9, .96));
-  box-shadow: 0 -12px 26px rgba(0,0,0,.28);
+  background: linear-gradient(180deg, rgba(10,15,18,.88), rgba(3,6,8,.98));
+  box-shadow: 0 -14px 30px rgba(0,0,0,.32);
+}
+
+.mountain-race-game .mr-next-moves {
+  min-width: 0;
 }
 
 .mountain-race-game .mr-prompt-label {
-  color: #aebdc1;
-  font-size: .72rem;
+  display: block;
+  margin-bottom: 8px;
+  color: #afbec2;
+  font-size: .66rem;
   font-weight: 900;
-  letter-spacing: .15em;
+  letter-spacing: .16em;
 }
 
 .mountain-race-game .mr-prompt-sequence {
   display: flex;
-  gap: 10px;
+  align-items: center;
+  gap: 9px;
+  min-height: 58px;
 }
 
 .mountain-race-game .mr-prompt {
+  position: relative;
+  display: grid;
+  place-items: center;
   width: 54px;
   height: 54px;
-  border: 2px solid #66757a;
-  border-radius: 14px;
-  color: #d4dde0;
+  border: 2px solid #647278;
+  border-radius: 15px;
+  color: #d7dfe1;
   background:
-    linear-gradient(145deg, rgba(255,255,255,.16), transparent 37%),
-    linear-gradient(180deg, #354046, #11171a);
-  box-shadow: inset 0 1px rgba(255,255,255,.25), 0 5px 0 #050708, 0 8px 12px rgba(0,0,0,.34);
-  font: 950 1.55rem/1 system-ui, sans-serif;
+    linear-gradient(145deg, rgba(255,255,255,.15), transparent 38%),
+    linear-gradient(180deg, #354147, #11171a);
+  box-shadow: inset 0 1px rgba(255,255,255,.24), 0 5px 0 #050708, 0 8px 12px rgba(0,0,0,.32);
+}
+
+.mountain-race-game .mr-prompt b {
+  font-size: 1.45rem;
+  line-height: 1;
+}
+
+.mountain-race-game .mr-prompt small {
+  position: absolute;
+  bottom: 4px;
+  color: #89979b;
+  font-size: .46rem;
+  font-weight: 900;
+  letter-spacing: .08em;
 }
 
 .mountain-race-game .mr-prompt.active {
-  border-color: #f0c36f;
-  color: #fff4d2;
+  width: 64px;
+  height: 64px;
+  border-color: #ffe0a0;
+  color: #fff8e8;
   background:
-    radial-gradient(circle at 50% 28%, rgba(255,255,255,.3), transparent 30%),
-    linear-gradient(180deg, #aa6921, #5b3210);
-  box-shadow: inset 0 1px rgba(255,255,255,.36), 0 5px 0 #2b1708, 0 0 24px rgba(244,184,74,.34);
+    radial-gradient(circle at 50% 28%, rgba(255,255,255,.35), transparent 30%),
+    linear-gradient(180deg, #bd7825, #62350f);
+  box-shadow: inset 0 1px rgba(255,255,255,.35), 0 6px 0 #291406, 0 0 24px rgba(242,185,79,.36);
+}
+
+.mountain-race-game .mr-prompt.active b {
+  font-size: 1.75rem;
+}
+
+.mountain-race-game .mr-prompt.active small {
+  color: #ffe8b5;
+}
+
+.mountain-race-game .mr-queue-complete {
+  color: var(--mr-green);
+  font-weight: 950;
+  letter-spacing: .12em;
 }
 
 .mountain-race-game .mr-status {
-  grid-column: 1 / -1;
-  margin: 0;
-  color: #9fb0b5;
+  min-height: 20px;
+  margin: 11px 0 0;
+  color: #a8b6ba;
   font-size: .78rem;
+  line-height: 1.35;
 }
 
-@media (max-width: 700px) {
+.mountain-race-game .mr-status.correct {
+  color: var(--mr-green);
+}
+
+.mountain-race-game .mr-status.wrong {
+  color: var(--mr-red);
+}
+
+.mountain-race-game .mr-direction-pad {
+  display: grid;
+  grid-template-columns: repeat(3, 66px);
+  grid-template-rows: repeat(2, 60px);
+  gap: 8px;
+  touch-action: manipulation;
+}
+
+.mountain-race-game .mr-control {
+  position: relative;
+  display: grid;
+  place-items: center;
+  border: 2px solid #69777c;
+  border-radius: 15px;
+  color: #eef2f2;
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.17), transparent 38%),
+    linear-gradient(180deg, #39464b, #111719 76%);
+  box-shadow: inset 0 1px rgba(255,255,255,.24), 0 6px 0 #050708, 0 9px 14px rgba(0,0,0,.36);
+  cursor: pointer;
+  touch-action: none;
+}
+
+.mountain-race-game .mr-control b {
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.mountain-race-game .mr-control small {
+  position: absolute;
+  bottom: 5px;
+  color: #9dabad;
+  font-size: .44rem;
+  font-weight: 900;
+  letter-spacing: .08em;
+}
+
+.mountain-race-game .mr-control-up {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.mountain-race-game .mr-control-left {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.mountain-race-game .mr-control-down {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.mountain-race-game .mr-control-right {
+  grid-column: 3;
+  grid-row: 2;
+}
+
+.mountain-race-game .mr-control:not(:disabled):active {
+  transform: translateY(5px);
+  box-shadow: inset 0 1px rgba(255,255,255,.18), 0 1px 0 #050708, 0 4px 8px rgba(0,0,0,.34);
+}
+
+.mountain-race-game .mr-control:disabled {
+  opacity: .42;
+  cursor: default;
+}
+
+.mountain-race-game .mr-overlay {
+  position: absolute;
+  z-index: 50;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 22px;
+  background: rgba(3,8,11,.62);
+  backdrop-filter: blur(7px);
+}
+
+.mountain-race-game .mr-overlay.countdown {
+  background: rgba(3,8,11,.34);
+  backdrop-filter: blur(2px);
+}
+
+.mountain-race-game .mr-overlay-card {
+  width: min(92%, 520px);
+  padding: 28px 28px 24px;
+  border: 1px solid rgba(232,241,242,.42);
+  border-radius: 22px;
+  text-align: center;
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.1), transparent 37%),
+    linear-gradient(180deg, rgba(25,34,38,.98), rgba(6,10,12,.98));
+  box-shadow: inset 0 1px rgba(255,255,255,.12), 0 24px 60px rgba(0,0,0,.5);
+}
+
+.mountain-race-game .mr-overlay-card.result.win {
+  border-color: rgba(126,211,155,.62);
+  box-shadow: inset 0 1px rgba(255,255,255,.12), 0 0 38px rgba(126,211,155,.18), 0 24px 60px rgba(0,0,0,.5);
+}
+
+.mountain-race-game .mr-overlay-card.result.loss {
+  border-color: rgba(239,119,112,.54);
+}
+
+.mountain-race-game .mr-eyebrow {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--mr-gold);
+  font-size: .66rem;
+  font-weight: 950;
+  letter-spacing: .18em;
+}
+
+.mountain-race-game .mr-overlay-card h1 {
+  margin: 0;
+  font-size: clamp(2rem, 7vw, 4rem);
+  font-weight: 950;
+  letter-spacing: .04em;
+  line-height: .96;
+}
+
+.mountain-race-game .mr-overlay-card p {
+  max-width: 42ch;
+  margin: 16px auto 20px;
+  color: #c6d0d2;
+  line-height: 1.55;
+}
+
+.mountain-race-game .mr-overlay-card > small {
+  display: block;
+  margin-top: 14px;
+  color: #829397;
+  font-size: .7rem;
+}
+
+.mountain-race-game .mr-start-button {
+  min-width: 190px;
+  min-height: 54px;
+  padding: 12px 22px;
+  border: 2px solid #ffe1a2;
+  border-radius: 15px;
+  color: #171006;
+  background: linear-gradient(180deg, #ffd77d, #d88b27 72%, #8f4e11);
+  box-shadow: inset 0 1px rgba(255,255,255,.55), 0 6px 0 #402006, 0 10px 18px rgba(0,0,0,.35);
+  font-size: 1rem;
+  font-weight: 950;
+  letter-spacing: .08em;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.mountain-race-game .mr-start-button:active {
+  transform: translateY(5px);
+  box-shadow: inset 0 1px rgba(255,255,255,.4), 0 1px 0 #402006, 0 5px 10px rgba(0,0,0,.32);
+}
+
+.mountain-race-game .mr-countdown-number {
+  color: #ffffff;
+  font-size: clamp(6rem, 22vw, 14rem);
+  font-weight: 950;
+  line-height: 1;
+  text-shadow: 0 8px 0 rgba(0,0,0,.35), 0 0 36px rgba(255,255,255,.42);
+  animation: mr-countdown-pop .72s cubic-bezier(.2,.8,.2,1);
+}
+
+@keyframes mr-hold-pulse {
+  from { transform: translate(-50%, 50%) scale(.98); }
+  to { transform: translate(-50%, 50%) scale(1.07); }
+}
+
+@keyframes mr-climb-up {
+  0% { transform: translate(-50%, 50%) scale(.96); }
+  52% { transform: translate(-50%, 18%) scale(1.04); }
+  100% { transform: translate(-50%, 50%) scale(1); }
+}
+
+@keyframes mr-climb-left {
+  0% { transform: translate(-50%, 50%) rotate(0deg); }
+  52% { transform: translate(-72%, 30%) rotate(-8deg); }
+  100% { transform: translate(-50%, 50%) rotate(0deg); }
+}
+
+@keyframes mr-climb-right {
+  0% { transform: translate(-50%, 50%) rotate(0deg); }
+  52% { transform: translate(-28%, 30%) rotate(8deg); }
+  100% { transform: translate(-50%, 50%) rotate(0deg); }
+}
+
+@keyframes mr-slip {
+  0% { transform: translate(-50%, 50%) rotate(0deg); }
+  22% { transform: translate(-44%, 62%) rotate(14deg); }
+  58% { transform: translate(-58%, 104%) rotate(-18deg); }
+  100% { transform: translate(-50%, 50%) rotate(0deg); }
+}
+
+@keyframes mr-celebrate {
+  from { transform: translate(-50%, 50%) translateY(0) rotate(-3deg); }
+  to { transform: translate(-50%, 50%) translateY(-11px) rotate(3deg); }
+}
+
+@keyframes mr-countdown-pop {
+  0% { opacity: 0; transform: scale(.35); }
+  55% { opacity: 1; transform: scale(1.12); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes mr-clock-pulse {
+  0%, 45% { opacity: 1; }
+  46%, 100% { opacity: .58; }
+}
+
+@media (max-width: 760px) {
   .mountain-race-game {
-    min-height: 610px;
-    border-radius: 15px;
+    width: 100%;
+    min-height: 100dvh;
+    border-width: 0;
+    border-radius: 0;
   }
 
   .mountain-race-game .mr-titlebar {
-    padding: 17px 12px 5px;
+    min-height: 72px;
+    padding: 12px 12px 9px;
+  }
+
+  .mountain-race-game .mr-titlebar p {
+    font-size: .5rem;
+    letter-spacing: .16em;
+  }
+
+  .mountain-race-game .mr-titlebar h2 {
+    font-size: clamp(1.75rem, 8vw, 2.5rem);
+  }
+
+  .mountain-race-game .mr-race-clock {
+    min-width: 62px;
+    min-height: 52px;
+    padding: 6px 9px;
+    border-radius: 11px;
+  }
+
+  .mountain-race-game .mr-race-clock strong {
+    font-size: 1.38rem;
   }
 
   .mountain-race-game .mr-race-stage {
-    min-height: 425px;
-    gap: 8px;
-    padding-inline: 10px;
+    min-height: 465px;
+    gap: 6px;
+    padding: 8px 6px 0;
+  }
+
+  .mountain-race-game .mr-lane {
+    border-radius: 12px 12px 0 0;
   }
 
   .mountain-race-game .mr-player-card {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 2px;
-    padding: 8px 9px;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 6px;
+    min-height: 54px;
+    padding: 7px 7px;
   }
 
-  .mountain-race-game .mr-prompt-panel {
+  .mountain-race-game .mr-player-badge {
+    width: 31px;
+    height: 31px;
+    font-size: .56rem;
+  }
+
+  .mountain-race-game .mr-player-copy strong {
+    font-size: .68rem;
+  }
+
+  .mountain-race-game .mr-player-copy small {
+    font-size: .45rem;
+  }
+
+  .mountain-race-game .mr-player-progress {
+    grid-column: 1 / -1;
+    justify-self: center;
+    font-size: .6rem;
+  }
+
+  .mountain-race-game .mr-climb-viewport {
+    height: 410px;
+  }
+
+  .mountain-race-game .mr-mountain-wall {
+    bottom: -1290px;
+    left: 2%;
+    right: 2%;
+  }
+
+  .mountain-race-game .mr-rock-hold {
+    width: 40px;
+    height: 32px;
+  }
+
+  .mountain-race-game .mr-rock-hold b {
+    font-size: .86rem;
+  }
+
+  .mountain-race-game .mr-climber {
+    transform: translate(-50%, 50%) scale(.84);
+  }
+
+  .mountain-race-game .mr-command-deck {
     grid-template-columns: 1fr;
-    gap: 8px;
-    padding: 13px 12px 16px;
+    gap: 10px;
+    min-height: 218px;
+    padding: 10px 10px 14px;
+  }
+
+  .mountain-race-game .mr-next-moves {
+    text-align: center;
+  }
+
+  .mountain-race-game .mr-prompt-label {
+    margin-bottom: 6px;
+    font-size: .56rem;
   }
 
   .mountain-race-game .mr-prompt-sequence {
     justify-content: center;
+    min-height: 52px;
   }
 
   .mountain-race-game .mr-prompt {
-    width: 48px;
-    height: 48px;
+    width: 44px;
+    height: 44px;
     border-radius: 12px;
-    font-size: 1.35rem;
+  }
+
+  .mountain-race-game .mr-prompt.active {
+    width: 52px;
+    height: 52px;
+  }
+
+  .mountain-race-game .mr-prompt b {
+    font-size: 1.15rem;
+  }
+
+  .mountain-race-game .mr-prompt.active b {
+    font-size: 1.4rem;
+  }
+
+  .mountain-race-game .mr-status {
+    margin-top: 7px;
+    font-size: .68rem;
+  }
+
+  .mountain-race-game .mr-direction-pad {
+    grid-template-columns: repeat(3, minmax(62px, 78px));
+    grid-template-rows: repeat(2, 54px);
+    justify-content: center;
+    gap: 7px;
+  }
+
+  .mountain-race-game .mr-control {
+    border-radius: 13px;
+  }
+
+  .mountain-race-game .mr-overlay {
+    padding: 14px;
+  }
+
+  .mountain-race-game .mr-overlay-card {
+    padding: 23px 18px 20px;
+  }
+
+  .mountain-race-game .mr-overlay-card p {
+    font-size: .88rem;
+  }
+}
+
+@media (max-width: 390px) {
+  .mountain-race-game .mr-race-stage {
+    min-height: 435px;
+  }
+
+  .mountain-race-game .mr-climb-viewport {
+    height: 380px;
+  }
+
+  .mountain-race-game .mr-command-deck {
+    min-height: 214px;
+  }
+
+  .mountain-race-game .mr-direction-pad {
+    grid-template-columns: repeat(3, minmax(58px, 70px));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mountain-race-game *,
+  .mountain-race-game *::before,
+  .mountain-race-game *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
   }
 }
