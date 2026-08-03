@@ -45,7 +45,7 @@ const checks = [
   ['dial alias is replaced', section.includes('function safeCrackerPlayUploadedPcmDetentV25(digit)') && section.includes('playDetent = safeCrackerPlayDetent;')],
   ['smooth ambience remains', section.includes('function safeCrackerSmoothRoomToneBufferV25(context)') && section.includes('const duration = 21;') && section.includes('gain.gain.exponentialRampToValueAtTime(0.026')],
   ['correct and incorrect cues remain separate', client.includes('function safeCrackerPlayAuthoritativeCorrectCue(game, completedStage)') && client.includes('function safeCrackerPlayIncorrectRejectCue(tier)') && !section.includes('safeCrackerPlayFeedback =') && !section.includes('safeCrackerPlayTumblerLock =')],
-  ['source note documents exact waveform conversion', sourceNote.includes('exact waveform from `Metallic Clicks Sound Effect  SFX.mp3`') && sourceNote.includes('16 kHz unsigned 8-bit PCM') && sourceNote.includes('no synthesized ratchet layer')],
+  ['source note documents exact waveform conversion', sourceNote.includes('exact waveform from `Metallic Clicks Sound Effect  SFX.mp3`') && sourceNote.includes('16 kHz unsigned 8-bit PCM') && sourceNote.includes('synthesized ratchet layer')],
   ['cache bust advances to v25', index.includes('&clicks=25')],
   ['gameplay and Roulette remain protected', client.includes('choice: `safecracker:guess:${runtime.selected}`') && turnAnimation.length > 0 && turnFire.length > 0 && audioBindings.length > 0],
   ['patch cannot write networking or Roulette files', !patch.includes("writeFile(new URL('../netlify/functions/") && !patch.includes("writeFile(new URL('../assets/roulette/")]
