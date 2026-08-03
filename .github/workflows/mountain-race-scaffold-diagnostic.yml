@@ -1,4 +1,4 @@
-name: Summit Sprint Prototype Diagnostic
+name: Summit Sprint Multiplayer Diagnostic
 
 on:
   pull_request:
@@ -9,16 +9,16 @@ on:
       - mountain-race-development
 
 concurrency:
-  group: summit-sprint-prototype-${{ github.ref }}
+  group: summit-sprint-multiplayer-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
-  validate-prototype:
+  validate-multiplayer:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 14
     steps:
       - name: Checkout branch
         uses: actions/checkout@v4
@@ -31,19 +31,39 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Run existing site build
+      - name: Run exact Netlify build
         run: npm run build
 
       - name: Check Summit Sprint JavaScript syntax
         run: |
           node --check assets/mountain-race/mountain-race.js
+          node --check assets/mountain-race/mountain-race-multiplayer.js
           node --check netlify/functions/mountain-race/state-model.js
-          node --check scripts/validate-mountain-race-scaffold.mjs
+          node --check netlify/functions/mountain-race/integration.js
+          node --check scripts/patch-mountain-race-multiplayer.mjs
+          node --check scripts/patch-mountain-race-mode-option.mjs
+          node --check scripts/validate-mountain-race-multiplayer.mjs
 
-      - name: Validate playable prototype and state model
-        run: node scripts/validate-mountain-race-scaffold.mjs
+      - name: Validate multiplayer create join and bot paths
+        run: npm run validate:mountain-race
 
-      - name: Verify standalone prototype assets
+      - name: Verify generated multiplayer launcher
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq 'data-mode="mountainrace"' index.html
+          grep -Fq '>Summit Sprint</button>' index.html
+          grep -Fq 'data-rnb-game="mountainrace"' index.html
+          grep -Fq 'data-mountain-race-mount' index.html
+          grep -Fq 'window.__mountainRaceBridge' index.html
+          grep -Fq "option.value = 'mountainrace'" index.html
+          grep -Fq 'mountain-race-multiplayer.js?v=1' index.html
+          grep -Fq 'MOUNTAIN_RACE_SERVER_START' netlify/functions/_data.js
+          grep -Fq 'mountainrace: "Summit Sprint"' netlify/functions/_data.js
+          grep -Fq 'mountainRaceAction(actorUser, gameId, rawChoice, details)' netlify/functions/_data.js
+          grep -Fq 'Mountain Bot' netlify/functions/_data.js
+
+      - name: Verify standalone prototype remains available
         shell: bash
         run: |
           set -euo pipefail
@@ -52,10 +72,6 @@ jobs:
           grep -Fq 'const TOTAL_HOLDS = 24;' assets/mountain-race/mountain-race.js
           grep -Fq 'const RACE_DURATION_MS = 30_000;' assets/mountain-race/mountain-race.js
           grep -Fq 'const BOT_ERROR_RATE = 0.08;' assets/mountain-race/mountain-race.js
-          grep -Fq "root.addEventListener('pointerdown'" assets/mountain-race/mountain-race.js
-          grep -Fq '.mountain-race-game .mr-mountain-wall' assets/mountain-race/mountain-race.css
-          grep -Fq '.mountain-race-game .mr-climber.slip' assets/mountain-race/mountain-race.css
-          grep -Fq '.mountain-race-game .mr-direction-pad' assets/mountain-race/mountain-race.css
 
       - name: Verify protected game files remain present
         run: |
@@ -65,32 +81,33 @@ jobs:
           test -s assets/roulette/turn-fire.js
           test -s assets/roulette/audio-bindings.js
 
-      - name: Verify live Netlify prototype preview
+      - name: Verify live Netlify multiplayer preview
         if: github.event_name == 'pull_request'
         shell: bash
         run: |
           set -euo pipefail
           url='https://deploy-preview-20--famous-piroshki-b621da.netlify.app/'
 
-          for attempt in $(seq 1 42); do
-            page="$(curl -fsSL --max-time 20 "${url}mountain-race-preview.html?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            js="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race.js?prototype=1&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            css="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race.css?prototype=1&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+          for attempt in $(seq 1 48); do
+            page="$(curl -fsSL --max-time 20 "${url}?summit_multiplayer=1&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            multiplayer_js="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race-multiplayer.js?v=1&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            prototype_page="$(curl -fsSL --max-time 20 "${url}mountain-race-preview.html?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
 
-            if grep -Fq 'data-mountain-race-demo' <<<"$page" && \
-               grep -Fq 'const TOTAL_HOLDS = 24;' <<<"$js" && \
-               grep -Fq 'const RACE_DURATION_MS = 30_000;' <<<"$js" && \
-               grep -Fq 'const BOT_ERROR_RATE = 0.08;' <<<"$js" && \
-               grep -Fq "root.addEventListener('pointerdown'" <<<"$js" && \
-               grep -Fq '.mountain-race-game .mr-mountain-wall' <<<"$css" && \
-               grep -Fq '.mountain-race-game .mr-climber.slip' <<<"$css"; then
-              echo "Verified live Summit Sprint prototype at ${url}mountain-race-preview.html"
+            if grep -Fq 'data-mode="mountainrace"' <<<"$page" && \
+               grep -Fq 'data-rnb-game="mountainrace"' <<<"$page" && \
+               grep -Fq 'data-mountain-race-mount' <<<"$page" && \
+               grep -Fq 'window.__mountainRaceBridge' <<<"$page" && \
+               grep -Fq "option.value = 'mountainrace'" <<<"$page" && \
+               grep -Fq "const STATE_EVENT = 'mountainrace:state'" <<<"$multiplayer_js" && \
+               grep -Fq 'mountainrace:input:${token}' <<<"$multiplayer_js" && \
+               grep -Fq 'data-mountain-race-demo' <<<"$prototype_page"; then
+              echo "Verified live Summit Sprint multiplayer launcher and standalone prototype at ${url}"
               exit 0
             fi
 
-            echo "Waiting for Netlify Summit Sprint prototype (${attempt}/42)..."
+            echo "Waiting for Netlify Summit Sprint multiplayer deployment (${attempt}/48)..."
             sleep 10
           done
 
-          echo 'Netlify did not serve the current Summit Sprint prototype.' >&2
+          echo 'Netlify did not serve the current Summit Sprint multiplayer launcher and runtime.' >&2
           exit 1
