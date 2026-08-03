@@ -11,17 +11,18 @@ const sections = Object.freeze([
   ['// SAFE_CRACKER_DIAL_SAMPLE_V22_START', '// SAFE_CRACKER_DIAL_SAMPLE_V22_END'],
   ['// SAFE_CRACKER_DIAL_SAMPLE_V23_START', '// SAFE_CRACKER_DIAL_SAMPLE_V23_END'],
   ['// SAFE_CRACKER_DIAL_PCM_V24_START', '// SAFE_CRACKER_DIAL_PCM_V24_END'],
-  ['// SAFE_CRACKER_UPLOADED_PCM_V25_START', '// SAFE_CRACKER_UPLOADED_PCM_V25_END']
+  ['// SAFE_CRACKER_UPLOADED_PCM_V25_START', '// SAFE_CRACKER_UPLOADED_PCM_V25_END'],
+  ['// SAFE_CRACKER_CLEAN_PCM_V26_START', '// SAFE_CRACKER_CLEAN_PCM_V26_END']
 ]);
-const start = '// SAFE_CRACKER_UPLOADED_PCM_V25_START';
-const end = '// SAFE_CRACKER_UPLOADED_PCM_V25_END';
+const start = '// SAFE_CRACKER_CLEAN_PCM_V26_START';
+const end = '// SAFE_CRACKER_CLEAN_PCM_V26_END';
 
 let client = await readFile(clientUrl, 'utf8');
 if (!client.includes('// SAFE_CRACKER_AUDIO_PASS_V10_START')) {
-  throw new Error('Safe Cracker uploaded PCM v25 requires the WebAudio runtime.');
+  throw new Error('Safe Cracker clean PCM v26 requires the WebAudio runtime.');
 }
 if (!client.includes('// SAFE_CRACKER_DIAL_ACTIVITY_V16_START')) {
-  throw new Error('Safe Cracker uploaded PCM v25 requires the protected dial activity runtime.');
+  throw new Error('Safe Cracker clean PCM v26 requires the protected dial activity runtime.');
 }
 
 function removeSection(source, begin, finish) {
@@ -39,35 +40,80 @@ for (const [begin, finish] of sections) {
 const uploadedPcmBase64 = (await readFile(sampleUrl, 'utf8')).replace(/\s+/g, '');
 const uploadedPcmBytes = Buffer.from(uploadedPcmBase64, 'base64');
 if (uploadedPcmBytes.length < 4600 || uploadedPcmBytes.length > 4800) {
-  throw new Error(`Safe Cracker uploaded PCM v25 sample length ${uploadedPcmBytes.length} is outside the recorded-click range.`);
+  throw new Error(`Safe Cracker clean PCM v26 source length ${uploadedPcmBytes.length} is outside the recorded-click range.`);
 }
 if (!/^[A-Za-z0-9+/=]+$/.test(uploadedPcmBase64)) {
-  throw new Error('Safe Cracker uploaded PCM v25 sample is not valid transport-safe base64.');
+  throw new Error('Safe Cracker clean PCM v26 source is not valid transport-safe base64.');
 }
 
 const patch = String.raw`
   ${start}
-  const SAFE_CRACKER_UPLOADED_CLICK_PCM_V25 = ${JSON.stringify(uploadedPcmBase64)};
-  const SAFE_CRACKER_UPLOADED_CLICK_RATE_V25 = 16000;
+  const SAFE_CRACKER_CLEAN_CLICK_PCM_V26 = ${JSON.stringify(uploadedPcmBase64)};
+  const SAFE_CRACKER_CLEAN_CLICK_SOURCE_RATE_V26 = 16000;
+  const SAFE_CRACKER_CLEAN_CLICK_RATE_V26 = 32000;
 
-  function safeCrackerBuildUploadedClickPcmV25(context) {
-    if (runtime.safeCrackerUploadedClickPcmV25?.context === context) {
-      return runtime.safeCrackerUploadedClickPcmV25.buffer;
+  function safeCrackerBuildCleanClickPcmV26(context) {
+    if (runtime.safeCrackerCleanClickPcmV26?.context === context) {
+      return runtime.safeCrackerCleanClickPcmV26.buffer;
     }
-    const binary = window.atob(SAFE_CRACKER_UPLOADED_CLICK_PCM_V25);
-    const buffer = context.createBuffer(1, binary.length, SAFE_CRACKER_UPLOADED_CLICK_RATE_V25);
-    const data = buffer.getChannelData(0);
+    const binary = window.atob(SAFE_CRACKER_CLEAN_CLICK_PCM_V26);
+    const source = new Float32Array(binary.length);
+    let mean = 0;
     for (let index = 0; index < binary.length; index += 1) {
-      data[index] = Math.max(-1, Math.min(1, (binary.charCodeAt(index) - 128) / 127));
+      source[index] = (binary.charCodeAt(index) - 128) / 127;
+      mean += source[index];
     }
-    runtime.safeCrackerUploadedClickPcmV25 = { context, buffer };
+    mean /= Math.max(1, source.length);
+    for (let index = 0; index < source.length; index += 1) source[index] -= mean;
+
+    const cleaned = new Float32Array(source.length);
+    for (let index = 0; index < source.length; index += 1) {
+      const before = source[Math.max(0, index - 1)];
+      const current = source[index];
+      const after = source[Math.min(source.length - 1, index + 1)];
+      const gentleAverage = (before + current * 2 + after) * 0.25;
+      cleaned[index] = current * 0.82 + gentleAverage * 0.18;
+    }
+
+    const upsample = SAFE_CRACKER_CLEAN_CLICK_RATE_V26 / SAFE_CRACKER_CLEAN_CLICK_SOURCE_RATE_V26;
+    const outputLength = Math.max(1, Math.floor((cleaned.length - 1) * upsample) + 1);
+    const buffer = context.createBuffer(1, outputLength, SAFE_CRACKER_CLEAN_CLICK_RATE_V26);
+    const data = buffer.getChannelData(0);
+    for (let index = 0; index < outputLength; index += 1) {
+      const position = index / upsample;
+      const left = Math.floor(position);
+      const fraction = position - left;
+      const p0 = cleaned[Math.max(0, left - 1)];
+      const p1 = cleaned[Math.min(cleaned.length - 1, left)];
+      const p2 = cleaned[Math.min(cleaned.length - 1, left + 1)];
+      const p3 = cleaned[Math.min(cleaned.length - 1, left + 2)];
+      const a = -0.5 * p0 + 1.5 * p1 - 1.5 * p2 + 0.5 * p3;
+      const b = p0 - 2.5 * p1 + 2 * p2 - 0.5 * p3;
+      const c = -0.5 * p0 + 0.5 * p2;
+      const d = p1;
+      data[index] = Math.max(-1, Math.min(1, ((a * fraction + b) * fraction + c) * fraction + d));
+    }
+
+    const fadeIn = Math.max(1, Math.floor(SAFE_CRACKER_CLEAN_CLICK_RATE_V26 * 0.0015));
+    const fadeOut = Math.max(1, Math.floor(SAFE_CRACKER_CLEAN_CLICK_RATE_V26 * 0.042));
+    for (let index = 0; index < fadeIn; index += 1) {
+      const mix = Math.sin((index / fadeIn) * Math.PI * 0.5);
+      data[index] *= mix * mix;
+    }
+    for (let index = 0; index < fadeOut; index += 1) {
+      const dataIndex = data.length - fadeOut + index;
+      const mix = Math.cos((index / fadeOut) * Math.PI * 0.5);
+      data[dataIndex] *= mix * mix;
+    }
+
+    runtime.safeCrackerCleanClickPcmV26 = { context, buffer };
     return buffer;
   }
 
-  function safeCrackerUnlockUploadedClickPcmV25() {
+  function safeCrackerUnlockCleanClickPcmV26() {
     const context = resumeAudio();
     if (!context) return;
-    safeCrackerBuildUploadedClickPcmV25(context);
+    safeCrackerBuildCleanClickPcmV26(context);
     try {
       const source = context.createBufferSource();
       source.buffer = context.createBuffer(1, 1, context.sampleRate || 44100);
@@ -76,15 +122,15 @@ const patch = String.raw`
     } catch {}
   }
 
-  function safeCrackerFireUploadedClickPcmV25() {
+  function safeCrackerFireCleanClickPcmV26() {
     const context = resumeAudio();
     if (!context || document.hidden) return false;
     const fire = () => {
       const source = context.createBufferSource();
       const gain = context.createGain();
-      source.buffer = safeCrackerBuildUploadedClickPcmV25(context);
+      source.buffer = safeCrackerBuildCleanClickPcmV26(context);
       source.playbackRate.setValueAtTime(1, context.currentTime);
-      gain.gain.setValueAtTime(0.98, context.currentTime);
+      gain.gain.setValueAtTime(1.02, context.currentTime);
       source.connect(gain);
       gain.connect(context.destination);
       source.start(context.currentTime);
@@ -97,17 +143,17 @@ const patch = String.raw`
     return true;
   }
 
-  safeCrackerPlayDetent = function safeCrackerPlayUploadedPcmDetentV25(digit) {
+  safeCrackerPlayDetent = function safeCrackerPlayCleanPcmDetentV26(digit) {
     const now = performance.now();
-    if (document.hidden || now - Number(runtime.safeCrackerUploadedPcmAtV25 || 0) < 26) return;
-    runtime.safeCrackerUploadedPcmAtV25 = now;
-    safeCrackerFireUploadedClickPcmV25();
+    if (document.hidden || now - Number(runtime.safeCrackerCleanPcmAtV26 || 0) < 26) return;
+    runtime.safeCrackerCleanPcmAtV26 = now;
+    safeCrackerFireCleanClickPcmV26();
     safeCrackerHaptic(4);
   };
   playDetent = safeCrackerPlayDetent;
 
-  function safeCrackerSmoothRoomToneBufferV25(context) {
-    if (runtime.safeCrackerSmoothRoomToneBufferV25?.sampleRate === context.sampleRate) return runtime.safeCrackerSmoothRoomToneBufferV25;
+  function safeCrackerSmoothRoomToneBufferV26(context) {
+    if (runtime.safeCrackerSmoothRoomToneBufferV26?.sampleRate === context.sampleRate) return runtime.safeCrackerSmoothRoomToneBufferV26;
     const duration = 21;
     const fadeSeconds = 2.5;
     const length = Math.max(1, Math.floor(context.sampleRate * duration));
@@ -132,11 +178,11 @@ const patch = String.raw`
     for (let index = 0; index < data.length; index += 1) peak = Math.max(peak, Math.abs(data[index]));
     const scale = 0.34 / peak;
     for (let index = 0; index < data.length; index += 1) data[index] *= scale;
-    runtime.safeCrackerSmoothRoomToneBufferV25 = buffer;
+    runtime.safeCrackerSmoothRoomToneBufferV26 = buffer;
     return buffer;
   }
 
-  safeCrackerStartRecordedAmbience = function safeCrackerStartSmoothVaultRoomToneV25() {
+  safeCrackerStartRecordedAmbience = function safeCrackerStartSmoothVaultRoomToneV26() {
     if (!safeCrackerRecordedModeActive() || runtime.safeCrackerRecordedAmbience) return;
     const context = resumeAudio();
     if (!context) return;
@@ -144,7 +190,7 @@ const patch = String.raw`
     const highpass = context.createBiquadFilter();
     const lowpass = context.createBiquadFilter();
     const gain = context.createGain();
-    source.buffer = safeCrackerSmoothRoomToneBufferV25(context);
+    source.buffer = safeCrackerSmoothRoomToneBufferV26(context);
     source.loop = true;
     highpass.type = 'highpass';
     highpass.frequency.setValueAtTime(32, context.currentTime);
@@ -157,52 +203,53 @@ const patch = String.raw`
     lowpass.connect(gain);
     gain.connect(safeCrackerAudioBus(context));
     source.start(context.currentTime);
-    runtime.safeCrackerRecordedAmbience = { source, gain, context, smoothRoomToneV25: true };
+    runtime.safeCrackerRecordedAmbience = { source, gain, context, smoothRoomToneV26: true };
   };
 
-  document.addEventListener('pointerdown', safeCrackerUnlockUploadedClickPcmV25, { capture: true, passive: true });
-  document.addEventListener('touchstart', safeCrackerUnlockUploadedClickPcmV25, { capture: true, passive: true });
-  document.addEventListener('keydown', safeCrackerUnlockUploadedClickPcmV25, { capture: true });
+  document.addEventListener('pointerdown', safeCrackerUnlockCleanClickPcmV26, { capture: true, passive: true });
+  document.addEventListener('touchstart', safeCrackerUnlockCleanClickPcmV26, { capture: true, passive: true });
+  document.addEventListener('keydown', safeCrackerUnlockCleanClickPcmV26, { capture: true });
   ${end}
 `;
 
 const closing = '\n})();';
 const closingIndex = client.lastIndexOf(closing);
-if (closingIndex < 0) throw new Error('Safe Cracker uploaded PCM v25 could not find the runtime closure.');
+if (closingIndex < 0) throw new Error('Safe Cracker clean PCM v26 could not find the runtime closure.');
 client = client.slice(0, closingIndex) + patch + client.slice(closingIndex);
 
 const required = [
   start,
-  'const SAFE_CRACKER_UPLOADED_CLICK_PCM_V25 =',
-  'const SAFE_CRACKER_UPLOADED_CLICK_RATE_V25 = 16000;',
-  'function safeCrackerBuildUploadedClickPcmV25(context)',
-  'window.atob(SAFE_CRACKER_UPLOADED_CLICK_PCM_V25)',
-  'context.createBuffer(1, binary.length, SAFE_CRACKER_UPLOADED_CLICK_RATE_V25)',
-  'function safeCrackerUnlockUploadedClickPcmV25()',
-  'function safeCrackerFireUploadedClickPcmV25()',
-  'function safeCrackerPlayUploadedPcmDetentV25(digit)',
-  'source.playbackRate.setValueAtTime(1',
-  'gain.gain.setValueAtTime(0.98',
+  'const SAFE_CRACKER_CLEAN_CLICK_PCM_V26 =',
+  'const SAFE_CRACKER_CLEAN_CLICK_SOURCE_RATE_V26 = 16000;',
+  'const SAFE_CRACKER_CLEAN_CLICK_RATE_V26 = 32000;',
+  'function safeCrackerBuildCleanClickPcmV26(context)',
+  'const gentleAverage =',
+  'const upsample =',
+  'const fadeOut =',
+  'function safeCrackerUnlockCleanClickPcmV26()',
+  'function safeCrackerFireCleanClickPcmV26()',
+  'function safeCrackerPlayCleanPcmDetentV26(digit)',
+  'gain.gain.setValueAtTime(1.02',
   'gain.connect(context.destination);',
   'playDetent = safeCrackerPlayDetent;',
-  'function safeCrackerStartSmoothVaultRoomToneV25()',
+  'function safeCrackerStartSmoothVaultRoomToneV26()',
   'safeCrackerPlayAuthoritativeCorrectCue',
   'safeCrackerPlayIncorrectRejectCue',
   'choice: `safecracker:guess:${runtime.selected}`'
 ];
 for (const fragment of required) {
-  if (!client.includes(fragment)) throw new Error(`Safe Cracker uploaded PCM v25 is missing ${fragment}.`);
+  if (!client.includes(fragment)) throw new Error(`Safe Cracker clean PCM v26 is missing ${fragment}.`);
 }
-if ((client.match(/SAFE_CRACKER_UPLOADED_PCM_V25_START/g) || []).length !== 1) {
-  throw new Error('Safe Cracker uploaded PCM v25 marker must appear exactly once.');
+if ((client.match(/SAFE_CRACKER_CLEAN_PCM_V26_START/g) || []).length !== 1) {
+  throw new Error('Safe Cracker clean PCM v26 marker must appear exactly once.');
 }
 await writeFile(clientUrl, client);
 
 let html = await readFile(indexUrl, 'utf8');
 html = html.replace(/\/assets\/safe-cracker\/safe-cracker\.js\?[^"'\s]*/g, value => {
   const clean = value.replace(/&clicks=\d+/g, '');
-  return `${clean}&clicks=25`;
+  return `${clean}&clicks=26`;
 });
 await writeFile(indexUrl, html);
 
-console.log('Applied Safe Cracker uploaded PCM v25: the committed waveform from the user-provided metallic click recording now plays through the proven direct WebAudio buffer route.');
+console.log('Applied Safe Cracker clean PCM v26: the same uploaded click is reconstructed as a smoother 32-bit float buffer with gentle interpolation and tapered edges, without compression or synthetic layering.');
