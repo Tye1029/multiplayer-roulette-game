@@ -16,12 +16,16 @@ The existing multiplayer flow supports:
 - the same 3–2–1–GO lifecycle used by the other multiplayer games
 - authoritative server-generated prompt sequences
 - server-confirmed correct and incorrect inputs
-- duplicate-action protection
+- duplicate-action and stale-prompt protection
 - first-to-summit and timeout settlement
 - rematches and creating a new game after completion
 - adding the simple testing NPC
 - creating or attaching the Remote Network Bot from the testing dock
 - an 8% testing-bot mistake rate with independently scheduled moves
+- bounded catch-up of every bot move that became due between browser polls
+- simulated duplicate requests, stalls, and reconnect delays from the selected Remote Bot profile
+
+The Summit Sprint bot is not limited to one move per browser refresh. A focused game poll wakes the server-side driver, which replays all due bot moves through the same action validation, prompt-index guard, action-id deduplication, persistence, and winner settlement used by a player input. This allows the bot to complete the full 24-hold race even when polling is slower than its reaction time.
 
 Only the viewer receives their next four prompts. The opponent's future sequence is never sent to the client. Player elevations, mistakes, latest movement, finish order, and winner settlement remain authoritative on the server.
 
@@ -30,7 +34,7 @@ Only the viewer receives their next four prompts. The opponent's future sequence
 - `mountain-race-multiplayer.js` — shared multiplayer renderer, keyboard/touch input, countdown, race clock, and bridge actions
 - `mountain-race.css` — namespaced mountain, climber, controls, and responsive presentation
 - `netlify/functions/mountain-race/state-model.js` — deterministic state rules and prompt privacy
-- `netlify/functions/mountain-race/integration.js` — shared duel create/join, actions, polling, bots, timeout, and completion integration
+- `netlify/functions/mountain-race/integration.js` — shared duel actions, polling, full testing-bot driver, timeout, and completion integration
 - `scripts/patch-mountain-race-multiplayer.mjs` — build-time launcher and backend registration
 - `scripts/patch-mountain-race-mode-option.mjs` — ensures the shared game creator can select Summit Sprint
 
