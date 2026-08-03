@@ -28,10 +28,10 @@ assert(MOUNTAIN_RACE_MODE === 'mountainrace', 'internal mode id changed');
 assert(JSON.stringify(MOUNTAIN_RACE_CONTROLS) === JSON.stringify(['up', 'left', 'right', 'down']), 'control set changed');
 assert(MOUNTAIN_RACE_DEFAULT_STEPS === 24, 'race no longer uses 24 holds');
 assert(MOUNTAIN_RACE_DURATION_MS === 30_000, 'race clock is no longer 30 seconds');
-assert(readme.includes('Current playable prototype'), 'front-end README does not document the prototype');
+assert(readme.includes('Standalone prototype'), 'front-end README does not document the prototype');
 assert(readme.includes('/mountain-race-preview.html'), 'prototype route is not documented');
-assert(readme.includes('not registered in the main launcher yet'), 'launcher isolation notice is missing');
-assert(serverReadme.includes('not yet imported by the shared duel function'), 'server isolation notice is missing');
+assert(readme.includes('Multiplayer testing'), 'shared multiplayer registration is not documented');
+assert(serverReadme.includes('shared duel create/join lifecycle'), 'server integration notice is missing');
 
 for (const fragment of [
   "window.MountainRaceGame = Object.freeze",
@@ -92,4 +92,4 @@ assert(publicState.prompts.length <= 4, 'public state exposes too many future pr
 assert(!('sequence' in publicState), 'public state exposes the full private sequence');
 assert(!('expected' in (publicState.players['player-a'].lastInput || {})), 'public player state exposes the expected answer');
 
-console.log('Summit Sprint prototype validation passed: the standalone 24-hold race has countdown, scrolling lanes, keyboard/touch input, a Normal bot, one-hold slip penalties, a 30-second clock, replay states, isolated assets, and a compatible authoritative state model.');
+console.log('Summit Sprint prototype validation passed: the standalone 24-hold race retains countdown, scrolling lanes, keyboard/touch input, a Normal bot, one-hold slip penalties, a 30-second clock, replay states, isolated assets, and the shared multiplayer-compatible state model.');
