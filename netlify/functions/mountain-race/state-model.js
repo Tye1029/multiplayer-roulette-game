@@ -5,7 +5,7 @@ const { randomInt, randomUUID } = require('node:crypto');
 const MOUNTAIN_RACE_MODE = 'mountainrace';
 const MOUNTAIN_RACE_CONTROLS = Object.freeze(['up', 'left', 'right', 'down']);
 const MOUNTAIN_RACE_DEFAULT_STEPS = 24;
-const MOUNTAIN_RACE_DURATION_MS = 75_000;
+const MOUNTAIN_RACE_DURATION_MS = 30_000;
 
 function cleanPlayerId(value) {
   return String(value || '').trim().replace(/[^A-Za-z0-9._:-]/g, '').slice(0, 120);
@@ -23,7 +23,18 @@ function normalizeMountainRaceControl(value) {
 
 function createMountainRaceSequence(length = MOUNTAIN_RACE_DEFAULT_STEPS) {
   const total = clampInteger(length, 8, 80);
-  return Array.from({ length: total }, () => MOUNTAIN_RACE_CONTROLS[randomInt(0, MOUNTAIN_RACE_CONTROLS.length)]);
+  const sequence = [];
+  for (let index = 0; index < total; index += 1) {
+    const previous = sequence[index - 1] || '';
+    const beforePrevious = sequence[index - 2] || '';
+    let control = MOUNTAIN_RACE_CONTROLS[randomInt(0, MOUNTAIN_RACE_CONTROLS.length)];
+    if (control === previous && control === beforePrevious) {
+      const alternatives = MOUNTAIN_RACE_CONTROLS.filter(candidate => candidate !== control);
+      control = alternatives[randomInt(0, alternatives.length)];
+    }
+    sequence.push(control);
+  }
+  return sequence;
 }
 
 function createMountainRacePlayerState(playerId, sequenceLength) {
@@ -85,6 +96,7 @@ function applyMountainRaceInput(state, playerId, rawControl, actionId = '', now 
     player.promptIndex = Math.min(state.sequence.length, promptIndex + 1);
     player.acceptedInputs = clampInteger(player.acceptedInputs, 0, 10_000) + 1;
   } else {
+    player.promptIndex = Math.max(0, promptIndex - 1);
     player.rejectedInputs = clampInteger(player.rejectedInputs, 0, 10_000) + 1;
   }
 
