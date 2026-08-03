@@ -17,6 +17,28 @@ function replaceAll(source, search, replacement) {
   return source.includes(search) ? source.split(search).join(replacement) : source;
 }
 
+function ensureAtomicStateReset(section) {
+  if (section.includes('mountainraceState: null') || section.includes('mountainraceState:null')) return section;
+
+  const spaced = '    rouletteState: null,\n';
+  if (section.includes(spaced)) {
+    return section.replace(
+      spaced,
+      '    rouletteState: null,\n    safecrackerState: null,\n    mountainraceState: null,\n'
+    );
+  }
+
+  const compact = 'rouletteState:null,';
+  if (section.includes(compact)) {
+    return section.replace(
+      compact,
+      'rouletteState:null,safecrackerState:null,mountainraceState:null,'
+    );
+  }
+
+  throw new Error('Summit Sprint Remote Bot patch could not find the atomic state reset fields.');
+}
+
 let [data, action, html] = await Promise.all([
   readFile(dataUrl, 'utf8'),
   readFile(actionUrl, 'utf8'),
@@ -30,12 +52,14 @@ let [data, action, html] = await Promise.all([
 data = replaceAll(data, threeGameAllowlist, fiveGameAllowlist);
 data = replaceAll(data, fourGameAllowlist, fiveGameAllowlist);
 
-// Keep every Remote Bot reset path aligned with the complete supported-state
-// set. This covers both the direct and atomic attachment helpers.
-data = data.replace(
-  /blackjackState:null,drawState:null,fishingState:null,rouletteState:null,(?:safecrackerState:null,)?(?:mountainraceState:null,)?/g,
-  'blackjackState:null,drawState:null,fishingState:null,rouletteState:null,safecrackerState:null,mountainraceState:null,'
-);
+// Patch only the atomic helper's reset object. This avoids changing unrelated
+// game constructors while guaranteeing that a newly attached Summit Sprint bot
+// starts from a fresh authoritative mountain-race state.
+let atomicStart = data.indexOf('async function duelCreateRemoteNetworkBotGame(user, details = {})');
+let atomicEnd = data.indexOf('async function duelActionGame(user, gameId, details = {})', atomicStart);
+if (atomicStart < 0 || atomicEnd <= atomicStart) throw new Error('Summit Sprint Remote Bot patch could not isolate the atomic attachment helper.');
+let atomicSection = ensureAtomicStateReset(data.slice(atomicStart, atomicEnd));
+data = data.slice(0, atomicStart) + atomicSection + data.slice(atomicEnd);
 
 // Preserve Remote Bot identity through the shared player sanitizer. The id
 // prefix remains a fallback, but the explicit flag is now also available to
@@ -75,10 +99,10 @@ if (!data.includes(newGameNetworkFields)) {
   data = data.replace(oldGameNetworkFields, newGameNetworkFields);
 }
 
-const atomicStart = data.indexOf('async function duelCreateRemoteNetworkBotGame(user, details = {})');
-const atomicEnd = data.indexOf('async function duelActionGame(user, gameId, details = {})', atomicStart);
-if (atomicStart < 0 || atomicEnd <= atomicStart) throw new Error('Summit Sprint Remote Bot patch could not isolate the atomic attachment helper.');
-const atomicSection = data.slice(atomicStart, atomicEnd);
+atomicStart = data.indexOf('async function duelCreateRemoteNetworkBotGame(user, details = {})');
+atomicEnd = data.indexOf('async function duelActionGame(user, gameId, details = {})', atomicStart);
+if (atomicStart < 0 || atomicEnd <= atomicStart) throw new Error('Summit Sprint Remote Bot patch could not re-read the atomic attachment helper.');
+atomicSection = data.slice(atomicStart, atomicEnd);
 
 if (data.includes(threeGameAllowlist) || data.includes(fourGameAllowlist)) {
   throw new Error('A legacy Remote Bot allowlist still blocks Summit Sprint.');
@@ -89,7 +113,7 @@ if (occurrences(data, fiveGameAllowlist) < 2) {
 if (!atomicSection.includes(fiveGameAllowlist)) {
   throw new Error('The atomic Remote Bot attachment path still rejects Summit Sprint.');
 }
-if (!atomicSection.includes('mountainraceState:null')) {
+if (!atomicSection.includes('mountainraceState: null') && !atomicSection.includes('mountainraceState:null')) {
   throw new Error('The atomic Remote Bot attachment path does not reset Summit Sprint state.');
 }
 if (!data.includes('remoteNetworkTest: Boolean(game.remoteNetworkTest)') || !data.includes('remoteNetworkConfig: game.remoteNetworkConfig')) {
