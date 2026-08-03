@@ -30,27 +30,23 @@ jobs:
       - name: Run exact Netlify build command
         run: npm run build
 
-      - name: Verify generated reflective brushed control trim
+      - name: Verify generated silver control trim
         shell: bash
         run: |
           set -euo pipefail
           node scripts/validate-safe-cracker-control-trim.mjs
-          trim="$(sed -n '/SAFE_CRACKER_CONTROL_TRIM_V2_START/,/SAFE_CRACKER_CONTROL_TRIM_V2_END/p' assets/safe-cracker/safe-cracker.css)"
+          trim="$(sed -n '/SAFE_CRACKER_CONTROL_TRIM_V1_START/,/SAFE_CRACKER_CONTROL_TRIM_V1_END/p' assets/safe-cracker/safe-cracker.css)"
           grep -Fq '.sc-dial-wrap::after' <<<"$trim"
-          grep -Fq '.sc-step-controls button::after' <<<"$trim"
-          grep -Fq '.sc-display::after' <<<"$trim"
-          grep -Fq '.sc-confirm-button::after' <<<"$trim"
-          grep -Fq 'border-width: 5px' <<<"$trim"
-          grep -Fq 'linear-gradient(122deg' <<<"$trim"
-          grep -Fq 'repeating-linear-gradient(92deg' <<<"$trim"
-          grep -Fq -- '-webkit-mask-composite: xor' <<<"$trim"
-          grep -Fq 'mask-composite: exclude' <<<"$trim"
+          grep -Fq '.sc-step-controls button' <<<"$trim"
+          grep -Fq '.sc-display' <<<"$trim"
+          grep -Fq '.sc-confirm-button' <<<"$trim"
+          grep -Fq 'outline: 1px solid rgba(224, 232, 235, .96)' <<<"$trim"
           grep -Fq "font-family: Impact, Haettenschweiler, 'Arial Black', 'Segoe UI Black', sans-serif" <<<"$trim"
           grep -Fq 'font-size: 1.12rem' <<<"$trim"
-          grep -Fq '&trim=2' index.html
+          grep -Fq '&trim=1' index.html
           grep -Fq 'choice: `safecracker:guess:${runtime.selected}`' assets/safe-cracker/safe-cracker.js
 
-      - name: Verify live Netlify reflective brushed control trim
+      - name: Verify live Netlify silver control trim
         shell: bash
         run: |
           set -euo pipefail
@@ -58,23 +54,19 @@ jobs:
           function_url="${url}.netlify/functions/duel-action"
 
           for attempt in $(seq 1 42); do
-            html="$(curl -fsSL --max-time 20 "${url}?control_trim=2&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            css="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/safe-cracker.css?v=8&polish=2&dial=7&layout=7&latch=9&screw=1&trim=2&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            js="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/safe-cracker.js?v=8&polish=2&dial=7&layout=7&latch=9&screw=1&trim=2&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            html="$(curl -fsSL --max-time 20 "${url}?control_trim=1&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            css="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/safe-cracker.css?v=8&polish=2&dial=7&layout=7&latch=9&screw=1&trim=1&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            js="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/safe-cracker.js?v=8&polish=2&dial=7&layout=7&latch=9&screw=1&trim=1&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             headers="$(curl -fsS --max-time 20 -D - -o /dev/null -X OPTIONS "${function_url}?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            trim="$(sed -n '/SAFE_CRACKER_CONTROL_TRIM_V2_START/,/SAFE_CRACKER_CONTROL_TRIM_V2_END/p' <<<"$css")"
+            trim="$(sed -n '/SAFE_CRACKER_CONTROL_TRIM_V1_START/,/SAFE_CRACKER_CONTROL_TRIM_V1_END/p' <<<"$css")"
 
-            if grep -Fq '&trim=2' <<<"$html" && \
-               grep -Fq 'SAFE_CRACKER_CONTROL_TRIM_V2_START' <<<"$css" && \
+            if grep -Fq '&trim=1' <<<"$html" && \
+               grep -Fq 'SAFE_CRACKER_CONTROL_TRIM_V1_START' <<<"$css" && \
                grep -Fq '.sc-dial-wrap::after' <<<"$trim" && \
-               grep -Fq '.sc-step-controls button::after' <<<"$trim" && \
-               grep -Fq '.sc-display::after' <<<"$trim" && \
-               grep -Fq '.sc-confirm-button::after' <<<"$trim" && \
-               grep -Fq 'border-width: 5px' <<<"$trim" && \
-               grep -Fq 'linear-gradient(122deg' <<<"$trim" && \
-               grep -Fq 'repeating-linear-gradient(92deg' <<<"$trim" && \
-               grep -Fq -- '-webkit-mask-composite: xor' <<<"$trim" && \
-               grep -Fq 'mask-composite: exclude' <<<"$trim" && \
+               grep -Fq '.sc-step-controls button' <<<"$trim" && \
+               grep -Fq '.sc-display' <<<"$trim" && \
+               grep -Fq '.sc-confirm-button' <<<"$trim" && \
+               grep -Fq 'outline: 1px solid rgba(224, 232, 235, .96)' <<<"$trim" && \
                grep -Fq "font-family: Impact, Haettenschweiler, 'Arial Black', 'Segoe UI Black', sans-serif" <<<"$trim" && \
                grep -Fq 'font-size: 1.12rem' <<<"$trim" && \
                grep -Fq 'SAFE_CRACKER_SCREW_REFINEMENT_V1_START' <<<"$css" && \
@@ -82,13 +74,13 @@ jobs:
                grep -Fq 'SAFE_CRACKER_DIAL_ACTIVITY_V16_START' <<<"$js" && \
                grep -Fq 'choice: `safecracker:guess:${runtime.selected}`' <<<"$js" && \
                grep -Fiq 'x-duel-function-build: safecracker-direct-v8' <<<"$headers"; then
-              echo "Verified live Safe Cracker thicker brushed-steel control borders and reflective glare at ${url}"
+              echo "Verified live Safe Cracker polished silver control trim and blockier Check Number label at ${url}"
               exit 0
             fi
 
-            echo "Waiting for Netlify reflective Safe Cracker control trim (${attempt}/42)..."
+            echo "Waiting for Netlify Safe Cracker control trim (${attempt}/42)..."
             sleep 10
           done
 
-          echo 'Netlify preview did not serve the thicker brushed reflective control trim.' >&2
+          echo 'Netlify preview did not serve the silver control trim and blockier Check Number label.' >&2
           exit 1
