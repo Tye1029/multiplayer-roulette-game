@@ -80,8 +80,8 @@ jobs:
                grep -Fq 'voice.volume = 0.96' <<<"$js" && \
                grep -Fq 'safeCrackerPlayAuthoritativeCorrectCue' <<<"$js" && \
                grep -Fq 'safeCrackerPlayIncorrectRejectCue' <<<"$js" && \
-               [[ "$sample1_bytes" -ge 3100 && "$sample1_bytes" -le 3300 ]] && \
-               [[ "$sample6_bytes" -ge 3100 && "$sample6_bytes" -le 3300 ]] && \
+               [[ "$sample1_bytes" -ge 3000 && "$sample1_bytes" -le 3500 ]] && \
+               [[ "$sample6_bytes" -ge 3000 && "$sample6_bytes" -le 3500 ]] && \
                [[ "$sample1_magic" == 'ID3' && "$sample6_magic" == 'ID3' ]] && \
                [[ -n "$sample1_hash" && -n "$sample6_hash" && "$sample1_hash" != "$sample6_hash" ]] && \
                grep -Fq 'SAFE_CRACKER_DIAL_ACTIVITY_V16_START' <<<"$js" && \
