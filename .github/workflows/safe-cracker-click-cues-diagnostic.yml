@@ -40,7 +40,8 @@ jobs:
           grep -Fq 'safeCrackerPlayMetalDialClick' assets/safe-cracker/safe-cracker.js
           grep -Fq 'safeCrackerPlayIncorrectRejectCue' assets/safe-cracker/safe-cracker.js
           grep -Fq 'safeCrackerPlayAuthoritativeCorrectCue' assets/safe-cracker/safe-cracker.js
-          grep -Fq 'if (nextStage > previousStage) safeCrackerPlayAuthoritativeCorrectCue(nextGame, nextStage);' assets/safe-cracker/safe-cracker.js
+          grep -Fq 'safeCrackerRenderWithAuthoritativeCorrectCue' assets/safe-cracker/safe-cracker.js
+          grep -Fq 'if (sameGame && nextStage > previousStage)' assets/safe-cracker/safe-cracker.js
           grep -Fq '&clicks=16' index.html
 
       - name: Verify live Netlify click cues
@@ -61,7 +62,8 @@ jobs:
                grep -Fq 'safeCrackerPlayMetalDialClick' <<<"$js" && \
                grep -Fq 'safeCrackerPlayIncorrectRejectCue' <<<"$js" && \
                grep -Fq 'safeCrackerPlayAuthoritativeCorrectCue' <<<"$js" && \
-               grep -Fq 'if (nextStage > previousStage) safeCrackerPlayAuthoritativeCorrectCue(nextGame, nextStage);' <<<"$js" && \
+               grep -Fq 'safeCrackerRenderWithAuthoritativeCorrectCue' <<<"$js" && \
+               grep -Fq 'if (sameGame && nextStage > previousStage)' <<<"$js" && \
                grep -Fq 'SAFE_CRACKER_RECORDED_SOUNDS_V13_START' <<<"$js" && \
                grep -Fq 'SAFE_CRACKER_DIAL_ACTIVITY_V16_START' <<<"$js" && \
                grep -Fiq 'x-duel-function-build: safecracker-direct-v8' <<<"$headers"; then
