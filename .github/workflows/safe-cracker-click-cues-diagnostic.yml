@@ -63,7 +63,7 @@ jobs:
           function_url="${url}.netlify/functions/duel-action"
           expected_bytes='28160'
           expected_hash='f083e8341eaab8dd5c345128a2f084b9e93f7bdc7c48a2ab5b7fb978b38977cc'
-          local_joined="$(for part in 1 2 3 4 5 6; do tr -d '[:space:]' < "assets/safe-cracker/audio-data-v4/metallic-click-v27-part-${part}.b64"; done)"
+          local_joined="$(for part in 1 2 3 4 5 6 7; do tr -d '[:space:]' < "assets/safe-cracker/audio-data-v4/metallic-click-v27-part-${part}.b64"; done)"
           local_bytes="$(printf '%s' "$local_joined" | base64 -d | wc -c | tr -d ' ')"
           local_hash="$(printf '%s' "$local_joined" | base64 -d | sha256sum | awk '{print $1}')"
           [[ "$local_bytes" == "$expected_bytes" ]]
@@ -73,7 +73,7 @@ jobs:
             html="$(curl -fsSL --max-time 20 "${url}?clicks=27&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             js="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/safe-cracker.js?clicks=27&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             remote_joined=''
-            for part in 1 2 3 4 5 6; do
+            for part in 1 2 3 4 5 6 7; do
               remote_part="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/audio-data-v4/metallic-click-v27-part-${part}.b64?clicks=27&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
               remote_joined+="$(printf '%s' "$remote_part" | tr -d '[:space:]')"
             done
