@@ -11,9 +11,11 @@ const chunkPaths = Object.freeze([
   'metallic-click-v27-part-6a.b64',
   'metallic-click-v27-part-6b.b64',
   'metallic-click-v27-part-6c.b64',
-  'metallic-click-v27-part-6d.b64'
+  'metallic-click-v27-part-6d1.b64',
+  'metallic-click-v27-part-6d2.b64',
+  'metallic-click-v27-part-6d3.b64'
 ].map(name => `assets/safe-cracker/audio-data-v4/${name}`));
-const expectedChunkLengths = Object.freeze([6256, 6256, 6256, 6256, 6256, 1600, 1600, 1600, 1468]);
+const expectedChunkLengths = Object.freeze([6256, 6256, 6256, 6256, 6256, 1600, 1600, 1600, 800, 600, 68]);
 const expectedBase64Length = 37548;
 const expectedByteLength = 28160;
 const expectedHash = 'f083e8341eaab8dd5c345128a2f084b9e93f7bdc7c48a2ab5b7fb978b38977cc';
@@ -39,7 +41,7 @@ function occurrences(source, value) {
 
 const cleanChunks = chunkTexts.map(text => text.replace(/\s+/g, ''));
 const chunkLengths = cleanChunks.map(chunk => chunk.length);
-assert(cleanChunks.length === 9, 'exactly nine transport chunks are required');
+assert(cleanChunks.length === 11, 'exactly eleven transport chunks are required');
 assert(JSON.stringify(chunkLengths) === JSON.stringify(expectedChunkLengths), `chunk lengths ${JSON.stringify(chunkLengths)} do not match ${JSON.stringify(expectedChunkLengths)}`);
 for (const [indexValue, chunk] of cleanChunks.entries()) {
   assert(/^[A-Za-z0-9+/=]+$/.test(chunk), `chunk ${indexValue + 1} is not valid base64 text`);
