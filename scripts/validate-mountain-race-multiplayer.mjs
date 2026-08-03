@@ -78,8 +78,8 @@ for (const fragment of [
   'new CustomEvent("mountainrace:state"',
   "option.value = 'mountainrace'"
 ]) assert(html.includes(fragment), `generated multiplayer page is missing: ${fragment}`);
-assert(occurrences(html, 'data-mode="mountainrace"') === 1, 'launcher should contain one Summit Sprint button');
-assert(occurrences(html, 'data-rnb-game="mountainrace"') === 1, 'Remote Bot panel should contain one Summit Sprint button');
+assert(occurrences(html, '<button class="sth-game" data-mode="mountainrace"') === 1, 'launcher should contain one Summit Sprint button');
+assert(occurrences(html, '<button data-rnb-game="mountainrace"') === 1, 'Remote Bot panel should contain one Summit Sprint button');
 
 for (const fragment of [
   "const MODE = 'mountainrace'",
