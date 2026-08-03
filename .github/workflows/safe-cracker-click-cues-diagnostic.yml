@@ -30,78 +30,86 @@ jobs:
       - name: Run exact Netlify build command
         run: npm run build
 
-      - name: Verify generated clean PCM dial
+      - name: Verify generated original-source PCM dial
         shell: bash
         run: |
           set -euo pipefail
           node scripts/validate-safe-cracker-dial-sample-v18.mjs
-          grep -Fq 'SAFE_CRACKER_CLEAN_PCM_V26_START' assets/safe-cracker/safe-cracker.js
-          grep -Fq 'SAFE_CRACKER_CLEAN_CLICK_PCM_V26' assets/safe-cracker/safe-cracker.js
-          grep -Fq 'SAFE_CRACKER_CLEAN_CLICK_SOURCE_RATE_V26 = 16000' assets/safe-cracker/safe-cracker.js
-          grep -Fq 'SAFE_CRACKER_CLEAN_CLICK_RATE_V26 = 32000' assets/safe-cracker/safe-cracker.js
-          grep -Fq 'safeCrackerBuildCleanClickPcmV26' assets/safe-cracker/safe-cracker.js
-          grep -Fq 'const gentleAverage =' assets/safe-cracker/safe-cracker.js
-          grep -Fq 'const upsample =' assets/safe-cracker/safe-cracker.js
-          grep -Fq 'safeCrackerUnlockCleanClickPcmV26' assets/safe-cracker/safe-cracker.js
-          grep -Fq 'safeCrackerFireCleanClickPcmV26' assets/safe-cracker/safe-cracker.js
-          grep -Fq 'safeCrackerPlayCleanPcmDetentV26' assets/safe-cracker/safe-cracker.js
+          grep -Fq 'SAFE_CRACKER_ORIGINAL_PCM_V27_START' assets/safe-cracker/safe-cracker.js
+          grep -Fq 'SAFE_CRACKER_ORIGINAL_CLICK_PCM_V27' assets/safe-cracker/safe-cracker.js
+          grep -Fq 'SAFE_CRACKER_ORIGINAL_CLICK_RATE_V27 = 32000' assets/safe-cracker/safe-cracker.js
+          grep -Fq 'safeCrackerBuildOriginalClickPcmV27' assets/safe-cracker/safe-cracker.js
+          grep -Fq 'let signed = low | (high << 8);' assets/safe-cracker/safe-cracker.js
+          grep -Fq 'if (signed & 0x8000) signed -= 0x10000;' assets/safe-cracker/safe-cracker.js
+          grep -Fq 'safeCrackerUnlockOriginalClickPcmV27' assets/safe-cracker/safe-cracker.js
+          grep -Fq 'safeCrackerFireOriginalClickPcmV27' assets/safe-cracker/safe-cracker.js
+          grep -Fq 'safeCrackerPlayOriginalPcmDetentV27' assets/safe-cracker/safe-cracker.js
           grep -Fq 'gain.connect(context.destination);' assets/safe-cracker/safe-cracker.js
           grep -Fq 'source.start(context.currentTime);' assets/safe-cracker/safe-cracker.js
-          grep -Fq 'safeCrackerStartSmoothVaultRoomToneV26' assets/safe-cracker/safe-cracker.js
+          grep -Fq 'safeCrackerStartSmoothVaultRoomToneV27' assets/safe-cracker/safe-cracker.js
           grep -Fq 'safeCrackerPlayAuthoritativeCorrectCue' assets/safe-cracker/safe-cracker.js
           grep -Fq 'safeCrackerPlayIncorrectRejectCue' assets/safe-cracker/safe-cracker.js
-          grep -Fq '&clicks=26' index.html
-          ! grep -Fq 'SAFE_CRACKER_UPLOADED_PCM_V25_START' assets/safe-cracker/safe-cracker.js
-          ! grep -Fq 'safeCrackerPlayUploadedPcmDetentV25' assets/safe-cracker/safe-cracker.js
+          grep -Fq '&clicks=27' index.html
+          ! grep -Fq 'SAFE_CRACKER_CLEAN_PCM_V26_START' assets/safe-cracker/safe-cracker.js
+          ! grep -Fq 'safeCrackerPlayCleanPcmDetentV26' assets/safe-cracker/safe-cracker.js
+          ! grep -Fq 'const gentleAverage =' assets/safe-cracker/safe-cracker.js
+          ! grep -Fq 'const upsample =' assets/safe-cracker/safe-cracker.js
 
-      - name: Verify live clean PCM dial
+      - name: Verify live original-source PCM dial
         shell: bash
         run: |
           set -euo pipefail
           url='https://deploy-preview-19--famous-piroshki-b621da.netlify.app/'
           function_url="${url}.netlify/functions/duel-action"
-          local_sample='assets/safe-cracker/audio-data-v3/bank-vault-dial-click-1.b64'
-          expected_bytes="$(tr -d '[:space:]' < "$local_sample" | base64 -d | wc -c | tr -d ' ')"
-          expected_hash="$(tr -d '[:space:]' < "$local_sample" | base64 -d | sha256sum | awk '{print $1}')"
+          expected_bytes='28160'
+          expected_hash='f083e8341eaab8dd5c345128a2f084b9e93f7bdc7c48a2ab5b7fb978b38977cc'
+          local_joined="$(for part in 1 2 3 4 5 6; do tr -d '[:space:]' < "assets/safe-cracker/audio-data-v4/metallic-click-v27-part-${part}.b64"; done)"
+          local_bytes="$(printf '%s' "$local_joined" | base64 -d | wc -c | tr -d ' ')"
+          local_hash="$(printf '%s' "$local_joined" | base64 -d | sha256sum | awk '{print $1}')"
+          [[ "$local_bytes" == "$expected_bytes" ]]
+          [[ "$local_hash" == "$expected_hash" ]]
 
           for attempt in $(seq 1 48); do
-            html="$(curl -fsSL --max-time 20 "${url}?clicks=26&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            js="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/safe-cracker.js?clicks=26&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            sample="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/audio-data-v3/bank-vault-dial-click-1.b64?clicks=26&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            html="$(curl -fsSL --max-time 20 "${url}?clicks=27&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            js="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/safe-cracker.js?clicks=27&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            remote_joined=''
+            for part in 1 2 3 4 5 6; do
+              remote_part="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/audio-data-v4/metallic-click-v27-part-${part}.b64?clicks=27&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+              remote_joined+="$(printf '%s' "$remote_part" | tr -d '[:space:]')"
+            done
             headers="$(curl -fsS --max-time 20 -D - -o /dev/null -X OPTIONS "${function_url}?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
 
-            sample_bytes="$(printf '%s' "$sample" | tr -d '[:space:]' | base64 -d 2>/dev/null | wc -c | tr -d ' ' || true)"
-            sample_hash="$(printf '%s' "$sample" | tr -d '[:space:]' | base64 -d 2>/dev/null | sha256sum | awk '{print $1}' || true)"
+            remote_bytes="$(printf '%s' "$remote_joined" | base64 -d 2>/dev/null | wc -c | tr -d ' ' || true)"
+            remote_hash="$(printf '%s' "$remote_joined" | base64 -d 2>/dev/null | sha256sum | awk '{print $1}' || true)"
 
-            if grep -Fq '&clicks=26' <<<"$html" && \
-               grep -Fq 'SAFE_CRACKER_CLEAN_PCM_V26_START' <<<"$js" && \
-               grep -Fq 'SAFE_CRACKER_CLEAN_CLICK_PCM_V26' <<<"$js" && \
-               grep -Fq 'SAFE_CRACKER_CLEAN_CLICK_SOURCE_RATE_V26 = 16000' <<<"$js" && \
-               grep -Fq 'SAFE_CRACKER_CLEAN_CLICK_RATE_V26 = 32000' <<<"$js" && \
-               grep -Fq 'safeCrackerBuildCleanClickPcmV26' <<<"$js" && \
-               grep -Fq 'const gentleAverage =' <<<"$js" && \
-               grep -Fq 'const upsample =' <<<"$js" && \
-               grep -Fq 'safeCrackerUnlockCleanClickPcmV26' <<<"$js" && \
-               grep -Fq 'safeCrackerFireCleanClickPcmV26' <<<"$js" && \
-               grep -Fq 'safeCrackerPlayCleanPcmDetentV26' <<<"$js" && \
+            if grep -Fq '&clicks=27' <<<"$html" && \
+               grep -Fq 'SAFE_CRACKER_ORIGINAL_PCM_V27_START' <<<"$js" && \
+               grep -Fq 'SAFE_CRACKER_ORIGINAL_CLICK_PCM_V27' <<<"$js" && \
+               grep -Fq 'SAFE_CRACKER_ORIGINAL_CLICK_RATE_V27 = 32000' <<<"$js" && \
+               grep -Fq 'safeCrackerBuildOriginalClickPcmV27' <<<"$js" && \
+               grep -Fq 'let signed = low | (high << 8);' <<<"$js" && \
+               grep -Fq 'if (signed & 0x8000) signed -= 0x10000;' <<<"$js" && \
+               grep -Fq 'safeCrackerUnlockOriginalClickPcmV27' <<<"$js" && \
+               grep -Fq 'safeCrackerFireOriginalClickPcmV27' <<<"$js" && \
+               grep -Fq 'safeCrackerPlayOriginalPcmDetentV27' <<<"$js" && \
                grep -Fq 'gain.connect(context.destination);' <<<"$js" && \
                grep -Fq 'source.start(context.currentTime);' <<<"$js" && \
-               grep -Fq 'safeCrackerStartSmoothVaultRoomToneV26' <<<"$js" && \
+               grep -Fq 'safeCrackerStartSmoothVaultRoomToneV27' <<<"$js" && \
                grep -Fq 'safeCrackerPlayAuthoritativeCorrectCue' <<<"$js" && \
                grep -Fq 'safeCrackerPlayIncorrectRejectCue' <<<"$js" && \
-               ! grep -Fq 'SAFE_CRACKER_UPLOADED_PCM_V25_START' <<<"$js" && \
-               ! grep -Fq 'safeCrackerPlayUploadedPcmDetentV25' <<<"$js" && \
-               [[ "$sample_bytes" == "$expected_bytes" ]] && \
-               [[ "$sample_hash" == "$expected_hash" ]] && \
+               ! grep -Fq 'SAFE_CRACKER_CLEAN_PCM_V26_START' <<<"$js" && \
+               ! grep -Fq 'safeCrackerPlayCleanPcmDetentV26' <<<"$js" && \
+               [[ "$remote_bytes" == "$expected_bytes" ]] && \
+               [[ "$remote_hash" == "$expected_hash" ]] && \
                grep -Fq 'SAFE_CRACKER_DIAL_ACTIVITY_V16_START' <<<"$js" && \
                grep -Fiq 'x-duel-function-build: safecracker-direct-v8' <<<"$headers"; then
-              echo "Verified live Safe Cracker clean PCM dial v26 at ${url}"
+              echo "Verified live Safe Cracker original-source PCM dial v27 at ${url}"
               exit 0
             fi
 
-            echo "Waiting for Netlify Safe Cracker clean PCM dial v26 (${attempt}/48)..."
+            echo "Waiting for Netlify Safe Cracker original-source PCM dial v27 (${attempt}/48)..."
             sleep 10
           done
 
-          echo 'Netlify preview did not serve the Safe Cracker v26 clean interpolated PCM waveform, direct WebAudio route, smooth room tone, and protected result cues.' >&2
+          echo 'Netlify preview did not serve the Safe Cracker v27 exact 32 kHz signed 16-bit source waveform, direct WebAudio route, smooth room tone, and protected result cues.' >&2
           exit 1
