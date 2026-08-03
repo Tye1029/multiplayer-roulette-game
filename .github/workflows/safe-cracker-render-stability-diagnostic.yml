@@ -8,6 +8,10 @@ on:
     branches:
       - safe-cracker-development
 
+concurrency:
+  group: safe-cracker-render-feedback-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
