@@ -46,8 +46,17 @@ jobs:
             if (at < 0) throw new Error(`Missing generated join wiring: ${needle}`);
             console.log(`\n--- ${needle} ---\n${source.slice(Math.max(0, at - radius), at + needle.length + radius)}\n`);
           }
+          function showMatches(source, pattern, radius = 650) {
+            const matches = [...source.matchAll(pattern)];
+            if (!matches.length) throw new Error(`Missing generated join wiring pattern: ${pattern}`);
+            matches.slice(0, 12).forEach((match, index) => {
+              const at = match.index;
+              console.log(`\n--- ${pattern} match ${index + 1}/${matches.length} ---\n${source.slice(Math.max(0, at - radius), at + match[0].length + radius)}\n`);
+            });
+          }
           show(html, 'data-rnb-game="mountainrace"');
-          show(html, 'action:"remote-bot"');
+          showMatches(html, /remote-bot/gi);
+          showMatches(html, /rnb-games/gi, 1000);
           show(data, 'async function duelAddRemoteNetworkBot');
           show(data, 'Remote Network Bot supports Roulette, Draw, Fishing, Safe Cracker, and Summit Sprint.');
           NODE
