@@ -30,7 +30,7 @@ for (let index = 0; index + 1 < sampleBytes.length; index += 1) {
 assert(sampleBytes.length >= 5400 && sampleBytes.length <= 5700, `embedded click decoded size ${sampleBytes.length} is outside the exact 400 ms range`);
 assert(sampleBytes.subarray(0, 3).toString('ascii') === 'ID3' || sampleBytes[0] === 0xff, 'embedded click is not an MP3 payload');
 assert(frameSyncs >= 18, `embedded click contains only ${frameSyncs} MPEG frame markers`);
-assert(sampleHash === '0ecdc10f4f71dcbd670e2accee467543c898a67c814341db4981be82eaae7196', `embedded click checksum changed: ${sampleHash}`);
+assert(sampleHash === 'cdad6e1c31fb97c70f8cea1aa48d88d64131c2e436390c1ceda933ce4233a63b', `embedded click checksum changed: ${sampleHash}`);
 
 const sectionStart = client.indexOf('// SAFE_CRACKER_DIAL_SAMPLE_V23_START');
 const sectionEnd = client.indexOf('// SAFE_CRACKER_DIAL_SAMPLE_V23_END', sectionStart);
