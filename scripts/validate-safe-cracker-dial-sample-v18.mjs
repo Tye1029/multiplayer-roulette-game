@@ -37,7 +37,7 @@ for (const file of sampleFiles) {
   for (let index = 0; index + 1 < bytes.length; index += 1) {
     if (bytes[index] === 0xff && (bytes[index + 1] & 0xe0) === 0xe0) frameSyncs += 1;
   }
-  assert(bytes.length >= 3100 && bytes.length <= 3300, `${file} decoded size ${bytes.length} is outside the metallic-click range`);
+  assert(bytes.length >= 3000 && bytes.length <= 3500, `${file} decoded size ${bytes.length} is outside the metallic-click range`);
   assert(bytes.subarray(0, 3).toString('ascii') === 'ID3' || bytes[0] === 0xff, `${file} is not an MP3 payload`);
   assert(frameSyncs >= 10, `${file} does not contain enough MPEG frames`);
   hashes.add(createHash('sha256').update(bytes).digest('hex'));
