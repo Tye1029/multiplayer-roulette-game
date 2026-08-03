@@ -37,12 +37,12 @@ jobs:
           node scripts/validate-safe-cracker-latch-sequence.mjs
           node scripts/validate-safe-cracker-latch-refinement.mjs
           base="$(sed -n '/SAFE_CRACKER_LATCH_SEQUENCE_V1_START/,/SAFE_CRACKER_LATCH_SEQUENCE_V1_END/p' assets/safe-cracker/safe-cracker.css)"
-          refine="$(sed -n '/SAFE_CRACKER_LATCH_REFINEMENT_V7_START/,/SAFE_CRACKER_LATCH_REFINEMENT_V7_END/p' assets/safe-cracker/safe-cracker.css)"
+          refine="$(sed -n '/SAFE_CRACKER_LATCH_REFINEMENT_V8_START/,/SAFE_CRACKER_LATCH_REFINEMENT_V8_END/p' assets/safe-cracker/safe-cracker.css)"
           grep -Fq 'background-color: #aab4b8 !important' <<<"$base"
           grep -Fq 'animation: scSafeCrackerLatchReleaseV1 1.15s' <<<"$base"
           grep -Fq 'position: absolute !important' <<<"$refine"
-          grep -Fq 'top: calc(23% + 4px)' <<<"$refine"
-          grep -Fq 'top: calc(23% + 7px)' <<<"$refine"
+          grep -Fq 'top: calc(22.5% + 2px)' <<<"$refine"
+          grep -Fq 'top: calc(22.5% + 5px)' <<<"$refine"
           grep -Fq 'scale(.9)' <<<"$refine"
           grep -Fq 'scale(.86)' <<<"$refine"
           grep -Fq 'scale(.68)' <<<"$refine"
@@ -58,11 +58,14 @@ jobs:
           grep -Fq '.sc-latch-screw::after' <<<"$refine"
           grep -Fq 'linear-gradient(112deg' <<<"$refine"
           grep -Fq 'linear-gradient(164deg' <<<"$refine"
+          grep -Fq 'linear-gradient(115deg' <<<"$refine"
+          grep -Fq 'rgba(255,255,255,.58)' <<<"$refine"
+          grep -Fq '#e7ecee 43%' <<<"$refine"
           ! grep -Fq 'repeating-linear-gradient' <<<"$refine"
           grep -Fq 'class="sc-latch-spine" aria-hidden="true"' assets/safe-cracker/safe-cracker.js
           grep -Fq 'class="sc-latch-screw" aria-hidden="true"' assets/safe-cracker/safe-cracker.js
           test "$(grep -Fo 'data-sc-mounted-latches=' assets/safe-cracker/safe-cracker.js | wc -l | tr -d ' ')" = '2'
-          grep -Fq '&layout=7&latch=7' index.html
+          grep -Fq '&layout=7&latch=8' index.html
           grep -Fq 'choice: `safecracker:guess:${runtime.selected}`' assets/safe-cracker/safe-cracker.js
 
       - name: Verify live Netlify refined latch assemblies
@@ -73,15 +76,15 @@ jobs:
           function_url="${url}.netlify/functions/duel-action"
 
           for attempt in $(seq 1 42); do
-            html="$(curl -fsSL --max-time 20 "${url}?latch_sequence=7&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            css="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/safe-cracker.css?v=8&polish=2&dial=7&layout=7&latch=7&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            js="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/safe-cracker.js?v=8&polish=2&dial=7&layout=7&latch=7&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            html="$(curl -fsSL --max-time 20 "${url}?latch_sequence=8&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            css="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/safe-cracker.css?v=8&polish=2&dial=7&layout=7&latch=8&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            js="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/safe-cracker.js?v=8&polish=2&dial=7&layout=7&latch=8&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             headers="$(curl -fsS --max-time 20 -D - -o /dev/null -X OPTIONS "${function_url}?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            refine="$(sed -n '/SAFE_CRACKER_LATCH_REFINEMENT_V7_START/,/SAFE_CRACKER_LATCH_REFINEMENT_V7_END/p' <<<"$css")"
+            refine="$(sed -n '/SAFE_CRACKER_LATCH_REFINEMENT_V8_START/,/SAFE_CRACKER_LATCH_REFINEMENT_V8_END/p' <<<"$css")"
 
-            if grep -Fq '&layout=7&latch=7' <<<"$html" && \
-               grep -Fq 'SAFE_CRACKER_LATCH_REFINEMENT_V7_START' <<<"$css" && \
-               grep -Fq 'top: calc(23% + 7px)' <<<"$refine" && \
+            if grep -Fq '&layout=7&latch=8' <<<"$html" && \
+               grep -Fq 'SAFE_CRACKER_LATCH_REFINEMENT_V8_START' <<<"$css" && \
+               grep -Fq 'top: calc(22.5% + 5px)' <<<"$refine" && \
                grep -Fq 'transform: scale(.86)' <<<"$refine" && \
                grep -Fq 'transform: translateY(-50%) scale(.62)' <<<"$refine" && \
                grep -Fq 'right: -11px' <<<"$refine" && \
@@ -92,6 +95,9 @@ jobs:
                grep -Fq '.sc-latch-screw::before' <<<"$refine" && \
                grep -Fq '.sc-latch-screw::after' <<<"$refine" && \
                grep -Fq 'linear-gradient(112deg' <<<"$refine" && \
+               grep -Fq 'linear-gradient(115deg' <<<"$refine" && \
+               grep -Fq 'rgba(255,255,255,.58)' <<<"$refine" && \
+               grep -Fq '#e7ecee 43%' <<<"$refine" && \
                ! grep -Fq 'repeating-linear-gradient' <<<"$refine" && \
                grep -Fq 'class="sc-latch-spine" aria-hidden="true"' <<<"$js" && \
                grep -Fq 'class="sc-latch-screw" aria-hidden="true"' <<<"$js" && \
@@ -100,13 +106,13 @@ jobs:
                grep -Fq 'SAFE_CRACKER_DIAL_ACTIVITY_V16_START' <<<"$js" && \
                grep -Fq 'choice: `safecracker:guess:${runtime.selected}`' <<<"$js" && \
                grep -Fiq 'x-duel-function-build: safecracker-direct-v8' <<<"$headers"; then
-              echo "Verified live Safe Cracker latch v7 raised upper placement, reduced top/bottom hardware, irregular scratched brushed metal, and protected release sequence at ${url}"
+              echo "Verified live Safe Cracker latch v8 higher upper placement, stronger brushed steel, reflective glare, and protected release sequence at ${url}"
               exit 0
             fi
 
-            echo "Waiting for Netlify Safe Cracker latch refinement v7 (${attempt}/42)..."
+            echo "Waiting for Netlify Safe Cracker latch refinement v8 (${attempt}/42)..."
             sleep 10
           done
 
-          echo 'Netlify preview did not serve the raised and resized six-latch placement, irregular scratched brushed metal, and protected release sequence.' >&2
+          echo 'Netlify preview did not serve the slightly raised six-latch placement, reflective brushed-metal finish, and protected release sequence.' >&2
           exit 1
