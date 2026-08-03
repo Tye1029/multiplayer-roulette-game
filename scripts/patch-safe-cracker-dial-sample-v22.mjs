@@ -51,7 +51,11 @@ const originalPcmChunkLengths = originalPcmChunks.map(chunk => chunk.length);
 if (JSON.stringify(originalPcmChunkLengths) !== JSON.stringify(expectedChunkLengths)) {
   throw new Error(`Safe Cracker original PCM v27 chunk lengths ${JSON.stringify(originalPcmChunkLengths)} do not match ${JSON.stringify(expectedChunkLengths)}.`);
 }
-const originalPcmBase64 = originalPcmChunks.join('');
+if (!originalPcmChunks[5].endsWith('=') || !originalPcmChunks[6].endsWith('=')) {
+  throw new Error('Safe Cracker original PCM v27 tail chunks do not contain the expected padding markers.');
+}
+const repairedTail = originalPcmChunks[5].slice(0, -1) + 'A' + originalPcmChunks[6];
+const originalPcmBase64 = originalPcmChunks.slice(0, 5).join('') + repairedTail;
 if (!/^[A-Za-z0-9+/=]+$/.test(originalPcmBase64)) {
   throw new Error('Safe Cracker original PCM v27 chunks are not valid transport-safe base64.');
 }
