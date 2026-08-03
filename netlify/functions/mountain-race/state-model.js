@@ -6,6 +6,7 @@ const MOUNTAIN_RACE_MODE = 'mountainrace';
 const MOUNTAIN_RACE_CONTROLS = Object.freeze(['up', 'left', 'right', 'down']);
 const MOUNTAIN_RACE_DEFAULT_STEPS = 24;
 const MOUNTAIN_RACE_DURATION_MS = 30_000;
+const MOUNTAIN_RACE_COUNTDOWN_MS = 3_000;
 
 function cleanPlayerId(value) {
   return String(value || '').trim().replace(/[^A-Za-z0-9._:-]/g, '').slice(0, 120);
@@ -53,24 +54,30 @@ function createMountainRacePlayerState(playerId, sequenceLength) {
   };
 }
 
-function createMountainRaceState({ playerIds = [], now = Date.now(), sequenceLength = MOUNTAIN_RACE_DEFAULT_STEPS } = {}) {
+function createMountainRaceState({
+  playerIds = [],
+  now = Date.now(),
+  sequenceLength = MOUNTAIN_RACE_DEFAULT_STEPS,
+  countdownMs = MOUNTAIN_RACE_COUNTDOWN_MS
+} = {}) {
   const ids = [...new Set(playerIds.map(cleanPlayerId).filter(Boolean))];
   if (ids.length !== 2) throw new Error('Summit Sprint requires exactly two players.');
 
   const total = clampInteger(sequenceLength, 8, 80);
-  const startAt = new Date(Number(now) + 3_000).toISOString();
-  const endAt = new Date(Number(now) + 3_000 + MOUNTAIN_RACE_DURATION_MS).toISOString();
+  const countdown = clampInteger(countdownMs, 0, 15_000);
+  const startAtMs = Number(now) + countdown;
 
   return {
     roundId: `mountain-${randomUUID()}`,
     revision: 0,
-    startAt,
-    endAt,
+    startAt: new Date(startAtMs).toISOString(),
+    endAt: new Date(startAtMs + MOUNTAIN_RACE_DURATION_MS).toISOString(),
     sequence: createMountainRaceSequence(total),
     players: Object.fromEntries(ids.map(id => [id, createMountainRacePlayerState(id, total)])),
     processedActionIds: [],
     winnerId: null,
-    completedAt: null
+    completedAt: null,
+    npcActionAt: null
   };
 }
 
@@ -121,9 +128,10 @@ function applyMountainRaceInput(state, playerId, rawControl, actionId = '', now 
 
 function publicMountainRaceState(state, viewerId) {
   const viewer = cleanPlayerId(viewerId);
+  const total = Array.isArray(state?.sequence) ? state.sequence.length : 0;
   const players = Object.fromEntries(Object.entries(state?.players || {}).map(([id, player]) => [id, {
     playerId: id,
-    promptIndex: clampInteger(player.promptIndex, 0, state?.sequence?.length || 0),
+    promptIndex: clampInteger(player.promptIndex, 0, total),
     acceptedInputs: clampInteger(player.acceptedInputs, 0, 10_000),
     rejectedInputs: clampInteger(player.rejectedInputs, 0, 10_000),
     progress: Math.min(1, Math.max(0, Number(player.progress) || 0)),
@@ -135,7 +143,7 @@ function publicMountainRaceState(state, viewerId) {
     finishedAt: player.finishedAt || null
   }]));
 
-  const ownPromptIndex = clampInteger(players[viewer]?.promptIndex, 0, state?.sequence?.length || 0);
+  const ownPromptIndex = clampInteger(players[viewer]?.promptIndex, 0, total);
 
   return {
     roundId: String(state?.roundId || ''),
@@ -144,6 +152,7 @@ function publicMountainRaceState(state, viewerId) {
     endAt: state?.endAt || null,
     players,
     prompts: Array.isArray(state?.sequence) ? state.sequence.slice(ownPromptIndex, ownPromptIndex + 4) : [],
+    stepsTotal: total,
     winnerId: cleanPlayerId(state?.winnerId),
     completedAt: state?.completedAt || null
   };
@@ -154,6 +163,7 @@ module.exports = {
   MOUNTAIN_RACE_CONTROLS,
   MOUNTAIN_RACE_DEFAULT_STEPS,
   MOUNTAIN_RACE_DURATION_MS,
+  MOUNTAIN_RACE_COUNTDOWN_MS,
   normalizeMountainRaceControl,
   createMountainRaceSequence,
   createMountainRacePlayerState,
