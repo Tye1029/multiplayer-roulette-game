@@ -56,7 +56,7 @@ jobs:
           set -euo pipefail
           url='https://deploy-preview-19--famous-piroshki-b621da.netlify.app/'
           function_url="${url}.netlify/functions/duel-action"
-          expected_hash='0ecdc10f4f71dcbd670e2accee467543c898a67c814341db4981be82eaae7196'
+          expected_hash='cdad6e1c31fb97c70f8cea1aa48d88d64131c2e436390c1ceda933ce4233a63b'
 
           for attempt in $(seq 1 48); do
             html="$(curl -fsSL --max-time 20 "${url}?clicks=23&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
