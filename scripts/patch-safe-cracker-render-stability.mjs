@@ -14,6 +14,16 @@ function replaceOnce(source, before, after, label) {
   return source.slice(0, first) + after + source.slice(first + before.length);
 }
 
+function replaceInsideRender(source, pattern, replacement, label) {
+  const start = source.indexOf('  function render(game) {');
+  const end = source.indexOf('\n  function applyDialVisual()', start);
+  if (start < 0 || end < 0) throw new Error('Safe Cracker render-stability patch could not isolate render(game).');
+  const section = source.slice(start, end);
+  if (section.includes(replacement)) return source;
+  if (!pattern.test(section)) throw new Error(`Safe Cracker render-stability patch could not find ${label}.`);
+  return source.slice(0, start) + section.replace(pattern, replacement) + source.slice(end);
+}
+
 let client = await readFile(clientUrl, 'utf8');
 
 for (const required of [
@@ -158,15 +168,15 @@ if (!client.includes(marker)) {
   client = replaceOnce(
     client,
     '    mount.innerHTML = `',
-    '    const reusedMountedBoard = safeCrackerUpdateMountedBoard(game);\n    if (!reusedMountedBoard) {\n      mount.innerHTML = `',
+    '    const reusedMountedBoard = safeCrackerUpdateMountedBoard(game);\n    if (!reusedMountedBoard) mount.innerHTML = `',
     'full-board HTML replacement'
   );
 
-  client = replaceOnce(
+  client = replaceInsideRender(
     client,
-    '    runtime.feedbackFresh = false;\n    bindControls(mount, game);\n    updateTimerOnly();',
-    '      bindControls(mount, game);\n    }\n    runtime.feedbackFresh = false;\n    updateTimerOnly();',
-    'render completion and control binding'
+    /\n(\s*)bindControls\(mount, game\);/,
+    '\n$1if (!reusedMountedBoard) bindControls(mount, game);',
+    'render control binding'
   );
 }
 
