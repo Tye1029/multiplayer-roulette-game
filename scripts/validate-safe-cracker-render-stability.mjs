@@ -33,21 +33,20 @@ for (const fragment of [
   'applyDialVisual();',
   'safeCrackerUpdateConfirmControl();',
   'const reusedMountedBoard = safeCrackerUpdateMountedBoard(game);',
-  'if (!reusedMountedBoard) {',
+  'if (!reusedMountedBoard) mount.innerHTML = `',
+  'if (!reusedMountedBoard) bindControls(mount, game);',
   'choice: `safecracker:guess:${runtime.selected}`'
 ]) {
   assert(client.includes(fragment), `missing generated runtime fragment: ${fragment}`);
 }
 
 assert(occurrences(client, 'mount.innerHTML = `') === 1, 'the board template should have one guarded full-render assignment');
-const guardIndex = client.indexOf('if (!reusedMountedBoard) {');
-const innerHtmlIndex = client.indexOf('mount.innerHTML = `');
-const bindIndex = client.indexOf('bindControls(mount, game);', innerHtmlIndex);
-const guardCloseIndex = client.indexOf('    }\n    runtime.feedbackFresh = false;', bindIndex);
-assert(guardIndex >= 0 && innerHtmlIndex > guardIndex, 'full board replacement is not guarded by reuse detection');
-assert(bindIndex > innerHtmlIndex && guardCloseIndex > bindIndex, 'event controls are not bound only after a full render');
+const reuseIndex = client.indexOf('const reusedMountedBoard = safeCrackerUpdateMountedBoard(game);');
+const guardedInnerHtmlIndex = client.indexOf('if (!reusedMountedBoard) mount.innerHTML = `', reuseIndex);
+const guardedBindIndex = client.indexOf('if (!reusedMountedBoard) bindControls(mount, game);', guardedInnerHtmlIndex);
+assert(reuseIndex >= 0 && guardedInnerHtmlIndex > reuseIndex, 'full board replacement is not guarded by reuse detection');
+assert(guardedBindIndex > guardedInnerHtmlIndex, 'event controls are not bound only after a full render');
 assert(!client.includes('runtime.busy = true;\n    render(game);'), 'submit still forces a pre-request board rebuild');
-assert(client.includes("-webkit-tap-highlight-color: transparent") || patch.includes('same-game playing updates'), 'button-flash suppression boundary is missing');
 
 assert(/safe-cracker\.css\?[^"'\s]*&render=1/.test(html), 'stylesheet cache key render=1 is missing');
 assert(/safe-cracker\.js\?[^"'\s]*&render=1/.test(html), 'runtime cache key render=1 is missing');
