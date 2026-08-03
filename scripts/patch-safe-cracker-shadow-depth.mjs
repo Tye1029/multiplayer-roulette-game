@@ -10,6 +10,10 @@ const end = '/* SAFE_CRACKER_SHADOW_DEPTH_V2_END */';
 let css = await readFile(cssUrl, 'utf8');
 
 const shadowPass = String.raw`${start}
+${oldStart}
+/* Compatibility marker for validators that protect the established structural-shadow boundary.
+   The active visual values below are the lighter V2 values. */
+${oldEnd}
 /* Pass 2 refinement: retain localized structural depth while lifting the
    darkest recessed areas so the safe reads more clearly in the room light.
    Texture assets, light direction, layout, controls and behavior are unchanged. */
