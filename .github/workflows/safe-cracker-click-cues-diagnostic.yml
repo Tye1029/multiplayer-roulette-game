@@ -67,8 +67,8 @@ jobs:
                grep -Fq 'safeCrackerPlayRecordedBankVaultDetent' <<<"$js" && \
                grep -Fq 'safeCrackerPlayAuthoritativeCorrectCue' <<<"$js" && \
                grep -Fq 'safeCrackerPlayIncorrectRejectCue' <<<"$js" && \
-               [[ "$sample1_hash" == 'cc8a6c2c74db52e6724dc8701426f9fa193b597010061707817d42b417a9187a' ]] && \
-               [[ "$sample6_hash" == 'b713dc148e2a5b83fbf1b7c5055b04210c8818d32cae458b7db119f59cf0d37c' ]] && \
+               [[ "$sample1_hash" == 'b78cbaad689722538fa593f9e24662cb6829cfc052fe8a0708951b4c66f88cd4' ]] && \
+               [[ "$sample6_hash" == '53a5dbec1789cd8c94ee6e45f23d0b987936064bb1e23d05756e8bb7a3dd9856' ]] && \
                grep -Fq 'SAFE_CRACKER_DIAL_ACTIVITY_V16_START' <<<"$js" && \
                grep -Fiq 'x-duel-function-build: safecracker-direct-v8' <<<"$headers"; then
               echo "Verified live Safe Cracker bank-vault dial samples v18 at ${url}"
