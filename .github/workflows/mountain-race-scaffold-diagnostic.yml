@@ -34,6 +34,24 @@ jobs:
       - name: Run exact Netlify build
         run: npm run build
 
+      - name: Inspect generated Remote Bot join wiring
+        shell: bash
+        run: |
+          node <<'NODE'
+          const { readFileSync } = require('node:fs');
+          const html = readFileSync('index.html', 'utf8');
+          const data = readFileSync('netlify/functions/_data.js', 'utf8');
+          function show(source, needle, radius = 850) {
+            const at = source.indexOf(needle);
+            if (at < 0) throw new Error(`Missing generated join wiring: ${needle}`);
+            console.log(`\n--- ${needle} ---\n${source.slice(Math.max(0, at - radius), at + needle.length + radius)}\n`);
+          }
+          show(html, 'data-rnb-game="mountainrace"');
+          show(html, 'action:"remote-bot"');
+          show(data, 'async function duelAddRemoteNetworkBot');
+          show(data, 'Remote Network Bot supports Roulette, Draw, Fishing, Safe Cracker, and Summit Sprint.');
+          NODE
+
       - name: Check Summit Sprint JavaScript syntax
         run: |
           node --check assets/mountain-race/mountain-race.js
