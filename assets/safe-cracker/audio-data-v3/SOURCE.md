@@ -10,4 +10,4 @@ Dial processing:
 - Runtime playback continues to use two preloaded native HTML audio voices per sample so rapid dial movement can overlap without cutting off the previous click.
 - A short dry mechanical fallback remains available only while native media is still loading or if playback is rejected.
 
-Background ambience remains the V21 smooth room tone. The repeating recorded impacts are still disabled. Correct-number, incorrect-number, intro, and vault-opening cues remain separate and unchanged.
+The background ambience remains the V21 smooth room tone. The repeating recorded impacts are still disabled. Correct-number, incorrect-number, intro, and vault-opening cues remain separate and unchanged.
