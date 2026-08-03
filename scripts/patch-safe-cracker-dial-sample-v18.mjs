@@ -2,8 +2,10 @@ import { readFile, writeFile } from 'node:fs/promises';
 
 const clientUrl = new URL('../assets/safe-cracker/safe-cracker.js', import.meta.url);
 const indexUrl = new URL('../index.html', import.meta.url);
-const start = '// SAFE_CRACKER_DIAL_SAMPLE_V18_START';
-const end = '// SAFE_CRACKER_DIAL_SAMPLE_V18_END';
+const oldStart = '// SAFE_CRACKER_DIAL_SAMPLE_V18_START';
+const oldEnd = '// SAFE_CRACKER_DIAL_SAMPLE_V18_END';
+const start = '// SAFE_CRACKER_DIAL_SAMPLE_V19_START';
+const end = '// SAFE_CRACKER_DIAL_SAMPLE_V19_END';
 
 let client = await readFile(clientUrl, 'utf8');
 if (!client.includes('// SAFE_CRACKER_DIAL_CLICK_V17_START')) {
@@ -13,10 +15,20 @@ if (!client.includes('// SAFE_CRACKER_RECORDED_SOUNDS_V13_START')) {
   throw new Error('Bank-vault dial samples require the recorded audio loader.');
 }
 
-if (!client.includes(start)) {
-  const patch = String.raw`
+function removeSection(source, begin, finish) {
+  const from = source.indexOf(begin);
+  if (from < 0) return source;
+  const to = source.indexOf(finish, from);
+  if (to < 0) throw new Error(`Could not close ${begin}.`);
+  return source.slice(0, from) + source.slice(to + finish.length);
+}
+
+client = removeSection(client, oldStart, oldEnd);
+client = removeSection(client, start, end);
+
+const patch = String.raw`
   ${start}
-  const SAFE_CRACKER_DIAL_SAMPLES_V18 = Object.freeze([
+  const SAFE_CRACKER_DIAL_SAMPLES_V19 = Object.freeze([
     '/assets/safe-cracker/audio-data-v3/bank-vault-dial-click-1.b64',
     '/assets/safe-cracker/audio-data-v3/bank-vault-dial-click-2.b64',
     '/assets/safe-cracker/audio-data-v3/bank-vault-dial-click-3.b64',
@@ -25,15 +37,15 @@ if (!client.includes(start)) {
     '/assets/safe-cracker/audio-data-v3/bank-vault-dial-click-6.b64'
   ]);
 
-  function safeCrackerLoadBankVaultDialSamples() {
+  function safeCrackerLoadBankVaultDialSamplesV19() {
     const context = audioContext();
     if (!context) return Promise.resolve([]);
-    if (Array.isArray(runtime.safeCrackerBankVaultDialBuffers) && runtime.safeCrackerBankVaultDialBuffers.length === SAFE_CRACKER_DIAL_SAMPLES_V18.length) {
-      return Promise.resolve(runtime.safeCrackerBankVaultDialBuffers);
+    if (Array.isArray(runtime.safeCrackerBankVaultDialBuffersV19) && runtime.safeCrackerBankVaultDialBuffersV19.length === SAFE_CRACKER_DIAL_SAMPLES_V19.length) {
+      return Promise.resolve(runtime.safeCrackerBankVaultDialBuffersV19);
     }
-    if (runtime.safeCrackerBankVaultDialPromise) return runtime.safeCrackerBankVaultDialPromise;
-    runtime.safeCrackerBankVaultDialPromise = Promise.all(SAFE_CRACKER_DIAL_SAMPLES_V18.map(url =>
-      fetch(url + '?clicks=18', { cache: 'force-cache' })
+    if (runtime.safeCrackerBankVaultDialPromiseV19) return runtime.safeCrackerBankVaultDialPromiseV19;
+    runtime.safeCrackerBankVaultDialPromiseV19 = Promise.all(SAFE_CRACKER_DIAL_SAMPLES_V19.map(url =>
+      fetch(url + '?clicks=19', { cache: 'force-cache' })
         .then(response => {
           if (!response.ok) throw new Error('Bank-vault dial sample request failed at ' + url);
           return response.text();
@@ -41,81 +53,68 @@ if (!client.includes(start)) {
         .then(text => context.decodeAudioData(safeCrackerRecordedBytes(text)))
     ))
       .then(buffers => {
-        runtime.safeCrackerBankVaultDialBuffers = buffers;
+        runtime.safeCrackerBankVaultDialBuffersV19 = buffers;
         return buffers;
       })
       .catch(error => {
-        console.warn('[Safe Cracker audio] Failed to load bank-vault dial samples', error);
+        console.warn('[Safe Cracker audio] Failed to load v19 bank-vault dial samples', error);
         return [];
       })
-      .finally(() => { runtime.safeCrackerBankVaultDialPromise = null; });
-    return runtime.safeCrackerBankVaultDialPromise;
+      .finally(() => { runtime.safeCrackerBankVaultDialPromiseV19 = null; });
+    return runtime.safeCrackerBankVaultDialPromiseV19;
   }
 
-  function safeCrackerPlayBankVaultDialSample(digit) {
+  function safeCrackerPlayBankVaultDialSampleV19(digit) {
     const context = resumeAudio();
-    const buffers = runtime.safeCrackerBankVaultDialBuffers;
+    const buffers = runtime.safeCrackerBankVaultDialBuffersV19;
     if (!context || document.hidden || !Array.isArray(buffers) || !buffers.length) {
-      safeCrackerLoadBankVaultDialSamples();
+      safeCrackerLoadBankVaultDialSamplesV19();
       return false;
     }
-    const step = Math.abs(Number(digit) || 0);
-    const previous = Number(runtime.safeCrackerBankVaultDialIndex || 0);
-    const index = (previous + 1 + (step % 2)) % buffers.length;
-    runtime.safeCrackerBankVaultDialIndex = index;
+    const previous = Number(runtime.safeCrackerBankVaultDialIndexV19 ?? -1);
+    const index = (previous + 1) % buffers.length;
+    runtime.safeCrackerBankVaultDialIndexV19 = index;
     const source = context.createBufferSource();
-    const highpass = context.createBiquadFilter();
-    const lowpass = context.createBiquadFilter();
     const gain = context.createGain();
     source.buffer = buffers[index];
-    const rate = 0.985 + (step % 5) * 0.007;
-    source.playbackRate.setValueAtTime(rate, context.currentTime);
-    highpass.type = 'highpass';
-    highpass.frequency.setValueAtTime(135, context.currentTime);
-    lowpass.type = 'lowpass';
-    lowpass.frequency.setValueAtTime(10800, context.currentTime);
-    gain.gain.setValueAtTime(0.0001, context.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.5, context.currentTime + 0.003);
-    gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.13);
-    source.connect(highpass);
-    highpass.connect(lowpass);
-    lowpass.connect(gain);
+    source.playbackRate.setValueAtTime(1, context.currentTime);
+    gain.gain.setValueAtTime(0.66, context.currentTime);
+    gain.gain.setValueAtTime(0.66, context.currentTime + Math.max(0.02, source.buffer.duration - 0.035));
+    gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + source.buffer.duration);
+    source.connect(gain);
     gain.connect(safeCrackerAudioBus(context));
     source.start(context.currentTime);
     return true;
   }
 
-  const safeCrackerBankVaultDialFallback = safeCrackerPlayDetent;
-  safeCrackerPlayDetent = function safeCrackerPlayRecordedBankVaultDetent(digit) {
+  safeCrackerPlayDetent = function safeCrackerPlayUnfilteredBankVaultDetent(digit) {
     const now = performance.now();
-    if (now - Number(runtime.safeCrackerBankVaultDialAt || 0) < 28) return;
-    runtime.safeCrackerBankVaultDialAt = now;
-    const played = safeCrackerPlayBankVaultDialSample(digit);
-    if (!played) safeCrackerBankVaultDialFallback(digit);
-    else safeCrackerHaptic(3);
+    if (now - Number(runtime.safeCrackerBankVaultDialAtV19 || 0) < 24) return;
+    runtime.safeCrackerBankVaultDialAtV19 = now;
+    const played = safeCrackerPlayBankVaultDialSampleV19(digit);
+    if (played) safeCrackerHaptic(3);
   };
   playDetent = safeCrackerPlayDetent;
 
-  document.addEventListener('pointerdown', safeCrackerLoadBankVaultDialSamples, { capture: true, passive: true });
-  document.addEventListener('keydown', safeCrackerLoadBankVaultDialSamples, { capture: true });
-  window.setTimeout(safeCrackerLoadBankVaultDialSamples, 0);
+  document.addEventListener('pointerdown', safeCrackerLoadBankVaultDialSamplesV19, { capture: true, passive: true });
+  document.addEventListener('keydown', safeCrackerLoadBankVaultDialSamplesV19, { capture: true });
+  window.setTimeout(safeCrackerLoadBankVaultDialSamplesV19, 0);
   ${end}
 `;
 
-  const closing = '\n})();';
-  const closingIndex = client.lastIndexOf(closing);
-  if (closingIndex < 0) throw new Error('Bank-vault dial sample patch could not find the runtime closure.');
-  client = client.slice(0, closingIndex) + patch + client.slice(closingIndex);
-}
+const closing = '\n})();';
+const closingIndex = client.lastIndexOf(closing);
+if (closingIndex < 0) throw new Error('Bank-vault dial sample patch could not find the runtime closure.');
+client = client.slice(0, closingIndex) + patch + client.slice(closingIndex);
 
 const required = [
   start,
-  'const SAFE_CRACKER_DIAL_SAMPLES_V18 = Object.freeze([',
-  'function safeCrackerLoadBankVaultDialSamples()',
-  'function safeCrackerPlayBankVaultDialSample(digit)',
-  'function safeCrackerPlayRecordedBankVaultDetent(digit)',
-  'safeCrackerRecordedBytes(text)',
-  'gain.gain.exponentialRampToValueAtTime(0.5',
+  'const SAFE_CRACKER_DIAL_SAMPLES_V19 = Object.freeze([',
+  'function safeCrackerLoadBankVaultDialSamplesV19()',
+  'function safeCrackerPlayBankVaultDialSampleV19(digit)',
+  'function safeCrackerPlayUnfilteredBankVaultDetent(digit)',
+  'source.playbackRate.setValueAtTime(1',
+  'gain.gain.setValueAtTime(0.66',
   'playDetent = safeCrackerPlayDetent;',
   'safeCrackerPlayAuthoritativeCorrectCue',
   'safeCrackerPlayIncorrectRejectCue',
@@ -124,16 +123,16 @@ const required = [
 for (const fragment of required) {
   if (!client.includes(fragment)) throw new Error(`Bank-vault dial sample patch is missing ${fragment}.`);
 }
-if ((client.match(/SAFE_CRACKER_DIAL_SAMPLE_V18_START/g) || []).length !== 1) {
-  throw new Error('Bank-vault dial sample marker must appear exactly once.');
+if ((client.match(/SAFE_CRACKER_DIAL_SAMPLE_V19_START/g) || []).length !== 1) {
+  throw new Error('Bank-vault dial sample v19 marker must appear exactly once.');
 }
 await writeFile(clientUrl, client);
 
 let html = await readFile(indexUrl, 'utf8');
 html = html.replace(/\/assets\/safe-cracker\/safe-cracker\.js\?[^"'\s]*/g, value => {
   const clean = value.replace(/&clicks=\d+/g, '');
-  return `${clean}&clicks=18`;
+  return `${clean}&clicks=19`;
 });
 await writeFile(indexUrl, html);
 
-console.log('Applied Safe Cracker dial sample v18: six real bank-vault detents replace the generated ratchet while result cues remain unchanged.');
+console.log('Applied Safe Cracker dial sample v19: longer minimally processed bank-vault clicks play at original speed with no synthetic fallback.');
