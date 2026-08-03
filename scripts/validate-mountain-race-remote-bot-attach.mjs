@@ -29,16 +29,17 @@ assert(atomicStart >= 0 && actionStart > atomicStart, 'atomic attachment helper 
 
 const directSection = data.slice(directStart, atomicStart);
 const atomicSection = data.slice(atomicStart, actionStart);
+const compactAtomic = atomicSection.replace(/\s+/g, '');
 
 assert(!data.includes(threeGameAllowlist), 'legacy three-game allowlist remains');
 assert(!data.includes(fourGameAllowlist), 'legacy four-game allowlist remains');
 assert(occurrences(data, fiveGameAllowlist) >= 2, 'both attachment helpers do not share the Summit Sprint allowlist');
 assert(directSection.includes(fiveGameAllowlist), 'direct attachment rejects Summit Sprint');
 assert(atomicSection.includes(fiveGameAllowlist), 'testing-dock atomic attachment rejects Summit Sprint');
-assert(atomicSection.includes('mountainraceState:null'), 'atomic attachment does not reset Summit Sprint state');
-assert(atomicSection.includes('remoteNetworkTest:true'), 'atomic attachment does not mark the Remote Bot game');
-assert(atomicSection.includes('joiner:bot'), 'atomic attachment does not install the bot as joiner');
-assert(atomicSection.includes('ready:{[game.creator.userId]:false,[bot.userId]:false}'), 'atomic attachment does not create both Ready flags');
+assert(compactAtomic.includes('mountainraceState:null'), 'atomic attachment does not reset Summit Sprint state');
+assert(compactAtomic.includes('remoteNetworkTest:true'), 'atomic attachment does not mark the Remote Bot game');
+assert(compactAtomic.includes('joiner:bot'), 'atomic attachment does not install the bot as joiner');
+assert(compactAtomic.includes('ready:{[game.creator.userId]:false,[bot.userId]:false}'), 'atomic attachment does not create both Ready flags');
 
 assert(data.includes('const isRemoteBot = Boolean(player.isRemoteBot) || userId.startsWith("remote-bot-");'), 'player sanitizer loses Remote Bot identity');
 assert(data.includes('    isRemoteBot,'), 'public player snapshot omits Remote Bot identity');
@@ -55,6 +56,7 @@ assert(html.includes("const mode=String(current?.mode||selectedMode||'roulette')
 assert(html.includes(deploymentMarker), 'deployed page lacks the Summit Sprint Remote Bot fix marker');
 
 assert(patch.includes('replaceAll(data, fourGameAllowlist, fiveGameAllowlist)'), 'patch does not sweep every stale four-game allowlist');
+assert(patch.includes('ensureAtomicStateReset'), 'patch does not repair the atomic Summit Sprint state reset');
 assert(patch.includes('Both direct and atomic Remote Bot attachment paths must support Summit Sprint.'), 'patch lacks a two-path attachment guard');
 assert(patch.includes('writeFile(indexUrl, html)'), 'patch does not write its deployment marker');
 
