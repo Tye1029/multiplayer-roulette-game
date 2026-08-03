@@ -36,7 +36,9 @@ assert(JSON.stringify(chunkLengths) === JSON.stringify(expectedChunkLengths), `c
 for (const [indexValue, chunk] of cleanChunks.entries()) {
   assert(/^[A-Za-z0-9+/=]+$/.test(chunk), `chunk ${indexValue + 1} is not valid base64 text`);
 }
-const originalBase64 = cleanChunks.join('');
+assert(cleanChunks[5].endsWith('=') && cleanChunks[6].endsWith('='), 'tail transport chunks do not contain their expected padding markers');
+const repairedTail = cleanChunks[5].slice(0, -1) + 'A' + cleanChunks[6];
+const originalBase64 = cleanChunks.slice(0, 5).join('') + repairedTail;
 const originalBytes = Buffer.from(originalBase64, 'base64');
 const originalHash = createHash('sha256').update(originalBytes).digest('hex');
 assert(originalBase64.length === expectedBase64Length, `combined base64 length ${originalBase64.length} does not match ${expectedBase64Length}`);
