@@ -1,4 +1,4 @@
-name: Summit Sprint Scaffold Diagnostic
+name: Summit Sprint Prototype Diagnostic
 
 on:
   pull_request:
@@ -9,14 +9,14 @@ on:
       - mountain-race-development
 
 concurrency:
-  group: summit-sprint-scaffold-${{ github.ref }}
+  group: summit-sprint-prototype-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
-  validate-scaffold:
+  validate-prototype:
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
@@ -38,9 +38,24 @@ jobs:
         run: |
           node --check assets/mountain-race/mountain-race.js
           node --check netlify/functions/mountain-race/state-model.js
+          node --check scripts/validate-mountain-race-scaffold.mjs
 
-      - name: Validate Summit Sprint isolation and state model
+      - name: Validate playable prototype and state model
         run: node scripts/validate-mountain-race-scaffold.mjs
+
+      - name: Verify standalone prototype assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s mountain-race-preview.html
+          grep -Fq 'data-mountain-race-demo' mountain-race-preview.html
+          grep -Fq 'const TOTAL_HOLDS = 24;' assets/mountain-race/mountain-race.js
+          grep -Fq 'const RACE_DURATION_MS = 30_000;' assets/mountain-race/mountain-race.js
+          grep -Fq 'const BOT_ERROR_RATE = 0.08;' assets/mountain-race/mountain-race.js
+          grep -Fq "root.addEventListener('pointerdown'" assets/mountain-race/mountain-race.js
+          grep -Fq '.mountain-race-game .mr-mountain-wall' assets/mountain-race/mountain-race.css
+          grep -Fq '.mountain-race-game .mr-climber.slip' assets/mountain-race/mountain-race.css
+          grep -Fq '.mountain-race-game .mr-direction-pad' assets/mountain-race/mountain-race.css
 
       - name: Verify protected game files remain present
         run: |
@@ -49,3 +64,33 @@ jobs:
           test -s assets/roulette/turn-animation.js
           test -s assets/roulette/turn-fire.js
           test -s assets/roulette/audio-bindings.js
+
+      - name: Verify live Netlify prototype preview
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          url='https://deploy-preview-20--famous-piroshki-b621da.netlify.app/'
+
+          for attempt in $(seq 1 42); do
+            page="$(curl -fsSL --max-time 20 "${url}mountain-race-preview.html?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            js="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race.js?prototype=1&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            css="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race.css?prototype=1&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+
+            if grep -Fq 'data-mountain-race-demo' <<<"$page" && \
+               grep -Fq 'const TOTAL_HOLDS = 24;' <<<"$js" && \
+               grep -Fq 'const RACE_DURATION_MS = 30_000;' <<<"$js" && \
+               grep -Fq 'const BOT_ERROR_RATE = 0.08;' <<<"$js" && \
+               grep -Fq "root.addEventListener('pointerdown'" <<<"$js" && \
+               grep -Fq '.mountain-race-game .mr-mountain-wall' <<<"$css" && \
+               grep -Fq '.mountain-race-game .mr-climber.slip' <<<"$css"; then
+              echo "Verified live Summit Sprint prototype at ${url}mountain-race-preview.html"
+              exit 0
+            fi
+
+            echo "Waiting for Netlify Summit Sprint prototype (${attempt}/42)..."
+            sleep 10
+          done
+
+          echo 'Netlify did not serve the current Summit Sprint prototype.' >&2
+          exit 1
