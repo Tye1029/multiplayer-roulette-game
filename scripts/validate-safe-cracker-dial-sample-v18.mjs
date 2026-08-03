@@ -3,12 +3,12 @@ import { readFile } from 'node:fs/promises';
 
 const root = new URL('../', import.meta.url);
 const sampleSpec = Object.freeze([
-  ['bank-vault-dial-click-1.b64', 'cc8a6c2c74db52e6724dc8701426f9fa193b597010061707817d42b417a9187a'],
-  ['bank-vault-dial-click-2.b64', '5bda3950abd1aaaca650ed643e0ad9e7f0d84cd7cbb1e693bbcde0bc8babef5e'],
-  ['bank-vault-dial-click-3.b64', 'e949245fd7d2002ea907e43c8e75f94a225b46491e74b994f3dab96f24d8b8db'],
-  ['bank-vault-dial-click-4.b64', '2c4af5b8a258b8fc245bebd31ac5a1181bc5a2f7d98e81147e8b69cc84d1bc49'],
-  ['bank-vault-dial-click-5.b64', '7580e56c1b3d0e4466e67f90f33711ea8d3cddaf7a3240ec17050d2aa562e219'],
-  ['bank-vault-dial-click-6.b64', 'b713dc148e2a5b83fbf1b7c5055b04210c8818d32cae458b7db119f59cf0d37c']
+  ['bank-vault-dial-click-1.b64', 'b78cbaad689722538fa593f9e24662cb6829cfc052fe8a0708951b4c66f88cd4'],
+  ['bank-vault-dial-click-2.b64', 'f26c50de07c8a34ab485121e5660d5eef7b56808d1d774a280f5f75ac48a7554'],
+  ['bank-vault-dial-click-3.b64', '82ecfced65b0973a8de90df571be4d39670282ca3d9b93760fb666231b135088'],
+  ['bank-vault-dial-click-4.b64', 'a4d3a1fd9c7981bf9f3777e215ec8eafbb15e5256ef48277150a6cff7652bb36'],
+  ['bank-vault-dial-click-5.b64', '173cc8cd77dbba1fa2dca6e4ca6223a77562de3aa895a6c4aae3ce81e3d1ecdb'],
+  ['bank-vault-dial-click-6.b64', '53a5dbec1789cd8c94ee6e45f23d0b987936064bb1e23d05756e8bb7a3dd9856']
 ]);
 
 const [client, index, patch, sourceNote, turnAnimation, turnFire, audioBindings] = await Promise.all([
@@ -33,7 +33,7 @@ for (const [file, expectedHash] of sampleSpec) {
   const text = await readFile(new URL(`assets/safe-cracker/audio-data-v3/${file}`, root), 'utf8');
   const bytes = Buffer.from(text.replace(/\s+/g, ''), 'base64');
   const hash = createHash('sha256').update(bytes).digest('hex');
-  assert(bytes.length === 2204, `${file} decoded size is ${bytes.length}, expected 2204`);
+  assert(bytes.length === 2187, `${file} decoded size is ${bytes.length}, expected 2187`);
   assert(hash === expectedHash, `${file} checksum is ${hash}, expected ${expectedHash}`);
   assert(bytes.subarray(0, 3).toString('ascii') === 'ID3' || bytes[0] === 0xff, `${file} is not an MP3 payload`);
 }
