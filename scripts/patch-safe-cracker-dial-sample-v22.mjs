@@ -49,14 +49,15 @@ for (const [begin, finish] of sections) {
   while (client.includes(begin)) client = removeSection(client, begin, finish);
 }
 
-const originalPcmBase64 = (await Promise.all(chunkUrls.map(url => readFile(url, 'utf8'))))
-  .map(text => text.replace(/\s+/g, ''))
-  .join('');
+const originalPcmChunks = (await Promise.all(chunkUrls.map(url => readFile(url, 'utf8'))))
+  .map(text => text.replace(/\s+/g, ''));
+const originalPcmChunkLengths = originalPcmChunks.map(chunk => chunk.length);
+const originalPcmBase64 = originalPcmChunks.join('');
 if (!/^[A-Za-z0-9+/=]+$/.test(originalPcmBase64)) {
   throw new Error('Safe Cracker original PCM v27 chunks are not valid transport-safe base64.');
 }
 if (originalPcmBase64.length !== expectedBase64Length) {
-  throw new Error(`Safe Cracker original PCM v27 base64 length ${originalPcmBase64.length} does not match ${expectedBase64Length}.`);
+  throw new Error(`Safe Cracker original PCM v27 chunk lengths ${JSON.stringify(originalPcmChunkLengths)} total ${originalPcmBase64.length} do not match ${expectedBase64Length}.`);
 }
 const originalPcmBytes = Buffer.from(originalPcmBase64, 'base64');
 const originalPcmHash = createHash('sha256').update(originalPcmBytes).digest('hex');
