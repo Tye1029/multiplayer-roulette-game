@@ -1,9 +1,11 @@
-import { randomInt, randomUUID } from 'node:crypto';
+'use strict';
 
-export const MOUNTAIN_RACE_MODE = 'mountainrace';
-export const MOUNTAIN_RACE_CONTROLS = Object.freeze(['up', 'left', 'right', 'down']);
-export const MOUNTAIN_RACE_DEFAULT_STEPS = 24;
-export const MOUNTAIN_RACE_DURATION_MS = 75_000;
+const { randomInt, randomUUID } = require('node:crypto');
+
+const MOUNTAIN_RACE_MODE = 'mountainrace';
+const MOUNTAIN_RACE_CONTROLS = Object.freeze(['up', 'left', 'right', 'down']);
+const MOUNTAIN_RACE_DEFAULT_STEPS = 24;
+const MOUNTAIN_RACE_DURATION_MS = 75_000;
 
 function cleanPlayerId(value) {
   return String(value || '').trim().replace(/[^A-Za-z0-9._:-]/g, '').slice(0, 120);
@@ -14,17 +16,17 @@ function clampInteger(value, min, max) {
   return Math.min(max, Math.max(min, Number.isFinite(number) ? number : min));
 }
 
-export function normalizeMountainRaceControl(value) {
+function normalizeMountainRaceControl(value) {
   const token = String(value || '').trim().toLowerCase();
   return MOUNTAIN_RACE_CONTROLS.includes(token) ? token : '';
 }
 
-export function createMountainRaceSequence(length = MOUNTAIN_RACE_DEFAULT_STEPS) {
+function createMountainRaceSequence(length = MOUNTAIN_RACE_DEFAULT_STEPS) {
   const total = clampInteger(length, 8, 80);
   return Array.from({ length: total }, () => MOUNTAIN_RACE_CONTROLS[randomInt(0, MOUNTAIN_RACE_CONTROLS.length)]);
 }
 
-export function createMountainRacePlayerState(playerId, sequenceLength) {
+function createMountainRacePlayerState(playerId, sequenceLength) {
   const id = cleanPlayerId(playerId);
   if (!id) throw new Error('Summit Sprint requires a valid player id.');
 
@@ -40,7 +42,7 @@ export function createMountainRacePlayerState(playerId, sequenceLength) {
   };
 }
 
-export function createMountainRaceState({ playerIds = [], now = Date.now(), sequenceLength = MOUNTAIN_RACE_DEFAULT_STEPS } = {}) {
+function createMountainRaceState({ playerIds = [], now = Date.now(), sequenceLength = MOUNTAIN_RACE_DEFAULT_STEPS } = {}) {
   const ids = [...new Set(playerIds.map(cleanPlayerId).filter(Boolean))];
   if (ids.length !== 2) throw new Error('Summit Sprint requires exactly two players.');
 
@@ -61,7 +63,7 @@ export function createMountainRaceState({ playerIds = [], now = Date.now(), sequ
   };
 }
 
-export function applyMountainRaceInput(state, playerId, rawControl, actionId = '', now = Date.now()) {
+function applyMountainRaceInput(state, playerId, rawControl, actionId = '', now = Date.now()) {
   const id = cleanPlayerId(playerId);
   const control = normalizeMountainRaceControl(rawControl);
   const cleanActionId = String(actionId || '').replace(/[^A-Za-z0-9._:-]/g, '').slice(0, 120);
@@ -105,7 +107,7 @@ export function applyMountainRaceInput(state, playerId, rawControl, actionId = '
   };
 }
 
-export function publicMountainRaceState(state, viewerId) {
+function publicMountainRaceState(state, viewerId) {
   const viewer = cleanPlayerId(viewerId);
   const players = Object.fromEntries(Object.entries(state?.players || {}).map(([id, player]) => [id, {
     playerId: id,
@@ -134,3 +136,16 @@ export function publicMountainRaceState(state, viewerId) {
     completedAt: state?.completedAt || null
   };
 }
+
+module.exports = {
+  MOUNTAIN_RACE_MODE,
+  MOUNTAIN_RACE_CONTROLS,
+  MOUNTAIN_RACE_DEFAULT_STEPS,
+  MOUNTAIN_RACE_DURATION_MS,
+  normalizeMountainRaceControl,
+  createMountainRaceSequence,
+  createMountainRacePlayerState,
+  createMountainRaceState,
+  applyMountainRaceInput,
+  publicMountainRaceState
+};
