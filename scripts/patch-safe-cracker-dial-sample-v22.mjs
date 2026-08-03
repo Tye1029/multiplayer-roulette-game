@@ -3,8 +3,19 @@ import { readFile, writeFile } from 'node:fs/promises';
 
 const clientUrl = new URL('../assets/safe-cracker/safe-cracker.js', import.meta.url);
 const indexUrl = new URL('../index.html', import.meta.url);
-const chunkUrls = Object.freeze(Array.from({ length: 7 }, (_, index) =>
-  new URL(`../assets/safe-cracker/audio-data-v4/metallic-click-v27-part-${index + 1}.b64`, import.meta.url)
+const chunkPaths = Object.freeze([
+  'metallic-click-v27-part-1.b64',
+  'metallic-click-v27-part-2.b64',
+  'metallic-click-v27-part-3.b64',
+  'metallic-click-v27-part-4.b64',
+  'metallic-click-v27-part-5.b64',
+  'metallic-click-v27-part-6a.b64',
+  'metallic-click-v27-part-6b.b64',
+  'metallic-click-v27-part-6c.b64',
+  'metallic-click-v27-part-6d.b64'
+]);
+const chunkUrls = Object.freeze(chunkPaths.map(path =>
+  new URL(`../assets/safe-cracker/audio-data-v4/${path}`, import.meta.url)
 ));
 const sections = Object.freeze([
   ['// SAFE_CRACKER_DIAL_SAMPLE_V18_START', '// SAFE_CRACKER_DIAL_SAMPLE_V18_END'],
@@ -20,7 +31,7 @@ const sections = Object.freeze([
 ]);
 const start = '// SAFE_CRACKER_ORIGINAL_PCM_V27_START';
 const end = '// SAFE_CRACKER_ORIGINAL_PCM_V27_END';
-const expectedChunkLengths = Object.freeze([6256, 6256, 6256, 6256, 6256, 6172, 96]);
+const expectedChunkLengths = Object.freeze([6256, 6256, 6256, 6256, 6256, 1600, 1600, 1600, 1468]);
 const expectedBase64Length = 37548;
 const expectedByteLength = 28160;
 const expectedHash = 'f083e8341eaab8dd5c345128a2f084b9e93f7bdc7c48a2ab5b7fb978b38977cc';
@@ -51,11 +62,7 @@ const originalPcmChunkLengths = originalPcmChunks.map(chunk => chunk.length);
 if (JSON.stringify(originalPcmChunkLengths) !== JSON.stringify(expectedChunkLengths)) {
   throw new Error(`Safe Cracker original PCM v27 chunk lengths ${JSON.stringify(originalPcmChunkLengths)} do not match ${JSON.stringify(expectedChunkLengths)}.`);
 }
-if (!originalPcmChunks[5].endsWith('=') || !originalPcmChunks[6].endsWith('=')) {
-  throw new Error('Safe Cracker original PCM v27 tail chunks do not contain the expected padding markers.');
-}
-const repairedTail = originalPcmChunks[5].slice(0, -1) + 'A' + originalPcmChunks[6];
-const originalPcmBase64 = originalPcmChunks.slice(0, 5).join('') + repairedTail;
+const originalPcmBase64 = originalPcmChunks.join('');
 if (!/^[A-Za-z0-9+/=]+$/.test(originalPcmBase64)) {
   throw new Error('Safe Cracker original PCM v27 chunks are not valid transport-safe base64.');
 }
