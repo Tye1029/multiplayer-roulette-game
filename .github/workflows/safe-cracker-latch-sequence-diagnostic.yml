@@ -30,7 +30,7 @@ jobs:
       - name: Run exact Netlify build command
         run: npm run build
 
-      - name: Verify generated latch sequence
+      - name: Verify generated mounted latch assemblies
         shell: bash
         run: |
           set -euo pipefail
@@ -51,25 +51,39 @@ jobs:
           ! grep -Fq '#855515' <<<"$block"
           ! grep -Fq '#4d3010' <<<"$block"
           ! grep -Fq '0 7px 0' <<<"$block"
+          grep -Fq 'Six fixed mounting assemblies' <<<"$block"
+          grep -Fq '.sc-latch-mount::before' <<<"$block"
+          grep -Fq 'width: 45px' <<<"$block"
+          grep -Fq '.sc-latch-mount::after' <<<"$block"
+          grep -Fq 'Inward-facing mounting ear with one recessed screw' <<<"$block"
+          grep -Fq 'radial-gradient(circle at 50% 10px' <<<"$block"
+          grep -Fq '#9ba6ab 1.5px 3px' <<<"$block"
+          grep -Fq '#080b0d 5.5px 6.5px' <<<"$block"
+          grep -Fq '.sc-bolts.left .sc-latch-mount::after' <<<"$block"
+          grep -Fq '.sc-bolts.right .sc-latch-mount::after' <<<"$block"
+          grep -Fq '.sc-latch-mount > i' <<<"$block"
+          grep -Fq '#c2cbce 46%' <<<"$block"
           grep -Fq '.sc-bolts.right i.sc-latch-released' <<<"$block"
           grep -Fq 'transform .82s cubic-bezier(.2,.85,.28,1)' <<<"$block"
           grep -Fq 'filter .58s ease' <<<"$block"
           grep -Fq 'opacity .58s ease' <<<"$block"
           grep -Fq 'animation: scSafeCrackerLatchReleaseV1 1.15s' <<<"$block"
           ! grep -Fq 'animation: scSafeCrackerLatchReleaseV1 .82s' <<<"$block"
-          grep -Fq 'right: -4px' <<<"$block"
           grep -Fq 'SAFE_CRACKER_LATCH_SEQUENCE_V1_RUNTIME' assets/safe-cracker/safe-cracker.js
           grep -Fq 'SAFE_CRACKER_LATCH_SEQUENCE_V1_HELPER' assets/safe-cracker/safe-cracker.js
+          grep -Fq 'function safeCrackerLatchMount' assets/safe-cracker/safe-cracker.js
+          grep -Fq 'function safeCrackerStaticLatchBank' assets/safe-cracker/safe-cracker.js
           grep -Fq 'function safeCrackerLatchBank(game, me)' assets/safe-cracker/safe-cracker.js
-          grep -Fq 'data-sc-latch-stage=' assets/safe-cracker/safe-cracker.js
-          grep -Fq 'latchClass(1)' assets/safe-cracker/safe-cracker.js
-          grep -Fq 'latchClass(2)' assets/safe-cracker/safe-cracker.js
-          grep -Fq 'latchClass(3)' assets/safe-cracker/safe-cracker.js
+          test "$(grep -Fo 'data-sc-mounted-latches=' assets/safe-cracker/safe-cracker.js | wc -l | tr -d ' ')" = '2'
+          grep -Fq 'safeCrackerStaticLatchBank('\''left'\'')' assets/safe-cracker/safe-cracker.js
+          grep -Fq 'safeCrackerLatchMount(latchClass(1))' assets/safe-cracker/safe-cracker.js
+          grep -Fq 'safeCrackerLatchMount(latchClass(2))' assets/safe-cracker/safe-cracker.js
+          grep -Fq 'safeCrackerLatchMount(latchClass(3))' assets/safe-cracker/safe-cracker.js
           grep -Fq 'safeCrackerLatchBank(game, me)' assets/safe-cracker/safe-cracker.js
           ! grep -Fiq 'RESETTING' assets/safe-cracker/safe-cracker.js
-          grep -Fq '&layout=7&latch=3' index.html
+          grep -Fq '&layout=7&latch=4' index.html
 
-      - name: Verify live Netlify latch sequence
+      - name: Verify live Netlify mounted latch assemblies
         shell: bash
         run: |
           set -euo pipefail
@@ -77,13 +91,13 @@ jobs:
           function_url="${url}.netlify/functions/duel-action"
 
           for attempt in $(seq 1 42); do
-            html="$(curl -fsSL --max-time 20 "${url}?latch_sequence=3&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            css="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/safe-cracker.css?v=8&polish=2&dial=7&layout=7&latch=3&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            js="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/safe-cracker.js?v=8&polish=2&dial=7&layout=7&latch=3&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            html="$(curl -fsSL --max-time 20 "${url}?latch_sequence=4&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            css="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/safe-cracker.css?v=8&polish=2&dial=7&layout=7&latch=4&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            js="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/safe-cracker.js?v=8&polish=2&dial=7&layout=7&latch=4&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             headers="$(curl -fsS --max-time 20 -D - -o /dev/null -X OPTIONS "${function_url}?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             block="$(sed -n '/SAFE_CRACKER_LATCH_SEQUENCE_V1_START/,/SAFE_CRACKER_LATCH_SEQUENCE_V1_END/p' <<<"$css")"
 
-            if grep -Fq '&layout=7&latch=3' <<<"$html" && \
+            if grep -Fq '&layout=7&latch=4' <<<"$html" && \
                grep -Fq 'background-color: #aab4b8 !important' <<<"$block" && \
                grep -Fq 'background-clip: padding-box !important' <<<"$block" && \
                grep -Fq 'border: 3px solid #050708 !important' <<<"$block" && \
@@ -95,28 +109,39 @@ jobs:
                ! grep -Fq '#855515' <<<"$block" && \
                ! grep -Fq '#4d3010' <<<"$block" && \
                ! grep -Fq '0 7px 0' <<<"$block" && \
+               grep -Fq 'Six fixed mounting assemblies' <<<"$block" && \
+               grep -Fq '.sc-latch-mount::before' <<<"$block" && \
+               grep -Fq '.sc-latch-mount::after' <<<"$block" && \
+               grep -Fq 'radial-gradient(circle at 50% 10px' <<<"$block" && \
+               grep -Fq '#9ba6ab 1.5px 3px' <<<"$block" && \
+               grep -Fq '.sc-bolts.left .sc-latch-mount::after' <<<"$block" && \
+               grep -Fq '.sc-bolts.right .sc-latch-mount::after' <<<"$block" && \
+               grep -Fq '.sc-latch-mount > i' <<<"$block" && \
                grep -Fq '.sc-bolts.right i.sc-latch-released' <<<"$block" && \
                grep -Fq 'transform .82s cubic-bezier(.2,.85,.28,1)' <<<"$block" && \
                grep -Fq 'animation: scSafeCrackerLatchReleaseV1 1.15s' <<<"$block" && \
                ! grep -Fq 'animation: scSafeCrackerLatchReleaseV1 .82s' <<<"$block" && \
                grep -Fq 'SAFE_CRACKER_LATCH_SEQUENCE_V1_RUNTIME' <<<"$js" && \
                grep -Fq 'SAFE_CRACKER_LATCH_SEQUENCE_V1_HELPER' <<<"$js" && \
+               grep -Fq 'function safeCrackerLatchMount' <<<"$js" && \
+               grep -Fq 'function safeCrackerStaticLatchBank' <<<"$js" && \
                grep -Fq 'function safeCrackerLatchBank(game, me)' <<<"$js" && \
-               grep -Fq 'data-sc-latch-stage=' <<<"$js" && \
-               grep -Fq 'latchClass(1)' <<<"$js" && \
-               grep -Fq 'latchClass(2)' <<<"$js" && \
-               grep -Fq 'latchClass(3)' <<<"$js" && \
+               [[ "$(grep -Fo 'data-sc-mounted-latches=' <<<"$js" | wc -l | tr -d ' ')" == '2' ]] && \
+               grep -Fq 'safeCrackerStaticLatchBank('\''left'\'')' <<<"$js" && \
+               grep -Fq 'safeCrackerLatchMount(latchClass(1))' <<<"$js" && \
+               grep -Fq 'safeCrackerLatchMount(latchClass(2))' <<<"$js" && \
+               grep -Fq 'safeCrackerLatchMount(latchClass(3))' <<<"$js" && \
                grep -Fq 'safeCrackerLatchBank(game, me)' <<<"$js" && \
                ! grep -Fiq 'RESETTING' <<<"$js" && \
                grep -Fq 'SAFE_CRACKER_DIAL_ACTIVITY_V16_START' <<<"$js" && \
                grep -Fiq 'x-duel-function-build: safecracker-direct-v8' <<<"$headers"; then
-              echo "Verified live Safe Cracker 1.15-second latch release and black Check Number base at ${url}"
+              echo "Verified live Safe Cracker six-latch mounting brackets, side flanges, recessed screws, and existing 1.15-second release at ${url}"
               exit 0
             fi
 
-            echo "Waiting for Netlify Safe Cracker latch sequence v3 (${attempt}/42)..."
+            echo "Waiting for Netlify Safe Cracker mounted latch assemblies v4 (${attempt}/42)..."
             sleep 10
           done
 
-          echo 'Netlify preview did not serve the 1.15-second staged latch release and opaque black Check Number base.' >&2
+          echo 'Netlify preview did not serve all six mounted latch assemblies with side screws and the protected release sequence.' >&2
           exit 1
