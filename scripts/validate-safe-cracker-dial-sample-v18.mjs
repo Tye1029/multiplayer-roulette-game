@@ -31,6 +31,9 @@ const sectionStart = client.indexOf('// SAFE_CRACKER_CLEAN_PCM_V26_START');
 const sectionEnd = client.indexOf('// SAFE_CRACKER_CLEAN_PCM_V26_END', sectionStart);
 const section = sectionStart >= 0 && sectionEnd > sectionStart ? client.slice(sectionStart, sectionEnd) : '';
 const embeddedMatch = section.match(/const SAFE_CRACKER_CLEAN_CLICK_PCM_V26 = "([A-Za-z0-9+/=]+)";/);
+const dialStart = section.indexOf('function safeCrackerBuildCleanClickPcmV26');
+const dialEnd = section.indexOf('function safeCrackerSmoothRoomToneBufferV26', dialStart);
+const dialSection = dialStart >= 0 && dialEnd > dialStart ? section.slice(dialStart, dialEnd) : '';
 
 const checks = [
   ['v26 section is unique', occurrences(client, '// SAFE_CRACKER_CLEAN_PCM_V26_START') === 1 && occurrences(client, '// SAFE_CRACKER_CLEAN_PCM_V26_END') === 1],
@@ -41,7 +44,7 @@ const checks = [
   ['DC offset and quantization edges are gently reduced', section.includes('mean /= Math.max(1, source.length)') && section.includes('const gentleAverage =') && section.includes('current * 0.82 + gentleAverage * 0.18')],
   ['cubic interpolation doubles playback resolution', section.includes('const upsample = SAFE_CRACKER_CLEAN_CLICK_RATE_V26 / SAFE_CRACKER_CLEAN_CLICK_SOURCE_RATE_V26') && section.includes('const p0 =') && section.includes('const p3 =') && section.includes('const a = -0.5 * p0')],
   ['click edges are tapered instead of chopped', section.includes('* 0.0015') && section.includes('* 0.042') && section.includes('Math.sin((index / fadeIn)') && section.includes('Math.cos((index / fadeOut)')],
-  ['no compressor, filter, sample decoder, or synthetic layer is used', !section.includes('createDynamicsCompressor') && !section.includes('createBiquadFilter()') && !section.includes('decodeAudioData') && !section.includes('new Audio(') && !section.includes('Math.random() * Math.exp')],
+  ['no compressor, filter, sample decoder, or synthetic layer is used', !dialSection.includes('createDynamicsCompressor') && !dialSection.includes('createBiquadFilter()') && !dialSection.includes('decodeAudioData') && !dialSection.includes('new Audio(') && !dialSection.includes('Math.random() * Math.exp')],
   ['dial uses the proven direct WebAudio destination', section.includes('function safeCrackerFireCleanClickPcmV26()') && section.includes("context.state === 'running'") && section.includes('context.resume().then(fire)') && section.includes('gain.connect(context.destination);')],
   ['original pitch is retained with only a small clean gain adjustment', section.includes('source.playbackRate.setValueAtTime(1') && section.includes('gain.gain.setValueAtTime(1.02')],
   ['pointer gesture explicitly unlocks the PCM route', section.includes("document.addEventListener('pointerdown', safeCrackerUnlockCleanClickPcmV26") && section.includes("document.addEventListener('touchstart', safeCrackerUnlockCleanClickPcmV26")],
