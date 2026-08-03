@@ -22,7 +22,7 @@ const [client, index, patch, sourceNote, turnAnimation, turnFire, audioBindings]
 ]);
 
 function assert(condition, message) {
-  if (!condition) throw new Error(`Safe Cracker dial sample v18 validation failed: ${message}`);
+  if (!condition) throw new Error(`Safe Cracker dial sample v19 validation failed: ${message}`);
 }
 
 function occurrences(source, value) {
@@ -38,35 +38,33 @@ for (const file of sampleFiles) {
   for (let index = 0; index + 1 < bytes.length; index += 1) {
     if (bytes[index] === 0xff && (bytes[index + 1] & 0xe0) === 0xe0) frameSyncs += 1;
   }
-  assert(bytes.length >= 2100 && bytes.length <= 2300, `${file} decoded size ${bytes.length} is outside the safe compact-sample range`);
+  assert(bytes.length >= 2800 && bytes.length <= 3100, `${file} decoded size ${bytes.length} is outside the longer-sample range`);
   assert(bytes.subarray(0, 3).toString('ascii') === 'ID3' || bytes[0] === 0xff, `${file} is not an MP3 payload`);
-  assert(frameSyncs >= 8, `${file} contains only ${frameSyncs} MPEG frame markers`);
+  assert(frameSyncs >= 10, `${file} contains only ${frameSyncs} MPEG frame markers`);
   sampleHashes.add(hash);
 }
 assert(sampleHashes.size === sampleFiles.length, 'the six dial samples are not all distinct');
 
-const sectionStart = client.indexOf('// SAFE_CRACKER_DIAL_SAMPLE_V18_START');
-const sectionEnd = client.indexOf('// SAFE_CRACKER_DIAL_SAMPLE_V18_END', sectionStart);
+const sectionStart = client.indexOf('// SAFE_CRACKER_DIAL_SAMPLE_V19_START');
+const sectionEnd = client.indexOf('// SAFE_CRACKER_DIAL_SAMPLE_V19_END', sectionStart);
 const section = sectionStart >= 0 && sectionEnd > sectionStart ? client.slice(sectionStart, sectionEnd) : '';
-const mappedSamples = (section.match(/audio-data-v3\/bank-vault-dial-click-\d\.b64/g) || []);
+const mappedSamples = section.match(/audio-data-v3\/bank-vault-dial-click-\d\.b64/g) || [];
 
 const checks = [
-  ['v18 marker is unique', occurrences(client, '// SAFE_CRACKER_DIAL_SAMPLE_V18_START') === 1 && occurrences(client, '// SAFE_CRACKER_DIAL_SAMPLE_V18_END') === 1],
-  ['v17 dial and v13 recorded systems remain installed', occurrences(client, '// SAFE_CRACKER_DIAL_CLICK_V17_START') === 1 && occurrences(client, '// SAFE_CRACKER_RECORDED_SOUNDS_V13_START') === 1],
-  ['all six extracted bank-vault detents are mapped once', mappedSamples.length === 6 && new Set(mappedSamples).size === 6],
-  ['samples preload and decode through WebAudio', section.includes('function safeCrackerLoadBankVaultDialSamples()') && section.includes('context.decodeAudioData(safeCrackerRecordedBytes(text))') && section.includes('window.setTimeout(safeCrackerLoadBankVaultDialSamples, 0);')],
-  ['dial playback uses only the real sample bank', section.includes('function safeCrackerPlayBankVaultDialSample(digit)') && section.includes('source.buffer = buffers[index];') && section.includes('source.start(context.currentTime);') && !section.includes('createOscillator') && !section.includes('safeCrackerPlayRatchetImpulse(')],
-  ['dial uses six rotating samples with subtle rate variation', section.includes('const index = (previous + 1 + (step % 2)) % buffers.length;') && section.includes('const rate = 0.985 + (step % 5) * 0.007;')],
-  ['sample playback is short, bright, and routed through the Safe Cracker bus', section.includes("highpass.type = 'highpass';") && section.includes('highpass.frequency.setValueAtTime(135') && section.includes('lowpass.frequency.setValueAtTime(10800') && section.includes('gain.connect(safeCrackerAudioBus(context));')],
-  ['final dial override points at the bank-vault recording', section.includes('function safeCrackerPlayRecordedBankVaultDetent(digit)') && section.includes('const played = safeCrackerPlayBankVaultDialSample(digit);') && section.includes('playDetent = safeCrackerPlayDetent;')],
-  ['correct and incorrect result cues remain unchanged and available', client.includes('function safeCrackerPlayAuthoritativeCorrectCue(game, completedStage)') && client.includes('function safeCrackerPlayIncorrectRejectCue(tier)') && !section.includes('safeCrackerPlayFeedback =') && !section.includes('safeCrackerPlayTumblerLock =')],
-  ['source processing note identifies the uploaded recording', sourceNote.includes('freesound_community-bank-vault-100469.mp3') && sourceNote.includes('six 90 ms detent clips')],
-  ['cache bust advances to v18', index.includes('&clicks=18')],
-  ['dial retention and authoritative gameplay remain installed', client.includes('// SAFE_CRACKER_DIAL_ACTIVITY_V16_START') && client.includes('choice: `safecracker:guess:${runtime.selected}`')],
-  ['patch cannot write networking or Roulette files', !patch.includes("writeFile(new URL('../netlify/functions/") && !patch.includes("writeFile(new URL('../assets/roulette/")],
-  ['protected Roulette assets remain readable', turnAnimation.length > 0 && turnFire.length > 0 && audioBindings.length > 0]
+  ['v19 marker is unique', occurrences(client, '// SAFE_CRACKER_DIAL_SAMPLE_V19_START') === 1 && occurrences(client, '// SAFE_CRACKER_DIAL_SAMPLE_V19_END') === 1],
+  ['old v18 section is removed', !client.includes('// SAFE_CRACKER_DIAL_SAMPLE_V18_START') && !client.includes('// SAFE_CRACKER_DIAL_SAMPLE_V18_END')],
+  ['all six longer detents are mapped once', mappedSamples.length === 6 && new Set(mappedSamples).size === 6],
+  ['samples preload and decode', section.includes('function safeCrackerLoadBankVaultDialSamplesV19()') && section.includes('context.decodeAudioData(safeCrackerRecordedBytes(text))') && section.includes('window.setTimeout(safeCrackerLoadBankVaultDialSamplesV19, 0);')],
+  ['dial uses only the recorded samples', section.includes('function safeCrackerPlayBankVaultDialSampleV19(digit)') && section.includes('source.buffer = buffers[index];') && section.includes('source.start(context.currentTime);') && !section.includes('createOscillator') && !section.includes('safeCrackerPlayRatchetImpulse(')],
+  ['original pitch and full tail are preserved', section.includes('source.playbackRate.setValueAtTime(1') && section.includes('source.buffer.duration') && !section.includes("highpass.type = 'highpass'") && !section.includes("lowpass.type = 'lowpass'")],
+  ['old generated fallback is not called', section.includes('function safeCrackerPlayUnfilteredBankVaultDetent(digit)') && !section.includes('safeCrackerBankVaultDialFallback') && !section.includes('safeCrackerPlayMechanicalRatchetClick')],
+  ['result cues remain unchanged', client.includes('function safeCrackerPlayAuthoritativeCorrectCue(game, completedStage)') && client.includes('function safeCrackerPlayIncorrectRejectCue(tier)') && !section.includes('safeCrackerPlayFeedback =') && !section.includes('safeCrackerPlayTumblerLock =')],
+  ['source note records the actual processing', sourceNote.includes('six longer 190 ms windows') && sourceNote.includes('no brightening filter') && sourceNote.includes('freesound_community-bank-vault-100469.mp3')],
+  ['cache bust advances to v19', index.includes('&clicks=19')],
+  ['gameplay and Roulette remain protected', client.includes('choice: `safecracker:guess:${runtime.selected}`') && turnAnimation.length > 0 && turnFire.length > 0 && audioBindings.length > 0],
+  ['patch cannot write networking or Roulette files', !patch.includes("writeFile(new URL('../netlify/functions/") && !patch.includes("writeFile(new URL('../assets/roulette/")]
 ];
 
 for (const [label, condition] of checks) assert(condition, label);
 
-console.log('Safe Cracker dial sample v18 validation passed: six distinct framed MP3 detents extracted from the uploaded bank-vault recording drive the dial, result cues remain unchanged, and protected gameplay boundaries are intact.');
+console.log('Safe Cracker dial sample v19 validation passed: longer minimally processed clips from the uploaded vault recording play at original pitch without the generated fallback, while result cues and protected gameplay remain unchanged.');
