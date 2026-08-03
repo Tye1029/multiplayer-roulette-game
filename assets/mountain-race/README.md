@@ -2,58 +2,56 @@
 
 `Summit Sprint` is the working title for the original two-player mountain-climbing race mode.
 
-Players race up separate climbing lanes by pressing the prompted controls in the exact order shown on the mountain. Correct inputs advance the climber. Incorrect inputs make the climber slip back one hold.
+Players race up separate climbing lanes by pressing directional prompts in the exact order shown on the mountain. Correct inputs advance one hold. Incorrect inputs make the climber slip back one hold. The first climber to complete all 24 holds wins; when the 30-second timer expires, the higher climber wins and equal height is a tie.
 
-## Current playable prototype
+## Multiplayer testing
 
-The standalone gray-box prototype is available at:
+Summit Sprint is registered in the shared multiplayer testing area under the internal mode id `mountainrace`.
+
+The existing multiplayer flow supports:
+
+- creating a Summit Sprint game with the normal wager and Ready flow
+- another signed-in player joining from the public game list
+- restoring the race after refresh or reopening the page
+- the same 3–2–1–GO lifecycle used by the other multiplayer games
+- authoritative server-generated prompt sequences
+- server-confirmed correct and incorrect inputs
+- duplicate-action protection
+- first-to-summit and timeout settlement
+- rematches and creating a new game after completion
+- adding the simple testing NPC
+- creating or attaching the Remote Network Bot from the testing dock
+- an 8% testing-bot mistake rate with independently scheduled moves
+
+Only the viewer receives their next four prompts. The opponent's future sequence is never sent to the client. Player elevations, mistakes, latest movement, finish order, and winner settlement remain authoritative on the server.
+
+## Multiplayer files
+
+- `mountain-race-multiplayer.js` — shared multiplayer renderer, keyboard/touch input, countdown, race clock, and bridge actions
+- `mountain-race.css` — namespaced mountain, climber, controls, and responsive presentation
+- `netlify/functions/mountain-race/state-model.js` — deterministic state rules and prompt privacy
+- `netlify/functions/mountain-race/integration.js` — shared duel create/join, actions, polling, bots, timeout, and completion integration
+- `scripts/patch-mountain-race-multiplayer.mjs` — build-time launcher and backend registration
+- `scripts/patch-mountain-race-mode-option.mjs` — ensures the shared game creator can select Summit Sprint
+
+## Standalone prototype
+
+The earlier local gray-box prototype remains available at:
 
 - `/mountain-race-preview.html`
 
-It currently includes:
+It includes the same 24-hold course, 30-second clock, directional controls, scrolling lanes, slip penalty, and a local Normal bot. It remains useful for testing presentation without creating a multiplayer wager.
 
-- a 3–2–1–GO countdown
-- 24 randomized directional holds
-- a scrolling mountain for each climber
-- an original temporary CSS climber design
-- keyboard support through arrow keys and WASD
-- large touch controls using `pointerdown`
-- a Normal-difficulty local bot
-- an 8% bot mistake rate
-- wrong-input slipping and one-position loss
-- a 30-second race clock
-- summit, timeout, tie, and replay states
-- light mobile vibration where supported
+## Controls
 
-This prototype is intentionally local-only. It exists to approve the race pacing, scrolling, controls, penalty, and presentation before the mode is connected to the shared multiplayer duel endpoint.
+- Desktop: arrow keys or WASD
+- Mobile: four large `pointerdown` direction controls
+- Light vibration is used for supported mobile devices
 
 ## Isolation rules
 
-- Internal mode id: `mountainrace`
 - Front-end code stays under `assets/mountain-race/`.
-- Server-side state helpers stay under `netlify/functions/mountain-race/` until the mode is deliberately connected to the shared duel endpoint.
+- Server-side helpers stay under `netlify/functions/mountain-race/`.
 - All reusable game CSS remains scoped below `.mountain-race-game`.
-- No Summit Sprint file may modify Roulette or Safe Cracker assets directly.
-- Artwork, characters, mountain layouts, sounds, names, and interface elements must be original.
-
-## Folders
-
-- `mountain-race.js` — isolated client controller, local prototype loop, input handling, scrolling, and animations
-- `mountain-race.css` — namespaced mountain, climber, controls, and responsive presentation
-- `images/` — reserved for original mountain, character, weather, and interface artwork
-- `audio/` — reserved for original climb, input, countdown, finish, and ambience audio
-
-## Planned authoritative multiplayer state
-
-The server will own:
-
-- race start and end timestamps
-- randomized prompt sequences
-- each player's current prompt index and elevation
-- accepted and rejected inputs
-- rate and duplicate-action protections
-- NPC decisions
-- reconnect and refresh restoration
-- finish order and winner settlement
-
-The prototype is not registered in the main launcher yet. That keeps the current Roulette and Safe Cracker modes unchanged while the race mechanics are reviewed on `mountain-race-development`.
+- Summit Sprint build scripts do not write Roulette or Safe Cracker assets.
+- Artwork, characters, mountain layouts, sounds, names, and interface elements must remain original.
