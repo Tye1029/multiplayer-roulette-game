@@ -22,13 +22,17 @@ function occurrences(source, value) {
 
 const start = '/* SAFE_CRACKER_SHADOW_DEPTH_V2_START */';
 const end = '/* SAFE_CRACKER_SHADOW_DEPTH_V2_END */';
+const compatibilityStart = '/* SAFE_CRACKER_SHADOW_DEPTH_V1_START */';
+const compatibilityEnd = '/* SAFE_CRACKER_SHADOW_DEPTH_V1_END */';
 assert(occurrences(css, start) === 1, 'shadow-depth v2 start marker must appear exactly once');
 assert(occurrences(css, end) === 1, 'shadow-depth v2 end marker must appear exactly once');
-assert(!css.includes('/* SAFE_CRACKER_SHADOW_DEPTH_V1_START */'), 'legacy shadow-depth v1 block remains installed');
+assert(occurrences(css, compatibilityStart) === 1, 'shadow-depth compatibility start marker must appear exactly once');
+assert(occurrences(css, compatibilityEnd) === 1, 'shadow-depth compatibility end marker must appear exactly once');
 const blockStart = css.indexOf(start);
 const blockEnd = css.indexOf(end, blockStart);
 assert(blockStart >= 0 && blockEnd > blockStart, 'shadow-depth marker order is invalid');
 const block = css.slice(blockStart, blockEnd + end.length);
+assert(block.indexOf(compatibilityStart) < block.indexOf('.safe-cracker-game {'), 'compatibility marker must not wrap or replace the active V2 values');
 
 assert(block.includes('.safe-cracker-game .sc-safe-door'), 'safe-door structural depth is missing');
 assert(block.includes('inset 0 -28px 42px rgba(0, 0, 0, .17)'), 'lighter safe-door lower recess is missing');
@@ -67,4 +71,4 @@ assert(client.includes('// SAFE_CRACKER_SAMPLE_MIX_V11_START'), 'sample mix v11 
 assert(duelAction.includes('safecracker'), 'Safe Cracker server mode is unreadable');
 assert(turnAnimation.length > 0 && turnFire.length > 0 && audioBindings.length > 0, 'protected Roulette assets are unreadable');
 
-console.log('Safe Cracker shadow-depth v2 validation passed: the darkest recessed and contact shadows are lighter while structural depth, A2 texture, controls, gameplay, networking, audio and Roulette remain protected.');
+console.log('Safe Cracker shadow-depth v2 validation passed: the darkest recessed and contact shadows are lighter while structural depth, compatibility safeguards, A2 texture, controls, gameplay, networking, audio and Roulette remain protected.');
