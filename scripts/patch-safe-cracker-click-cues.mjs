@@ -229,6 +229,18 @@ if (!client.includes(start)) {
     else safeCrackerHaptic(settings.haptic);
   };
   playFeedback = safeCrackerPlayFeedback;
+
+  const safeCrackerAuthoritativeRenderFallback = render;
+  render = function safeCrackerRenderWithAuthoritativeCorrectCue(game) {
+    const previousGame = runtime.game;
+    const sameGame = Boolean(previousGame?.gameId && String(previousGame.gameId) === String(game?.gameId || ''));
+    const previousStage = sameGame ? Number(previousGame?.safecrackerState?.me?.stage || 0) : 0;
+    const nextStage = Number(game?.safecrackerState?.me?.stage || 0);
+    if (sameGame && nextStage > previousStage) {
+      safeCrackerPlayAuthoritativeCorrectCue(game, nextStage);
+    }
+    return safeCrackerAuthoritativeRenderFallback(game);
+  };
   ${end}
 `;
 
@@ -236,21 +248,6 @@ if (!client.includes(start)) {
   const closingIndex = client.lastIndexOf(closing);
   if (closingIndex < 0) throw new Error('Safe Cracker click-cue patch could not find the runtime closure.');
   client = client.slice(0, closingIndex) + patch + client.slice(closingIndex);
-}
-
-const originalSubmitFeedback = `      const nextGame = data?.game || runtime.game;
-      const result = nextGame?.safecrackerState?.me?.lastResult;
-      if (result?.at && result.at !== myState(game)?.lastResult?.at) playFeedback(result.tier);`;
-const authoritativeSubmitFeedback = `      const previousStage = Number(myState(game)?.stage || 0);
-      const nextGame = data?.game || runtime.game;
-      const nextStage = Number(nextGame?.safecrackerState?.me?.stage || 0);
-      const result = nextGame?.safecrackerState?.me?.lastResult;
-      if (nextStage > previousStage) safeCrackerPlayAuthoritativeCorrectCue(nextGame, nextStage);
-      else if (result?.at && result.at !== myState(game)?.lastResult?.at) playFeedback(result.tier);`;
-if (client.includes(originalSubmitFeedback)) {
-  client = client.replace(originalSubmitFeedback, authoritativeSubmitFeedback);
-} else if (!client.includes(authoritativeSubmitFeedback)) {
-  throw new Error('Safe Cracker click-cue patch could not attach the correct sound to authoritative stage progress.');
 }
 
 const required = [
@@ -264,7 +261,8 @@ const required = [
   'function safeCrackerPlayDryRatchetDetent(digit)',
   'function safeCrackerPlayCorrectNumberSound()',
   'function safeCrackerPlayWrongOrCorrectNumberSound(tier)',
-  'if (nextStage > previousStage) safeCrackerPlayAuthoritativeCorrectCue(nextGame, nextStage);',
+  'function safeCrackerRenderWithAuthoritativeCorrectCue(game)',
+  'if (sameGame && nextStage > previousStage)',
   "safeCrackerPlayRecordedSound('incorrect'",
   "safeCrackerPlayRecordedSound('latchOpen'",
   'playDetent = safeCrackerPlayDetent;',
@@ -287,4 +285,4 @@ html = html.replace(/\/assets\/safe-cracker\/safe-cracker\.js\?[^"'\s]*/g, value
 });
 await writeFile(indexUrl, html);
 
-console.log('Applied Safe Cracker click cues v16: dry non-musical dial ratchets and an authoritative correct-number latch cue.');
+console.log('Applied Safe Cracker click cues v16: dry non-musical dial ratchets and an authoritative render-stage latch cue.');
