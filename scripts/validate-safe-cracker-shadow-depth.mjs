@@ -54,10 +54,16 @@ assert(block.includes('.safe-cracker-game .sc-confirm-button:not(:disabled):acti
 assert(block.includes('.safe-cracker-game .sc-safe-handle'), 'safe hardware depth is missing');
 assert(block.includes('.safe-cracker-game .sc-bolts i'), 'bolt contact shadows are missing');
 
+assert(css.includes('linear-gradient(145deg, #56636a 0%, #303a3f 48%, #20292e 78%, #465158 100%)'), 'visibly lighter safe-shell steel gradient is missing');
+assert(css.includes('radial-gradient(ellipse at 72% 86%, rgba(0, 0, 0, .06), transparent 54%)'), 'reduced safe-door lower vignette is missing');
+assert(css.includes('linear-gradient(145deg, #718087 0%, #465259 30%, #283238 69%, #556168 100%)'), 'visibly lighter safe-door steel gradient is missing');
+assert(css.includes('background-blend-mode: soft-light, overlay, screen, soft-light, normal'), 'safe-door dark vignette is still multiplied');
+
 assert(index.includes('&texture=3'), 'approved A2 texture cache boundary changed');
-assert(index.includes('&shadow=2'), 'shadow-depth v2 cache boundary is missing');
+assert(index.includes('&shadow=3'), 'fresh visible-shadow cache boundary is missing');
 assert(css.includes('/* SAFE_CRACKER_TEXTURE_PASS_V3_START */'), 'approved A2 image texture is missing');
 assert(texturePatch.includes("await import('./patch-safe-cracker-shadow-depth.mjs')"), 'texture build does not invoke the separate shadow-depth pass');
+assert(texturePatch.includes("'$1&shadow=3'"), 'texture build does not force the fresh mobile CSS cache boundary');
 assert(!block.includes('background-image:'), 'shadow pass must not replace or add texture images');
 assert(!block.includes('animation:'), 'shadow pass must not add animation');
 assert(!block.includes('filter: brightness'), 'shadow pass must not add a global lighting filter');
@@ -71,4 +77,4 @@ assert(client.includes('// SAFE_CRACKER_SAMPLE_MIX_V11_START'), 'sample mix v11 
 assert(duelAction.includes('safecracker'), 'Safe Cracker server mode is unreadable');
 assert(turnAnimation.length > 0 && turnFire.length > 0 && audioBindings.length > 0, 'protected Roulette assets are unreadable');
 
-console.log('Safe Cracker shadow-depth v2 validation passed: the darkest recessed and contact shadows are lighter while structural depth, compatibility safeguards, A2 texture, controls, gameplay, networking, audio and Roulette remain protected.');
+console.log('Safe Cracker shadow-depth validation passed: the actual shell and door steel tones are visibly lighter, the lower vignette no longer multiplies the panel into black, a fresh mobile cache boundary is active, and structural depth, controls, gameplay, networking, audio and Roulette remain protected.');
