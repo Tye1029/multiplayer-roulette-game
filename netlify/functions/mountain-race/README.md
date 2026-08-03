@@ -1,7 +1,8 @@
-# Summit Sprint server module
+# Summit Sprint server integration
 
-This folder contains server-only helpers for the `mountainrace` duel mode.
+This folder contains the isolated authoritative multiplayer rules for the `mountainrace` mode.
 
-It is intentionally not exposed as its own Netlify endpoint and is not yet imported by the shared duel function. The mode will be connected only after its authoritative race rules, persistence, refresh recovery, NPC timing, and winner settlement tests are ready.
+- `state-model.js` defines the 24-hold sequence, 30-second timer, one-hold wrong-input penalty, duplicate-action protection, prompt privacy, and winner state.
+- `integration.js` connects those rules to the shared duel create/join lifecycle, focused polling, simple NPC testing, Remote Network Bot testing, refresh restoration, timeout settlement, and rematches.
 
-Keeping these helpers in a dedicated folder prevents early Summit Sprint work from changing the existing Roulette and Safe Cracker request paths.
+Only each viewer's next four prompts are returned publicly. The full sequence remains server-side. Existing Roulette and Safe Cracker assets are not modified by these modules.
