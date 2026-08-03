@@ -69,7 +69,9 @@ jobs:
             metallic-click-v27-part-6a.b64
             metallic-click-v27-part-6b.b64
             metallic-click-v27-part-6c.b64
-            metallic-click-v27-part-6d.b64
+            metallic-click-v27-part-6d1.b64
+            metallic-click-v27-part-6d2.b64
+            metallic-click-v27-part-6d3.b64
           )
           local_joined=''
           for name in "${chunk_names[@]}"; do
