@@ -26,39 +26,39 @@ jobs:
         run: npm install
       - name: Run exact Netlify build and regressions
         run: npm run build
-      - name: Verify live lighter structural shadow pass
+      - name: Verify live visibly lighter safe tones
         shell: bash
         run: |
           set -u
           url='https://deploy-preview-19--famous-piroshki-b621da.netlify.app/'
           function_url="${url}.netlify/functions/duel-action"
-          css_path='assets/safe-cracker/safe-cracker.css?v=8&polish=2&fit=2&result=1&final=1&refine=1&correct=1&input=1&texture=3&shadow=2'
+          css_path='assets/safe-cracker/safe-cracker.css?v=8&polish=2&fit=2&result=1&final=1&refine=1&correct=1&input=1&texture=3&shadow=3'
           js_path='assets/safe-cracker/safe-cracker.js?v=8&polish=2&fit=2&result=1&final=1&refine=1&correct=1&input=1&audio=1&samples=1'
           for attempt in $(seq 1 36); do
-            html="$(curl -fsSL --max-time 20 "${url}?shadow=2&shadow_commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            html="$(curl -fsSL --max-time 20 "${url}?shadow=3&shadow_commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             css="$(curl -fsSL --max-time 20 "${url}${css_path}&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             js="$(curl -fsSL --max-time 20 "${url}${js_path}&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             headers="$(curl -fsS --max-time 20 -D - -o /dev/null -X OPTIONS "${function_url}?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            if grep -Fq '&texture=3&shadow=2' <<<"$html" && \
+            if grep -Fq '&texture=3&shadow=3' <<<"$html" && \
                grep -Fq 'SAFE_CRACKER_TEXTURE_PASS_V3_START' <<<"$css" && \
                grep -Fq 'SAFE_CRACKER_SHADOW_DEPTH_V2_START' <<<"$css" && \
                grep -Fq 'SAFE_CRACKER_SHADOW_DEPTH_V1_START' <<<"$css" && \
                grep -Fq 'Compatibility marker for validators' <<<"$css" && \
+               grep -Fq 'linear-gradient(145deg, #56636a 0%, #303a3f 48%, #20292e 78%, #465158 100%)' <<<"$css" && \
+               grep -Fq 'radial-gradient(ellipse at 72% 86%, rgba(0, 0, 0, .06), transparent 54%)' <<<"$css" && \
+               grep -Fq 'linear-gradient(145deg, #718087 0%, #465259 30%, #283238 69%, #556168 100%)' <<<"$css" && \
+               grep -Fq 'background-blend-mode: soft-light, overlay, screen, soft-light, normal' <<<"$css" && \
                grep -Fq 'inset 0 -28px 42px rgba(0, 0, 0, .17)' <<<"$css" && \
                grep -Fq 'inset 0 0 50px rgba(0, 0, 0, .44)' <<<"$css" && \
-               grep -Fq 'inset 0 14px 18px rgba(0, 0, 0, .22)' <<<"$css" && \
-               grep -Fq 'inset 0 -18px 24px rgba(0, 0, 0, .24)' <<<"$css" && \
-               grep -Fq '.safe-cracker-game .sc-display.green' <<<"$css" && \
-               grep -Fq '.safe-cracker-game .sc-confirm-button:not(:disabled):not(:active)' <<<"$css" && \
                grep -Fq 'SAFE_CRACKER_INPUT_CONTINUITY_V9_START' <<<"$js" && \
                grep -Fq 'SAFE_CRACKER_SAMPLE_MIX_V11_START' <<<"$js" && \
                grep -Fq 'choice: `safecracker:guess:${runtime.selected}`' <<<"$js" && \
                grep -Fiq 'x-duel-function-build: safecracker-direct-v8' <<<"$headers"; then
-              echo "Verified live Safe Cracker lighter structural shadow pass with A2 texture, compatibility safeguards, stability, gameplay, audio and protected server boundaries at ${url}"
+              echo "Verified live Safe Cracker visibly lighter steel tones with fresh mobile cache, compatibility safeguards, stability, gameplay, audio and protected server boundaries at ${url}"
               exit 0
             fi
-            echo "Waiting for Netlify Safe Cracker lighter structural shadow pass (${attempt}/36)..."
+            echo "Waiting for Netlify visibly lighter Safe Cracker steel tones (${attempt}/36)..."
             sleep 10
           done
-          echo 'Netlify preview did not become available with the Safe Cracker lighter structural shadow pass and current safeguards.' >&2
+          echo 'Netlify preview did not become available with the visibly lighter Safe Cracker steel tones and fresh mobile cache boundary.' >&2
           exit 1
