@@ -1,3 +1,4 @@
+import './patch-mountain-race-remote-bot-attach.mjs';
 import { readFile, writeFile } from 'node:fs/promises';
 
 const indexUrl = new URL('../index.html', import.meta.url);
