@@ -65,8 +65,9 @@ assert(!patch.includes("writeFile(new URL('../netlify/functions/"), 'control tri
 assert(!patch.includes("writeFile(new URL('../assets/roulette/"), 'control trim writes Roulette files');
 assert(turnAnimation.length > 0 && turnFire.length > 0 && audioBindings.length > 0, 'protected Roulette files are unreadable');
 
-assert(/safe-cracker\.css\?[^"'\s]*&trim=2/.test(html), 'stylesheet cache key trim=2 is missing');
-assert(/safe-cracker\.js\?[^"'\s]*&trim=2/.test(html), 'runtime cache key trim=2 is missing');
-assert(!/&trim=1(?:&|["'])/.test(html), 'obsolete trim=1 cache key remains');
+const safeCrackerAssets = [...html.matchAll(/safe-cracker\.(?:css|js)\?[^"'\s>]*/g)].map(match => match[0]);
+assert(safeCrackerAssets.length >= 2, 'Safe Cracker stylesheet/runtime URLs are missing');
+assert(safeCrackerAssets.every(asset => /(?:^|&)trim=2(?:&|$)/.test(asset.split('?')[1] || '')), 'Safe Cracker assets are not uniformly cache-busted with trim=2');
+assert(safeCrackerAssets.every(asset => !/(?:^|&)trim=1(?:&|$)/.test(asset.split('?')[1] || '')), 'obsolete trim=1 remains on a Safe Cracker asset');
 
 console.log('Safe Cracker control trim validation passed: the pointer housing, step buttons, digital display, and Check Number control share thicker brushed-steel borders with reflective glare, mobile dimensions remain protected, and Roulette/networking remain unchanged.');
