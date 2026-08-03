@@ -3,19 +3,19 @@ import { readFile, writeFile } from 'node:fs/promises';
 const cssUrl = new URL('../assets/safe-cracker/safe-cracker.css', import.meta.url);
 const clientUrl = new URL('../assets/safe-cracker/safe-cracker.js', import.meta.url);
 const indexUrl = new URL('../index.html', import.meta.url);
-const start = '/* SAFE_CRACKER_LATCH_REFINEMENT_V6_START */';
-const end = '/* SAFE_CRACKER_LATCH_REFINEMENT_V6_END */';
+const start = '/* SAFE_CRACKER_LATCH_REFINEMENT_V7_START */';
+const end = '/* SAFE_CRACKER_LATCH_REFINEMENT_V7_END */';
 
 let css = await readFile(cssUrl, 'utf8');
 if (!css.includes('/* SAFE_CRACKER_LATCH_SEQUENCE_V1_START */')) {
-  throw new Error('Safe Cracker latch refinement v6 requires the mounted latch sequence.');
+  throw new Error('Safe Cracker latch refinement v7 requires the mounted latch sequence.');
 }
 
 const refinementCss = String.raw`${start}
-/* Close-up reference pass: all six assemblies use fixed brushed steel mounting
-   hardware. The top pair sits fully below the display, the middle pair is
-   smaller and farther outboard, and only the existing right-side cylinders
-   are allowed to move during release. */
+/* Screenshot-guided correction: the upper pair is raised into the clear strip
+   between the display and dial, the upper and lower pairs are slightly smaller,
+   and every visible metal surface uses sparse scratches over smooth brushed steel
+   instead of repetitive banding. Only the existing right cylinders may move. */
 .safe-cracker-game .sc-bolts {
   top: 0 !important;
   bottom: 0 !important;
@@ -37,12 +37,13 @@ const refinementCss = String.raw`${start}
   transform-origin: right center;
 }
 
-/* Drop the upper pair below the display, including the taller support tongue. */
+/* Raise and gently reduce the top pair so it clears both major panels. */
 .safe-cracker-game .sc-latch-mount:nth-child(1) {
-  top: calc(25% + 10px);
+  top: calc(23% + 4px);
+  transform: scale(.9);
 }
 
-/* Pull the center pair away from the dial and reduce its overall footprint. */
+/* Keep the compact middle pair outboard of the dial. */
 .safe-cracker-game .sc-latch-mount:nth-child(2) {
   top: 51%;
   transform: translateY(-50%) scale(.68);
@@ -51,12 +52,14 @@ const refinementCss = String.raw`${start}
 .safe-cracker-game .sc-bolts.left .sc-latch-mount:nth-child(2) { left: -11px; }
 .safe-cracker-game .sc-bolts.right .sc-latch-mount:nth-child(2) { right: -11px; }
 
+/* Slightly reduce the lower pair without changing its vertical station. */
 .safe-cracker-game .sc-latch-mount:nth-child(3) {
   bottom: 17%;
+  transform: scale(.9);
 }
 
-/* Tall rectangular steel support directly under each cylinder. It extends
-   above and below the barrel and remains attached to the safe at all times. */
+/* Tall rectangular support fixed beneath each cylinder. Sparse angled scratches
+   break up the smooth brushed highlight without creating regular horizontal lines. */
 .safe-cracker-game .sc-latch-spine {
   position: absolute;
   top: -14px;
@@ -68,9 +71,9 @@ const refinementCss = String.raw`${start}
   border: 2px solid #0d1215;
   border-radius: 4px;
   background:
-    linear-gradient(102deg, transparent 0 16%, rgba(255,255,255,.2) 16.4% 17.1%, transparent 17.6% 46%, rgba(0,0,0,.2) 46.4% 47.2%, transparent 47.8% 73%, rgba(255,255,255,.1) 73.4% 74%, transparent 74.6%),
-    linear-gradient(78deg, transparent 0 28%, rgba(0,0,0,.15) 28.4% 29%, transparent 29.6% 64%, rgba(255,255,255,.12) 64.4% 65%, transparent 65.6%),
-    repeating-linear-gradient(0deg, rgba(255,255,255,.065) 0 1px, rgba(0,0,0,.05) 1px 2px, transparent 2px 4px),
+    linear-gradient(112deg, transparent 0 19%, rgba(255,255,255,.2) 19.2% 19.7%, transparent 20% 47%, rgba(0,0,0,.18) 47.2% 47.7%, transparent 48% 100%),
+    linear-gradient(164deg, transparent 0 34%, rgba(255,255,255,.11) 34.2% 34.7%, transparent 35% 69%, rgba(0,0,0,.14) 69.2% 69.7%, transparent 70% 100%),
+    radial-gradient(ellipse at 38% 24%, rgba(255,255,255,.15), transparent 40%),
     linear-gradient(90deg, #171e22 0%, #6f7b80 24%, #c2c9cb 47%, #6a767b 67%, #171d21 100%);
   box-shadow:
     inset 1px 0 1px rgba(255,255,255,.3),
@@ -82,8 +85,6 @@ const refinementCss = String.raw`${start}
 .safe-cracker-game .sc-bolts.left .sc-latch-spine { left: 5px; }
 .safe-cracker-game .sc-bolts.right .sc-latch-spine { right: 5px; }
 
-/* Short collar lips make the support look inserted through the cylinder body,
-   matching the stepped top and bottom shoulders in the close-up reference. */
 .safe-cracker-game .sc-latch-spine::before,
 .safe-cracker-game .sc-latch-spine::after {
   content: '';
@@ -93,7 +94,7 @@ const refinementCss = String.raw`${start}
   height: 7px;
   border: 2px solid #0b1012;
   background:
-    repeating-linear-gradient(0deg, rgba(255,255,255,.06) 0 1px, rgba(0,0,0,.045) 1px 2px, transparent 2px 4px),
+    linear-gradient(105deg, transparent 0 27%, rgba(255,255,255,.18) 27.3% 27.8%, transparent 28.1% 64%, rgba(0,0,0,.14) 64.3% 64.8%, transparent 65.1%),
     linear-gradient(90deg, #1b2226, #9aa4a8 42%, #4e595e 68%, #161c20);
   box-shadow:
     inset 0 1px 1px rgba(255,255,255,.28),
@@ -112,42 +113,39 @@ const refinementCss = String.raw`${start}
   border-radius: 2px 2px 5px 5px;
 }
 
-/* Brushed and scratched steel across the backplate and inward mounting ear. */
+/* Brushed mounting plates with scattered wear marks rather than repeated stripes. */
 .safe-cracker-game .sc-latch-mount::before {
   background:
-    linear-gradient(111deg, transparent 0 12%, rgba(255,255,255,.15) 12.4% 13%, transparent 13.6% 39%, rgba(0,0,0,.16) 39.4% 40.1%, transparent 40.7% 72%, rgba(255,255,255,.08) 72.4% 73%, transparent 73.6%),
-    linear-gradient(69deg, transparent 0 26%, rgba(0,0,0,.13) 26.4% 27%, transparent 27.6% 61%, rgba(255,255,255,.11) 61.4% 62%, transparent 62.6%),
-    repeating-linear-gradient(0deg, rgba(255,255,255,.055) 0 1px, rgba(0,0,0,.045) 1px 2px, transparent 2px 4px),
-    linear-gradient(180deg, rgba(255,255,255,.22), transparent 18%),
+    linear-gradient(111deg, transparent 0 14%, rgba(255,255,255,.17) 14.2% 14.7%, transparent 15% 43%, rgba(0,0,0,.15) 43.2% 43.7%, transparent 44% 78%, rgba(255,255,255,.09) 78.2% 78.7%, transparent 79%),
+    linear-gradient(166deg, transparent 0 31%, rgba(0,0,0,.12) 31.2% 31.7%, transparent 32% 67%, rgba(255,255,255,.1) 67.2% 67.7%, transparent 68%),
+    radial-gradient(ellipse at 32% 18%, rgba(255,255,255,.16), transparent 38%),
     linear-gradient(90deg, #1b2327 0%, #77858a 27%, #424e53 55%, #151c20 100%) !important;
 }
 
 .safe-cracker-game .sc-bolts.right .sc-latch-mount::before {
   background:
-    linear-gradient(69deg, transparent 0 12%, rgba(255,255,255,.15) 12.4% 13%, transparent 13.6% 39%, rgba(0,0,0,.16) 39.4% 40.1%, transparent 40.7% 72%, rgba(255,255,255,.08) 72.4% 73%, transparent 73.6%),
-    linear-gradient(111deg, transparent 0 26%, rgba(0,0,0,.13) 26.4% 27%, transparent 27.6% 61%, rgba(255,255,255,.11) 61.4% 62%, transparent 62.6%),
-    repeating-linear-gradient(0deg, rgba(255,255,255,.055) 0 1px, rgba(0,0,0,.045) 1px 2px, transparent 2px 4px),
-    linear-gradient(180deg, rgba(255,255,255,.22), transparent 18%),
+    linear-gradient(69deg, transparent 0 14%, rgba(255,255,255,.17) 14.2% 14.7%, transparent 15% 43%, rgba(0,0,0,.15) 43.2% 43.7%, transparent 44% 78%, rgba(255,255,255,.09) 78.2% 78.7%, transparent 79%),
+    linear-gradient(14deg, transparent 0 31%, rgba(0,0,0,.12) 31.2% 31.7%, transparent 32% 67%, rgba(255,255,255,.1) 67.2% 67.7%, transparent 68%),
+    radial-gradient(ellipse at 68% 18%, rgba(255,255,255,.16), transparent 38%),
     linear-gradient(270deg, #1b2327 0%, #77858a 27%, #424e53 55%, #151c20 100%) !important;
 }
 
 .safe-cracker-game .sc-latch-mount::after {
   background:
-    linear-gradient(108deg, transparent 0 18%, rgba(255,255,255,.15) 18.4% 19%, transparent 19.6% 48%, rgba(0,0,0,.15) 48.4% 49%, transparent 49.6% 76%, rgba(255,255,255,.08) 76.4% 77%, transparent 77.6%),
-    repeating-linear-gradient(0deg, rgba(255,255,255,.06) 0 1px, rgba(0,0,0,.045) 1px 2px, transparent 2px 4px),
-    linear-gradient(180deg, rgba(255,255,255,.23), transparent 23%),
+    linear-gradient(108deg, transparent 0 23%, rgba(255,255,255,.16) 23.2% 23.7%, transparent 24% 58%, rgba(0,0,0,.14) 58.2% 58.7%, transparent 59%),
+    linear-gradient(159deg, transparent 0 38%, rgba(255,255,255,.09) 38.2% 38.7%, transparent 39% 76%, rgba(0,0,0,.11) 76.2% 76.7%, transparent 77%),
+    radial-gradient(ellipse at 34% 18%, rgba(255,255,255,.14), transparent 42%),
     linear-gradient(90deg, #171e22, #727f84 48%, #1b2327) !important;
 }
 
 .safe-cracker-game .sc-bolts.right .sc-latch-mount::after {
   background:
-    linear-gradient(72deg, transparent 0 18%, rgba(255,255,255,.15) 18.4% 19%, transparent 19.6% 48%, rgba(0,0,0,.15) 48.4% 49%, transparent 49.6% 76%, rgba(255,255,255,.08) 76.4% 77%, transparent 77.6%),
-    repeating-linear-gradient(0deg, rgba(255,255,255,.06) 0 1px, rgba(0,0,0,.045) 1px 2px, transparent 2px 4px),
-    linear-gradient(180deg, rgba(255,255,255,.23), transparent 23%),
+    linear-gradient(72deg, transparent 0 23%, rgba(255,255,255,.16) 23.2% 23.7%, transparent 24% 58%, rgba(0,0,0,.14) 58.2% 58.7%, transparent 59%),
+    linear-gradient(21deg, transparent 0 38%, rgba(255,255,255,.09) 38.2% 38.7%, transparent 39% 76%, rgba(0,0,0,.11) 76.2% 76.7%, transparent 77%),
+    radial-gradient(ellipse at 66% 18%, rgba(255,255,255,.14), transparent 42%),
     linear-gradient(270deg, #171e22, #727f84 48%, #1b2327) !important;
 }
 
-/* Separate screw element provides a recessed Phillips head and worn metal face. */
 .safe-cracker-game .sc-latch-screw {
   position: absolute;
   top: 11px;
@@ -184,20 +182,20 @@ const refinementCss = String.raw`${start}
 .safe-cracker-game .sc-latch-screw::before { width: 8px; height: 2px; }
 .safe-cracker-game .sc-latch-screw::after { width: 2px; height: 8px; }
 
-/* The cylinders keep the existing release classes and timing; this pass only
-   changes their surface finish to match the worn brushed-metal reference. */
+/* Cylinders retain the protected release classes while receiving smooth brushed
+   highlights and a few irregular scratches, with no repeating line pattern. */
 .safe-cracker-game .sc-latch-mount > i {
   background:
-    linear-gradient(105deg, transparent 0 13%, rgba(255,255,255,.2) 13.4% 14.1%, transparent 14.7% 39%, rgba(0,0,0,.17) 39.4% 40.1%, transparent 40.7% 66%, rgba(255,255,255,.11) 66.4% 67.1%, transparent 67.7%),
-    linear-gradient(77deg, transparent 0 22%, rgba(0,0,0,.13) 22.4% 23%, transparent 23.6% 55%, rgba(255,255,255,.1) 55.4% 56%, transparent 56.6%),
-    repeating-linear-gradient(0deg, rgba(255,255,255,.075) 0 1px, rgba(0,0,0,.055) 1px 2px, transparent 2px 4px),
-    linear-gradient(180deg, rgba(255,255,255,.2), transparent 17%),
+    linear-gradient(104deg, transparent 0 16%, rgba(255,255,255,.2) 16.2% 16.8%, transparent 17.1% 45%, rgba(0,0,0,.16) 45.2% 45.8%, transparent 46.1% 73%, rgba(255,255,255,.11) 73.2% 73.8%, transparent 74.1%),
+    linear-gradient(163deg, transparent 0 29%, rgba(0,0,0,.12) 29.2% 29.8%, transparent 30.1% 61%, rgba(255,255,255,.1) 61.2% 61.8%, transparent 62.1%),
+    radial-gradient(ellipse at 43% 17%, rgba(255,255,255,.19), transparent 34%),
     linear-gradient(90deg, #12181b 0%, #59666c 17%, #cbd2d4 44%, #838e92 64%, #222a2e 100%) !important;
 }
 
 @media (max-width: 700px) {
   .safe-cracker-game .sc-latch-mount:nth-child(1) {
-    top: calc(25% + 14px);
+    top: calc(23% + 7px);
+    transform: scale(.86);
   }
 
   .safe-cracker-game .sc-latch-mount:nth-child(2) {
@@ -210,6 +208,7 @@ const refinementCss = String.raw`${start}
 
   .safe-cracker-game .sc-latch-mount:nth-child(3) {
     bottom: 17%;
+    transform: scale(.86);
   }
 
   .safe-cracker-game .sc-latch-spine {
@@ -243,25 +242,25 @@ const refinementCss = String.raw`${start}
 }
 ${end}`;
 
-const oldBlock = /\/\* SAFE_CRACKER_LATCH_REFINEMENT_V(?:5|6)_START \*\/[\s\S]*?\/\* SAFE_CRACKER_LATCH_REFINEMENT_V(?:5|6)_END \*\/\n?/g;
+const oldBlock = /\/\* SAFE_CRACKER_LATCH_REFINEMENT_V(?:5|6|7)_START \*\/[\s\S]*?\/\* SAFE_CRACKER_LATCH_REFINEMENT_V(?:5|6|7)_END \*\/\n?/g;
 css = css.replace(oldBlock, '').trimEnd() + `\n\n${refinementCss}\n`;
 await writeFile(cssUrl, css);
 
 let client = await readFile(clientUrl, 'utf8');
 if (!client.includes('// SAFE_CRACKER_LATCH_SEQUENCE_V1_HELPER')) {
-  throw new Error('Safe Cracker latch refinement v6 could not find the latch helper.');
+  throw new Error('Safe Cracker latch refinement v7 could not find the latch helper.');
 }
 const mountReturnPattern = /    return `<span class="sc-latch-mount">[^`]*<\/span>`;/;
 const mountedReturn = '    return `<span class="sc-latch-mount"><b class="sc-latch-spine" aria-hidden="true"></b><em class="sc-latch-screw" aria-hidden="true"></em><i class="${latchClass}"></i></span>`;';
 if (mountReturnPattern.test(client)) {
   client = client.replace(mountReturnPattern, mountedReturn);
 } else if (!client.includes('class="sc-latch-spine"') || !client.includes('class="sc-latch-screw"')) {
-  throw new Error('Safe Cracker latch refinement v6 could not upgrade the latch mount markup.');
+  throw new Error('Safe Cracker latch refinement v7 could not upgrade the latch mount markup.');
 }
 await writeFile(clientUrl, client);
 
 let html = await readFile(indexUrl, 'utf8');
-html = html.replace(/&latch=\d+/g, '&latch=6');
+html = html.replace(/&latch=\d+/g, '&latch=7');
 await writeFile(indexUrl, html);
 
-console.log('Applied Safe Cracker latch refinement v6: all six assemblies now match the close-up with taller fixed support tongues, scratched brushed metal, a lower top pair, a smaller outboard middle pair, and unchanged right-cylinder-only release motion.');
+console.log('Applied Safe Cracker latch refinement v7: the top pair is raised and slightly smaller, the bottom pair is slightly smaller, all six assemblies use smooth scratched brushed metal without repetitive lines, and only the existing right cylinders animate.');
