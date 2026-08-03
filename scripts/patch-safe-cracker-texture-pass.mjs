@@ -14,12 +14,13 @@ let css = await readFile(cssUrl, 'utf8');
 
 const texturePass = String.raw`${start}
 /* A2 image-texture pass: directional steel, irregular wear, and separate
-   circular dial machining. Lighting, layout and behavior remain unchanged. */
+   circular dial machining. The safe-body shadow tones are deliberately lifted
+   so recessed metal remains readable without changing layout or behavior. */
 .safe-cracker-game .sc-safe-shell {
   background-image:
     url('/assets/safe-cracker/textures/safe-steel-base.svg?v=1'),
-    radial-gradient(ellipse at 26% 14%, rgba(221, 231, 234, .1), transparent 38%),
-    linear-gradient(145deg, #39444a 0%, #171e22 48%, #0d1215 78%, #293238 100%) !important;
+    radial-gradient(ellipse at 26% 14%, rgba(226, 235, 238, .16), transparent 42%),
+    linear-gradient(145deg, #56636a 0%, #303a3f 48%, #20292e 78%, #465158 100%) !important;
   background-size: 360px 360px, 100% 100%, 100% 100% !important;
   background-repeat: repeat, no-repeat, no-repeat !important;
   background-blend-mode: soft-light, screen, normal !important;
@@ -29,13 +30,13 @@ const texturePass = String.raw`${start}
   background-image:
     url('/assets/safe-cracker/textures/metal-wear.svg?v=1'),
     url('/assets/safe-cracker/textures/safe-steel-base.svg?v=1'),
-    radial-gradient(ellipse at 32% 16%, rgba(230, 238, 240, .12), transparent 34%),
-    radial-gradient(ellipse at 72% 86%, rgba(0, 0, 0, .16), transparent 46%),
-    linear-gradient(145deg, #58656b 0%, #273136 30%, #101619 69%, #354047 100%) !important;
+    radial-gradient(ellipse at 32% 16%, rgba(235, 242, 244, .2), transparent 40%),
+    radial-gradient(ellipse at 72% 86%, rgba(0, 0, 0, .06), transparent 54%),
+    linear-gradient(145deg, #718087 0%, #465259 30%, #283238 69%, #556168 100%) !important;
   background-position: center, center, center, center, center !important;
   background-size: cover, 330px 330px, 100% 100%, 100% 100%, 100% 100% !important;
   background-repeat: no-repeat, repeat, no-repeat, no-repeat, no-repeat !important;
-  background-blend-mode: soft-light, overlay, screen, multiply, normal !important;
+  background-blend-mode: soft-light, overlay, screen, soft-light, normal !important;
 }
 
 .safe-cracker-game .sc-dial-face {
@@ -96,6 +97,6 @@ index = index.replace(/&texture=\d+/g, '');
 index = index.replace(/(safe-cracker\.css[^"']*)/, '$1&texture=3');
 await writeFile(indexUrl, index);
 
-console.log('Applied Safe Cracker texture pass v3: real image assets provide directional steel, irregular wear and circular dial machining without CSS crosshatching or behavior changes.');
+console.log('Applied Safe Cracker texture pass v3: the actual shell and door steel gradients are visibly lighter while directional wear, dial machining, layout and behavior remain unchanged.');
 
 await import('./patch-safe-cracker-shadow-depth.mjs');
