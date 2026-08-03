@@ -24,64 +24,14 @@ if (!client.includes(start)) {
     const buffer = context.createBuffer(1, length, context.sampleRate);
     const data = buffer.getChannelData(0);
     for (let index = 0; index < length; index += 1) {
-      const fast = Math.exp(-index / Math.max(1, context.sampleRate * 0.0026));
-      const tail = Math.exp(-index / Math.max(1, context.sampleRate * 0.012));
-      const impulse = index < 3 ? (index === 0 ? 1 : -0.65) : 0;
-      const grit = (Math.random() * 2 - 1) * (0.58 * fast + 0.14 * tail);
+      const fast = Math.exp(-index / Math.max(1, context.sampleRate * 0.0024));
+      const tail = Math.exp(-index / Math.max(1, context.sampleRate * 0.011));
+      const impulse = index === 0 ? 0.95 : index === 1 ? -0.72 : index === 2 ? 0.38 : 0;
+      const grit = (Math.random() * 2 - 1) * (0.62 * fast + 0.12 * tail);
       data[index] = Math.max(-1, Math.min(1, impulse + grit));
     }
     runtime.safeCrackerClickNoiseBuffer = buffer;
     return buffer;
-  }
-
-  function safeCrackerPlayClickTransient(options = {}) {
-    const context = resumeAudio();
-    if (!context || document.hidden) return false;
-    const delay = Math.max(0, Number(options.delay) || 0);
-    const duration = Math.max(0.018, Number(options.duration) || 0.045);
-    const startAt = context.currentTime + delay;
-    const finishAt = startAt + duration;
-    const noiseSource = context.createBufferSource();
-    const highpass = context.createBiquadFilter();
-    const bandpass = context.createBiquadFilter();
-    const noiseGain = context.createGain();
-    const tone = context.createOscillator();
-    const toneGain = context.createGain();
-
-    noiseSource.buffer = safeCrackerClickNoiseBuffer(context);
-    noiseSource.playbackRate.setValueAtTime(
-      Math.max(0.72, Math.min(1.42, Number(options.playbackRate) || 1)),
-      startAt
-    );
-    highpass.type = 'highpass';
-    highpass.frequency.setValueAtTime(Math.max(80, Number(options.highpass) || 900), startAt);
-    bandpass.type = 'bandpass';
-    bandpass.frequency.setValueAtTime(Math.max(180, Number(options.frequency) || 2600), startAt);
-    bandpass.Q.setValueAtTime(Math.max(0.2, Number(options.q) || 2.2), startAt);
-    const noiseLevel = Math.max(0.002, Number(options.gain) || 0.16);
-    noiseGain.gain.setValueAtTime(noiseLevel, startAt);
-    noiseGain.gain.exponentialRampToValueAtTime(0.0001, finishAt);
-
-    tone.type = options.toneType || 'triangle';
-    const toneStart = Math.max(45, Number(options.toneFrequency) || 1450);
-    const toneEnd = Math.max(42, Number(options.toneEnd) || 520);
-    tone.frequency.setValueAtTime(toneStart, startAt);
-    tone.frequency.exponentialRampToValueAtTime(toneEnd, finishAt);
-    const toneLevel = Math.max(0.001, Number(options.toneGain) || 0.045);
-    toneGain.gain.setValueAtTime(toneLevel, startAt);
-    toneGain.gain.exponentialRampToValueAtTime(0.0001, finishAt);
-
-    noiseSource.connect(highpass);
-    highpass.connect(bandpass);
-    bandpass.connect(noiseGain);
-    noiseGain.connect(safeCrackerAudioBus(context));
-    tone.connect(toneGain);
-    toneGain.connect(safeCrackerAudioBus(context));
-    noiseSource.start(startAt);
-    noiseSource.stop(finishAt + 0.012);
-    tone.start(startAt);
-    tone.stop(finishAt + 0.012);
-    return true;
   }
 
   function safeCrackerPlayDryMetalImpact(options = {}) {
@@ -104,20 +54,20 @@ if (!client.includes(start)) {
       startAt
     );
     highpass.type = 'highpass';
-    highpass.frequency.setValueAtTime(Math.max(120, Number(options.highpass) || 700), startAt);
+    highpass.frequency.setValueAtTime(Math.max(100, Number(options.highpass) || 700), startAt);
     primary.type = 'bandpass';
-    primary.frequency.setValueAtTime(Math.max(260, Number(options.frequency) || 3300), startAt);
+    primary.frequency.setValueAtTime(Math.max(240, Number(options.frequency) || 3300), startAt);
     primary.Q.setValueAtTime(Math.max(0.6, Number(options.q) || 6.2), startAt);
     secondary.type = 'bandpass';
-    secondary.frequency.setValueAtTime(Math.max(300, Number(options.secondaryFrequency) || 5100), startAt);
+    secondary.frequency.setValueAtTime(Math.max(280, Number(options.secondaryFrequency) || 5100), startAt);
     secondary.Q.setValueAtTime(Math.max(0.6, Number(options.secondaryQ) || 8), startAt);
 
     const gainLevel = Math.max(0.002, Number(options.gain) || 0.19);
-    const secondaryLevel = Math.max(0.001, Number(options.secondaryGain) || gainLevel * 0.44);
+    const secondaryLevel = Math.max(0.001, Number(options.secondaryGain) || gainLevel * 0.42);
     primaryGain.gain.setValueAtTime(gainLevel, startAt);
     primaryGain.gain.exponentialRampToValueAtTime(0.0001, finishAt);
     secondaryGain.gain.setValueAtTime(secondaryLevel, startAt);
-    secondaryGain.gain.exponentialRampToValueAtTime(0.0001, finishAt * 0 + startAt + duration * 0.72);
+    secondaryGain.gain.exponentialRampToValueAtTime(0.0001, startAt + duration * 0.72);
 
     source.connect(highpass);
     highpass.connect(primary);
@@ -134,96 +84,95 @@ if (!client.includes(start)) {
   function safeCrackerPlayMetalDialClick(digit) {
     const step = Math.abs(Number(digit) || 0) % 5;
     const tooth = safeCrackerPlayDryMetalImpact({
-      duration: 0.026,
-      gain: 0.24,
-      highpass: 980,
-      frequency: 3400 + step * 42,
-      q: 7.4,
-      secondaryFrequency: 5850 + step * 48,
-      secondaryQ: 9.2,
-      secondaryGain: 0.105,
-      playbackRate: 0.97 + step * 0.009
+      duration: 0.024,
+      gain: 0.255,
+      highpass: 1050,
+      frequency: 3520 + step * 38,
+      q: 8.1,
+      secondaryFrequency: 6120 + step * 44,
+      secondaryQ: 10.2,
+      secondaryGain: 0.112,
+      playbackRate: 0.98 + step * 0.008
     });
     const catchClick = safeCrackerPlayDryMetalImpact({
-      delay: 0.018,
-      duration: 0.034,
-      gain: 0.115,
-      highpass: 360,
-      frequency: 1320 + step * 26,
-      q: 3.8,
-      secondaryFrequency: 2360 + step * 31,
-      secondaryQ: 5.2,
-      secondaryGain: 0.052,
-      playbackRate: 0.93 + step * 0.008
+      delay: 0.017,
+      duration: 0.031,
+      gain: 0.125,
+      highpass: 410,
+      frequency: 1380 + step * 24,
+      q: 4.1,
+      secondaryFrequency: 2480 + step * 28,
+      secondaryQ: 5.6,
+      secondaryGain: 0.057,
+      playbackRate: 0.94 + step * 0.007
     });
     return Boolean(tooth || catchClick);
   }
 
   function safeCrackerPlayIncorrectRejectCue(tier) {
     const severity = tier === 'yellow' ? 0 : tier === 'orange' ? 1 : 2;
-    const metalStop = safeCrackerPlayDryMetalImpact({
+    const stop = safeCrackerPlayDryMetalImpact({
       duration: 0.052,
-      gain: 0.22 + severity * 0.018,
-      highpass: 480,
-      frequency: 1760 - severity * 120,
-      q: 4.6,
-      secondaryFrequency: 3120 - severity * 135,
-      secondaryQ: 6.2,
-      secondaryGain: 0.085
+      gain: 0.245 + severity * 0.018,
+      highpass: 450,
+      frequency: 1680 - severity * 105,
+      q: 4.5,
+      secondaryFrequency: 3010 - severity * 120,
+      secondaryQ: 6.1,
+      secondaryGain: 0.096
     });
-    const internalKnock = safeCrackerPlayClickTransient({
-      delay: 0.09,
-      duration: 0.12,
-      gain: 0.18 + severity * 0.016,
-      highpass: 75,
-      frequency: 520 - severity * 55,
-      q: 0.82,
-      toneFrequency: 195 - severity * 18,
-      toneEnd: 76,
-      toneGain: 0.105,
-      toneType: 'square'
+    const knock = safeCrackerPlayDryMetalImpact({
+      delay: 0.095,
+      duration: 0.085,
+      gain: 0.225 + severity * 0.016,
+      highpass: 115,
+      frequency: 620 - severity * 48,
+      q: 2.2,
+      secondaryFrequency: 1120 - severity * 62,
+      secondaryQ: 3.2,
+      secondaryGain: 0.088
     });
-    const rejectClack = safeCrackerPlayDryMetalImpact({
+    const reject = safeCrackerPlayDryMetalImpact({
       delay: 0.205,
-      duration: 0.058,
-      gain: 0.16 + severity * 0.016,
+      duration: 0.061,
+      gain: 0.19 + severity * 0.014,
       highpass: 260,
-      frequency: 980 - severity * 70,
-      q: 3.2,
-      secondaryFrequency: 1880 - severity * 90,
-      secondaryQ: 4.6,
-      secondaryGain: 0.064
+      frequency: 940 - severity * 64,
+      q: 3.3,
+      secondaryFrequency: 1840 - severity * 82,
+      secondaryQ: 4.7,
+      secondaryGain: 0.071
     });
-    return Boolean(metalStop || internalKnock || rejectClack);
+    return Boolean(stop || knock || reject);
   }
 
   function safeCrackerPlayCorrectNumberCue() {
     const latchStrike = safeCrackerPlayDryMetalImpact({
       duration: 0.074,
-      gain: 0.31,
-      highpass: 430,
-      frequency: 2180,
-      q: 5.8,
-      secondaryFrequency: 4460,
-      secondaryQ: 8.4,
-      secondaryGain: 0.15
+      gain: 0.34,
+      highpass: 420,
+      frequency: 2140,
+      q: 5.9,
+      secondaryFrequency: 4520,
+      secondaryQ: 8.6,
+      secondaryGain: 0.165
     });
     const boltRelease = safeCrackerPlayDryMetalImpact({
-      delay: 0.105,
-      duration: 0.095,
-      gain: 0.22,
-      highpass: 180,
-      frequency: 910,
+      delay: 0.108,
+      duration: 0.102,
+      gain: 0.245,
+      highpass: 165,
+      frequency: 880,
       q: 3.1,
-      secondaryFrequency: 1720,
-      secondaryQ: 4.5,
-      secondaryGain: 0.09
+      secondaryFrequency: 1690,
+      secondaryQ: 4.4,
+      secondaryGain: 0.102
     });
     const recordedLatch = safeCrackerPlayRecordedSound('latchOpen', {
       delay: 0.025,
-      gain: 0.56,
-      playbackRate: 0.98,
-      highpass: 48,
+      gain: 0.62,
+      playbackRate: 0.97,
+      highpass: 42,
       lowpass: 9800
     });
     return Boolean(latchStrike || boltRelease || recordedLatch);
@@ -232,7 +181,7 @@ if (!client.includes(start)) {
   function safeCrackerPlayAuthoritativeCorrectCue(game, completedStage) {
     const gameId = String(game?.gameId || runtime.game?.gameId || '');
     const stage = Math.max(1, Math.min(3, Number(completedStage) || Number(game?.safecrackerState?.me?.stage || 0)));
-    const key = `${gameId}:${stage}`;
+    const key = gameId + ':' + stage;
     if (!gameId || runtime.safeCrackerCorrectCueKey === key) return false;
     runtime.safeCrackerCorrectCueKey = key;
     const played = safeCrackerPlayCorrectNumberCue();
@@ -265,10 +214,10 @@ if (!client.includes(start)) {
       return;
     }
     const settings = tier === 'yellow'
-      ? { gain: 0.23, playbackRate: 1.05, haptic: [10, 40, 12], lowpass: 5700 }
+      ? { gain: 0.24, playbackRate: 1.04, haptic: [10, 40, 12], lowpass: 5700 }
       : tier === 'orange'
-        ? { gain: 0.29, playbackRate: 0.97, haptic: [12, 46, 14], lowpass: 4800 }
-        : { gain: 0.35, playbackRate: 0.88, haptic: [14, 52, 16], lowpass: 4000 };
+        ? { gain: 0.3, playbackRate: 0.96, haptic: [12, 46, 14], lowpass: 4800 }
+        : { gain: 0.36, playbackRate: 0.87, haptic: [14, 52, 16], lowpass: 4000 };
     const cuePlayed = safeCrackerPlayIncorrectRejectCue(tier);
     const recordedPlayed = safeCrackerPlayRecordedSound('incorrect', {
       gain: settings.gain,
@@ -307,7 +256,6 @@ if (client.includes(originalSubmitFeedback)) {
 const required = [
   start,
   'function safeCrackerClickNoiseBuffer(context)',
-  'function safeCrackerPlayClickTransient(options = {})',
   'function safeCrackerPlayDryMetalImpact(options = {})',
   'function safeCrackerPlayMetalDialClick(digit)',
   'function safeCrackerPlayIncorrectRejectCue(tier)',
@@ -325,7 +273,7 @@ const required = [
   'choice: `safecracker:guess:${runtime.selected}`'
 ];
 for (const fragment of required) {
-  if (!client.includes(fragment)) throw new Error(`Safe Cracker click-cue patch is missing ${fragment}.`);
+  if (!client.includes(fragment)) throw new Error(`Recorded Safe Cracker click-cue patch is missing ${fragment}.`);
 }
 if ((client.match(/SAFE_CRACKER_CLICK_CUES_V16_START/g) || []).length !== 1) {
   throw new Error('Safe Cracker click-cue marker must appear exactly once.');
