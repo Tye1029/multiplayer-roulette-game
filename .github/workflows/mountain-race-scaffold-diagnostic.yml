@@ -1,0 +1,51 @@
+name: Summit Sprint Scaffold Diagnostic
+
+on:
+  pull_request:
+    branches:
+      - safe-cracker-development
+  push:
+    branches:
+      - mountain-race-development
+
+concurrency:
+  group: summit-sprint-scaffold-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate-scaffold:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+
+      - name: Use Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run existing site build
+        run: npm run build
+
+      - name: Check Summit Sprint JavaScript syntax
+        run: |
+          node --check assets/mountain-race/mountain-race.js
+          node --check netlify/functions/mountain-race/state-model.js
+
+      - name: Validate Summit Sprint isolation and state model
+        run: node scripts/validate-mountain-race-scaffold.mjs
+
+      - name: Verify protected game files remain present
+        run: |
+          test -s assets/safe-cracker/safe-cracker.js
+          test -s assets/safe-cracker/safe-cracker.css
+          test -s assets/roulette/turn-animation.js
+          test -s assets/roulette/turn-fire.js
+          test -s assets/roulette/audio-bindings.js
