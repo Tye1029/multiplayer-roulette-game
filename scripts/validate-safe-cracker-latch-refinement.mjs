@@ -12,15 +12,15 @@ const [css, client, html, patch, turnAnimation, turnFire, audioBindings] = await
 ]);
 
 function assert(condition, message) {
-  if (!condition) throw new Error(`Safe Cracker latch refinement v7 validation failed: ${message}`);
+  if (!condition) throw new Error(`Safe Cracker latch refinement v8 validation failed: ${message}`);
 }
 
 function occurrences(source, fragment) {
   return source.split(fragment).length - 1;
 }
 
-const start = '/* SAFE_CRACKER_LATCH_REFINEMENT_V7_START */';
-const end = '/* SAFE_CRACKER_LATCH_REFINEMENT_V7_END */';
+const start = '/* SAFE_CRACKER_LATCH_REFINEMENT_V8_START */';
+const end = '/* SAFE_CRACKER_LATCH_REFINEMENT_V8_END */';
 const blockStart = css.indexOf(start);
 const blockEnd = css.indexOf(end, blockStart);
 const block = blockStart >= 0 && blockEnd > blockStart ? css.slice(blockStart, blockEnd + end.length) : '';
@@ -30,7 +30,7 @@ assert(css.indexOf('/* SAFE_CRACKER_LATCH_SEQUENCE_V1_END */') < blockStart, 're
 
 const requiredCss = [
   'position: absolute !important',
-  'top: calc(23% + 4px)',
+  'top: calc(22.5% + 2px)',
   'transform: scale(.9)',
   'transform: translateY(-50%) scale(.68)',
   '.sc-bolts.left .sc-latch-mount:nth-child(2) { left: -11px; }',
@@ -45,14 +45,17 @@ const requiredCss = [
   'width: 24px',
   'linear-gradient(112deg',
   'linear-gradient(164deg',
+  'linear-gradient(115deg',
+  'rgba(255,255,255,.55)',
   '.sc-latch-screw',
   '.sc-latch-screw::before',
   '.sc-latch-screw::after',
   'width: 8px; height: 2px',
   'width: 2px; height: 8px',
   '.sc-latch-mount > i',
-  '#cbd2d4 44%',
-  'top: calc(23% + 7px)',
+  'rgba(255,255,255,.58)',
+  '#e7ecee 43%',
+  'top: calc(22.5% + 5px)',
   'transform: scale(.86)',
   'transform: translateY(-50%) scale(.62)',
   'top: -11px',
@@ -75,10 +78,10 @@ assert(client.includes('safeCrackerLatchMount(latchClass(3))'), 'bottom staged l
 assert(client.includes('animation: scSafeCrackerLatchReleaseV1') || css.includes('animation: scSafeCrackerLatchReleaseV1 1.15s'), 'existing release animation is missing');
 assert(client.includes('choice: `safecracker:guess:${runtime.selected}`'), 'authoritative gameplay submission changed');
 
-assert(/safe-cracker\.css\?[^"'\s]*&latch=7/.test(html), 'stylesheet cache key latch=7 is missing');
-assert(/safe-cracker\.js\?[^"'\s]*&latch=7/.test(html), 'runtime cache key latch=7 is missing');
+assert(/safe-cracker\.css\?[^"'\s]*&latch=8/.test(html), 'stylesheet cache key latch=8 is missing');
+assert(/safe-cracker\.js\?[^"'\s]*&latch=8/.test(html), 'runtime cache key latch=8 is missing');
 assert(!patch.includes("writeFile(new URL('../netlify/functions/"), 'refinement writes networking files');
 assert(!patch.includes("writeFile(new URL('../assets/roulette/"), 'refinement writes Roulette files');
 assert(turnAnimation.length > 0 && turnFire.length > 0 && audioBindings.length > 0, 'protected Roulette files are unreadable');
 
-console.log('Safe Cracker latch refinement v7 validation passed: the upper pair is raised and reduced, the lower pair is reduced, all six assemblies use irregular scratched brushed metal without repetitive lines, only right cylinders retain release motion, mobile rules are preserved, and Roulette/networking remain protected.');
+console.log('Safe Cracker latch refinement v8 validation passed: the upper pair is slightly higher, all six assemblies use stronger directional brushed metal and reflective glare without repetitive lines, only right cylinders retain release motion, mobile rules are preserved, and Roulette/networking remain protected.');
