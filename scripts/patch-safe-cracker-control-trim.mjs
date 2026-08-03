@@ -109,7 +109,7 @@ css = css.replace(oldBlock, '').trimEnd() + `\n\n${trimCss}\n`;
 await writeFile(cssUrl, css);
 
 let html = await readFile(indexUrl, 'utf8');
-html = html.replace(/&trim=\d+/g, '');
+html = html.replace(/(\/assets\/safe-cracker\/safe-cracker\.(?:css|js)\?[^"'\s>]*)&trim=\d+/g, '$1');
 html = html.replace(/(\/assets\/safe-cracker\/safe-cracker\.(?:css|js)\?[^"'\s>]+)/g, '$1&trim=1');
 await writeFile(indexUrl, html);
 
