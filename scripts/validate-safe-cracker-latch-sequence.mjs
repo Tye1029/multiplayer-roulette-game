@@ -66,10 +66,10 @@ for (const fragment of requiredClient) assert(client.includes(fragment), `missin
 assert(occurrences(client, 'data-sc-mounted-latches=') === 2, 'both three-latch banks must be generated exactly once');
 assert(!/RESETTING(?:…|\.\.\.)/i.test(client), 'RESETTING still appears on the Check Number control');
 
-assert(/safe-cracker\.css\?[^"'\s]*&latch=7/.test(html), 'stylesheet cache key latch=7 is missing');
-assert(/safe-cracker\.js\?[^"'\s]*&latch=7/.test(html), 'runtime cache key latch=7 is missing');
+assert(/safe-cracker\.css\?[^"'\s]*&latch=8/.test(html), 'stylesheet cache key latch=8 is missing');
+assert(/safe-cracker\.js\?[^"'\s]*&latch=8/.test(html), 'runtime cache key latch=8 is missing');
 assert(!patch.includes("writeFile(new URL('../netlify/functions/"), 'latch patch writes networking files');
 assert(!patch.includes("writeFile(new URL('../assets/roulette/"), 'latch patch writes Roulette files');
 assert(turnAnimation.length > 0 && turnFire.length > 0 && audioBindings.length > 0, 'protected Roulette files are unreadable');
 
-console.log('Safe Cracker latch sequence validation passed: all six mounted latches retain the protected 1.15-second release and black Check Number base, while the final latch=7 refinement, gameplay, networking, and Roulette boundaries remain intact.');
+console.log('Safe Cracker latch sequence validation passed: all six mounted latches retain the protected 1.15-second release and black Check Number base, while the final latch=8 refinement, gameplay, networking, and Roulette boundaries remain intact.');
