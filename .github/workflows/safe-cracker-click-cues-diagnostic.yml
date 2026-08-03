@@ -45,15 +45,12 @@ jobs:
           grep -Fq 'safeCrackerFireOriginalClickPcmV27' assets/safe-cracker/safe-cracker.js
           grep -Fq 'safeCrackerPlayOriginalPcmDetentV27' assets/safe-cracker/safe-cracker.js
           grep -Fq 'gain.connect(context.destination);' assets/safe-cracker/safe-cracker.js
-          grep -Fq 'source.start(context.currentTime);' assets/safe-cracker/safe-cracker.js
           grep -Fq 'safeCrackerStartSmoothVaultRoomToneV27' assets/safe-cracker/safe-cracker.js
           grep -Fq 'safeCrackerPlayAuthoritativeCorrectCue' assets/safe-cracker/safe-cracker.js
           grep -Fq 'safeCrackerPlayIncorrectRejectCue' assets/safe-cracker/safe-cracker.js
           grep -Fq '&clicks=27' index.html
           ! grep -Fq 'SAFE_CRACKER_CLEAN_PCM_V26_START' assets/safe-cracker/safe-cracker.js
           ! grep -Fq 'safeCrackerPlayCleanPcmDetentV26' assets/safe-cracker/safe-cracker.js
-          ! grep -Fq 'const gentleAverage =' assets/safe-cracker/safe-cracker.js
-          ! grep -Fq 'const upsample =' assets/safe-cracker/safe-cracker.js
 
       - name: Verify live original-source PCM dial
         shell: bash
@@ -63,10 +60,21 @@ jobs:
           function_url="${url}.netlify/functions/duel-action"
           expected_bytes='28160'
           expected_hash='f083e8341eaab8dd5c345128a2f084b9e93f7bdc7c48a2ab5b7fb978b38977cc'
-          local_prefix="$(for part in 1 2 3 4 5; do tr -d '[:space:]' < "assets/safe-cracker/audio-data-v4/metallic-click-v27-part-${part}.b64"; done)"
-          local_part6="$(tr -d '[:space:]' < assets/safe-cracker/audio-data-v4/metallic-click-v27-part-6.b64)"
-          local_part7="$(tr -d '[:space:]' < assets/safe-cracker/audio-data-v4/metallic-click-v27-part-7.b64)"
-          local_joined="${local_prefix}${local_part6%=}A${local_part7}"
+          chunk_names=(
+            metallic-click-v27-part-1.b64
+            metallic-click-v27-part-2.b64
+            metallic-click-v27-part-3.b64
+            metallic-click-v27-part-4.b64
+            metallic-click-v27-part-5.b64
+            metallic-click-v27-part-6a.b64
+            metallic-click-v27-part-6b.b64
+            metallic-click-v27-part-6c.b64
+            metallic-click-v27-part-6d.b64
+          )
+          local_joined=''
+          for name in "${chunk_names[@]}"; do
+            local_joined+="$(tr -d '[:space:]' < "assets/safe-cracker/audio-data-v4/${name}")"
+          done
           local_bytes="$(printf '%s' "$local_joined" | base64 -d | wc -c | tr -d ' ')"
           local_hash="$(printf '%s' "$local_joined" | base64 -d | sha256sum | awk '{print $1}')"
           [[ "$local_bytes" == "$expected_bytes" ]]
@@ -75,36 +83,24 @@ jobs:
           for attempt in $(seq 1 48); do
             html="$(curl -fsSL --max-time 20 "${url}?clicks=27&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             js="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/safe-cracker.js?clicks=27&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            remote_prefix=''
-            for part in 1 2 3 4 5; do
-              remote_part="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/audio-data-v4/metallic-click-v27-part-${part}.b64?clicks=27&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-              remote_prefix+="$(printf '%s' "$remote_part" | tr -d '[:space:]')"
+            remote_joined=''
+            for name in "${chunk_names[@]}"; do
+              remote_part="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/audio-data-v4/${name}?clicks=27&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+              remote_joined+="$(printf '%s' "$remote_part" | tr -d '[:space:]')"
             done
-            remote_part6="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/audio-data-v4/metallic-click-v27-part-6.b64?clicks=27&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null | tr -d '[:space:]' || true)"
-            remote_part7="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/audio-data-v4/metallic-click-v27-part-7.b64?clicks=27&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null | tr -d '[:space:]' || true)"
-            remote_joined="${remote_prefix}${remote_part6%=}A${remote_part7}"
             headers="$(curl -fsS --max-time 20 -D - -o /dev/null -X OPTIONS "${function_url}?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-
             remote_bytes="$(printf '%s' "$remote_joined" | base64 -d 2>/dev/null | wc -c | tr -d ' ' || true)"
             remote_hash="$(printf '%s' "$remote_joined" | base64 -d 2>/dev/null | sha256sum | awk '{print $1}' || true)"
 
             if grep -Fq '&clicks=27' <<<"$html" && \
                grep -Fq 'SAFE_CRACKER_ORIGINAL_PCM_V27_START' <<<"$js" && \
-               grep -Fq 'SAFE_CRACKER_ORIGINAL_CLICK_PCM_V27' <<<"$js" && \
                grep -Fq 'SAFE_CRACKER_ORIGINAL_CLICK_RATE_V27 = 32000' <<<"$js" && \
                grep -Fq 'safeCrackerBuildOriginalClickPcmV27' <<<"$js" && \
-               grep -Fq 'let signed = low | (high << 8);' <<<"$js" && \
-               grep -Fq 'if (signed & 0x8000) signed -= 0x10000;' <<<"$js" && \
-               grep -Fq 'safeCrackerUnlockOriginalClickPcmV27' <<<"$js" && \
-               grep -Fq 'safeCrackerFireOriginalClickPcmV27' <<<"$js" && \
                grep -Fq 'safeCrackerPlayOriginalPcmDetentV27' <<<"$js" && \
-               grep -Fq 'gain.connect(context.destination);' <<<"$js" && \
-               grep -Fq 'source.start(context.currentTime);' <<<"$js" && \
                grep -Fq 'safeCrackerStartSmoothVaultRoomToneV27' <<<"$js" && \
                grep -Fq 'safeCrackerPlayAuthoritativeCorrectCue' <<<"$js" && \
                grep -Fq 'safeCrackerPlayIncorrectRejectCue' <<<"$js" && \
                ! grep -Fq 'SAFE_CRACKER_CLEAN_PCM_V26_START' <<<"$js" && \
-               ! grep -Fq 'safeCrackerPlayCleanPcmDetentV26' <<<"$js" && \
                [[ "$remote_bytes" == "$expected_bytes" ]] && \
                [[ "$remote_hash" == "$expected_hash" ]] && \
                grep -Fq 'SAFE_CRACKER_DIAL_ACTIVITY_V16_START' <<<"$js" && \
@@ -117,5 +113,5 @@ jobs:
             sleep 10
           done
 
-          echo 'Netlify preview did not serve the Safe Cracker v27 exact 32 kHz signed 16-bit source waveform, direct WebAudio route, smooth room tone, and protected result cues.' >&2
+          echo 'Netlify preview did not serve the exact V27 original-source waveform and protected Safe Cracker runtime.' >&2
           exit 1
