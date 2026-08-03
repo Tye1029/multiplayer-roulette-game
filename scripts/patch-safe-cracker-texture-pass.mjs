@@ -100,3 +100,9 @@ await writeFile(indexUrl, index);
 console.log('Applied Safe Cracker texture pass v3: the actual shell and door steel gradients are visibly lighter while directional wear, dial machining, layout and behavior remain unchanged.');
 
 await import('./patch-safe-cracker-shadow-depth.mjs');
+
+index = await readFile(indexUrl, 'utf8');
+index = index.replace(/&shadow=\d+/g, '');
+index = index.replace(/(safe-cracker\.css[^"']*)/, '$1&shadow=3');
+await writeFile(indexUrl, index);
+console.log('Advanced the Safe Cracker CSS cache boundary to shadow=3 so the visibly lighter steel gradients cannot be hidden by a stale mobile stylesheet.');
