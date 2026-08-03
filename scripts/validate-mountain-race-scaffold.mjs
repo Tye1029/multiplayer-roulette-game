@@ -1,11 +1,13 @@
 import { readFile } from 'node:fs/promises';
-import {
+import mountainRaceStateModel from '../netlify/functions/mountain-race/state-model.js';
+
+const {
   MOUNTAIN_RACE_MODE,
   MOUNTAIN_RACE_CONTROLS,
   createMountainRaceState,
   applyMountainRaceInput,
   publicMountainRaceState
-} from '../netlify/functions/mountain-race/state-model.js';
+} = mountainRaceStateModel;
 
 const root = new URL('../', import.meta.url);
 const [readme, client, css, serverReadme] = await Promise.all([
