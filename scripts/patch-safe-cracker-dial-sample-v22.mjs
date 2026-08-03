@@ -12,7 +12,9 @@ const chunkPaths = Object.freeze([
   'metallic-click-v27-part-6a.b64',
   'metallic-click-v27-part-6b.b64',
   'metallic-click-v27-part-6c.b64',
-  'metallic-click-v27-part-6d.b64'
+  'metallic-click-v27-part-6d1.b64',
+  'metallic-click-v27-part-6d2.b64',
+  'metallic-click-v27-part-6d3.b64'
 ]);
 const chunkUrls = Object.freeze(chunkPaths.map(path =>
   new URL(`../assets/safe-cracker/audio-data-v4/${path}`, import.meta.url)
@@ -31,7 +33,7 @@ const sections = Object.freeze([
 ]);
 const start = '// SAFE_CRACKER_ORIGINAL_PCM_V27_START';
 const end = '// SAFE_CRACKER_ORIGINAL_PCM_V27_END';
-const expectedChunkLengths = Object.freeze([6256, 6256, 6256, 6256, 6256, 1600, 1600, 1600, 1468]);
+const expectedChunkLengths = Object.freeze([6256, 6256, 6256, 6256, 6256, 1600, 1600, 1600, 800, 600, 68]);
 const expectedBase64Length = 37548;
 const expectedByteLength = 28160;
 const expectedHash = 'f083e8341eaab8dd5c345128a2f084b9e93f7bdc7c48a2ab5b7fb978b38977cc';
