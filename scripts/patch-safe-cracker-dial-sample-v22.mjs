@@ -18,14 +18,16 @@ section = section
   .replaceAll('V21', 'V22')
   .replaceAll('v21', 'v22')
   .replaceAll('?clicks=21', '?clicks=22')
-  .replaceAll('BankVault', 'MetallicClick')
-  .replaceAll('bank-vault', 'metallic-click');
+  .replaceAll('BankVault', 'MetallicClick');
 
 if (!section.includes(v22Start) || !section.includes(v22End)) {
   throw new Error('Metallic click v22 could not advance the native dial section markers.');
 }
 if (!section.includes("fetch(url + '?clicks=22'")) {
   throw new Error('Metallic click v22 did not advance the sample cache key.');
+}
+if (!section.includes('/audio-data-v3/bank-vault-dial-click-1.b64')) {
+  throw new Error('Metallic click v22 must retain the committed six-sample asset paths.');
 }
 if (!section.includes('safeCrackerStartSmoothVaultRoomToneV22')) {
   throw new Error('Metallic click v22 must preserve the smooth transient-free room tone.');
