@@ -3,19 +3,19 @@ import { readFile, writeFile } from 'node:fs/promises';
 const cssUrl = new URL('../assets/safe-cracker/safe-cracker.css', import.meta.url);
 const clientUrl = new URL('../assets/safe-cracker/safe-cracker.js', import.meta.url);
 const indexUrl = new URL('../index.html', import.meta.url);
-const start = '/* SAFE_CRACKER_LATCH_REFINEMENT_V8_START */';
-const end = '/* SAFE_CRACKER_LATCH_REFINEMENT_V8_END */';
+const start = '/* SAFE_CRACKER_LATCH_REFINEMENT_V9_START */';
+const end = '/* SAFE_CRACKER_LATCH_REFINEMENT_V9_END */';
 
 let css = await readFile(cssUrl, 'utf8');
 if (!css.includes('/* SAFE_CRACKER_LATCH_SEQUENCE_V1_START */')) {
-  throw new Error('Safe Cracker latch refinement v8 requires the mounted latch sequence.');
+  throw new Error('Safe Cracker latch refinement v9 requires the mounted latch sequence.');
 }
 
 const refinementCss = String.raw`${start}
-/* Final latch finish pass: raise the upper pair a small amount while preserving
-   the clear space between the display and dial. Every visible latch component
-   receives a directional brushed-steel grain, irregular scratches, and a bright
-   reflected highlight. Only the existing right-side cylinders may animate. */
+/* Web-reference-guided metal pass: brushed stainless steel reads through fine
+   directional grain, scattered micro-scratches, broad soft reflection, and one
+   restrained specular streak. The upper pair moves only a few pixels higher.
+   Existing right-side cylinder release behavior remains the only latch motion. */
 .safe-cracker-game .sc-bolts {
   top: 0 !important;
   bottom: 0 !important;
@@ -37,9 +37,9 @@ const refinementCss = String.raw`${start}
   transform-origin: right center;
 }
 
-/* Tiny upward correction requested for the upper pair. */
+/* Tiny upward correction while keeping clear space above the dial. */
 .safe-cracker-game .sc-latch-mount:nth-child(1) {
-  top: calc(22.5% + 2px);
+  top: calc(22% + 2px);
   transform: scale(.9);
 }
 
@@ -56,8 +56,8 @@ const refinementCss = String.raw`${start}
   transform: scale(.9);
 }
 
-/* Tall fixed support beneath each barrel. Broad silver bands create brushed
-   metal, while the narrow angled marks read as individual wear scratches. */
+/* Fixed vertical supports use a real procedural brushed-grain SVG rather than
+   obvious repeated CSS stripes. Sparse angled marks add rough shop wear. */
 .safe-cracker-game .sc-latch-spine {
   position: absolute;
   top: -14px;
@@ -68,16 +68,20 @@ const refinementCss = String.raw`${start}
   overflow: visible;
   border: 2px solid #0d1215;
   border-radius: 4px;
-  background:
-    linear-gradient(112deg, transparent 0 18%, rgba(255,255,255,.22) 18.3% 18.9%, transparent 19.2% 63%, rgba(0,0,0,.18) 63.3% 63.9%, transparent 64.2%),
-    linear-gradient(164deg, transparent 0 37%, rgba(255,255,255,.14) 37.3% 37.9%, transparent 38.2% 76%, rgba(0,0,0,.13) 76.3% 76.9%, transparent 77.2%),
-    linear-gradient(104deg, transparent 0 29%, rgba(255,255,255,.05) 30%, rgba(255,255,255,.55) 36%, rgba(255,255,255,.12) 42%, transparent 48%),
-    radial-gradient(ellipse at 38% 20%, rgba(255,255,255,.28), transparent 39%),
-    linear-gradient(90deg, #12191d 0%, #59666c 16%, #a9b4b8 31%, #e3e9eb 43%, #9ba7ac 55%, #59666c 72%, #151c20 100%);
+  background-color: #68747a;
+  background-image:
+    url('./brushed-metal-vertical-v1.svg?grain=1'),
+    linear-gradient(112deg, transparent 0 19%, rgba(255,255,255,.2) 19.25% 19.8%, transparent 20.1% 65%, rgba(0,0,0,.2) 65.25% 65.8%, transparent 66.1%),
+    linear-gradient(98deg, transparent 0 23%, rgba(255,255,255,.04) 28%, rgba(255,255,255,.44) 39%, rgba(255,255,255,.1) 49%, transparent 61%),
+    linear-gradient(90deg, #11181c 0%, #515e64 14%, #9ca8ad 31%, #d8dfe1 43%, #9aa5aa 55%, #59666c 72%, #151c20 100%);
+  background-size: 64px 160px, auto, auto, auto;
+  background-position: center, center, center, center;
+  background-repeat: repeat, no-repeat, no-repeat, no-repeat;
+  background-blend-mode: soft-light, normal, screen, normal;
   box-shadow:
-    inset 1px 0 2px rgba(255,255,255,.42),
+    inset 1px 0 2px rgba(255,255,255,.38),
     inset -3px 0 5px rgba(0,0,0,.34),
-    inset 0 0 12px rgba(255,255,255,.08),
+    inset 0 0 10px rgba(255,255,255,.06),
     0 5px 8px rgba(0,0,0,.48);
 }
 
@@ -92,12 +96,17 @@ const refinementCss = String.raw`${start}
   width: 24px;
   height: 7px;
   border: 2px solid #0b1012;
-  background:
-    linear-gradient(115deg, transparent 0 28%, rgba(255,255,255,.5) 34%, rgba(255,255,255,.1) 41%, transparent 47%),
-    linear-gradient(103deg, transparent 0 65%, rgba(0,0,0,.14) 65.3% 66%, transparent 66.3%),
-    linear-gradient(90deg, #171e22 0%, #77848a 24%, #dbe2e4 45%, #879399 63%, #1a2125 100%);
+  background-color: #6d797f;
+  background-image:
+    url('./brushed-metal-horizontal-v1.svg?grain=1'),
+    linear-gradient(107deg, transparent 0 27%, rgba(255,255,255,.46) 35%, rgba(255,255,255,.09) 43%, transparent 51%),
+    linear-gradient(90deg, #161d21 0%, #77848a 23%, #d5dcde 44%, #849096 64%, #171f23 100%);
+  background-size: 96px 42px, auto, auto;
+  background-position: center, center, center;
+  background-repeat: repeat, no-repeat, no-repeat;
+  background-blend-mode: soft-light, screen, normal;
   box-shadow:
-    inset 0 1px 1px rgba(255,255,255,.38),
+    inset 0 1px 1px rgba(255,255,255,.34),
     inset 0 -2px 3px rgba(0,0,0,.34),
     0 2px 3px rgba(0,0,0,.42);
   transform: translateX(-50%);
@@ -113,49 +122,57 @@ const refinementCss = String.raw`${start}
   border-radius: 2px 2px 5px 5px;
 }
 
-/* Main backplates: mirrored glare keeps the lighting physically consistent. */
+/* Backplates use horizontal grain, dull roughness, and a soft reflected window. */
 .safe-cracker-game .sc-latch-mount::before {
-  background:
-    linear-gradient(111deg, transparent 0 13%, rgba(255,255,255,.19) 13.3% 13.9%, transparent 14.2% 46%, rgba(0,0,0,.14) 46.3% 46.9%, transparent 47.2% 79%, rgba(255,255,255,.1) 79.3% 79.9%, transparent 80.2%),
-    linear-gradient(166deg, transparent 0 32%, rgba(0,0,0,.12) 32.3% 32.9%, transparent 33.2% 68%, rgba(255,255,255,.11) 68.3% 68.9%, transparent 69.2%),
-    linear-gradient(112deg, transparent 0 21%, rgba(255,255,255,.04) 22%, rgba(255,255,255,.43) 29%, rgba(255,255,255,.08) 37%, transparent 44%),
-    radial-gradient(ellipse at 31% 17%, rgba(255,255,255,.25), transparent 39%),
-    linear-gradient(90deg, #171f23 0%, #647178 20%, #bac4c8 37%, #e0e6e8 46%, #7d8a90 61%, #3f4b50 76%, #141b1f 100%) !important;
+  background-color: #667278;
+  background-image:
+    url('./brushed-metal-horizontal-v1.svg?grain=1'),
+    linear-gradient(111deg, transparent 0 14%, rgba(255,255,255,.18) 14.25% 14.8%, transparent 15.1% 48%, rgba(0,0,0,.17) 48.25% 48.8%, transparent 49.1% 78%, rgba(255,255,255,.09) 78.25% 78.8%, transparent 79.1%),
+    linear-gradient(105deg, transparent 0 19%, rgba(255,255,255,.03) 24%, rgba(255,255,255,.36) 35%, rgba(255,255,255,.08) 47%, transparent 59%),
+    linear-gradient(90deg, #151d21 0%, #56636a 18%, #9ba7ac 34%, #d6dde0 43%, #8d999f 57%, #48545a 75%, #141b1f 100%) !important;
+  background-size: 128px 72px, auto, auto, auto;
+  background-position: center, center, center, center;
+  background-repeat: repeat, no-repeat, no-repeat, no-repeat;
+  background-blend-mode: soft-light, normal, screen, normal;
   box-shadow:
-    inset 1px 0 2px rgba(255,255,255,.3),
-    inset 0 1px 1px rgba(255,255,255,.24),
-    inset -4px 0 7px rgba(0,0,0,.3),
+    inset 1px 0 2px rgba(255,255,255,.28),
+    inset 0 1px 1px rgba(255,255,255,.2),
+    inset -4px 0 7px rgba(0,0,0,.31),
     0 6px 9px rgba(0,0,0,.42) !important;
 }
 
 .safe-cracker-game .sc-bolts.right .sc-latch-mount::before {
-  background:
-    linear-gradient(69deg, transparent 0 13%, rgba(255,255,255,.19) 13.3% 13.9%, transparent 14.2% 46%, rgba(0,0,0,.14) 46.3% 46.9%, transparent 47.2% 79%, rgba(255,255,255,.1) 79.3% 79.9%, transparent 80.2%),
-    linear-gradient(14deg, transparent 0 32%, rgba(0,0,0,.12) 32.3% 32.9%, transparent 33.2% 68%, rgba(255,255,255,.11) 68.3% 68.9%, transparent 69.2%),
-    linear-gradient(68deg, transparent 0 21%, rgba(255,255,255,.04) 22%, rgba(255,255,255,.43) 29%, rgba(255,255,255,.08) 37%, transparent 44%),
-    radial-gradient(ellipse at 69% 17%, rgba(255,255,255,.25), transparent 39%),
-    linear-gradient(270deg, #171f23 0%, #647178 20%, #bac4c8 37%, #e0e6e8 46%, #7d8a90 61%, #3f4b50 76%, #141b1f 100%) !important;
+  background-image:
+    url('./brushed-metal-horizontal-v1.svg?grain=1'),
+    linear-gradient(69deg, transparent 0 14%, rgba(255,255,255,.18) 14.25% 14.8%, transparent 15.1% 48%, rgba(0,0,0,.17) 48.25% 48.8%, transparent 49.1% 78%, rgba(255,255,255,.09) 78.25% 78.8%, transparent 79.1%),
+    linear-gradient(75deg, transparent 0 19%, rgba(255,255,255,.03) 24%, rgba(255,255,255,.36) 35%, rgba(255,255,255,.08) 47%, transparent 59%),
+    linear-gradient(270deg, #151d21 0%, #56636a 18%, #9ba7ac 34%, #d6dde0 43%, #8d999f 57%, #48545a 75%, #141b1f 100%) !important;
 }
 
-/* Inward mounting ears receive the same brushed and reflective treatment. */
+/* Inward mounting ears mirror the same rough grain and restrained reflection. */
 .safe-cracker-game .sc-latch-mount::after {
-  background:
-    linear-gradient(108deg, transparent 0 22%, rgba(255,255,255,.17) 22.3% 22.9%, transparent 23.2% 58%, rgba(0,0,0,.13) 58.3% 58.9%, transparent 59.2%),
-    linear-gradient(118deg, transparent 0 24%, rgba(255,255,255,.42) 31%, rgba(255,255,255,.08) 39%, transparent 46%),
-    radial-gradient(ellipse at 34% 16%, rgba(255,255,255,.23), transparent 42%),
-    linear-gradient(90deg, #151c20 0%, #657279 25%, #d8dfe1 47%, #77848a 66%, #192125 100%) !important;
+  background-color: #626e74;
+  background-image:
+    url('./brushed-metal-horizontal-v1.svg?grain=1'),
+    linear-gradient(108deg, transparent 0 23%, rgba(255,255,255,.17) 23.25% 23.8%, transparent 24.1% 60%, rgba(0,0,0,.15) 60.25% 60.8%, transparent 61.1%),
+    linear-gradient(112deg, transparent 0 20%, rgba(255,255,255,.34) 32%, rgba(255,255,255,.07) 44%, transparent 56%),
+    linear-gradient(90deg, #141b1f 0%, #5e6b72 24%, #cbd3d6 46%, #758188 66%, #182024 100%) !important;
+  background-size: 96px 56px, auto, auto, auto;
+  background-position: center, center, center, center;
+  background-repeat: repeat, no-repeat, no-repeat, no-repeat;
+  background-blend-mode: soft-light, normal, screen, normal;
   box-shadow:
-    inset 0 1px 2px rgba(255,255,255,.3),
-    inset -3px 0 5px rgba(0,0,0,.27),
+    inset 0 1px 2px rgba(255,255,255,.28),
+    inset -3px 0 5px rgba(0,0,0,.28),
     0 4px 6px rgba(0,0,0,.46) !important;
 }
 
 .safe-cracker-game .sc-bolts.right .sc-latch-mount::after {
-  background:
-    linear-gradient(72deg, transparent 0 22%, rgba(255,255,255,.17) 22.3% 22.9%, transparent 23.2% 58%, rgba(0,0,0,.13) 58.3% 58.9%, transparent 59.2%),
-    linear-gradient(62deg, transparent 0 24%, rgba(255,255,255,.42) 31%, rgba(255,255,255,.08) 39%, transparent 46%),
-    radial-gradient(ellipse at 66% 16%, rgba(255,255,255,.23), transparent 42%),
-    linear-gradient(270deg, #151c20 0%, #657279 25%, #d8dfe1 47%, #77848a 66%, #192125 100%) !important;
+  background-image:
+    url('./brushed-metal-horizontal-v1.svg?grain=1'),
+    linear-gradient(72deg, transparent 0 23%, rgba(255,255,255,.17) 23.25% 23.8%, transparent 24.1% 60%, rgba(0,0,0,.15) 60.25% 60.8%, transparent 61.1%),
+    linear-gradient(68deg, transparent 0 20%, rgba(255,255,255,.34) 32%, rgba(255,255,255,.07) 44%, transparent 56%),
+    linear-gradient(270deg, #141b1f 0%, #5e6b72 24%, #cbd3d6 46%, #758188 66%, #182024 100%) !important;
 }
 
 .safe-cracker-game .sc-latch-screw {
@@ -168,11 +185,10 @@ const refinementCss = String.raw`${start}
   border: 1px solid #070a0c;
   border-radius: 50%;
   background:
-    linear-gradient(126deg, transparent 0 29%, rgba(255,255,255,.52) 36%, rgba(255,255,255,.09) 44%, transparent 51%),
-    linear-gradient(158deg, transparent 0 64%, rgba(0,0,0,.16) 64.4% 65.1%, transparent 65.5%),
-    radial-gradient(circle at 34% 27%, #fff 0 8%, #cbd3d6 18%, #7a868c 40%, #394247 66%, #111619 84%, #050708 100%);
+    linear-gradient(128deg, transparent 0 27%, rgba(255,255,255,.52) 35%, rgba(255,255,255,.1) 44%, transparent 52%),
+    radial-gradient(circle at 34% 27%, #fff 0 7%, #c7d0d3 17%, #78848a 39%, #394247 65%, #111619 84%, #050708 100%);
   box-shadow:
-    inset 0 1px 1px rgba(255,255,255,.42),
+    inset 0 1px 1px rgba(255,255,255,.4),
     inset 0 -2px 3px rgba(0,0,0,.48),
     0 2px 3px rgba(0,0,0,.52);
 }
@@ -195,25 +211,47 @@ const refinementCss = String.raw`${start}
 .safe-cracker-game .sc-latch-screw::before { width: 8px; height: 2px; }
 .safe-cracker-game .sc-latch-screw::after { width: 2px; height: 8px; }
 
-/* Cylinders retain the protected movement classes. Their broad vertical grain
-   and narrow white reflection create the strongest polished-steel glare. */
+/* Cylinders use the horizontal asset at a tighter scale to resemble machined
+   brushing. A broad soft highlight plus a narrow specular streak avoids the
+   flat white stripe from the previous pass and reads as curved steel. */
 .safe-cracker-game .sc-latch-mount > i {
-  background:
-    linear-gradient(104deg, transparent 0 15%, rgba(255,255,255,.22) 15.3% 15.9%, transparent 16.2% 45%, rgba(0,0,0,.15) 45.3% 45.9%, transparent 46.2% 73%, rgba(255,255,255,.12) 73.3% 73.9%, transparent 74.2%),
-    linear-gradient(163deg, transparent 0 29%, rgba(0,0,0,.12) 29.3% 29.9%, transparent 30.2% 62%, rgba(255,255,255,.11) 62.3% 62.9%, transparent 63.2%),
-    linear-gradient(112deg, transparent 0 20%, rgba(255,255,255,.04) 21%, rgba(255,255,255,.58) 29%, rgba(255,255,255,.14) 37%, transparent 45%),
-    radial-gradient(ellipse at 42% 15%, rgba(255,255,255,.32), transparent 35%),
-    linear-gradient(90deg, #101619 0%, #4e5a60 13%, #9da9ae 28%, #e7ecee 43%, #aab5ba 55%, #69757b 69%, #232b2f 86%, #11171a 100%) !important;
+  overflow: hidden;
+  background-color: #6b777d;
+  background-image:
+    url('./brushed-metal-horizontal-v1.svg?grain=1'),
+    linear-gradient(104deg, transparent 0 16%, rgba(255,255,255,.2) 16.25% 16.8%, transparent 17.1% 46%, rgba(0,0,0,.16) 46.25% 46.8%, transparent 47.1% 73%, rgba(255,255,255,.1) 73.25% 73.8%, transparent 74.1%),
+    linear-gradient(98deg, transparent 0 18%, rgba(255,255,255,.02) 24%, rgba(255,255,255,.19) 33%, rgba(255,255,255,.52) 41%, rgba(255,255,255,.14) 49%, transparent 62%),
+    linear-gradient(90deg, #0f1518 0%, #455157 12%, #7f8b91 25%, #cbd3d6 37%, #edf1f2 43%, #a7b2b7 53%, #667278 68%, #273035 84%, #101619 100%) !important;
+  background-size: 112px 42px, auto, auto, auto;
+  background-position: center, center, center, center;
+  background-repeat: repeat, no-repeat, no-repeat, no-repeat;
+  background-blend-mode: soft-light, normal, screen, normal;
   box-shadow:
-    inset 1px 0 2px rgba(255,255,255,.44),
-    inset -4px 0 6px rgba(0,0,0,.3),
-    inset 0 0 12px rgba(255,255,255,.08),
+    inset 1px 0 2px rgba(255,255,255,.4),
+    inset -4px 0 6px rgba(0,0,0,.31),
+    inset 0 0 10px rgba(255,255,255,.06),
     0 7px 9px rgba(0,0,0,.54) !important;
+}
+
+.safe-cracker-game .sc-latch-mount > i::after {
+  content: '';
+  position: absolute;
+  inset: 2px 3px;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(94deg,
+    transparent 0 23%,
+    rgba(255,255,255,.04) 29%,
+    rgba(255,255,255,.28) 39%,
+    rgba(255,255,255,.07) 49%,
+    transparent 65%);
+  mix-blend-mode: screen;
+  opacity: .72;
 }
 
 @media (max-width: 700px) {
   .safe-cracker-game .sc-latch-mount:nth-child(1) {
-    top: calc(22.5% + 5px);
+    top: calc(22% + 4px);
     transform: scale(.86);
   }
 
@@ -261,25 +299,25 @@ const refinementCss = String.raw`${start}
 }
 ${end}`;
 
-const oldBlock = /\/\* SAFE_CRACKER_LATCH_REFINEMENT_V(?:5|6|7|8)_START \*\/[\s\S]*?\/\* SAFE_CRACKER_LATCH_REFINEMENT_V(?:5|6|7|8)_END \*\/\n?/g;
+const oldBlock = /\/\* SAFE_CRACKER_LATCH_REFINEMENT_V(?:5|6|7|8|9)_START \*\/[\s\S]*?\/\* SAFE_CRACKER_LATCH_REFINEMENT_V(?:5|6|7|8|9)_END \*\/\n?/g;
 css = css.replace(oldBlock, '').trimEnd() + `\n\n${refinementCss}\n`;
 await writeFile(cssUrl, css);
 
 let client = await readFile(clientUrl, 'utf8');
 if (!client.includes('// SAFE_CRACKER_LATCH_SEQUENCE_V1_HELPER')) {
-  throw new Error('Safe Cracker latch refinement v8 could not find the latch helper.');
+  throw new Error('Safe Cracker latch refinement v9 could not find the latch helper.');
 }
 const mountReturnPattern = /    return `<span class="sc-latch-mount">[^`]*<\/span>`;/;
 const mountedReturn = '    return `<span class="sc-latch-mount"><b class="sc-latch-spine" aria-hidden="true"></b><em class="sc-latch-screw" aria-hidden="true"></em><i class="${latchClass}"></i></span>`;';
 if (mountReturnPattern.test(client)) {
   client = client.replace(mountReturnPattern, mountedReturn);
 } else if (!client.includes('class="sc-latch-spine"') || !client.includes('class="sc-latch-screw"')) {
-  throw new Error('Safe Cracker latch refinement v8 could not upgrade the latch mount markup.');
+  throw new Error('Safe Cracker latch refinement v9 could not upgrade the latch mount markup.');
 }
 await writeFile(clientUrl, client);
 
 let html = await readFile(indexUrl, 'utf8');
-html = html.replace(/&latch=\d+/g, '&latch=8');
+html = html.replace(/&latch=\d+/g, '&latch=9');
 await writeFile(indexUrl, html);
 
-console.log('Applied Safe Cracker latch refinement v8: the top pair is slightly higher, all six assemblies have stronger directional brushed steel and reflective glare, repetitive line textures remain absent, and only the existing right cylinders animate.');
+console.log('Applied Safe Cracker latch refinement v9: the top pair is a few pixels higher, all six assemblies use procedural rough brushed-metal grain based on web references, reflections are softer and more realistic, and only the existing right cylinders animate.');
