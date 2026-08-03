@@ -44,10 +44,10 @@ jobs:
           node --check scripts/patch-mountain-race-mode-option.mjs
           node --check scripts/validate-mountain-race-multiplayer.mjs
 
-      - name: Validate multiplayer create join and bot paths
+      - name: Validate multiplayer and full bot race
         run: npm run validate:mountain-race
 
-      - name: Verify generated multiplayer launcher
+      - name: Verify generated multiplayer launcher and bot driver
         shell: bash
         run: |
           set -euo pipefail
@@ -62,6 +62,10 @@ jobs:
           grep -Fq 'mountainrace: "Summit Sprint"' netlify/functions/_data.js
           grep -Fq 'mountainRaceAction(actorUser, gameId, rawChoice, details)' netlify/functions/_data.js
           grep -Fq 'Mountain Bot' netlify/functions/_data.js
+          grep -Fq 'const MOUNTAIN_RACE_BOT_CATCH_UP_LIMIT = 10;' netlify/functions/mountain-race/integration.js
+          grep -Fq 'async function applyActionUnlocked' netlify/functions/mountain-race/integration.js
+          grep -Fq 'processed < MOUNTAIN_RACE_BOT_CATCH_UP_LIMIT' netlify/functions/mountain-race/integration.js
+          grep -Fq "ignoreReason: 'prompt-changed'" netlify/functions/mountain-race/integration.js
 
       - name: Verify standalone prototype remains available
         shell: bash
@@ -101,7 +105,7 @@ jobs:
                grep -Fq "const STATE_EVENT = 'mountainrace:state'" <<<"$multiplayer_js" && \
                grep -Fq 'mountainrace:input:${token}' <<<"$multiplayer_js" && \
                grep -Fq 'data-mountain-race-demo' <<<"$prototype_page"; then
-              echo "Verified live Summit Sprint multiplayer launcher and standalone prototype at ${url}"
+              echo "Verified live Summit Sprint multiplayer launcher, working bot build, and standalone prototype at ${url}"
               exit 0
             fi
 
