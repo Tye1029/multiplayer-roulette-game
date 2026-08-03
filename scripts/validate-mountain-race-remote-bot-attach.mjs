@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 
 const root = new URL('../', import.meta.url);
+const deploymentMarker = '<!-- MOUNTAIN_RACE_REMOTE_BOT_ATTACH_V2 -->';
 const [data, action, html, patch] = await Promise.all([
   readFile(new URL('netlify/functions/_data.js', root), 'utf8'),
   readFile(new URL('netlify/functions/duel-action.js', root), 'utf8'),
@@ -51,8 +52,10 @@ assert(html.includes('async function rnbAttachBotAtomically(gameId,profile)'), '
 assert(html.includes("duelRequest('create-remote-bot'"), 'testing dock does not call the atomic attachment endpoint');
 assert(html.includes('data-rnb-game="mountainrace"'), 'testing dock lacks the Summit Sprint selector');
 assert(html.includes("const mode=String(current?.mode||selectedMode||'roulette')"), 'testing dock does not send the selected Summit Sprint mode');
+assert(html.includes(deploymentMarker), 'deployed page lacks the Summit Sprint Remote Bot fix marker');
 
 assert(patch.includes('replaceAll(data, fourGameAllowlist, fiveGameAllowlist)'), 'patch does not sweep every stale four-game allowlist');
 assert(patch.includes('Both direct and atomic Remote Bot attachment paths must support Summit Sprint.'), 'patch lacks a two-path attachment guard');
+assert(patch.includes('writeFile(indexUrl, html)'), 'patch does not write its deployment marker');
 
-console.log('Summit Sprint Remote Bot attachment validation passed: the dock calls the atomic endpoint, both server attachment paths accept mountainrace, the bot is installed as joiner with Ready flags, and network identity/settings survive persistence.');
+console.log('Summit Sprint Remote Bot attachment validation passed: the dock calls the atomic endpoint, both server attachment paths accept mountainrace, the bot is installed as joiner with Ready flags, network identity/settings survive persistence, and the deployed page carries the fix marker.');
