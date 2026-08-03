@@ -1,14 +1,17 @@
-# Safe Cracker dial sample v20
+# Safe Cracker dial sample v21
 
 Source supplied by the user: `freesound_community-bank-vault-100469.mp3`.
 
-Processing:
-- Inspected the 12.072-second stereo bank-vault recording and identified its three real mechanical dial sequences.
-- Extracted six longer 190 ms windows around distinct physical detents, including material from all three sequences.
-- Converted the clips to 24 kHz mono, removed only subsonic rumble below 45 Hz, peak-matched them to -2.5 dBFS, and added tiny edge fades.
-- Preserved the original recorded pitch and metallic body; no brightening filter, pitch variation, compression, or generated ratchet layer is used for the dial.
-- The base64 MP3 text is fetched immediately when the page loads, then decoded as soon as Android unlocks WebAudio on the first interaction.
-- If the first dial step happens while decoding finishes, that real recorded click is queued for up to 650 ms rather than being dropped silently.
-- Runtime sample gain is 1.18 before the existing Safe Cracker compressor, making the clicks clearly audible without bypassing the game audio bus.
+Dial processing:
+- Uses the six longer 190 ms physical detent clips extracted from the three real dial sequences in the uploaded recording.
+- The clips retain their original pitch and metallic body.
+- Runtime playback now uses preloaded native HTML audio voices instead of Android WebAudio MP3 decoding.
+- Two voices are maintained per sample so fast dial movement can overlap without cutting off the previous click.
+- A short dry, non-tonal mechanical fallback is used only while the native sample bank is still loading or if media playback fails.
 
-The uploaded recording is used only for Safe Cracker dial movement. Correct-number, incorrect-number, intro, ambience, and vault-opening cues remain separate and unchanged.
+Background ambience:
+- The repeating recorded ambience loop and its recurring loud mechanical impacts are no longer used during Safe Cracker gameplay.
+- It is replaced at runtime by a quiet 21-second seamless filtered vault-room air tone.
+- The room tone contains no impact, latch, scrape, or other repeating foreground event.
+
+Correct-number, incorrect-number, intro, and vault-opening cues remain separate and unchanged.
