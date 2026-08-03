@@ -30,69 +30,68 @@ jobs:
       - name: Run exact Netlify build command
         run: npm run build
 
-      - name: Verify generated metallic click dial bank
+      - name: Verify generated embedded metallic click
         shell: bash
         run: |
           set -euo pipefail
           node scripts/validate-safe-cracker-dial-sample-v18.mjs
-          grep -Fq 'SAFE_CRACKER_DIAL_SAMPLE_V22_START' assets/safe-cracker/safe-cracker.js
-          grep -Fq 'safeCrackerPrefetchDialVoicesV22' assets/safe-cracker/safe-cracker.js
-          grep -Fq 'safeCrackerCreateDialVoiceV22' assets/safe-cracker/safe-cracker.js
-          grep -Fq 'safeCrackerPlayNativeDialSampleV22' assets/safe-cracker/safe-cracker.js
-          grep -Fq 'safeCrackerPlayNativeMetallicClickDetentV22' assets/safe-cracker/safe-cracker.js
-          grep -Fq 'safeCrackerPlayDryDialFallbackV22' assets/safe-cracker/safe-cracker.js
-          grep -Fq 'safeCrackerStartSmoothVaultRoomToneV22' assets/safe-cracker/safe-cracker.js
-          grep -Fq 'voice.volume = 0.96' assets/safe-cracker/safe-cracker.js
+          grep -Fq 'SAFE_CRACKER_DIAL_SAMPLE_V23_START' assets/safe-cracker/safe-cracker.js
+          grep -Fq 'SAFE_CRACKER_METALLIC_CLICK_V23 = "data:audio/mpeg;base64,' assets/safe-cracker/safe-cracker.js
+          grep -Fq 'safeCrackerCreateMetallicVoiceV23' assets/safe-cracker/safe-cracker.js
+          grep -Fq 'safeCrackerPrepareMetallicVoicesV23' assets/safe-cracker/safe-cracker.js
+          grep -Fq 'safeCrackerUnlockMetallicVoicesV23' assets/safe-cracker/safe-cracker.js
+          grep -Fq 'safeCrackerPlayExactMetallicClickV23' assets/safe-cracker/safe-cracker.js
+          grep -Fq 'safeCrackerPlayEmbeddedMetallicDetentV23' assets/safe-cracker/safe-cracker.js
+          grep -Fq 'safeCrackerStartSmoothVaultRoomToneV23' assets/safe-cracker/safe-cracker.js
+          grep -Fq 'voice.volume = 1;' assets/safe-cracker/safe-cracker.js
           grep -Fq 'safeCrackerPlayAuthoritativeCorrectCue' assets/safe-cracker/safe-cracker.js
           grep -Fq 'safeCrackerPlayIncorrectRejectCue' assets/safe-cracker/safe-cracker.js
-          grep -Fq '&clicks=22' index.html
+          grep -Fq '&clicks=23' index.html
+          ! grep -Fq 'SAFE_CRACKER_DIAL_SAMPLE_V22_START' assets/safe-cracker/safe-cracker.js
+          ! grep -Fq 'safeCrackerPlayDryDialFallbackV22' assets/safe-cracker/safe-cracker.js
 
-      - name: Verify live metallic click dial bank
+      - name: Verify live embedded metallic click
         shell: bash
         run: |
           set -euo pipefail
           url='https://deploy-preview-19--famous-piroshki-b621da.netlify.app/'
           function_url="${url}.netlify/functions/duel-action"
+          expected_hash='0ecdc10f4f71dcbd670e2accee467543c898a67c814341db4981be82eaae7196'
 
           for attempt in $(seq 1 48); do
-            html="$(curl -fsSL --max-time 20 "${url}?clicks=22&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            js="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/safe-cracker.js?clicks=22&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            sample1="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/audio-data-v3/bank-vault-dial-click-1.b64?clicks=22&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            sample6="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/audio-data-v3/bank-vault-dial-click-6.b64?clicks=22&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            html="$(curl -fsSL --max-time 20 "${url}?clicks=23&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            js="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/safe-cracker.js?clicks=23&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            sample="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/audio-data-v3/bank-vault-dial-click-1.b64?clicks=23&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             headers="$(curl -fsS --max-time 20 -D - -o /dev/null -X OPTIONS "${function_url}?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
 
-            sample1_bytes="$(printf '%s' "$sample1" | tr -d '[:space:]' | base64 -d 2>/dev/null | wc -c | tr -d ' ' || true)"
-            sample6_bytes="$(printf '%s' "$sample6" | tr -d '[:space:]' | base64 -d 2>/dev/null | wc -c | tr -d ' ' || true)"
-            sample1_magic="$(printf '%s' "$sample1" | tr -d '[:space:]' | base64 -d 2>/dev/null | head -c 3 || true)"
-            sample6_magic="$(printf '%s' "$sample6" | tr -d '[:space:]' | base64 -d 2>/dev/null | head -c 3 || true)"
-            sample1_hash="$(printf '%s' "$sample1" | tr -d '[:space:]' | base64 -d 2>/dev/null | sha256sum | awk '{print $1}' || true)"
-            sample6_hash="$(printf '%s' "$sample6" | tr -d '[:space:]' | base64 -d 2>/dev/null | sha256sum | awk '{print $1}' || true)"
+            sample_bytes="$(printf '%s' "$sample" | tr -d '[:space:]' | base64 -d 2>/dev/null | wc -c | tr -d ' ' || true)"
+            sample_magic="$(printf '%s' "$sample" | tr -d '[:space:]' | base64 -d 2>/dev/null | head -c 3 || true)"
+            sample_hash="$(printf '%s' "$sample" | tr -d '[:space:]' | base64 -d 2>/dev/null | sha256sum | awk '{print $1}' || true)"
 
-            if grep -Fq '&clicks=22' <<<"$html" && \
-               grep -Fq 'SAFE_CRACKER_DIAL_SAMPLE_V22_START' <<<"$js" && \
-               grep -Fq 'safeCrackerPrefetchDialVoicesV22' <<<"$js" && \
-               grep -Fq 'safeCrackerCreateDialVoiceV22' <<<"$js" && \
-               grep -Fq 'new Audio(url)' <<<"$js" && \
-               grep -Fq 'safeCrackerPlayNativeDialSampleV22' <<<"$js" && \
-               grep -Fq 'safeCrackerPlayNativeMetallicClickDetentV22' <<<"$js" && \
-               grep -Fq 'safeCrackerPlayDryDialFallbackV22' <<<"$js" && \
-               grep -Fq 'safeCrackerStartSmoothVaultRoomToneV22' <<<"$js" && \
-               grep -Fq 'voice.volume = 0.96' <<<"$js" && \
+            if grep -Fq '&clicks=23' <<<"$html" && \
+               grep -Fq 'SAFE_CRACKER_DIAL_SAMPLE_V23_START' <<<"$js" && \
+               grep -Fq 'SAFE_CRACKER_METALLIC_CLICK_V23 = "data:audio/mpeg;base64,' <<<"$js" && \
+               grep -Fq 'safeCrackerCreateMetallicVoiceV23' <<<"$js" && \
+               grep -Fq 'safeCrackerPlayExactMetallicClickV23' <<<"$js" && \
+               grep -Fq 'safeCrackerPlayEmbeddedMetallicDetentV23' <<<"$js" && \
+               grep -Fq 'safeCrackerStartSmoothVaultRoomToneV23' <<<"$js" && \
+               grep -Fq 'voice.volume = 1;' <<<"$js" && \
                grep -Fq 'safeCrackerPlayAuthoritativeCorrectCue' <<<"$js" && \
                grep -Fq 'safeCrackerPlayIncorrectRejectCue' <<<"$js" && \
-               [[ "$sample1_bytes" -ge 3000 && "$sample1_bytes" -le 3500 ]] && \
-               [[ "$sample6_bytes" -ge 3000 && "$sample6_bytes" -le 3500 ]] && \
-               [[ "$sample1_magic" == 'ID3' && "$sample6_magic" == 'ID3' ]] && \
-               [[ -n "$sample1_hash" && -n "$sample6_hash" && "$sample1_hash" != "$sample6_hash" ]] && \
+               ! grep -Fq 'SAFE_CRACKER_DIAL_SAMPLE_V22_START' <<<"$js" && \
+               ! grep -Fq 'safeCrackerPlayDryDialFallbackV22' <<<"$js" && \
+               [[ "$sample_bytes" -ge 5400 && "$sample_bytes" -le 5700 ]] && \
+               [[ "$sample_magic" == 'ID3' ]] && \
+               [[ "$sample_hash" == "$expected_hash" ]] && \
                grep -Fq 'SAFE_CRACKER_DIAL_ACTIVITY_V16_START' <<<"$js" && \
                grep -Fiq 'x-duel-function-build: safecracker-direct-v8' <<<"$headers"; then
-              echo "Verified live Safe Cracker metallic click dial bank v22 at ${url}"
+              echo "Verified live Safe Cracker embedded metallic click v23 at ${url}"
               exit 0
             fi
 
-            echo "Waiting for Netlify Safe Cracker metallic click dial bank v22 (${attempt}/48)..."
+            echo "Waiting for Netlify Safe Cracker embedded metallic click v23 (${attempt}/48)..."
             sleep 10
           done
 
-          echo 'Netlify preview did not serve the Safe Cracker v22 metallic click bank, native playback route, smooth room tone, and valid distinct MP3 assets.' >&2
+          echo 'Netlify preview did not serve the Safe Cracker v23 embedded metallic click, exact MP3 checksum, smooth room tone, and protected result cues.' >&2
           exit 1
