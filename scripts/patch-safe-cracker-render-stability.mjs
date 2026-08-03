@@ -62,7 +62,6 @@ if (!client.includes(marker)) {
     // transitions still receive a clean full render and fresh event bindings.
     if (!root || !gameId || mountedGameId !== gameId || status !== 'playing' || mountedStatus !== 'playing') return false;
 
-    const state = stateFor(game);
     const me = myState(game);
     const opponent = opponentState(game);
     const stage = Math.max(0, Math.min(STAGES, Number(me?.stage || 0)));
@@ -93,7 +92,7 @@ if (!client.includes(marker)) {
       const opponentTier = String(opponent?.lastTier || '');
       if (opponentTier) opponentStrip.classList.add(opponentTier);
       const raceProgress = opponentStrip.querySelector('.sc-race-progress');
-      if (raceProgress) raceProgress.innerHTML = `<i aria-hidden="true"></i>${Math.min(STAGES, Number(opponent?.stage || 0))} / ${STAGES} LOCKS`;
+      if (raceProgress) raceProgress.innerHTML = '<i aria-hidden="true"></i>' + Math.min(STAGES, Number(opponent?.stage || 0)) + ' / ' + STAGES + ' LOCKS';
       safeCrackerSetText(
         opponentStrip.querySelector('.sc-race-signal'),
         opponent?.completed ? 'SAFE OPEN' : opponentTier ? tierLabel(opponentTier) : 'SEARCHING'
@@ -109,8 +108,8 @@ if (!client.includes(marker)) {
         display.classList.add('fresh');
       }
       safeCrackerSetText(display.querySelector('.sc-display-status'), displayText);
-      safeCrackerSetText(display.querySelector('.sc-display-meta small'), `TUMBLER ${Math.min(STAGES, stage + 1)} OF ${STAGES}`);
-      safeCrackerSetText(display.querySelector('.sc-display-meta b'), `${attemptCount} ${attemptCount === 1 ? 'ATTEMPT' : 'ATTEMPTS'}`);
+      safeCrackerSetText(display.querySelector('.sc-display-meta small'), 'TUMBLER ' + Math.min(STAGES, stage + 1) + ' OF ' + STAGES);
+      safeCrackerSetText(display.querySelector('.sc-display-meta b'), attemptCount + ' ' + (attemptCount === 1 ? 'ATTEMPT' : 'ATTEMPTS'));
       const meter = display.querySelector('.sc-feedback-meter');
       if (meter) safeCrackerReplaceMarkup(meter, feedbackMeter(displayTier));
     }
@@ -135,8 +134,8 @@ if (!client.includes(marker)) {
 
     const attemptPanel = root.querySelector('.sc-attempt-panel');
     if (attemptPanel) {
-      safeCrackerSetText(attemptPanel.querySelector('h3 span'), `TUMBLER ${Math.min(STAGES, stage + 1)} LOG`);
-      safeCrackerSetText(attemptPanel.querySelector('h3 b'), `${attemptCount} TOTAL`);
+      safeCrackerSetText(attemptPanel.querySelector('h3 span'), 'TUMBLER ' + Math.min(STAGES, stage + 1) + ' LOG');
+      safeCrackerSetText(attemptPanel.querySelector('h3 b'), attemptCount + ' TOTAL');
       const attemptList = attemptPanel.querySelector('.sc-attempt-list');
       if (attemptList) attemptList.innerHTML = attemptRows(me?.attempts || [], stage);
     }
