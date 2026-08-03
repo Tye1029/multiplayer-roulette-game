@@ -57,7 +57,9 @@ jobs:
           set -euo pipefail
           url='https://deploy-preview-19--famous-piroshki-b621da.netlify.app/'
           function_url="${url}.netlify/functions/duel-action"
-          expected_hash='d17f44bbbb2296532fd267db80a40d7e4389abaf5070a04d3eac24d27fb754b2'
+          local_sample='assets/safe-cracker/audio-data-v3/bank-vault-dial-click-1.b64'
+          expected_bytes="$(tr -d '[:space:]' < "$local_sample" | base64 -d | wc -c | tr -d ' ')"
+          expected_hash="$(tr -d '[:space:]' < "$local_sample" | base64 -d | sha256sum | awk '{print $1}')"
 
           for attempt in $(seq 1 48); do
             html="$(curl -fsSL --max-time 20 "${url}?clicks=25&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
@@ -84,7 +86,7 @@ jobs:
                grep -Fq 'safeCrackerPlayIncorrectRejectCue' <<<"$js" && \
                ! grep -Fq 'SAFE_CRACKER_DIAL_PCM_V24_START' <<<"$js" && \
                ! grep -Fq 'safeCrackerBuildMechanicalPcmV24' <<<"$js" && \
-               [[ "$sample_bytes" == '4800' ]] && \
+               [[ "$sample_bytes" == "$expected_bytes" ]] && \
                [[ "$sample_hash" == "$expected_hash" ]] && \
                grep -Fq 'SAFE_CRACKER_DIAL_ACTIVITY_V16_START' <<<"$js" && \
                grep -Fiq 'x-duel-function-build: safecracker-direct-v8' <<<"$headers"; then
