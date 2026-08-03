@@ -1,8 +1,11 @@
 import { readFile, writeFile } from 'node:fs/promises';
 
 const clientUrl = new URL('../assets/safe-cracker/safe-cracker.js', import.meta.url);
+const dataUrl = new URL('../netlify/functions/_data.js', import.meta.url);
+const actionUrl = new URL('../netlify/functions/duel-action.js', import.meta.url);
 const indexUrl = new URL('../index.html', import.meta.url);
 const marker = '// SAFE_CRACKER_RENDER_STABILITY_V1_START';
+const latencyMarker = '// SAFE_CRACKER_FEEDBACK_LATENCY_V1_START';
 
 function replaceOnce(source, before, after, label) {
   if (source.includes(after)) return source;
@@ -22,6 +25,15 @@ function replaceInsideRender(source, pattern, replacement, label) {
   if (section.includes(replacement)) return source;
   if (!pattern.test(section)) throw new Error(`Safe Cracker render-stability patch could not find ${label}.`);
   return source.slice(0, start) + section.replace(pattern, replacement) + source.slice(end);
+}
+
+function replaceSection(source, startMarker, endMarker, replacement, label) {
+  const start = source.indexOf(startMarker);
+  const end = source.indexOf(endMarker, start + startMarker.length);
+  if (start < 0 || end < 0 || end <= start) {
+    throw new Error(`Safe Cracker render-stability patch could not isolate ${label}.`);
+  }
+  return source.slice(0, start) + replacement + source.slice(end);
 }
 
 let client = await readFile(clientUrl, 'utf8');
@@ -182,9 +194,255 @@ if (!client.includes(marker)) {
 
 await writeFile(clientUrl, client);
 
+let data = await readFile(dataUrl, 'utf8');
+if (!data.includes(latencyMarker)) {
+  const fastApply = String.raw`${latencyMarker}
+async function safeCrackerApplyGuess(game, actorId, guess, actionId = '', isBot = false) {
+  const id = cleanUserId(actorId);
+  const gameId = mpCleanId(game?.gameId);
+  const cleanActionId = String(actionId || '').replace(/[^A-Za-z0-9._:-]/g, '').slice(0, 120);
+  if (!id || !gameId) throw new Error('Safe Cracker could not identify that action.');
+  let fallback = game;
+  for (let writeAttempt = 0; writeAttempt < 4; writeAttempt += 1) {
+    // safeCrackerAction and the bot preflight already supplied a strong snapshot.
+    // Reusing it on the first attempt removes one complete Blob read from every
+    // guess while retries still re-read authoritative storage.
+    const latest = writeAttempt === 0 && fallback
+      ? fallback
+      : (await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId) || fallback);
+    if (!latest) throw new Error('That Safe Cracker duel was not found.');
+    if (latest.mode !== 'safecracker') throw new Error('That duel is not Safe Cracker.');
+    if (latest.status !== 'playing') return latest;
+    let state = safeCrackerEnsureState(latest);
+    if (cleanActionId && state.processedActionIds.includes(cleanActionId)) return latest;
+    const player = { ...(state.players?.[id] || {}) };
+    if (!player.code) throw new Error('Safe Cracker could not find that player safe.');
+    if (int(player.stage, 0) >= SAFE_CRACKER_STAGES) return latest;
+    const now = Date.now();
+    const nextGuessMs = Date.parse(player.nextGuessAt || '');
+    if (!isBot && Number.isFinite(nextGuessMs) && now < nextGuessMs) return latest;
+    const stage = int(player.stage, 0);
+    const target = int(String(player.code)[stage], 0);
+    const distance = safeCrackerCircularDistance(target, guess);
+    const tier = safeCrackerTier(distance);
+    const correct = tier === 'green';
+    const at = new Date(now).toISOString();
+    const result = { stage, guess, distance, tier, correct, at };
+    player.attempts = [...(Array.isArray(player.attempts) ? player.attempts : []), result].slice(-80);
+    player.lastResult = result;
+    player.stage = correct ? Math.min(SAFE_CRACKER_STAGES, stage + 1) : stage;
+    player.nextGuessAt = new Date(now + SAFE_CRACKER_VERIFY_MS).toISOString();
+    if (player.stage >= SAFE_CRACKER_STAGES) player.completedAt = at;
+    const baseStateRevision = int(state.revision, 0);
+    const processed = cleanActionId ? [...(state.processedActionIds || []), cleanActionId].slice(-80) : (state.processedActionIds || []);
+    state = {
+      ...state,
+      revision: baseStateRevision + 1,
+      players: { ...(state.players || {}), [id]: player },
+      processedActionIds: processed,
+      npcActionAt: isBot && player.stage < SAFE_CRACKER_STAGES ? new Date(now + safeCrackerBotDelay(latest)).toISOString() : state.npcActionAt
+    };
+    const candidate = { ...latest, safecrackerState: state };
+
+    // Keep the pre-save completion/revision guard. It prevents a late guess from
+    // overwriting an opponent's authoritative win, but uses only one strong
+    // attempt instead of the older duplicated read chain.
+    const beforeSave = await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId);
+    if (beforeSave) {
+      if (beforeSave.status !== 'playing') return beforeSave;
+      const beforeState = safeCrackerEnsureState(beforeSave);
+      if (cleanActionId && beforeState.processedActionIds.includes(cleanActionId)) return beforeSave;
+      if (int(beforeState.revision, 0) > baseStateRevision || int(beforeSave.revision, 0) > int(latest.revision, 0)) {
+        fallback = beforeSave;
+        continue;
+      }
+    }
+
+    // Final digits still use the protected immediate-completion path so the bot
+    // cannot write after the winning player and reopen the round.
+    if (player.stage >= SAFE_CRACKER_STAGES) {
+      return await safeCrackerComplete(candidate, state, id, ((latest.creator?.userId === id ? latest.creator?.name : latest.joiner?.name) || 'A player') + ' opened the safe first.');
+    }
+
+    const saved = await duelSaveGame(candidate);
+    const confirmed = await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId) || saved;
+    const confirmedState = safeCrackerEnsureState(confirmed);
+    const kept = cleanActionId
+      ? confirmedState.processedActionIds.includes(cleanActionId)
+      : String(confirmedState.players?.[id]?.lastResult?.at || '') === at;
+    if (kept) return confirmed;
+    fallback = confirmed;
+  }
+  return await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId) || fallback;
+}
+
+`;
+  data = replaceSection(
+    data,
+    "async function safeCrackerApplyGuess(game, actorId, guess, actionId = '', isBot = false) {",
+    'async function safeCrackerAdvanceAndSave(game) {',
+    fastApply,
+    'fast authoritative guess writer'
+  );
+
+  const fastAdvance = String.raw`async function safeCrackerAdvanceAndSave(game) {
+  const gameId = mpCleanId(game?.gameId);
+  if (!gameId) return game;
+
+  // Polling normally only observes the bot timer. Do that read outside the
+  // mutation lock so an aborted/in-flight GET cannot queue in front of a player
+  // pressing Check Number.
+  const observed = await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId) || game;
+  if (!observed || observed.status !== 'playing' || observed.mode !== 'safecracker') return observed || game;
+  const observedState = safeCrackerEnsureState(observed);
+  const observedCompletedPlayerId = safeCrackerCompletedPlayerId(observed, observedState);
+  const observedEndMs = Date.parse(observedState.endAt || '');
+  const observedNpcPlayer = [observed.creator, observed.joiner].find(player => player?.isNpc || String(player?.userId || '').startsWith('npc-') || String(player?.userId || '').startsWith('remote-bot-'));
+  const observedNpcId = cleanUserId(observedNpcPlayer?.userId || '');
+  const observedScheduled = Date.parse(observedState.npcActionAt || '');
+  const observedNpcDone = !observedNpcId || int(observedState.players?.[observedNpcId]?.stage, 0) >= SAFE_CRACKER_STAGES;
+  const needsMutation = Boolean(observedCompletedPlayerId)
+    || (Number.isFinite(observedEndMs) && Date.now() >= observedEndMs)
+    || (observedNpcDone ? Boolean(observedState.npcActionAt) : !Number.isFinite(observedScheduled) || Date.now() >= observedScheduled);
+  if (!needsMutation) return observed;
+
+  return await withSafeCrackerLock(gameId, async () => {
+    let latest = await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId) || observed;
+    if (!latest || latest.status !== 'playing' || latest.mode !== 'safecracker') return latest || observed;
+    let state = safeCrackerEnsureState(latest);
+    const alreadyCompletedPlayerId = safeCrackerCompletedPlayerId(latest, state);
+    if (alreadyCompletedPlayerId) {
+      const playerName = latest.creator?.userId === alreadyCompletedPlayerId ? latest.creator?.name : latest.joiner?.name;
+      return await safeCrackerComplete({ ...latest, safecrackerState: state }, state, alreadyCompletedPlayerId, (playerName || 'A player') + ' opened the safe first.');
+    }
+    const endMs = Date.parse(state.endAt || '');
+    if (Number.isFinite(endMs) && Date.now() >= endMs) {
+      return await safeCrackerComplete({ ...latest, safecrackerState: state }, state, '', 'Time expired before either safe opened.');
+    }
+    const npcPlayer = [latest.creator, latest.joiner].find(player => player?.isNpc || String(player?.userId || '').startsWith('npc-') || String(player?.userId || '').startsWith('remote-bot-'));
+    const npcId = cleanUserId(npcPlayer?.userId || '');
+    if (!npcId || int(state.players?.[npcId]?.stage, 0) >= SAFE_CRACKER_STAGES) {
+      if (state.npcActionAt) {
+        state = { ...state, revision: int(state.revision, 0) + 1, npcActionAt: null };
+        return await duelSaveGame({ ...latest, safecrackerState: state });
+      }
+      return latest;
+    }
+    const scheduled = Date.parse(state.npcActionAt || '');
+    if (!Number.isFinite(scheduled)) {
+      state = { ...state, revision: int(state.revision, 0) + 1, npcActionAt: new Date(Date.now() + safeCrackerBotDelay(latest)).toISOString() };
+      return await duelSaveGame({ ...latest, safecrackerState: state });
+    }
+    if (Date.now() < scheduled) return latest;
+    const guess = safeCrackerBotGuess(state.players[npcId]);
+    return await safeCrackerApplyGuess({ ...latest, safecrackerState: state }, npcId, guess, 'bot-' + state.revision + '-' + guess, true);
+  });
+}
+
+`;
+  data = replaceSection(
+    data,
+    'async function safeCrackerAdvanceAndSave(game) {',
+    'async function safeCrackerAction(user, gameId, rawChoice, details = {}) {',
+    fastAdvance,
+    'nonblocking Safe Cracker poll advancement'
+  );
+
+  const fastAction = String.raw`async function safeCrackerAction(user, gameId, rawChoice, details = {}) {
+  return await withSafeCrackerLock(gameId, async () => {
+    const viewer = cleanUserId(user.id);
+    const actionStartedAt = Date.now();
+    let game = await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId);
+    if (!game) throw new Error('That Safe Cracker duel was not found.');
+    if (game.mode !== 'safecracker') throw new Error('That duel is not Safe Cracker.');
+    if (game.status !== 'playing') {
+      const response = { game: duelPublicGame(game, viewer), feedbackPath: 'fast-authoritative-v1', feedbackServerMs: Date.now() - actionStartedAt };
+      if (game.status === 'complete') response.record = await getUserRecord(viewer);
+      else response.skipBalanceLookup = true;
+      return response;
+    }
+    if (!safeCrackerPlayerIds(game).includes(viewer)) throw new Error('You are not in this Safe Cracker duel.');
+    let state = safeCrackerEnsureState(game);
+    const alreadyCompletedPlayerId = safeCrackerCompletedPlayerId(game, state);
+    if (alreadyCompletedPlayerId) {
+      const playerName = game.creator?.userId === alreadyCompletedPlayerId ? game.creator?.name : game.joiner?.name;
+      game = await safeCrackerComplete({ ...game, safecrackerState: state }, state, alreadyCompletedPlayerId, (playerName || 'A player') + ' opened the safe first.');
+      return { game: duelPublicGame(game, viewer), record: await getUserRecord(viewer), repairedCompletion: true, feedbackPath: 'fast-authoritative-v1', feedbackServerMs: Date.now() - actionStartedAt };
+    }
+    const endMs = Date.parse(state.endAt || '');
+    if (Number.isFinite(endMs) && Date.now() >= endMs) {
+      game = await safeCrackerComplete({ ...game, safecrackerState: state }, state, '', 'Time expired before either safe opened.');
+      return { game: duelPublicGame(game, viewer), record: await getUserRecord(viewer), feedbackPath: 'fast-authoritative-v1', feedbackServerMs: Date.now() - actionStartedAt };
+    }
+    const actionId = String(details.actionId || '').replace(/[^A-Za-z0-9._:-]/g, '').slice(0, 120);
+    if (actionId && state.processedActionIds.includes(actionId)) {
+      return {
+        game: duelPublicGame({ ...game, safecrackerState: state }, viewer),
+        skipBalanceLookup: true,
+        ignoredAction: true,
+        ignoreReason: 'duplicate',
+        feedbackPath: 'fast-authoritative-v1',
+        feedbackServerMs: Date.now() - actionStartedAt
+      };
+    }
+    const match = /^safecracker:guess:([0-9])$/.exec(String(rawChoice || '').toLowerCase());
+    if (!match) throw new Error('Choose one dial number from 0 to 9.');
+    const player = state.players?.[viewer] || {};
+    const nextGuessMs = Date.parse(player.nextGuessAt || '');
+    if (Number.isFinite(nextGuessMs) && Date.now() < nextGuessMs) {
+      return {
+        game: duelPublicGame({ ...game, safecrackerState: state }, viewer),
+        skipBalanceLookup: true,
+        ignoredAction: true,
+        ignoreReason: 'verification-cooldown',
+        retryAfterMs: Math.max(0, nextGuessMs - Date.now()),
+        feedbackPath: 'fast-authoritative-v1',
+        feedbackServerMs: Date.now() - actionStartedAt
+      };
+    }
+    game = await safeCrackerApplyGuess({ ...game, safecrackerState: state }, viewer, int(match[1], 0), actionId, false);
+    const response = {
+      game: duelPublicGame(game, viewer),
+      feedbackPath: 'fast-authoritative-v1',
+      feedbackServerMs: Date.now() - actionStartedAt
+    };
+    if (game.status === 'complete') response.record = await getUserRecord(viewer);
+    else response.skipBalanceLookup = true;
+    return response;
+  });
+}
+// SAFE_CRACKER_FEEDBACK_LATENCY_V1_END
+
+`;
+  data = replaceSection(
+    data,
+    'async function safeCrackerAction(user, gameId, rawChoice, details = {}) {',
+    '// SAFE_CRACKER_SERVER_END',
+    fastAction,
+    'fast Safe Cracker action response'
+  );
+}
+await writeFile(dataUrl, data);
+
+let action = await readFile(actionUrl, 'utf8');
+action = action.replace(/const DUEL_FUNCTION_BUILD = "[^"]+";/, 'const DUEL_FUNCTION_BUILD = "safecracker-feedback-fast-v10";');
+action = replaceOnce(
+  action,
+  '    "X-Duel-Function-Build": DUEL_FUNCTION_BUILD',
+  '    "X-Duel-Function-Build": DUEL_FUNCTION_BUILD,\n    "X-Safe-Cracker-Feedback": "fast-authoritative-v1"',
+  'feedback-speed response header'
+);
+action = replaceOnce(
+  action,
+  '    if (result?.unchanged || result?.databaseAuthoritative) {',
+  '    if (result?.unchanged || result?.databaseAuthoritative || result?.skipBalanceLookup) {',
+  'active-guess balance lookup bypass'
+);
+await writeFile(actionUrl, action);
+
 let html = await readFile(indexUrl, 'utf8');
 html = html.replace(/&render=\d+/g, '');
 html = html.replace(/(\/assets\/safe-cracker\/safe-cracker\.(?:css|js)\?[^"'\s>]+)/g, '$1&render=1');
 await writeFile(indexUrl, html);
 
-console.log('Applied Safe Cracker render stability v1: same-game playing updates patch the existing painted board in place, preserving the decoded dial and eliminating button-response flashes without changing authoritative gameplay.');
+console.log('Applied Safe Cracker render stability and feedback latency v1: active board updates stay in place, normal polls no longer queue ahead of guesses, redundant authoritative reads are removed, and non-final guesses skip the unchanged balance lookup.');
