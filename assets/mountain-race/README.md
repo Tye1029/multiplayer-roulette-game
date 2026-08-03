@@ -24,6 +24,7 @@ The existing multiplayer flow supports:
 - an 8% testing-bot mistake rate with independently scheduled moves
 - bounded catch-up of every bot move that became due between browser polls
 - simulated duplicate requests, stalls, and reconnect delays from the selected Remote Bot profile
+- automated validation that the Remote Network Bot can finish and win a complete 24-hold race
 
 The Summit Sprint bot is not limited to one move per browser refresh. A focused game poll wakes the server-side driver, which replays all due bot moves through the same action validation, prompt-index guard, action-id deduplication, persistence, and winner settlement used by a player input. This allows the bot to complete the full 24-hold race even when polling is slower than its reaction time.
 
