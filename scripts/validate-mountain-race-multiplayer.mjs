@@ -8,7 +8,11 @@ const {
   MOUNTAIN_RACE_COUNTDOWN_MS,
   MOUNTAIN_RACE_CONTROLS
 } = stateModelModule;
-const { createMountainRaceIntegration } = integrationModule;
+const {
+  MOUNTAIN_RACE_BOT_ERROR_RATE,
+  MOUNTAIN_RACE_BOT_CATCH_UP_LIMIT,
+  createMountainRaceIntegration
+} = integrationModule;
 const root = new URL('../', import.meta.url);
 
 const [
@@ -50,6 +54,8 @@ function occurrences(source, fragment) {
 assert(MOUNTAIN_RACE_DEFAULT_STEPS === 24, 'authoritative course length changed');
 assert(MOUNTAIN_RACE_DURATION_MS === 30_000, 'authoritative race duration changed');
 assert(MOUNTAIN_RACE_COUNTDOWN_MS === 3_000, 'authoritative countdown duration changed');
+assert(MOUNTAIN_RACE_BOT_ERROR_RATE === 0.08, 'testing bot error rate changed');
+assert(MOUNTAIN_RACE_BOT_CATCH_UP_LIMIT === 10, 'testing bot catch-up limit changed');
 assert(JSON.stringify(MOUNTAIN_RACE_CONTROLS) === JSON.stringify(['up', 'left', 'right', 'down']), 'control set changed');
 
 for (const fragment of [
@@ -98,12 +104,18 @@ assert(css.includes('.mountain-race-game .mr-mountain-wall'), 'mountain presenta
 assert(css.includes('.mountain-race-game .mr-climber.slip'), 'slip animation is missing');
 
 for (const fragment of [
+  'const MOUNTAIN_RACE_BOT_CATCH_UP_LIMIT = 10;',
   'function createMountainRaceIntegration(host = {})',
+  'async function applyActionUnlocked(user, game, rawChoice, details = {}, options = {})',
   'async function action(user, gameId, rawChoice, details = {})',
   'async function advance(game)',
   'const match = /^mountainrace:input:(up|left|right|down)$/',
-  'Math.random() >= 0.08',
+  'expectedPromptIndex !== actualPromptIndex',
   'processedActionIds.includes(actionId)',
+  'processed < MOUNTAIN_RACE_BOT_CATCH_UP_LIMIT',
+  'mountainrace:input:${token}',
+  "ignoreReason: 'duplicate'",
+  "ignoreReason: 'prompt-changed'",
   'return await resolveTimeout'
 ]) assert(integrationSource.includes(fragment), `integration service is missing: ${fragment}`);
 assert(!patch.includes("writeFile(new URL('../assets/roulette/"), 'mountain patch writes Roulette assets');
@@ -168,19 +180,30 @@ let response = await integration.action(
   { id: 'player-a' },
   game.gameId,
   `mountainrace:input:${firstExpected}`,
-  { actionId: 'correct-1' }
+  { actionId: 'correct-1', expectedPromptIndex: 0 }
 );
 game = response.game;
 assert(game.mountainraceState.players['player-a'].promptIndex === 1, 'correct move did not climb one hold');
 assert(response.skipBalanceLookup === true, 'active move performs an unnecessary balance refresh');
 
+const revisionBeforeStale = game.mountainraceState.revision;
+response = await integration.action(
+  { id: 'player-a' },
+  game.gameId,
+  `mountainrace:input:${game.mountainraceState.sequence[1]}`,
+  { actionId: 'stale-prompt-1', expectedPromptIndex: 0 }
+);
+assert(response.ignoredAction === true && response.ignoreReason === 'prompt-changed', 'stale prompt request was not rejected');
+assert(response.game.mountainraceState.revision === revisionBeforeStale, 'stale prompt request changed authoritative state');
+
+game = await getRaw(game.gameId);
 const nextExpected = game.mountainraceState.sequence[1];
 const wrongControl = MOUNTAIN_RACE_CONTROLS.find(token => token !== nextExpected);
 response = await integration.action(
   { id: 'player-a' },
   game.gameId,
   `mountainrace:input:${wrongControl}`,
-  { actionId: 'wrong-1' }
+  { actionId: 'wrong-1', expectedPromptIndex: 1 }
 );
 game = response.game;
 assert(game.mountainraceState.players['player-a'].promptIndex === 0, 'wrong move did not slip back one hold');
@@ -191,28 +214,62 @@ response = await integration.action(
   { id: 'player-a' },
   game.gameId,
   `mountainrace:input:${wrongControl}`,
-  { actionId: 'wrong-1' }
+  { actionId: 'wrong-1', expectedPromptIndex: 1 }
 );
-assert(response.ignoredAction === true, 'duplicate action was not identified');
+assert(response.ignoredAction === true && response.ignoreReason === 'duplicate', 'duplicate action was not identified');
 assert(response.game.mountainraceState.revision === revisionBeforeDuplicate, 'duplicate action changed authoritative state');
 
-let botGame = {
-  gameId: 'mountain-validator-bot',
-  mode: 'mountainrace',
-  status: 'playing',
-  revision: 1,
-  startAt: new Date(now).toISOString(),
-  creator: { userId: 'player-a', name: 'Player A' },
-  joiner: { userId: 'remote-bot-mountain-test', name: 'Mountain Bot', isNpc: true },
-  remoteNetworkConfig: { minDelayMs: 180, maxDelayMs: 180, stallChance: 0 }
-};
-botGame.mountainraceState = integration.initialState(botGame, now);
-botGame.mountainraceState.npcActionAt = new Date(now - 1000).toISOString();
-await saveGame(botGame);
-const botBefore = botGame.mountainraceState.players['remote-bot-mountain-test'];
-botGame = await integration.advance(botGame);
-const botAfter = botGame.mountainraceState.players['remote-bot-mountain-test'];
-assert(botAfter.acceptedInputs + botAfter.rejectedInputs === botBefore.acceptedInputs + botBefore.rejectedInputs + 1, 'testing bot did not submit one move');
-assert(botGame.mountainraceState.npcActionAt, 'testing bot did not schedule its next move');
+const originalRandom = Math.random;
+try {
+  // A fixed value keeps the bot accurate and its 120 ms network cadence stable.
+  // The driver must catch up several separately validated actions per poll and
+  // finish the full course even though no permanent server process is running.
+  Math.random = () => 0.5;
+  const botStart = Date.now() - 8_000;
+  let botGame = {
+    gameId: 'mountain-validator-remote-bot',
+    mode: 'mountainrace',
+    status: 'playing',
+    revision: 1,
+    startAt: new Date(botStart).toISOString(),
+    creator: { userId: 'player-a', name: 'Player A' },
+    joiner: {
+      userId: 'remote-bot-mountain-test',
+      name: 'Remote Mountain Bot',
+      isNpc: true,
+      isRemoteBot: true
+    },
+    remoteNetworkConfig: {
+      minDelayMs: 120,
+      maxDelayMs: 120,
+      stallChance: 0,
+      duplicateChance: 1,
+      reconnectChance: 0
+    }
+  };
+  botGame.mountainraceState = integration.initialState(botGame, botStart);
+  await saveGame(botGame);
 
-console.log('Summit Sprint multiplayer validation passed: the launcher, create/join flow, authoritative 24-hold race, wrong-input slip, private prompt queue, duplicate protection, simple/Remote Bot advancement, rematches, and protected existing games are intact.');
+  botGame = await integration.advance(botGame);
+  const firstWake = botGame.mountainraceState.players['remote-bot-mountain-test'];
+  const firstWakeMoves = firstWake.acceptedInputs + firstWake.rejectedInputs;
+  assert(firstWakeMoves > 1, 'one poll still advances the bot only once');
+  assert(firstWakeMoves <= MOUNTAIN_RACE_BOT_CATCH_UP_LIMIT, 'one poll exceeded the bounded catch-up limit');
+  assert(botGame.mountainraceState.botActionSequence === firstWakeMoves, 'bot action sequence does not match accepted requests');
+  assert(botGame.mountainraceState.processedActionIds.length === firstWakeMoves, 'duplicate network retries moved the bot twice');
+
+  for (let wake = 0; wake < 4 && botGame.status === 'playing'; wake += 1) {
+    botGame = await integration.advance(botGame);
+  }
+
+  const finishedBot = botGame.mountainraceState.players['remote-bot-mountain-test'];
+  assert(botGame.status === 'complete', 'Remote Network Bot did not complete a full Summit Sprint race');
+  assert(finishedBot.promptIndex === MOUNTAIN_RACE_DEFAULT_STEPS, 'Remote Network Bot did not reach all 24 holds');
+  assert(finishedBot.acceptedInputs === MOUNTAIN_RACE_DEFAULT_STEPS, 'accurate Remote Network Bot did not submit 24 correct actions');
+  assert(botGame.mountainraceState.winnerId === 'remote-bot-mountain-test', 'Remote Network Bot was not settled as the winner');
+  assert(botGame.result?.mode === 'mountainrace', 'Remote Network Bot completion did not use Summit Sprint settlement');
+} finally {
+  Math.random = originalRandom;
+}
+
+console.log('Summit Sprint multiplayer validation passed: the launcher, create/join flow, authoritative 24-hold race, wrong-input slip, private prompt queue, stale and duplicate protection, full Remote Network Bot catch-up and completion, rematches, and protected existing games are intact.');
