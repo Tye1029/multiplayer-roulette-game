@@ -16,6 +16,7 @@ await import('./validate-safe-cracker-click-cues.mjs');
 await import('./patch-safe-cracker-dial-click-v17.mjs');
 await import('./validate-safe-cracker-dial-click-v17.mjs');
 await import('./patch-safe-cracker-dial-sample-v18.mjs');
+await import('./patch-safe-cracker-dial-sample-v22.mjs');
 await import('./validate-safe-cracker-dial-sample-v18.mjs');
 
 const packageUrl = new URL('../package.json', import.meta.url);
