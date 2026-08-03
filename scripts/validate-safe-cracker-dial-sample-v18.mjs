@@ -22,7 +22,7 @@ const [client, index, patch, sourceNote, turnAnimation, turnFire, audioBindings]
 ]);
 
 function assert(condition, message) {
-  if (!condition) throw new Error(`Safe Cracker dial sample v20 validation failed: ${message}`);
+  if (!condition) throw new Error(`Safe Cracker dial sample v21 validation failed: ${message}`);
 }
 
 function occurrences(source, value) {
@@ -45,28 +45,30 @@ for (const file of sampleFiles) {
 }
 assert(sampleHashes.size === sampleFiles.length, 'the six dial samples are not all distinct');
 
-const sectionStart = client.indexOf('// SAFE_CRACKER_DIAL_SAMPLE_V20_START');
-const sectionEnd = client.indexOf('// SAFE_CRACKER_DIAL_SAMPLE_V20_END', sectionStart);
+const sectionStart = client.indexOf('// SAFE_CRACKER_DIAL_SAMPLE_V21_START');
+const sectionEnd = client.indexOf('// SAFE_CRACKER_DIAL_SAMPLE_V21_END', sectionStart);
 const section = sectionStart >= 0 && sectionEnd > sectionStart ? client.slice(sectionStart, sectionEnd) : '';
 const mappedSamples = section.match(/audio-data-v3\/bank-vault-dial-click-\d\.b64/g) || [];
 
 const checks = [
-  ['v20 marker is unique', occurrences(client, '// SAFE_CRACKER_DIAL_SAMPLE_V20_START') === 1 && occurrences(client, '// SAFE_CRACKER_DIAL_SAMPLE_V20_END') === 1],
-  ['older dial sample sections are removed', !client.includes('// SAFE_CRACKER_DIAL_SAMPLE_V18_START') && !client.includes('// SAFE_CRACKER_DIAL_SAMPLE_V19_START')],
-  ['all six longer detents are mapped once', mappedSamples.length === 6 && new Set(mappedSamples).size === 6],
-  ['sample text prefetches before audio unlock', section.includes('function safeCrackerPrefetchBankVaultDialTextsV20()') && section.includes("fetch(url + '?clicks=20'") && section.includes('window.setTimeout(safeCrackerPrefetchBankVaultDialTextsV20, 0);')],
-  ['samples decode on interaction', section.includes('function safeCrackerDecodeBankVaultDialSamplesV20()') && section.includes('context.decodeAudioData(safeCrackerRecordedBytes(text))') && section.includes("document.addEventListener('pointerdown', safeCrackerDecodeBankVaultDialSamplesV20")],
-  ['the first pending detent is queued instead of dropped', section.includes('runtime.safeCrackerPendingBankVaultDialAtV20 = now;') && section.includes('performance.now() - pendingAt < 650') && section.includes('safeCrackerPlayBankVaultDialBufferV20(pendingDigit)')],
-  ['dial playback is clearly audible through the existing bus', section.includes('gain.gain.setValueAtTime(1.18') && section.includes('gain.connect(safeCrackerAudioBus(context));')],
-  ['dial uses only the uploaded recordings', section.includes('function safeCrackerPlayReliableBankVaultDetent(digit)') && !section.includes('safeCrackerBankVaultDialFallback') && !section.includes('safeCrackerPlayMechanicalRatchetClick') && !section.includes('createOscillator')],
-  ['original pitch and recorded tail remain intact', section.includes('source.playbackRate.setValueAtTime(1') && section.includes('source.buffer.duration') && !section.includes("highpass.type = 'highpass'") && !section.includes("lowpass.type = 'lowpass'")],
-  ['result cues remain unchanged', client.includes('function safeCrackerPlayAuthoritativeCorrectCue(game, completedStage)') && client.includes('function safeCrackerPlayIncorrectRejectCue(tier)') && !section.includes('safeCrackerPlayFeedback =') && !section.includes('safeCrackerPlayTumblerLock =')],
-  ['source note documents preload, pending queue, and gain', sourceNote.includes('fetched immediately when the page loads') && sourceNote.includes('queued for up to 650 ms') && sourceNote.includes('sample gain is 1.18')],
-  ['cache bust advances to v20', index.includes('&clicks=20')],
+  ['v21 marker is unique', occurrences(client, '// SAFE_CRACKER_DIAL_SAMPLE_V21_START') === 1 && occurrences(client, '// SAFE_CRACKER_DIAL_SAMPLE_V21_END') === 1],
+  ['older sample sections are removed', !client.includes('// SAFE_CRACKER_DIAL_SAMPLE_V18_START') && !client.includes('// SAFE_CRACKER_DIAL_SAMPLE_V19_START') && !client.includes('// SAFE_CRACKER_DIAL_SAMPLE_V20_START')],
+  ['all six vault detents remain mapped', mappedSamples.length === 6 && new Set(mappedSamples).size === 6],
+  ['native audio voices replace WebAudio MP3 decoding', section.includes('function safeCrackerCreateDialVoiceV21(url)') && section.includes('new Audio(url)') && section.includes("new Blob([bytes], { type: 'audio/mpeg' })") && !section.includes('decodeAudioData(')],
+  ['two overlapping voices are created per detent', section.includes('voices: [safeCrackerCreateDialVoiceV21(url), safeCrackerCreateDialVoiceV21(url)]') && section.includes('entry.voices[entry.cursor++ % entry.voices.length]')],
+  ['dial samples preload before interaction and are unlocked on input', section.includes('function safeCrackerPrefetchDialVoicesV21()') && section.includes("fetch(url + '?clicks=21'") && section.includes('safeCrackerPrefetchDialVoicesV21();') && section.includes("document.addEventListener('pointerdown', safeCrackerPrimeDialV21")],
+  ['native dial playback is audible and fixed pitch', section.includes('voice.volume = 0.96') && section.includes('voice.playbackRate = 1') && section.includes('voice.play()')],
+  ['a dry fallback prevents silent detents', section.includes('function safeCrackerPlayDryDialFallbackV21()') && section.includes('safeCrackerPlayNoise(0.018, 0.018') && section.includes('safeCrackerPlayDryDialFallbackV21();')],
+  ['the final dial override uses the native sample route', section.includes('function safeCrackerPlayNativeBankVaultDetentV21(digit)') && section.includes('safeCrackerPlayNativeDialSampleV21()') && section.includes('playDetent = safeCrackerPlayDetent;')],
+  ['recorded repeating ambience is replaced by smooth room tone', section.includes('function safeCrackerSmoothRoomToneBufferV21(context)') && section.includes('const duration = 21;') && section.includes('function safeCrackerStartSmoothVaultRoomToneV21()') && section.includes('gain.gain.exponentialRampToValueAtTime(0.026')],
+  ['smooth ambience contains no foreground sample loop', !section.includes("safeCrackerPlayRecordedSound('ambience'") && !section.includes('vault-ambience-loop-')],
+  ['correct and incorrect result cues remain unchanged', client.includes('function safeCrackerPlayAuthoritativeCorrectCue(game, completedStage)') && client.includes('function safeCrackerPlayIncorrectRejectCue(tier)') && !section.includes('safeCrackerPlayFeedback =') && !section.includes('safeCrackerPlayTumblerLock =')],
+  ['source note documents native playback and transient-free ambience', sourceNote.includes('native HTML audio voices') && sourceNote.includes('quiet 21-second seamless filtered vault-room air tone') && sourceNote.includes('recurring loud mechanical impacts are no longer used')],
+  ['cache bust advances to v21', index.includes('&clicks=21')],
   ['gameplay and Roulette remain protected', client.includes('choice: `safecracker:guess:${runtime.selected}`') && turnAnimation.length > 0 && turnFire.length > 0 && audioBindings.length > 0],
   ['patch cannot write networking or Roulette files', !patch.includes("writeFile(new URL('../netlify/functions/") && !patch.includes("writeFile(new URL('../assets/roulette/")]
 ];
 
 for (const [label, condition] of checks) assert(condition, label);
 
-console.log('Safe Cracker dial sample v20 validation passed: uploaded clicks prefetch before interaction, decode on unlock, queue the first detent, play at an audible level, and leave result cues and protected gameplay unchanged.');
+console.log('Safe Cracker dial sample v21 validation passed: native preloaded vault clicks guarantee an audible dial, the fallback prevents silence, and the repeating impact ambience is replaced by a smooth room tone.');
