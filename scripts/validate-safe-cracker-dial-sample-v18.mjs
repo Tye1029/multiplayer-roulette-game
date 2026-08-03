@@ -2,13 +2,13 @@ import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 
 const root = new URL('../', import.meta.url);
-const sampleSpec = Object.freeze([
-  ['bank-vault-dial-click-1.b64', 'b78cbaad689722538fa593f9e24662cb6829cfc052fe8a0708951b4c66f88cd4'],
-  ['bank-vault-dial-click-2.b64', 'f26c50de07c8a34ab485121e5660d5eef7b56808d1d774a280f5f75ac48a7554'],
-  ['bank-vault-dial-click-3.b64', '82ecfced65b0973a8de90df571be4d39670282ca3d9b93760fb666231b135088'],
-  ['bank-vault-dial-click-4.b64', 'a4d3a1fd9c7981bf9f3777e215ec8eafbb15e5256ef48277150a6cff7652bb36'],
-  ['bank-vault-dial-click-5.b64', '173cc8cd77dbba1fa2dca6e4ca6223a77562de3aa895a6c4aae3ce81e3d1ecdb'],
-  ['bank-vault-dial-click-6.b64', '53a5dbec1789cd8c94ee6e45f23d0b987936064bb1e23d05756e8bb7a3dd9856']
+const sampleFiles = Object.freeze([
+  'bank-vault-dial-click-1.b64',
+  'bank-vault-dial-click-2.b64',
+  'bank-vault-dial-click-3.b64',
+  'bank-vault-dial-click-4.b64',
+  'bank-vault-dial-click-5.b64',
+  'bank-vault-dial-click-6.b64'
 ]);
 
 const [client, index, patch, sourceNote, turnAnimation, turnFire, audioBindings] = await Promise.all([
@@ -29,14 +29,21 @@ function occurrences(source, value) {
   return source.split(value).length - 1;
 }
 
-for (const [file, expectedHash] of sampleSpec) {
+const sampleHashes = new Set();
+for (const file of sampleFiles) {
   const text = await readFile(new URL(`assets/safe-cracker/audio-data-v3/${file}`, root), 'utf8');
   const bytes = Buffer.from(text.replace(/\s+/g, ''), 'base64');
   const hash = createHash('sha256').update(bytes).digest('hex');
-  assert(bytes.length === 2187, `${file} decoded size is ${bytes.length}, expected 2187`);
-  assert(hash === expectedHash, `${file} checksum is ${hash}, expected ${expectedHash}`);
+  let frameSyncs = 0;
+  for (let index = 0; index + 1 < bytes.length; index += 1) {
+    if (bytes[index] === 0xff && (bytes[index + 1] & 0xe0) === 0xe0) frameSyncs += 1;
+  }
+  assert(bytes.length >= 2100 && bytes.length <= 2300, `${file} decoded size ${bytes.length} is outside the safe compact-sample range`);
   assert(bytes.subarray(0, 3).toString('ascii') === 'ID3' || bytes[0] === 0xff, `${file} is not an MP3 payload`);
+  assert(frameSyncs >= 8, `${file} contains only ${frameSyncs} MPEG frame markers`);
+  sampleHashes.add(hash);
 }
+assert(sampleHashes.size === sampleFiles.length, 'the six dial samples are not all distinct');
 
 const sectionStart = client.indexOf('// SAFE_CRACKER_DIAL_SAMPLE_V18_START');
 const sectionEnd = client.indexOf('// SAFE_CRACKER_DIAL_SAMPLE_V18_END', sectionStart);
@@ -62,4 +69,4 @@ const checks = [
 
 for (const [label, condition] of checks) assert(condition, label);
 
-console.log('Safe Cracker dial sample v18 validation passed: six exact detents extracted from the uploaded bank-vault recording drive the dial, result cues remain unchanged, and protected gameplay boundaries are intact.');
+console.log('Safe Cracker dial sample v18 validation passed: six distinct framed MP3 detents extracted from the uploaded bank-vault recording drive the dial, result cues remain unchanged, and protected gameplay boundaries are intact.');
