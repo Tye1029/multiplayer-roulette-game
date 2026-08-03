@@ -35,6 +35,7 @@ const requiredCss = [
   '.sc-door-screws i',
   "url('./brushed-metal-horizontal-v1.svg?grain=1')",
   'rgba(255,255,255,.56)',
+  'background-blend-mode: soft-light, screen, normal, normal',
   '.sc-display-bezel i::before',
   '.sc-display-bezel i::after',
   '.sc-door-screws i::before',
@@ -46,8 +47,7 @@ const requiredCss = [
   'width: 8px; height: 2px',
   'width: 2px; height: 8px',
   'width: 6px; height: 2px',
-  'width: 2px; height: 6px',
-  'mix-blend-mode'
+  'width: 2px; height: 6px'
 ];
 for (const fragment of requiredCss) assert(block.includes(fragment), `missing CSS fragment: ${fragment}`);
 
