@@ -3,6 +3,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 const dataUrl = new URL('../netlify/functions/_data.js', import.meta.url);
 const actionUrl = new URL('../netlify/functions/duel-action.js', import.meta.url);
 const indexUrl = new URL('../index.html', import.meta.url);
+const deploymentMarker = '<!-- MOUNTAIN_RACE_REMOTE_BOT_ATTACH_V2 -->';
 
 const threeGameAllowlist = 'if (!["roulette", "draw", "fishing"].includes(String(game.mode || ""))) throw new Error("Remote Network Bot supports Roulette, Draw, and Fishing.");';
 const fourGameAllowlist = 'if (!["roulette", "draw", "fishing", "safecracker"].includes(String(game.mode || ""))) throw new Error("Remote Network Bot supports Roulette, Draw, Fishing, and Safe Cracker.");';
@@ -101,5 +102,13 @@ if (!html.includes("duelRequest('create-remote-bot'") || !html.includes('data-rn
   throw new Error('The Remote Bot dock is not wired to the Summit Sprint atomic attachment path.');
 }
 
-await writeFile(dataUrl, data);
+if (!html.includes(deploymentMarker)) {
+  if (!html.includes('</body>')) throw new Error('Summit Sprint Remote Bot patch could not mark the deployed page.');
+  html = html.replace('</body>', `${deploymentMarker}\n</body>`);
+}
+
+await Promise.all([
+  writeFile(dataUrl, data),
+  writeFile(indexUrl, html)
+]);
 console.log('Fixed Summit Sprint Remote Bot joining: both direct and atomic attachment paths accept mountain races, preserve bot identity/network settings, and reset mountain state safely.');
