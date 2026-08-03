@@ -30,20 +30,23 @@ jobs:
       - name: Run exact Netlify build command
         run: npm run build
 
-      - name: Verify generated bank-vault dial samples
+      - name: Verify generated reliable bank-vault dial samples
         shell: bash
         run: |
           set -euo pipefail
           node scripts/validate-safe-cracker-dial-sample-v18.mjs
-          grep -Fq 'SAFE_CRACKER_DIAL_SAMPLE_V19_START' assets/safe-cracker/safe-cracker.js
-          grep -Fq 'safeCrackerLoadBankVaultDialSamplesV19' assets/safe-cracker/safe-cracker.js
-          grep -Fq 'safeCrackerPlayBankVaultDialSampleV19' assets/safe-cracker/safe-cracker.js
-          grep -Fq 'safeCrackerPlayUnfilteredBankVaultDetent' assets/safe-cracker/safe-cracker.js
+          grep -Fq 'SAFE_CRACKER_DIAL_SAMPLE_V20_START' assets/safe-cracker/safe-cracker.js
+          grep -Fq 'safeCrackerPrefetchBankVaultDialTextsV20' assets/safe-cracker/safe-cracker.js
+          grep -Fq 'safeCrackerDecodeBankVaultDialSamplesV20' assets/safe-cracker/safe-cracker.js
+          grep -Fq 'safeCrackerPlayBankVaultDialBufferV20' assets/safe-cracker/safe-cracker.js
+          grep -Fq 'safeCrackerPlayReliableBankVaultDetent' assets/safe-cracker/safe-cracker.js
+          grep -Fq 'runtime.safeCrackerPendingBankVaultDialAtV20 = now' assets/safe-cracker/safe-cracker.js
+          grep -Fq 'gain.gain.setValueAtTime(1.18' assets/safe-cracker/safe-cracker.js
           grep -Fq 'safeCrackerPlayAuthoritativeCorrectCue' assets/safe-cracker/safe-cracker.js
           grep -Fq 'safeCrackerPlayIncorrectRejectCue' assets/safe-cracker/safe-cracker.js
-          grep -Fq '&clicks=19' index.html
+          grep -Fq '&clicks=20' index.html
 
-      - name: Verify live Netlify bank-vault dial samples
+      - name: Verify live reliable bank-vault dial samples
         shell: bash
         run: |
           set -euo pipefail
@@ -51,10 +54,10 @@ jobs:
           function_url="${url}.netlify/functions/duel-action"
 
           for attempt in $(seq 1 48); do
-            html="$(curl -fsSL --max-time 20 "${url}?clicks=19&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            js="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/safe-cracker.js?clicks=19&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            sample1="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/audio-data-v3/bank-vault-dial-click-1.b64?clicks=19&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            sample6="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/audio-data-v3/bank-vault-dial-click-6.b64?clicks=19&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            html="$(curl -fsSL --max-time 20 "${url}?clicks=20&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            js="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/safe-cracker.js?clicks=20&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            sample1="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/audio-data-v3/bank-vault-dial-click-1.b64?clicks=20&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            sample6="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/audio-data-v3/bank-vault-dial-click-6.b64?clicks=20&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             headers="$(curl -fsS --max-time 20 -D - -o /dev/null -X OPTIONS "${function_url}?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
 
             sample1_bytes="$(printf '%s' "$sample1" | tr -d '[:space:]' | base64 -d 2>/dev/null | wc -c | tr -d ' ' || true)"
@@ -64,11 +67,14 @@ jobs:
             sample1_hash="$(printf '%s' "$sample1" | tr -d '[:space:]' | base64 -d 2>/dev/null | sha256sum | awk '{print $1}' || true)"
             sample6_hash="$(printf '%s' "$sample6" | tr -d '[:space:]' | base64 -d 2>/dev/null | sha256sum | awk '{print $1}' || true)"
 
-            if grep -Fq '&clicks=19' <<<"$html" && \
-               grep -Fq 'SAFE_CRACKER_DIAL_SAMPLE_V19_START' <<<"$js" && \
-               grep -Fq 'safeCrackerLoadBankVaultDialSamplesV19' <<<"$js" && \
-               grep -Fq 'safeCrackerPlayBankVaultDialSampleV19' <<<"$js" && \
-               grep -Fq 'safeCrackerPlayUnfilteredBankVaultDetent' <<<"$js" && \
+            if grep -Fq '&clicks=20' <<<"$html" && \
+               grep -Fq 'SAFE_CRACKER_DIAL_SAMPLE_V20_START' <<<"$js" && \
+               grep -Fq 'safeCrackerPrefetchBankVaultDialTextsV20' <<<"$js" && \
+               grep -Fq 'safeCrackerDecodeBankVaultDialSamplesV20' <<<"$js" && \
+               grep -Fq 'safeCrackerPlayBankVaultDialBufferV20' <<<"$js" && \
+               grep -Fq 'safeCrackerPlayReliableBankVaultDetent' <<<"$js" && \
+               grep -Fq 'runtime.safeCrackerPendingBankVaultDialAtV20 = now' <<<"$js" && \
+               grep -Fq 'gain.gain.setValueAtTime(1.18' <<<"$js" && \
                grep -Fq 'safeCrackerPlayAuthoritativeCorrectCue' <<<"$js" && \
                grep -Fq 'safeCrackerPlayIncorrectRejectCue' <<<"$js" && \
                [[ "$sample1_bytes" -ge 2800 && "$sample1_bytes" -le 3100 ]] && \
@@ -77,13 +83,13 @@ jobs:
                [[ -n "$sample1_hash" && -n "$sample6_hash" && "$sample1_hash" != "$sample6_hash" ]] && \
                grep -Fq 'SAFE_CRACKER_DIAL_ACTIVITY_V16_START' <<<"$js" && \
                grep -Fiq 'x-duel-function-build: safecracker-direct-v8' <<<"$headers"; then
-              echo "Verified live Safe Cracker bank-vault dial samples v19 at ${url}"
+              echo "Verified live Safe Cracker reliable bank-vault dial samples v20 at ${url}"
               exit 0
             fi
 
-            echo "Waiting for Netlify Safe Cracker bank-vault dial samples v19 (${attempt}/48)..."
+            echo "Waiting for Netlify Safe Cracker reliable bank-vault dial samples v20 (${attempt}/48)..."
             sleep 10
           done
 
-          echo 'Netlify preview did not serve the Safe Cracker v19 uploaded dial runtime and longer MP3 assets.' >&2
+          echo 'Netlify preview did not serve the Safe Cracker v20 preload, decode queue, audible gain, and valid uploaded MP3 assets.' >&2
           exit 1
