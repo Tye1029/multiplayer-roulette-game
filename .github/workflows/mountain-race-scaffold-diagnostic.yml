@@ -42,17 +42,16 @@ jobs:
           node --check netlify/functions/mountain-race/integration.js
           node --check scripts/patch-mountain-race-multiplayer.mjs
           node --check scripts/patch-mountain-race-remote-bot-attach.mjs
+          node --check scripts/patch-mountain-race-start-stability.mjs
           node --check scripts/patch-mountain-race-mode-option.mjs
           node --check scripts/validate-mountain-race-multiplayer.mjs
           node --check scripts/validate-mountain-race-remote-bot-attach.mjs
+          node --check scripts/validate-mountain-race-start-stability.mjs
 
-      - name: Validate multiplayer and full bot race
+      - name: Validate multiplayer and paced bot race
         run: npm run validate:mountain-race
 
-      - name: Validate Remote Bot attachment
-        run: node scripts/validate-mountain-race-remote-bot-attach.mjs
-
-      - name: Verify generated multiplayer launcher and bot join path
+      - name: Verify generated multiplayer startup and bot path
         shell: bash
         run: |
           set -euo pipefail
@@ -64,6 +63,9 @@ jobs:
           grep -Fq "option.value = 'mountainrace'" index.html
           grep -Fq "duelRequest('create-remote-bot'" index.html
           grep -Fq 'MOUNTAIN_RACE_REMOTE_BOT_ATTACH_V2' index.html
+          grep -Fq 'MOUNTAIN_RACE_START_STABILITY_V1' index.html
+          grep -Fq "if(game.mode==='mountainrace')" index.html
+          grep -Fq '["safecracker", "mountainrace"].includes' index.html
           grep -Fq 'mountain-race-multiplayer.js?v=1' index.html
           grep -Fq 'MOUNTAIN_RACE_SERVER_START' netlify/functions/_data.js
           grep -Fq 'mountainrace: "Summit Sprint"' netlify/functions/_data.js
@@ -72,10 +74,14 @@ jobs:
           test "$(grep -Fc 'Remote Network Bot supports Roulette, Draw, Fishing, Safe Cracker, and Summit Sprint.' netlify/functions/_data.js)" -ge 2
           grep -Fq 'mountainraceState:null' netlify/functions/_data.js
           grep -Fq 'remoteNetworkTest: Boolean(game.remoteNetworkTest)' netlify/functions/_data.js
+          grep -Fq 'const effectiveStartMs = game?.mode === "mountainrace" ? atMs + 3000 : startMs;' netlify/functions/_data.js
+          grep -Fq 'const mountainRaceRequest = String(gameId || "").startsWith("duel-mountainrace-");' netlify/functions/_data.js
           grep -Fq 'action === "create-remote-bot"' netlify/functions/duel-action.js
           grep -Fq 'mountainRaceAction(actorUser, gameId, rawChoice, details)' netlify/functions/_data.js
-          grep -Fq 'const MOUNTAIN_RACE_BOT_CATCH_UP_LIMIT = 10;' netlify/functions/mountain-race/integration.js
-          grep -Fq 'async function applyActionUnlocked' netlify/functions/mountain-race/integration.js
+          grep -Fq 'const MOUNTAIN_RACE_BOT_CATCH_UP_LIMIT = 1;' netlify/functions/mountain-race/integration.js
+          grep -Fq 'const MOUNTAIN_RACE_BOT_REACTION_MIN_MS = 520;' netlify/functions/mountain-race/integration.js
+          grep -Fq 'const MOUNTAIN_RACE_BOT_REACTION_MAX_MS = 760;' netlify/functions/mountain-race/integration.js
+          grep -Fq 'scheduleFromMs: Date.now()' netlify/functions/mountain-race/integration.js
           grep -Fq 'processed < MOUNTAIN_RACE_BOT_CATCH_UP_LIMIT' netlify/functions/mountain-race/integration.js
           grep -Fq "ignoreReason: 'prompt-changed'" netlify/functions/mountain-race/integration.js
 
@@ -105,7 +111,7 @@ jobs:
           url='https://deploy-preview-20--famous-piroshki-b621da.netlify.app/'
 
           for attempt in $(seq 1 48); do
-            page="$(curl -fsSL --max-time 20 "${url}?summit_bot_join=2&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            page="$(curl -fsSL --max-time 20 "${url}?summit_start_stability=1&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             multiplayer_js="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race-multiplayer.js?v=1&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             prototype_page="$(curl -fsSL --max-time 20 "${url}mountain-race-preview.html?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
 
@@ -113,19 +119,21 @@ jobs:
                grep -Fq 'data-rnb-game="mountainrace"' <<<"$page" && \
                grep -Fq "duelRequest('create-remote-bot'" <<<"$page" && \
                grep -Fq 'MOUNTAIN_RACE_REMOTE_BOT_ATTACH_V2' <<<"$page" && \
+               grep -Fq 'MOUNTAIN_RACE_START_STABILITY_V1' <<<"$page" && \
+               grep -Fq "if(game.mode==='mountainrace')" <<<"$page" && \
                grep -Fq 'data-mountain-race-mount' <<<"$page" && \
                grep -Fq 'window.__mountainRaceBridge' <<<"$page" && \
                grep -Fq "option.value = 'mountainrace'" <<<"$page" && \
                grep -Fq "const STATE_EVENT = 'mountainrace:state'" <<<"$multiplayer_js" && \
                grep -Fq 'mountainrace:input:${token}' <<<"$multiplayer_js" && \
                grep -Fq 'data-mountain-race-demo' <<<"$prototype_page"; then
-              echo "Verified live Summit Sprint Remote Bot attachment fix and multiplayer runtime at ${url}"
+              echo "Verified live Summit Sprint single-countdown startup and paced Remote Bot build at ${url}"
               exit 0
             fi
 
-            echo "Waiting for Netlify Summit Sprint Remote Bot fix deployment (${attempt}/48)..."
+            echo "Waiting for Netlify Summit Sprint start-stability deployment (${attempt}/48)..."
             sleep 10
           done
 
-          echo 'Netlify did not serve the current Summit Sprint Remote Bot attachment fix.' >&2
+          echo 'Netlify did not serve the current Summit Sprint start-stability fix.' >&2
           exit 1
