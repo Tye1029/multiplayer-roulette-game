@@ -1,8 +1,9 @@
 import { readFile, writeFile } from 'node:fs/promises';
 
-const validatorUrl = new URL('validate-mountain-race-state-sync.mjs', import.meta.url);
-let source = await readFile(validatorUrl, 'utf8');
+const stateSyncValidatorUrl = new URL('validate-mountain-race-state-sync.mjs', import.meta.url);
+const multiplayerValidatorUrl = new URL('validate-mountain-race-multiplayer.mjs', import.meta.url);
 
+let source = await readFile(stateSyncValidatorUrl, 'utf8');
 source = source
   .replace(
     "assert(client.includes('if (data.wakeBot) scheduleBotWake();'), 'action responses do not schedule the focused Network Bot wake');",
@@ -37,6 +38,19 @@ if (!source.includes("choice: 'mountainrace:batch'")) throw new Error('Summit Sp
 if (!source.includes('inputBatch: body.inputBatch')) throw new Error('Summit Sprint validator does not verify queued input routing.');
 if (!source.includes('mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=5')) throw new Error('Summit Sprint validator does not require the instant-input cache boundary.');
 if (source.includes("assert(client.includes('if (data.wakeBot) scheduleBotWake();')")) throw new Error('Summit Sprint validator still expects the removed single-action response path.');
+await writeFile(stateSyncValidatorUrl, source);
 
-await writeFile(validatorUrl, source);
-console.log('Updated Summit Sprint validation for immediate local input queues and one-save authoritative batches.');
+let multiplayerSource = await readFile(multiplayerValidatorUrl, 'utf8');
+multiplayerSource = multiplayerSource.replace(
+  "  'mountainrace:input:${token}',",
+  "  \"choice: 'mountainrace:batch'\"," 
+);
+if (multiplayerSource.includes("  'mountainrace:input:${token}',")) {
+  throw new Error('Summit Sprint multiplayer validator still requires one request per arrow.');
+}
+if (!multiplayerSource.includes("choice: 'mountainrace:batch'")) {
+  throw new Error('Summit Sprint multiplayer validator does not require the queued batch request.');
+}
+await writeFile(multiplayerValidatorUrl, multiplayerSource);
+
+console.log('Updated Summit Sprint validation for immediate local queues, one-save authoritative batches, and the new batch request path.');
