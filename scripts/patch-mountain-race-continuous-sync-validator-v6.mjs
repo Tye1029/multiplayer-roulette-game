@@ -9,6 +9,10 @@ stateSource = stateSource
     "assert(client.includes('if (data?.wakeBot) scheduleBotWake();'), 'queued action responses do not schedule the focused Network Bot wake');",
     "assert(integration.includes('async function foldDueBotActions('), 'queued action responses do not fold due opponent progress into the same save');"
   )
+  .replace(
+    "assert(client.includes('const stale = compareSnapshotVersions(accepted, incoming) < 0;'), 'client still requires both independent revision counters to increase together');",
+    "assert(client.includes('function mergeMountainRaceGame('), 'client does not merge same-round snapshots component by component');"
+  )
   .replaceAll(
     'mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=5',
     'mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=6'
