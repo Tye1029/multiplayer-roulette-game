@@ -17,7 +17,11 @@ assert(client.includes('// MOUNTAIN_RACE_LOAD_PERFORMANCE_V1'), 'client load-per
 assert(client.includes("renderKey: ''"), 'render signature state is missing');
 assert(client.includes('function meaningfulRenderKey(game)'), 'meaningful-state signature helper is missing');
 assert(client.includes('sameMeaningfulState && runtime.root?.isConnected'), 'unchanged polls still rebuild the mountain DOM');
-assert(client.includes('updateClock();\n      startTicker();\n      return;'), 'unchanged polls do not take the lightweight clock-only path');
+assert(
+  client.includes('updateClock();\n      startTicker();\n      return true;')
+    || client.includes('updateClock();\n      startTicker();\n      return;'),
+  'unchanged polls do not take the lightweight clock-only path'
+);
 
 assert(html.includes('<!-- MOUNTAIN_RACE_LOAD_PERFORMANCE_V1 -->'), 'deployed load-performance marker is missing');
 assert(!html.includes('new MutationObserver(renameNetworkBotLog)'), 'permanent Network Bot Log observer still exists');
