@@ -41,16 +41,24 @@ if (source.includes("assert(client.includes('if (data.wakeBot) scheduleBotWake()
 await writeFile(stateSyncValidatorUrl, source);
 
 let multiplayerSource = await readFile(multiplayerValidatorUrl, 'utf8');
-multiplayerSource = multiplayerSource.replaceAll(
-  "'mountainrace:input:${token}'",
-  "\"choice: 'mountainrace:batch'\""
-);
-if (multiplayerSource.includes('mountainrace:input:${token}')) {
-  throw new Error('Summit Sprint multiplayer validator still requires one request per arrow.');
+const clientExpectationBefore = `  "const STATE_EVENT = 'mountainrace:state'",
+  'mountainrace:input:\${token}',
+  'window.__mountainRaceBridge',`;
+const clientExpectationAfter = `  "const STATE_EVENT = 'mountainrace:state'",
+  "choice: 'mountainrace:batch'",
+  'window.__mountainRaceBridge',`;
+if (!multiplayerSource.includes(clientExpectationAfter)) {
+  if (!multiplayerSource.includes(clientExpectationBefore)) {
+    throw new Error('Summit Sprint multiplayer validator could not find the legacy client request expectation.');
+  }
+  multiplayerSource = multiplayerSource.replace(clientExpectationBefore, clientExpectationAfter);
 }
 if (!multiplayerSource.includes("choice: 'mountainrace:batch'")) {
-  throw new Error('Summit Sprint multiplayer validator does not require the queued batch request.');
+  throw new Error('Summit Sprint multiplayer validator does not require the queued client batch request.');
+}
+if (!multiplayerSource.includes("'mountainrace:input:${token}',\n  \"ignoreReason: 'duplicate'\"")) {
+  throw new Error('Summit Sprint multiplayer validator no longer verifies the server single-input compatibility path.');
 }
 await writeFile(multiplayerValidatorUrl, multiplayerSource);
 
-console.log('Updated Summit Sprint validation for immediate local queues, one-save authoritative batches, and the new batch request path.');
+console.log('Updated Summit Sprint validation for immediate local queues, one-save authoritative batches, and preserved server single-input compatibility.');
