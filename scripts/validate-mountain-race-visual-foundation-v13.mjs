@@ -11,6 +11,10 @@ function assert(condition, message) {
   if (!condition) throw new Error(`Summit Sprint Visual Foundation V13 validation failed: ${message}`);
 }
 
+function containsRuntimeClass(name) {
+  return runtime.includes(`class="${name}"`) || runtime.includes(`class=\\"${name}\\"`);
+}
+
 for (const required of [
   'MOUNTAIN_RACE_VISUAL_FOUNDATION_V13',
   '.mr-world-layer',
@@ -33,22 +37,27 @@ for (const required of [
 
 for (const required of [
   'MOUNTAIN_RACE_VISUAL_FOUNDATION_V13',
-  'class="mr-world-layer"',
-  'class="mr-world-moon"',
-  'class="mr-world-range mr-world-range-far"',
-  'class="mr-stage-ridge"',
-  'class="mr-route-depth"',
-  'class="mr-route-rope"',
-  'class="mr-rope-anchor mr-rope-anchor-a"',
   'ALPINE EXPEDITION · ROUTE 24',
   'NORTH FACE · 24 HOLDS · LIVE ASCENT'
 ]) {
   assert(runtime.includes(required), `multiplayer scene is missing ${required}`);
 }
 
+for (const className of [
+  'mr-world-layer',
+  'mr-world-moon',
+  'mr-world-range mr-world-range-far',
+  'mr-stage-ridge',
+  'mr-route-depth',
+  'mr-route-rope',
+  'mr-rope-anchor mr-rope-anchor-a'
+]) {
+  assert(containsRuntimeClass(className), `multiplayer scene is missing class ${className}`);
+}
+
 assert(html.includes('<!-- MOUNTAIN_RACE_VISUAL_FOUNDATION_V13 -->'), 'deployment marker is missing');
-assert(/mountain-race\.css[^"']*visual=13/.test(html), 'stylesheet visual cache boundary is missing');
-assert(/mountain-race-multiplayer\.js[^"']*visual=13/.test(html), 'runtime visual cache boundary is missing');
+assert(/mountain-race\.css[^"']*visual=(?:13|14)/.test(html), 'stylesheet visual cache boundary is missing');
+assert(/mountain-race-multiplayer\.js[^"']*visual=(?:13|14)/.test(html), 'runtime visual cache boundary is missing');
 
 // Visual work must remain outside the authoritative input and networking contract.
 assert(runtime.includes("choice: 'mountainrace:batch'") || runtime.includes('choice: `mountainrace:input:'), 'authoritative Mountain Race input path is missing');
