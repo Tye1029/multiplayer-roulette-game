@@ -1,0 +1,77 @@
+name: Summit Sprint Authoritative Ordering V2
+
+on:
+  pull_request:
+    branches:
+      - safe-cracker-development
+  push:
+    branches:
+      - mountain-race-development
+
+concurrency:
+  group: summit-sprint-order-v2-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate-ordering:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+
+      - name: Use Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build exact Netlify output
+        run: npm run build
+
+      - name: Verify one-tap authoritative ordering
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check scripts/patch-mountain-race-authoritative-order-v2.mjs
+          node --check assets/mountain-race/mountain-race-multiplayer.js
+          node scripts/validate-mountain-race-state-sync.mjs
+          grep -Fq 'MOUNTAIN_RACE_AUTHORITATIVE_ORDER_V2' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'function compareSnapshotVersions(accepted, incoming)' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'const stale = compareSnapshotVersions(accepted, incoming) < 0;' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'MOUNTAIN_RACE_AUTHORITATIVE_ORDER_V2' index.html
+          grep -Fq 'function mountainRaceCompareVersions(accepted, incoming)' index.html
+          grep -Fq "game.mode!='mountainrace'&&rnbCompareSnapshots(game,current)<0" index.html
+          grep -Fq "if(g.mode==='mountainrace')" index.html
+          grep -Fq 'networkBotLog:st.networkBotLog||null' index.html
+          grep -Fq 'mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=2' index.html
+
+      - name: Verify live Netlify ordering deployment
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          url='https://deploy-preview-20--famous-piroshki-b621da.netlify.app/'
+          for attempt in $(seq 1 48); do
+            page="$(curl -fsSL --max-time 20 "${url}?summit_order_v2=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            runtime="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=2&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            if grep -Fq 'MOUNTAIN_RACE_AUTHORITATIVE_ORDER_V2' <<<"$page" && \
+               grep -Fq 'function mountainRaceCompareVersions(accepted, incoming)' <<<"$page" && \
+               grep -Fq "game.mode!='mountainrace'&&rnbCompareSnapshots(game,current)<0" <<<"$page" && \
+               grep -Fq "if(g.mode==='mountainrace')" <<<"$page" && \
+               grep -Fq 'MOUNTAIN_RACE_AUTHORITATIVE_ORDER_V2' <<<"$runtime" && \
+               grep -Fq 'function compareSnapshotVersions(accepted, incoming)' <<<"$runtime" && \
+               grep -Fq 'const stale = compareSnapshotVersions(accepted, incoming) < 0;' <<<"$runtime"; then
+              echo 'Verified live Summit Sprint authoritative ordering V2 deployment.'
+              exit 0
+            fi
+            echo "Waiting for Netlify authoritative-order V2 deployment (${attempt}/48)..."
+            sleep 10
+          done
+          echo 'Netlify did not serve Summit Sprint authoritative ordering V2.' >&2
+          exit 1
