@@ -154,7 +154,6 @@ html = html
   .replace(/Remote Bot Logs?/gi, 'Network Bot Log');
 
 if (!html.includes(htmlMarker)) {
-  assert(html.includes('</body>'), 'deployed page is missing </body>');
   const networkBotLogBootstrap = `${htmlMarker}
 <script id="mountainRaceNetworkBotLogBootstrap">
 (() => {
@@ -187,7 +186,10 @@ if (!html.includes(htmlMarker)) {
   else start();
 })();
 </script>`;
-  html = html.replace('</body>', `${networkBotLogBootstrap}\n</body>`);
+  const htmlAnchor = html.includes('</body>') ? '</body>' : html.includes('</html>') ? '</html>' : '';
+  html = htmlAnchor
+    ? html.replace(htmlAnchor, `${networkBotLogBootstrap}\n${htmlAnchor}`)
+    : `${html}\n${networkBotLogBootstrap}\n`;
 }
 
 assert(html.includes(htmlMarker), 'Network Bot Log bootstrap marker is missing');
