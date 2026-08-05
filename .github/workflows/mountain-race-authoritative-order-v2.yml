@@ -1,4 +1,4 @@
-name: Summit Sprint Terminal Poll V10
+name: Summit Sprint Lifecycle Guard V11
 
 on:
   pull_request:
@@ -9,14 +9,14 @@ on:
       - mountain-race-development
 
 concurrency:
-  group: summit-sprint-terminal-poll-v10-${{ github.ref }}
+  group: summit-sprint-lifecycle-guard-v11-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
-  validate-terminal-poll:
+  validate-lifecycle-guard:
     runs-on: ubuntu-latest
     timeout-minutes: 14
     steps:
@@ -34,15 +34,17 @@ jobs:
       - name: Build exact Netlify output
         run: npm run build
 
-      - name: Verify fast acknowledgement, rebasing, and terminal polling
+      - name: Verify lifecycle ordering and prior synchronization fixes
         shell: bash
         run: |
           set -euo pipefail
           node --check scripts/patch-mountain-race-input-rebase-v8.mjs
           node --check scripts/patch-mountain-race-fast-ack-v9.mjs
           node --check scripts/patch-mountain-race-terminal-poll-v10.mjs
+          node --check scripts/patch-mountain-race-lifecycle-guard-v11.mjs
           node --check scripts/validate-mountain-race-fast-ack-v9.mjs
           node --check scripts/validate-mountain-race-terminal-poll-v10.mjs
+          node --check scripts/validate-mountain-race-lifecycle-guard-v11.mjs
           node --check assets/mountain-race/mountain-race-multiplayer.js
           node --check netlify/functions/_data.js
           node --check netlify/functions/mountain-race/integration.js
@@ -50,6 +52,7 @@ jobs:
           node scripts/validate-mountain-race-input-rebase-v8.mjs
           node scripts/validate-mountain-race-fast-ack-v9.mjs
           node scripts/validate-mountain-race-terminal-poll-v10.mjs
+          node scripts/validate-mountain-race-lifecycle-guard-v11.mjs
           node scripts/validate-mountain-race-state-sync.mjs
           node scripts/validate-mountain-race-start-stability.mjs
           node scripts/validate-mountain-race-gameplay-visibility.mjs
@@ -66,11 +69,12 @@ jobs:
           grep -Fq 'DUEL_SITE_USER_CACHE' netlify/functions/duel-action.js
 
           grep -Fq 'MOUNTAIN_RACE_TERMINAL_POLL_V10' index.html
-          grep -Fq "window.__mountainRacePauseCompletedPolling(activeGame))return;" index.html
-          grep -Fq 'window.__mountainRacePauseCompletedPolling(duelLastActiveGame || null)) return;' index.html
-          grep -Fq 'function mountainRacePauseCompletedPolling(game)' index.html
-          grep -Fq '!game?.remoteNetworkTest' index.html
-          grep -Fq 'mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=10' index.html
+          grep -Fq 'MOUNTAIN_RACE_LIFECYCLE_GUARD_V11' index.html
+          grep -Fq 'function mountainRaceSharedLifecycleRegression(current,incoming)' index.html
+          grep -Fq 'incomingRank<currentRank&&incomingRevision<=currentRevision' index.html
+          grep -Fq 'const mountainRaceLifecycleRegression=mountainRaceSharedLifecycleRegression(current,game);' index.html
+          grep -Fq 'window.__mountainRaceSharedRejectedSnapshots=Number(window.__mountainRaceSharedRejectedSnapshots||0)+1;' index.html
+          grep -Fq 'mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=11' index.html
 
           test -s assets/safe-cracker/safe-cracker.js
           test -s assets/safe-cracker/safe-cracker.css
@@ -78,26 +82,26 @@ jobs:
           test -s assets/roulette/turn-fire.js
           test -s assets/roulette/audio-bindings.js
 
-      - name: Verify live Netlify Terminal Poll V10 deployment
+      - name: Verify live Netlify Lifecycle Guard V11 deployment
         if: github.event_name == 'pull_request'
         shell: bash
         run: |
           set -euo pipefail
           url='https://deploy-preview-20--famous-piroshki-b621da.netlify.app/'
           for attempt in $(seq 1 48); do
-            page="$(curl -fsSL --max-time 20 "${url}?summit_terminal_poll_v10=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            runtime="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=10&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            if grep -Fq 'MOUNTAIN_RACE_TERMINAL_POLL_V10' <<<"$page" && \
-               grep -Fq 'mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=10' <<<"$page" && \
-               grep -Fq "window.__mountainRacePauseCompletedPolling(activeGame))return;" <<<"$page" && \
-               grep -Fq 'window.__mountainRacePauseCompletedPolling(duelLastActiveGame || null)) return;' <<<"$page" && \
+            page="$(curl -fsSL --max-time 20 "${url}?summit_lifecycle_guard_v11=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            runtime="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=11&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            if grep -Fq 'MOUNTAIN_RACE_LIFECYCLE_GUARD_V11' <<<"$page" && \
+               grep -Fq 'mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=11' <<<"$page" && \
+               grep -Fq 'function mountainRaceSharedLifecycleRegression(current,incoming)' <<<"$page" && \
+               grep -Fq 'incomingRank<currentRank&&incomingRevision<=currentRevision' <<<"$page" && \
                grep -Fq 'MOUNTAIN_RACE_INPUT_REBASE_V8' <<<"$runtime" && \
                grep -Fq 'function authoritativeSlip(' <<<"$runtime"; then
-              echo 'Verified live Summit Sprint Terminal Poll V10 deployment.'
+              echo 'Verified live Summit Sprint Lifecycle Guard V11 deployment.'
               exit 0
             fi
-            echo "Waiting for Netlify Terminal Poll V10 deployment (${attempt}/48)..."
+            echo "Waiting for Netlify Lifecycle Guard V11 deployment (${attempt}/48)..."
             sleep 10
           done
-          echo 'Netlify did not serve Summit Sprint Terminal Poll V10.' >&2
+          echo 'Netlify did not serve Summit Sprint Lifecycle Guard V11.' >&2
           exit 1
