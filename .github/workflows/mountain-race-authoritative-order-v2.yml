@@ -1,4 +1,4 @@
-name: Summit Sprint Lifecycle Guard V11
+name: Summit Sprint Visual Foundation V13
 
 on:
   pull_request:
@@ -9,14 +9,14 @@ on:
       - mountain-race-development
 
 concurrency:
-  group: summit-sprint-lifecycle-guard-v11-${{ github.ref }}
+  group: summit-sprint-visual-foundation-v13-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
-  validate-lifecycle-guard:
+  validate-visual-foundation:
     runs-on: ubuntu-latest
     timeout-minutes: 14
     steps:
@@ -34,7 +34,7 @@ jobs:
       - name: Build exact Netlify output
         run: npm run build
 
-      - name: Verify lifecycle ordering and prior synchronization fixes
+      - name: Verify visual foundation and authoritative protections
         shell: bash
         run: |
           set -euo pipefail
@@ -42,39 +42,43 @@ jobs:
           node --check scripts/patch-mountain-race-fast-ack-v9.mjs
           node --check scripts/patch-mountain-race-terminal-poll-v10.mjs
           node --check scripts/patch-mountain-race-lifecycle-guard-v11.mjs
-          node --check scripts/validate-mountain-race-fast-ack-v9.mjs
-          node --check scripts/validate-mountain-race-terminal-poll-v10.mjs
-          node --check scripts/validate-mountain-race-lifecycle-guard-v11.mjs
+          node --check scripts/patch-mountain-race-visual-foundation-v13.mjs
+          node --check scripts/validate-mountain-race-visual-foundation-v13.mjs
           node --check assets/mountain-race/mountain-race-multiplayer.js
           node --check netlify/functions/_data.js
           node --check netlify/functions/mountain-race/integration.js
           node --check netlify/functions/duel-action.js
+
           node scripts/validate-mountain-race-input-rebase-v8.mjs
           node scripts/validate-mountain-race-fast-ack-v9.mjs
           node scripts/validate-mountain-race-terminal-poll-v10.mjs
           node scripts/validate-mountain-race-lifecycle-guard-v11.mjs
+          node scripts/validate-mountain-race-visual-foundation-v13.mjs
           node scripts/validate-mountain-race-state-sync.mjs
           node scripts/validate-mountain-race-start-stability.mjs
           node scripts/validate-mountain-race-gameplay-visibility.mjs
           node scripts/validate-mountain-race-load-performance.mjs
 
+          grep -Fq 'MOUNTAIN_RACE_VISUAL_FOUNDATION_V13' index.html
+          grep -Fq 'MOUNTAIN_RACE_VISUAL_FOUNDATION_V13' assets/mountain-race/mountain-race.css
+          grep -Fq 'MOUNTAIN_RACE_VISUAL_FOUNDATION_V13' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'class="mr-world-layer"' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'class="mr-world-moon"' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'class="mr-stage-ridge"' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'class="mr-route-rope"' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq '.mr-world-range-far' assets/mountain-race/mountain-race.css
+          grep -Fq '.mr-world-snow-near' assets/mountain-race/mountain-race.css
+          grep -Fq '@media (prefers-reduced-motion: reduce)' assets/mountain-race/mountain-race.css
+          grep -Eq 'mountain-race\.css[^"'"']*visual=13' index.html
+          grep -Eq 'mountain-race-multiplayer\.js[^"'"']*visual=13' index.html
+
           grep -Fq 'MOUNTAIN_RACE_INPUT_REBASE_V8' assets/mountain-race/mountain-race-multiplayer.js
           grep -Fq 'function authoritativeSlip(' assets/mountain-race/mountain-race-multiplayer.js
           grep -Fq 'function rebaseInputQueueAgainstGame(' assets/mountain-race/mountain-race-multiplayer.js
-
-          grep -Fq 'MOUNTAIN_RACE_FAST_ACK_V9' netlify/functions/_data.js
-          grep -Fq 'async function mountainRaceFastSaveGame(game)' netlify/functions/_data.js
-          grep -Fq 'saveGame: mountainRaceFastSaveGame' netlify/functions/_data.js
-          grep -Fq 'result?.skipBalanceLookup' netlify/functions/duel-action.js
-          grep -Fq 'DUEL_SITE_USER_CACHE' netlify/functions/duel-action.js
-
           grep -Fq 'MOUNTAIN_RACE_TERMINAL_POLL_V10' index.html
           grep -Fq 'MOUNTAIN_RACE_LIFECYCLE_GUARD_V11' index.html
-          grep -Fq 'function mountainRaceSharedLifecycleRegression(current,incoming)' index.html
-          grep -Fq 'incomingRank<currentRank&&incomingRevision<=currentRevision' index.html
-          grep -Fq 'const mountainRaceLifecycleRegression=mountainRaceSharedLifecycleRegression(current,game);' index.html
-          grep -Fq 'window.__mountainRaceSharedRejectedSnapshots=Number(window.__mountainRaceSharedRejectedSnapshots||0)+1;' index.html
-          grep -Fq 'mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=11' index.html
+          grep -Fq 'MOUNTAIN_RACE_FAST_ACK_V9' netlify/functions/_data.js
+          grep -Fq 'result?.skipBalanceLookup' netlify/functions/duel-action.js
 
           test -s assets/safe-cracker/safe-cracker.js
           test -s assets/safe-cracker/safe-cracker.css
@@ -82,26 +86,31 @@ jobs:
           test -s assets/roulette/turn-fire.js
           test -s assets/roulette/audio-bindings.js
 
-      - name: Verify live Netlify Lifecycle Guard V11 deployment
+      - name: Verify live Netlify Visual Foundation V13 deployment
         if: github.event_name == 'pull_request'
         shell: bash
         run: |
           set -euo pipefail
           url='https://deploy-preview-20--famous-piroshki-b621da.netlify.app/'
           for attempt in $(seq 1 48); do
-            page="$(curl -fsSL --max-time 20 "${url}?summit_lifecycle_guard_v11=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            runtime="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=11&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            if grep -Fq 'MOUNTAIN_RACE_LIFECYCLE_GUARD_V11' <<<"$page" && \
-               grep -Fq 'mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=11' <<<"$page" && \
-               grep -Fq 'function mountainRaceSharedLifecycleRegression(current,incoming)' <<<"$page" && \
-               grep -Fq 'incomingRank<currentRank&&incomingRevision<=currentRevision' <<<"$page" && \
+            page="$(curl -fsSL --max-time 20 "${url}?summit_visual_foundation_v13=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            runtime="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race-multiplayer.js?visual=13&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            styles="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race.css?visual=13&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            if grep -Fq 'MOUNTAIN_RACE_VISUAL_FOUNDATION_V13' <<<"$page" && \
+               grep -Fq 'visual=13' <<<"$page" && \
+               grep -Fq 'MOUNTAIN_RACE_VISUAL_FOUNDATION_V13' <<<"$runtime" && \
+               grep -Fq 'class="mr-world-layer"' <<<"$runtime" && \
+               grep -Fq 'class="mr-stage-ridge"' <<<"$runtime" && \
+               grep -Fq 'class="mr-route-rope"' <<<"$runtime" && \
                grep -Fq 'MOUNTAIN_RACE_INPUT_REBASE_V8' <<<"$runtime" && \
-               grep -Fq 'function authoritativeSlip(' <<<"$runtime"; then
-              echo 'Verified live Summit Sprint Lifecycle Guard V11 deployment.'
+               grep -Fq 'MOUNTAIN_RACE_VISUAL_FOUNDATION_V13' <<<"$styles" && \
+               grep -Fq '.mr-world-range-far' <<<"$styles" && \
+               grep -Fq '.mr-world-snow-near' <<<"$styles"; then
+              echo 'Verified live Summit Sprint Visual Foundation V13 deployment.'
               exit 0
             fi
-            echo "Waiting for Netlify Lifecycle Guard V11 deployment (${attempt}/48)..."
+            echo "Waiting for Netlify Visual Foundation V13 deployment (${attempt}/48)..."
             sleep 10
           done
-          echo 'Netlify did not serve Summit Sprint Lifecycle Guard V11.' >&2
+          echo 'Netlify did not serve Summit Sprint Visual Foundation V13.' >&2
           exit 1
