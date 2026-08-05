@@ -13,6 +13,13 @@ function replaceRequired(source, before, after, label) {
   return source.replace(before, after);
 }
 
+function insertBeforeRequired(source, signature, insertion, label) {
+  if (source.includes(insertion)) return source;
+  const at = source.indexOf(signature);
+  if (at < 0) throw new Error(`Summit Sprint startup/completion patch could not find ${label}.`);
+  return source.slice(0, at) + insertion + source.slice(at);
+}
+
 function replaceFunction(source, signature, replacement, label) {
   const start = source.indexOf(signature);
   if (start < 0) throw new Error(`Summit Sprint startup/completion patch could not find ${label}.`);
@@ -86,7 +93,7 @@ async function generatedDuelSafeCrackerReadyRequest(gameId) {
   const id = String(gameId || '');
   const activeMode = String(duelLastActiveGame?.mode || '');
   const isMountainRace = activeMode === 'mountainrace' || id.startsWith('duel-mountainrace-');
-  const isStableReadyMode = ['safecracker', 'mountainrace'].includes(activeMode) || isMountainRace;
+  const isStableReadyMode = ["safecracker", "mountainrace"].includes(String(duelLastActiveGame?.mode || "")) || isMountainRace;
   const attempts = isStableReadyMode ? 4 : 1;
   let lastError = null;
   window.__safeCrackerReadyRetryInFlight = isStableReadyMode ? 1 : 0;
@@ -203,17 +210,17 @@ if (!html.includes(htmlMarker)) {
     'active shared Ready helper'
   );
 
-  const pauseFunction = `${indentFunction(generatedMountainRacePauseCompletedPolling, 'mountainRacePauseCompletedPolling', 4)}\n    window.__mountainRacePauseCompletedPolling = mountainRacePauseCompletedPolling;\n\n`;
-  html = replaceRequired(
+  const pauseFunction = `${indentFunction(generatedMountainRacePauseCompletedPolling, 'mountainRacePauseCompletedPolling', 4)}\n    window.__mountainRacePauseCompletedPolling = mountainRacePauseCompletedPolling;\n\n    `;
+  html = insertBeforeRequired(
     html,
-    '    function duelSetPollRate(game) {',
-    `${pauseFunction}    function duelSetPollRate(game) {`,
+    'function duelSetPollRate(game)',
+    pauseFunction,
     'completed polling helper'
   );
   html = replaceRequired(
     html,
-    `      let completedPollRate = 2000;`,
-    `      if (mountainRacePauseCompletedPolling(game)) {
+    'let completedPollRate = 2000;',
+    `if (mountainRacePauseCompletedPolling(game)) {
         duelSetSharedCountdown(game);
         return;
       }
