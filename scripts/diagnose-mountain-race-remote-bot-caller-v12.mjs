@@ -33,8 +33,41 @@ function logCalls(patterns, label) {
   return found;
 }
 
+function functionSource(name) {
+  const signature = `function ${name}(`;
+  const start = html.indexOf(signature);
+  if (start < 0) return '';
+  const open = html.indexOf('{', start);
+  let depth = 0;
+  let quote = '';
+  let escaped = false;
+  for (let index = open; index < html.length; index += 1) {
+    const character = html[index];
+    if (quote) {
+      if (escaped) escaped = false;
+      else if (character === '\\') escaped = true;
+      else if (character === quote) quote = '';
+      continue;
+    }
+    if (character === "'" || character === '"' || character === '`') {
+      quote = character;
+      continue;
+    }
+    if (character === '{') depth += 1;
+    if (character === '}') {
+      depth -= 1;
+      if (depth === 0) return html.slice(start, index + 1);
+    }
+  }
+  return '';
+}
+
 const adoptionCalls = logCalls(['rnbAdoptGame('], 'ADOPT_CALLER');
 const actCalls = logCalls(["duelRequest('act'", 'duelRequest("act"'], 'ACT_CALLER');
 const getCalls = logCalls(["duelRequest('get'", 'duelRequest("get"'], 'GET_CALLER');
+for (const name of ['rnbFetchAuthoritativeGame', 'rnbScheduleRematch']) {
+  const source = functionSource(name);
+  console.log(`MOUNTAIN_RACE_V12_FUNCTION_${name}: ${source.replace(/\s+/g, ' ').slice(0, 5000)}`);
+}
 console.log(`MOUNTAIN_RACE_V12_COUNTS: adopt=${adoptionCalls} act=${actCalls} get=${getCalls}`);
 if (!adoptionCalls || !actCalls || !getCalls) throw new Error('Generated Remote Bot caller diagnostics were incomplete.');
