@@ -74,11 +74,16 @@ gameplaySource = gameplaySource
     `assert(client.includes('runtime.inputQueueBlocked = !item.correct;'), 'wrong input does not immediately block the queue for slip confirmation');`
   )
   .replace(
+    `assert(client.includes('expectedPromptIndex: fromIndex'), 'input request does not identify the visible prompt index');`,
+    `assert(client.includes('expectedPromptIndex: item.fromIndex'), 'queued input request does not identify each visible prompt index');`
+  )
+  .replace(
     `assert(client.includes('runtime.pendingInput = null;'), 'authoritative reconciliation does not clear pending input');`,
     `assert(client.includes('syncPendingCompatibility();'), 'authoritative queue reconciliation does not synchronize pending compatibility state');`
   );
-if (!gameplaySource.includes("runtime.inputQueue.push(item);")) throw new Error('Summit Sprint visibility validator does not require immediate queue feedback.');
+if (!gameplaySource.includes('runtime.inputQueue.push(item);')) throw new Error('Summit Sprint visibility validator does not require immediate queue feedback.');
 if (!gameplaySource.includes('runtime.inputQueueBlocked = !item.correct;')) throw new Error('Summit Sprint visibility validator does not require immediate wrong-input feedback.');
+if (!gameplaySource.includes('expectedPromptIndex: item.fromIndex')) throw new Error('Summit Sprint visibility validator does not require exact queued prompt indices.');
 await writeFile(gameplayValidatorUrl, gameplaySource);
 
-console.log('Updated Summit Sprint validation for immediate local queues, one-save authoritative batches, visible queued feedback, and preserved server single-input compatibility.');
+console.log('Updated Summit Sprint validation for immediate local queues, one-save authoritative batches, exact queued prompt indices, visible feedback, and preserved server single-input compatibility.');
