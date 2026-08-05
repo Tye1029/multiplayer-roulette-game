@@ -153,6 +153,20 @@ html = html
   .replace(/Remote Network Bot Logs?/gi, 'Network Bot Log')
   .replace(/Remote Bot Logs?/gi, 'Network Bot Log');
 
+const missingAssets = [];
+if (!html.includes('mountain-race.css?v=3&multiplayer=1')) {
+  missingAssets.push('<link id="mountainRaceStyles" rel="stylesheet" href="/assets/mountain-race/mountain-race.css?v=3&multiplayer=1">');
+}
+if (!html.includes('mountain-race-multiplayer.js?v=1')) {
+  missingAssets.push('<script id="mountainRaceMultiplayerRuntime" src="/assets/mountain-race/mountain-race-multiplayer.js?v=1" defer></script>');
+}
+if (missingAssets.length) {
+  const assetBlock = `<!-- MOUNTAIN_RACE_MULTIPLAYER_ASSET_GUARD_V2 -->\n${missingAssets.join('\n')}`;
+  html = html.includes('</head>')
+    ? html.replace('</head>', `${assetBlock}\n</head>`)
+    : `${assetBlock}\n${html}`;
+}
+
 if (!html.includes(htmlMarker)) {
   const networkBotLogBootstrap = `${htmlMarker}
 <script id="mountainRaceNetworkBotLogBootstrap">
@@ -192,8 +206,10 @@ if (!html.includes(htmlMarker)) {
     : `${html}\n${networkBotLogBootstrap}\n`;
 }
 
+assert(html.includes('mountain-race-multiplayer.js?v=1'), 'Summit Sprint multiplayer runtime asset is missing');
+assert(html.includes('mountain-race.css?v=3&multiplayer=1'), 'Summit Sprint multiplayer stylesheet is missing');
 assert(html.includes(htmlMarker), 'Network Bot Log bootstrap marker is missing');
 assert(html.includes("element.textContent = 'Network Bot Log'"), 'second debug menu is not identified as the Network Bot Log');
 await writeFile(indexUrl, html);
 
-console.log('Prevented instant Summit Sprint completion: each Network Bot move is server-time gated, stale catch-up timestamps are removed, premature winner settlement is blocked, and the second debug menu is labeled Network Bot Log with authoritative bot diagnostics.');
+console.log('Prevented instant Summit Sprint completion: each Network Bot move is server-time gated, stale catch-up timestamps are removed, premature winner settlement is blocked, required multiplayer assets are retained, and the second debug menu is labeled Network Bot Log with authoritative bot diagnostics.');
