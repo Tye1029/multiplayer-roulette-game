@@ -46,7 +46,7 @@ jobs:
           grep -Fq 'const stale = compareSnapshotVersions(accepted, incoming) < 0;' assets/mountain-race/mountain-race-multiplayer.js
           grep -Fq 'MOUNTAIN_RACE_AUTHORITATIVE_ORDER_V2' index.html
           grep -Fq 'function mountainRaceCompareVersions(accepted, incoming)' index.html
-          grep -Fq "game.mode!='mountainrace'&&rnbCompareSnapshots(game,current)<0" index.html
+          grep -Fq "game.mode!=='mountainrace'&&rnbCompareSnapshots(game,current)<0" index.html
           grep -Fq "if(g.mode==='mountainrace')" index.html
           grep -Fq 'networkBotLog:st.networkBotLog||null' index.html
           grep -Fq 'mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=2' index.html
@@ -62,7 +62,7 @@ jobs:
             runtime="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=2&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             if grep -Fq 'MOUNTAIN_RACE_AUTHORITATIVE_ORDER_V2' <<<"$page" && \
                grep -Fq 'function mountainRaceCompareVersions(accepted, incoming)' <<<"$page" && \
-               grep -Fq "game.mode!='mountainrace'&&rnbCompareSnapshots(game,current)<0" <<<"$page" && \
+               grep -Fq "game.mode!=='mountainrace'&&rnbCompareSnapshots(game,current)<0" <<<"$page" && \
                grep -Fq "if(g.mode==='mountainrace')" <<<"$page" && \
                grep -Fq 'MOUNTAIN_RACE_AUTHORITATIVE_ORDER_V2' <<<"$runtime" && \
                grep -Fq 'function compareSnapshotVersions(accepted, incoming)' <<<"$runtime" && \
