@@ -1,9 +1,11 @@
 import { readFile, writeFile } from 'node:fs/promises';
 
-// Remote Bot attachment and Network Bot pacing are executed explicitly and
-// sequentially by the package build before this file. Do not side-effect import
-// file-writing patch modules here: sibling top-level-await imports can overlap
-// reads and writes to index.html and make the generated page nondeterministic.
+// Remote Bot attachment is executed explicitly by the package build before
+// this file. The Network Bot patch is awaited here before this module reads
+// index.html. Avoid sibling static side-effect imports: top-level-await file
+// writers can overlap and nondeterministically overwrite the generated page.
+await import('./patch-mountain-race-bot-pacing-and-network-log.mjs');
+
 const indexUrl = new URL('../index.html', import.meta.url);
 const start = '<!-- MOUNTAIN_RACE_MODE_OPTION_START -->';
 const end = '<!-- MOUNTAIN_RACE_MODE_OPTION_END -->';
