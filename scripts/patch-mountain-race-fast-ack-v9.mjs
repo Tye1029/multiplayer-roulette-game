@@ -5,6 +5,7 @@ const dataUrl = new URL('netlify/functions/_data.js', root);
 const actionUrl = new URL('netlify/functions/duel-action.js', root);
 const indexUrl = new URL('index.html', root);
 const stateValidatorUrl = new URL('scripts/validate-mountain-race-state-sync.mjs', root);
+const rebaseValidatorUrl = new URL('scripts/validate-mountain-race-input-rebase-v8.mjs', root);
 const marker = '// MOUNTAIN_RACE_FAST_ACK_V9';
 const htmlMarker = '<!-- MOUNTAIN_RACE_FAST_ACK_V9 -->';
 
@@ -98,10 +99,12 @@ if (!html.includes(htmlMarker)) throw new Error('Summit Sprint fast-ack deployme
 if (!html.includes('mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=9')) throw new Error('Summit Sprint fast-ack cache boundary is missing.');
 await writeFile(indexUrl, html);
 
-let stateValidator = await readFile(stateValidatorUrl, 'utf8');
-stateValidator = stateValidator
-  .replaceAll('mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=8', 'mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=9')
-  .replaceAll('&sync=9&sync=9', '&sync=9');
-await writeFile(stateValidatorUrl, stateValidator);
+for (const validatorUrl of [stateValidatorUrl, rebaseValidatorUrl]) {
+  let source = await readFile(validatorUrl, 'utf8');
+  source = source
+    .replaceAll('mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=8', 'mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=9')
+    .replaceAll('&sync=9&sync=9', '&sync=9');
+  await writeFile(validatorUrl, source);
+}
 
 console.log('Added Summit Sprint Fast Ack V9: active batches write only the game blob, warm requests reuse the signed user mapping, and playing responses skip the unrelated balance read.');
