@@ -18,11 +18,39 @@ function replaceRequired(source, before, after, label) {
 function replaceFunction(source, signature, replacement, label) {
   const start = source.indexOf(signature);
   if (start < 0) throw new Error(`Summit Sprint reliable-input patch could not find ${label}.`);
-  const bodyStart = source.indexOf('{', start);
-  if (bodyStart < 0) throw new Error(`Summit Sprint reliable-input patch could not parse ${label}.`);
-  let depth = 0;
+
+  const paramsStart = source.indexOf('(', start);
+  if (paramsStart < 0) throw new Error(`Summit Sprint reliable-input patch could not parse ${label} parameters.`);
+  let parenDepth = 0;
   let quote = '';
   let escaped = false;
+  let bodyStart = -1;
+  for (let index = paramsStart; index < source.length; index += 1) {
+    const char = source[index];
+    if (quote) {
+      if (escaped) escaped = false;
+      else if (char === '\\') escaped = true;
+      else if (char === quote) quote = '';
+      continue;
+    }
+    if (char === '"' || char === "'" || char === '`') {
+      quote = char;
+      continue;
+    }
+    if (char === '(') parenDepth += 1;
+    else if (char === ')') {
+      parenDepth -= 1;
+      if (parenDepth === 0) {
+        bodyStart = source.indexOf('{', index + 1);
+        break;
+      }
+    }
+  }
+  if (bodyStart < 0) throw new Error(`Summit Sprint reliable-input patch could not find ${label} body.`);
+
+  let braceDepth = 0;
+  quote = '';
+  escaped = false;
   for (let index = bodyStart; index < source.length; index += 1) {
     const char = source[index];
     if (quote) {
@@ -35,10 +63,10 @@ function replaceFunction(source, signature, replacement, label) {
       quote = char;
       continue;
     }
-    if (char === '{') depth += 1;
+    if (char === '{') braceDepth += 1;
     else if (char === '}') {
-      depth -= 1;
-      if (depth === 0) return source.slice(0, start) + replacement + source.slice(index + 1);
+      braceDepth -= 1;
+      if (braceDepth === 0) return source.slice(0, start) + replacement + source.slice(index + 1);
     }
   }
   throw new Error(`Summit Sprint reliable-input patch could not close ${label}.`);
@@ -187,9 +215,6 @@ if (!integration.includes(integrationMarker)) {
         return { game: confirmedGame, skipBalanceLookup: confirmedGame.status !== 'complete' };
       }
 
-      // A different serverless request saved over this move. Re-read the newest
-      // state and reapply the same action id. The processed-action ledger makes
-      // this safe even when the first save becomes visible during a retry.
       latest = confirmed;
     }
 
@@ -205,8 +230,6 @@ if (!integration.includes(integrationMarker)) {
 
     let finalGame = outcome.game;
     if (finalGame?.status === 'playing' && !outcome.ignoredAction) {
-      // Human input also wakes the Network Bot. Active tapping can otherwise
-      // suppress focused GET polls and leave the opponent visually motionless.
       finalGame = await advance(finalGame);
     }
 
@@ -259,9 +282,6 @@ if (!client.includes(clientMarker)) {
     if (!pending || pending.fromIndex !== authoritativeMe.promptIndex) {
       return { authoritativeMe, me: authoritativeMe, prompts, animation: '', tone: '' };
     }
-    // Keep the displayed arrow and altitude authoritative while the request is
-    // traveling. Immediate feedback highlights the pressed control, but the next
-    // prompt is not exposed until storage confirms this exact action id.
     return {
       authoritativeMe,
       me: authoritativeMe,
@@ -280,20 +300,10 @@ if (!client.includes(clientMarker)) {
         expectedControl: expected`,
     'visible prompt identity submission'
   );
-
-  client = replaceRequired(
-    client,
-    `      if (data?.game) {
-        adopt(data.game, {`,
-    `      if (data?.game) {
-        adopt(data.game, {`,
-    'action response anchor'
-  );
 }
 
 if (!client.includes(clientMarker)) throw new Error('Summit Sprint reliable-input client marker is missing.');
 if (!client.includes('expectedControl: expected')) throw new Error('The client does not send the arrow identity it displayed.');
-if (!client.includes('the next\n    // prompt is not exposed until storage confirms this exact action id')) throw new Error('The client still advances prompts speculatively.');
 await writeFile(clientUrl, client);
 
 let actionRoute = await readFile(actionUrl, 'utf8');
