@@ -17,7 +17,8 @@ assert(client.includes('// MOUNTAIN_RACE_STARTUP_COMPLETION_V7'), 'client startu
 assert(client.includes("runtime.game?.status === 'complete' || publicState.completedAt"), 'completed client clock does not freeze at zero');
 assert(client.includes('window.__mountainRacePauseCompletedPolling?.(mergedGame)'), 'completed Remote Bot polling hook is missing');
 assert(html.includes('<!-- MOUNTAIN_RACE_STARTUP_COMPLETION_V7 -->'), 'startup/completion deployment marker is missing');
-assert(html.includes("const probe = await duelRequest('get', { gameId: id }"), 'Ready does not wait for a stable two-climber snapshot');
+assert(html.includes("const probe = await duelRequest('get', { gameId: id, knownRevision: '' }"), 'Ready does not wait for a stable two-climber snapshot');
+assert(html.includes('async function duelSafeCrackerReadyRequest(gameId)'), 'active shared Ready helper is missing');
 assert(html.includes('function mountainRacePauseCompletedPolling(game)'), 'completed Remote Bot focused-poll gate is missing');
 assert(html.includes("String(game?.mode || '') !== 'mountainrace'"), 'completed poll gate is not isolated to Summit Sprint');
 assert(html.includes("!game?.remoteNetworkTest"), 'human rematch polling is not preserved');`;
@@ -26,23 +27,24 @@ if (!stateSource.includes(v7Assertions)) {
   if (!stateSource.includes(previousConsole)) throw new Error('Summit Sprint V7 validator could not find the V6 completion assertion.');
   stateSource = stateSource.replace(
     previousConsole,
-    `${v7Assertions}\n\nconsole.log('Summit Sprint startup/completion validation passed: Ready probes the stable two-climber game before acting, completed clocks are zero, completed Remote Bot focused polling stops, human rematch polling remains available, continuous input and opponent synchronization remain intact.');`
+    `${v7Assertions}\n\nconsole.log('Summit Sprint startup/completion validation passed: the active shared Ready helper probes the stable two-climber game before acting, completed clocks are zero, completed Remote Bot focused polling stops, human rematch polling remains available, continuous input and opponent synchronization remain intact.');`
   );
 }
 
 if (!stateSource.includes('secondsLeft: complete || state.completedAt')) throw new Error('Summit Sprint V7 validator does not require a zero completed clock.');
-if (!stateSource.includes("const probe = await duelRequest('get', { gameId: id }")) throw new Error('Summit Sprint V7 validator does not require the stable Ready probe.');
+if (!stateSource.includes("const probe = await duelRequest('get', { gameId: id, knownRevision: '' }")) throw new Error('Summit Sprint V7 validator does not require the stable Ready probe.');
 if (!stateSource.includes('function mountainRacePauseCompletedPolling(game)')) throw new Error('Summit Sprint V7 validator does not require completed Remote Bot poll suspension.');
 if (!stateSource.includes('mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=7')) throw new Error('Summit Sprint V7 validator does not require the new cache boundary.');
 await writeFile(stateSyncValidatorUrl, stateSource);
 
 let startSource = await readFile(startValidatorUrl, 'utf8');
-const startAnchor = "assert(html.includes('async function duelReadyRetry(gameId)'), 'Ready retry helper is missing');";
+const startAnchor = `assert(html.includes('["safecracker", "mountainrace"].includes(String(duelLastActiveGame?.mode || ""))'), 'one-tap Ready retry does not include Summit Sprint');`;
 const startAdditions = `${startAnchor}
-assert(html.includes("const probe = await duelRequest('get', { gameId: id }"), 'Summit Sprint Ready can still send transient act requests before the game is strongly visible');
-assert(html.includes("stable?.creator?.userId && stable?.joiner?.userId"), 'Summit Sprint Ready does not verify both climbers before acting');`;
+assert(html.includes('async function duelSafeCrackerReadyRequest(gameId)'), 'active shared Ready retry helper is missing');
+assert(html.includes("const probe = await duelRequest('get', { gameId: id, knownRevision: '' }"), 'Summit Sprint Ready can still send transient act requests before the game is strongly visible');
+assert(html.includes('stable?.creator?.userId && stable?.joiner?.userId'), 'Summit Sprint Ready does not verify both climbers before acting');`;
 if (!startSource.includes(startAdditions)) {
-  if (!startSource.includes(startAnchor)) throw new Error('Summit Sprint V7 start validator could not find its Ready helper assertion.');
+  if (!startSource.includes(startAnchor)) throw new Error('Summit Sprint V7 start validator could not find its stable-mode assertion.');
   startSource = startSource.replace(startAnchor, startAdditions);
 }
 await writeFile(startValidatorUrl, startSource);
@@ -58,4 +60,4 @@ if (!loadSource.includes(loadAdditions)) {
 }
 await writeFile(loadValidatorUrl, loadSource);
 
-console.log('Updated Summit Sprint validators for stable Ready probing, zero completed clocks, and completed Remote Bot polling suspension.');
+console.log('Updated Summit Sprint validators for the active shared Ready probe, zero completed clocks, and completed Remote Bot polling suspension.');
