@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - mountain-race-development
+  pull_request:
+    branches:
+      - safe-cracker-development
 
 permissions:
   contents: read
