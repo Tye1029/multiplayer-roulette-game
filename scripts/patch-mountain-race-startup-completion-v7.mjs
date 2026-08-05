@@ -82,79 +82,56 @@ function generatedSecondsLeft() {
   return Number.isFinite(endAt) ? Math.max(0, Math.ceil((endAt - serverNowMs()) / 1000)) : 30;
 }
 
-async function generatedDuelReadyRetry(gameId) {
+async function generatedDuelSafeCrackerReadyRequest(gameId) {
   const id = String(gameId || '');
-  if (!id) return;
-  const mountainRaceReady = id.startsWith('duel-mountainrace-');
-  if (duelReadyRequestInFlight.has(id) || duelReadyConfirmed.has(id)) return;
-  duelReadyRequestInFlight.add(id);
-  duelReadyBusyUntilByGame.set(id, Date.now() + 9000);
-  duelResetReadyUi(duelLastActiveGame);
-  if (duelFocusedPollController) {
-    duelFocusedPollController.abort();
-    duelFocusedPollController = null;
-  }
-
-  let attempt = 0;
+  const activeMode = String(duelLastActiveGame?.mode || '');
+  const isMountainRace = activeMode === 'mountainrace' || id.startsWith('duel-mountainrace-');
+  const isStableReadyMode = ['safecracker', 'mountainrace'].includes(activeMode) || isMountainRace;
+  const attempts = isStableReadyMode ? 4 : 1;
   let lastError = null;
+  window.__safeCrackerReadyRetryInFlight = isStableReadyMode ? 1 : 0;
   try {
-    while (attempt < 4) {
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
       try {
-        if (mountainRaceReady) {
+        if (isMountainRace) {
           let stable = duelLastActiveGame && String(duelLastActiveGame.gameId || '') === id
             ? duelLastActiveGame
             : null;
-          const stablePlayers = Boolean(stable?.creator?.userId && stable?.joiner?.userId);
-          if (!stable || stable.mode !== 'mountainrace' || !stablePlayers || !['waiting', 'ready', 'countdown', 'playing', 'complete'].includes(String(stable.status || ''))) {
-            const probe = await duelRequest('get', { gameId: id }, {
+          let stablePlayers = Boolean(stable?.creator?.userId && stable?.joiner?.userId);
+          if (!stable || stable.mode !== 'mountainrace' || !stablePlayers) {
+            const probe = await duelRequest('get', { gameId: id, knownRevision: '' }, {
               timeoutMs: 6500,
               errorMessage: 'Summit Sprint is still confirming both climbers.'
             });
             stable = probe?.game || null;
+            stablePlayers = Boolean(stable?.creator?.userId && stable?.joiner?.userId);
           }
 
-          if (stable?.gameId === id && stable.mode === 'mountainrace') {
-            duelLastActiveGame = stable;
-            duelRenderActive(stable, true);
-            duelSetPollRate(stable);
-            if (['countdown', 'playing', 'complete'].includes(String(stable.status || ''))) {
-              duelReadyConfirmed.add(id);
-              return;
-            }
+          if (stable?.gameId === id && stable.mode === 'mountainrace' && ['countdown', 'playing', 'complete'].includes(String(stable.status || ''))) {
+            return { game: stable };
           }
-
-          if (!stable?.creator?.userId || !stable?.joiner?.userId || !['waiting', 'ready'].includes(String(stable.status || ''))) {
-            attempt += 1;
-            if (attempt < 4) await new Promise(resolve => setTimeout(resolve, 260 + attempt * 220));
+          if (!stablePlayers || !['waiting', 'ready'].includes(String(stable?.status || ''))) {
+            if (attempt + 1 >= attempts) throw new Error('Summit Sprint could not confirm both climbers before Ready.');
+            await new Promise(resolve => setTimeout(resolve, 260 + attempt * 220));
             continue;
           }
         }
 
-        const data = await duelRequest('act', { gameId: id, choice: 'ready' }, {
-          timeoutMs: 9000,
-          errorMessage: 'Unable to confirm Ready.'
-        });
-        duelReadyConfirmed.add(id);
-        if (data?.game) {
-          duelLastActiveGame = data.game;
-          duelRenderActive(data.game, true);
-          duelSetPollRate(data.game);
-        }
-        return;
+        return await duelRequest('act', { gameId: id, choice: 'ready' });
       } catch (error) {
         lastError = error;
-        attempt += 1;
-        if (attempt >= 4) throw error;
-        await new Promise(resolve => setTimeout(resolve, mountainRaceReady ? 360 + attempt * 260 : 600 + attempt * 450));
+        if (!isStableReadyMode || attempt + 1 >= attempts) throw error;
+        try {
+          const check = await duelRequest('get', { gameId: id, knownRevision: '' });
+          if (check?.game && ['countdown', 'playing', 'complete'].includes(String(check.game.status || ''))) return check;
+        } catch (_) {}
+        await new Promise(resolve => setTimeout(resolve, isMountainRace ? 320 + attempt * 240 : 260 + attempt * 260));
       }
     }
-    if (lastError) throw lastError;
   } finally {
-    duelReadyRequestInFlight.delete(id);
-    duelReadyBusyUntilByGame.delete(id);
-    duelResetReadyUi(duelLastActiveGame);
-    duelSetPollRate(duelLastActiveGame || null);
+    window.__safeCrackerReadyRetryInFlight = 0;
   }
+  throw lastError || new Error('Unable to mark ready.');
 }
 
 function generatedMountainRacePauseCompletedPolling(game) {
@@ -221,9 +198,9 @@ let html = await readFile(indexUrl, 'utf8');
 if (!html.includes(htmlMarker)) {
   html = replaceFunction(
     html,
-    'async function duelReadyRetry(',
-    indentFunction(generatedDuelReadyRetry, 'duelReadyRetry', 4),
-    'stable Ready retry'
+    'async function duelSafeCrackerReadyRequest(',
+    indentFunction(generatedDuelSafeCrackerReadyRequest, 'duelSafeCrackerReadyRequest', 4),
+    'active shared Ready helper'
   );
 
   const pauseFunction = `${indentFunction(generatedMountainRacePauseCompletedPolling, 'mountainRacePauseCompletedPolling', 4)}\n    window.__mountainRacePauseCompletedPolling = mountainRacePauseCompletedPolling;\n\n`;
@@ -252,9 +229,9 @@ html = html
   .replaceAll('&sync=7&sync=7', '&sync=7');
 
 if (!html.includes(htmlMarker)) throw new Error('Summit Sprint V7 deployment marker is missing.');
-if (!html.includes("const probe = await duelRequest('get', { gameId: id }")) throw new Error('Summit Sprint Ready still acts before a stable game probe.');
+if (!html.includes("const probe = await duelRequest('get', { gameId: id, knownRevision: '' }")) throw new Error('Summit Sprint Ready still acts before a stable game probe.');
 if (!html.includes('function mountainRacePauseCompletedPolling(game)')) throw new Error('Summit Sprint completed Remote Bot polling gate is missing.');
 if (!html.includes('mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=7')) throw new Error('Summit Sprint V7 cache boundary is missing.');
 await writeFile(indexUrl, html);
 
-console.log('Added Summit Sprint V7 startup and completion cleanup: Ready waits for a stable two-climber snapshot, completed clocks freeze at zero, and completed Remote Bot races stop focused GET polling while human rematch polling remains available.');
+console.log('Added Summit Sprint V7 startup and completion cleanup: the active shared Ready helper probes a stable two-climber snapshot, completed clocks freeze at zero, and completed Remote Bot races stop focused GET polling while Safe Cracker and human rematch behavior remain available.');
