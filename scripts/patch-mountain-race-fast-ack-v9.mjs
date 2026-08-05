@@ -76,16 +76,8 @@ const DUEL_SITE_USER_CACHE_MS = 10 * 60 * 1000;`,
   );
   action = replaceRequired(
     action,
-    '    if (result?.unchanged || result?.databaseAuthoritative) {\n      return json(headers, 200, { ok: true, siteUserId: user.id, duelSessionToken: refreshedSessionToken || undefined, ...result });\n    }',
-    `    if (result?.unchanged || result?.databaseAuthoritative || result?.skipBalanceLookup) {
-      return json(headers, 200, {
-        ok: true,
-        user: visitor,
-        siteUserId: user.id,
-        duelSessionToken: refreshedSessionToken || undefined,
-        ...result
-      });
-    }`,
+    'result?.unchanged || result?.databaseAuthoritative',
+    'result?.unchanged || result?.databaseAuthoritative || result?.skipBalanceLookup',
     'active-response balance bypass'
   );
 }
