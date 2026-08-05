@@ -1,0 +1,55 @@
+name: Summit Sprint Generated HTML Diagnostic
+
+on:
+  push:
+    branches:
+      - mountain-race-development
+
+permissions:
+  contents: read
+
+jobs:
+  capture-generated-html:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+
+      - name: Use Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run build while retaining generated files
+        shell: bash
+        run: |
+          set +e
+          npm run build
+          result=$?
+          echo "build_exit_code=${result}" >> "$GITHUB_ENV"
+          echo "Generated index bytes: $(wc -c < index.html)"
+          echo "Summit launcher count: $(grep -Fc 'data-mode=\"mountainrace\"' index.html || true)"
+          echo "Summit bot selector count: $(grep -Fc 'data-rnb-game=\"mountainrace\"' index.html || true)"
+          echo "Summit mount count: $(grep -Fc 'data-mountain-race-mount' index.html || true)"
+          exit 0
+
+      - name: Upload generated diagnostic files
+        uses: actions/upload-artifact@v4
+        with:
+          name: summit-sprint-generated-html-${{ github.sha }}
+          path: |
+            index.html
+            assets/mountain-race/mountain-race-multiplayer.js
+            assets/mountain-race/mountain-race.css
+            netlify/functions/_data.js
+            netlify/functions/duel-action.js
+          if-no-files-found: error
+          retention-days: 3
+
+      - name: Report original build result
+        run: |
+          echo "Original build exit code: ${build_exit_code}"
