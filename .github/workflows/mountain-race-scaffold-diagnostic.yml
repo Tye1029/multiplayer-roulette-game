@@ -47,6 +47,9 @@ jobs:
           node --check scripts/patch-mountain-race-gameplay-visibility.mjs
           node --check scripts/patch-mountain-race-load-performance.mjs
           node --check scripts/patch-mountain-race-mode-option.mjs
+          node --check scripts/patch-mountain-race-continuous-sync-server-v6.mjs
+          node --check scripts/patch-mountain-race-continuous-sync-client-v6.mjs
+          node --check scripts/patch-mountain-race-continuous-sync-validator-v6.mjs
           node --check scripts/validate-mountain-race-multiplayer.mjs
           node --check scripts/validate-mountain-race-remote-bot-attach.mjs
           node --check scripts/validate-mountain-race-start-stability.mjs
@@ -71,16 +74,20 @@ jobs:
           grep -Fq 'MOUNTAIN_RACE_START_STABILITY_V1' index.html
           grep -Fq 'MOUNTAIN_RACE_NETWORK_BOT_LOG_V2' index.html
           grep -Fq 'MOUNTAIN_RACE_LOAD_PERFORMANCE_V1' index.html
+          grep -Fq 'MOUNTAIN_RACE_CONTINUOUS_SYNC_V6' index.html
           grep -Fq 'mountainRaceNetworkBotLogBootstrap' index.html
           grep -Fq "element.textContent = 'Network Bot Log'" index.html
           grep -Fq 'attempts < 8' index.html
           ! grep -Fq 'new MutationObserver(renameNetworkBotLog)' index.html
           grep -Fq "if(game.mode==='mountainrace')" index.html
           grep -Fq '["safecracker", "mountainrace"].includes' index.html
-          grep -Fq 'mountain-race-multiplayer.js?v=1&gameplay=3&load=2' index.html
+          grep -Fq 'mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=6' index.html
           grep -Fq 'MOUNTAIN_RACE_LOAD_PERFORMANCE_V1' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'MOUNTAIN_RACE_CONTINUOUS_SYNC_V6' assets/mountain-race/mountain-race-multiplayer.js
           grep -Fq 'function meaningfulRenderKey(game)' assets/mountain-race/mountain-race-multiplayer.js
           grep -Fq 'sameMeaningfulState && runtime.root?.isConnected' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'function mergeMountainRaceGame(' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq "choice: 'mountainrace:batch'" assets/mountain-race/mountain-race-multiplayer.js
           grep -Fq 'MOUNTAIN_RACE_SERVER_START' netlify/functions/_data.js
           grep -Fq 'mountainrace: "Summit Sprint"' netlify/functions/_data.js
           grep -Fq 'async function duelCreateRemoteNetworkBotGame' netlify/functions/_data.js
@@ -102,6 +109,8 @@ jobs:
           grep -Fq 'networkBotLog: (() => {' netlify/functions/mountain-race/integration.js
           grep -Fq 'processed < MOUNTAIN_RACE_BOT_CATCH_UP_LIMIT' netlify/functions/mountain-race/integration.js
           grep -Fq "ignoreReason: 'prompt-changed'" netlify/functions/mountain-race/integration.js
+          grep -Fq 'async function foldDueBotActions(' netlify/functions/mountain-race/integration.js
+          grep -Fq 'inputPrompts: state.sequence.slice' netlify/functions/mountain-race/integration.js
 
       - name: Verify standalone prototype remains available
         shell: bash
@@ -129,8 +138,8 @@ jobs:
           url='https://deploy-preview-20--famous-piroshki-b621da.netlify.app/'
 
           for attempt in $(seq 1 48); do
-            page="$(curl -fsSL --max-time 20 "${url}?summit_load_fix=2&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            multiplayer_js="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race-multiplayer.js?v=1&gameplay=3&load=2&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            page="$(curl -fsSL --max-time 20 "${url}?summit_sync_v6=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            multiplayer_js="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=6&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             prototype_page="$(curl -fsSL --max-time 20 "${url}mountain-race-preview.html?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
 
             if grep -Fq 'data-mode="mountainrace"' <<<"$page" && \
@@ -140,6 +149,7 @@ jobs:
                grep -Fq 'MOUNTAIN_RACE_START_STABILITY_V1' <<<"$page" && \
                grep -Fq 'MOUNTAIN_RACE_NETWORK_BOT_LOG_V2' <<<"$page" && \
                grep -Fq 'MOUNTAIN_RACE_LOAD_PERFORMANCE_V1' <<<"$page" && \
+               grep -Fq 'MOUNTAIN_RACE_CONTINUOUS_SYNC_V6' <<<"$page" && \
                grep -Fq 'attempts < 8' <<<"$page" && \
                ! grep -Fq 'new MutationObserver(renameNetworkBotLog)' <<<"$page" && \
                grep -Fq "if(game.mode==='mountainrace')" <<<"$page" && \
@@ -147,17 +157,19 @@ jobs:
                grep -Fq 'window.__mountainRaceBridge' <<<"$page" && \
                grep -Fq "option.value = 'mountainrace'" <<<"$page" && \
                grep -Fq "const STATE_EVENT = 'mountainrace:state'" <<<"$multiplayer_js" && \
+               grep -Fq 'MOUNTAIN_RACE_CONTINUOUS_SYNC_V6' <<<"$multiplayer_js" && \
                grep -Fq 'function meaningfulRenderKey(game)' <<<"$multiplayer_js" && \
                grep -Fq 'sameMeaningfulState && runtime.root?.isConnected' <<<"$multiplayer_js" && \
-               grep -Fq 'mountainrace:input:${token}' <<<"$multiplayer_js" && \
+               grep -Fq 'function mergeMountainRaceGame(' <<<"$multiplayer_js" && \
+               grep -Fq "choice: 'mountainrace:batch'" <<<"$multiplayer_js" && \
                grep -Fq 'data-mountain-race-demo' <<<"$prototype_page"; then
-              echo "Verified live Summit Sprint bounded log discovery and lightweight polling at ${url}"
+              echo "Verified live Summit Sprint Continuous Sync V6 at ${url}"
               exit 0
             fi
 
-            echo "Waiting for Netlify Summit Sprint load-performance deployment (${attempt}/48)..."
+            echo "Waiting for Netlify Summit Sprint Continuous Sync V6 deployment (${attempt}/48)..."
             sleep 10
           done
 
-          echo 'Netlify did not serve the current Summit Sprint load-performance fix.' >&2
+          echo 'Netlify did not serve the current Summit Sprint Continuous Sync V6 build.' >&2
           exit 1
