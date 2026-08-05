@@ -206,11 +206,9 @@ if (!client.includes(marker)) {
   );
   client = replaceRequired(
     client,
-    `  scheduleResultReveal(previousGame, mergedGame);
-  if (String(mergedGame.status || '') !== 'playing' && runtime.inputQueue.length) clearInputQueue();`,
-    `  scheduleResultReveal(previousGame, mergedGame);
-  if (String(mergedGame.status || '') === 'complete') window.__mountainRacePauseCompletedPolling?.(mergedGame);
-  if (String(mergedGame.status || '') !== 'playing' && runtime.inputQueue.length) clearInputQueue();`,
+    'scheduleResultReveal(previousGame, mergedGame);',
+    `scheduleResultReveal(previousGame, mergedGame);
+    if (String(mergedGame.status || '') === 'complete') window.__mountainRacePauseCompletedPolling?.(mergedGame);`,
     'completed polling hook'
   );
 }
