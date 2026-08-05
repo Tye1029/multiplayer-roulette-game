@@ -148,3 +148,4 @@ if (!html.includes('mountain-race-multiplayer.js?v=1&gameplay=3&load=2')) throw 
 await writeFile(indexUrl, html);
 
 console.log('Fixed Summit Sprint loading performance: removed the permanent whole-page Network Bot Log observer, bounded label discovery, and stopped unchanged network polls from rebuilding the complete mountain DOM.');
+await import('./patch-mountain-race-state-sync.mjs');
