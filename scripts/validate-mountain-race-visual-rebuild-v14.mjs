@@ -11,6 +11,10 @@ function assert(condition, message) {
   if (!condition) throw new Error(`Summit Sprint Visual Rebuild V14 validation failed: ${message}`);
 }
 
+function containsRuntimeClass(name) {
+  return runtime.includes(`class="${name}"`) || runtime.includes(`class=\\"${name}\\"`);
+}
+
 for (const required of [
   'MOUNTAIN_RACE_VISUAL_REBUILD_V14',
   '[data-mountain-race-mount]',
@@ -34,13 +38,13 @@ for (const required of [
   "root.querySelector(':scope > .mr-world-layer')",
   "root.querySelector(':scope > .mountain-race-game')",
   'previousGameElement.replaceChildren(...nextGameElement.childNodes)',
-  "root.dataset.mrVisualStable = '14'",
-  'class="mr-world-layer"',
-  'class="mr-world-moon"',
-  'class="mr-stage-ridge"',
-  'class="mr-route-rope"'
+  "root.dataset.mrVisualStable = '14'"
 ]) {
   assert(runtime.includes(required), `multiplayer runtime is missing ${required}`);
+}
+
+for (const className of ['mr-world-layer', 'mr-world-moon', 'mr-stage-ridge', 'mr-route-rope']) {
+  assert(containsRuntimeClass(className), `persistent runtime world is missing class ${className}`);
 }
 
 assert(!runtime.includes('root.innerHTML = `'), 'the entire mountain mount is still replaced during active renders');
