@@ -3,6 +3,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 const root = new URL('../', import.meta.url);
 const integrationUrl = new URL('netlify/functions/mountain-race/integration.js', root);
 const indexUrl = new URL('index.html', root);
+const validatorUrl = new URL('scripts/validate-mountain-race-multiplayer.mjs', root);
 
 const integrationMarker = '// MOUNTAIN_RACE_BOT_PACING_AND_NETWORK_LOG_V2';
 const htmlMarker = '<!-- MOUNTAIN_RACE_NETWORK_BOT_LOG_V2 -->';
@@ -145,6 +146,19 @@ assert(integration.includes('networkBotLog: (() => {'), 'public Network Bot diag
 assert(integration.includes('winnerHolds < totalHolds && !timeoutResolution'), 'premature settlement guard is missing');
 await writeFile(integrationUrl, integration);
 
+let validator = await readFile(validatorUrl, 'utf8');
+validator = replaceRequired(
+  validator,
+  `        ...botGame.mountainraceState,
+        npcActionAt: new Date(Date.now() - 1).toISOString()`,
+  `        ...botGame.mountainraceState,
+        botLastActionAt: new Date(Date.now() - ${minStepIntervalMs + 1}).toISOString(),
+        npcActionAt: new Date(Date.now() - 1).toISOString()`,
+  'paced validator forced-wake timestamp'
+);
+assert(validator.includes(`botLastActionAt: new Date(Date.now() - ${minStepIntervalMs + 1}).toISOString()`), 'validator does not advance server time past the hard pacing gate');
+await writeFile(validatorUrl, validator);
+
 let html = await readFile(indexUrl, 'utf8');
 html = html
   .replace(/(["'])network poll\1/g, '$1network bot poll$1')
@@ -212,4 +226,4 @@ assert(html.includes(htmlMarker), 'Network Bot Log bootstrap marker is missing')
 assert(html.includes("element.textContent = 'Network Bot Log'"), 'second debug menu is not identified as the Network Bot Log');
 await writeFile(indexUrl, html);
 
-console.log('Prevented instant Summit Sprint completion: each Network Bot move is server-time gated, stale catch-up timestamps are removed, premature winner settlement is blocked, required multiplayer assets are retained, and the second debug menu is labeled Network Bot Log with authoritative bot diagnostics.');
+console.log('Prevented instant Summit Sprint completion: each Network Bot move is server-time gated, stale catch-up timestamps are removed, premature winner settlement is blocked, required multiplayer assets are retained, the deterministic validator advances beyond the same pacing gate, and the second debug menu is labeled Network Bot Log with authoritative bot diagnostics.');
