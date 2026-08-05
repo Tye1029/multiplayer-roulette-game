@@ -1,4 +1,5 @@
 import './patch-mountain-race-remote-bot-attach.mjs';
+import './patch-mountain-race-bot-pacing-and-network-log.mjs';
 import { readFile, writeFile } from 'node:fs/promises';
 
 const indexUrl = new URL('../index.html', import.meta.url);
