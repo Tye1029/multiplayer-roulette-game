@@ -26,7 +26,9 @@ assert(html.includes('window.setTimeout(retry, 650)'), 'bounded label discovery 
 assert(html.includes('mountain-race-multiplayer.js?v=1&gameplay=3&load=2'), 'fresh load-performance client cache boundary is missing');
 
 assert(patch.includes('stopped unchanged network polls from rebuilding the complete mountain DOM'), 'patch does not document the actual load fix');
+assert(patch.includes("await import('./patch-mountain-race-state-sync.mjs')"), 'state synchronization patch is not chained after the load fix');
 assert(safeCrackerClient.length > 0, 'protected Safe Cracker runtime is unreadable');
 assert(rouletteTurn.length > 0, 'protected Roulette runtime is unreadable');
 
 console.log('Summit Sprint load-performance validation passed: no permanent whole-page observer remains, log-label discovery is bounded, unchanged polls use a clock-only path, and protected games remain intact.');
+await import('./validate-mountain-race-state-sync.mjs');
