@@ -1,4 +1,4 @@
-// Summit Sprint build chain. The core load fix stopped unchanged network polls from rebuilding the complete mountain DOM; later stages add state synchronization, reliable persistence, immediate queued controls, a continuous private input runway, component-wise opponent synchronization, stable startup/result cleanup, authoritative input rebasing, and a faster active acknowledgement path.
+// Summit Sprint build chain. The core load fix stopped unchanged network polls from rebuilding the complete mountain DOM; later stages add state synchronization, reliable persistence, immediate queued controls, a continuous private input runway, component-wise opponent synchronization, stable startup/result cleanup, authoritative input rebasing, a faster active acknowledgement path, and terminal Remote Bot polling shutdown.
 await import('./patch-mountain-race-load-performance-core.mjs');
 await import('./patch-mountain-race-state-sync.mjs');
 await import('./patch-mountain-race-authoritative-order-v2.mjs');
@@ -17,3 +17,5 @@ await import('./patch-mountain-race-input-rebase-v8.mjs');
 await import('./patch-mountain-race-input-rebase-validator-v8.mjs');
 await import('./patch-mountain-race-fast-ack-v9.mjs');
 await import('./validate-mountain-race-fast-ack-v9.mjs');
+await import('./patch-mountain-race-terminal-poll-v10.mjs');
+await import('./validate-mountain-race-terminal-poll-v10.mjs');
