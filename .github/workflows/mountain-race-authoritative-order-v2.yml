@@ -1,4 +1,4 @@
-name: Summit Sprint Reliable Inputs V3
+name: Summit Sprint Low-Latency Inputs V4
 
 on:
   pull_request:
@@ -9,14 +9,14 @@ on:
       - mountain-race-development
 
 concurrency:
-  group: summit-sprint-reliable-v3-${{ github.ref }}
+  group: summit-sprint-low-latency-v4-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
-  validate-reliable-inputs:
+  validate-low-latency-inputs:
     runs-on: ubuntu-latest
     timeout-minutes: 14
     steps:
@@ -34,44 +34,52 @@ jobs:
       - name: Build exact Netlify output
         run: npm run build
 
-      - name: Verify reliable one-tap inputs and Network Bot wakeups
+      - name: Verify confirmed-first inputs and deferred Network Bot wakeups
         shell: bash
         run: |
           set -euo pipefail
           node --check scripts/patch-mountain-race-reliable-inputs-v3.mjs
+          node --check scripts/patch-mountain-race-low-latency-inputs-v4.mjs
+          node --check scripts/patch-mountain-race-low-latency-validator-v4.mjs
           node --check assets/mountain-race/mountain-race-multiplayer.js
           node --check netlify/functions/mountain-race/integration.js
           node scripts/validate-mountain-race-state-sync.mjs
           grep -Fq 'MOUNTAIN_RACE_RELIABLE_INPUTS_V3' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'MOUNTAIN_RACE_LOW_LATENCY_INPUTS_V4' assets/mountain-race/mountain-race-multiplayer.js
           grep -Fq 'expectedControl: expected' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'function scheduleBotWake()' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'if (data.wakeBot) scheduleBotWake();' assets/mountain-race/mountain-race-multiplayer.js
           grep -Fq 'MOUNTAIN_RACE_RELIABLE_INPUTS_V3' netlify/functions/mountain-race/integration.js
+          grep -Fq 'MOUNTAIN_RACE_LOW_LATENCY_INPUTS_V4' netlify/functions/mountain-race/integration.js
           grep -Fq 'const MOUNTAIN_RACE_ACTION_CONFIRM_ATTEMPTS = 5;' netlify/functions/mountain-race/integration.js
           grep -Fq 'function optionalUserId(value)' netlify/functions/mountain-race/integration.js
           grep -Fq 'confirmedState?.processedActionIds.includes(actionId)' netlify/functions/mountain-race/integration.js
-          grep -Fq 'finalGame = await advance(finalGame)' netlify/functions/mountain-race/integration.js
+          grep -Fq 'wakeBot: true' netlify/functions/mountain-race/integration.js
+          ! grep -Fq 'finalGame = await advance(finalGame)' netlify/functions/mountain-race/integration.js
           grep -Fq 'expectedControl: body.expectedControl' netlify/functions/duel-action.js
           grep -Fq 'MOUNTAIN_RACE_RELIABLE_INPUTS_V3' index.html
-          grep -Fq 'mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=3' index.html
+          grep -Fq 'MOUNTAIN_RACE_LOW_LATENCY_INPUTS_V4' index.html
+          grep -Fq 'mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=4' index.html
 
-      - name: Verify live Netlify reliable-input deployment
+      - name: Verify live Netlify low-latency deployment
         if: github.event_name == 'pull_request'
         shell: bash
         run: |
           set -euo pipefail
           url='https://deploy-preview-20--famous-piroshki-b621da.netlify.app/'
           for attempt in $(seq 1 48); do
-            page="$(curl -fsSL --max-time 20 "${url}?summit_reliable_v3=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            runtime="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=3&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            function_source="$(curl -fsSL --max-time 20 "${url}.netlify/functions/duel-action?source_probe=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            if grep -Fq 'MOUNTAIN_RACE_RELIABLE_INPUTS_V3' <<<"$page" && \
-               grep -Fq 'mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=3' <<<"$page" && \
-               grep -Fq 'MOUNTAIN_RACE_RELIABLE_INPUTS_V3' <<<"$runtime" && \
-               grep -Fq 'expectedControl: expected' <<<"$runtime"; then
-              echo 'Verified live Summit Sprint reliable-input V3 deployment.'
+            page="$(curl -fsSL --max-time 20 "${url}?summit_low_latency_v4=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            runtime="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=4&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            if grep -Fq 'MOUNTAIN_RACE_LOW_LATENCY_INPUTS_V4' <<<"$page" && \
+               grep -Fq 'mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=4' <<<"$page" && \
+               grep -Fq 'MOUNTAIN_RACE_LOW_LATENCY_INPUTS_V4' <<<"$runtime" && \
+               grep -Fq 'function scheduleBotWake()' <<<"$runtime" && \
+               grep -Fq 'if (data.wakeBot) scheduleBotWake();' <<<"$runtime"; then
+              echo 'Verified live Summit Sprint low-latency V4 deployment.'
               exit 0
             fi
-            echo "Waiting for Netlify reliable-input V3 deployment (${attempt}/48)..."
+            echo "Waiting for Netlify low-latency V4 deployment (${attempt}/48)..."
             sleep 10
           done
-          echo 'Netlify did not serve Summit Sprint reliable-input V3.' >&2
+          echo 'Netlify did not serve Summit Sprint low-latency V4.' >&2
           exit 1
