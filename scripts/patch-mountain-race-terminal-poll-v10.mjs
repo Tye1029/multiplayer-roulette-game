@@ -4,6 +4,7 @@ const root = new URL('../', import.meta.url);
 const indexUrl = new URL('index.html', root);
 const stateValidatorUrl = new URL('scripts/validate-mountain-race-state-sync.mjs', root);
 const rebaseValidatorUrl = new URL('scripts/validate-mountain-race-input-rebase-v8.mjs', root);
+const fastAckValidatorUrl = new URL('scripts/validate-mountain-race-fast-ack-v9.mjs', root);
 const marker = '<!-- MOUNTAIN_RACE_TERMINAL_POLL_V10 -->';
 
 function replaceRequired(source, before, after, label) {
@@ -59,7 +60,7 @@ for (const required of [
 }
 await writeFile(indexUrl, html);
 
-for (const validatorUrl of [stateValidatorUrl, rebaseValidatorUrl]) {
+for (const validatorUrl of [stateValidatorUrl, rebaseValidatorUrl, fastAckValidatorUrl]) {
   let source = await readFile(validatorUrl, 'utf8');
   source = source
     .replaceAll('mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=9', 'mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=10')
