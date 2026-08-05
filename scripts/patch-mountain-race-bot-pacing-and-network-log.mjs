@@ -149,20 +149,15 @@ await writeFile(integrationUrl, integration);
 
 let data = await readFile(dataUrl, 'utf8');
 if (!data.includes(completionGuardMarker)) {
-  data = replaceRequired(
-    data,
-    `async function duelMaybeComplete(game, viewerId) {
-  const clean = duelSanitizeGame(game);`,
-    `async function duelMaybeComplete(game, viewerId) {
-  ${completionGuardMarker}
+  const completionFunctionStart = /async function duelMaybeComplete\s*\([^)]*\)\s*\{\n/;
+  assert(completionFunctionStart.test(data), 'generic completion function was not found');
+  data = data.replace(completionFunctionStart, match => `${match}  ${completionGuardMarker}
   // Summit Sprint has its own 24-hold/30-second completion authority. Never let
   // the generic two-action resolver settle it after startup or a polling wake.
   if (String(game?.mode || "") === "mountainrace") {
     return await mountainRaceAdvanceAndSave(game);
   }
-  const clean = duelSanitizeGame(game);`,
-    'generic completion bypass guard'
-  );
+`);
 }
 assert(data.includes(completionGuardMarker), 'generic completion guard is missing');
 assert(data.includes('return await mountainRaceAdvanceAndSave(game);'), 'Summit Sprint is not routed to its authoritative completion driver');
