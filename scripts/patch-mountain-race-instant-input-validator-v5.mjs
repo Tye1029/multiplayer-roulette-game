@@ -2,6 +2,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 
 const stateSyncValidatorUrl = new URL('validate-mountain-race-state-sync.mjs', import.meta.url);
 const multiplayerValidatorUrl = new URL('validate-mountain-race-multiplayer.mjs', import.meta.url);
+const gameplayValidatorUrl = new URL('validate-mountain-race-gameplay-visibility.mjs', import.meta.url);
 
 let source = await readFile(stateSyncValidatorUrl, 'utf8');
 source = source
@@ -62,4 +63,22 @@ if (legacyServerTokenCount !== 1) {
 }
 await writeFile(multiplayerValidatorUrl, multiplayerSource);
 
-console.log('Updated Summit Sprint validation for immediate local queues, one-save authoritative batches, and preserved server single-input compatibility.');
+let gameplaySource = await readFile(gameplayValidatorUrl, 'utf8');
+gameplaySource = gameplaySource
+  .replace(
+    `assert(client.includes("Correct direction — climbing now!"), 'correct input does not provide immediate feedback');`,
+    `assert(client.includes('runtime.inputQueue.push(item);'), 'correct input is not queued and rendered immediately');`
+  )
+  .replace(
+    `assert(client.includes("Wrong direction — slipping!"), 'wrong input does not provide immediate feedback');`,
+    `assert(client.includes('runtime.inputQueueBlocked = !item.correct;'), 'wrong input does not immediately block the queue for slip confirmation');`
+  )
+  .replace(
+    `assert(client.includes('runtime.pendingInput = null;'), 'authoritative reconciliation does not clear pending input');`,
+    `assert(client.includes('syncPendingCompatibility();'), 'authoritative queue reconciliation does not synchronize pending compatibility state');`
+  );
+if (!gameplaySource.includes("runtime.inputQueue.push(item);")) throw new Error('Summit Sprint visibility validator does not require immediate queue feedback.');
+if (!gameplaySource.includes('runtime.inputQueueBlocked = !item.correct;')) throw new Error('Summit Sprint visibility validator does not require immediate wrong-input feedback.');
+await writeFile(gameplayValidatorUrl, gameplaySource);
+
+console.log('Updated Summit Sprint validation for immediate local queues, one-save authoritative batches, visible queued feedback, and preserved server single-input compatibility.');
