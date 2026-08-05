@@ -1,4 +1,4 @@
-name: Summit Sprint Terminal Drain V12
+name: Summit Sprint Lifecycle Guard V11
 
 on:
   pull_request:
@@ -9,14 +9,14 @@ on:
       - mountain-race-development
 
 concurrency:
-  group: summit-sprint-terminal-drain-v12-${{ github.ref }}
+  group: summit-sprint-lifecycle-guard-v11-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
-  validate-terminal-drain:
+  validate-lifecycle-guard:
     runs-on: ubuntu-latest
     timeout-minutes: 14
     steps:
@@ -34,7 +34,7 @@ jobs:
       - name: Build exact Netlify output
         run: npm run build
 
-      - name: Verify terminal scheduler drain and prior synchronization fixes
+      - name: Verify lifecycle ordering and prior synchronization fixes
         shell: bash
         run: |
           set -euo pipefail
@@ -42,12 +42,9 @@ jobs:
           node --check scripts/patch-mountain-race-fast-ack-v9.mjs
           node --check scripts/patch-mountain-race-terminal-poll-v10.mjs
           node --check scripts/patch-mountain-race-lifecycle-guard-v11.mjs
-          node --check scripts/patch-mountain-race-terminal-drain-v12.mjs
-          node --check scripts/patch-mountain-race-terminal-drain-rematch-v12.mjs
           node --check scripts/validate-mountain-race-fast-ack-v9.mjs
           node --check scripts/validate-mountain-race-terminal-poll-v10.mjs
           node --check scripts/validate-mountain-race-lifecycle-guard-v11.mjs
-          node --check scripts/validate-mountain-race-terminal-drain-v12.mjs
           node --check assets/mountain-race/mountain-race-multiplayer.js
           node --check netlify/functions/_data.js
           node --check netlify/functions/mountain-race/integration.js
@@ -56,7 +53,6 @@ jobs:
           node scripts/validate-mountain-race-fast-ack-v9.mjs
           node scripts/validate-mountain-race-terminal-poll-v10.mjs
           node scripts/validate-mountain-race-lifecycle-guard-v11.mjs
-          node scripts/validate-mountain-race-terminal-drain-v12.mjs
           node scripts/validate-mountain-race-state-sync.mjs
           node scripts/validate-mountain-race-start-stability.mjs
           node scripts/validate-mountain-race-gameplay-visibility.mjs
@@ -74,14 +70,11 @@ jobs:
 
           grep -Fq 'MOUNTAIN_RACE_TERMINAL_POLL_V10' index.html
           grep -Fq 'MOUNTAIN_RACE_LIFECYCLE_GUARD_V11' index.html
-          grep -Fq 'MOUNTAIN_RACE_TERMINAL_DRAIN_V12' index.html
-          grep -Fq 'MOUNTAIN_RACE_TERMINAL_DRAIN_V12_POLL_START' index.html
-          grep -Fq 'MOUNTAIN_RACE_TERMINAL_DRAIN_V12_AFTER_ADOPT' index.html
-          grep -Fq 'MOUNTAIN_RACE_TERMINAL_DRAIN_V12_ADOPT' index.html
-          grep -Fq 'let remembered = window.__mountainRaceLastCompletedGame || null;' index.html
-          grep -Fq 'remembered = null;' index.html
-          grep -Fq 'rnbGame = terminalGame;' index.html
-          grep -Fq 'mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=12' index.html
+          grep -Fq 'function mountainRaceSharedLifecycleRegression(current,incoming)' index.html
+          grep -Fq 'incomingRank<currentRank&&incomingRevision<=currentRevision' index.html
+          grep -Fq 'const mountainRaceLifecycleRegression=mountainRaceSharedLifecycleRegression(current,game);' index.html
+          grep -Fq 'window.__mountainRaceSharedRejectedSnapshots=Number(window.__mountainRaceSharedRejectedSnapshots||0)+1;' index.html
+          grep -Fq 'mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=11' index.html
 
           test -s assets/safe-cracker/safe-cracker.js
           test -s assets/safe-cracker/safe-cracker.css
@@ -89,29 +82,26 @@ jobs:
           test -s assets/roulette/turn-fire.js
           test -s assets/roulette/audio-bindings.js
 
-      - name: Verify live Netlify Terminal Drain V12 deployment
+      - name: Verify live Netlify Lifecycle Guard V11 deployment
         if: github.event_name == 'pull_request'
         shell: bash
         run: |
           set -euo pipefail
           url='https://deploy-preview-20--famous-piroshki-b621da.netlify.app/'
           for attempt in $(seq 1 48); do
-            page="$(curl -fsSL --max-time 20 "${url}?summit_terminal_drain_v12=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            runtime="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=12&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            if grep -Fq 'MOUNTAIN_RACE_TERMINAL_DRAIN_V12' <<<"$page" && \
-               grep -Fq 'mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=12' <<<"$page" && \
-               grep -Fq 'MOUNTAIN_RACE_TERMINAL_DRAIN_V12_POLL_START' <<<"$page" && \
-               grep -Fq 'MOUNTAIN_RACE_TERMINAL_DRAIN_V12_AFTER_ADOPT' <<<"$page" && \
-               grep -Fq 'MOUNTAIN_RACE_TERMINAL_DRAIN_V12_ADOPT' <<<"$page" && \
-               grep -Fq 'let remembered = window.__mountainRaceLastCompletedGame || null;' <<<"$page" && \
-               grep -Fq 'remembered = null;' <<<"$page" && \
+            page="$(curl -fsSL --max-time 20 "${url}?summit_lifecycle_guard_v11=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            runtime="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=11&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            if grep -Fq 'MOUNTAIN_RACE_LIFECYCLE_GUARD_V11' <<<"$page" && \
+               grep -Fq 'mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=11' <<<"$page" && \
+               grep -Fq 'function mountainRaceSharedLifecycleRegression(current,incoming)' <<<"$page" && \
+               grep -Fq 'incomingRank<currentRank&&incomingRevision<=currentRevision' <<<"$page" && \
                grep -Fq 'MOUNTAIN_RACE_INPUT_REBASE_V8' <<<"$runtime" && \
                grep -Fq 'function authoritativeSlip(' <<<"$runtime"; then
-              echo 'Verified live Summit Sprint Terminal Drain V12 deployment.'
+              echo 'Verified live Summit Sprint Lifecycle Guard V11 deployment.'
               exit 0
             fi
-            echo "Waiting for Netlify Terminal Drain V12 deployment (${attempt}/48)..."
+            echo "Waiting for Netlify Lifecycle Guard V11 deployment (${attempt}/48)..."
             sleep 10
           done
-          echo 'Netlify did not serve Summit Sprint Terminal Drain V12.' >&2
+          echo 'Netlify did not serve Summit Sprint Lifecycle Guard V11.' >&2
           exit 1
