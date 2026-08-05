@@ -10,6 +10,22 @@ source = source
     "assert(client.includes('if (data.wakeBot) scheduleBotWake();'), 'action responses do not schedule the focused Network Bot wake');",
     "assert(client.includes('if (data?.wakeBot) scheduleBotWake();'), 'queued action responses do not schedule the focused Network Bot wake');"
   )
+  .replace(
+    "assert(client.includes('expectedPromptIndex: fromIndex'), 'the exact visible prompt index is not submitted');",
+    "assert(client.includes('expectedPromptIndex: item.fromIndex'), 'each queued visible prompt index is not submitted');"
+  )
+  .replace(
+    "assert(client.includes('expectedControl: expected'), 'the exact visible arrow identity is not submitted');",
+    "assert(client.includes('expectedControl: item.expected'), 'each queued visible arrow identity is not submitted');"
+  )
+  .replace(
+    "assert(optimistic.includes('me: authoritativeMe') && optimistic.includes('prompts,'), 'pending input no longer preserves the authoritative arrow and altitude');",
+    "assert(optimistic.includes('runtime.inputQueue') && optimistic.includes('me.promptIndex = Math.min'), 'queued correct inputs do not advance the visible climber immediately');"
+  )
+  .replace(
+    "assert(!optimistic.includes('promptIndex: correct') && !optimistic.includes('prompts.slice(1)'), 'the client still advances the arrow or climber before persistence confirmation');",
+    "assert(optimistic.includes('prompts.slice(consumedPrompts)'), 'queued correct inputs do not advance the visible arrow immediately');"
+  )
   .replaceAll(
     'mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=4',
     'mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=5'
@@ -37,6 +53,9 @@ if (!source.includes(instantAssertions)) {
 
 if (!source.includes("choice: 'mountainrace:batch'")) throw new Error('Summit Sprint validator does not require batched arrow requests.');
 if (!source.includes('inputBatch: body.inputBatch')) throw new Error('Summit Sprint validator does not verify queued input routing.');
+if (!source.includes('expectedPromptIndex: item.fromIndex')) throw new Error('Summit Sprint validator does not require exact queued prompt indices.');
+if (!source.includes('expectedControl: item.expected')) throw new Error('Summit Sprint validator does not require exact queued arrow identities.');
+if (!source.includes('prompts.slice(consumedPrompts)')) throw new Error('Summit Sprint validator does not require immediate queued prompt advancement.');
 if (!source.includes('mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=5')) throw new Error('Summit Sprint validator does not require the instant-input cache boundary.');
 if (source.includes("assert(client.includes('if (data.wakeBot) scheduleBotWake();')")) throw new Error('Summit Sprint validator still expects the removed single-action response path.');
 await writeFile(stateSyncValidatorUrl, source);
@@ -86,4 +105,4 @@ if (!gameplaySource.includes('runtime.inputQueueBlocked = !item.correct;')) thro
 if (!gameplaySource.includes('expectedPromptIndex: item.fromIndex')) throw new Error('Summit Sprint visibility validator does not require exact queued prompt indices.');
 await writeFile(gameplayValidatorUrl, gameplaySource);
 
-console.log('Updated Summit Sprint validation for immediate local queues, one-save authoritative batches, exact queued prompt indices, visible feedback, and preserved server single-input compatibility.');
+console.log('Updated Summit Sprint validation for immediate local queues, one-save authoritative batches, exact queued prompts, visible feedback, and preserved server single-input compatibility.');
