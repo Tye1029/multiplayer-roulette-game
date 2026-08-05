@@ -13,13 +13,6 @@ function replaceRequired(source, before, after, label) {
   return source.replace(before, after);
 }
 
-function insertBeforeRequired(source, signature, insertion, label) {
-  if (source.includes(insertion)) return source;
-  const at = source.indexOf(signature);
-  if (at < 0) throw new Error(`Summit Sprint startup/completion patch could not find ${label}.`);
-  return source.slice(0, at) + insertion + source.slice(at);
-}
-
 function replaceFunction(source, signature, replacement, label) {
   const start = source.indexOf(signature);
   if (start < 0) throw new Error(`Summit Sprint startup/completion patch could not find ${label}.`);
@@ -210,11 +203,11 @@ if (!html.includes(htmlMarker)) {
     'active shared Ready helper'
   );
 
-  const pauseFunction = `${indentFunction(generatedMountainRacePauseCompletedPolling, 'mountainRacePauseCompletedPolling', 4)}\n    window.__mountainRacePauseCompletedPolling = mountainRacePauseCompletedPolling;\n\n    `;
-  html = insertBeforeRequired(
+  const pauseFunction = `${indentFunction(generatedMountainRacePauseCompletedPolling, 'mountainRacePauseCompletedPolling', 4)}\n    window.__mountainRacePauseCompletedPolling = mountainRacePauseCompletedPolling;`;
+  html = replaceRequired(
     html,
-    'function duelSetPollRate(game)',
-    pauseFunction,
+    'let duelPollTimer = null;',
+    `let duelPollTimer = null;\n\n${pauseFunction}`,
     'completed polling helper'
   );
   html = replaceRequired(
