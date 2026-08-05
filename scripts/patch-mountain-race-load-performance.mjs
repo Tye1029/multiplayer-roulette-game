@@ -1,4 +1,4 @@
-// Summit Sprint build chain. The core load fix stopped unchanged network polls from rebuilding the complete mountain DOM; later stages add state synchronization, reliable persistence, immediate queued controls, a continuous private input runway, component-wise opponent synchronization, stable startup/result cleanup, authoritative input rebasing, a faster active acknowledgement path, terminal Remote Bot polling shutdown, shared lifecycle regression protection, the Phase 1 alpine foundation, the V14 persistent anti-flash reconstruction, the V15 daylight brown-rock terrain with grassy start/summit footing, and the V16 cached PNG cliff texture with transparent realistic handhold sprites.
+// Summit Sprint build chain. The core load fix stopped unchanged network polls from rebuilding the complete mountain DOM; later stages add state synchronization, reliable persistence, immediate queued controls, a continuous private input runway, component-wise opponent synchronization, stable startup/result cleanup, authoritative input rebasing, a faster active acknowledgement path, terminal Remote Bot polling shutdown, shared lifecycle regression protection, the Phase 1 alpine foundation, the V14 persistent anti-flash reconstruction, the V15 daylight brown-rock terrain with grassy start/summit footing, the V16 cached PNG cliff texture with transparent realistic handhold sprites, and the V17 environment polish with directional sunlight, enhanced rock/grass detail, cloud banks, wind and grounded summit shadows.
 await import('./patch-mountain-race-load-performance-core.mjs');
 await import('./patch-mountain-race-state-sync.mjs');
 await import('./patch-mountain-race-authoritative-order-v2.mjs');
@@ -30,3 +30,5 @@ await import('./patch-mountain-race-daylight-terrain-v15.mjs');
 await import('./validate-mountain-race-daylight-terrain-v15.mjs');
 await import('./patch-mountain-race-raster-cliff-v16.mjs');
 await import('./validate-mountain-race-raster-cliff-v16.mjs');
+await import('./patch-mountain-race-environment-polish-v17.mjs');
+await import('./validate-mountain-race-environment-polish-v17.mjs');
