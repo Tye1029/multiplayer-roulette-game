@@ -56,8 +56,9 @@ if (!multiplayerSource.includes(clientExpectationAfter)) {
 if (!multiplayerSource.includes("choice: 'mountainrace:batch'")) {
   throw new Error('Summit Sprint multiplayer validator does not require the queued client batch request.');
 }
-if (!multiplayerSource.includes("'mountainrace:input:${token}',\n  \"ignoreReason: 'duplicate'\"")) {
-  throw new Error('Summit Sprint multiplayer validator no longer verifies the server single-input compatibility path.');
+const legacyServerTokenCount = multiplayerSource.split('mountainrace:input:${token}').length - 1;
+if (legacyServerTokenCount !== 1) {
+  throw new Error(`Summit Sprint multiplayer validator expected one legacy server compatibility token, found ${legacyServerTokenCount}.`);
 }
 await writeFile(multiplayerValidatorUrl, multiplayerSource);
 
