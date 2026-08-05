@@ -42,8 +42,8 @@ await writeFile(stateSyncValidatorUrl, source);
 
 let multiplayerSource = await readFile(multiplayerValidatorUrl, 'utf8');
 multiplayerSource = multiplayerSource.replaceAll(
-  'mountainrace:input:${token}',
-  "choice: 'mountainrace:batch'"
+  "'mountainrace:input:${token}'",
+  "\"choice: 'mountainrace:batch'\""
 );
 if (multiplayerSource.includes('mountainrace:input:${token}')) {
   throw new Error('Summit Sprint multiplayer validator still requires one request per arrow.');
