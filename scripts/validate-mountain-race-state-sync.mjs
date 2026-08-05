@@ -27,7 +27,11 @@ assert(client.includes('options.actionResolved'), 'the action response is not di
 assert(client.includes('finishPendingAction(options.actionId'), 'only the matching action response must release the input lock');
 assert(client.includes('expectedPromptIndex: fromIndex'), 'the exact visible prompt index is not submitted');
 assert(client.includes('expectedControl: expected'), 'the exact visible arrow identity is not submitted');
-assert(client.includes('the next\n    // prompt is not exposed until storage confirms this exact action id'), 'the next arrow still advances speculatively before persistence');
+const optimisticStart = client.indexOf('function optimisticPresentation(publicState, prompts, total)');
+const optimisticEnd = client.indexOf('\n  function holdLeft(', optimisticStart);
+const optimistic = optimisticStart >= 0 && optimisticEnd > optimisticStart ? client.slice(optimisticStart, optimisticEnd) : '';
+assert(optimistic.includes('me: authoritativeMe') && optimistic.includes('prompts,'), 'pending input no longer preserves the authoritative arrow and altitude');
+assert(!optimistic.includes('promptIndex: correct') && !optimistic.includes('prompts.slice(1)'), 'the client still advances the arrow or climber before persistence confirmation');
 assert(client.includes("runtime.game?.status !== 'complete' || !runtime.resultRevealReady"), 'the result card can still hide the final climb immediately');
 
 assert(integration.includes('// MOUNTAIN_RACE_RELIABLE_INPUTS_V3'), 'server reliable-input marker is missing');
