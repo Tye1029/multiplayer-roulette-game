@@ -12,6 +12,15 @@ function replaceRequired(source, before, after, label) {
   return source.replace(before, after);
 }
 
+function insertFunctionGuard(source, signature, guard, label) {
+  if (source.includes(guard)) return source;
+  const start = source.indexOf(signature);
+  if (start < 0) throw new Error(`Summit Sprint terminal-poll patch could not find ${label}.`);
+  const bodyStart = source.indexOf('{', start + signature.length);
+  if (bodyStart < 0) throw new Error(`Summit Sprint terminal-poll patch could not parse ${label}.`);
+  return source.slice(0, bodyStart + 1) + `\n      ${guard}` + source.slice(bodyStart + 1);
+}
+
 let html = await readFile(indexUrl, 'utf8');
 
 html = replaceRequired(
@@ -25,14 +34,11 @@ html = replaceRequired(
   'mutation polling resume boundary'
 );
 
-html = replaceRequired(
+html = insertFunctionGuard(
   html,
-  `    async function duelRefresh(silent = false) {
-      if (!duelScreen || duelScreen.hidden || document.hidden || Number(window.__duelMutationRequestsInFlight || 0) > 0) return;`,
-  `    async function duelRefresh(silent = false) {
-      if (!duelScreen || duelScreen.hidden || document.hidden || Number(window.__duelMutationRequestsInFlight || 0) > 0) return;
-      if (typeof window.__mountainRacePauseCompletedPolling === "function" && window.__mountainRacePauseCompletedPolling(duelLastActiveGame || null)) return;`,
-  'focused refresh terminal boundary'
+  'async function duelRefresh(',
+  'if (typeof window.__mountainRacePauseCompletedPolling === "function" && window.__mountainRacePauseCompletedPolling(duelLastActiveGame || null)) return;',
+  'focused refresh function'
 );
 
 if (!html.includes(marker)) {
