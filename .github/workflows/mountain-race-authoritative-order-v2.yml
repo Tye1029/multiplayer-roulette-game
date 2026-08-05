@@ -1,4 +1,4 @@
-name: Summit Sprint Continuous Sync V6
+name: Summit Sprint Startup Completion V7
 
 on:
   pull_request:
@@ -9,14 +9,14 @@ on:
       - mountain-race-development
 
 concurrency:
-  group: summit-sprint-continuous-sync-v6-${{ github.ref }}
+  group: summit-sprint-startup-completion-v7-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
-  validate-continuous-sync:
+  validate-startup-completion:
     runs-on: ubuntu-latest
     timeout-minutes: 14
     steps:
@@ -34,37 +34,42 @@ jobs:
       - name: Build exact Netlify output
         run: npm run build
 
-      - name: Verify uninterrupted inputs and opponent synchronization
+      - name: Verify stable startup, continuous sync, and completion cleanup
         shell: bash
         run: |
           set -euo pipefail
           node --check scripts/patch-mountain-race-continuous-sync-server-v6.mjs
           node --check scripts/patch-mountain-race-continuous-sync-client-v6.mjs
           node --check scripts/patch-mountain-race-continuous-sync-validator-v6.mjs
+          node --check scripts/patch-mountain-race-startup-completion-v7.mjs
+          node --check scripts/patch-mountain-race-startup-completion-validator-v7.mjs
           node --check assets/mountain-race/mountain-race-multiplayer.js
           node --check netlify/functions/mountain-race/integration.js
           node --check netlify/functions/duel-action.js
           node scripts/validate-mountain-race-state-sync.mjs
+          node scripts/validate-mountain-race-start-stability.mjs
           node scripts/validate-mountain-race-gameplay-visibility.mjs
+          node scripts/validate-mountain-race-load-performance.mjs
 
-          grep -Fq 'MOUNTAIN_RACE_INSTANT_INPUT_QUEUE_V5' assets/mountain-race/mountain-race-multiplayer.js
           grep -Fq 'MOUNTAIN_RACE_CONTINUOUS_SYNC_V6' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'MOUNTAIN_RACE_STARTUP_COMPLETION_V7' assets/mountain-race/mountain-race-multiplayer.js
           grep -Fq 'function mergeMountainRaceGame(' assets/mountain-race/mountain-race-multiplayer.js
           grep -Fq 'opponent: mergePlayerProgress(previousState.opponent, incomingState.opponent)' assets/mountain-race/mountain-race-multiplayer.js
-          grep -Fq 'presentation.prompts.slice(0, 4)' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq "runtime.game?.status === 'complete' || publicState.completedAt" assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'window.__mountainRacePauseCompletedPolling?.(mergedGame)' assets/mountain-race/mountain-race-multiplayer.js
           grep -Fq "runtime.inputQueue.filter(item => item.status === 'queued').slice(0, 8)" assets/mountain-race/mountain-race-multiplayer.js
-          grep -Fq '}, immediate ? 0 : 90);' assets/mountain-race/mountain-race-multiplayer.js
 
           grep -Fq 'MOUNTAIN_RACE_CONTINUOUS_SYNC_V6' netlify/functions/mountain-race/integration.js
+          grep -Fq 'MOUNTAIN_RACE_STARTUP_COMPLETION_V7' netlify/functions/mountain-race/integration.js
+          grep -Fq 'secondsLeft: complete || state.completedAt' netlify/functions/mountain-race/integration.js
           grep -Fq 'inputPrompts: state.sequence.slice' netlify/functions/mountain-race/integration.js
-          grep -Fq 'details.inputBatch.slice(0, 8)' netlify/functions/mountain-race/integration.js
           grep -Fq 'async function foldDueBotActions(' netlify/functions/mountain-race/integration.js
-          grep -Fq 'const persistenceIds = [...targetActionIds, ...botActionIds]' netlify/functions/mountain-race/integration.js
-          grep -Fq 'opponentAdvanced: Boolean(outcome.opponentAdvanced)' netlify/functions/mountain-race/integration.js
 
-          grep -Fq 'MOUNTAIN_RACE_CONTINUOUS_SYNC_V6' index.html
-          grep -Fq 'differentRound && incoming.statusRank <= accepted.statusRank' index.html
-          grep -Fq 'mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=6' index.html
+          grep -Fq 'MOUNTAIN_RACE_STARTUP_COMPLETION_V7' index.html
+          grep -Fq "const probe = await duelRequest('get', { gameId: id }" index.html
+          grep -Fq 'function mountainRacePauseCompletedPolling(game)' index.html
+          grep -Fq '!game?.remoteNetworkTest' index.html
+          grep -Fq 'mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=7' index.html
 
           test -s assets/safe-cracker/safe-cracker.js
           test -s assets/safe-cracker/safe-cracker.css
@@ -72,25 +77,27 @@ jobs:
           test -s assets/roulette/turn-fire.js
           test -s assets/roulette/audio-bindings.js
 
-      - name: Verify live Netlify continuous-sync deployment
+      - name: Verify live Netlify startup/completion deployment
         if: github.event_name == 'pull_request'
         shell: bash
         run: |
           set -euo pipefail
           url='https://deploy-preview-20--famous-piroshki-b621da.netlify.app/'
           for attempt in $(seq 1 48); do
-            page="$(curl -fsSL --max-time 20 "${url}?summit_sync_v6=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            runtime="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=6&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            if grep -Fq 'MOUNTAIN_RACE_CONTINUOUS_SYNC_V6' <<<"$page" && \
-               grep -Fq 'mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=6' <<<"$page" && \
-               grep -Fq 'MOUNTAIN_RACE_CONTINUOUS_SYNC_V6' <<<"$runtime" && \
-               grep -Fq 'function mergeMountainRaceGame(' <<<"$runtime" && \
-               grep -Fq "slice(0, 8)" <<<"$runtime"; then
-              echo 'Verified live Summit Sprint Continuous Sync V6 deployment.'
+            page="$(curl -fsSL --max-time 20 "${url}?summit_startup_completion_v7=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            runtime="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=7&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            if grep -Fq 'MOUNTAIN_RACE_STARTUP_COMPLETION_V7' <<<"$page" && \
+               grep -Fq 'mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=7' <<<"$page" && \
+               grep -Fq "const probe = await duelRequest('get', { gameId: id }" <<<"$page" && \
+               grep -Fq 'function mountainRacePauseCompletedPolling(game)' <<<"$page" && \
+               grep -Fq 'MOUNTAIN_RACE_STARTUP_COMPLETION_V7' <<<"$runtime" && \
+               grep -Fq "runtime.game?.status === 'complete' || publicState.completedAt" <<<"$runtime" && \
+               grep -Fq 'function mergeMountainRaceGame(' <<<"$runtime"; then
+              echo 'Verified live Summit Sprint Startup Completion V7 deployment.'
               exit 0
             fi
-            echo "Waiting for Netlify Continuous Sync V6 deployment (${attempt}/48)..."
+            echo "Waiting for Netlify Startup Completion V7 deployment (${attempt}/48)..."
             sleep 10
           done
-          echo 'Netlify did not serve Summit Sprint Continuous Sync V6.' >&2
+          echo 'Netlify did not serve Summit Sprint Startup Completion V7.' >&2
           exit 1
