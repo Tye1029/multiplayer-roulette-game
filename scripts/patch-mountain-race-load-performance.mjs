@@ -21,6 +21,7 @@ await import('./patch-mountain-race-terminal-poll-v10.mjs');
 await import('./validate-mountain-race-terminal-poll-v10.mjs');
 await import('./patch-mountain-race-lifecycle-guard-v11.mjs');
 await import('./validate-mountain-race-lifecycle-guard-v11.mjs');
+await import('./diagnose-mountain-race-remote-bot-caller-v12.mjs');
 await import('./patch-mountain-race-terminal-drain-v12.mjs');
 await import('./patch-mountain-race-terminal-drain-rematch-v12.mjs');
 await import('./validate-mountain-race-terminal-drain-v12.mjs');
