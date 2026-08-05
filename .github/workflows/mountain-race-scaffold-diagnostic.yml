@@ -48,9 +48,12 @@ jobs:
           node --check scripts/patch-mountain-race-terminal-poll-v10.mjs
           node --check scripts/patch-mountain-race-lifecycle-guard-v11.mjs
           node --check scripts/patch-mountain-race-visual-foundation-v13.mjs
+          node --check scripts/patch-mountain-race-visual-rebuild-v14-preflight.mjs
+          node --check scripts/patch-mountain-race-visual-rebuild-v14.mjs
           node --check scripts/validate-mountain-race-visual-foundation-v13.mjs
+          node --check scripts/validate-mountain-race-visual-rebuild-v14.mjs
 
-      - name: Validate gameplay and visual foundation
+      - name: Validate gameplay and visual rebuild
         run: |
           npm run validate:mountain-race
           node scripts/validate-mountain-race-input-rebase-v8.mjs
@@ -58,6 +61,7 @@ jobs:
           node scripts/validate-mountain-race-terminal-poll-v10.mjs
           node scripts/validate-mountain-race-lifecycle-guard-v11.mjs
           node scripts/validate-mountain-race-visual-foundation-v13.mjs
+          node scripts/validate-mountain-race-visual-rebuild-v14.mjs
 
       - name: Verify generated multiplayer path
         shell: bash
@@ -81,17 +85,28 @@ jobs:
           grep -Fq 'MOUNTAIN_RACE_TERMINAL_POLL_V10' index.html
           grep -Fq 'MOUNTAIN_RACE_LIFECYCLE_GUARD_V11' index.html
           grep -Fq 'MOUNTAIN_RACE_VISUAL_FOUNDATION_V13' index.html
-          grep -Fq 'visual=13' index.html
+          grep -Fq 'MOUNTAIN_RACE_VISUAL_REBUILD_V14' index.html
+          grep -Fq 'visual=14' index.html
 
-          grep -Fq 'MOUNTAIN_RACE_VISUAL_FOUNDATION_V13' assets/mountain-race/mountain-race-multiplayer.js
-          grep -Fq 'class="mr-world-layer"' assets/mountain-race/mountain-race-multiplayer.js
-          grep -Fq 'class="mr-world-moon"' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'MOUNTAIN_RACE_VISUAL_REBUILD_V14' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'const MOUNTAIN_RACE_WORLD_V14' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'function ensureMountainRaceWorld(root)' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'previousGameElement.replaceChildren' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'class=\"mr-world-layer\"' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'class=\"mr-world-moon\"' assets/mountain-race/mountain-race-multiplayer.js
           grep -Fq 'class="mr-stage-ridge"' assets/mountain-race/mountain-race-multiplayer.js
           grep -Fq 'class="mr-route-depth"' assets/mountain-race/mountain-race-multiplayer.js
           grep -Fq 'class="mr-route-rope"' assets/mountain-race/mountain-race-multiplayer.js
           grep -Fq 'ALPINE EXPEDITION · ROUTE 24' assets/mountain-race/mountain-race-multiplayer.js
+          if grep -Fq 'root.innerHTML = `' assets/mountain-race/mountain-race-multiplayer.js; then
+            echo 'Summit Sprint still replaces the whole mount during active renders.' >&2
+            exit 1
+          fi
 
-          grep -Fq 'MOUNTAIN_RACE_VISUAL_FOUNDATION_V13' assets/mountain-race/mountain-race.css
+          grep -Fq 'MOUNTAIN_RACE_VISUAL_REBUILD_V14' assets/mountain-race/mountain-race.css
+          grep -Fq '[data-mountain-race-mount] > .mr-world-layer' assets/mountain-race/mountain-race.css
+          grep -Fq '[data-mountain-race-mount] > .mountain-race-game' assets/mountain-race/mountain-race.css
+          grep -Fq 'backdrop-filter: none !important' assets/mountain-race/mountain-race.css
           grep -Fq '.mr-world-range-far' assets/mountain-race/mountain-race.css
           grep -Fq '.mr-world-range-mid' assets/mountain-race/mountain-race.css
           grep -Fq '.mr-world-snow-near' assets/mountain-race/mountain-race.css
@@ -147,9 +162,9 @@ jobs:
           url='https://deploy-preview-20--famous-piroshki-b621da.netlify.app/'
 
           for attempt in $(seq 1 48); do
-            page="$(curl -fsSL --max-time 20 "${url}?summit_visual_foundation_v13=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            multiplayer_js="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race-multiplayer.js?visual=13&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            styles="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race.css?visual=13&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            page="$(curl -fsSL --max-time 20 "${url}?summit_visual_rebuild_v14=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            multiplayer_js="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race-multiplayer.js?visual=14&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            styles="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race.css?visual=14&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             prototype_page="$(curl -fsSL --max-time 20 "${url}mountain-race-preview.html?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
 
             if grep -Fq 'data-mode="mountainrace"' <<<"$page" && \
@@ -157,24 +172,23 @@ jobs:
                grep -Fq 'MOUNTAIN_RACE_INPUT_REBASE_V8' <<<"$page" && \
                grep -Fq 'MOUNTAIN_RACE_TERMINAL_POLL_V10' <<<"$page" && \
                grep -Fq 'MOUNTAIN_RACE_LIFECYCLE_GUARD_V11' <<<"$page" && \
-               grep -Fq 'MOUNTAIN_RACE_VISUAL_FOUNDATION_V13' <<<"$page" && \
-               grep -Fq 'visual=13' <<<"$page" && \
-               grep -Fq 'MOUNTAIN_RACE_VISUAL_FOUNDATION_V13' <<<"$multiplayer_js" && \
-               grep -Fq 'class="mr-world-layer"' <<<"$multiplayer_js" && \
-               grep -Fq 'class="mr-stage-ridge"' <<<"$multiplayer_js" && \
-               grep -Fq 'class="mr-route-rope"' <<<"$multiplayer_js" && \
+               grep -Fq 'MOUNTAIN_RACE_VISUAL_REBUILD_V14' <<<"$page" && \
+               grep -Fq 'visual=14' <<<"$page" && \
+               grep -Fq 'MOUNTAIN_RACE_VISUAL_REBUILD_V14' <<<"$multiplayer_js" && \
+               grep -Fq 'function ensureMountainRaceWorld(root)' <<<"$multiplayer_js" && \
+               grep -Fq 'previousGameElement.replaceChildren' <<<"$multiplayer_js" && \
                grep -Fq 'function authoritativeSlip(' <<<"$multiplayer_js" && \
-               grep -Fq 'MOUNTAIN_RACE_VISUAL_FOUNDATION_V13' <<<"$styles" && \
-               grep -Fq '.mr-world-range-far' <<<"$styles" && \
-               grep -Fq '.mr-world-snow-near' <<<"$styles" && \
+               grep -Fq 'MOUNTAIN_RACE_VISUAL_REBUILD_V14' <<<"$styles" && \
+               grep -Fq '[data-mountain-race-mount] > .mr-world-layer' <<<"$styles" && \
+               grep -Fq 'backdrop-filter: none !important' <<<"$styles" && \
                grep -Fq 'data-mountain-race-demo' <<<"$prototype_page"; then
-              echo "Verified live Summit Sprint Visual Foundation V13 at ${url}"
+              echo "Verified live Summit Sprint Visual Rebuild V14 at ${url}"
               exit 0
             fi
 
-            echo "Waiting for Netlify Summit Sprint Visual Foundation V13 deployment (${attempt}/48)..."
+            echo "Waiting for Netlify Summit Sprint Visual Rebuild V14 deployment (${attempt}/48)..."
             sleep 10
           done
 
-          echo 'Netlify did not serve the current Summit Sprint Visual Foundation V13 build.' >&2
+          echo 'Netlify did not serve the current Summit Sprint Visual Rebuild V14 build.' >&2
           exit 1
