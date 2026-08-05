@@ -1,4 +1,4 @@
-// Summit Sprint build chain. The core load fix stopped unchanged network polls from rebuilding the complete mountain DOM; later stages add state synchronization, reliable persistence, immediate queued controls, a continuous private input runway, component-wise opponent synchronization, stable startup/result cleanup, authoritative input rebasing, a faster active acknowledgement path, terminal Remote Bot polling shutdown, shared lifecycle regression protection, and the Phase 1 cinematic alpine visual foundation.
+// Summit Sprint build chain. The core load fix stopped unchanged network polls from rebuilding the complete mountain DOM; later stages add state synchronization, reliable persistence, immediate queued controls, a continuous private input runway, component-wise opponent synchronization, stable startup/result cleanup, authoritative input rebasing, a faster active acknowledgement path, terminal Remote Bot polling shutdown, shared lifecycle regression protection, the Phase 1 alpine foundation, and the V14 persistent visual reconstruction that removes white compositor flashes.
 await import('./patch-mountain-race-load-performance-core.mjs');
 await import('./patch-mountain-race-state-sync.mjs');
 await import('./patch-mountain-race-authoritative-order-v2.mjs');
@@ -23,3 +23,6 @@ await import('./patch-mountain-race-lifecycle-guard-v11.mjs');
 await import('./validate-mountain-race-lifecycle-guard-v11.mjs');
 await import('./patch-mountain-race-visual-foundation-v13.mjs');
 await import('./validate-mountain-race-visual-foundation-v13.mjs');
+await import('./patch-mountain-race-visual-rebuild-v14-preflight.mjs');
+await import('./patch-mountain-race-visual-rebuild-v14.mjs');
+await import('./validate-mountain-race-visual-rebuild-v14.mjs');
