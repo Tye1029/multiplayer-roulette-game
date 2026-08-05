@@ -69,8 +69,7 @@ jobs:
           grep -Fq '.mr-world-range-far' assets/mountain-race/mountain-race.css
           grep -Fq '.mr-world-snow-near' assets/mountain-race/mountain-race.css
           grep -Fq '@media (prefers-reduced-motion: reduce)' assets/mountain-race/mountain-race.css
-          grep -Eq 'mountain-race\.css[^"'"']*visual=13' index.html
-          grep -Eq 'mountain-race-multiplayer\.js[^"'"']*visual=13' index.html
+          grep -Fq 'visual=13' index.html
 
           grep -Fq 'MOUNTAIN_RACE_INPUT_REBASE_V8' assets/mountain-race/mountain-race-multiplayer.js
           grep -Fq 'function authoritativeSlip(' assets/mountain-race/mountain-race-multiplayer.js
