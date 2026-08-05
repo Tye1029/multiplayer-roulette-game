@@ -27,7 +27,7 @@ ${end}`;
 
 let html = await readFile(indexUrl, 'utf8');
 html = html.replace(pattern, '');
-if (!html.includes('</body>')) throw new Error('Summit Sprint mode option patch could not find </body>.');
-html = html.replace('</body>', `${block}\n</body>`);
+const htmlAnchor = html.includes('</body>') ? '</body>' : html.includes('</html>') ? '</html>' : '';
+html = htmlAnchor ? html.replace(htmlAnchor, `${block}\n${htmlAnchor}`) : `${html}\n${block}\n`;
 await writeFile(indexUrl, html);
 console.log('Ensured Summit Sprint is a selectable value in the shared multiplayer game creator.');
