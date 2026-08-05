@@ -2,11 +2,9 @@ import { readFile, writeFile } from 'node:fs/promises';
 
 const root = new URL('../', import.meta.url);
 const integrationUrl = new URL('netlify/functions/mountain-race/integration.js', root);
-const dataUrl = new URL('netlify/functions/_data.js', root);
 const indexUrl = new URL('index.html', root);
 
 const integrationMarker = '// MOUNTAIN_RACE_BOT_PACING_AND_NETWORK_LOG_V2';
-const completionGuardMarker = '// MOUNTAIN_RACE_PREMATURE_COMPLETION_GUARD_V2';
 const htmlMarker = '<!-- MOUNTAIN_RACE_NETWORK_BOT_LOG_V2 -->';
 const minStepIntervalMs = 800;
 
@@ -147,22 +145,6 @@ assert(integration.includes('networkBotLog: (() => {'), 'public Network Bot diag
 assert(integration.includes('winnerHolds < totalHolds && !timeoutResolution'), 'premature settlement guard is missing');
 await writeFile(integrationUrl, integration);
 
-let data = await readFile(dataUrl, 'utf8');
-if (!data.includes(completionGuardMarker)) {
-  const completionFunctionStart = /async function duelMaybeComplete\s*\([^)]*\)\s*\{\n/;
-  assert(completionFunctionStart.test(data), 'generic completion function was not found');
-  data = data.replace(completionFunctionStart, match => `${match}  ${completionGuardMarker}
-  // Summit Sprint has its own 24-hold/30-second completion authority. Never let
-  // the generic two-action resolver settle it after startup or a polling wake.
-  if (String(game?.mode || "") === "mountainrace") {
-    return await mountainRaceAdvanceAndSave(game);
-  }
-`);
-}
-assert(data.includes(completionGuardMarker), 'generic completion guard is missing');
-assert(data.includes('return await mountainRaceAdvanceAndSave(game);'), 'Summit Sprint is not routed to its authoritative completion driver');
-await writeFile(dataUrl, data);
-
 let html = await readFile(indexUrl, 'utf8');
 html = html
   .replace(/(["'])network poll\1/g, '$1network bot poll$1')
@@ -212,4 +194,4 @@ assert(html.includes(htmlMarker), 'Network Bot Log bootstrap marker is missing')
 assert(html.includes("element.textContent = 'Network Bot Log'"), 'second debug menu is not identified as the Network Bot Log');
 await writeFile(indexUrl, html);
 
-console.log('Prevented instant Summit Sprint completion: the generic resolver is bypassed, each Network Bot move is server-time gated, stale catch-up timestamps are removed, and the second debug menu is labeled Network Bot Log with authoritative bot diagnostics.');
+console.log('Prevented instant Summit Sprint completion: each Network Bot move is server-time gated, stale catch-up timestamps are removed, premature winner settlement is blocked, and the second debug menu is labeled Network Bot Log with authoritative bot diagnostics.');
