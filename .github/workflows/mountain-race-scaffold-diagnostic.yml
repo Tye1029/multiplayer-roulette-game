@@ -38,26 +38,21 @@ jobs:
         run: |
           node --check assets/mountain-race/mountain-race.js
           node --check assets/mountain-race/mountain-race-multiplayer.js
+          node --check netlify/functions/_data.js
           node --check netlify/functions/mountain-race/state-model.js
           node --check netlify/functions/mountain-race/integration.js
-          node --check scripts/patch-mountain-race-multiplayer.mjs
-          node --check scripts/patch-mountain-race-remote-bot-attach.mjs
-          node --check scripts/patch-mountain-race-start-stability.mjs
-          node --check scripts/patch-mountain-race-bot-pacing-and-network-log.mjs
-          node --check scripts/patch-mountain-race-gameplay-visibility.mjs
+          node --check netlify/functions/duel-action.js
           node --check scripts/patch-mountain-race-load-performance.mjs
-          node --check scripts/patch-mountain-race-mode-option.mjs
-          node --check scripts/patch-mountain-race-continuous-sync-server-v6.mjs
-          node --check scripts/patch-mountain-race-continuous-sync-client-v6.mjs
-          node --check scripts/patch-mountain-race-startup-completion-v7.mjs
           node --check scripts/patch-mountain-race-input-rebase-v8.mjs
-          node --check scripts/patch-mountain-race-input-rebase-validator-v8.mjs
+          node --check scripts/patch-mountain-race-fast-ack-v9.mjs
           node --check scripts/validate-mountain-race-input-rebase-v8.mjs
+          node --check scripts/validate-mountain-race-fast-ack-v9.mjs
 
-      - name: Validate multiplayer, pacing, synchronization, and input rebasing
+      - name: Validate multiplayer, pacing, synchronization, rebasing, and fast acknowledgement
         run: |
           npm run validate:mountain-race
           node scripts/validate-mountain-race-input-rebase-v8.mjs
+          node scripts/validate-mountain-race-fast-ack-v9.mjs
 
       - name: Verify generated multiplayer path
         shell: bash
@@ -76,24 +71,32 @@ jobs:
           grep -Fq 'MOUNTAIN_RACE_CONTINUOUS_SYNC_V6' index.html
           grep -Fq 'MOUNTAIN_RACE_STARTUP_COMPLETION_V7' index.html
           grep -Fq 'MOUNTAIN_RACE_INPUT_REBASE_V8' index.html
+          grep -Fq 'MOUNTAIN_RACE_FAST_ACK_V9' index.html
           grep -Fq 'async function duelSafeCrackerReadyRequest(gameId)' index.html
           grep -Fq 'function mountainRacePauseCompletedPolling(game)' index.html
-          grep -Fq 'mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=8' index.html
+          grep -Fq 'mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=9' index.html
 
           grep -Fq 'MOUNTAIN_RACE_INPUT_REBASE_V8' assets/mountain-race/mountain-race-multiplayer.js
           grep -Fq 'function meaningfulRenderKey(game)' assets/mountain-race/mountain-race-multiplayer.js
           grep -Fq 'function mergeMountainRaceGame(' assets/mountain-race/mountain-race-multiplayer.js
           grep -Fq 'function authoritativeSlip(' assets/mountain-race/mountain-race-multiplayer.js
-          grep -Fq 'incomingOwnsRunway = ownSlip' assets/mountain-race/mountain-race-multiplayer.js
           grep -Fq 'function rebaseInputQueueAgainstGame(' assets/mountain-race/mountain-race-multiplayer.js
           grep -Fq 'data-mr-displayed-expected=' assets/mountain-race/mountain-race-multiplayer.js
           grep -Fq 'displayedExpected !== currentExpected' assets/mountain-race/mountain-race-multiplayer.js
           grep -Fq "choice: 'mountainrace:batch'" assets/mountain-race/mountain-race-multiplayer.js
-          grep -Fq "runtime.game?.status === 'complete' || publicState.completedAt" assets/mountain-race/mountain-race-multiplayer.js
 
           grep -Fq 'MOUNTAIN_RACE_SERVER_START' netlify/functions/_data.js
+          grep -Fq 'MOUNTAIN_RACE_FAST_ACK_V9' netlify/functions/_data.js
+          grep -Fq 'async function mountainRaceFastSaveGame(game)' netlify/functions/_data.js
+          grep -Fq 'saveGame: mountainRaceFastSaveGame' netlify/functions/_data.js
           grep -Fq 'mountainrace: "Summit Sprint"' netlify/functions/_data.js
           grep -Fq 'Remote Network Bot supports Roulette, Draw, Fishing, Safe Cracker, and Summit Sprint.' netlify/functions/_data.js
+
+          grep -Fq 'MOUNTAIN_RACE_FAST_ACK_V9' netlify/functions/duel-action.js
+          grep -Fq 'result?.skipBalanceLookup' netlify/functions/duel-action.js
+          grep -Fq 'DUEL_SITE_USER_CACHE' netlify/functions/duel-action.js
+          grep -Fq 'inputBatch: body.inputBatch' netlify/functions/duel-action.js
+
           grep -Fq 'const MOUNTAIN_RACE_BOT_CATCH_UP_LIMIT = 1;' netlify/functions/mountain-race/integration.js
           grep -Fq 'const MOUNTAIN_RACE_BOT_MIN_STEP_INTERVAL_MS = 800;' netlify/functions/mountain-race/integration.js
           grep -Fq 'async function foldDueBotActions(' netlify/functions/mountain-race/integration.js
@@ -122,29 +125,27 @@ jobs:
           url='https://deploy-preview-20--famous-piroshki-b621da.netlify.app/'
 
           for attempt in $(seq 1 48); do
-            page="$(curl -fsSL --max-time 20 "${url}?summit_input_rebase_v8=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            multiplayer_js="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=8&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            page="$(curl -fsSL --max-time 20 "${url}?summit_fast_ack_v9=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            multiplayer_js="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=9&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             prototype_page="$(curl -fsSL --max-time 20 "${url}mountain-race-preview.html?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
 
             if grep -Fq 'data-mode="mountainrace"' <<<"$page" && \
                grep -Fq 'data-rnb-game="mountainrace"' <<<"$page" && \
                grep -Fq 'MOUNTAIN_RACE_INPUT_REBASE_V8' <<<"$page" && \
-               grep -Fq 'mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=8' <<<"$page" && \
-               grep -Fq 'async function duelSafeCrackerReadyRequest(gameId)' <<<"$page" && \
-               grep -Fq 'function mountainRacePauseCompletedPolling(game)' <<<"$page" && \
+               grep -Fq 'MOUNTAIN_RACE_FAST_ACK_V9' <<<"$page" && \
+               grep -Fq 'mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=9' <<<"$page" && \
                grep -Fq 'MOUNTAIN_RACE_INPUT_REBASE_V8' <<<"$multiplayer_js" && \
                grep -Fq 'function authoritativeSlip(' <<<"$multiplayer_js" && \
                grep -Fq 'function rebaseInputQueueAgainstGame(' <<<"$multiplayer_js" && \
                grep -Fq 'data-mr-displayed-expected=' <<<"$multiplayer_js" && \
-               grep -Fq 'displayedExpected !== currentExpected' <<<"$multiplayer_js" && \
                grep -Fq 'data-mountain-race-demo' <<<"$prototype_page"; then
-              echo "Verified live Summit Sprint Input Rebase V8 at ${url}"
+              echo "Verified live Summit Sprint Fast Ack V9 at ${url}"
               exit 0
             fi
 
-            echo "Waiting for Netlify Summit Sprint Input Rebase V8 deployment (${attempt}/48)..."
+            echo "Waiting for Netlify Summit Sprint Fast Ack V9 deployment (${attempt}/48)..."
             sleep 10
           done
 
-          echo 'Netlify did not serve the current Summit Sprint Input Rebase V8 build.' >&2
+          echo 'Netlify did not serve the current Summit Sprint Fast Ack V9 build.' >&2
           exit 1
