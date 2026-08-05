@@ -50,12 +50,13 @@ if (!startSource.includes(startAdditions)) {
 await writeFile(startValidatorUrl, startSource);
 
 let loadSource = await readFile(loadValidatorUrl, 'utf8');
-const loadAnchor = "assert(!html.includes('new MutationObserver(renameNetworkBotLog)'), 'the Network Bot Log still watches every DOM mutation');";
-const loadAdditions = `${loadAnchor}
-assert(html.includes('function mountainRacePauseCompletedPolling(game)'), 'completed Remote Bot races continue focused GET polling');
-assert(html.includes('window.__duelPollRate = 0;'), 'completed Remote Bot polling does not release the focused timer');`;
+const loadAnchor = "console.log('Summit Sprint load-performance validation passed: no permanent whole-page observer remains, log-label discovery is bounded, unchanged polls use a clock-only path, and protected games remain intact.');";
+const loadAdditions = `assert(html.includes('function mountainRacePauseCompletedPolling(game)'), 'completed Remote Bot races continue focused GET polling');
+assert(html.includes('window.__duelPollRate = 0;'), 'completed Remote Bot polling does not release the focused timer');
+
+${loadAnchor}`;
 if (!loadSource.includes(loadAdditions)) {
-  if (!loadSource.includes(loadAnchor)) throw new Error('Summit Sprint V7 load validator could not find its observer assertion.');
+  if (!loadSource.includes(loadAnchor)) throw new Error('Summit Sprint V7 load validator could not find its completion line.');
   loadSource = loadSource.replace(loadAnchor, loadAdditions);
 }
 await writeFile(loadValidatorUrl, loadSource);
