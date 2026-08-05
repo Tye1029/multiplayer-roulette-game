@@ -25,7 +25,7 @@ assert(client.includes('function mergeMountainRaceGame('), 'client does not merg
 assert(client.includes('me: mergePlayerProgress(previousState.me, incomingState.me)'), 'client does not preserve the newest local position');
 assert(client.includes('opponent: mergePlayerProgress(previousState.opponent, incomingState.opponent)'), 'client does not preserve the newest opponent position');
 assert(client.includes('presentation.prompts.slice(0, 4)'), 'client does not keep the visible prompt row limited to four arrows');
-assert(client.includes('runtime.inputQueue.filter(item => item.status === \'queued\').slice(0, 8)'), 'client does not send eight queued moves per request');
+assert(client.includes("runtime.inputQueue.filter(item => item.status === 'queued').slice(0, 8)"), 'client does not send eight queued moves per request');
 assert(client.includes('}, immediate ? 0 : 90);'), 'client queue flush cadence is not continuous');
 assert(html.includes('<!-- MOUNTAIN_RACE_CONTINUOUS_SYNC_V6 -->'), 'continuous-sync deployment marker is missing');
 assert(html.includes('differentRound && incoming.statusRank <= accepted.statusRank'), 'shared snapshot guard still rejects useful same-round opponent progress');`;
