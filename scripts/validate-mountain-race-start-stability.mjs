@@ -6,7 +6,8 @@ const deploymentMarker = '<!-- MOUNTAIN_RACE_START_STABILITY_V1 -->';
 const {
   MOUNTAIN_RACE_BOT_CATCH_UP_LIMIT,
   MOUNTAIN_RACE_BOT_REACTION_MIN_MS,
-  MOUNTAIN_RACE_BOT_REACTION_MAX_MS
+  MOUNTAIN_RACE_BOT_REACTION_MAX_MS,
+  MOUNTAIN_RACE_BOT_MIN_STEP_INTERVAL_MS
 } = integrationModule;
 
 const [data, html, integration, patch, multiplayerClient, safeCrackerClient, rouletteTurn] = await Promise.all([
@@ -26,10 +27,13 @@ function assert(condition, message) {
 assert(MOUNTAIN_RACE_BOT_CATCH_UP_LIMIT === 1, 'a delayed poll can still burst multiple bot moves');
 assert(MOUNTAIN_RACE_BOT_REACTION_MIN_MS === 520, 'minimum bot reaction delay changed');
 assert(MOUNTAIN_RACE_BOT_REACTION_MAX_MS === 760, 'maximum bot reaction delay changed');
+assert(MOUNTAIN_RACE_BOT_MIN_STEP_INTERVAL_MS === 800, 'hard server-time bot step interval changed');
 assert(integration.includes('const MOUNTAIN_RACE_BOT_CATCH_UP_LIMIT = 1;'), 'integration does not cap each wake to one move');
 assert(integration.includes('const MOUNTAIN_RACE_BOT_REACTION_MIN_MS = 520;'), 'integration lacks visible reaction pacing');
 assert(integration.includes('const MOUNTAIN_RACE_BOT_REACTION_MAX_MS = 760;'), 'integration lacks the reaction-delay ceiling');
-assert(integration.includes('scheduleFromMs: Date.now()'), 'the next bot move is still scheduled from an overdue timestamp');
+assert(integration.includes('const MOUNTAIN_RACE_BOT_MIN_STEP_INTERVAL_MS = 800;'), 'integration lacks the hard server-time pacing interval');
+assert(integration.includes('scheduleFromMs: currentNow'), 'the next bot move is still scheduled from an overdue timestamp');
+assert(integration.includes('currentNow < lastBotActionMs + MOUNTAIN_RACE_BOT_MIN_STEP_INTERVAL_MS'), 'concurrent polls can still advance the bot inside one pacing interval');
 assert(integration.includes('each request may execute only one due bot move'), 'single-wake pacing guard is missing');
 
 assert(data.includes('const effectiveStartMs = game?.mode === "mountainrace" ? atMs + 3000 : startMs;'), 'Summit Sprint does not own one three-second authoritative countdown');
@@ -53,4 +57,4 @@ assert(patch.includes('MOUNTAIN_RACE_BOT_CATCH_UP_LIMIT = 1'), 'patch does not s
 assert(safeCrackerClient.length > 0, 'protected Safe Cracker runtime is unreadable');
 assert(rouletteTurn.length > 0, 'protected Roulette turn runtime is unreadable');
 
-console.log('Summit Sprint start-stability validation passed: strong reads prevent transient startup failures, one Ready tap produces one three-second countdown, debug state is mode-correct, and the bot moves at a visible one-action-per-wake pace.');
+console.log('Summit Sprint start-stability validation passed: strong reads prevent transient startup failures, one Ready tap produces one three-second countdown, debug state is mode-correct, and concurrent polls cannot move the Network Bot faster than the authoritative server-time interval.');
