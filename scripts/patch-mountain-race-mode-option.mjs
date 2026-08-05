@@ -1,7 +1,9 @@
-import './patch-mountain-race-remote-bot-attach.mjs';
-import './patch-mountain-race-bot-pacing-and-network-log.mjs';
 import { readFile, writeFile } from 'node:fs/promises';
 
+// Remote Bot attachment and Network Bot pacing are executed explicitly and
+// sequentially by the package build before this file. Do not side-effect import
+// file-writing patch modules here: sibling top-level-await imports can overlap
+// reads and writes to index.html and make the generated page nondeterministic.
 const indexUrl = new URL('../index.html', import.meta.url);
 const start = '<!-- MOUNTAIN_RACE_MODE_OPTION_START -->';
 const end = '<!-- MOUNTAIN_RACE_MODE_OPTION_END -->';
@@ -53,4 +55,4 @@ if (!html.includes(startStabilityMarker)) throw new Error('Summit Sprint mode op
 if (!html.includes(networkBotLogMarker)) throw new Error('Summit Sprint mode option patch lost the Network Bot Log deployment marker.');
 if (!html.includes(networkBotLogLoopGuard)) throw new Error('Summit Sprint mode option patch could not install the Network Bot Log mutation-loop guard.');
 await writeFile(indexUrl, html);
-console.log('Ensured Summit Sprint is selectable, preserved deployment markers, and prevented the Network Bot Log observer from freezing the page.');
+console.log('Ensured Summit Sprint is selectable with deterministic sequential patch ownership, preserved deployment markers, and prevented the Network Bot Log observer from freezing the page.');
