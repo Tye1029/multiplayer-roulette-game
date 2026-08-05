@@ -35,10 +35,10 @@ for (const required of [
   "root.querySelector(':scope > .mountain-race-game')",
   'previousGameElement.replaceChildren(...nextGameElement.childNodes)',
   "root.dataset.mrVisualStable = '14'",
-  'class=\"mr-world-layer\"',
-  'class=\"mr-world-moon\"',
-  'class=\"mr-stage-ridge\"',
-  'class=\"mr-route-rope\"'
+  'class="mr-world-layer"',
+  'class="mr-world-moon"',
+  'class="mr-stage-ridge"',
+  'class="mr-route-rope"'
 ]) {
   assert(runtime.includes(required), `multiplayer runtime is missing ${required}`);
 }
