@@ -62,3 +62,5 @@ await import('./patch-mountain-race-climbers-v32.mjs');
 await import('./validate-mountain-race-climbers-v32.mjs');
 await import('./patch-mountain-race-climber-poses-v33.mjs');
 await import('./validate-mountain-race-climber-poses-v33.mjs');
+await import('./patch-mountain-race-motion-frames-v34.mjs');
+await import('./validate-mountain-race-motion-frames-v34.mjs');
