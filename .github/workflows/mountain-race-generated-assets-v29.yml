@@ -34,7 +34,7 @@ jobs:
       - name: Build exact Netlify output
         run: npm run build
 
-      - name: Validate exact generated V29 visuals
+      - name: Validate direct high-resolution V29 visuals
         shell: bash
         run: |
           set -euo pipefail
@@ -55,7 +55,13 @@ jobs:
           grep -Fq 'MOUNTAIN_RACE_GENERATED_ASSETS_V29' assets/mountain-race/mountain-race-multiplayer.js
           grep -Fq 'visual=29' index.html
           grep -Fq 'visual=29' mountain-race-preview.html
-          test -s assets/mountain-race/images/summit-sprint-generated-scene-v29.png
+          test -s assets/mountain-race/images/summit-sprint-sky-v29.png
+          test -s assets/mountain-race/images/summit-sprint-cliff-left-v29.png
+          test -s assets/mountain-race/images/summit-sprint-cliff-right-v29.png
+          test -s assets/mountain-race/images/summit-sprint-start-left-v29.png
+          test -s assets/mountain-race/images/summit-sprint-start-right-v29.png
+          test -s assets/mountain-race/images/summit-sprint-summit-left-v29.png
+          test -s assets/mountain-race/images/summit-sprint-summit-right-v29.png
           test -s assets/mountain-race/images/summit-sprint-hold-1-v29.png
           test -s assets/mountain-race/images/summit-sprint-hold-2-v29.png
           test -s assets/mountain-race/images/summit-sprint-hold-3-v29.png
@@ -76,13 +82,15 @@ jobs:
             page="$(curl -fsSL --max-time 20 "${url}?summit_generated_v29=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             runtime="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race-multiplayer.js?visual=29&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             styles="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race.css?visual=29&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            scene_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-generated-scene-v29.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            scene_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-sky-v29.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            cliff_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-cliff-left-v29.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             hold_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-hold-1-v29.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
 
             if grep -Fq 'visual=29' <<<"$page" && \
                grep -Fq 'MOUNTAIN_RACE_GENERATED_ASSETS_V29' <<<"$runtime" && \
                grep -Fq 'MOUNTAIN_RACE_GENERATED_ASSETS_V29' <<<"$styles" && \
                grep -Fqi 'content-type: image/png' <<<"$scene_headers" && \
+               grep -Fqi 'content-type: image/png' <<<"$cliff_headers" && \
                grep -Fqi 'content-type: image/png' <<<"$hold_headers"; then
               echo "Verified live Summit Sprint V29 assets at ${url}"
               exit 0
