@@ -1,6 +1,6 @@
 # Summit Sprint preview redeploy marker: generated-assets-v29
 [build]
-  command = "node scripts/netlify-mountain-race-v29-build.mjs"
+  command = "npm run build"
   publish = "."
   functions = "netlify/functions"
 
