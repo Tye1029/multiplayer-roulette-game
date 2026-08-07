@@ -19,9 +19,13 @@ const requiredAssets = new Map([
   ['summit-sprint-hold-3-v29.png', { width: 200, height: 130, length: 4181, sha256: 'ffe0dbefe5e27f34bcd7d397e0a40c5e52fd988cdc98bd5cff6d0c59b387bf2f' }]
 ]);
 
-const first = (await readFile(new URL('source-01.b64', sourceDirUrl), 'utf8')).replace(/\s+/g, '');
-const tail = (await readFile(new URL('source-08.b64', sourceDirUrl), 'utf8')).replace(/\s+/g, '');
-const packed = Buffer.from(first.repeat(7) + tail, 'base64');
+const sourceChunks = await Promise.all(
+  Array.from({ length: 8 }, async (_, index) => {
+    const name = `source-${String(index + 1).padStart(2, '0')}.b64`;
+    return (await readFile(new URL(name, sourceDirUrl), 'utf8')).replace(/\s+/g, '');
+  })
+);
+const packed = Buffer.from(sourceChunks.join(''), 'base64');
 const packSha = sha256(packed);
 if (packSha !== expectedPackSha256) throw new Error(`Summit Sprint V29 pack SHA mismatch: ${packSha}`);
 if (packed.subarray(0, 8).toString('ascii') !== 'SSV29PK1') throw new Error('Summit Sprint V29 pack signature is invalid.');
