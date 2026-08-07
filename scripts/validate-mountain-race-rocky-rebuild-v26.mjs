@@ -59,15 +59,16 @@ if (!css.includes('summit-sprint-hold-6-v26.png')) fail('separate physical hold 
 if (!html.includes('visual=26')) fail('main page V26 cache boundary is missing.');
 if (preview.includes('mountain-race.css?') && !preview.includes('visual=26')) fail('standalone preview V26 cache boundary is missing.');
 
-// Gameplay invariants: V26 must remain purely presentational.
+// Gameplay invariants: V26 must remain purely presentational. The existing V8,
+// V10 and V11 validators already run earlier in this build chain and own their
+// implementation-specific marker checks; V26 only verifies the live client path
+// it visually wraps has not lost the core input/rebase flow.
 for (const token of [
   "const MODE = 'mountainrace'",
   "choice: 'mountainrace:batch'",
   'function authoritativeSlip(',
   'function rebaseInputQueueAgainstGame(',
-  'MOUNTAIN_RACE_INPUT_REBASE_V8',
-  'MOUNTAIN_RACE_TERMINAL_POLL_V10',
-  'MOUNTAIN_RACE_LIFECYCLE_GUARD_V11'
+  'MOUNTAIN_RACE_INPUT_REBASE_V8'
 ]) {
   if (!runtime.includes(token)) fail(`protected Summit Sprint gameplay token is missing: ${token}`);
 }
