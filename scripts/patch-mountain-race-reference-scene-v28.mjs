@@ -1,7 +1,16 @@
+import { createHash } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import png01 from './mountain-race-v28-source/scene-png-01.mjs';
-import png02 from './mountain-race-v28-source/png-02.mjs';
-import png03 from './mountain-race-v28-source/png-03.mjs';
+import clean01 from './mountain-race-v28-source/clean-01.mjs';
+import clean02 from './mountain-race-v28-source/clean-02.mjs';
+import clean03 from './mountain-race-v28-source/clean-03.mjs';
+import clean04 from './mountain-race-v28-source/clean-04.mjs';
+import clean05 from './mountain-race-v28-source/clean-05.mjs';
+import clean06 from './mountain-race-v28-source/clean-06.mjs';
+import clean07 from './mountain-race-v28-source/clean-07.mjs';
+import clean08 from './mountain-race-v28-source/clean-08.mjs';
+import clean09 from './mountain-race-v28-source/clean-09.mjs';
+import clean10 from './mountain-race-v28-source/clean-10.mjs';
+import clean11 from './mountain-race-v28-source/clean-11.mjs';
 
 const rootUrl = new URL('../', import.meta.url);
 const cssUrl = new URL('assets/mountain-race/mountain-race.css', rootUrl);
@@ -11,8 +20,12 @@ const previewUrl = new URL('mountain-race-preview.html', rootUrl);
 const imageDirUrl = new URL('assets/mountain-race/images/', rootUrl);
 const sceneUrl = new URL('summit-sprint-reference-scene-v28.png', imageDirUrl);
 const marker = 'MOUNTAIN_RACE_REFERENCE_SCENE_V28';
+const expectedSha256 = '6321bb3278290497a29b02b29f97e414d0accc99ed49c2b3daae7efef01c3d54';
 
-const scene = Buffer.from(`${png01}${png02}${png03}`, 'base64');
+const scene = Buffer.from([
+  clean01, clean02, clean03, clean04, clean05, clean06,
+  clean07, clean08, clean09, clean10, clean11
+].join(''), 'base64');
 if (scene.length < 50000 || scene.subarray(0, 8).toString('hex') !== '89504e470d0a1a0a') {
   throw new Error('Summit Sprint V28 reference scene source is not a valid PNG.');
 }
@@ -20,6 +33,10 @@ const width = scene.readUInt32BE(16);
 const height = scene.readUInt32BE(20);
 if (width !== 360 || height !== 540) {
   throw new Error(`Summit Sprint V28 reference scene must be 360x540, got ${width}x${height}.`);
+}
+const sha256 = createHash('sha256').update(scene).digest('hex');
+if (sha256 !== expectedSha256) {
+  throw new Error(`Summit Sprint V28 source hash mismatch: expected ${expectedSha256}, got ${sha256}.`);
 }
 
 await mkdir(imageDirUrl, { recursive: true });
@@ -140,4 +157,4 @@ await Promise.all([
   writeFile(previewUrl, preview)
 ]);
 
-console.log(`Applied Summit Sprint V28 generated reference scene (${width}x${height}, ${scene.length} bytes).`);
+console.log(`Applied Summit Sprint V28 generated reference scene (${width}x${height}, ${scene.length} bytes, sha256 ${sha256}).`);
