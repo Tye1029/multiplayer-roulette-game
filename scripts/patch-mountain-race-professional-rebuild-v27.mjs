@@ -42,12 +42,14 @@ if (!runtime.includes(marker)) {
     'physical hold image layer'
   );
 
-  runtime = replaceRequired(
-    runtime,
-    '+ `<span class=\"mr-finish-ledge\" style=\"--mr-summit-bottom:${86 + total * 58}px\" aria-hidden=\"true\"><i></i><b>SUMMIT</b></span>`;',
-    "+ `<span class=\"mr-finish-ledge\" style=\"--mr-summit-bottom:${86 + total * 58}px\" aria-hidden=\"true\"><img class=\"mr-summit-art\" src=\"/assets/mountain-race/images/summit-sprint-summit-${side === 'me' ? 'left' : 'right'}-v27.png\" alt=\"\" draggable=\"false\"><i></i><b>SUMMIT</b></span>`;",
-    'summit image layer'
-  );
+  if (!runtime.includes('class="mr-summit-art"')) {
+    const summitPattern = /\+ `<span class="mr-finish-ledge(?: mr-summit-plateau)?" style="--mr-summit-bottom:\$\{86 \+ total \* 58\}px" aria-hidden="true">(?:<span class="mr-summit-turf"><\/span>)?<i><\/i><b>SUMMIT<\/b><\/span>`;/;
+    if (!summitPattern.test(runtime)) throw new Error('Summit Sprint V27 professional rebuild could not find summit image layer anchor.');
+    runtime = runtime.replace(
+      summitPattern,
+      "+ `<span class=\"mr-finish-ledge mr-summit-plateau\" style=\"--mr-summit-bottom:${86 + total * 58}px\" aria-hidden=\"true\"><img class=\"mr-summit-art\" src=\"/assets/mountain-race/images/summit-sprint-summit-${side === 'me' ? 'left' : 'right'}-v27.png\" alt=\"\" draggable=\"false\"><i></i><b>SUMMIT</b></span>`;"
+    );
+  }
 
   runtime = replaceRequired(
     runtime,
@@ -84,7 +86,12 @@ if (!css.includes(marker)) {
 [data-mountain-race-mount][data-mr-professional-rebuild="27"] > .mr-world-layer,
 [data-mountain-race-mount][data-mr-professional-rebuild="27"] .mr-concept-depth-v18,
 [data-mountain-race-mount][data-mr-professional-rebuild="27"] .mr-v17-cloud-bank,
-[data-mountain-race-mount][data-mr-professional-rebuild="27"] .mr-v17-wind-field {
+[data-mountain-race-mount][data-mr-professional-rebuild="27"] .mr-v17-wind-field,
+[data-mountain-race-mount][data-mr-professional-rebuild="27"] .mr-stage-ridge,
+[data-mountain-race-mount][data-mr-professional-rebuild="27"] .mr-route-depth,
+[data-mountain-race-mount][data-mr-professional-rebuild="27"] .mr-route-rope,
+[data-mountain-race-mount][data-mr-professional-rebuild="27"] .mr-start-meadow,
+[data-mountain-race-mount][data-mr-professional-rebuild="27"] .mr-summit-turf {
   display: none !important;
 }
 
@@ -100,7 +107,11 @@ if (!css.includes(marker)) {
 
 [data-mountain-race-mount][data-mr-professional-rebuild="27"] .mountain-race-game::before,
 [data-mountain-race-mount][data-mr-professional-rebuild="27"] .mountain-race-game::after,
-[data-mountain-race-mount][data-mr-professional-rebuild="27"] .mr-race-stage::before {
+[data-mountain-race-mount][data-mr-professional-rebuild="27"] .mr-race-stage::before,
+[data-mountain-race-mount][data-mr-professional-rebuild="27"] .mr-lane::before,
+[data-mountain-race-mount][data-mr-professional-rebuild="27"] .mr-lane::after,
+[data-mountain-race-mount][data-mr-professional-rebuild="27"] .mr-finish-ledge::before,
+[data-mountain-race-mount][data-mr-professional-rebuild="27"] .mr-finish-ledge::after {
   content: none !important;
   display: none !important;
 }
@@ -411,10 +422,10 @@ html = addCacheToken(html);
 preview = addCacheToken(preview);
 
 if (!runtime.includes(marker)) throw new Error('Summit Sprint V27 runtime marker is missing.');
-if (!runtime.includes('class=\"mr-cliff-art\"')) throw new Error('Summit Sprint V27 cliff image layer is missing.');
-if (!runtime.includes('class=\"mr-start-art\"')) throw new Error('Summit Sprint V27 start image layer is missing.');
-if (!runtime.includes('class=\"mr-hold-art\"')) throw new Error('Summit Sprint V27 hold image layer is missing.');
-if (!runtime.includes('class=\"mr-summit-art\"')) throw new Error('Summit Sprint V27 summit image layer is missing.');
+if (!runtime.includes('class="mr-cliff-art"')) throw new Error('Summit Sprint V27 cliff image layer is missing.');
+if (!runtime.includes('class="mr-start-art"')) throw new Error('Summit Sprint V27 start image layer is missing.');
+if (!runtime.includes('class="mr-hold-art"')) throw new Error('Summit Sprint V27 hold image layer is missing.');
+if (!runtime.includes('class="mr-summit-art"')) throw new Error('Summit Sprint V27 summit image layer is missing.');
 if (!css.includes(marker)) throw new Error('Summit Sprint V27 CSS marker is missing.');
 
 await Promise.all([
