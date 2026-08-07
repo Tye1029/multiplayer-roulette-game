@@ -66,3 +66,5 @@ await import('./patch-mountain-race-motion-frames-v34.mjs');
 await import('./validate-mountain-race-motion-frames-v34.mjs');
 await import('./patch-mountain-race-motion-smoothing-v35.mjs');
 await import('./validate-mountain-race-motion-smoothing-v35.mjs');
+await import('./patch-mountain-race-continuous-reach-v36.mjs');
+await import('./validate-mountain-race-continuous-reach-v36.mjs');

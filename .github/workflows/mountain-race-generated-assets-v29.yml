@@ -53,8 +53,8 @@ jobs:
 
           grep -Fq 'MOUNTAIN_RACE_GENERATED_ASSETS_V29' assets/mountain-race/mountain-race.css
           grep -Fq 'MOUNTAIN_RACE_GENERATED_ASSETS_V29' assets/mountain-race/mountain-race-multiplayer.js
-          grep -Fq 'visual=35' index.html
-          grep -Fq 'visual=35' mountain-race-preview.html
+          grep -Fq 'visual=36' index.html
+          grep -Fq 'visual=36' mountain-race-preview.html
           test -s assets/mountain-race/images/summit-sprint-sky-v29.png
           test -s assets/mountain-race/images/summit-sprint-cliff-left-v29.png
           test -s assets/mountain-race/images/summit-sprint-cliff-right-v29.png
@@ -80,13 +80,13 @@ jobs:
           url='https://deploy-preview-20--famous-piroshki-b621da.netlify.app/'
           for attempt in $(seq 1 72); do
             page="$(curl -fsSL --max-time 20 "${url}?summit_generated_v29=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            runtime="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race-multiplayer.js?visual=35&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            styles="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race.css?visual=35&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            runtime="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race-multiplayer.js?visual=36&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            styles="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race.css?visual=36&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             scene_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-sky-v29.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             cliff_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-cliff-left-v29.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             hold_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-hold-1-v29.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
 
-            if grep -Fq 'visual=35' <<<"$page" && \
+            if grep -Fq 'visual=36' <<<"$page" && \
                grep -Fq 'MOUNTAIN_RACE_GENERATED_ASSETS_V29' <<<"$runtime" && \
                grep -Fq 'MOUNTAIN_RACE_GENERATED_ASSETS_V29' <<<"$styles" && \
                grep -Fqi 'content-type: image/png' <<<"$scene_headers" && \
