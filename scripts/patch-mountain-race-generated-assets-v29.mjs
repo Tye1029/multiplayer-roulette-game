@@ -38,23 +38,29 @@ runtime = runtime
   .replaceAll("summit-sprint-summit-${side === 'me' ? 'left' : 'right'}-v27.png", "summit-sprint-summit-${side === 'me' ? 'left' : 'right'}-v29.png")
   .replace(/summit-sprint-hold-\$\{\(index % 8\) \+ 1\}-v27\.png/g, 'summit-sprint-hold-${(index % 3) + 1}-v29.png');
 
+runtime = runtime
+  .replaceAll('class="mr-hold-art" src="/assets/mountain-race/images/summit-sprint-hold-${(index % 3) + 1}-v29.png" alt="" draggable="false"', 'class="mr-hold-art" src="/assets/mountain-race/images/summit-sprint-hold-${(index % 3) + 1}-v29.png" width="1024" height="1536" alt="" decoding="async" draggable="false"')
+  .replaceAll('class="mr-summit-art" src="/assets/mountain-race/images/summit-sprint-summit-${side === \'me\' ? \'left\' : \'right\'}-v29.png" alt="" draggable="false"', 'class="mr-summit-art" src="/assets/mountain-race/images/summit-sprint-summit-${side === \'me\' ? \'left\' : \'right\'}-v29.png" width="1024" height="1536" alt="" decoding="async" loading="lazy" draggable="false"')
+  .replaceAll('<img src="/assets/mountain-race/images/summit-sprint-cliff-${side === \'me\' ? \'left\' : \'right\'}-v29.png" alt="" draggable="false">', '<img src="/assets/mountain-race/images/summit-sprint-cliff-${side === \'me\' ? \'left\' : \'right\'}-v29.png" width="1024" height="1536" alt="" decoding="async" fetchpriority="high" draggable="false">')
+  .replaceAll('class="mr-start-art" src="/assets/mountain-race/images/summit-sprint-start-${side === \'me\' ? \'left\' : \'right\'}-v29.png" alt="" draggable="false"', 'class="mr-start-art" src="/assets/mountain-race/images/summit-sprint-start-${side === \'me\' ? \'left\' : \'right\'}-v29.png" width="1024" height="1536" alt="" decoding="async" draggable="false"');
+
 if (!prototypeRuntime.includes(marker)) {
   prototypeRuntime = replaceRequired(
     prototypeRuntime,
     '      return `<span class="${classes}" style="--mr-hold-bottom:${bottom}px;--mr-hold-left:${left}%" aria-hidden="true"><b>${promptLabel(token)}</b></span>`;',
-    '      return `<span class="${classes}" style="--mr-hold-bottom:${bottom}px;--mr-hold-left:${left}%" aria-hidden="true"><img class="mr-hold-art" src="/assets/mountain-race/images/summit-sprint-hold-${(index % 3) + 1}-v29.png" alt="" draggable="false"><b>${promptLabel(token)}</b></span>`;',
+    '      return `<span class="${classes}" style="--mr-hold-bottom:${bottom}px;--mr-hold-left:${left}%" aria-hidden="true"><img class="mr-hold-art" src="/assets/mountain-race/images/summit-sprint-hold-${(index % 3) + 1}-v29.png" width="1024" height="1536" alt="" decoding="async" draggable="false"><b>${promptLabel(token)}</b></span>`;',
     'prototype hold image layer'
   );
   prototypeRuntime = replaceRequired(
     prototypeRuntime,
     '    return `${holds}<span class="mr-finish-ledge" style="--mr-summit-bottom:${summitBottom}px" aria-hidden="true"><i></i><b>SUMMIT</b></span>`;',
-    '    return `${holds}<span class="mr-finish-ledge mr-summit-plateau" style="--mr-summit-bottom:${summitBottom}px" aria-hidden="true"><img class="mr-summit-art" src="/assets/mountain-race/images/summit-sprint-summit-${playerKey === \'me\' ? \'left\' : \'right\'}-v29.png" alt="" draggable="false"><i></i><b>SUMMIT</b></span>`;',
+    '    return `${holds}<span class="mr-finish-ledge mr-summit-plateau" style="--mr-summit-bottom:${summitBottom}px" aria-hidden="true"><img class="mr-summit-art" src="/assets/mountain-race/images/summit-sprint-summit-${playerKey === \'me\' ? \'left\' : \'right\'}-v29.png" width="1024" height="1536" alt="" decoding="async" loading="lazy" draggable="false"><i></i><b>SUMMIT</b></span>`;',
     'prototype summit image layer'
   );
   prototypeRuntime = replaceRequired(
     prototypeRuntime,
     '<div class="mr-mountain-wall" style="--mr-wall-scroll:${scroll}px">',
-    '<div class="mr-mountain-wall" style="--mr-wall-scroll:${scroll}px">\n            <picture class="mr-cliff-art" aria-hidden="true"><img src="/assets/mountain-race/images/summit-sprint-cliff-${playerKey === \'me\' ? \'left\' : \'right\'}-v29.png" alt="" draggable="false"></picture>\n            <img class="mr-start-art" src="/assets/mountain-race/images/summit-sprint-start-${playerKey === \'me\' ? \'left\' : \'right\'}-v29.png" alt="" draggable="false">',
+    '<div class="mr-mountain-wall" style="--mr-wall-scroll:${scroll}px">\n            <picture class="mr-cliff-art" aria-hidden="true"><img src="/assets/mountain-race/images/summit-sprint-cliff-${playerKey === \'me\' ? \'left\' : \'right\'}-v29.png" width="1024" height="1536" alt="" decoding="async" fetchpriority="high" draggable="false"></picture>\n            <img class="mr-start-art" src="/assets/mountain-race/images/summit-sprint-start-${playerKey === \'me\' ? \'left\' : \'right\'}-v29.png" width="1024" height="1536" alt="" decoding="async" draggable="false">',
     'prototype cliff and start image layers'
   );
   prototypeRuntime = replaceRequired(
@@ -68,6 +74,12 @@ if (!prototypeRuntime.includes(marker)) {
     'prototype V29 activation'
   );
 }
+
+prototypeRuntime = prototypeRuntime
+  .replaceAll('class="mr-hold-art" src="/assets/mountain-race/images/summit-sprint-hold-${(index % 3) + 1}-v29.png" alt="" draggable="false"', 'class="mr-hold-art" src="/assets/mountain-race/images/summit-sprint-hold-${(index % 3) + 1}-v29.png" width="1024" height="1536" alt="" decoding="async" draggable="false"')
+  .replaceAll('class="mr-summit-art" src="/assets/mountain-race/images/summit-sprint-summit-${playerKey === \'me\' ? \'left\' : \'right\'}-v29.png" alt="" draggable="false"', 'class="mr-summit-art" src="/assets/mountain-race/images/summit-sprint-summit-${playerKey === \'me\' ? \'left\' : \'right\'}-v29.png" width="1024" height="1536" alt="" decoding="async" loading="lazy" draggable="false"')
+  .replaceAll('<img src="/assets/mountain-race/images/summit-sprint-cliff-${playerKey === \'me\' ? \'left\' : \'right\'}-v29.png" alt="" draggable="false">', '<img src="/assets/mountain-race/images/summit-sprint-cliff-${playerKey === \'me\' ? \'left\' : \'right\'}-v29.png" width="1024" height="1536" alt="" decoding="async" fetchpriority="high" draggable="false">')
+  .replaceAll('class="mr-start-art" src="/assets/mountain-race/images/summit-sprint-start-${playerKey === \'me\' ? \'left\' : \'right\'}-v29.png" alt="" draggable="false"', 'class="mr-start-art" src="/assets/mountain-race/images/summit-sprint-start-${playerKey === \'me\' ? \'left\' : \'right\'}-v29.png" width="1024" height="1536" alt="" decoding="async" draggable="false"');
 
 if (!css.includes(marker)) {
   css += String.raw`
@@ -170,6 +182,14 @@ if (!css.includes(marker)) {
 }
 [data-mountain-race-mount][data-mr-generated-assets="29"] .mr-finish-ledge > i,
 [data-mountain-race-mount][data-mr-generated-assets="29"] .mr-finish-ledge > b { z-index: 4 !important; }
+[data-mountain-race-mount][data-mr-generated-assets="29"] .mr-finish-ledge > i,
+[data-mountain-race-mount][data-mr-generated-assets="29"] .mr-finish-ledge::before,
+[data-mountain-race-mount][data-mr-generated-assets="29"] .mr-finish-ledge::after,
+[data-mountain-race-mount][data-mr-generated-assets="29"] .mr-rock-hold::before,
+[data-mountain-race-mount][data-mr-generated-assets="29"] .mr-rock-hold::after {
+  content: none !important;
+  display: none !important;
+}
 [data-mountain-race-mount][data-mr-generated-assets="29"] .mr-rock-hold {
   z-index: 13 !important;
   width: 92px !important;
@@ -206,8 +226,15 @@ if (!css.includes(marker)) {
 `;
 }
 
-html = html.replace(/visual=\d+/g, 'visual=29');
-preview = preview.replace(/visual=\d+/g, 'visual=29');
+const preloadMarker = '<!-- MOUNTAIN_RACE_V29_PRELOADS -->';
+const preloadLinks = `${preloadMarker}
+  <link rel="preload" as="image" href="/assets/mountain-race/images/summit-sprint-sky-v29.png" fetchpriority="high">
+  <link rel="preload" as="image" href="/assets/mountain-race/images/summit-sprint-cliff-left-v29.png" fetchpriority="high">
+  <link rel="preload" as="image" href="/assets/mountain-race/images/summit-sprint-cliff-right-v29.png" fetchpriority="high">`;
+if (!html.includes(preloadMarker)) html = html.replace('</head>', `${preloadLinks}\n</head>`);
+if (!preview.includes(preloadMarker)) preview = preview.replace('</head>', `${preloadLinks}\n</head>`);
+html = html.replace(/(?:&visual=\d+)+/g, '&visual=30');
+preview = preview.replace(/(?:&visual=\d+)+/g, '&visual=30');
 
 for (const token of [
   marker,
@@ -220,7 +247,8 @@ for (const token of [
   if (!runtime.includes(token)) throw new Error(`Summit Sprint V29 runtime token missing: ${token}`);
 }
 if (!css.includes(marker) || !css.includes('summit-sprint-sky-v29.png')) throw new Error('Summit Sprint V29 CSS activation missing.');
-if (!html.includes('visual=29') || !preview.includes('visual=29')) throw new Error('Summit Sprint V29 cache boundary missing.');
+if (!html.includes('visual=30') || !preview.includes('visual=30')) throw new Error('Summit Sprint V29 cache boundary missing.');
+if (!html.includes(preloadMarker) || !preview.includes(preloadMarker)) throw new Error('Summit Sprint V29 preload hints missing.');
 
 await Promise.all([
   writeFile(cssUrl, css),

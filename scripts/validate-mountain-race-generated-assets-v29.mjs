@@ -68,7 +68,10 @@ for (const token of [
   'summit-sprint-summit-${playerKey === \'me\' ? \'left\' : \'right\'}-v29.png',
   'summit-sprint-hold-${(index % 3) + 1}-v29.png'
 ]) if (!prototypeRuntime.includes(token)) fail(`prototype runtime token missing: ${token}`);
-if (!html.includes('visual=29') || !preview.includes('visual=29')) fail('V29 cache boundary missing');
+if (!html.includes('visual=30') || !preview.includes('visual=30')) fail('V29 cache boundary missing');
+for (const asset of ['summit-sprint-sky-v29.png', 'summit-sprint-cliff-left-v29.png', 'summit-sprint-cliff-right-v29.png']) {
+  if (!html.includes(`rel="preload" as="image" href="/assets/mountain-race/images/${asset}"`)) fail(`V29 preload missing: ${asset}`);
+}
 if (css.includes('data-mr-generated-assets="29"] .mr-cliff-art img {\n  width: 100%')) fail('V29 cliff art is non-uniformly stretched');
 
 console.log(`Validated ${assets.length} direct high-resolution V29 PNGs, native aspect-ratio image layers, live directional holds, and gameplay invariants.`);
