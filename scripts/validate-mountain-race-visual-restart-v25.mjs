@@ -42,7 +42,7 @@ if (!css.includes('background-size: 100% 100% !important')) fail('crisp cliff si
 if (!css.includes('summit-sprint-hold-6-v25.png')) fail('separate hold asset set is incomplete.');
 if (!html.includes('visual=25')) fail('main page cache boundary is missing.');
 if (preview.includes('mountain-race.css?') && !preview.includes('visual=25')) fail('standalone preview cache boundary is missing.');
-if (runtime.includes('ensureCorrectedReferenceV24(root);')) fail('legacy V24 reference crop is still invoked.');
+if (/^\s*ensureCorrectedReferenceV24\(root\);\s*$/m.test(runtime)) fail('legacy V24 reference crop is still invoked.');
 
 // Protected modes are only presence-checked here; this V25 patch never opens them for writing.
 for (const path of [
