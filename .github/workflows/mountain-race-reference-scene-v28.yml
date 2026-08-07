@@ -1,4 +1,4 @@
-name: Summit Sprint Reference Scene V28
+name: Summit Sprint Generated Assets V29
 
 on:
   pull_request:
@@ -9,14 +9,14 @@ on:
       - mountain-race-development
 
 concurrency:
-  group: summit-sprint-reference-scene-v28-${{ github.ref }}
+  group: summit-sprint-generated-assets-v29-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
-  validate-reference-scene:
+  validate-generated-assets:
     runs-on: ubuntu-latest
     timeout-minutes: 18
     steps:
@@ -31,17 +31,14 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Build exact Netlify output
-        run: npm run build
+      - name: Build exact Netlify V29 output
+        run: node scripts/netlify-mountain-race-v29-build.mjs
 
-      - name: Validate V28 generated reference scene
+      - name: Validate generated scene and gameplay regressions
         shell: bash
         run: |
           set -euo pipefail
-          node --check scripts/patch-mountain-race-reference-scene-v28.mjs
-          node --check scripts/validate-mountain-race-reference-scene-v28.mjs
-          node scripts/validate-mountain-race-reference-scene-v28.mjs
-
+          node scripts/validate-mountain-race-generated-assets-v29-final.mjs
           node scripts/validate-mountain-race-input-rebase-v8.mjs
           node scripts/validate-mountain-race-fast-ack-v9.mjs
           node scripts/validate-mountain-race-terminal-poll-v10.mjs
@@ -50,40 +47,43 @@ jobs:
           node scripts/validate-mountain-race-start-stability.mjs
           node scripts/validate-mountain-race-gameplay-visibility.mjs
           node scripts/validate-mountain-race-load-performance.mjs
-
-          grep -Fq 'MOUNTAIN_RACE_REFERENCE_SCENE_V28' assets/mountain-race/mountain-race.css
-          grep -Fq 'MOUNTAIN_RACE_REFERENCE_SCENE_V28' assets/mountain-race/mountain-race-multiplayer.js
-          grep -Fq 'visual=28' index.html
-          grep -Fq 'visual=28' mountain-race-preview.html
-          test -s assets/mountain-race/images/summit-sprint-reference-scene-v28.png
-
+          grep -Fq 'MOUNTAIN_RACE_GENERATED_ASSETS_V29' assets/mountain-race/mountain-race.css
+          grep -Fq 'MOUNTAIN_RACE_GENERATED_ASSETS_V29' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'visual=29' index.html
+          grep -Fq 'visual=29' mountain-race-preview.html
+          test -s assets/mountain-race/images/summit-sprint-generated-scene-v29.png
+          test -s assets/mountain-race/images/summit-sprint-hold-1-v29.png
+          test -s assets/mountain-race/images/summit-sprint-hold-2-v29.png
+          test -s assets/mountain-race/images/summit-sprint-hold-3-v29.png
           test -s assets/safe-cracker/safe-cracker.js
           test -s assets/safe-cracker/safe-cracker.css
           test -s assets/roulette/turn-animation.js
           test -s assets/roulette/turn-fire.js
           test -s assets/roulette/audio-bindings.js
 
-      - name: Verify live Netlify V28 deployment
+      - name: Verify live Netlify V29 deployment
         if: github.event_name == 'pull_request'
         shell: bash
         run: |
           set -euo pipefail
           url='https://deploy-preview-20--famous-piroshki-b621da.netlify.app/'
           for attempt in $(seq 1 72); do
-            page="$(curl -fsSL --max-time 20 "${url}?summit_reference_v28=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            runtime="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race-multiplayer.js?visual=28&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            styles="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race.css?visual=28&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            scene_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-reference-scene-v28.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            page="$(curl -fsSL --max-time 20 "${url}?summit_v29=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            runtime="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race-multiplayer.js?visual=29&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            styles="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race.css?visual=29&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            scene_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-generated-scene-v29.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            hold_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-hold-1-v29.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
 
-            if grep -Fq 'visual=28' <<<"$page" && \
-               grep -Fq 'MOUNTAIN_RACE_REFERENCE_SCENE_V28' <<<"$runtime" && \
-               grep -Fq 'MOUNTAIN_RACE_REFERENCE_SCENE_V28' <<<"$styles" && \
-               grep -Fqi 'content-type: image/png' <<<"$scene_headers"; then
-              echo "Verified live Summit Sprint Reference Scene V28 at ${url}"
+            if grep -Fq 'visual=29' <<<"$page" && \
+               grep -Fq 'MOUNTAIN_RACE_GENERATED_ASSETS_V29' <<<"$runtime" && \
+               grep -Fq 'MOUNTAIN_RACE_GENERATED_ASSETS_V29' <<<"$styles" && \
+               grep -Fqi 'content-type: image/png' <<<"$scene_headers" && \
+               grep -Fqi 'content-type: image/png' <<<"$hold_headers"; then
+              echo "Verified live Summit Sprint V29 at ${url}"
               exit 0
             fi
-            echo "Waiting for Netlify Summit Sprint V28 (${attempt}/72)..."
+            echo "Waiting for Netlify Summit Sprint V29 (${attempt}/72)..."
             sleep 10
           done
-          echo 'Netlify did not serve the Summit Sprint V28 generated reference scene.' >&2
+          echo 'Netlify did not serve Summit Sprint V29.' >&2
           exit 1
