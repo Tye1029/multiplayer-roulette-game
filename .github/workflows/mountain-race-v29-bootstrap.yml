@@ -1,0 +1,406 @@
+name: Summit Sprint V29 Bootstrap
+
+on:
+  push:
+    branches:
+      - mountain-race-development
+
+permissions:
+  contents: write
+
+jobs:
+  finalize-v29:
+    if: ${{ !contains(github.event.head_commit.message, '[v29-finalized]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact branch head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Use Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Record current SHAs before updates
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "patch_sha=$(git hash-object scripts/patch-mountain-race-generated-assets-v29.mjs)"
+          echo "validator_sha=$(git hash-object scripts/validate-mountain-race-generated-assets-v29.mjs)"
+          echo "v28_workflow_sha=$(git hash-object .github/workflows/mountain-race-reference-scene-v28.yml)"
+          echo "bootstrap_sha=$(git hash-object .github/workflows/mountain-race-v29-bootstrap.yml)"
+
+      - name: Write final V29 generated-asset patch
+        shell: bash
+        run: |
+          cat > scripts/patch-mountain-race-generated-assets-v29.mjs <<'EOF'
+          import { createHash } from 'node:crypto';
+          import { mkdir, readFile, writeFile } from 'node:fs/promises';
+
+          const rootUrl = new URL('../', import.meta.url);
+          const sourceDirUrl = new URL('./mountain-race-v29-source-clean/', import.meta.url);
+          const imageDirUrl = new URL('assets/mountain-race/images/', rootUrl);
+          const cssUrl = new URL('assets/mountain-race/mountain-race.css', rootUrl);
+          const runtimeUrl = new URL('assets/mountain-race/mountain-race-multiplayer.js', rootUrl);
+          const indexUrl = new URL('index.html', rootUrl);
+          const previewUrl = new URL('mountain-race-preview.html', rootUrl);
+          const marker = 'MOUNTAIN_RACE_GENERATED_ASSETS_V29';
+          const expectedPackSha256 = '45f635e88477541dc00a066b4a23172cdbf2a9eb0d1119118fd00bffd354e4c0';
+          const expectedAssets = [
+            ['summit-sprint-generated-scene-v29.png', { width: 360, height: 540, length: 96419, sha256: '6a756f305dd718621f375090dbd345d3f606db88c3e4e8a7a1897450ecf277b8' }],
+            ['summit-sprint-hold-1-v29.png', { width: 180, height: 115, length: 4205, sha256: '8528b391c327e7c23f4d29bd4e6411f39108f8d5419f6ce504aa4949e8c35cb0' }],
+            ['summit-sprint-hold-2-v29.png', { width: 180, height: 89, length: 3621, sha256: 'e236378fab23d6813e9d6b8c7ef5062e00b2f2ae18c83061a7787cf086a0715d' }],
+            ['summit-sprint-hold-3-v29.png', { width: 180, height: 85, length: 3399, sha256: 'e1778cfa6ee3ad05a3ea6d57f1745ff8730348c6173712ab9a29693e2d8972f6' }]
+          ];
+
+          const sourceChunks = await Promise.all(
+            Array.from({ length: 13 }, async (_, index) => {
+              const name = `part-${String(index + 1).padStart(2, '0')}.b64`;
+              const raw = await readFile(new URL(name, sourceDirUrl), 'utf8');
+              const clean = raw.replace(/\s+/g, '');
+              const expectedLength = index === 12 ? 380 : 12000;
+              if (clean.length !== expectedLength) throw new Error(`Summit Sprint V29 source ${name} expected ${expectedLength} chars, got ${clean.length}.`);
+              return clean;
+            })
+          );
+
+          const pack = Buffer.from(sourceChunks.join(''), 'base64');
+          const packSha = createHash('sha256').update(pack).digest('hex');
+          if (packSha !== expectedPackSha256) throw new Error(`Summit Sprint V29 pack SHA mismatch: ${packSha}`);
+          if (pack.subarray(0, 8).toString('ascii') !== 'SSV29PK1') throw new Error('Summit Sprint V29 pack signature mismatch.');
+
+          let manifestLength = pack.readUInt32BE(8);
+          if (!(manifestLength > 0 && manifestLength < 100000 && 12 + manifestLength < pack.length)) {
+            manifestLength = pack.readUInt32LE(8);
+          }
+          if (!(manifestLength > 0 && manifestLength < 100000 && 12 + manifestLength < pack.length)) throw new Error('Summit Sprint V29 manifest length is invalid.');
+          const manifest = JSON.parse(pack.subarray(12, 12 + manifestLength).toString('utf8'));
+          if (!manifest) throw new Error('Summit Sprint V29 manifest is empty.');
+
+          let cursor = 12 + manifestLength;
+          await mkdir(imageDirUrl, { recursive: true });
+          for (const [name, expected] of expectedAssets) {
+            const bytes = pack.subarray(cursor, cursor + expected.length);
+            cursor += expected.length;
+            if (bytes.length !== expected.length || bytes.subarray(0, 8).toString('hex') !== '89504e470d0a1a0a') throw new Error(`${name} is not the expected PNG payload.`);
+            if (bytes.readUInt32BE(16) !== expected.width || bytes.readUInt32BE(20) !== expected.height) throw new Error(`${name} dimensions do not match the generated source.`);
+            const sha = createHash('sha256').update(bytes).digest('hex');
+            if (sha !== expected.sha256) throw new Error(`${name} SHA mismatch: ${sha}`);
+            await writeFile(new URL(name, imageDirUrl), bytes);
+          }
+          if (cursor !== pack.length) throw new Error(`Summit Sprint V29 pack has ${pack.length - cursor} unexpected trailing bytes.`);
+
+          let [css, runtime, html, preview] = await Promise.all([
+            readFile(cssUrl, 'utf8'),
+            readFile(runtimeUrl, 'utf8'),
+            readFile(indexUrl, 'utf8'),
+            readFile(previewUrl, 'utf8')
+          ]);
+
+          if (!runtime.includes(marker)) {
+            const anchor = "    root.dataset.mrProfessionalRebuild = '27';";
+            if (!runtime.includes(anchor)) throw new Error('Summit Sprint V29 could not find the V27 runtime activation anchor.');
+            runtime = runtime.replace(anchor, `${anchor}\n    // ${marker}\n    // Generated reference-matched PNGs are visual-only. Authoritative holds, inputs,\n    // climbers, synchronization, timers, bots and results remain live DOM/game state.\n    root.dataset.mrGeneratedAssets = '29';`);
+          }
+
+          runtime = runtime.replace(/summit-sprint-hold-\$\{\(index % 8\) \+ 1\}-v27\.png/g, 'summit-sprint-hold-${(index % 3) + 1}-v29.png');
+
+          if (!css.includes(marker)) {
+            css += String.raw`
+
+          /* MOUNTAIN_RACE_GENERATED_ASSETS_V29
+             Reference-matched generated PNG presentation. The 360x540 two-cliff scene
+             is split into two exact 1:3 lane windows using proportional height scaling,
+             so its source aspect ratio is preserved with no texture tiling or stretching. */
+          [data-mountain-race-mount][data-mr-generated-assets="29"] {
+            background: #9fc3d0 !important;
+          }
+          [data-mountain-race-mount][data-mr-generated-assets="29"] .mountain-race-game {
+            background: transparent !important;
+          }
+          [data-mountain-race-mount][data-mr-generated-assets="29"] .mr-race-stage {
+            width: min(100%, 600px) !important;
+            max-width: 600px !important;
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            gap: 0 !important;
+            padding: 0 !important;
+            margin-inline: auto !important;
+            background: transparent !important;
+          }
+          [data-mountain-race-mount][data-mr-generated-assets="29"] .mr-lane {
+            min-width: 0 !important;
+            border: 0 !important;
+            border-radius: 0 !important;
+            background: transparent !important;
+            box-shadow: none !important;
+            overflow: visible !important;
+          }
+          [data-mountain-race-mount][data-mr-generated-assets="29"] .mr-climb-viewport {
+            width: 100% !important;
+            height: auto !important;
+            min-height: 0 !important;
+            aspect-ratio: 1 / 3 !important;
+            border: 0 !important;
+            border-radius: 0 !important;
+            overflow: hidden !important;
+            background-color: #9fc3d0 !important;
+            background-image: url('/assets/mountain-race/images/summit-sprint-generated-scene-v29.png') !important;
+            background-repeat: no-repeat !important;
+            background-size: auto 100% !important;
+            box-shadow: none !important;
+          }
+          [data-mountain-race-mount][data-mr-generated-assets="29"] .mr-lane:first-child .mr-climb-viewport { background-position: left center !important; }
+          [data-mountain-race-mount][data-mr-generated-assets="29"] .mr-lane:last-child .mr-climb-viewport { background-position: right center !important; }
+          [data-mountain-race-mount][data-mr-generated-assets="29"] .mr-climb-viewport::before,
+          [data-mountain-race-mount][data-mr-generated-assets="29"] .mr-climb-viewport::after,
+          [data-mountain-race-mount][data-mr-generated-assets="29"] .mr-lane::before,
+          [data-mountain-race-mount][data-mr-generated-assets="29"] .mr-lane::after {
+            content: none !important;
+            display: none !important;
+          }
+          [data-mountain-race-mount][data-mr-generated-assets="29"] .mr-cliff-art,
+          [data-mountain-race-mount][data-mr-generated-assets="29"] .mr-start-art,
+          [data-mountain-race-mount][data-mr-generated-assets="29"] .mr-summit-art {
+            display: none !important;
+          }
+          [data-mountain-race-mount][data-mr-generated-assets="29"] .mr-mountain-wall {
+            background: none !important;
+            border: 0 !important;
+            border-radius: 0 !important;
+            clip-path: none !important;
+            box-shadow: none !important;
+            filter: none !important;
+          }
+          [data-mountain-race-mount][data-mr-generated-assets="29"] .mr-mountain-wall::before,
+          [data-mountain-race-mount][data-mr-generated-assets="29"] .mr-mountain-wall::after { content: none !important; display: none !important; }
+          [data-mountain-race-mount][data-mr-generated-assets="29"] .mr-rock-hold {
+            z-index: 12 !important;
+            width: 68px !important;
+            height: 46px !important;
+            border: 0 !important;
+            border-radius: 0 !important;
+            background: none !important;
+            box-shadow: none !important;
+            filter: drop-shadow(0 6px 5px rgba(0,0,0,.5)) !important;
+          }
+          [data-mountain-race-mount][data-mr-generated-assets="29"] .mr-hold-art {
+            position: absolute !important;
+            inset: 0 !important;
+            z-index: 1 !important;
+            display: block !important;
+            width: 100% !important;
+            height: 100% !important;
+            max-width: none !important;
+            object-fit: contain !important;
+            pointer-events: none !important;
+          }
+          [data-mountain-race-mount][data-mr-generated-assets="29"] .mr-rock-hold b {
+            z-index: 4 !important;
+            width: 27px !important;
+            height: 27px !important;
+            min-width: 0 !important;
+            min-height: 0 !important;
+            border: 1px solid rgba(255,255,255,.5) !important;
+            border-radius: 50% !important;
+            background: rgba(7,12,13,.82) !important;
+            color: #fff !important;
+            box-shadow: 0 3px 8px rgba(0,0,0,.45) !important;
+          }
+          [data-mountain-race-mount][data-mr-generated-assets="29"] .mr-climber {
+            z-index: 18 !important;
+            filter: drop-shadow(0 7px 5px rgba(0,0,0,.5)) !important;
+          }
+          @media (max-width: 520px) {
+            [data-mountain-race-mount][data-mr-generated-assets="29"] .mr-race-stage { width: 100% !important; }
+            [data-mountain-race-mount][data-mr-generated-assets="29"] .mr-rock-hold { width: 58px !important; height: 39px !important; }
+            [data-mountain-race-mount][data-mr-generated-assets="29"] .mr-rock-hold b { width: 25px !important; height: 25px !important; }
+          }
+          `;
+          }
+
+          const cache29 = source => source.replace(/visual=\d+/g, 'visual=29');
+          html = cache29(html);
+          preview = cache29(preview);
+
+          if (!runtime.includes(marker) || !runtime.includes("root.dataset.mrGeneratedAssets = '29';")) throw new Error('Summit Sprint V29 runtime activation is missing.');
+          if (!runtime.includes('summit-sprint-hold-${(index % 3) + 1}-v29.png')) throw new Error('Summit Sprint V29 live hold mapping is missing.');
+          if (!css.includes(marker) || !css.includes('summit-sprint-generated-scene-v29.png')) throw new Error('Summit Sprint V29 CSS activation is missing.');
+          if (!html.includes('visual=29') || !preview.includes('visual=29')) throw new Error('Summit Sprint V29 cache boundary is missing.');
+
+          await Promise.all([
+            writeFile(cssUrl, css),
+            writeFile(runtimeUrl, runtime),
+            writeFile(indexUrl, html),
+            writeFile(previewUrl, preview)
+          ]);
+          console.log(`Applied Summit Sprint V29 generated scene and ${expectedAssets.length - 1} live ledge assets from verified pack ${packSha}.`);
+          EOF
+
+      - name: Write final V29 validator
+        shell: bash
+        run: |
+          cat > scripts/validate-mountain-race-generated-assets-v29.mjs <<'EOF'
+          import { createHash } from 'node:crypto';
+          import { readFile, stat } from 'node:fs/promises';
+
+          const rootUrl = new URL('../', import.meta.url);
+          const marker = 'MOUNTAIN_RACE_GENERATED_ASSETS_V29';
+          const imageDirUrl = new URL('assets/mountain-race/images/', rootUrl);
+          const expectedAssets = [
+            ['summit-sprint-generated-scene-v29.png', { width: 360, height: 540, length: 96419, sha256: '6a756f305dd718621f375090dbd345d3f606db88c3e4e8a7a1897450ecf277b8' }],
+            ['summit-sprint-hold-1-v29.png', { width: 180, height: 115, length: 4205, sha256: '8528b391c327e7c23f4d29bd4e6411f39108f8d5419f6ce504aa4949e8c35cb0' }],
+            ['summit-sprint-hold-2-v29.png', { width: 180, height: 89, length: 3621, sha256: 'e236378fab23d6813e9d6b8c7ef5062e00b2f2ae18c83061a7787cf086a0715d' }],
+            ['summit-sprint-hold-3-v29.png', { width: 180, height: 85, length: 3399, sha256: 'e1778cfa6ee3ad05a3ea6d57f1745ff8730348c6173712ab9a29693e2d8972f6' }]
+          ];
+          const fail = message => { throw new Error(`Summit Sprint V29 validation failed: ${message}`); };
+
+          for (const [name, expected] of expectedAssets) {
+            const url = new URL(name, imageDirUrl);
+            const [bytes, info] = await Promise.all([readFile(url), stat(url)]);
+            if (bytes.subarray(0, 8).toString('hex') !== '89504e470d0a1a0a') fail(`${name} is not PNG`);
+            if (bytes.readUInt32BE(16) !== expected.width || bytes.readUInt32BE(20) !== expected.height) fail(`${name} dimensions mismatch`);
+            if (info.size !== expected.length) fail(`${name} size mismatch: ${info.size}`);
+            if (createHash('sha256').update(bytes).digest('hex') !== expected.sha256) fail(`${name} SHA mismatch`);
+          }
+
+          const [css, runtime, html, preview] = await Promise.all([
+            readFile(new URL('assets/mountain-race/mountain-race.css', rootUrl), 'utf8'),
+            readFile(new URL('assets/mountain-race/mountain-race-multiplayer.js', rootUrl), 'utf8'),
+            readFile(new URL('index.html', rootUrl), 'utf8'),
+            readFile(new URL('mountain-race-preview.html', rootUrl), 'utf8')
+          ]);
+          if (!runtime.includes(marker) || !runtime.includes("root.dataset.mrGeneratedAssets = '29';")) fail('runtime activation missing');
+          if (!runtime.includes('summit-sprint-hold-${(index % 3) + 1}-v29.png')) fail('live generated hold mapping missing');
+          if (!css.includes(marker)) fail('CSS marker missing');
+          if (!css.includes("url('/assets/mountain-race/images/summit-sprint-generated-scene-v29.png')")) fail('generated scene is not mounted');
+          if (!css.includes('aspect-ratio: 1 / 3 !important')) fail('exact half-scene lane ratio missing');
+          if (!css.includes('background-size: auto 100% !important')) fail('proportional scene scaling missing');
+          if (!css.includes('background-repeat: no-repeat !important')) fail('scene no-repeat protection missing');
+          if (!css.includes('.mr-cliff-art') || !css.includes('.mr-start-art') || !css.includes('.mr-summit-art')) fail('legacy terrain retirement selectors missing');
+          if (!html.includes('visual=29') || !preview.includes('visual=29')) fail('V29 cache boundary missing');
+          for (const token of ['renderHolds', 'promptIndex', 'mr-climber', 'mr-rock-hold']) {
+            if (!runtime.includes(token)) fail(`gameplay invariant missing: ${token}`);
+          }
+          console.log('Validated Summit Sprint V29 reference-matched generated PNG scene, live ledge sprites, proportional mounting and gameplay invariants.');
+          EOF
+
+      - name: Replace obsolete V28 check with V29 live check
+        shell: bash
+        run: |
+          cat > .github/workflows/mountain-race-reference-scene-v28.yml <<'EOF'
+          name: Summit Sprint Generated Assets V29
+
+          on:
+            pull_request:
+              branches:
+                - safe-cracker-development
+            push:
+              branches:
+                - mountain-race-development
+
+          concurrency:
+            group: summit-sprint-generated-assets-v29-${{ github.ref }}
+            cancel-in-progress: true
+
+          permissions:
+            contents: read
+
+          jobs:
+            validate-generated-assets:
+              runs-on: ubuntu-latest
+              timeout-minutes: 18
+              steps:
+                - name: Checkout branch
+                  uses: actions/checkout@v4
+                - name: Use Node 24
+                  uses: actions/setup-node@v4
+                  with:
+                    node-version: '24'
+                - name: Install dependencies
+                  run: npm install
+                - name: Build exact Netlify output
+                  run: npm run build
+                - name: Validate V29 generated visuals and regressions
+                  shell: bash
+                  run: |
+                    set -euo pipefail
+                    node --check scripts/patch-mountain-race-generated-assets-v29.mjs
+                    node --check scripts/validate-mountain-race-generated-assets-v29.mjs
+                    node scripts/validate-mountain-race-generated-assets-v29.mjs
+                    node scripts/validate-mountain-race-input-rebase-v8.mjs
+                    node scripts/validate-mountain-race-fast-ack-v9.mjs
+                    node scripts/validate-mountain-race-terminal-poll-v10.mjs
+                    node scripts/validate-mountain-race-lifecycle-guard-v11.mjs
+                    node scripts/validate-mountain-race-state-sync.mjs
+                    node scripts/validate-mountain-race-start-stability.mjs
+                    node scripts/validate-mountain-race-gameplay-visibility.mjs
+                    node scripts/validate-mountain-race-load-performance.mjs
+                    grep -Fq 'MOUNTAIN_RACE_GENERATED_ASSETS_V29' assets/mountain-race/mountain-race.css
+                    grep -Fq 'MOUNTAIN_RACE_GENERATED_ASSETS_V29' assets/mountain-race/mountain-race-multiplayer.js
+                    grep -Fq 'visual=29' index.html
+                    grep -Fq 'visual=29' mountain-race-preview.html
+                    test -s assets/mountain-race/images/summit-sprint-generated-scene-v29.png
+                    test -s assets/mountain-race/images/summit-sprint-hold-1-v29.png
+                    test -s assets/mountain-race/images/summit-sprint-hold-2-v29.png
+                    test -s assets/mountain-race/images/summit-sprint-hold-3-v29.png
+                    test -s assets/safe-cracker/safe-cracker.js
+                    test -s assets/safe-cracker/safe-cracker.css
+                    test -s assets/roulette/turn-animation.js
+                    test -s assets/roulette/turn-fire.js
+                    test -s assets/roulette/audio-bindings.js
+                - name: Verify live Netlify V29 deployment
+                  if: github.event_name == 'pull_request'
+                  shell: bash
+                  run: |
+                    set -euo pipefail
+                    url='https://deploy-preview-20--famous-piroshki-b621da.netlify.app/'
+                    for attempt in $(seq 1 72); do
+                      page="$(curl -fsSL --max-time 20 "${url}?summit_generated_v29=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+                      runtime="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race-multiplayer.js?visual=29&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+                      styles="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race.css?visual=29&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+                      scene_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-generated-scene-v29.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+                      hold_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-hold-1-v29.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+                      if grep -Fq 'visual=29' <<<"$page" && grep -Fq 'MOUNTAIN_RACE_GENERATED_ASSETS_V29' <<<"$runtime" && grep -Fq 'MOUNTAIN_RACE_GENERATED_ASSETS_V29' <<<"$styles" && grep -Fqi 'content-type: image/png' <<<"$scene_headers" && grep -Fqi 'content-type: image/png' <<<"$hold_headers"; then
+                        echo "Verified live Summit Sprint V29 at ${url}"
+                        exit 0
+                      fi
+                      echo "Waiting for Netlify Summit Sprint V29 (${attempt}/72)..."
+                      sleep 10
+                    done
+                    echo 'Netlify did not serve Summit Sprint V29.' >&2
+                    exit 1
+          EOF
+
+      - name: Validate exact build before commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install
+          npm run build
+          node scripts/validate-mountain-race-generated-assets-v29.mjs
+          node scripts/validate-mountain-race-input-rebase-v8.mjs
+          node scripts/validate-mountain-race-fast-ack-v9.mjs
+          node scripts/validate-mountain-race-terminal-poll-v10.mjs
+          node scripts/validate-mountain-race-lifecycle-guard-v11.mjs
+          node scripts/validate-mountain-race-state-sync.mjs
+          node scripts/validate-mountain-race-gameplay-visibility.mjs
+          test -s assets/safe-cracker/safe-cracker.js
+          test -s assets/roulette/turn-animation.js
+
+      - name: Commit verified V29 handoff and remove bootstrap
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git hash-object scripts/patch-mountain-race-generated-assets-v29.mjs
+          git hash-object scripts/validate-mountain-race-generated-assets-v29.mjs
+          git hash-object .github/workflows/mountain-race-reference-scene-v28.yml
+          git hash-object .github/workflows/mountain-race-v29-bootstrap.yml
+          rm .github/workflows/mountain-race-v29-bootstrap.yml
+          git add -A
+          git commit -m 'Finalize Summit Sprint V29 generated reference visuals [v29-finalized]'
+          git push origin HEAD:mountain-race-development
