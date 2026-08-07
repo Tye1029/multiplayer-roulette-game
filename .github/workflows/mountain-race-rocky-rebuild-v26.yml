@@ -1,0 +1,98 @@
+name: Summit Sprint Rocky Rebuild V26
+
+on:
+  pull_request:
+    branches:
+      - safe-cracker-development
+  push:
+    branches:
+      - mountain-race-development
+
+concurrency:
+  group: summit-sprint-rocky-rebuild-v26-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate-rocky-rebuild:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+
+      - name: Use Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build exact Netlify output
+        run: npm run build
+
+      - name: Validate V26 rocky mountain presentation
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check scripts/patch-mountain-race-art-assets-v26.mjs
+          node --check scripts/patch-mountain-race-rocky-rebuild-v26.mjs
+          node --check scripts/validate-mountain-race-rocky-rebuild-v26.mjs
+          node scripts/validate-mountain-race-rocky-rebuild-v26.mjs
+
+          grep -Fq 'MOUNTAIN_RACE_ROCKY_REBUILD_V26' assets/mountain-race/mountain-race.css
+          grep -Fq 'MOUNTAIN_RACE_ROCKY_REBUILD_V26' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'visual=26' index.html
+          test -s assets/mountain-race/images/summit-sprint-sky-v26.png
+          test -s assets/mountain-race/images/summit-sprint-cliff-left-v26.png
+          test -s assets/mountain-race/images/summit-sprint-cliff-right-v26.png
+          test -s assets/mountain-race/images/summit-sprint-start-left-v26.png
+          test -s assets/mountain-race/images/summit-sprint-start-right-v26.png
+          test -s assets/mountain-race/images/summit-sprint-summit-left-v26.png
+          test -s assets/mountain-race/images/summit-sprint-summit-right-v26.png
+          test -s assets/mountain-race/images/summit-sprint-hold-1-v26.png
+          test -s assets/mountain-race/images/summit-sprint-hold-6-v26.png
+
+          test -s assets/safe-cracker/safe-cracker.js
+          test -s assets/safe-cracker/safe-cracker.css
+          test -s assets/roulette/turn-animation.js
+          test -s assets/roulette/turn-fire.js
+          test -s assets/roulette/audio-bindings.js
+
+      - name: Verify live Netlify V26 deployment
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          url='https://deploy-preview-20--famous-piroshki-b621da.netlify.app/'
+          for attempt in $(seq 1 60); do
+            page="$(curl -fsSL --max-time 20 "${url}?summit_rocky_rebuild_v26=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            runtime="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race-multiplayer.js?visual=26&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            styles="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race.css?visual=26&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            sky_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-sky-v26.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            left_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-cliff-left-v26.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            right_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-cliff-right-v26.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            start_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-start-left-v26.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            summit_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-summit-right-v26.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            hold_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-hold-6-v26.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+
+            if grep -Fq 'visual=26' <<<"$page" && \
+               grep -Fq 'MOUNTAIN_RACE_ROCKY_REBUILD_V26' <<<"$runtime" && \
+               grep -Fq 'MOUNTAIN_RACE_ROCKY_REBUILD_V26' <<<"$styles" && \
+               grep -Fqi 'content-type: image/png' <<<"$sky_headers" && \
+               grep -Fqi 'content-type: image/png' <<<"$left_headers" && \
+               grep -Fqi 'content-type: image/png' <<<"$right_headers" && \
+               grep -Fqi 'content-type: image/png' <<<"$start_headers" && \
+               grep -Fqi 'content-type: image/png' <<<"$summit_headers" && \
+               grep -Fqi 'content-type: image/png' <<<"$hold_headers"; then
+              echo "Verified live Summit Sprint Rocky Rebuild V26 at ${url}"
+              exit 0
+            fi
+            echo "Waiting for Netlify Summit Sprint Rocky Rebuild V26 deployment (${attempt}/60)..."
+            sleep 10
+          done
+          echo 'Netlify did not serve the Summit Sprint V26 rocky mountain rebuild.' >&2
+          exit 1
