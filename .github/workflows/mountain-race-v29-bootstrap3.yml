@@ -1,0 +1,68 @@
+name: Summit Sprint V29 Bootstrap 3
+
+on:
+  push:
+    branches:
+      - mountain-race-development
+
+permissions:
+  contents: write
+
+jobs:
+  install-v29:
+    if: ${{ !contains(github.event.head_commit.message, '[v29-finalized]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Record current Git blob SHAs before replacing existing files
+        shell: bash
+        run: |
+          set -euo pipefail
+          git hash-object scripts/patch-mountain-race-generated-assets-v29.mjs
+          git hash-object scripts/validate-mountain-race-generated-assets-v29.mjs
+          git hash-object .github/workflows/mountain-race-reference-scene-v28.yml
+
+      - name: Extract the prepared V29 handoff from bootstrap 2
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import textwrap
+          src = Path('.github/workflows/mountain-race-v29-bootstrap2.yml').read_text()
+          targets = [
+              'scripts/patch-mountain-race-generated-assets-v29.mjs',
+              'scripts/validate-mountain-race-generated-assets-v29.mjs',
+              '.github/workflows/mountain-race-reference-scene-v28.yml',
+          ]
+          for target in targets:
+              marker = f"cat > {target} <<'EOF'\n"
+              start = src.find(marker)
+              if start < 0:
+                  raise SystemExit(f'missing prepared block for {target}')
+              start += len(marker)
+              end = src.find('\n          EOF', start)
+              if end < 0:
+                  raise SystemExit(f'missing EOF for {target}')
+              block = textwrap.dedent(src[start:end])
+              Path(target).write_text(block + '\n')
+              print(f'installed {target}')
+          PY
+
+      - name: Commit handoff and remove all bootstrap workflows
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git hash-object scripts/patch-mountain-race-generated-assets-v29.mjs
+          git hash-object scripts/validate-mountain-race-generated-assets-v29.mjs
+          git hash-object .github/workflows/mountain-race-reference-scene-v28.yml
+          rm -f .github/workflows/mountain-race-v29-bootstrap.yml .github/workflows/mountain-race-v29-bootstrap2.yml .github/workflows/mountain-race-v29-bootstrap3.yml
+          git add -A
+          git commit -m 'Finalize Summit Sprint V29 generated reference visuals [v29-finalized]'
+          git push origin HEAD:mountain-race-development
