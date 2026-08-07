@@ -11,6 +11,14 @@ import clean08 from './mountain-race-v28-source/clean-08.mjs';
 import clean09 from './mountain-race-v28-source/clean-09.mjs';
 import clean10 from './mountain-race-v28-source/clean-10.mjs';
 import clean11 from './mountain-race-v28-source/clean-11.mjs';
+import clean12 from './mountain-race-v28-source/clean-12.mjs';
+import clean13 from './mountain-race-v28-source/clean-13.mjs';
+import clean14 from './mountain-race-v28-source/clean-14.mjs';
+import clean15 from './mountain-race-v28-source/clean-15.mjs';
+import clean16 from './mountain-race-v28-source/clean-16.mjs';
+import clean17 from './mountain-race-v28-source/clean-17.mjs';
+import clean18 from './mountain-race-v28-source/clean-18.mjs';
+import clean19 from './mountain-race-v28-source/clean-19.mjs';
 
 const rootUrl = new URL('../', import.meta.url);
 const cssUrl = new URL('assets/mountain-race/mountain-race.css', rootUrl);
@@ -24,7 +32,8 @@ const expectedSha256 = '6321bb3278290497a29b02b29f97e414d0accc99ed49c2b3daae7efe
 
 const scene = Buffer.from([
   clean01, clean02, clean03, clean04, clean05, clean06,
-  clean07, clean08, clean09, clean10, clean11
+  clean07, clean08, clean09, clean10, clean11, clean12,
+  clean13, clean14, clean15, clean16, clean17, clean18, clean19
 ].join(''), 'base64');
 if (scene.length < 50000 || scene.subarray(0, 8).toString('hex') !== '89504e470d0a1a0a') {
   throw new Error('Summit Sprint V28 reference scene source is not a valid PNG.');
