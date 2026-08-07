@@ -1,0 +1,143 @@
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import png01 from './mountain-race-v28-source/scene-png-01.mjs';
+import png02 from './mountain-race-v28-source/png-02.mjs';
+import png03 from './mountain-race-v28-source/png-03.mjs';
+
+const rootUrl = new URL('../', import.meta.url);
+const cssUrl = new URL('assets/mountain-race/mountain-race.css', rootUrl);
+const runtimeUrl = new URL('assets/mountain-race/mountain-race-multiplayer.js', rootUrl);
+const indexUrl = new URL('index.html', rootUrl);
+const previewUrl = new URL('mountain-race-preview.html', rootUrl);
+const imageDirUrl = new URL('assets/mountain-race/images/', rootUrl);
+const sceneUrl = new URL('summit-sprint-reference-scene-v28.png', imageDirUrl);
+const marker = 'MOUNTAIN_RACE_REFERENCE_SCENE_V28';
+
+const scene = Buffer.from(`${png01}${png02}${png03}`, 'base64');
+if (scene.length < 50000 || scene.subarray(0, 8).toString('hex') !== '89504e470d0a1a0a') {
+  throw new Error('Summit Sprint V28 reference scene source is not a valid PNG.');
+}
+const width = scene.readUInt32BE(16);
+const height = scene.readUInt32BE(20);
+if (width !== 360 || height !== 540) {
+  throw new Error(`Summit Sprint V28 reference scene must be 360x540, got ${width}x${height}.`);
+}
+
+await mkdir(imageDirUrl, { recursive: true });
+await writeFile(sceneUrl, scene);
+
+let [css, runtime, html, preview] = await Promise.all([
+  readFile(cssUrl, 'utf8'),
+  readFile(runtimeUrl, 'utf8'),
+  readFile(indexUrl, 'utf8'),
+  readFile(previewUrl, 'utf8')
+]);
+
+if (!runtime.includes(marker)) {
+  const anchor = "    root.dataset.mrProfessionalRebuild = '27';";
+  if (!runtime.includes(anchor)) throw new Error('Summit Sprint V28 could not find the V27 runtime activation anchor.');
+  runtime = runtime.replace(anchor, `${anchor}\n    // ${marker}\n    // The generated V28 reference scene is the visual substrate only. Gameplay,\n    // climbers, prompts, timers and multiplayer state remain live DOM layers.\n    root.dataset.mrReferenceScene = '28';`);
+}
+
+if (!css.includes(marker)) {
+  css += String.raw`
+
+/* MOUNTAIN_RACE_REFERENCE_SCENE_V28
+   Generated reference-style scene restart. The photographic PNG is viewport art,
+   not a logical 24-hold wall texture, so it is never stretched to the 1520px route.
+   The authoritative wall continues moving invisibly above it while live climbers,
+   direction prompts and HUD remain interactive. */
+[data-mountain-race-mount][data-mr-reference-scene="28"] {
+  background: #87b8cf !important;
+}
+
+[data-mountain-race-mount][data-mr-reference-scene="28"] .mr-climb-viewport {
+  background-color: #88b9d0 !important;
+  background-image: url('/assets/mountain-race/images/summit-sprint-reference-scene-v28.png') !important;
+  background-repeat: no-repeat !important;
+  background-size: auto 100% !important;
+  box-shadow: inset 0 0 34px rgba(5,16,20,.12) !important;
+}
+
+[data-mountain-race-mount][data-mr-reference-scene="28"] .mr-lane:first-child .mr-climb-viewport {
+  background-position: left bottom !important;
+}
+
+[data-mountain-race-mount][data-mr-reference-scene="28"] .mr-lane:last-child .mr-climb-viewport {
+  background-position: right bottom !important;
+}
+
+[data-mountain-race-mount][data-mr-reference-scene="28"] .mr-cliff-art,
+[data-mountain-race-mount][data-mr-reference-scene="28"] .mr-start-art,
+[data-mountain-race-mount][data-mr-reference-scene="28"] .mr-summit-art,
+[data-mountain-race-mount][data-mr-reference-scene="28"] .mr-hold-art {
+  display: none !important;
+}
+
+[data-mountain-race-mount][data-mr-reference-scene="28"] .mr-mountain-wall {
+  background: none !important;
+  filter: none !important;
+  box-shadow: none !important;
+}
+
+[data-mountain-race-mount][data-mr-reference-scene="28"] .mr-mountain-wall::before,
+[data-mountain-race-mount][data-mr-reference-scene="28"] .mr-mountain-wall::after,
+[data-mountain-race-mount][data-mr-reference-scene="28"] .mr-lane::before,
+[data-mountain-race-mount][data-mr-reference-scene="28"] .mr-lane::after {
+  content: none !important;
+  display: none !important;
+}
+
+[data-mountain-race-mount][data-mr-reference-scene="28"] .mr-rock-hold {
+  background: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+[data-mountain-race-mount][data-mr-reference-scene="28"] .mr-rock-hold b {
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 50% !important;
+  border: 1px solid rgba(255,255,255,.48) !important;
+  background: rgba(7,12,13,.78) !important;
+  box-shadow: 0 3px 8px rgba(0,0,0,.42) !important;
+  backdrop-filter: blur(2px) !important;
+}
+
+[data-mountain-race-mount][data-mr-reference-scene="28"] .mr-rock-hold.current b {
+  box-shadow: 0 3px 8px rgba(0,0,0,.42), 0 0 0 2px rgba(232,185,73,.48) !important;
+}
+
+[data-mountain-race-mount][data-mr-reference-scene="28"] .mr-climber {
+  z-index: 18 !important;
+  filter: drop-shadow(0 7px 5px rgba(0,0,0,.42)) !important;
+}
+
+@media (min-width: 521px) {
+  [data-mountain-race-mount][data-mr-reference-scene="28"] .mr-climb-viewport {
+    background-size: 200% auto !important;
+    background-position-y: bottom !important;
+  }
+}
+`;
+}
+
+const cache28 = source => source.replace(/(mountain-race\.css\?[^"'\s>]*?)(?:&?visual=\d+)?(["'\s>])/g, (_m, base, end) => {
+  const clean = base.replace(/&?visual=\d+/g, '');
+  return `${clean}${clean.includes('?') ? '&' : '?'}visual=28${end}`;
+});
+html = cache28(html);
+preview = cache28(preview);
+
+if (!runtime.includes(marker) || !runtime.includes("root.dataset.mrReferenceScene = '28';")) throw new Error('Summit Sprint V28 runtime activation is missing.');
+if (!css.includes(marker) || !css.includes('summit-sprint-reference-scene-v28.png')) throw new Error('Summit Sprint V28 CSS activation is missing.');
+if (!html.includes('visual=28') || !preview.includes('visual=28')) throw new Error('Summit Sprint V28 cache boundary is missing.');
+
+await Promise.all([
+  writeFile(cssUrl, css),
+  writeFile(runtimeUrl, runtime),
+  writeFile(indexUrl, html),
+  writeFile(previewUrl, preview)
+]);
+
+console.log(`Applied Summit Sprint V28 generated reference scene (${width}x${height}, ${scene.length} bytes).`);
