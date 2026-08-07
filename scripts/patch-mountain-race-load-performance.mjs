@@ -58,3 +58,5 @@ await import('./patch-mountain-race-professional-rebuild-v27.mjs');
 await import('./validate-mountain-race-professional-rebuild-v27.mjs');
 await import('./patch-mountain-race-generated-assets-v29.mjs');
 await import('./validate-mountain-race-generated-assets-v29.mjs');
+await import('./patch-mountain-race-climbers-v32.mjs');
+await import('./validate-mountain-race-climbers-v32.mjs');
