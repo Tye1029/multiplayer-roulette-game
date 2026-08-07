@@ -36,6 +36,7 @@ await import('./patch-mountain-race-concept-target-v18.mjs');
 await import('./validate-mountain-race-concept-target-v18.mjs');
 await import('./patch-mountain-race-concept-detail-v19.mjs');
 await import('./validate-mountain-race-concept-detail-v19.mjs');
+await import('./patch-mountain-race-screenshot-format-preflight-v20.mjs');
 await import('./patch-mountain-race-screenshot-base-v20.mjs');
 await import('./validate-mountain-race-screenshot-base-v20.mjs');
 await import('./patch-mountain-race-reference-atlas-v21.mjs');
