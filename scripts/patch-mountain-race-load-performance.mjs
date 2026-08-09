@@ -72,3 +72,5 @@ await import('./patch-mountain-race-hold-contact-v37.mjs');
 await import('./validate-mountain-race-hold-contact-v37.mjs');
 await import('./patch-mountain-race-route-spacing-slip-v38.mjs');
 await import('./validate-mountain-race-route-spacing-slip-v38.mjs');
+await import('./patch-mountain-race-smooth-travel-summit-v39.mjs');
+await import('./validate-mountain-race-smooth-travel-summit-v39.mjs');
