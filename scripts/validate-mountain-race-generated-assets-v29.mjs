@@ -68,7 +68,7 @@ for (const token of [
   'summit-sprint-summit-${playerKey === \'me\' ? \'left\' : \'right\'}-v29.png',
   'summit-sprint-hold-${(index % 3) + 1}-v29.png'
 ]) if (!prototypeRuntime.includes(token)) fail(`prototype runtime token missing: ${token}`);
-if (!/visual=(?:31|32|33|34|35|36)/.test(html) || !/visual=(?:31|32|33|34|35|36)/.test(preview)) fail('V29 cache boundary missing');
+if (!/visual=(?:31|32|33|34|35|36|37)/.test(html) || !/visual=(?:31|32|33|34|35|36|37)/.test(preview)) fail('V29 cache boundary missing');
 for (const asset of ['summit-sprint-sky-v29.png', 'summit-sprint-cliff-left-v29.png', 'summit-sprint-cliff-right-v29.png']) {
   if (!html.includes(`rel="preload" as="image" href="/assets/mountain-race/images/${asset}"`)) fail(`V29 preload missing: ${asset}`);
 }
