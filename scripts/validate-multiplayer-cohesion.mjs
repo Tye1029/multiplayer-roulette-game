@@ -13,6 +13,10 @@ const contractPath = path.join(root, "netlify", "functions", "multiplayer-contra
 const contract = require(fs.existsSync(contractPath)
   ? contractPath
   : path.join(scriptRoot, "netlify", "functions", "multiplayer-contract.js"));
+const catalogPath = path.join(root, "shared", "games", "catalog.js");
+const catalog = require(fs.existsSync(catalogPath)
+  ? catalogPath
+  : path.join(scriptRoot, "shared", "games", "catalog.js"));
 const data = fs.readFileSync(path.join(root, "netlify", "functions", "_data.js"), "utf8");
 const action = fs.readFileSync(path.join(root, "netlify", "functions", "duel-action.js"), "utf8");
 const index = fs.readFileSync(path.join(root, "index.html"), "utf8");
@@ -22,7 +26,16 @@ const expectedModes = [
   "blackjack", "memory", "safecracker", "mountainrace", "cardwar", "coin"
 ];
 
-assert.equal(contract.MULTIPLAYER_CONTRACT_VERSION, "cohesion-v1");
+const activeTestModes = ["roulette", "draw", "fishing", "safecracker", "mountainrace"];
+const legacyModes = ["mines", "rps", "plinko", "blackjack", "memory", "cardwar", "coin"];
+
+assert.equal(catalog.version, "game-catalog-v1");
+assert.deepEqual(catalog.multiplayerTestModes, activeTestModes);
+assert.deepEqual(catalog.legacyMultiplayerModes, legacyModes);
+assert.deepEqual(Object.keys(catalog.multiplayerModeNames), expectedModes);
+assert.ok(catalog.singlePlayerSections.includes("scratch-ticket"));
+assert.ok(catalog.multiplayerSections.includes("multiplayer-arcade"));
+assert.equal(contract.MULTIPLAYER_CONTRACT_VERSION, "cohesion-v2");
 assert.deepEqual(Object.keys(contract.MODE_NAMES), expectedModes);
 for (const mode of expectedModes) {
   assert.equal(contract.hasMode(mode), true, `${mode} must be registered`);
@@ -34,7 +47,7 @@ assert.equal(contract.countdownMs("safecracker"), 3000);
 assert.equal(contract.countdownMs("roulette"), 5000);
 
 for (const token of [
-  "MULTIPLAYER_COHESION_V1",
+  "MULTIPLAYER_COHESION_V2",
   'require("./multiplayer-contract")',
   "async function duelReadFocusedGame",
   "skipBalanceLookup: true",
@@ -42,32 +55,48 @@ for (const token of [
   "duelSupportsSyntheticOpponent(game.mode)",
   "const syntheticPlayer = [latest.creator, latest.joiner]",
   "await duelAddRemoteNetworkBot(human, created.game.gameId",
-  "await duelAddSimpleNpc(human, created.game.gameId)"
+  "await duelAddSimpleNpc(human, created.game.gameId)",
+  "activeModeConflict: true",
+  "await duelAbandonNpcGame(user, activeGame.gameId)"
 ]) assert.ok(data.includes(token), `server runtime is missing ${token}`);
 
 assert.ok(!data.includes("Rematches are only available after a completed supported duel."));
 assert.ok(!data.includes("const mountainRaceRequest = String(gameId"));
 assert.ok(!data.includes("record: await getUserRecord(user.id) };\n}\n\n\n\n// ---------------- Russian Roulette Duel"));
-assert.ok(action.includes('const DUEL_FUNCTION_BUILD = "multiplayer_cohesion_v1";'));
+assert.ok(action.includes('const DUEL_FUNCTION_BUILD = "multiplayer_cohesion_v2";'));
 
 for (const token of [
-  "MULTIPLAYER_COHESION_V1",
+  "MULTIPLAYER_COHESION_V2",
   'game.status === "complete" && DUEL_MODES_UI[String(game.mode || "")]',
   'game.status === "countdown" ? 250 : 350',
   "requestError.retryable = response.status >= 500",
-  'data-rnb-game="mines"',
+  '/shared/games/catalog.js?v=1',
+  'window.GAMBLING_SITE_CATALOG?.multiplayerTestModes',
+  "if(typeof duelStartNewGame==='function')duelStartNewGame()",
+  'data-rnb-game="roulette"',
   'data-rnb-game="mountainrace"',
-  'data-rnb-game="coin"',
-  'data-mode="blackjack"',
-  'data-mode="cardwar"',
+  'data-mode="safecracker"',
+  'data-mode="mountainrace"',
+  "You still have an unfinished",
   "align-items:flex-start;justify-content:center;overflow-y:auto",
   ".sth-card{width:min(520px,100%);margin:auto"
 ]) assert.ok(index.includes(token), `client runtime is missing ${token}`);
 
 assert.ok(!index.includes("if (mountainRacePauseCompletedPolling(game))"), "Summit completion must use shared rematch polling");
-assert.ok(!index.includes("one of the five multiplayer games"));
-assert.ok(!index.includes("if(!['roulette','draw','fishing','safecracker','mountainrace'].includes(o.value))o.remove()"));
-assert.equal((index.match(/<button data-rnb-game=/g) || []).length, expectedModes.length);
-assert.equal((index.match(/class="sth-game" data-mode=/g) || []).length, expectedModes.length);
+assert.ok(index.includes("one of the five multiplayer games currently in active development"));
+assert.ok(!index.includes('data-rnb-game="mines"'));
+assert.ok(!index.includes('class="sth-game" data-mode="blackjack"'));
+assert.equal((index.match(/<button data-rnb-game=/g) || []).length, activeTestModes.length);
+assert.equal((index.match(/class="sth-game" data-mode=/g) || []).length, activeTestModes.length);
 
-console.log(`Multiplayer cohesion validation passed for ${expectedModes.length} modes.`);
+const launcherStart = index.indexOf("function openGame(mode)");
+const launcherEnd = index.indexOf("games.forEach(b=>b.addEventListener", launcherStart);
+assert.ok(launcherStart >= 0 && launcherEnd > launcherStart, "test launcher function must be present");
+const launcherSource = index.slice(launcherStart, launcherEnd);
+const clearFocusAt = launcherSource.indexOf("duelStartNewGame()");
+const showMenuAt = launcherSource.indexOf("showDuelGames()");
+const selectModeAt = launcherSource.indexOf("sel.value=mode");
+assert.ok(clearFocusAt >= 0 && clearFocusAt < showMenuAt, "stale focused games must be cleared before opening the menu");
+assert.ok(showMenuAt >= 0 && showMenuAt < selectModeAt, "the requested mode must be selected after the shared menu mounts");
+
+console.log(`Multiplayer cohesion validation passed for ${expectedModes.length} registered modes and ${activeTestModes.length} active test modes.`);

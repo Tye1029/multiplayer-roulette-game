@@ -3,22 +3,10 @@
 // The multiplayer arcade has one lifecycle contract. Individual games own
 // their gameplay state, but they do not redefine joining, Ready, countdown,
 // polling, rematches, or synthetic-opponent behavior.
-const MULTIPLAYER_CONTRACT_VERSION = "cohesion-v1";
+const { multiplayerModeNames } = require("../../shared/games/catalog");
 
-const MODE_NAMES = Object.freeze({
-  mines: "Multiplayer Mines Race",
-  rps: "Rock Paper Scissors Duel",
-  draw: "DRAW! Western Duel",
-  fishing: "Rumble Fishing Duel",
-  roulette: "Russian Roulette",
-  plinko: "Plinko Duel",
-  blackjack: "Blackjack 1v1",
-  memory: "Memory Match Duel",
-  safecracker: "Safe Cracker Duel",
-  mountainrace: "Summit Sprint",
-  cardwar: "Card War Strategy",
-  coin: "Coin Flip Duel"
-});
+const MULTIPLAYER_CONTRACT_VERSION = "cohesion-v2";
+const MODE_NAMES = Object.freeze({ ...multiplayerModeNames });
 
 const COUNTDOWN_MS = Object.freeze({
   default: 5000,

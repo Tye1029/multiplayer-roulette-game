@@ -9,7 +9,7 @@ const root = process.env.MULTIPLAYER_BUILD_ROOT
 const dataPath = path.join(root, "netlify", "functions", "_data.js");
 const actionPath = path.join(root, "netlify", "functions", "duel-action.js");
 const indexPath = path.join(root, "index.html");
-const MARKER = "MULTIPLAYER_COHESION_V1";
+const MARKER = "MULTIPLAYER_COHESION_V2";
 
 function replaceOnce(source, search, replacement, label) {
   const matches = typeof search === "string"
@@ -68,6 +68,13 @@ data = replaceOnce(
 
 data = replaceOnce(
   data,
+  `  const activeGame = await duelFindActiveGameForUser(user.id,"",{scanFallback:false});\n  if (activeGame) {\n    return {game:duelPublicGame(activeGame,user.id),record:await getUserRecord(user.id),resumedExisting:true};\n  }`,
+  `  let activeGame = await duelFindActiveGameForUser(user.id,"",{scanFallback:false});\n  if (activeGame && activeGame.mode !== mode) {\n    const syntheticOpponent = [activeGame.creator, activeGame.joiner].find(player => player?.isNpc || player?.isRemoteBot || String(player?.userId || "").startsWith("npc-") || String(player?.userId || "").startsWith("remote-bot-"));\n    if (syntheticOpponent) {\n      // Switching test modes may safely retire an unfinished synthetic match.\n      // Real-player games are never cancelled or hidden automatically.\n      await duelAbandonNpcGame(user, activeGame.gameId);\n      activeGame = null;\n    } else {\n      return {\n        game: duelPublicGame(activeGame, user.id),\n        record: await getUserRecord(user.id),\n        activeModeConflict: true,\n        requestedMode: mode\n      };\n    }\n  }\n  if (activeGame) {\n    return {game:duelPublicGame(activeGame,user.id),record:await getUserRecord(user.id),resumedExisting:true};\n  }`,
+  "cross-mode create routing"
+);
+
+data = replaceOnce(
+  data,
   /      let created;\n      try \{\n        created = await duelCreateGame\(playerFor\(firstId\), \{ mode: latest\.mode, wager: latest\.wager \}\);\n        const joined = await duelJoinGame\(playerFor\(secondId\), created\.game\.gameId\);\n        latest = await duelSaveGame\(\{ \.\.\.latest, rematch, rematchGameId: joined\.game\.gameId \}\);\n        return \{ game: duelPublicGame\(latest, viewer\), rematchGame: duelPublicGame\(await duelGetRaw\(joined\.game\.gameId\), viewer\), record: await getUserRecord\(user\.id\) \};\n      \} catch \(error\) \{\n        if \(created\?\.game\?\.gameId\) \{\n          try \{ await duelCancelGame\(playerFor\(firstId\), created\.game\.gameId\); \} catch \(_\) \{\}\n        \}\n        throw error;\n      \}/,
   `      let created;\n      let creatorForCleanup = playerFor(firstId);\n      try {\n        const syntheticPlayer = [latest.creator, latest.joiner].find(player => player?.isNpc || player?.isRemoteBot || String(player?.userId || "").startsWith("npc-") || String(player?.userId || "").startsWith("remote-bot-"));\n        let rematchGame;\n        if (syntheticPlayer) {\n          const humanId = playerIds.find(id => id !== cleanUserId(syntheticPlayer.userId));\n          const human = playerFor(humanId);\n          creatorForCleanup = human;\n          created = await duelCreateGame(human, { mode: latest.mode, wager: latest.wager });\n          const attached = syntheticPlayer.isRemoteBot || String(syntheticPlayer.userId || "").startsWith("remote-bot-")\n            ? await duelAddRemoteNetworkBot(human, created.game.gameId, latest.remoteNetworkProfile || "normal")\n            : await duelAddSimpleNpc(human, created.game.gameId);\n          rematchGame = attached.game;\n        } else {\n          created = await duelCreateGame(playerFor(firstId), { mode: latest.mode, wager: latest.wager });\n          const joined = await duelJoinGame(playerFor(secondId), created.game.gameId);\n          rematchGame = joined.game;\n        }\n        latest = await duelSaveGame({ ...latest, rematch, rematchGameId: rematchGame.gameId });\n        const authoritativeRematch = await duelGetRawStrong(rematchGame.gameId, 2) || await duelGetRaw(rematchGame.gameId) || rematchGame;\n        return { game: duelPublicGame(latest, viewer), rematchGame: duelPublicGame(authoritativeRematch, viewer), record: await getUserRecord(user.id) };\n      } catch (error) {\n        if (created?.game?.gameId) {\n          try { await duelCancelGame(creatorForCleanup, created.game.gameId); } catch (_) {}\n        }\n        throw error;\n      }`,
   "shared rematch creation"
@@ -112,6 +119,12 @@ fs.writeFileSync(actionPath, action);
 let index = fs.readFileSync(indexPath, "utf8");
 index = replaceOnce(
   index,
+  '<script id="simple-multiplayer-test-script">',
+  '<script src="/shared/games/catalog.js?v=1"></script>\n<script id="simple-multiplayer-test-script">',
+  "browser game catalog"
+);
+index = replaceOnce(
+  index,
   "    function duelSetPollRate(game = null) {",
   `    // ${MARKER}\n    function duelSetPollRate(game = null) {`,
   "client cohesion marker"
@@ -132,6 +145,12 @@ index = index.replace(
   "if (!response.ok || !data.ok) throw new Error(data.error || \"Multiplayer Arcade request failed.\");",
   `if (!response.ok || !data.ok) {\n          const requestError = new Error(data.error || "Multiplayer Arcade request failed.");\n          requestError.status = response.status;\n          requestError.action = action;\n          requestError.gameId = String(payload?.gameId || "");\n          requestError.retryable = response.status >= 500 || response.status === 429;\n          throw requestError;\n        }`
 );
+index = replaceOnce(
+  index,
+  `      if (!game?.gameId) throw new Error("The server did not return the created game.");\n      duelResetGenericRuntime(null);`,
+  `      if (!game?.gameId) throw new Error("The server did not return the created game.");\n      if (data?.activeModeConflict) {\n        duelRememberCurrentGame("");\n        duelLastActiveGame = null;\n        duelRenderActive(null, true);\n        throw new Error(\`You still have an unfinished \${game.modeName || "multiplayer game"}. Finish or cancel it before creating \${DUEL_MODES_UI[requestedMode]?.name || "another game"}.\`);\n      }\n      duelResetGenericRuntime(null);`,
+  "cross-mode create conflict guard"
+);
 index = index.replace(
   "if(tracked)line(logs,'request',{action});",
   "if(tracked)line(logs,'request',{action,gameId:String((()=>{try{return JSON.parse(init?.body||'{}').gameId||''}catch{return''}})())});"
@@ -144,14 +163,14 @@ index = index.replace(
 index = replaceOnce(
   index,
   "Enter and verify your Torn API key, then choose one of the five multiplayer games.",
-  "Enter and verify your Torn API key, then choose a multiplayer game.",
+  "Choose one of the five multiplayer games currently in active development.",
   "test launcher description"
 );
 index = replaceOnce(
   index,
   "#simpleTestHome{position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;padding:20px;",
   "#simpleTestHome{position:fixed;inset:0;z-index:2147483000;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:20px;",
-  "scrollable all-mode launcher"
+  "scrollable multiplayer launcher"
 );
 index = index.replace(
   ".sth-card{width:min(520px,100%);padding:26px;",
@@ -159,21 +178,9 @@ index = index.replace(
 );
 index = replaceOnce(
   index,
-  `      <button class="sth-game" data-mode="roulette" disabled>Russian Roulette</button>\n      <button class="sth-game" data-mode="draw" disabled>Draw</button>\n      <button class="sth-game" data-mode="fishing" disabled>Fishing</button>\n      <button class="sth-game" data-mode="safecracker" disabled>Safe Cracker</button>\n      <button class="sth-game" data-mode="mountainrace" disabled>Summit Sprint</button>`,
-  `      <button class="sth-game" data-mode="mines" disabled>Multiplayer Mines Race</button>\n      <button class="sth-game" data-mode="rps" disabled>Rock Paper Scissors</button>\n      <button class="sth-game" data-mode="draw" disabled>DRAW!</button>\n      <button class="sth-game" data-mode="fishing" disabled>Rumble Fishing</button>\n      <button class="sth-game" data-mode="roulette" disabled>Russian Roulette</button>\n      <button class="sth-game" data-mode="plinko" disabled>Plinko Duel</button>\n      <button class="sth-game" data-mode="blackjack" disabled>Blackjack 1v1</button>\n      <button class="sth-game" data-mode="memory" disabled>Memory Match</button>\n      <button class="sth-game" data-mode="safecracker" disabled>Safe Cracker</button>\n      <button class="sth-game" data-mode="mountainrace" disabled>Summit Sprint</button>\n      <button class="sth-game" data-mode="cardwar" disabled>Card War</button>\n      <button class="sth-game" data-mode="coin" disabled>Coin Flip</button>`,
-  "all-mode test launcher"
-);
-index = replaceOnce(
-  index,
-  "if(sel){[...sel.options].forEach(o=>{if(!['roulette','draw','fishing','safecracker','mountainrace'].includes(o.value))o.remove()});sel.value=mode;sel.dispatchEvent(new Event('change',{bubbles:true}));}",
-  "if(sel){sel.value=mode;sel.dispatchEvent(new Event('change',{bubbles:true}));}",
-  "test launcher option retention"
-);
-index = replaceOnce(
-  index,
-  `<div class="rnb-games"><button data-rnb-game="roulette">Roulette</button><button data-rnb-game="draw">Draw</button><button data-rnb-game="fishing">Fishing</button><button data-rnb-game="safecracker">Safe Cracker</button><button data-rnb-game="mountainrace">Summit Sprint</button></div>`,
-  `<div class="rnb-games"><button data-rnb-game="mines">Mines</button><button data-rnb-game="rps">RPS</button><button data-rnb-game="draw">DRAW!</button><button data-rnb-game="fishing">Fishing</button><button data-rnb-game="roulette">Roulette</button><button data-rnb-game="plinko">Plinko</button><button data-rnb-game="blackjack">Blackjack</button><button data-rnb-game="memory">Memory</button><button data-rnb-game="safecracker">Safe Cracker</button><button data-rnb-game="mountainrace">Summit Sprint</button><button data-rnb-game="cardwar">Card War</button><button data-rnb-game="coin">Coin Flip</button></div>`,
-  "all-mode Remote Bot launcher"
+  "function openGame(mode){if(!confirmed())return;const sel=document.getElementById('duelModeSelect');if(sel){[...sel.options].forEach(o=>{if(!['roulette','draw','fishing','safecracker','mountainrace'].includes(o.value))o.remove()});sel.value=mode;sel.dispatchEvent(new Event('change',{bubbles:true}));}home.hidden=true;if(typeof showDuelGames==='function')showDuelGames();else document.getElementById('duelGameMenuBtn')?.click();document.querySelectorAll('#duelNpcBtn,#duelNpcActiveBtn,#duelRecoverNpcBtn').forEach(e=>e.remove());}",
+  `function openGame(mode){\n  if(!confirmed())return;\n  const testModes=Array.isArray(window.GAMBLING_SITE_CATALOG?.multiplayerTestModes)?window.GAMBLING_SITE_CATALOG.multiplayerTestModes:[];\n  if(!testModes.includes(mode))return;\n  // A launcher choice is a navigation intent, not permission for a persisted\n  // game from another mode to reclaim the screen. Server escrow remains intact.\n  if(typeof duelStartNewGame==='function')duelStartNewGame();\n  else if(typeof duelRememberCurrentGame==='function')duelRememberCurrentGame('');\n  home.hidden=true;\n  if(typeof showDuelGames==='function')showDuelGames();else document.getElementById('duelGameMenuBtn')?.click();\n  const sel=document.getElementById('duelModeSelect');\n  if(sel){[...sel.options].forEach(option=>{if(!testModes.includes(option.value))option.remove()});sel.value=mode;sel.dispatchEvent(new Event('change',{bubbles:true}));}\n  if(typeof duelSetStatus==='function')duelSetStatus(\`Selected \${sel?.selectedOptions?.[0]?.textContent||mode}. Choose a wager and create the game.\`,'good');\n  document.querySelectorAll('#duelNpcBtn,#duelNpcActiveBtn,#duelRecoverNpcBtn').forEach(e=>e.remove());\n }`,
+  "mode-stable test launcher"
 );
 index = index.replace(
   ".rnb-games button{min-height:36px;border:0;border-radius:8px;color:white;font-weight:900}",

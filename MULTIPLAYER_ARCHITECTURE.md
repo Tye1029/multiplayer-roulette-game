@@ -7,6 +7,8 @@ multiplayer arcade, and every game uses the same server-owned lifecycle:
 
 ## Ownership
 
+- `shared/games/catalog.js` defines the product boundary between single-player
+  sections, current multiplayer test games, and older multiplayer modes.
 - `netlify/functions/multiplayer-contract.js` is the authoritative registry for
   game modes and shared lifecycle policy.
 - `netlify/functions/_data.js` owns persistence, escrow, lifecycle transitions,
@@ -33,3 +35,21 @@ multiplayer arcade, and every game uses the same server-owned lifecycle:
 Legacy patch scripts remain in place because they reproduce the approved game
 visuals. New cross-game behavior belongs in the shared contract/cohesion layer,
 not in another game-specific patch.
+
+## Directory migration
+
+The Git repository and local checkout do not need to be renamed for the browser
+to present the product as a gambling website. Renaming the root first would
+break Netlify paths, workflow assumptions, and old asset references without
+fixing routing. The safe migration is incremental:
+
+1. Keep `shared/games/catalog.js` as the routing source of truth.
+2. Move stable single-player implementations under `games/single-player/` one
+   game at a time, retaining compatibility entrypoints while each move ships.
+3. Move stable multiplayer implementations under `games/multiplayer/` using the
+   same process.
+4. Retire a legacy patch only after its generated output has a module-owned
+   replacement and equivalent regression coverage.
+
+This preserves deployed URLs while steadily turning the historical Roulette
+repository into a clearly organized gambling-site codebase.
