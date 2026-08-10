@@ -73,7 +73,7 @@ for (const asset of ['summit-sprint-sky-v29.png', 'summit-sprint-cliff-left-v29.
   if (!html.includes(`rel="preload" as="image" href="/assets/mountain-race/images/${asset}"`)) fail(`V29 preload missing: ${asset}`);
 }
 if (css.includes('data-mr-generated-assets="29"] .mr-cliff-art img {\n  width: 100%')) fail('V29 cliff art is non-uniformly stretched');
-for (const alternatives of [['index * 72', 'index * 92'], ['total * 72', 'total * 92'], ['promptIndex - 3) * 72', 'promptIndex - 3) * 92', 'promptIndex - 2) * 92']]) {
+for (const alternatives of [['index * 72', 'index * 92'], ['total * 72', 'total * 92'], ['promptIndex - 3) * 72', 'promptIndex - 3) * 92', 'promptIndex - 2) * 92', 'cameraIndex - 2) * 92']]) {
   if (!alternatives.some(token => runtime.includes(token)) || !alternatives.some(token => prototypeRuntime.includes(token))) fail(`V29 expanded climb geometry missing: ${alternatives.join(' or ')}`);
 }
 if (!css.includes('left: 50% !important;') || !css.includes('object-position: center 48% !important;')) fail('V29 summit centering or hold crop missing');
