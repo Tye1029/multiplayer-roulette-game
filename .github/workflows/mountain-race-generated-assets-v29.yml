@@ -1,4 +1,4 @@
-name: Summit Sprint Visual Reboot V44
+name: Summit Sprint Contact Ledges V45
 
 on:
   pull_request:
@@ -9,7 +9,7 @@ on:
       - mountain-race-development
 
 concurrency:
-  group: summit-sprint-visual-reboot-v44-${{ github.ref }}
+  group: summit-sprint-contact-ledges-v45-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -34,7 +34,7 @@ jobs:
       - name: Build exact Netlify output
         run: npm run build
 
-      - name: Validate lightweight V44 visuals and protected gameplay
+      - name: Validate V45 contact geometry and protected gameplay
         shell: bash
         run: |
           set -euo pipefail
@@ -44,6 +44,9 @@ jobs:
           node --check scripts/patch-mountain-race-visual-reboot-v44.mjs
           node --check scripts/validate-mountain-race-visual-reboot-v44.mjs
           node scripts/validate-mountain-race-visual-reboot-v44.mjs
+          node --check scripts/patch-mountain-race-contact-ledges-v45.mjs
+          node --check scripts/validate-mountain-race-contact-ledges-v45.mjs
+          node scripts/validate-mountain-race-contact-ledges-v45.mjs
 
           node scripts/validate-mountain-race-input-rebase-v8.mjs
           node scripts/validate-mountain-race-fast-ack-v9.mjs
@@ -54,14 +57,15 @@ jobs:
           node scripts/validate-mountain-race-gameplay-visibility.mjs
           node scripts/validate-mountain-race-load-performance.mjs
 
-          grep -Fq 'MOUNTAIN_RACE_VISUAL_REBOOT_V44' assets/mountain-race/mountain-race.css
-          grep -Fq 'MOUNTAIN_RACE_VISUAL_REBOOT_V44' assets/mountain-race/mountain-race-multiplayer.js
-          grep -Fq 'visual=44' index.html
-          grep -Fq 'visual=44' mountain-race-preview.html
+          grep -Fq 'MOUNTAIN_RACE_CONTACT_LEDGES_V45' assets/mountain-race/mountain-race.css
+          grep -Fq 'MOUNTAIN_RACE_CONTACT_LEDGES_V45' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'visual=45' index.html
+          grep -Fq 'visual=45' mountain-race-preview.html
           test -s assets/mountain-race/images/summit-sprint-reboot-background-v44.png
           test -s assets/mountain-race/images/summit-sprint-reboot-cliff-v44.png
-          test -s assets/mountain-race/images/summit-sprint-reboot-climber-sheet-v44.png
-          test -s assets/mountain-race/images/summit-sprint-reboot-climber-opponent-sheet-v44.png
+          test -s assets/mountain-race/images/summit-sprint-reboot-ledge-v45.png
+          test -s assets/mountain-race/images/summit-sprint-climber-back-sheet-v45.png
+          test -s assets/mountain-race/images/summit-sprint-climber-back-opponent-sheet-v45.png
 
           test -s assets/safe-cracker/safe-cracker.js
           test -s assets/safe-cracker/safe-cracker.css
@@ -69,33 +73,35 @@ jobs:
           test -s assets/roulette/turn-fire.js
           test -s assets/roulette/audio-bindings.js
 
-      - name: Verify live Netlify V44 deployment
+      - name: Verify live Netlify V45 deployment
         if: github.event_name == 'pull_request'
         shell: bash
         run: |
           set -euo pipefail
           url='https://deploy-preview-20--famous-piroshki-b621da.netlify.app/'
           for attempt in $(seq 1 72); do
-            page="$(curl -fsSL --max-time 20 "${url}?summit_reboot_v44=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            runtime="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race-multiplayer.js?visual=44&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            styles="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race.css?visual=44&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            page="$(curl -fsSL --max-time 20 "${url}?summit_contact_v45=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            runtime="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race-multiplayer.js?visual=45&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            styles="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race.css?visual=45&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             scene_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-reboot-background-v44.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             cliff_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-reboot-cliff-v44.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            climber_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-reboot-climber-sheet-v44.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            opponent_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-reboot-climber-opponent-sheet-v44.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            ledge_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-reboot-ledge-v45.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            climber_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-climber-back-sheet-v45.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            opponent_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-climber-back-opponent-sheet-v45.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
 
-            if grep -Fq 'visual=44' <<<"$page" && \
-               grep -Fq 'MOUNTAIN_RACE_VISUAL_REBOOT_V44' <<<"$runtime" && \
-               grep -Fq 'MOUNTAIN_RACE_VISUAL_REBOOT_V44' <<<"$styles" && \
+            if grep -Fq 'visual=45' <<<"$page" && \
+               grep -Fq 'MOUNTAIN_RACE_CONTACT_LEDGES_V45' <<<"$runtime" && \
+               grep -Fq 'MOUNTAIN_RACE_CONTACT_LEDGES_V45' <<<"$styles" && \
                grep -Fqi 'content-type: image/png' <<<"$scene_headers" && \
                grep -Fqi 'content-type: image/png' <<<"$cliff_headers" && \
+               grep -Fqi 'content-type: image/png' <<<"$ledge_headers" && \
                grep -Fqi 'content-type: image/png' <<<"$climber_headers" && \
                grep -Fqi 'content-type: image/png' <<<"$opponent_headers"; then
-              echo "Verified live Summit Sprint V44 assets at ${url}"
+              echo "Verified live Summit Sprint V45 assets at ${url}"
               exit 0
             fi
-            echo "Waiting for Netlify Summit Sprint V44 (${attempt}/72)..."
+            echo "Waiting for Netlify Summit Sprint V45 (${attempt}/72)..."
             sleep 10
           done
-          echo 'Netlify did not serve the Summit Sprint V44 generated assets.' >&2
+          echo 'Netlify did not serve the Summit Sprint V45 generated assets.' >&2
           exit 1

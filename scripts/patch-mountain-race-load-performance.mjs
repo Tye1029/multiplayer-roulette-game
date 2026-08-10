@@ -84,3 +84,5 @@ await import('./patch-mountain-race-confirmed-lightweight-v43.mjs');
 await import('./validate-mountain-race-confirmed-lightweight-v43.mjs');
 await import('./patch-mountain-race-visual-reboot-v44.mjs');
 await import('./validate-mountain-race-visual-reboot-v44.mjs');
+await import('./patch-mountain-race-contact-ledges-v45.mjs');
+await import('./validate-mountain-race-contact-ledges-v45.mjs');
