@@ -1,4 +1,4 @@
-name: Summit Sprint Finish Stability V47
+name: Summit Sprint Finish Stability V48
 
 on:
   pull_request:
@@ -9,7 +9,7 @@ on:
       - mountain-race-development
 
 concurrency:
-  group: summit-sprint-finish-stability-v47-${{ github.ref }}
+  group: summit-sprint-finish-stability-v48-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -34,7 +34,7 @@ jobs:
       - name: Build exact Netlify output
         run: npm run build
 
-      - name: Validate V47 finish stability and protected gameplay
+      - name: Validate V48 finish stability and protected gameplay
         shell: bash
         run: |
           set -euo pipefail
@@ -53,6 +53,10 @@ jobs:
           node --check scripts/patch-mountain-race-finish-stability-v47.mjs
           node --check scripts/validate-mountain-race-finish-stability-v47.mjs
           node scripts/validate-mountain-race-finish-stability-v47.mjs
+          node --check scripts/patch-shared-runtime-stability-v48.mjs
+          node --check scripts/validate-shared-runtime-stability-v48.mjs
+          node scripts/validate-shared-runtime-stability-v48.mjs
+          node --check assets/roulette/opening-spin-sync.js
 
           node scripts/validate-mountain-race-input-rebase-v8.mjs
           node scripts/validate-mountain-race-fast-ack-v9.mjs
@@ -69,6 +73,9 @@ jobs:
           grep -Fq 'MOUNTAIN_RACE_FINISH_STABILITY_V47' assets/mountain-race/mountain-race-multiplayer.js
           grep -Fq 'visual=47' index.html
           grep -Fq 'visual=47' mountain-race-preview.html
+          grep -Fq 'SHARED_RUNTIME_STABILITY_V48' index.html
+          grep -Fq 'SHARED_RUNTIME_STABILITY_V48' assets/roulette/opening-spin-sync.js
+          grep -Fq 'opening-spin-sync.js?v=6&trim=1&clamp=1' index.html
           test -s assets/mountain-race/images/summit-sprint-reboot-background-v44.png
           test -s assets/mountain-race/images/summit-sprint-rugged-cliff-v46.png
           test -s assets/mountain-race/images/summit-sprint-rugged-outcrop-1-v46.png
@@ -84,16 +91,17 @@ jobs:
           test -s assets/roulette/turn-fire.js
           test -s assets/roulette/audio-bindings.js
 
-      - name: Verify live Netlify V47 deployment
+      - name: Verify live Netlify V48 deployment
         if: github.event_name == 'pull_request'
         shell: bash
         run: |
           set -euo pipefail
           url='https://deploy-preview-20--famous-piroshki-b621da.netlify.app/'
           for attempt in $(seq 1 72); do
-            page="$(curl -fsSL --max-time 20 "${url}?summit_finish_v47=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            page="$(curl -fsSL --max-time 20 "${url}?summit_finish_v48=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             runtime="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race-multiplayer.js?visual=47&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             styles="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race.css?visual=47&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            opening="$(curl -fsSL --max-time 20 "${url}assets/roulette/opening-spin-sync.js?v=6&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             scene_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-reboot-background-v44.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             cliff_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-rugged-cliff-v46.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             ledge_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-rugged-outcrop-1-v46.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
@@ -101,18 +109,21 @@ jobs:
             opponent_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-climber-back-opponent-sheet-v45.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
 
             if grep -Fq 'visual=47' <<<"$page" && \
+               grep -Fq 'SHARED_RUNTIME_STABILITY_V48' <<<"$page" && \
+               grep -Fq 'opening-spin-sync.js?v=6&trim=1&clamp=1' <<<"$page" && \
                grep -Fq 'MOUNTAIN_RACE_FINISH_STABILITY_V47' <<<"$runtime" && \
                grep -Fq 'MOUNTAIN_RACE_FINISH_STABILITY_V47' <<<"$styles" && \
+               grep -Fq 'SHARED_RUNTIME_STABILITY_V48' <<<"$opening" && \
                grep -Fqi 'content-type: image/png' <<<"$scene_headers" && \
                grep -Fqi 'content-type: image/png' <<<"$cliff_headers" && \
                grep -Fqi 'content-type: image/png' <<<"$ledge_headers" && \
                grep -Fqi 'content-type: image/png' <<<"$climber_headers" && \
                grep -Fqi 'content-type: image/png' <<<"$opponent_headers"; then
-              echo "Verified live Summit Sprint V47 finish stability at ${url}"
+              echo "Verified live Summit Sprint V48 finish stability at ${url}"
               exit 0
             fi
-            echo "Waiting for Netlify Summit Sprint V47 (${attempt}/72)..."
+            echo "Waiting for Netlify Summit Sprint V48 (${attempt}/72)..."
             sleep 10
           done
-          echo 'Netlify did not serve the Summit Sprint V47 finish-stability build.' >&2
+          echo 'Netlify did not serve the Summit Sprint V48 finish-stability build.' >&2
           exit 1
