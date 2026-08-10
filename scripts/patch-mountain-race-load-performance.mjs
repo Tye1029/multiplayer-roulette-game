@@ -80,3 +80,5 @@ await import('./patch-mountain-race-synchronized-motion-v41.mjs');
 await import('./validate-mountain-race-synchronized-motion-v41.mjs');
 await import('./patch-mountain-race-flip-motion-v42.mjs');
 await import('./validate-mountain-race-flip-motion-v42.mjs');
+await import('./patch-mountain-race-confirmed-lightweight-v43.mjs');
+await import('./validate-mountain-race-confirmed-lightweight-v43.mjs');
