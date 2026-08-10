@@ -69,9 +69,11 @@ for (const index of [1, 8, 12, 20, 23]) {
   if (fourthBottom + 48 > 520) fail(`four known ledges no longer fit at hold ${index}`);
 }
 
+const rugged46 = runtime.includes('MOUNTAIN_RACE_RUGGED_TERRAIN_V46');
 for (const document of [html, preview]) {
-  if (!document.includes('visual=45')) fail('V45 cache boundary missing');
-  for (const [name] of assets) if (!document.includes(`rel="preload" as="image" href="/assets/mountain-race/images/${name}"`)) fail(`preload missing: ${name}`);
+  if (!document.includes(rugged46 ? 'visual=46' : 'visual=45')) fail('V45/V46 cache boundary missing');
+  const requiredPreloads = rugged46 ? assets.slice(1) : assets;
+  for (const [name] of requiredPreloads) if (!document.includes(`rel="preload" as="image" href="/assets/mountain-race/images/${name}"`)) fail(`preload missing: ${name}`);
   if (document.includes('rel="preload" as="image" href="/assets/mountain-race/images/summit-sprint-reboot-climber-sheet-v44.png"')) fail('retired front-facing climber is still preloaded');
   if (document.includes('rel="preload" as="image" href="/assets/mountain-race/images/summit-sprint-reboot-climber-opponent-sheet-v44.png"')) fail('retired front-facing opponent is still preloaded');
 }
