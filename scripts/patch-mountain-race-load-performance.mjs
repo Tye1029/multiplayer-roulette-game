@@ -88,3 +88,5 @@ await import('./patch-mountain-race-contact-ledges-v45.mjs');
 await import('./validate-mountain-race-contact-ledges-v45.mjs');
 await import('./patch-mountain-race-rugged-terrain-v46.mjs');
 await import('./validate-mountain-race-rugged-terrain-v46.mjs');
+await import('./patch-mountain-race-finish-stability-v47.mjs');
+await import('./validate-mountain-race-finish-stability-v47.mjs');

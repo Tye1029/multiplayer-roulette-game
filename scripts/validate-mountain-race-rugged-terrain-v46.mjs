@@ -51,8 +51,9 @@ for (const token of [
   'visibility: visible !important'
 ]) if (!css.includes(token)) fail(`CSS token missing: ${token}`);
 
+const finish47 = runtime.includes('MOUNTAIN_RACE_FINISH_STABILITY_V47');
 for (const document of [html, preview]) {
-  if (!document.includes('visual=46')) fail('V46 cache boundary missing');
+  if (!document.includes(finish47 ? 'visual=47' : 'visual=46')) fail('V46/V47 cache boundary missing');
   for (const [name] of assets) if (!document.includes(`rel="preload" as="image" href="/assets/mountain-race/images/${name}"`)) fail(`preload missing: ${name}`);
   if (document.includes('rel="preload" as="image" href="/assets/mountain-race/images/summit-sprint-reboot-cliff-v44.png"')) fail('retired gray cliff remains preloaded');
   if (document.includes('rel="preload" as="image" href="/assets/mountain-race/images/summit-sprint-reboot-ledge-v45.png"')) fail('retired flat ledge remains preloaded');
