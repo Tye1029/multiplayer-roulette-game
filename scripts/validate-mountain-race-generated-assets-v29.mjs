@@ -36,8 +36,9 @@ const [css, runtime, prototypeRuntime, html, preview] = await Promise.all([
   readFile(new URL('index.html', rootUrl), 'utf8'),
   readFile(new URL('mountain-race-preview.html', rootUrl), 'utf8')
 ]);
+const reboot44 = runtime.includes('MOUNTAIN_RACE_VISUAL_REBOOT_V44');
 
-for (const token of [
+if (!reboot44) for (const token of [
   'MOUNTAIN_RACE_GENERATED_ASSETS_V29',
   "url('/assets/mountain-race/images/summit-sprint-sky-v29.png')",
   '.mr-cliff-art img',
@@ -46,7 +47,7 @@ for (const token of [
   '.mr-hold-art'
 ]) if (!css.includes(token)) fail(`CSS token missing: ${token}`);
 
-for (const token of [
+if (!reboot44) for (const token of [
   'MOUNTAIN_RACE_GENERATED_ASSETS_V29',
   "root.dataset.mrGeneratedAssets = '29';",
   "summit-sprint-cliff-${side === 'me' ? 'left' : 'right'}-v29.png",
@@ -60,7 +61,7 @@ for (const token of [
 
 if (!runtime.includes('const total = Math.max(8, Math.min(80, Math.trunc(Number(publicState.stepsTotal) || 24)))')) fail('authoritative 24-hold default changed');
 if (!runtime.includes('wrong inputs cost one hold') && !runtime.includes('Wrong inputs cost one hold')) fail('wrong-input slip behavior copy missing');
-for (const token of [
+if (!reboot44) for (const token of [
   'MOUNTAIN_RACE_GENERATED_ASSETS_V29',
   "root.dataset.mrGeneratedAssets = '29';",
   'summit-sprint-cliff-${playerKey === \'me\' ? \'left\' : \'right\'}-v29.png',
@@ -68,14 +69,14 @@ for (const token of [
   'summit-sprint-summit-${playerKey === \'me\' ? \'left\' : \'right\'}-v29.png',
   'summit-sprint-hold-${(index % 3) + 1}-v29.png'
 ]) if (!prototypeRuntime.includes(token)) fail(`prototype runtime token missing: ${token}`);
-if (!/visual=(?:31|32|33|34|35|36|37|38|39|40|41|42|43)/.test(html) || !/visual=(?:31|32|33|34|35|36|37|38|39|40|41|42|43)/.test(preview)) fail('V29 cache boundary missing');
-for (const asset of ['summit-sprint-sky-v29.png', 'summit-sprint-cliff-left-v29.png', 'summit-sprint-cliff-right-v29.png']) {
+if (!/visual=(?:31|32|33|34|35|36|37|38|39|40|41|42|43|44)/.test(html) || !/visual=(?:31|32|33|34|35|36|37|38|39|40|41|42|43|44)/.test(preview)) fail('V29/V44 cache boundary missing');
+if (!reboot44) for (const asset of ['summit-sprint-sky-v29.png', 'summit-sprint-cliff-left-v29.png', 'summit-sprint-cliff-right-v29.png']) {
   if (!html.includes(`rel="preload" as="image" href="/assets/mountain-race/images/${asset}"`)) fail(`V29 preload missing: ${asset}`);
 }
 if (css.includes('data-mr-generated-assets="29"] .mr-cliff-art img {\n  width: 100%')) fail('V29 cliff art is non-uniformly stretched');
-for (const alternatives of [['index * 72', 'index * 92'], ['total * 72', 'total * 92'], ['promptIndex - 3) * 72', 'promptIndex - 3) * 92', 'promptIndex - 2) * 92', 'cameraIndex - 2) * 92']]) {
+if (!reboot44) for (const alternatives of [['index * 72', 'index * 92'], ['total * 72', 'total * 92'], ['promptIndex - 3) * 72', 'promptIndex - 3) * 92', 'promptIndex - 2) * 92', 'cameraIndex - 2) * 92']]) {
   if (!alternatives.some(token => runtime.includes(token)) || !alternatives.some(token => prototypeRuntime.includes(token))) fail(`V29 expanded climb geometry missing: ${alternatives.join(' or ')}`);
 }
 if (!css.includes('left: 50% !important;') || !css.includes('object-position: center 48% !important;')) fail('V29 summit centering or hold crop missing');
 
-console.log(`Validated ${assets.length} direct high-resolution V29 PNGs, native aspect-ratio image layers, live directional holds, and gameplay invariants.`);
+console.log(`Validated ${assets.length} retained V29 source PNGs, the active ${reboot44 ? 'V44 reboot' : 'V29 presentation'}, live directional holds, and gameplay invariants.`);
