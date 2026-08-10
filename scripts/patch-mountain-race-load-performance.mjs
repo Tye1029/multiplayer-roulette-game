@@ -78,3 +78,5 @@ await import('./patch-mountain-race-static-scene-v40.mjs');
 await import('./validate-mountain-race-static-scene-v40.mjs');
 await import('./patch-mountain-race-synchronized-motion-v41.mjs');
 await import('./validate-mountain-race-synchronized-motion-v41.mjs');
+await import('./patch-mountain-race-flip-motion-v42.mjs');
+await import('./validate-mountain-race-flip-motion-v42.mjs');
