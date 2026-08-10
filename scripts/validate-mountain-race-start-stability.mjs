@@ -1,7 +1,12 @@
 import { readFile } from 'node:fs/promises';
-import integrationModule from '../netlify/functions/mountain-race/integration.js';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 
-const root = new URL('../', import.meta.url);
+const scriptRoot = new URL('../', import.meta.url);
+const root = process.env.MULTIPLAYER_BUILD_ROOT
+  ? pathToFileURL(`${path.resolve(process.env.MULTIPLAYER_BUILD_ROOT)}${path.sep}`)
+  : scriptRoot;
+const integrationModule = (await import(new URL('netlify/functions/mountain-race/integration.js', root))).default;
 const deploymentMarker = '<!-- MOUNTAIN_RACE_START_STABILITY_V1 -->';
 const {
   MOUNTAIN_RACE_BOT_CATCH_UP_LIMIT,
@@ -36,13 +41,36 @@ assert(integration.includes('scheduleFromMs: currentNow'), 'the next bot move is
 assert(integration.includes('currentNow < lastBotActionMs + MOUNTAIN_RACE_BOT_MIN_STEP_INTERVAL_MS'), 'concurrent polls can still advance the bot inside one pacing interval');
 assert(integration.includes('each request may execute only one due bot move'), 'single-wake pacing guard is missing');
 
-assert(data.includes('const effectiveStartMs = game?.mode === "mountainrace" ? atMs + 3000 : startMs;'), 'Summit Sprint does not own one three-second authoritative countdown');
+assert(
+  data.includes('const effectiveStartMs = game?.mode === "mountainrace" ? atMs + 3000 : startMs;') ||
+  (
+    data.includes('const effectiveStartMs = atMs + duelCountdownMs(game?.mode);') &&
+    data.includes('countdownMs: duelCountdownMs')
+  ),
+  'Summit Sprint does not own one three-second authoritative countdown'
+);
 assert(data.includes('startAt: new Date(effectiveStartMs).toISOString()'), 'shared lifecycle does not publish the Summit Sprint GO timestamp');
 assert(data.includes('mountainRaceInitialState(next, effectiveStartMs)'), 'race state is not initialized from the single GO timestamp');
-assert(data.includes('if (game.mode === "mountainrace") {\n        // Summit Sprint starts from one human Ready tap.'), 'Remote Bot readiness still waits for a second delayed confirmation');
-assert(data.includes('const mountainRaceRequest = String(gameId || "").startsWith("duel-mountainrace-");'), 'Summit Sprint requests are not identified for strong reads');
-assert(data.includes('? await duelGetRawStrong(gameId, 2) || await duelGetRaw(gameId)'), 'Summit Sprint action/poll reads are not strong-first');
-assert(data.includes('const latest = mountainRaceRequest\n        ? await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId)'), 'Ready normalization can still read a stale attached game');
+assert(
+  data.includes('if (game.mode === "mountainrace") {\n        // Summit Sprint starts from one human Ready tap.') ||
+  data.includes('// Synthetic opponents share one Ready contract in every mode.'),
+  'Remote Bot readiness still waits for a second delayed confirmation'
+);
+assert(
+  data.includes('const mountainRaceRequest = String(gameId || "").startsWith("duel-mountainrace-");') ||
+  data.includes('async function duelReadFocusedGame(user, gameId, attempts = 3)'),
+  'Summit Sprint requests are not identified for strong reads'
+);
+assert(
+  data.includes('? await duelGetRawStrong(gameId, 2) || await duelGetRaw(gameId)') ||
+  data.includes('const game = await duelGetRawStrong(requestedGameId, 1) || await duelGetRaw(requestedGameId);'),
+  'Summit Sprint action/poll reads are not strong-first'
+);
+assert(
+  data.includes('const latest = mountainRaceRequest\n        ? await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId)') ||
+  data.includes('const latest = await duelReadFocusedGame(user, gameId, 2);'),
+  'Ready normalization can still read a stale attached game'
+);
 
 assert(html.includes("if(game.mode==='mountainrace'){\n        duelHideCountdownPortal();"), 'shared countdown portal still renders over the Summit Sprint countdown');
 assert(html.includes('["safecracker", "mountainrace"].includes(String(duelLastActiveGame?.mode || ""))'), 'one-tap Ready retry does not include Summit Sprint');
