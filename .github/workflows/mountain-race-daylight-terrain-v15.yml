@@ -1,12 +1,7 @@
 name: Summit Sprint Daylight Terrain V15
 
 on:
-  pull_request:
-    branches:
-      - safe-cracker-development
-  push:
-    branches:
-      - mountain-race-development
+  workflow_dispatch:
 
 concurrency:
   group: summit-sprint-daylight-terrain-v15-${{ github.ref }}

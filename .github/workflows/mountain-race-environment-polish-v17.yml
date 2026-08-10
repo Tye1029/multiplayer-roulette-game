@@ -1,12 +1,7 @@
 name: Summit Sprint Environment Polish V17
 
 on:
-  pull_request:
-    branches:
-      - safe-cracker-development
-  push:
-    branches:
-      - mountain-race-development
+  workflow_dispatch:
 
 concurrency:
   group: summit-sprint-environment-polish-v17-${{ github.ref }}

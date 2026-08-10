@@ -1,12 +1,7 @@
 name: Summit Sprint Visual Restart V25
 
 on:
-  pull_request:
-    branches:
-      - safe-cracker-development
-  push:
-    branches:
-      - mountain-race-development
+  workflow_dispatch:
 
 concurrency:
   group: summit-sprint-visual-restart-v25-${{ github.ref }}

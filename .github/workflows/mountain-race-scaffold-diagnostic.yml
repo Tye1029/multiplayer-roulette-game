@@ -1,12 +1,7 @@
 name: Summit Sprint Multiplayer Diagnostic
 
 on:
-  pull_request:
-    branches:
-      - safe-cracker-development
-  push:
-    branches:
-      - mountain-race-development
+  workflow_dispatch:
 
 concurrency:
   group: summit-sprint-multiplayer-${{ github.ref }}

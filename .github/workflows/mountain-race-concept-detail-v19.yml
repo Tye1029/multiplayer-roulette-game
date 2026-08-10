@@ -1,12 +1,7 @@
 name: Summit Sprint Concept Detail V19
 
 on:
-  pull_request:
-    branches:
-      - safe-cracker-development
-  push:
-    branches:
-      - mountain-race-development
+  workflow_dispatch:
 
 concurrency:
   group: summit-sprint-concept-detail-v19-${{ github.ref }}

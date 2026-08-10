@@ -1,9 +1,7 @@
 name: Summit Sprint V28 Source Diagnostic
 
 on:
-  push:
-    branches:
-      - mountain-race-development
+  workflow_dispatch:
 
 permissions:
   contents: read

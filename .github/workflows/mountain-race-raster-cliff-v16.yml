@@ -1,12 +1,7 @@
 name: Summit Sprint Raster Cliff V16
 
 on:
-  pull_request:
-    branches:
-      - safe-cracker-development
-  push:
-    branches:
-      - mountain-race-development
+  workflow_dispatch:
 
 concurrency:
   group: summit-sprint-raster-cliff-v16-${{ github.ref }}

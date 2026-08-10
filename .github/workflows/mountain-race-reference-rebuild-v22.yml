@@ -1,12 +1,7 @@
 name: Summit Sprint Reference Rebuild V22
 
 on:
-  pull_request:
-    branches:
-      - safe-cracker-development
-  push:
-    branches:
-      - mountain-race-development
+  workflow_dispatch:
 
 concurrency:
   group: summit-sprint-reference-rebuild-v22-${{ github.ref }}

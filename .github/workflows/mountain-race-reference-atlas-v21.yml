@@ -1,12 +1,7 @@
 name: Summit Sprint Reference Atlas V21
 
 on:
-  pull_request:
-    branches:
-      - safe-cracker-development
-  push:
-    branches:
-      - mountain-race-development
+  workflow_dispatch:
 
 concurrency:
   group: summit-sprint-reference-atlas-v21-${{ github.ref }}
