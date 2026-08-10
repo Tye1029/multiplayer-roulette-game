@@ -47,7 +47,7 @@ assert.equal(contract.countdownMs("safecracker"), 3000);
 assert.equal(contract.countdownMs("roulette"), 5000);
 
 for (const token of [
-  "MULTIPLAYER_COHESION_V3",
+  "MULTIPLAYER_COHESION_V4",
   'require("./multiplayer-contract")',
   "async function duelReadFocusedGame",
   "skipBalanceLookup: true",
@@ -57,16 +57,19 @@ for (const token of [
   "await duelAddRemoteNetworkBot(human, created.game.gameId",
   "await duelAddSimpleNpc(human, created.game.gameId)",
   "activeModeConflict: true",
-  "await duelAbandonNpcGame(user, activeGame.gameId)"
+  "await duelAbandonNpcGame(user, activeGame.gameId)",
+  "if (createResult?.activeModeConflict)",
+  "atomicCreateAndAttach: false",
+  'String(game.mode || "") !== mode'
 ]) assert.ok(data.includes(token), `server runtime is missing ${token}`);
 
 assert.ok(!data.includes("Rematches are only available after a completed supported duel."));
 assert.ok(!data.includes("const mountainRaceRequest = String(gameId"));
 assert.ok(!data.includes("record: await getUserRecord(user.id) };\n}\n\n\n\n// ---------------- Russian Roulette Duel"));
-assert.ok(action.includes('const DUEL_FUNCTION_BUILD = "multiplayer_cohesion_v3";'));
+assert.ok(action.includes('const DUEL_FUNCTION_BUILD = "multiplayer_cohesion_v4";'));
 
 for (const token of [
-  "MULTIPLAYER_COHESION_V3",
+  "MULTIPLAYER_COHESION_V4",
   'game.status === "complete" && DUEL_MODES_UI[String(game.mode || "")]',
   'game.status === "countdown" ? 250 : 350',
   "requestError.retryable = response.status >= 500",
@@ -85,13 +88,37 @@ for (const token of [
   'data-mode="mountainrace"',
   "You still have an unfinished",
   "align-items:flex-start;justify-content:center;overflow-y:auto",
-  ".sth-card{width:min(520px,100%);margin:auto"
+  ".sth-card{width:min(520px,100%);margin:auto",
+  "Start / Add Remote Bot",
+  "One click creates or safely recovers the game",
+  "RNB_LOG_LIMIT=800",
+  "RNB_STARTUP_LOG_LIMIT=240",
+  "RNB_PENDING_START_KEY='rnbPendingStartV1'",
+  "startupLogs=[]",
+  "selectedModeExplicit=false",
+  "selectedModeExplicit=true;line(botLogs,'selected game'",
+  "selectedModeExplicit?selectedMode:(current?.mode",
+  "STARTUP / LIFECYCLE",
+  "RECENT ACTIVITY",
+  "function rnbPendingStart(mode,wager,current)",
+  "sessionStorage.setItem(RNB_PENDING_START_KEY",
+  "for(let attempt=1;attempt<=3;attempt+=1)",
+  "duelRequest('create-remote-bot',payload)",
+  "const data=await rnbAttachBotAtomically(pending.gameId,profile)",
+  "startupLine('Ready screen mounted'",
+  "base.startupLogs=[...startupLogs]",
+  "startupLimit:RNB_STARTUP_LOG_LIMIT",
+  "if(rouletteDebugLines.length>800)",
+  "if(entries.length>800)entries.shift()"
 ]) assert.ok(index.includes(token), `client runtime is missing ${token}`);
 
 assert.ok(!index.includes("if (mountainRacePauseCompletedPolling(game))"), "Summit completion must use shared rematch polling");
 assert.ok(index.includes("one of the five multiplayer games currently in active development"));
 assert.ok(!index.includes('data-rnb-game="mines"'));
 assert.ok(!index.includes('class="sth-game" data-mode="blackjack"'));
+assert.ok(!index.includes("Create a game first."), "Remote Bot startup must not require a separate create click");
+assert.ok(!index.includes("arr.splice(80)"), "shared debug histories must not retain the old 80-entry cap");
+assert.ok(!index.includes("entries.length>200"), "Roulette debug dock must not retain the old 200-entry cap");
 assert.equal((index.match(/<button data-rnb-game=/g) || []).length, activeTestModes.length);
 assert.equal((index.match(/class="sth-game" data-mode=/g) || []).length, activeTestModes.length);
 
