@@ -5,7 +5,7 @@
 // polling, rematches, or synthetic-opponent behavior.
 const { multiplayerModeNames } = require("../../shared/games/catalog");
 
-const MULTIPLAYER_CONTRACT_VERSION = "cohesion-v2";
+const MULTIPLAYER_CONTRACT_VERSION = "cohesion-v3";
 const MODE_NAMES = Object.freeze({ ...multiplayerModeNames });
 
 const COUNTDOWN_MS = Object.freeze({

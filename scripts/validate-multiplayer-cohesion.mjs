@@ -35,7 +35,7 @@ assert.deepEqual(catalog.legacyMultiplayerModes, legacyModes);
 assert.deepEqual(Object.keys(catalog.multiplayerModeNames), expectedModes);
 assert.ok(catalog.singlePlayerSections.includes("scratch-ticket"));
 assert.ok(catalog.multiplayerSections.includes("multiplayer-arcade"));
-assert.equal(contract.MULTIPLAYER_CONTRACT_VERSION, "cohesion-v2");
+assert.equal(contract.MULTIPLAYER_CONTRACT_VERSION, "cohesion-v3");
 assert.deepEqual(Object.keys(contract.MODE_NAMES), expectedModes);
 for (const mode of expectedModes) {
   assert.equal(contract.hasMode(mode), true, `${mode} must be registered`);
@@ -47,7 +47,7 @@ assert.equal(contract.countdownMs("safecracker"), 3000);
 assert.equal(contract.countdownMs("roulette"), 5000);
 
 for (const token of [
-  "MULTIPLAYER_COHESION_V2",
+  "MULTIPLAYER_COHESION_V3",
   'require("./multiplayer-contract")',
   "async function duelReadFocusedGame",
   "skipBalanceLookup: true",
@@ -63,16 +63,22 @@ for (const token of [
 assert.ok(!data.includes("Rematches are only available after a completed supported duel."));
 assert.ok(!data.includes("const mountainRaceRequest = String(gameId"));
 assert.ok(!data.includes("record: await getUserRecord(user.id) };\n}\n\n\n\n// ---------------- Russian Roulette Duel"));
-assert.ok(action.includes('const DUEL_FUNCTION_BUILD = "multiplayer_cohesion_v2";'));
+assert.ok(action.includes('const DUEL_FUNCTION_BUILD = "multiplayer_cohesion_v3";'));
 
 for (const token of [
-  "MULTIPLAYER_COHESION_V2",
+  "MULTIPLAYER_COHESION_V3",
   'game.status === "complete" && DUEL_MODES_UI[String(game.mode || "")]',
   'game.status === "countdown" ? 250 : 350',
   "requestError.retryable = response.status >= 500",
   '/shared/games/catalog.js?v=1',
   'window.GAMBLING_SITE_CATALOG?.multiplayerTestModes',
-  "if(typeof duelStartNewGame==='function')duelStartNewGame()",
+  "if(typeof duelStartNewGame==='function')duelStartNewGame(mode)",
+  'function duelStartNewGame(requestedMode = "")',
+  'window.__duelRequestedModeIntent = String(requestedMode || "")',
+  '!duelCurrentGameId && !String(window.__duelRequestedModeIntent || "")',
+  'window.__duelRequestedModeIntent = String(mode || "")',
+  'String(game.mode || "") !== String(requestedMode || "")',
+  'The incorrect game was not opened.',
   'data-rnb-game="roulette"',
   'data-rnb-game="mountainrace"',
   'data-mode="safecracker"',
@@ -93,7 +99,7 @@ const launcherStart = index.indexOf("function openGame(mode)");
 const launcherEnd = index.indexOf("games.forEach(b=>b.addEventListener", launcherStart);
 assert.ok(launcherStart >= 0 && launcherEnd > launcherStart, "test launcher function must be present");
 const launcherSource = index.slice(launcherStart, launcherEnd);
-const clearFocusAt = launcherSource.indexOf("duelStartNewGame()");
+const clearFocusAt = launcherSource.indexOf("duelStartNewGame(mode)");
 const showMenuAt = launcherSource.indexOf("showDuelGames()");
 const selectModeAt = launcherSource.indexOf("sel.value=mode");
 assert.ok(clearFocusAt >= 0 && clearFocusAt < showMenuAt, "stale focused games must be cleared before opening the menu");

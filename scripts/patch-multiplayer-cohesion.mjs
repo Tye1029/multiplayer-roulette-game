@@ -9,7 +9,7 @@ const root = process.env.MULTIPLAYER_BUILD_ROOT
 const dataPath = path.join(root, "netlify", "functions", "_data.js");
 const actionPath = path.join(root, "netlify", "functions", "duel-action.js");
 const indexPath = path.join(root, "index.html");
-const MARKER = "MULTIPLAYER_COHESION_V2";
+const MARKER = "MULTIPLAYER_COHESION_V3";
 
 function replaceOnce(source, search, replacement, label) {
   const matches = typeof search === "string"
@@ -147,8 +147,26 @@ index = index.replace(
 );
 index = replaceOnce(
   index,
+  `    function duelStartNewGame(){\n      duelRememberCurrentGame("");`,
+  `    function duelStartNewGame(requestedMode = ""){\n      // Changing games invalidates every poll that began under the prior focus.\n      // The requested-mode intent also prevents a lobby list from auto-resuming\n      // an older server game while the player is setting up the new one.\n      duelRefreshSequence += 1;\n      duelRefreshPending = false;\n      window.__duelRequestedModeIntent = String(requestedMode || "");\n      duelRememberCurrentGame("");`,
+  "new-game response ownership"
+);
+index = replaceOnce(
+  index,
+  `          if (!duelCurrentGameId) {\n            const resumable = duelCachedGames.find(g => g?.isPlayer && ["waiting","ready","countdown","playing"].includes(String(g.status || "")));`,
+  `          if (!duelCurrentGameId && !String(window.__duelRequestedModeIntent || "")) {\n            const resumable = duelCachedGames.find(g => g?.isPlayer && ["waiting","ready","countdown","playing"].includes(String(g.status || "")));`,
+  "requested-mode auto-resume guard"
+);
+index = replaceOnce(
+  index,
+  `        const mode = duelModeSelect?.value || "coin";\n        const wager = Math.max(0, Math.floor(Number(duelWagerInput?.value || 0)));`,
+  `        const mode = duelModeSelect?.value || "coin";\n        window.__duelRequestedModeIntent = String(mode || "");\n        duelRefreshSequence += 1;\n        duelRefreshPending = false;\n        const wager = Math.max(0, Math.floor(Number(duelWagerInput?.value || 0)));`,
+  "create response ownership"
+);
+index = replaceOnce(
+  index,
   `      if (!game?.gameId) throw new Error("The server did not return the created game.");\n      duelResetGenericRuntime(null);`,
-  `      if (!game?.gameId) throw new Error("The server did not return the created game.");\n      if (data?.activeModeConflict) {\n        duelRememberCurrentGame("");\n        duelLastActiveGame = null;\n        duelRenderActive(null, true);\n        throw new Error(\`You still have an unfinished \${game.modeName || "multiplayer game"}. Finish or cancel it before creating \${DUEL_MODES_UI[requestedMode]?.name || "another game"}.\`);\n      }\n      duelResetGenericRuntime(null);`,
+  `      if (!game?.gameId) throw new Error("The server did not return the created game.");\n      if (data?.activeModeConflict) {\n        window.__duelRequestedModeIntent = String(requestedMode || "");\n        duelRememberCurrentGame("");\n        duelLastActiveGame = null;\n        duelRenderActive(null, true);\n        throw new Error(\`You still have an unfinished \${game.modeName || "multiplayer game"}. Finish or cancel it before creating \${DUEL_MODES_UI[requestedMode]?.name || "another game"}.\`);\n      }\n      if (String(game.mode || "") !== String(requestedMode || "")) {\n        window.__duelRequestedModeIntent = String(requestedMode || "");\n        duelRememberCurrentGame("");\n        duelLastActiveGame = null;\n        duelRenderActive(null, true);\n        throw new Error(\`The server returned \${game.modeName || game.mode || "a different game"} while creating \${DUEL_MODES_UI[requestedMode]?.name || requestedMode}. The incorrect game was not opened.\`);\n      }\n      duelRefreshSequence += 1;\n      duelRefreshPending = false;\n      window.__duelRequestedModeIntent = "";\n      duelResetGenericRuntime(null);`,
   "cross-mode create conflict guard"
 );
 index = index.replace(
@@ -181,6 +199,12 @@ index = replaceOnce(
   "function openGame(mode){if(!confirmed())return;const sel=document.getElementById('duelModeSelect');if(sel){[...sel.options].forEach(o=>{if(!['roulette','draw','fishing','safecracker','mountainrace'].includes(o.value))o.remove()});sel.value=mode;sel.dispatchEvent(new Event('change',{bubbles:true}));}home.hidden=true;if(typeof showDuelGames==='function')showDuelGames();else document.getElementById('duelGameMenuBtn')?.click();document.querySelectorAll('#duelNpcBtn,#duelNpcActiveBtn,#duelRecoverNpcBtn').forEach(e=>e.remove());}",
   `function openGame(mode){\n  if(!confirmed())return;\n  const testModes=Array.isArray(window.GAMBLING_SITE_CATALOG?.multiplayerTestModes)?window.GAMBLING_SITE_CATALOG.multiplayerTestModes:[];\n  if(!testModes.includes(mode))return;\n  // A launcher choice is a navigation intent, not permission for a persisted\n  // game from another mode to reclaim the screen. Server escrow remains intact.\n  if(typeof duelStartNewGame==='function')duelStartNewGame();\n  else if(typeof duelRememberCurrentGame==='function')duelRememberCurrentGame('');\n  home.hidden=true;\n  if(typeof showDuelGames==='function')showDuelGames();else document.getElementById('duelGameMenuBtn')?.click();\n  const sel=document.getElementById('duelModeSelect');\n  if(sel){[...sel.options].forEach(option=>{if(!testModes.includes(option.value))option.remove()});sel.value=mode;sel.dispatchEvent(new Event('change',{bubbles:true}));}\n  if(typeof duelSetStatus==='function')duelSetStatus(\`Selected \${sel?.selectedOptions?.[0]?.textContent||mode}. Choose a wager and create the game.\`,'good');\n  document.querySelectorAll('#duelNpcBtn,#duelNpcActiveBtn,#duelRecoverNpcBtn').forEach(e=>e.remove());\n }`,
   "mode-stable test launcher"
+);
+index = replaceOnce(
+  index,
+  "if(typeof duelStartNewGame==='function')duelStartNewGame();",
+  "if(typeof duelStartNewGame==='function')duelStartNewGame(mode);",
+  "launcher requested-mode intent"
 );
 index = index.replace(
   ".rnb-games button{min-height:36px;border:0;border-radius:8px;color:white;font-weight:900}",
