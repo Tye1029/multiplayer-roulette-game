@@ -47,7 +47,7 @@ for (const token of [
 ]) assert(css.includes(token), `CSS token missing: ${token}`);
 
 for (const document of [html, preview]) {
-  assert(document.includes('visual=57'), 'V57 cache boundary missing');
+  assert(document.includes('visual=58') || document.includes('visual=57'), 'V57/V58 cache boundary missing');
   assert(document.includes('summit-sprint-celebration-climbers-v57.png'), 'V57 celebration preload missing');
 }
 

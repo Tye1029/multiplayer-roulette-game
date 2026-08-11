@@ -1,4 +1,4 @@
-name: Summit Sprint Natural Summit V56
+name: Summit Sprint Independent Summit Sky V58
 
 on:
   pull_request:
@@ -9,7 +9,7 @@ on:
       - mountain-race-development
 
 concurrency:
-  group: summit-sprint-celebration-contact-v57-${{ github.ref }}
+  group: summit-sprint-independent-summit-sky-v58-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -34,7 +34,7 @@ jobs:
       - name: Build exact Netlify output
         run: npm run build
 
-      - name: Validate V50 summit contact and protected gameplay
+      - name: Validate V58 summit sky and protected gameplay
         shell: bash
         run: |
           set -euo pipefail
@@ -83,6 +83,9 @@ jobs:
           node --check scripts/patch-mountain-race-celebration-contact-v57.mjs
           node --check scripts/validate-mountain-race-celebration-contact-v57.mjs
           node scripts/validate-mountain-race-celebration-contact-v57.mjs
+          node --check scripts/patch-mountain-race-summit-sky-v58.mjs
+          node --check scripts/validate-mountain-race-summit-sky-v58.mjs
+          node scripts/validate-mountain-race-summit-sky-v58.mjs
           node --check assets/roulette/opening-spin-sync.js
 
           node scripts/validate-mountain-race-input-rebase-v8.mjs
@@ -112,8 +115,10 @@ jobs:
           grep -Fq 'MOUNTAIN_RACE_ROUTE_CLARITY_V55' assets/mountain-race/mountain-race.css
           grep -Fq 'MOUNTAIN_RACE_NATURAL_SUMMIT_V56' assets/mountain-race/mountain-race-multiplayer.js
           grep -Fq 'MOUNTAIN_RACE_NATURAL_SUMMIT_V56' assets/mountain-race/mountain-race.css
-          grep -Fq 'visual=57' index.html
-          grep -Fq 'visual=57' mountain-race-preview.html
+          grep -Fq 'MOUNTAIN_RACE_SUMMIT_SKY_V58' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'MOUNTAIN_RACE_SUMMIT_SKY_V58' assets/mountain-race/mountain-race.css
+          grep -Fq 'visual=58' index.html
+          grep -Fq 'visual=58' mountain-race-preview.html
           grep -Fq 'SHARED_RUNTIME_STABILITY_V48' index.html
           grep -Fq 'SHARED_RUNTIME_STABILITY_V48' assets/roulette/opening-spin-sync.js
           grep -Fq 'opening-spin-sync.js?v=6&trim=1&clamp=1' index.html
@@ -135,6 +140,7 @@ jobs:
           test -s assets/mountain-race/images/summit-sprint-waiting-climbers-v55.png
           test -s assets/mountain-race/images/summit-sprint-natural-peak-v56.png
           test -s assets/mountain-race/images/summit-sprint-celebration-climbers-v57.png
+          test -s assets/mountain-race/images/summit-sprint-alpine-sky-v58.png
 
           test -s assets/safe-cracker/safe-cracker.js
           test -s assets/safe-cracker/safe-cracker.css
@@ -142,16 +148,16 @@ jobs:
           test -s assets/roulette/turn-fire.js
           test -s assets/roulette/audio-bindings.js
 
-      - name: Verify live Netlify V57 deployment
+      - name: Verify live Netlify V58 deployment
         if: github.event_name == 'pull_request'
         shell: bash
         run: |
           set -euo pipefail
           url='https://deploy-preview-20--famous-piroshki-b621da.netlify.app/'
           for attempt in $(seq 1 72); do
-            page="$(curl -fsSL --max-time 20 "${url}?celebration_contact_v57=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            runtime="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race-multiplayer.js?visual=57&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            styles="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race.css?visual=57&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            page="$(curl -fsSL --max-time 20 "${url}?summit_sky_v58=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            runtime="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race-multiplayer.js?visual=58&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            styles="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race.css?visual=58&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             opening="$(curl -fsSL --max-time 20 "${url}assets/roulette/opening-spin-sync.js?v=6&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             scene_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-reboot-background-v44.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             cliff_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-natural-cliff-v49.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
@@ -163,8 +169,9 @@ jobs:
             waiting_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-waiting-climbers-v55.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             summit_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-natural-peak-v56.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
             celebration_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-celebration-climbers-v57.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            sky_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-alpine-sky-v58.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
 
-            if grep -Fq 'visual=57' <<<"$page" && \
+            if grep -Fq 'visual=58' <<<"$page" && \
                grep -Fq 'SHARED_RUNTIME_STABILITY_V48' <<<"$page" && \
                grep -Fq 'opening-spin-sync.js?v=6&trim=1&clamp=1' <<<"$page" && \
                grep -Fq 'MOUNTAIN_RACE_FINISH_STABILITY_V47' <<<"$runtime" && \
@@ -185,6 +192,8 @@ jobs:
                grep -Fq 'MOUNTAIN_RACE_NATURAL_SUMMIT_V56' <<<"$styles" && \
                grep -Fq 'MOUNTAIN_RACE_CELEBRATION_CONTACT_V57' <<<"$runtime" && \
                grep -Fq 'MOUNTAIN_RACE_CELEBRATION_CONTACT_V57' <<<"$styles" && \
+               grep -Fq 'MOUNTAIN_RACE_SUMMIT_SKY_V58' <<<"$runtime" && \
+               grep -Fq 'MOUNTAIN_RACE_SUMMIT_SKY_V58' <<<"$styles" && \
                grep -Fq 'SHARED_RUNTIME_STABILITY_V48' <<<"$opening" && \
                grep -Fqi 'content-type: image/png' <<<"$scene_headers" && \
                grep -Fqi 'content-type: image/png' <<<"$cliff_headers" && \
@@ -195,12 +204,13 @@ jobs:
                grep -Fqi 'content-type: image/png' <<<"$start_headers" && \
                grep -Fqi 'content-type: image/png' <<<"$waiting_headers" && \
                grep -Fqi 'content-type: image/png' <<<"$summit_headers" && \
-               grep -Fqi 'content-type: image/png' <<<"$celebration_headers"; then
-              echo "Verified live Summit Sprint V57 summit contact and celebration at ${url}"
+               grep -Fqi 'content-type: image/png' <<<"$celebration_headers" && \
+               grep -Fqi 'content-type: image/png' <<<"$sky_headers"; then
+              echo "Verified live Summit Sprint V58 independent summit sky at ${url}"
               exit 0
             fi
-            echo "Waiting for Netlify Summit Sprint V57 (${attempt}/72)..."
+            echo "Waiting for Netlify Summit Sprint V58 (${attempt}/72)..."
             sleep 10
           done
-          echo 'Netlify did not serve the Summit Sprint V57 celebration-contact build.' >&2
+          echo 'Netlify did not serve the Summit Sprint V58 independent summit-sky build.' >&2
           exit 1

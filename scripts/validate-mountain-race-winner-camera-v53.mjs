@@ -31,7 +31,7 @@ assert(prototype.includes("index >= TOTAL_HOLDS || player.animation === 'celebra
 const grounded54 = runtime.includes('MOUNTAIN_RACE_GROUNDED_ASCENT_V54');
 const route55 = runtime.includes('MOUNTAIN_RACE_ROUTE_CLARITY_V55');
 const natural56 = runtime.includes('MOUNTAIN_RACE_NATURAL_SUMMIT_V56');
-for (const document of [html, preview]) assert(document.includes('visual=57') || document.includes(natural56 ? 'visual=56' : route55 ? 'visual=55' : grounded54 ? 'visual=54' : 'visual=53'), 'V53/V57 cache boundary is missing');
+for (const document of [html, preview]) assert(document.includes('visual=58') || document.includes('visual=57') || document.includes(natural56 ? 'visual=56' : route55 ? 'visual=55' : grounded54 ? 'visual=54' : 'visual=53'), 'V53/V58 cache boundary is missing');
 for (const token of [
   'MOUNTAIN_RACE_SHARED_MOUNTAIN_V51',
   '.mr-lane.opponent .mr-climber.finished',

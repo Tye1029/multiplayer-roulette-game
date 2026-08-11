@@ -66,7 +66,7 @@ const grounded54 = runtime.includes('MOUNTAIN_RACE_GROUNDED_ASCENT_V54');
 const route55 = runtime.includes('MOUNTAIN_RACE_ROUTE_CLARITY_V55');
 const natural56 = runtime.includes('MOUNTAIN_RACE_NATURAL_SUMMIT_V56');
 for (const document of [html, preview]) {
-  assert(document.includes('visual=57') || document.includes(natural56 ? 'visual=56' : route55 ? 'visual=55' : grounded54 ? 'visual=54' : camera53 ? 'visual=53' : winner52 ? 'visual=52' : shared51 ? 'visual=51' : summit50 ? 'visual=50' : 'visual=49'), 'V49/V57 cache boundary is missing');
+  assert(document.includes('visual=58') || document.includes('visual=57') || document.includes(natural56 ? 'visual=56' : route55 ? 'visual=55' : grounded54 ? 'visual=54' : camera53 ? 'visual=53' : winner52 ? 'visual=52' : shared51 ? 'visual=51' : summit50 ? 'visual=50' : 'visual=49'), 'V49/V58 cache boundary is missing');
   for (const [name] of assets) {
     assert(document.includes(`rel="preload" as="image" href="/assets/mountain-race/images/${name}"`), `preload missing: ${name}`);
   }

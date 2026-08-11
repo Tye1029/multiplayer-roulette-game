@@ -48,9 +48,9 @@ for (const token of [
   'max-width: none !important'
 ]) assert(css.includes(token), `CSS token missing: ${token}`);
 
-assert(html.includes('&visual=57') || html.includes(natural56 ? '&visual=56' : route55 ? '&visual=55' : '&visual=54'), 'document cache marker is not current');
+assert(html.includes('&visual=58') || html.includes('&visual=57') || html.includes(natural56 ? '&visual=56' : route55 ? '&visual=55' : '&visual=54'), 'document cache marker is not current');
 assert(html.includes('summit-sprint-start-grass-v54.png'), 'grass start asset is not preloaded');
-assert(preview.includes('mountain-race.js?prototype=1&visual=57') || preview.includes(natural56 ? 'mountain-race.js?prototype=1&visual=56' : route55 ? 'mountain-race.js?prototype=1&visual=55' : 'mountain-race.js?prototype=1&visual=54'), 'prototype runtime cache marker is not current');
+assert(preview.includes('mountain-race.js?prototype=1&visual=58') || preview.includes('mountain-race.js?prototype=1&visual=57') || preview.includes(natural56 ? 'mountain-race.js?prototype=1&visual=56' : route55 ? 'mountain-race.js?prototype=1&visual=55' : 'mountain-race.js?prototype=1&visual=54'), 'prototype runtime cache marker is not current');
 assert(runtime.includes('Math.max(8, Math.min(80, Math.trunc(Number(publicState.stepsTotal) || 24)))'), 'authoritative 24-hold server contract changed');
 assert(runtime.includes('data-mr-winner-camera="53"') || runtime.includes("root.dataset.mrWinnerCamera = '53'"), 'V53 winner camera was lost');
 
