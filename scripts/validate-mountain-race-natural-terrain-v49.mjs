@@ -63,17 +63,18 @@ const shared51 = runtime.includes('MOUNTAIN_RACE_SHARED_MOUNTAIN_V51');
 const winner52 = runtime.includes('MOUNTAIN_RACE_WINNER_SUMMIT_V52');
 const camera53 = runtime.includes('MOUNTAIN_RACE_WINNER_CAMERA_V53');
 const grounded54 = runtime.includes('MOUNTAIN_RACE_GROUNDED_ASCENT_V54');
+const route55 = runtime.includes('MOUNTAIN_RACE_ROUTE_CLARITY_V55');
 for (const document of [html, preview]) {
-  assert(document.includes(grounded54 ? 'visual=54' : camera53 ? 'visual=53' : winner52 ? 'visual=52' : shared51 ? 'visual=51' : summit50 ? 'visual=50' : 'visual=49'), 'V49/V54 cache boundary is missing');
+  assert(document.includes(route55 ? 'visual=55' : grounded54 ? 'visual=54' : camera53 ? 'visual=53' : winner52 ? 'visual=52' : shared51 ? 'visual=51' : summit50 ? 'visual=50' : 'visual=49'), 'V49/V55 cache boundary is missing');
   for (const [name] of assets) {
     assert(document.includes(`rel="preload" as="image" href="/assets/mountain-race/images/${name}"`), `preload missing: ${name}`);
   }
   assert(!document.includes('rel="preload" as="image" href="/assets/mountain-race/images/summit-sprint-rugged-cliff-v46.png"'), 'retired V46 cliff remains preloaded');
 }
 
-assert(runtime.includes(grounded54 ? 'currentIndex + 7' : 'currentIndex + 3'), 'multiplayer renderer no longer keeps nearby ledges');
+assert(runtime.includes(route55 ? 'currentIndex + 4' : grounded54 ? 'currentIndex + 7' : 'currentIndex + 3'), 'multiplayer renderer no longer keeps nearby ledges');
 assert(runtime.includes('Math.max(8, Math.min(80, Math.trunc(Number(publicState.stepsTotal) || 24)))'), 'authoritative 24-hold default changed');
-assert(runtime.includes(grounded54 ? 'Math.max(0, cameraIndex - 1) * 42' : 'Math.max(0, cameraIndex - 1) * 84'), 'fixed camera framing changed');
+assert(runtime.includes(route55 ? 'Math.max(0, cameraIndex - 1) * 60' : grounded54 ? 'Math.max(0, cameraIndex - 1) * 42' : 'Math.max(0, cameraIndex - 1) * 84'), 'fixed camera framing changed');
 assert(runtime.includes('data-mr-contact-index'), 'physical ledge contact anchoring changed');
 assert(runtime.includes('scheduleInputFlush(true)'), 'continuous competitive input buffering changed');
 for (const token of ['data-mr-rematch', 'data-mr-new-game', 'winnerConfetti()', 'YOU REACHED THE SUMMIT FIRST!']) {

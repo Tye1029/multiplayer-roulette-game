@@ -19,11 +19,13 @@ function assert(condition, message) {
   if (!condition) throw new Error(`Summit Sprint V54 validation failed: ${message}`);
 }
 
+const route55 = runtime.includes('MOUNTAIN_RACE_ROUTE_CLARITY_V55');
+
 for (const [name, source] of Object.entries({ runtime, prototype })) {
   assert(source.includes('MOUNTAIN_RACE_GROUNDED_ASCENT_V54'), `${name} marker missing`);
   assert(source.includes("root.dataset.mrGroundedAscent = '54'"), `${name} dataset missing`);
-  assert(source.includes('currentIndex + 7') || source.includes('player.promptIndex + 7'), `${name} does not expose the denser upcoming route`);
-  assert(source.includes('* 42'), `${name} does not use closer vertical spacing`);
+  assert(source.includes(route55 ? 'currentIndex + 4' : 'currentIndex + 7') || source.includes(route55 ? 'player.promptIndex + 4' : 'player.promptIndex + 7'), `${name} does not expose the balanced upcoming route`);
+  assert(source.includes(route55 ? '* 60' : '* 42'), `${name} does not use the expected vertical spacing`);
   assert(source.includes('standing-start'), `${name} start pose class missing`);
   assert(source.includes('ready-next'), `${name} next-grip pose class missing`);
   assert(source.includes('data-mr-contact-index'), `${name} physical contact anchoring changed`);
@@ -45,9 +47,9 @@ for (const token of [
   'max-width: none !important'
 ]) assert(css.includes(token), `CSS token missing: ${token}`);
 
-assert(html.includes('&visual=54'), 'document cache marker is not V54');
+assert(html.includes(route55 ? '&visual=55' : '&visual=54'), 'document cache marker is not current');
 assert(html.includes('summit-sprint-start-grass-v54.png'), 'grass start asset is not preloaded');
-assert(preview.includes('mountain-race.js?prototype=1&visual=54'), 'prototype runtime cache marker is not V54');
+assert(preview.includes(route55 ? 'mountain-race.js?prototype=1&visual=55' : 'mountain-race.js?prototype=1&visual=54'), 'prototype runtime cache marker is not current');
 assert(runtime.includes('Math.max(8, Math.min(80, Math.trunc(Number(publicState.stepsTotal) || 24)))'), 'authoritative 24-hold server contract changed');
 assert(runtime.includes('data-mr-winner-camera="53"') || runtime.includes("root.dataset.mrWinnerCamera = '53'"), 'V53 winner camera was lost');
 
