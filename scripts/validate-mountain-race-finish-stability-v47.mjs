@@ -47,8 +47,11 @@ for (const viewportHeight of [520, 590]) {
   const wallTop = viewportHeight - wallHeight + finalScroll;
   assert(wallTop <= 0, `final camera exposes ${wallTop}px above the wall at viewport ${viewportHeight}`);
 }
-const summitScreenBottom = 120 + total * step - finalScroll;
-assert(summitScreenBottom === 120 + step, `summit framing drifted to ${summitScreenBottom}px`);
+const summitScreenBottom = natural56
+  ? 196 + (total - 1) * step - finalScroll
+  : 120 + total * step - finalScroll;
+const expectedSummitScreenBottom = natural56 ? 196 - step : 120 + step;
+assert(summitScreenBottom === expectedSummitScreenBottom, `summit framing drifted to ${summitScreenBottom}px`);
 assert(runtime.includes(`Math.max(2600, 580 + total * ${step})`), 'multiplayer wall does not cover the final camera');
 assert(prototype.includes(`Math.max(2600, 580 + total * ${step})`), 'prototype wall does not cover the final camera');
 assert(css.includes('MOUNTAIN_RACE_FINISH_STABILITY_V47') && css.includes('min-height: 2600px'), 'V47 wall coverage CSS is missing');
