@@ -56,8 +56,9 @@ const natural49 = runtime.includes('MOUNTAIN_RACE_NATURAL_TERRAIN_V49');
 const summit50 = runtime.includes('MOUNTAIN_RACE_SUMMIT_CONTACT_V50');
 const shared51 = runtime.includes('MOUNTAIN_RACE_SHARED_MOUNTAIN_V51');
 const winner52 = runtime.includes('MOUNTAIN_RACE_WINNER_SUMMIT_V52');
+const camera53 = runtime.includes('MOUNTAIN_RACE_WINNER_CAMERA_V53');
 for (const document of [html, preview]) {
-  if (!document.includes(winner52 ? 'visual=52' : shared51 ? 'visual=51' : summit50 ? 'visual=50' : natural49 ? 'visual=49' : finish47 ? 'visual=47' : 'visual=46')) fail('V46/V52 cache boundary missing');
+  if (!document.includes(camera53 ? 'visual=53' : winner52 ? 'visual=52' : shared51 ? 'visual=51' : summit50 ? 'visual=50' : natural49 ? 'visual=49' : finish47 ? 'visual=47' : 'visual=46')) fail('V46/V53 cache boundary missing');
   const requiredPreloads = natural49 ? [] : assets;
   for (const [name] of requiredPreloads) if (!document.includes(`rel="preload" as="image" href="/assets/mountain-race/images/${name}"`)) fail(`preload missing: ${name}`);
   if (natural49 && document.includes('rel="preload" as="image" href="/assets/mountain-race/images/summit-sprint-rugged-cliff-v46.png"')) fail('retired V46 cliff remains preloaded after V49');

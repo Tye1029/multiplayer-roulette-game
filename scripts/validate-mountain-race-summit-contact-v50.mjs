@@ -51,7 +51,8 @@ for (const [label, platformHeight, climberHeight, translateRatio] of [
 assert(css.includes('overflow: hidden !important'), 'camera viewport/lane clipping was removed with the visual boxes');
 const shared51 = runtime.includes('MOUNTAIN_RACE_SHARED_MOUNTAIN_V51');
 const winner52 = runtime.includes('MOUNTAIN_RACE_WINNER_SUMMIT_V52');
-for (const document of [html, preview]) assert(document.includes(winner52 ? 'visual=52' : shared51 ? 'visual=51' : 'visual=50'), 'V50/V52 cache boundary is missing');
+const camera53 = runtime.includes('MOUNTAIN_RACE_WINNER_CAMERA_V53');
+for (const document of [html, preview]) assert(document.includes(camera53 ? 'visual=53' : winner52 ? 'visual=52' : shared51 ? 'visual=51' : 'visual=50'), 'V50/V53 cache boundary is missing');
 assert(runtime.includes('currentIndex + 3'), 'four nearby ledges are no longer retained');
 assert(runtime.includes('Math.max(8, Math.min(80, Math.trunc(Number(publicState.stepsTotal) || 24)))'), 'authoritative 24-hold default changed');
 assert(runtime.includes('scheduleInputFlush(true)'), 'continuous competitive input buffering changed');

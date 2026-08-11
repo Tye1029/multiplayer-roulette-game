@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 
 const root = new URL('../', import.meta.url);
-const fail = message => { throw new Error(`Summit Sprint V52 validation failed: ${message}`); };
+const fail = message => { throw new Error(`Summit Sprint V53 validation failed: ${message}`); };
 const assert = (condition, message) => { if (!condition) fail(message); };
 
 const [runtime, prototype, css, html, preview, safeCracker, roulette] = await Promise.all([
@@ -16,19 +16,19 @@ const [runtime, prototype, css, html, preview, safeCracker, roulette] = await Pr
 
 for (const source of [runtime, prototype]) {
   for (const token of [
+    'MOUNTAIN_RACE_WINNER_CAMERA_V53',
+    "dataset.mrWinnerCamera = '53'",
     'MOUNTAIN_RACE_WINNER_SUMMIT_V52',
-    "dataset.mrWinnerSummit = '52'",
-    'MOUNTAIN_RACE_SHARED_MOUNTAIN_V51',
     'standing-on-summit'
   ]) assert(source.includes(token), `runtime token missing: ${token}`);
 }
 
-assert(runtime.includes("index >= Number(total || 0) || animation === 'celebrate'"), 'multiplayer timeout winner is not promoted to the summit pose');
-assert(prototype.includes("index >= TOTAL_HOLDS || player.animation === 'celebrate'"), 'prototype timeout winner is not promoted to the summit pose');
-assert(runtime.includes("const opponentAnimation = animationClass(opponent, runtime.lastOpponentInputAt, !publicState.viewerWon && !publicState.tie && runtime.game.status === 'complete')"), 'opponent winner no longer receives the celebration state');
+assert(runtime.includes("const cameraIndex = animation === 'celebrate' ? total"), 'multiplayer timeout winner camera does not frame the summit');
+assert(prototype.includes("const cameraIndex = player.animation === 'celebrate' ? total"), 'prototype timeout winner camera does not frame the summit');
+assert(runtime.includes("index >= Number(total || 0) || animation === 'celebrate'"), 'multiplayer timeout winner no longer receives the summit pose');
+assert(prototype.includes("index >= TOTAL_HOLDS || player.animation === 'celebrate'"), 'prototype timeout winner no longer receives the summit pose');
 
-const camera53 = runtime.includes('MOUNTAIN_RACE_WINNER_CAMERA_V53');
-for (const document of [html, preview]) assert(document.includes(camera53 ? 'visual=53' : 'visual=52'), 'V52/V53 cache boundary is missing');
+for (const document of [html, preview]) assert(document.includes('visual=53'), 'V53 cache boundary is missing');
 for (const token of [
   'MOUNTAIN_RACE_SHARED_MOUNTAIN_V51',
   '.mr-lane.opponent .mr-climber.finished',
@@ -46,4 +46,4 @@ for (const token of ['data-mr-rematch', 'data-mr-new-game', 'winnerConfetti()', 
 assert(safeCracker.length > 0, 'protected Safe Cracker runtime is unreadable');
 assert(roulette.length > 0, 'protected Roulette runtime is unreadable');
 
-console.log('Summit Sprint V52 validation passed: any authoritative winner, including a timeout winner below hold 24, receives the exact visible summit pose while gameplay, rematches, and protected games remain intact.');
+console.log('Summit Sprint V53 validation passed: any authoritative winner is placed on the summit and its lane camera frames that platform, including timeout wins below hold 24, while gameplay and protected games remain intact.');

@@ -60,8 +60,9 @@ assert(!/\brepeat(?:-x|-y)?\b/.test(v49Css.replaceAll('no-repeat', '')), 'V49 te
 const summit50 = runtime.includes('MOUNTAIN_RACE_SUMMIT_CONTACT_V50');
 const shared51 = runtime.includes('MOUNTAIN_RACE_SHARED_MOUNTAIN_V51');
 const winner52 = runtime.includes('MOUNTAIN_RACE_WINNER_SUMMIT_V52');
+const camera53 = runtime.includes('MOUNTAIN_RACE_WINNER_CAMERA_V53');
 for (const document of [html, preview]) {
-  assert(document.includes(winner52 ? 'visual=52' : shared51 ? 'visual=51' : summit50 ? 'visual=50' : 'visual=49'), 'V49/V52 cache boundary is missing');
+  assert(document.includes(camera53 ? 'visual=53' : winner52 ? 'visual=52' : shared51 ? 'visual=51' : summit50 ? 'visual=50' : 'visual=49'), 'V49/V53 cache boundary is missing');
   for (const [name] of assets) {
     assert(document.includes(`rel="preload" as="image" href="/assets/mountain-race/images/${name}"`), `preload missing: ${name}`);
   }
