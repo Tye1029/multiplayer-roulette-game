@@ -58,8 +58,9 @@ assert(!v49Css.includes('/ 100% 100%'), 'V49 terrain stretches an image out of p
 assert(!/\brepeat(?:-x|-y)?\b/.test(v49Css.replaceAll('no-repeat', '')), 'V49 terrain repeats an image');
 
 const summit50 = runtime.includes('MOUNTAIN_RACE_SUMMIT_CONTACT_V50');
+const shared51 = runtime.includes('MOUNTAIN_RACE_SHARED_MOUNTAIN_V51');
 for (const document of [html, preview]) {
-  assert(document.includes(summit50 ? 'visual=50' : 'visual=49'), 'V49/V50 cache boundary is missing');
+  assert(document.includes(shared51 ? 'visual=51' : summit50 ? 'visual=50' : 'visual=49'), 'V49/V51 cache boundary is missing');
   for (const [name] of assets) {
     assert(document.includes(`rel="preload" as="image" href="/assets/mountain-race/images/${name}"`), `preload missing: ${name}`);
   }

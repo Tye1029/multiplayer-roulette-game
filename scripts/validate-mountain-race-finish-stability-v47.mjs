@@ -54,8 +54,9 @@ for (const token of ['mountainRaceCompletionLabel', '"WINNER" : "RACE OVER"', 's
 }
 const natural49 = runtime.includes('MOUNTAIN_RACE_NATURAL_TERRAIN_V49');
 const summit50 = runtime.includes('MOUNTAIN_RACE_SUMMIT_CONTACT_V50');
-const expectedVisual = summit50 ? 'visual=50' : natural49 ? 'visual=49' : 'visual=47';
-assert(html.includes(expectedVisual) && preview.includes(expectedVisual), 'V47/V50 cache boundary is missing');
+const shared51 = runtime.includes('MOUNTAIN_RACE_SHARED_MOUNTAIN_V51');
+const expectedVisual = shared51 ? 'visual=51' : summit50 ? 'visual=50' : natural49 ? 'visual=49' : 'visual=47';
+assert(html.includes(expectedVisual) && preview.includes(expectedVisual), 'V47/V51 cache boundary is missing');
 assert(safeCracker.length > 0, 'protected Safe Cracker runtime is unreadable');
 assert(roulette.length > 0, 'protected Roulette animation runtime is unreadable');
 
