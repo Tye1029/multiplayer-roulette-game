@@ -28,7 +28,8 @@ assert(prototype.includes("index >= TOTAL_HOLDS || player.animation === 'celebra
 assert(runtime.includes("const opponentAnimation = animationClass(opponent, runtime.lastOpponentInputAt, !publicState.viewerWon && !publicState.tie && runtime.game.status === 'complete')"), 'opponent winner no longer receives the celebration state');
 
 const camera53 = runtime.includes('MOUNTAIN_RACE_WINNER_CAMERA_V53');
-for (const document of [html, preview]) assert(document.includes(camera53 ? 'visual=53' : 'visual=52'), 'V52/V53 cache boundary is missing');
+const grounded54 = runtime.includes('MOUNTAIN_RACE_GROUNDED_ASCENT_V54');
+for (const document of [html, preview]) assert(document.includes(grounded54 ? 'visual=54' : camera53 ? 'visual=53' : 'visual=52'), 'V52/V54 cache boundary is missing');
 for (const token of [
   'MOUNTAIN_RACE_SHARED_MOUNTAIN_V51',
   '.mr-lane.opponent .mr-climber.finished',
@@ -37,7 +38,7 @@ for (const token of [
   'place-items: end center !important'
 ]) assert(css.includes(token), `shared finish presentation token missing: ${token}`);
 
-assert(runtime.includes('currentIndex + 3'), 'four nearby ledges are no longer retained');
+assert(runtime.includes(grounded54 ? 'currentIndex + 7' : 'currentIndex + 3'), 'nearby ledges are no longer retained');
 assert(runtime.includes('Math.max(8, Math.min(80, Math.trunc(Number(publicState.stepsTotal) || 24)))'), 'authoritative 24-hold default changed');
 assert(runtime.includes('scheduleInputFlush(true)'), 'continuous competitive input buffering changed');
 for (const token of ['data-mr-rematch', 'data-mr-new-game', 'winnerConfetti()', 'YOU REACHED THE SUMMIT FIRST!']) {

@@ -69,7 +69,7 @@ if (!reboot44) for (const token of [
   'summit-sprint-summit-${playerKey === \'me\' ? \'left\' : \'right\'}-v29.png',
   'summit-sprint-hold-${(index % 3) + 1}-v29.png'
 ]) if (!prototypeRuntime.includes(token)) fail(`prototype runtime token missing: ${token}`);
-if (!/visual=(?:31|32|33|34|35|36|37|38|39|40|41|42|43|44|45|46|47|49|50|51|52|53)/.test(html) || !/visual=(?:31|32|33|34|35|36|37|38|39|40|41|42|43|44|45|46|47|49|50|51|52|53)/.test(preview)) fail('V29/V53 cache boundary missing');
+if (!/visual=(?:31|32|33|34|35|36|37|38|39|40|41|42|43|44|45|46|47|49|50|51|52|53|54)/.test(html) || !/visual=(?:31|32|33|34|35|36|37|38|39|40|41|42|43|44|45|46|47|49|50|51|52|53|54)/.test(preview)) fail('V29/V54 cache boundary missing');
 if (!reboot44) for (const asset of ['summit-sprint-sky-v29.png', 'summit-sprint-cliff-left-v29.png', 'summit-sprint-cliff-right-v29.png']) {
   if (!html.includes(`rel="preload" as="image" href="/assets/mountain-race/images/${asset}"`)) fail(`V29 preload missing: ${asset}`);
 }
