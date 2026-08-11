@@ -92,3 +92,5 @@ await import('./patch-mountain-race-finish-stability-v47.mjs');
 await import('./validate-mountain-race-finish-stability-v47.mjs');
 await import('./patch-shared-runtime-stability-v48.mjs');
 await import('./validate-shared-runtime-stability-v48.mjs');
+await import('./patch-mountain-race-natural-terrain-v49.mjs');
+await import('./validate-mountain-race-natural-terrain-v49.mjs');
