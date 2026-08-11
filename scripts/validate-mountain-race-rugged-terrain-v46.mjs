@@ -53,8 +53,9 @@ for (const token of [
 
 const finish47 = runtime.includes('MOUNTAIN_RACE_FINISH_STABILITY_V47');
 const natural49 = runtime.includes('MOUNTAIN_RACE_NATURAL_TERRAIN_V49');
+const summit50 = runtime.includes('MOUNTAIN_RACE_SUMMIT_CONTACT_V50');
 for (const document of [html, preview]) {
-  if (!document.includes(natural49 ? 'visual=49' : finish47 ? 'visual=47' : 'visual=46')) fail('V46/V49 cache boundary missing');
+  if (!document.includes(summit50 ? 'visual=50' : natural49 ? 'visual=49' : finish47 ? 'visual=47' : 'visual=46')) fail('V46/V50 cache boundary missing');
   const requiredPreloads = natural49 ? [] : assets;
   for (const [name] of requiredPreloads) if (!document.includes(`rel="preload" as="image" href="/assets/mountain-race/images/${name}"`)) fail(`preload missing: ${name}`);
   if (natural49 && document.includes('rel="preload" as="image" href="/assets/mountain-race/images/summit-sprint-rugged-cliff-v46.png"')) fail('retired V46 cliff remains preloaded after V49');

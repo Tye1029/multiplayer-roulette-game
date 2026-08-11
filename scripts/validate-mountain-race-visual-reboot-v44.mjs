@@ -36,6 +36,7 @@ const contact45 = runtime.includes('MOUNTAIN_RACE_CONTACT_LEDGES_V45');
 const rugged46 = runtime.includes('MOUNTAIN_RACE_RUGGED_TERRAIN_V46');
 const finish47 = runtime.includes('MOUNTAIN_RACE_FINISH_STABILITY_V47');
 const natural49 = runtime.includes('MOUNTAIN_RACE_NATURAL_TERRAIN_V49');
+const summit50 = runtime.includes('MOUNTAIN_RACE_SUMMIT_CONTACT_V50');
 
 for (const source of [runtime, prototype]) {
   for (const token of ['MOUNTAIN_RACE_VISUAL_REBOOT_V44', "dataset.mrVisualReboot = '44'", 'mr-v44-cliff', 'mr-v44-climber-sprite', ...(contact45 ? ['MOUNTAIN_RACE_CONTACT_LEDGES_V45'] : ['cameraLead'])]) {
@@ -59,7 +60,7 @@ if (!runtime.includes("!presentation.blocked && !runtime.inputQueueBlocked;")) f
 if (!runtime.includes('Math.max(0, total - 1)')) fail('unconfirmed clients can still display a false summit win');
 if (!runtime.includes('scheduleInputFlush(true)')) fail('input buffering no longer starts immediately');
 for (const document of [html, preview]) {
-  if (!document.includes(natural49 ? 'visual=49' : finish47 ? 'visual=47' : rugged46 ? 'visual=46' : contact45 ? 'visual=45' : 'visual=44')) fail('V44/V49 cache boundary missing');
+  if (!document.includes(summit50 ? 'visual=50' : natural49 ? 'visual=49' : finish47 ? 'visual=47' : rugged46 ? 'visual=46' : contact45 ? 'visual=45' : 'visual=44')) fail('V44/V50 cache boundary missing');
   const requiredPreloads = rugged46 ? assetNames.slice(0, 1) : contact45 ? assetNames.slice(0, 2) : assetNames;
   for (const name of requiredPreloads) if (!document.includes(`rel="preload" as="image" href="/assets/mountain-race/images/${name}"`)) fail(`preload missing: ${name}`);
 }

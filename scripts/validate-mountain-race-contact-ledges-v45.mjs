@@ -72,8 +72,9 @@ for (const index of [1, 8, 12, 20, 23]) {
 const rugged46 = runtime.includes('MOUNTAIN_RACE_RUGGED_TERRAIN_V46');
 const finish47 = runtime.includes('MOUNTAIN_RACE_FINISH_STABILITY_V47');
 const natural49 = runtime.includes('MOUNTAIN_RACE_NATURAL_TERRAIN_V49');
+const summit50 = runtime.includes('MOUNTAIN_RACE_SUMMIT_CONTACT_V50');
 for (const document of [html, preview]) {
-  if (!document.includes(natural49 ? 'visual=49' : finish47 ? 'visual=47' : rugged46 ? 'visual=46' : 'visual=45')) fail('V45/V49 cache boundary missing');
+  if (!document.includes(summit50 ? 'visual=50' : natural49 ? 'visual=49' : finish47 ? 'visual=47' : rugged46 ? 'visual=46' : 'visual=45')) fail('V45/V50 cache boundary missing');
   const requiredPreloads = rugged46 ? assets.slice(1) : assets;
   for (const [name] of requiredPreloads) if (!document.includes(`rel="preload" as="image" href="/assets/mountain-race/images/${name}"`)) fail(`preload missing: ${name}`);
   if (document.includes('rel="preload" as="image" href="/assets/mountain-race/images/summit-sprint-reboot-climber-sheet-v44.png"')) fail('retired front-facing climber is still preloaded');
