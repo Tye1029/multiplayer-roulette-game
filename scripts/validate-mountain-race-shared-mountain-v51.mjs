@@ -58,7 +58,8 @@ for (const [label, platformHeight, platformBottom, grassInset, climberHeight, tr
   assert(Math.abs(grassPlane - visibleFoot) <= 1, `${label} climber feet miss the grass start by ${Math.abs(grassPlane - visibleFoot).toFixed(2)}px`);
 }
 
-for (const document of [html, preview]) assert(document.includes('visual=51'), 'V51 cache boundary is missing');
+const winner52 = runtime.includes('MOUNTAIN_RACE_WINNER_SUMMIT_V52');
+for (const document of [html, preview]) assert(document.includes(winner52 ? 'visual=52' : 'visual=51'), 'V51/V52 cache boundary is missing');
 assert(runtime.includes('currentIndex + 3'), 'four nearby ledges are no longer retained');
 assert(runtime.includes('Math.max(8, Math.min(80, Math.trunc(Number(publicState.stepsTotal) || 24)))'), 'authoritative 24-hold default changed');
 assert(runtime.includes('scheduleInputFlush(true)'), 'continuous competitive input buffering changed');

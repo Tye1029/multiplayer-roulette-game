@@ -98,3 +98,5 @@ await import('./patch-mountain-race-summit-contact-v50.mjs');
 await import('./validate-mountain-race-summit-contact-v50.mjs');
 await import('./patch-mountain-race-shared-mountain-v51.mjs');
 await import('./validate-mountain-race-shared-mountain-v51.mjs');
+await import('./patch-mountain-race-winner-summit-v52.mjs');
+await import('./validate-mountain-race-winner-summit-v52.mjs');
