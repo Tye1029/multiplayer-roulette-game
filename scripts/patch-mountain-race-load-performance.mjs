@@ -108,3 +108,5 @@ await import('./patch-mountain-race-route-clarity-v55.mjs');
 await import('./validate-mountain-race-route-clarity-v55.mjs');
 await import('./patch-mountain-race-natural-summit-v56.mjs');
 await import('./validate-mountain-race-natural-summit-v56.mjs');
+await import('./patch-mountain-race-celebration-contact-v57.mjs');
+await import('./validate-mountain-race-celebration-contact-v57.mjs');

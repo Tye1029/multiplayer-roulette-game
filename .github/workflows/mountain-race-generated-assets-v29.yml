@@ -9,7 +9,7 @@ on:
       - mountain-race-development
 
 concurrency:
-  group: summit-sprint-natural-summit-v56-${{ github.ref }}
+  group: summit-sprint-celebration-contact-v57-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -80,6 +80,9 @@ jobs:
           node --check scripts/patch-mountain-race-natural-summit-v56.mjs
           node --check scripts/validate-mountain-race-natural-summit-v56.mjs
           node scripts/validate-mountain-race-natural-summit-v56.mjs
+          node --check scripts/patch-mountain-race-celebration-contact-v57.mjs
+          node --check scripts/validate-mountain-race-celebration-contact-v57.mjs
+          node scripts/validate-mountain-race-celebration-contact-v57.mjs
           node --check assets/roulette/opening-spin-sync.js
 
           node scripts/validate-mountain-race-input-rebase-v8.mjs
