@@ -39,9 +39,10 @@ for (const token of ['mr-overlay complete', 'RACE COMPLETE', 'YOU REACHED THE SU
 const total = 24;
 const grounded54 = runtime.includes('MOUNTAIN_RACE_GROUNDED_ASCENT_V54');
 const route55 = runtime.includes('MOUNTAIN_RACE_ROUTE_CLARITY_V55');
-const step = route55 ? 60 : grounded54 ? 42 : 84;
+const natural56 = runtime.includes('MOUNTAIN_RACE_NATURAL_SUMMIT_V56');
+const step = natural56 ? 74 : route55 ? 60 : grounded54 ? 42 : 84;
 const wallHeight = Math.max(2600, 580 + total * step);
-const finalScroll = Math.max(0, total - 1) * step;
+const finalScroll = natural56 ? total * step : Math.max(0, total - 1) * step;
 for (const viewportHeight of [520, 590]) {
   const wallTop = viewportHeight - wallHeight + finalScroll;
   assert(wallTop <= 0, `final camera exposes ${wallTop}px above the wall at viewport ${viewportHeight}`);
@@ -60,7 +61,7 @@ const summit50 = runtime.includes('MOUNTAIN_RACE_SUMMIT_CONTACT_V50');
 const shared51 = runtime.includes('MOUNTAIN_RACE_SHARED_MOUNTAIN_V51');
 const winner52 = runtime.includes('MOUNTAIN_RACE_WINNER_SUMMIT_V52');
 const camera53 = runtime.includes('MOUNTAIN_RACE_WINNER_CAMERA_V53');
-const expectedVisual = route55 ? 'visual=55' : grounded54 ? 'visual=54' : camera53 ? 'visual=53' : winner52 ? 'visual=52' : shared51 ? 'visual=51' : summit50 ? 'visual=50' : natural49 ? 'visual=49' : 'visual=47';
+const expectedVisual = natural56 ? 'visual=56' : route55 ? 'visual=55' : grounded54 ? 'visual=54' : camera53 ? 'visual=53' : winner52 ? 'visual=52' : shared51 ? 'visual=51' : summit50 ? 'visual=50' : natural49 ? 'visual=49' : 'visual=47';
 assert(html.includes(expectedVisual) && preview.includes(expectedVisual), 'V47/V54 cache boundary is missing');
 assert(safeCracker.length > 0, 'protected Safe Cracker runtime is unreadable');
 assert(roulette.length > 0, 'protected Roulette animation runtime is unreadable');

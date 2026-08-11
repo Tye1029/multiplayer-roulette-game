@@ -59,8 +59,9 @@ const winner52 = runtime.includes('MOUNTAIN_RACE_WINNER_SUMMIT_V52');
 const camera53 = runtime.includes('MOUNTAIN_RACE_WINNER_CAMERA_V53');
 const grounded54 = runtime.includes('MOUNTAIN_RACE_GROUNDED_ASCENT_V54');
 const route55 = runtime.includes('MOUNTAIN_RACE_ROUTE_CLARITY_V55');
+const natural56 = runtime.includes('MOUNTAIN_RACE_NATURAL_SUMMIT_V56');
 for (const document of [html, preview]) {
-  if (!document.includes(route55 ? 'visual=55' : grounded54 ? 'visual=54' : camera53 ? 'visual=53' : winner52 ? 'visual=52' : shared51 ? 'visual=51' : summit50 ? 'visual=50' : natural49 ? 'visual=49' : finish47 ? 'visual=47' : 'visual=46')) fail('V46/V55 cache boundary missing');
+  if (!document.includes(natural56 ? 'visual=56' : route55 ? 'visual=55' : grounded54 ? 'visual=54' : camera53 ? 'visual=53' : winner52 ? 'visual=52' : shared51 ? 'visual=51' : summit50 ? 'visual=50' : natural49 ? 'visual=49' : finish47 ? 'visual=47' : 'visual=46')) fail('V46/V56 cache boundary missing');
   const requiredPreloads = natural49 ? [] : assets;
   for (const [name] of requiredPreloads) if (!document.includes(`rel="preload" as="image" href="/assets/mountain-race/images/${name}"`)) fail(`preload missing: ${name}`);
   if (natural49 && document.includes('rel="preload" as="image" href="/assets/mountain-race/images/summit-sprint-rugged-cliff-v46.png"')) fail('retired V46 cliff remains preloaded after V49');
@@ -68,9 +69,9 @@ for (const document of [html, preview]) {
   if (document.includes('rel="preload" as="image" href="/assets/mountain-race/images/summit-sprint-reboot-ledge-v45.png"')) fail('retired flat ledge remains preloaded');
 }
 
-if (!runtime.includes(route55 ? 'currentIndex + 4' : grounded54 ? 'currentIndex + 7' : 'currentIndex + 3')) fail('multiplayer renderer no longer keeps nearby ledges');
+if (!runtime.includes(natural56 ? 'currentIndex + 3' : route55 ? 'currentIndex + 4' : grounded54 ? 'currentIndex + 7' : 'currentIndex + 3')) fail('multiplayer renderer no longer keeps nearby ledges');
 if (!runtime.includes("side === 'opponent' && index >= currentIndex ? 'opponent-upcoming'")) fail('opponent future ledges are not explicitly visible');
-if (!runtime.includes(route55 ? 'Math.max(0, cameraIndex - 1) * 60' : grounded54 ? 'Math.max(0, cameraIndex - 1) * 42' : 'Math.max(0, cameraIndex - 1) * 84')) fail('camera framing changed');
+if (!runtime.includes(natural56 ? 'Math.max(0, cameraIndex) * 74' : route55 ? 'Math.max(0, cameraIndex - 1) * 60' : grounded54 ? 'Math.max(0, cameraIndex - 1) * 42' : 'Math.max(0, cameraIndex - 1) * 84')) fail('camera framing changed');
 if (!runtime.includes('data-mr-contact-index')) fail('physical climber contact anchoring changed');
 if (!runtime.includes('scheduleInputFlush(true)')) fail('non-blocking input buffering changed');
 if (!safeCracker.length || !roulette.length) fail('protected game runtimes are unreadable');

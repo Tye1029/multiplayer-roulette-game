@@ -31,6 +31,7 @@ const [runtime, prototype, css, html, preview, safeCracker, roulette] = await Pr
 ]);
 const grounded54 = runtime.includes('MOUNTAIN_RACE_GROUNDED_ASCENT_V54');
 const route55 = runtime.includes('MOUNTAIN_RACE_ROUTE_CLARITY_V55');
+const natural56 = runtime.includes('MOUNTAIN_RACE_NATURAL_SUMMIT_V56');
 
 for (const source of [runtime, prototype]) {
   for (const token of [
@@ -38,12 +39,12 @@ for (const source of [runtime, prototype]) {
     "dataset.mrContactLedges = '45'",
     'mr-v45-climber-sprite',
     'data-mr-contact-index',
-    route55 ? 'Math.max(0, cameraIndex - 1) * 60' : grounded54 ? 'Math.max(0, cameraIndex - 1) * 42' : 'Math.max(0, cameraIndex - 1) * 84'
+    natural56 ? 'Math.max(0, cameraIndex) * 74' : route55 ? 'Math.max(0, cameraIndex - 1) * 60' : grounded54 ? 'Math.max(0, cameraIndex - 1) * 42' : 'Math.max(0, cameraIndex - 1) * 84'
   ]) if (!source.includes(token)) fail(`runtime token missing: ${token}`);
   if (source.includes('cameraLead = Math.max(2, 5 -')) fail('shrinking midpoint camera lead remains active');
 }
-if (!runtime.includes(route55 ? 'currentIndex + 4' : grounded54 ? 'currentIndex + 7' : 'currentIndex + 3')) fail('multiplayer renderer does not retain the expected visible prompts');
-if (!prototype.includes(route55 ? 'player.promptIndex + 4' : grounded54 ? 'player.promptIndex + 7' : 'player.promptIndex + 3')) fail('prototype renderer does not retain the expected visible prompts');
+if (!runtime.includes(natural56 ? 'currentIndex + 3' : route55 ? 'currentIndex + 4' : grounded54 ? 'currentIndex + 7' : 'currentIndex + 3')) fail('multiplayer renderer does not retain the expected visible prompts');
+if (!prototype.includes(natural56 ? 'player.promptIndex + 3' : route55 ? 'player.promptIndex + 4' : grounded54 ? 'player.promptIndex + 7' : 'player.promptIndex + 3')) fail('prototype renderer does not retain the expected visible prompts');
 
 for (const token of [
   'MOUNTAIN_RACE_CONTACT_LEDGES_V45',
@@ -63,12 +64,13 @@ if (!climberRenderer.includes(grounded54 ? "nextContactLeft < contactLeft ? 'lef
 if (climberRenderer.includes('direction-${control(raw.lastInput')) fail('climber still faces according to the button symbol');
 
 for (const index of [1, 8, 12, 20, 23]) {
-  const step = route55 ? 60 : grounded54 ? 42 : 84;
-  const scroll = Math.max(0, index - 1) * step;
-  const completedBottom = 120 + (index - 1) * step - scroll;
-  const currentBottom = 120 + index * step - scroll;
-  const furthestBottom = currentBottom + (route55 ? 4 : grounded54 ? 7 : 3) * step;
-  if (completedBottom !== 120 || currentBottom !== 120 + step) fail(`camera geometry drifted at hold ${index}`);
+  const step = natural56 ? 74 : route55 ? 60 : grounded54 ? 42 : 84;
+  const base = natural56 ? 196 : 120;
+  const scroll = natural56 ? index * step : Math.max(0, index - 1) * step;
+  const completedBottom = base + (index - 1) * step - scroll;
+  const currentBottom = base + index * step - scroll;
+  const furthestBottom = currentBottom + (natural56 ? 3 : route55 ? 4 : grounded54 ? 7 : 3) * step;
+  if (completedBottom !== (natural56 ? base - step : base) || currentBottom !== (natural56 ? base : base + step)) fail(`camera geometry drifted at hold ${index}`);
   if (furthestBottom + 48 > 520) fail(`visible ledges no longer fit at hold ${index}`);
 }
 
@@ -80,7 +82,7 @@ const shared51 = runtime.includes('MOUNTAIN_RACE_SHARED_MOUNTAIN_V51');
 const winner52 = runtime.includes('MOUNTAIN_RACE_WINNER_SUMMIT_V52');
 const camera53 = runtime.includes('MOUNTAIN_RACE_WINNER_CAMERA_V53');
 for (const document of [html, preview]) {
-  if (!document.includes(route55 ? 'visual=55' : grounded54 ? 'visual=54' : camera53 ? 'visual=53' : winner52 ? 'visual=52' : shared51 ? 'visual=51' : summit50 ? 'visual=50' : natural49 ? 'visual=49' : finish47 ? 'visual=47' : rugged46 ? 'visual=46' : 'visual=45')) fail('V45/V55 cache boundary missing');
+  if (!document.includes(natural56 ? 'visual=56' : route55 ? 'visual=55' : grounded54 ? 'visual=54' : camera53 ? 'visual=53' : winner52 ? 'visual=52' : shared51 ? 'visual=51' : summit50 ? 'visual=50' : natural49 ? 'visual=49' : finish47 ? 'visual=47' : rugged46 ? 'visual=46' : 'visual=45')) fail('V45/V56 cache boundary missing');
   const requiredPreloads = rugged46 ? assets.slice(1) : assets;
   for (const [name] of requiredPreloads) if (!document.includes(`rel="preload" as="image" href="/assets/mountain-race/images/${name}"`)) fail(`preload missing: ${name}`);
   if (document.includes('rel="preload" as="image" href="/assets/mountain-race/images/summit-sprint-reboot-climber-sheet-v44.png"')) fail('retired front-facing climber is still preloaded');

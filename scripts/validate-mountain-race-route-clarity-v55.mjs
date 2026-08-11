@@ -15,6 +15,7 @@ const [runtime, prototype, css, html, preview, assets] = await Promise.all([
   access(new URL('assets/safe-cracker/safe-cracker.js', root)),
   access(new URL('assets/roulette/turn-animation.js', root))
 ]);
+const natural56 = runtime.includes('MOUNTAIN_RACE_NATURAL_SUMMIT_V56');
 
 function assert(condition, message) {
   if (!condition) throw new Error(`Summit Sprint V55 validation failed: ${message}`);
@@ -33,8 +34,8 @@ for (const [name, source, visibleToken] of [
 ]) {
   assert(source.includes('MOUNTAIN_RACE_ROUTE_CLARITY_V55'), `${name} marker missing`);
   assert(source.includes("root.dataset.mrRouteClarity = '55'"), `${name} dataset missing`);
-  assert(source.includes(visibleToken), `${name} does not retain five readable nearby ledges`);
-  assert(source.includes('* 60'), `${name} does not use balanced 60px spacing`);
+  assert(source.includes(natural56 ? visibleToken.replace('+ 4', '+ 3') : visibleToken), `${name} does not retain the readable prompted ledges`);
+  assert(source.includes(natural56 ? '* 74' : '* 60'), `${name} does not use the expected readable spacing`);
   assert(source.includes('standing-start'), `${name} start pose state missing`);
   assert(source.includes('start-waiting') && source.includes('start-reaching'), `${name} does not distinguish countdown and live start poses`);
   assert(source.includes('ready-next'), `${name} next-grip state missing`);
@@ -56,7 +57,7 @@ for (const token of [
 ]) assert(css.includes(token), `CSS token missing: ${token}`);
 
 for (const document of [html, preview]) {
-  assert(document.includes('visual=55'), 'V55 cache boundary missing');
+  assert(document.includes(natural56 ? 'visual=56' : 'visual=55'), 'V55/V56 cache boundary missing');
   assert(document.includes('summit-sprint-start-climbers-v55.png'), 'V55 start sprite preload missing');
   assert(document.includes('summit-sprint-waiting-climbers-v55.png'), 'V55 waiting sprite preload missing');
 }

@@ -30,7 +30,8 @@ assert(runtime.includes("const opponentAnimation = animationClass(opponent, runt
 const camera53 = runtime.includes('MOUNTAIN_RACE_WINNER_CAMERA_V53');
 const grounded54 = runtime.includes('MOUNTAIN_RACE_GROUNDED_ASCENT_V54');
 const route55 = runtime.includes('MOUNTAIN_RACE_ROUTE_CLARITY_V55');
-for (const document of [html, preview]) assert(document.includes(route55 ? 'visual=55' : grounded54 ? 'visual=54' : camera53 ? 'visual=53' : 'visual=52'), 'V52/V55 cache boundary is missing');
+const natural56 = runtime.includes('MOUNTAIN_RACE_NATURAL_SUMMIT_V56');
+for (const document of [html, preview]) assert(document.includes(natural56 ? 'visual=56' : route55 ? 'visual=55' : grounded54 ? 'visual=54' : camera53 ? 'visual=53' : 'visual=52'), 'V52/V56 cache boundary is missing');
 for (const token of [
   'MOUNTAIN_RACE_SHARED_MOUNTAIN_V51',
   '.mr-lane.opponent .mr-climber.finished',
@@ -39,7 +40,7 @@ for (const token of [
   'place-items: end center !important'
 ]) assert(css.includes(token), `shared finish presentation token missing: ${token}`);
 
-assert(runtime.includes(route55 ? 'currentIndex + 4' : grounded54 ? 'currentIndex + 7' : 'currentIndex + 3'), 'nearby ledges are no longer retained');
+assert(runtime.includes(natural56 ? 'currentIndex + 3' : route55 ? 'currentIndex + 4' : grounded54 ? 'currentIndex + 7' : 'currentIndex + 3'), 'nearby ledges are no longer retained');
 assert(runtime.includes('Math.max(8, Math.min(80, Math.trunc(Number(publicState.stepsTotal) || 24)))'), 'authoritative 24-hold default changed');
 assert(runtime.includes('scheduleInputFlush(true)'), 'continuous competitive input buffering changed');
 for (const token of ['data-mr-rematch', 'data-mr-new-game', 'winnerConfetti()', 'YOU REACHED THE SUMMIT FIRST!']) {
