@@ -55,7 +55,8 @@ for (const token of [
   '[data-mr-natural-terrain="49"]'
 ]) assert(v49Css.includes(token), `CSS token missing: ${token}`);
 assert(!v49Css.includes('/ 100% 100%'), 'V49 terrain stretches an image out of proportion');
-assert(!/\brepeat(?:-x|-y)?\b/.test(v49Css.replaceAll('no-repeat', '')), 'V49 terrain repeats an image');
+const repeatValues = v49Css.replaceAll('no-repeat', '').replaceAll('background-repeat', '');
+assert(!/\brepeat(?:-x|-y)?\b/.test(repeatValues), 'V49 terrain repeats an image');
 
 const summit50 = runtime.includes('MOUNTAIN_RACE_SUMMIT_CONTACT_V50');
 const shared51 = runtime.includes('MOUNTAIN_RACE_SHARED_MOUNTAIN_V51');
