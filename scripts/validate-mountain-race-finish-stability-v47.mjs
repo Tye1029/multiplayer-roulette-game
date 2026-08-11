@@ -20,7 +20,8 @@ assert(helperStart >= 0 && helperEnd > helperStart, 'winner confetti helper is n
 const helperSource = runtime.slice(helperStart, helperEnd);
 const confettiMarkup = Function(`${helperSource}; return winnerConfetti();`)();
 assert(confettiMarkup.includes('mr-winner-confetti'), 'winner confetti helper does not return its celebration layer');
-assert((confettiMarkup.match(/<i /g) || []).length === 20, 'winner confetti helper does not return all 20 pieces');
+const expectedConfettiPieces = runtime.includes('MOUNTAIN_RACE_CELEBRATION_CONTACT_V57') ? 28 : 20;
+assert((confettiMarkup.match(/<i /g) || []).length === expectedConfettiPieces, `winner confetti helper does not return all ${expectedConfettiPieces} pieces`);
 assert(runtime.includes("animation === 'celebrate' ? winnerConfetti() : ''"), 'multiplayer winner lane does not request confetti');
 assert(prototype.includes('function winnerConfetti()'), 'prototype winner confetti helper is missing');
 
@@ -64,9 +65,9 @@ const summit50 = runtime.includes('MOUNTAIN_RACE_SUMMIT_CONTACT_V50');
 const shared51 = runtime.includes('MOUNTAIN_RACE_SHARED_MOUNTAIN_V51');
 const winner52 = runtime.includes('MOUNTAIN_RACE_WINNER_SUMMIT_V52');
 const camera53 = runtime.includes('MOUNTAIN_RACE_WINNER_CAMERA_V53');
-const expectedVisual = natural56 ? 'visual=56' : route55 ? 'visual=55' : grounded54 ? 'visual=54' : camera53 ? 'visual=53' : winner52 ? 'visual=52' : shared51 ? 'visual=51' : summit50 ? 'visual=50' : natural49 ? 'visual=49' : 'visual=47';
+const expectedVisual = runtime.includes('MOUNTAIN_RACE_CELEBRATION_CONTACT_V57') ? 'visual=57' : natural56 ? 'visual=56' : route55 ? 'visual=55' : grounded54 ? 'visual=54' : camera53 ? 'visual=53' : winner52 ? 'visual=52' : shared51 ? 'visual=51' : summit50 ? 'visual=50' : natural49 ? 'visual=49' : 'visual=47';
 assert(html.includes(expectedVisual) && preview.includes(expectedVisual), 'V47/V54 cache boundary is missing');
 assert(safeCracker.length > 0, 'protected Safe Cracker runtime is unreadable');
 assert(roulette.length > 0, 'protected Roulette animation runtime is unreadable');
 
-console.log('Summit Sprint V47 validation passed: completed result markup executes, winner confetti renders 20 pieces, final camera terrain coverage is continuous, completion labels are correct, and protected games remain intact.');
+console.log(`Summit Sprint V47 validation passed: completed result markup executes, winner confetti renders ${expectedConfettiPieces} pieces, final camera terrain coverage is continuous, completion labels are correct, and protected games remain intact.`);

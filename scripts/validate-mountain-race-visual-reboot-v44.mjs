@@ -66,7 +66,7 @@ if (!runtime.includes("!presentation.blocked && !runtime.inputQueueBlocked;")) f
 if (!runtime.includes('Math.max(0, total - 1)')) fail('unconfirmed clients can still display a false summit win');
 if (!runtime.includes('scheduleInputFlush(true)')) fail('input buffering no longer starts immediately');
 for (const document of [html, preview]) {
-  if (!document.includes(natural56 ? 'visual=56' : route55 ? 'visual=55' : grounded54 ? 'visual=54' : camera53 ? 'visual=53' : winner52 ? 'visual=52' : shared51 ? 'visual=51' : summit50 ? 'visual=50' : natural49 ? 'visual=49' : finish47 ? 'visual=47' : rugged46 ? 'visual=46' : contact45 ? 'visual=45' : 'visual=44')) fail('V44/V56 cache boundary missing');
+  if (!document.includes('visual=57') && !document.includes(natural56 ? 'visual=56' : route55 ? 'visual=55' : grounded54 ? 'visual=54' : camera53 ? 'visual=53' : winner52 ? 'visual=52' : shared51 ? 'visual=51' : summit50 ? 'visual=50' : natural49 ? 'visual=49' : finish47 ? 'visual=47' : rugged46 ? 'visual=46' : contact45 ? 'visual=45' : 'visual=44')) fail('V44/V57 cache boundary missing');
   const requiredPreloads = rugged46 ? assetNames.slice(0, 1) : contact45 ? assetNames.slice(0, 2) : assetNames;
   for (const name of requiredPreloads) if (!document.includes(`rel="preload" as="image" href="/assets/mountain-race/images/${name}"`)) fail(`preload missing: ${name}`);
 }
