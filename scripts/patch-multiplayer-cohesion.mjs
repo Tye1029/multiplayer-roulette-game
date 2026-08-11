@@ -9,7 +9,7 @@ const root = process.env.MULTIPLAYER_BUILD_ROOT
 const dataPath = path.join(root, "netlify", "functions", "_data.js");
 const actionPath = path.join(root, "netlify", "functions", "duel-action.js");
 const indexPath = path.join(root, "index.html");
-const MARKER = "MULTIPLAYER_COHESION_V4";
+const MARKER = "MULTIPLAYER_COHESION_V5";
 
 function replaceOnce(source, search, replacement, label) {
   const matches = typeof search === "string"
@@ -71,6 +71,16 @@ data = replaceOnce(
   `  const activeGame = await duelFindActiveGameForUser(user.id,"",{scanFallback:false});\n  if (activeGame) {\n    return {game:duelPublicGame(activeGame,user.id),record:await getUserRecord(user.id),resumedExisting:true};\n  }`,
   `  let activeGame = await duelFindActiveGameForUser(user.id,"",{scanFallback:false});\n  if (activeGame && activeGame.mode !== mode) {\n    const syntheticOpponent = [activeGame.creator, activeGame.joiner].find(player => player?.isNpc || player?.isRemoteBot || String(player?.userId || "").startsWith("npc-") || String(player?.userId || "").startsWith("remote-bot-"));\n    if (syntheticOpponent) {\n      // Switching test modes may safely retire an unfinished synthetic match.\n      // Real-player games are never cancelled or hidden automatically.\n      await duelAbandonNpcGame(user, activeGame.gameId);\n      activeGame = null;\n    } else {\n      return {\n        game: duelPublicGame(activeGame, user.id),\n        record: await getUserRecord(user.id),\n        activeModeConflict: true,\n        requestedMode: mode\n      };\n    }\n  }\n  if (activeGame) {\n    return {game:duelPublicGame(activeGame,user.id),record:await getUserRecord(user.id),resumedExisting:true};\n  }`,
   "cross-mode create routing"
+);
+
+data = replaceOnce(
+  data,
+  "    const existing=await duelGetRaw(clientGameId);",
+  `    // Never issue an eventually-consistent GET for a proposed new key.
+    // A cached 404 can outlive the subsequent write and make Ready/polling
+    // report that the successfully-created game does not exist.
+    const existing=await duelGetRawStrong(clientGameId,2);`,
+  "idempotent create without negative-cache poisoning"
 );
 
 data = replaceOnce(
@@ -296,7 +306,7 @@ index = replaceOnce(
   / const originalFetch=window\.fetch\.bind\(window\);window\.fetch=async\(input,init\)=>\{[^\n]*\n/,
   ` const originalFetch=window.fetch.bind(window);window.fetch=async(input,init)=>{
   const url=typeof input==='string'?input:input?.url||'';let body={},action='';try{body=JSON.parse(init?.body||'{}');action=body.action||''}catch{}const tracked=/duel-action/.test(url);const choice=String(body.choice||'');const lifecycle=tracked&&(['create','create-remote-bot','remote-bot','npc','join','cancel','recover-npc'].includes(action)||(action==='act'&&['ready','rematch','remote-bot-rematch'].includes(choice)));const requestData={action,choice:choice||undefined,gameId:String(body.gameId||''),mode:String(body.mode||'')||undefined};const start=performance.now();if(tracked)line(logs,'request',requestData);if(lifecycle)startupLine('network request',requestData);
-  try{const r=await originalFetch(input,init);const responseData={...requestData,status:r.status,ms:Math.round(performance.now()-start)};if(tracked){line(logs,'response',responseData);if(lifecycle)startupLine('network response',responseData);if(action==='get'&&typeof duelLastActiveGame!=='undefined'&&duelLastActiveGame?.remoteNetworkTest)line(botLogs,'network bot poll',{status:r.status,ms:responseData.ms})}return r}catch(err){const failure={...requestData,error:String(err?.message||err),ms:Math.round(performance.now()-start)};if(tracked)line(logs,'network error',failure);if(lifecycle)startupLine('network failure',failure);throw err}finally{render()}
+  try{const r=await originalFetch(input,init);const responseData={...requestData,status:r.status,ms:Math.round(performance.now()-start)};if(tracked){line(logs,'response',responseData);if(lifecycle)startupLine('network response',responseData);if(!r.ok)r.clone().json().then(payload=>{const serverError={...responseData,error:String(payload?.error||'Request failed')};line(logs,'response error',serverError);if(lifecycle)startupLine('server error',serverError);render()}).catch(()=>{});if(action==='get'&&typeof duelLastActiveGame!=='undefined'&&duelLastActiveGame?.remoteNetworkTest)line(botLogs,'network bot poll',{status:r.status,ms:responseData.ms})}return r}catch(err){const failure={...requestData,error:String(err?.message||err),ms:Math.round(performance.now()-start)};if(tracked)line(logs,'network error',failure);if(lifecycle)startupLine('network failure',failure);throw err}finally{render()}
  };
 `,
   "lifecycle-aware network diagnostics"

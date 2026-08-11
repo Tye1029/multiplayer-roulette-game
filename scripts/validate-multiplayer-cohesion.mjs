@@ -47,7 +47,7 @@ assert.equal(contract.countdownMs("safecracker"), 3000);
 assert.equal(contract.countdownMs("roulette"), 5000);
 
 for (const token of [
-  "MULTIPLAYER_COHESION_V4",
+  "MULTIPLAYER_COHESION_V5",
   'require("./multiplayer-contract")',
   "async function duelReadFocusedGame",
   "skipBalanceLookup: true",
@@ -60,16 +60,19 @@ for (const token of [
   "await duelAbandonNpcGame(user, activeGame.gameId)",
   "if (createResult?.activeModeConflict)",
   "atomicCreateAndAttach: false",
-  'String(game.mode || "") !== mode'
+  'String(game.mode || "") !== mode',
+  "const existing=await duelGetRawStrong(clientGameId,2);",
+  "A cached 404 can outlive the subsequent write"
 ]) assert.ok(data.includes(token), `server runtime is missing ${token}`);
 
 assert.ok(!data.includes("Rematches are only available after a completed supported duel."));
 assert.ok(!data.includes("const mountainRaceRequest = String(gameId"));
+assert.ok(!data.includes("const existing=await duelGetRaw(clientGameId);"), "new game IDs must not be poisoned by an eventual preflight read");
 assert.ok(!data.includes("record: await getUserRecord(user.id) };\n}\n\n\n\n// ---------------- Russian Roulette Duel"));
-assert.ok(action.includes('const DUEL_FUNCTION_BUILD = "multiplayer_cohesion_v4";'));
+assert.ok(action.includes('const DUEL_FUNCTION_BUILD = "multiplayer_cohesion_v5";'));
 
 for (const token of [
-  "MULTIPLAYER_COHESION_V4",
+  "MULTIPLAYER_COHESION_V5",
   'game.status === "complete" && DUEL_MODES_UI[String(game.mode || "")]',
   'game.status === "countdown" ? 250 : 350',
   "requestError.retryable = response.status >= 500",
@@ -106,6 +109,8 @@ for (const token of [
   "duelRequest('create-remote-bot',payload)",
   "const data=await rnbAttachBotAtomically(pending.gameId,profile)",
   "startupLine('Ready screen mounted'",
+  "r.clone().json().then(payload=>",
+  "startupLine('server error'",
   "base.startupLogs=[...startupLogs]",
   "startupLimit:RNB_STARTUP_LOG_LIMIT",
   "if(rouletteDebugLines.length>800)",
