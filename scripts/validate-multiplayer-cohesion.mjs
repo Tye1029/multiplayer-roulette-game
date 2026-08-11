@@ -47,7 +47,7 @@ assert.equal(contract.countdownMs("safecracker"), 3000);
 assert.equal(contract.countdownMs("roulette"), 5000);
 
 for (const token of [
-  "MULTIPLAYER_COHESION_V5",
+  "MULTIPLAYER_COHESION_V6",
   'require("./multiplayer-contract")',
   "async function duelReadFocusedGame",
   "skipBalanceLookup: true",
@@ -69,10 +69,10 @@ assert.ok(!data.includes("Rematches are only available after a completed support
 assert.ok(!data.includes("const mountainRaceRequest = String(gameId"));
 assert.ok(!data.includes("const existing=await duelGetRaw(clientGameId);"), "new game IDs must not be poisoned by an eventual preflight read");
 assert.ok(!data.includes("record: await getUserRecord(user.id) };\n}\n\n\n\n// ---------------- Russian Roulette Duel"));
-assert.ok(action.includes('const DUEL_FUNCTION_BUILD = "multiplayer_cohesion_v5";'));
+assert.ok(action.includes('const DUEL_FUNCTION_BUILD = "multiplayer_cohesion_v6";'));
 
 for (const token of [
-  "MULTIPLAYER_COHESION_V5",
+  "MULTIPLAYER_COHESION_V6",
   'game.status === "complete" && DUEL_MODES_UI[String(game.mode || "")]',
   'game.status === "countdown" ? 250 : 350',
   "requestError.retryable = response.status >= 500",
@@ -111,6 +111,8 @@ for (const token of [
   "startupLine('Ready screen mounted'",
   "r.clone().json().then(payload=>",
   "startupLine('server error'",
+  "const labelElement = element.matches('[data-rnb-toggle]') ? element.firstElementChild : element",
+  "const indicator=t.lastElementChild;if(indicator)indicator.textContent",
   "base.startupLogs=[...startupLogs]",
   "startupLimit:RNB_STARTUP_LOG_LIMIT",
   "if(rouletteDebugLines.length>800)",
@@ -124,6 +126,7 @@ assert.ok(!index.includes('class="sth-game" data-mode="blackjack"'));
 assert.ok(!index.includes("Create a game first."), "Remote Bot startup must not require a separate create click");
 assert.ok(!index.includes("arr.splice(80)"), "shared debug histories must not retain the old 80-entry cap");
 assert.ok(!index.includes("entries.length>200"), "Roulette debug dock must not retain the old 200-entry cap");
+assert.ok(!index.includes("element.textContent = 'Network Bot Log';"), "Network Bot label normalization must preserve toggle children");
 assert.equal((index.match(/<button data-rnb-game=/g) || []).length, activeTestModes.length);
 assert.equal((index.match(/class="sth-game" data-mode=/g) || []).length, activeTestModes.length);
 

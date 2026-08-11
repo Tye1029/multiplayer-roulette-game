@@ -9,7 +9,7 @@ const root = process.env.MULTIPLAYER_BUILD_ROOT
 const dataPath = path.join(root, "netlify", "functions", "_data.js");
 const actionPath = path.join(root, "netlify", "functions", "duel-action.js");
 const indexPath = path.join(root, "index.html");
-const MARKER = "MULTIPLAYER_COHESION_V5";
+const MARKER = "MULTIPLAYER_COHESION_V6";
 
 function replaceOnce(source, search, replacement, label) {
   const matches = typeof search === "string"
@@ -150,6 +150,23 @@ action = action.replace(/const DUEL_FUNCTION_BUILD = "[^"]+";/, `const DUEL_FUNC
 fs.writeFileSync(actionPath, action);
 
 let index = fs.readFileSync(indexPath, "utf8");
+index = replaceOnce(
+  index,
+  `      if (text === 'Network Bot Log' && element.dataset.networkBotLog === 'true') continue;
+      element.textContent = 'Network Bot Log';`,
+  `      if (element.dataset.networkBotLog === 'true') continue;
+      // Preserve the toggle button's indicator span. Replacing the whole
+      // button text removes its children and makes the next toggle throw.
+      const labelElement = element.matches('[data-rnb-toggle]') ? element.firstElementChild : element;
+      if (labelElement) labelElement.textContent = 'Network Bot Log';`,
+  "structure-safe Network Bot Log label"
+);
+index = replaceOnce(
+  index,
+  "p.dataset.collapsed=closed?'0':'1';t.lastElementChild.textContent=closed?'▼':'▲';return",
+  "p.dataset.collapsed=closed?'0':'1';const indicator=t.lastElementChild;if(indicator)indicator.textContent=closed?'▼':'▲';return",
+  "null-safe debug panel toggle"
+);
 index = replaceOnce(
   index,
   '<script id="simple-multiplayer-test-script">',
