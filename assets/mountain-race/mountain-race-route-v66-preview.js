@@ -3,7 +3,7 @@
   if (!review) return;
 
   const ROUTE_WIDTH = 1024;
-  const GROUND_Y = 3640;
+  const GROUND_Y = 2760;
   const HOLD_COUNT = 30;
   const directions = ['right', 'up', 'left', 'left', 'down', 'right', 'up', 'right'];
   const stateName = new URLSearchParams(location.search).get('state') || 'start';
@@ -15,8 +15,8 @@
   const state = states[stateName] || states.start;
   const rootStyle = getComputedStyle(document.documentElement);
   const holds = Array.from({ length: HOLD_COUNT }, (_, index) => ({
-    x: parseFloat(rootStyle.getPropertyValue(`--mr-v66-hold-${index}-x`)) / 100 * ROUTE_WIDTH,
-    y: parseFloat(rootStyle.getPropertyValue(`--mr-v66-hold-${index}-y`)),
+    x: parseFloat(rootStyle.getPropertyValue(`--mr-v67-hold-${index}-x`)) / 100 * ROUTE_WIDTH,
+    y: parseFloat(rootStyle.getPropertyValue(`--mr-v67-hold-${index}-y`)),
   }));
 
   document.querySelector('[data-v66-time]').textContent = state.time;
@@ -39,19 +39,19 @@
     const progress = state.progress[laneIndex];
     const laneWidth = lane.clientWidth;
     const laneHeight = lane.clientHeight;
-    const routeWidth = innerWidth <= 640 ? 610 : Math.max(660, laneWidth * 1.18);
+    const routeWidth = innerWidth <= 640 ? 560 : Math.max(640, laneWidth * 1.12);
     const scale = routeWidth / ROUTE_WIDTH;
     let routeTop;
     let contact;
     let contactScreenY;
 
     if (progress === 0) {
-      contactScreenY = Math.min(laneHeight - 205, 470);
+      contactScreenY = Math.min(laneHeight - 178, 485);
       routeTop = contactScreenY - GROUND_Y * scale;
       contact = { x: ROUTE_WIDTH / 2, y: GROUND_Y };
     } else if (progress >= HOLD_COUNT) {
       contact = holds[HOLD_COUNT - 1];
-      contactScreenY = Math.min(laneHeight * .54, 350);
+      contactScreenY = Math.min(laneHeight * .58, 380);
       routeTop = contactScreenY - contact.y * scale;
     } else {
       contact = holds[progress - 1];
@@ -91,11 +91,11 @@
     if (progress === 0) {
       climber.classList.add('waiting');
       climber.style.left = `${laneWidth / 2 - climberWidth / 2}px`;
-      climber.style.top = `${contactScreenY - climberHeight + 4}px`;
+      climber.style.top = `${contactScreenY - climberHeight}px`;
     } else if (progress >= HOLD_COUNT) {
       climber.classList.add('celebrating');
       climber.style.left = `${routeX(contact.x) - climberWidth / 2}px`;
-      climber.style.top = `${routeY(contact.y) - climberHeight + 5}px`;
+      climber.style.top = `${routeY(contact.y) - climberHeight}px`;
     } else {
       const previous = progress > 1 ? holds[progress - 2] : { x: ROUTE_WIDTH / 2 };
       const directionLeft = contact.x < previous.x;
