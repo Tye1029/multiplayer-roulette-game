@@ -71,21 +71,21 @@ if (!html.includes('// MULTIPLAYER_COHESION_V6') || !html.includes('noFocusedGam
   );
 }
 
-html = replaceOnce(
+if (!html.includes("lastRevisionKey=''")) html = replaceOnce(
   html,
   'the Remote Bot debug revision state',
   `const logs=[],botLogs=[]; let selectedMode='roulette',lastGameId='',lastRevision=-1;`,
   `const logs=[],botLogs=[]; let selectedMode='roulette',lastGameId='',lastRevisionKey='';`
 );
 
-html = replaceOnce(
+if (!html.includes('<b>Game revision</b>')) html = replaceOnce(
   html,
   'the Remote Bot debug revision display',
   `<b>Revision</b><span>\${st?.revision??g?.revision??'—'}</span>`,
   `<b>Game revision</b><span>\${g?.revision??'—'}</span><b>State revision</b><span>\${st?.revision??'—'}</span>`
 );
 
-html = replaceOnce(
+if (!html.includes('revisionKey=[gameRevision,stateRevision')) html = replaceOnce(
   html,
   'the Remote Bot state log revision',
   `if(g){const rev=Number(st?.revision??g?.revision??0);if(g.gameId!==lastGameId||rev!==lastRevision){line(logs,'state',{mode:g.mode,status:g.status,revision:rev,turnId:st?.turnId,lastAction:st?.lastAction});lastGameId=g.gameId;lastRevision=rev}}`,
