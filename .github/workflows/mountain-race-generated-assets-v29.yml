@@ -103,14 +103,10 @@ jobs:
           node scripts/validate-mountain-race-unified-scene-v63.mjs
           node --check assets/roulette/opening-spin-sync.js
 
-          node scripts/validate-mountain-race-input-rebase-v8.mjs
-          node scripts/validate-mountain-race-fast-ack-v9.mjs
-          node scripts/validate-mountain-race-terminal-poll-v10.mjs
-          node scripts/validate-mountain-race-lifecycle-guard-v11.mjs
           node scripts/validate-mountain-race-state-sync.mjs
-          node scripts/validate-mountain-race-start-stability.mjs
           node scripts/validate-mountain-race-gameplay-visibility.mjs
           node scripts/validate-mountain-race-load-performance.mjs
+          node scripts/validate-multiplayer-cohesion.mjs
 
           grep -Fq 'MOUNTAIN_RACE_RUGGED_TERRAIN_V46' assets/mountain-race/mountain-race.css
           grep -Fq 'MOUNTAIN_RACE_RUGGED_TERRAIN_V46' assets/mountain-race/mountain-race-multiplayer.js
