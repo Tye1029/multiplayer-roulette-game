@@ -43,7 +43,7 @@ if (!html.includes('let duelCompletedActivityGameId = "";')) {
   );
 }
 
-html = replaceOnce(
+if (!html.includes('let completedPollRate = 2000;')) html = replaceOnce(
   html,
   'the completed game polling rate',
   `      const desired = sharedLifecycleLive ? 200 : drawPlaying ? 650 : rouletteLive ? 800 : fishingLive ? 450 : completedAwaitingRematch ? 700 : noFocusedGame ? 2000 : 1800;
