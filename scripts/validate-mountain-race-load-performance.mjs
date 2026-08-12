@@ -18,8 +18,7 @@ assert(client.includes("renderKey: ''"), 'render signature state is missing');
 assert(client.includes('function meaningfulRenderKey(game)'), 'meaningful-state signature helper is missing');
 assert(client.includes('sameMeaningfulState && runtime.root?.isConnected'), 'unchanged polls still rebuild the mountain DOM');
 assert(
-  client.includes('updateClock();\n      startTicker();\n      return true;')
-    || client.includes('updateClock();\n      startTicker();\n      return;'),
+  /updateClock\(\);\s*startTicker\(\);\s*return(?:\s+true)?;/.test(client),
   'unchanged polls do not take the lightweight clock-only path'
 );
 

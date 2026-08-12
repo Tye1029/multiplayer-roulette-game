@@ -2,7 +2,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 
 const indexUrl = new URL('../index.html', import.meta.url);
 const generatedBaseline = await readFile(indexUrl, 'utf8');
-const currentGeneratedRuntime = generatedBaseline.includes('scene=63') &&
+const currentGeneratedRuntime = generatedBaseline.includes('scene=65') &&
   generatedBaseline.includes('// MULTIPLAYER_COHESION_V6') &&
   generatedBaseline.includes("window.addEventListener('roulette-facing-diagnostic'");
 

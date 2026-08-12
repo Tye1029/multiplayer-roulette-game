@@ -4,7 +4,7 @@ const { randomInt, randomUUID } = require('node:crypto');
 
 const MOUNTAIN_RACE_MODE = 'mountainrace';
 const MOUNTAIN_RACE_CONTROLS = Object.freeze(['up', 'left', 'right', 'down']);
-const MOUNTAIN_RACE_DEFAULT_STEPS = 24;
+const MOUNTAIN_RACE_DEFAULT_STEPS = 30;
 const MOUNTAIN_RACE_DURATION_MS = 30_000;
 const MOUNTAIN_RACE_COUNTDOWN_MS = 3_000;
 

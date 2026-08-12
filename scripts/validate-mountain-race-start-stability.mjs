@@ -72,7 +72,7 @@ assert(
   'Ready normalization can still read a stale attached game'
 );
 
-assert(html.includes("if(game.mode==='mountainrace'){\n        duelHideCountdownPortal();"), 'shared countdown portal still renders over the Summit Sprint countdown');
+assert(/if\s*\(game\.mode\s*===\s*['"]mountainrace['"]\s*\)\s*\{\s*duelHideCountdownPortal\(\);/.test(html), 'shared countdown portal still renders over the Summit Sprint countdown');
 assert(html.includes('["safecracker", "mountainrace"].includes(String(duelLastActiveGame?.mode || ""))'), 'one-tap Ready retry does not include Summit Sprint');
 assert(html.includes("st=g?.mode==='mountainrace'?(g?.mountainraceState||{})"), 'debug export can still select an empty state from another game mode');
 assert(html.includes(deploymentMarker), 'deployed page lacks the start-stability marker');

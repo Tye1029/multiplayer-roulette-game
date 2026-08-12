@@ -3,7 +3,7 @@
 
   const MODE = 'mountainrace';
   const CONTROL_TOKENS = Object.freeze(['up', 'left', 'right', 'down']);
-  const TOTAL_HOLDS = 24;
+  const TOTAL_HOLDS = 30;
   const RACE_DURATION_MS = 30_000;
   const COUNTDOWN_SECONDS = 3;
   const BOT_ERROR_RATE = 0.08;
@@ -165,7 +165,7 @@
         const index = firstVisible + offset;
         const isCurrent = index === player.promptIndex && state.status === 'racing';
         const classes = ['mr-rock-hold', playerKey === 'opponent' && index >= player.promptIndex ? 'opponent-upcoming' : '', isCurrent ? 'current' : '', index === player.promptIndex - 1 ? 'contact' : '', index === total - 1 ? 'final-hold' : '', index < player.promptIndex ? 'passed' : ''].filter(Boolean).join(' ');
-        return `<span class="${classes}" style="--mr-hold-bottom:${196 + index * 74}px;--mr-hold-left:${holdHorizontal(index, token)}%" data-mr-hold-index="${index}" data-mr-outcrop="${index % 4}" aria-hidden="true"><b>${promptLabel(token)}</b></span>`;
+        return `<span class="${classes}" style="--mr-hold-bottom:${196 + index * 74}px;--mr-hold-left:${holdHorizontal(index, token)}%" data-mr-hold-index="${index}" data-mr-outcrop="${index % 6}" aria-hidden="true"><b>${promptLabel(token)}</b></span>`;
       }).join('');
       return holds + `<span class="mr-finish-ledge mr-summit-plateau" style="--mr-summit-bottom:${196 + Math.max(0, total - 1) * 74}px" aria-hidden="true"><i></i><b>SUMMIT</b></span>`;
     }
@@ -194,8 +194,8 @@
     }
 
   // MOUNTAIN_RACE_REALISTIC_CLIMBERS_V32
-  function winnerConfetti() {
-    return '<div class="mr-winner-confetti" style="--mr-confetti-bottom:' + (272 + 23 * 74) + 'px" aria-hidden="true">' + Array.from({ length: 28 }, (_, index) => '<i style="--mr-confetti-index:' + index + ';--mr-confetti-x:' + ((index * 37) % 100) + '%;--mr-confetti-drift:' + ((index - 10) * 3) + 'px"></i>').join('') + '</div>';
+  function winnerConfetti(total) {
+    return '<div class="mr-winner-confetti" style="--mr-confetti-bottom:' + (272 + Math.max(0, total - 1) * 74) + 'px" aria-hidden="true">' + Array.from({ length: 28 }, (_, index) => '<i style="--mr-confetti-index:' + index + ';--mr-confetti-x:' + ((index * 37) % 100) + '%;--mr-confetti-drift:' + ((index - 10) * 3) + 'px"></i>').join('') + '</div>';
   }
 
   function renderLane(state, playerKey) {
@@ -207,10 +207,12 @@
       const summitReveal = Math.max(0, Math.min(1, (cameraIndex - Math.max(0, total - 5)) / 5));
       const summitBottom = 196 + Math.max(0, total - 1) * 74;
       const scroll = Math.max(0, cameraIndex) * 74;
+      const cliffPosition = 42 + progress * 20;
       const status = player.finishedAt ? 'SUMMIT REACHED' : `${player.promptIndex} / ${total}`;
       const mistakes = player.rejectedInputs;
       return `
-        <section class="mr-lane ${playerKey} continuous-mountain ${summitReveal > 0 ? 'summit-approach' : ''} ${summitView ? 'summit-view' : 'cliff-view'}" data-mr-lane-view="${summitView ? 'summit' : summitReveal > 0 ? 'summit-approach' : 'cliff'}" data-mr-summit-reveal="${summitReveal.toFixed(2)}" data-mr-camera-index="${cameraIndex}" aria-label="${escapeHtml(player.name)} climbing lane">
+        <section class="mr-lane ${playerKey} continuous-mountain ${summitReveal > 0 ? 'summit-approach' : ''} ${summitView ? 'summit-view' : 'cliff-view'}" style="--mr-v65-summit-reveal:${summitReveal.toFixed(3)};--mr-v65-cliff-position:${cliffPosition.toFixed(2)}%;--mr-v65-route-progress:${progress.toFixed(3)}" data-mr-lane-view="${summitView ? 'summit' : summitReveal > 0 ? 'summit-approach' : 'cliff'}" data-mr-summit-reveal="${summitReveal.toFixed(2)}" data-mr-camera-index="${cameraIndex}" aria-label="${escapeHtml(player.name)} climbing lane">
+          <div class="mr-v65-scenery" aria-hidden="true"><span class="mr-v65-sky"></span><span class="mr-v65-cliff"></span><span class="mr-v65-light"></span></div>
           <header class="mr-player-card">
             <span class="mr-player-badge" aria-hidden="true">${playerKey === 'me' ? 'P1' : 'CPU'}</span>
             <span class="mr-player-copy"><strong>${escapeHtml(player.name)}</strong><small>${mistakes} ${mistakes === 1 ? 'MISTAKE' : 'MISTAKES'}</small></span>
@@ -222,7 +224,7 @@
               <span class="mr-v44-start" aria-hidden="true"><i></i></span>
               ${renderHolds(state, playerKey)}
               ${renderClimber(player, playerKey, state.sequence)}
-              ${player.animation === 'celebrate' ? winnerConfetti() : ''}
+              ${player.animation === 'celebrate' ? winnerConfetti(total) : ''}
             </div>
             <div class="mr-altitude-meter" aria-hidden="true"><i style="--mr-altitude:${progress}"></i></div>
           </div>
@@ -387,24 +389,20 @@
             ${renderLane(state, 'me')}
             ${renderLane(state, 'opponent')}
             <span class="mr-v51-center-rope" aria-hidden="true"><i></i></span>
+            <section class="mr-command-deck" aria-label="Climbing controls">
+              <div class="mr-next-moves">
+                <span class="mr-prompt-label">YOUR NEXT MOVES</span>
+                <div class="mr-prompt-sequence">${renderPromptQueue(state)}</div>
+                <p class="mr-status ${escapeHtml(state.messageTone)}" data-mr-status>${escapeHtml(state.message)}</p>
+              </div>
+              <div class="mr-direction-pad" aria-label="Direction pad">
+                ${renderControlButton('up')}
+                ${renderControlButton('left')}
+                ${renderControlButton('down')}
+                ${renderControlButton('right')}
+              </div>
+            </section>
           </main>
-        <div class="mr-control-terrain" aria-hidden="true">
-          <span class="me" style="--mr-control-world-shift:${Math.max(0, state.players.me.promptIndex - 1) * 42}px"></span>
-          <span class="opponent" style="--mr-control-world-shift:${Math.max(0, state.players.opponent.promptIndex - 1) * 42}px"></span>
-        </div>
-        <section class="mr-command-deck" aria-label="Climbing controls">
-            <div class="mr-next-moves">
-              <span class="mr-prompt-label">YOUR NEXT MOVES</span>
-              <div class="mr-prompt-sequence">${renderPromptQueue(state)}</div>
-              <p class="mr-status ${escapeHtml(state.messageTone)}" data-mr-status>${escapeHtml(state.message)}</p>
-            </div>
-            <div class="mr-direction-pad" aria-label="Direction pad">
-              ${renderControlButton('up')}
-              ${renderControlButton('left')}
-              ${renderControlButton('down')}
-              ${renderControlButton('right')}
-            </div>
-          </section>
           ${renderOverlay(state)}
         </div>`;
       const template = document.createElement('template');
@@ -603,6 +601,16 @@
     root.dataset.mrGroundedWorld = '61';
     root.dataset.mrContinuousScenery = '62';
     root.dataset.mrUnifiedScene = '63';
+    root.dataset.mrApprovedScene = '65';
+    [
+      'mrProfessionalRebuild', 'mrGeneratedAssets', 'mrVisualReboot',
+      'mrContactLedges', 'mrRuggedTerrain', 'mrFinishStability',
+      'mrNaturalTerrain', 'mrSummitContact', 'mrSharedMountain',
+      'mrWinnerSummit', 'mrWinnerCamera', 'mrGroundedAscent',
+      'mrRouteClarity', 'mrNaturalSummit', 'mrCelebrationContact',
+      'mrSummitSky', 'mrContinuousSummit', 'mrNaturalWorld',
+      'mrGroundedWorld', 'mrContinuousScenery', 'mrUnifiedScene'
+    ].forEach(key => delete root.dataset[key]);
     // MOUNTAIN_RACE_UNIFIED_SCENE_V63
     // MOUNTAIN_RACE_CONTINUOUS_SCENERY_V62
     // MOUNTAIN_RACE_GROUNDED_WORLD_V61

@@ -26,7 +26,7 @@ function assert(condition, message) {
 
 assert(MOUNTAIN_RACE_MODE === 'mountainrace', 'internal mode id changed');
 assert(JSON.stringify(MOUNTAIN_RACE_CONTROLS) === JSON.stringify(['up', 'left', 'right', 'down']), 'control set changed');
-assert(MOUNTAIN_RACE_DEFAULT_STEPS === 24, 'race no longer uses 24 holds');
+assert(MOUNTAIN_RACE_DEFAULT_STEPS === 30, 'race no longer uses 30 holds');
 assert(MOUNTAIN_RACE_DURATION_MS === 30_000, 'race clock is no longer 30 seconds');
 assert(readme.includes('Standalone prototype'), 'front-end README does not document the prototype');
 assert(readme.includes('/mountain-race-preview.html'), 'prototype route is not documented');

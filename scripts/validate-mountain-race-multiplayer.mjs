@@ -21,6 +21,7 @@ const [
   client,
   prototypeClient,
   css,
+  sceneCss,
   patch,
   integrationSource,
   duelActionSource,
@@ -35,6 +36,7 @@ const [
   readFile(new URL('assets/mountain-race/mountain-race-multiplayer.js', root), 'utf8'),
   readFile(new URL('assets/mountain-race/mountain-race.js', root), 'utf8'),
   readFile(new URL('assets/mountain-race/mountain-race.css', root), 'utf8'),
+  readFile(new URL('assets/mountain-race/mountain-race-scene-v65.css', root), 'utf8'),
   readFile(new URL('scripts/patch-mountain-race-multiplayer.mjs', root), 'utf8'),
   readFile(new URL('netlify/functions/mountain-race/integration.js', root), 'utf8'),
   readFile(new URL('netlify/functions/duel-action.js', root), 'utf8'),
@@ -53,7 +55,7 @@ function occurrences(source, fragment) {
   return source.split(fragment).length - 1;
 }
 
-assert(MOUNTAIN_RACE_DEFAULT_STEPS === 24, 'authoritative course length changed');
+assert(MOUNTAIN_RACE_DEFAULT_STEPS === 30, 'authoritative course length changed');
 assert(MOUNTAIN_RACE_DURATION_MS === 30_000, 'authoritative race duration changed');
 assert(MOUNTAIN_RACE_COUNTDOWN_MS === 3_000, 'authoritative countdown duration changed');
 assert(MOUNTAIN_RACE_BOT_ERROR_RATE === 0.08, 'testing bot error rate changed');
@@ -104,6 +106,7 @@ assert(!client.includes('createPrototypeState'), 'multiplayer runtime accidental
 assert(prototypeClient.includes('createPrototypeState'), 'standalone prototype was removed');
 assert(css.includes('.mountain-race-game .mr-mountain-wall'), 'mountain presentation is missing');
 assert(css.includes('.mountain-race-game .mr-climber.slip'), 'slip animation is missing');
+assert(sceneCss.includes('MOUNTAIN_RACE_APPROVED_SCENE_V65'), 'approved scene presentation is missing');
 
 for (const fragment of [
   'const MOUNTAIN_RACE_BOT_CATCH_UP_LIMIT = 1;',
@@ -176,7 +179,7 @@ game.mountainraceState = integration.initialState(game, now);
 await saveGame(game);
 assert(integration.hasValidState(game), 'new authoritative state is invalid');
 const firstPublic = integration.publicState(game, 'player-a');
-assert(firstPublic.stepsTotal === 24, 'public state does not report 24 holds');
+assert(firstPublic.stepsTotal === 30, 'public state does not report 30 holds');
 assert(firstPublic.prompts.length === 4, 'viewer does not receive exactly four upcoming prompts');
 assert(!('sequence' in firstPublic), 'public state exposes the full course');
 assert(firstPublic.opponent.name === 'Player B', 'opponent profile was not resolved');
@@ -291,4 +294,4 @@ try {
   Math.random = originalRandom;
 }
 
-console.log('Summit Sprint multiplayer validation passed: the launcher, create/join flow, authoritative 24-hold race, wrong-input slip, private prompt queue, stale and duplicate protection, full Remote Network Bot catch-up and completion, rematches, and protected existing games are intact.');
+console.log('Summit Sprint multiplayer validation passed: the launcher, create/join flow, authoritative 30-hold race, wrong-input slip, private prompt queue, stale and duplicate protection, full Remote Network Bot catch-up and completion, rematches, and protected existing games are intact.');

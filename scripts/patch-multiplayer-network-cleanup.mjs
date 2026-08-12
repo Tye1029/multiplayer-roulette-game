@@ -23,19 +23,21 @@ function replaceSection(source, label, startMarker, endMarker, replacement) {
   return source.slice(0, start) + replacement + source.slice(end);
 }
 
-html = replaceOnce(
-  html,
-  'the lobby cache state',
-  `    let duelCachedGames = [];
+if (!html.includes('let duelLobbyLoaded = false;')) {
+  html = replaceOnce(
+    html,
+    'the lobby cache state',
+    `    let duelCachedGames = [];
     let duelLastLobbyFetchAt = 0;
     let duelLastActiveGame = null;`,
-  `    let duelCachedGames = [];
+    `    let duelCachedGames = [];
     let duelLastLobbyFetchAt = 0;
     let duelLobbyLoaded = false;
     let duelLastActiveGame = null;`
-);
+  );
+}
 
-html = replaceOnce(
+if (!html.includes('const needLobby = !focusedGameOpen && (!duelLobbyLoaded')) html = replaceOnce(
   html,
   'the lobby refresh gate',
   `        const focusedGameOpen = Boolean(duelCurrentGameId);

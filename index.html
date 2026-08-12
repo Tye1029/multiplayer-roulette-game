@@ -12502,12 +12502,14 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
   <script src="/assets/roulette/lamp.js?v=20" defer></script>
   <script src="/assets/roulette/lamp-bootstrap.js?v=19" defer></script>
   <script src="/assets/roulette/audio-manager.js?v=4&ambience=2&media=2&countdown=2" defer></script>
+  <!-- compatibility: /assets/roulette/spin-audio-policy.js?v=3 -->
   <script src="/assets/roulette/spin-audio-policy.js?v=4&turnsound=4&reliable=1" defer></script>
   <script src="/assets/roulette/turn-animation.js?v=5" defer></script>
   <script src="/assets/roulette/turn-fire.js?v=2" defer></script>
   <!-- compatibility: /assets/roulette/turn-facing-guard.js?v=1 -->
   <script src="/assets/roulette/turn-facing-guard.js?v=4&lock=5&owner=3&opening=1&sound=1" defer></script>
   <script src="/assets/roulette/opening-spin-sync.js?v=6&trim=1&clamp=1" defer></script>
+  <!-- compatibility: /assets/roulette/audio-bindings.js?v=5 -->
   <script src="/assets/roulette/audio-bindings.js?v=6&turnmove=1" defer></script>
   <script src="/assets/roulette/reaction-audio.js?v=1" defer></script>
 <!-- MODULAR_LAMP_ASSETS_END -->
@@ -12540,25 +12542,14 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
     .duel-end-screen-close:active{transform:scale(.94)!important}
   </style>
 <!-- MOUNTAIN_RACE_MULTIPLAYER_ASSETS_START -->
-<link id="mountainRaceStyles" rel="stylesheet" href="/assets/mountain-race/mountain-race.css?v=3&multiplayer=1&gameplay=3&terrain=15&texture=16&environment=17&concept=18&concept=19&screenshot=20&reference=21&referenceRebuild=22&fullcliff=23&corrected=24&visual=58&continuous=59&world=60&grounded=61&scenery=62&scene=63&recovery=64">
-  <link id="mountainRaceRecoveryStyles" rel="stylesheet" href="/assets/mountain-race/mountain-race-recovery-v64.css?v=1">
-  <script id="mountainRaceMultiplayerRuntime" src="/assets/mountain-race/mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=11&visual=58&continuous=59&world=60&grounded=61&scenery=62&scene=63&terrain=15&texture=16&environment=17&concept=19&screenshot=20&reference=21&referenceRebuild=22&fullcliff=23&corrected=24" defer></script>
+<link id="mountainRaceStyles" rel="stylesheet" href="/assets/mountain-race/mountain-race.css?v=3&multiplayer=1&gameplay=3">
+  <link id="mountainRaceSceneStyles" rel="stylesheet" href="/assets/mountain-race/mountain-race-scene-v65.css?v=1">
+  <script id="mountainRaceMultiplayerRuntime" src="/assets/mountain-race/mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=11&scene=65&holds=30" defer></script>
 <!-- MOUNTAIN_RACE_MULTIPLAYER_ASSETS_END -->
 
 <!-- MOUNTAIN_RACE_V29_PRELOADS -->
 
 
-
-<!-- MOUNTAIN_RACE_V35_MOTION_PREFETCH -->
-  <link rel="prefetch" as="image" href="/assets/mountain-race/images/summit-sprint-climber-blue-up-v34.png">
-  <link rel="prefetch" as="image" href="/assets/mountain-race/images/summit-sprint-climber-blue-left-v34.png">
-  <link rel="prefetch" as="image" href="/assets/mountain-race/images/summit-sprint-climber-blue-right-v34.png">
-  <link rel="prefetch" as="image" href="/assets/mountain-race/images/summit-sprint-climber-blue-down-v34.png">
-  <link rel="prefetch" as="image" href="/assets/mountain-race/images/summit-sprint-climber-orange-up-v34.png">
-  <link rel="prefetch" as="image" href="/assets/mountain-race/images/summit-sprint-climber-orange-left-v34.png">
-  <link rel="prefetch" as="image" href="/assets/mountain-race/images/summit-sprint-climber-orange-right-v34.png">
-  <link rel="prefetch" as="image" href="/assets/mountain-race/images/summit-sprint-climber-orange-down-v34.png">
-  <link rel="preload" as="image" href="/assets/mountain-race/images/summit-sprint-reboot-background-v44.png" fetchpriority="high">
 
   <link rel="preload" as="image" href="/assets/mountain-race/images/summit-sprint-climber-back-sheet-v45.png" fetchpriority="high">
   <link rel="preload" as="image" href="/assets/mountain-race/images/summit-sprint-climber-back-opponent-sheet-v45.png" fetchpriority="high">
@@ -12567,17 +12558,14 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
 
 
 
-  <link rel="preload" as="image" href="/assets/mountain-race/images/summit-sprint-natural-cliff-v49.png" fetchpriority="high">
-  <link rel="preload" as="image" href="/assets/mountain-race/images/summit-sprint-natural-outcrop-1-v49.png" fetchpriority="high">
-  <link rel="preload" as="image" href="/assets/mountain-race/images/summit-sprint-natural-outcrop-2-v49.png" fetchpriority="high">
-  <link rel="preload" as="image" href="/assets/mountain-race/images/summit-sprint-natural-outcrop-3-v49.png" fetchpriority="high">
-  <link rel="preload" as="image" href="/assets/mountain-race/images/summit-sprint-natural-outcrop-4-v49.png" fetchpriority="high">
-  <link rel="preload" as="image" href="/assets/mountain-race/images/summit-sprint-start-grass-v54.png" fetchpriority="high">
+  <link rel="preload" as="image" href="/assets/mountain-race/images/summit-sprint-jagged-cliff-v65.png" fetchpriority="high">
+  <link rel="preload" as="image" href="/assets/mountain-race/images/summit-sprint-jagged-ground-v65.png" fetchpriority="high">
+  <link rel="preload" as="image" href="/assets/mountain-race/images/summit-sprint-jagged-ledges-v65.png" fetchpriority="high">
+  <link rel="preload" as="image" href="/assets/mountain-race/images/summit-sprint-jagged-summit-v65.png" fetchpriority="high">
+  <link rel="preload" as="image" href="/assets/mountain-race/images/summit-sprint-moving-sky-v65.png" fetchpriority="high">
   <link rel="preload" as="image" href="/assets/mountain-race/images/summit-sprint-start-climbers-v55.png" fetchpriority="high">
   <link rel="preload" as="image" href="/assets/mountain-race/images/summit-sprint-waiting-climbers-v55.png" fetchpriority="high">
-  <link rel="preload" as="image" href="/assets/mountain-race/images/summit-sprint-natural-peak-v56.png" fetchpriority="high">
   <link rel="preload" as="image" href="/assets/mountain-race/images/summit-sprint-celebration-climbers-v57.png" fetchpriority="high">
-  <link rel="preload" as="image" href="/assets/mountain-race/images/summit-sprint-alpine-sky-v58.png" fetchpriority="high">
 </head>
 <body class="test-shell-loading">
 
@@ -22733,20 +22721,27 @@ function updateRunnerBalanceDisplay() {
    const incomingRevision=Number(incoming.revision??-1);
    return incomingRank<currentRank&&incomingRevision<=currentRevision;
   }
+    function rnbStateRevision(game){
+   const state=game?.rouletteState||game?.drawState||game?.fishingState||{};
+   return Number(state?.revision??-1);
+  }
+  function rnbSnapshotStamp(game){return {gameRevision:Number(game?.revision??-1),stateRevision:rnbStateRevision(game),updatedAt:Date.parse(String(game?.updatedAt||''))||0}}
+  function rnbCompareSnapshots(left,right){
+   const a=rnbSnapshotStamp(left),b=rnbSnapshotStamp(right);
+   if(a.gameRevision!==b.gameRevision)return a.gameRevision-b.gameRevision;
+   if(a.stateRevision!==b.stateRevision)return a.stateRevision-b.stateRevision;
+   return a.updatedAt-b.updatedAt;
+  }
+  function rnbCurrentGame(gameId){
+   const id=String(gameId||''),candidates=[];
+   try{if(typeof duelLastActiveGame!=='undefined'&&String(duelLastActiveGame?.gameId||'')===id)candidates.push(duelLastActiveGame)}catch{}
+   try{if(typeof rouletteLatestGame!=='undefined'&&String(rouletteLatestGame?.gameId||'')===id)candidates.push(rouletteLatestGame)}catch{}
+   return candidates.reduce((newest,game)=>!newest||rnbCompareSnapshots(game,newest)>0?game:newest,null);
+  }
   function rnbAdoptGame(game,force=false){
    if(!game?.gameId)return null;
    const current=rnbCurrentGame(game.gameId);
-   if(game.mode==='safecracker'&&typeof window.__safeCrackerAcceptSnapshot==='function'&&!window.__safeCrackerAcceptSnapshot(game)){
-    line(botLogs,'ignored rejected Safe Cracker snapshot',{gameId:String(game.gameId),incoming:rnbSnapshotStamp(game)});
-    return current;
-   }
-   if(game.mode==='mountainrace'&&typeof window.__mountainRaceAcceptSnapshot==='function'&&!window.__mountainRaceAcceptSnapshot(game)){
-    line(botLogs,'ignored rejected Summit Sprint snapshot',{gameId:String(game.gameId),incoming:rnbSnapshotStamp(game)});
-    return current;
-   }
-   const mountainRaceLifecycleRegression=mountainRaceSharedLifecycleRegression(current,game);
-   if(current&&((game.mode!=='mountainrace'&&rnbCompareSnapshots(game,current)<0)||mountainRaceLifecycleRegression)){
-    if(mountainRaceLifecycleRegression)window.__mountainRaceSharedRejectedSnapshots=Number(window.__mountainRaceSharedRejectedSnapshots||0)+1;
+   if(current&&rnbCompareSnapshots(game,current)<0){
     line(botLogs,'ignored stale game snapshot',{gameId:String(game.gameId),incoming:rnbSnapshotStamp(game),accepted:rnbSnapshotStamp(current)});
     return current;
    }
@@ -22815,7 +22810,7 @@ async function rnbFetchAuthoritativeGame(gameId){
    if(g.mode==='mountainrace'){
     const st=g.mountainraceState&&typeof g.mountainraceState==='object'?g.mountainraceState:{};
     const climber=value=>value&&typeof value==='object'?{playerId:String(value.playerId||''),name:String(value.name||''),badge:String(value.badge||''),isBot:Boolean(value.isBot),promptIndex:Number(value.promptIndex||0),acceptedInputs:Number(value.acceptedInputs||0),rejectedInputs:Number(value.rejectedInputs||0),lastInput:value.lastInput||null,finishedAt:value.finishedAt||null}:null;
-    return{roundId:String(st.roundId||''),revision:Number(st.revision||0),startAt:st.startAt||null,endAt:st.endAt||null,secondsLeft:Number(st.secondsLeft||0),stepsTotal:Number(st.stepsTotal||24),canSubmit:Boolean(st.canSubmit),prompts:Array.isArray(st.prompts)?st.prompts:[],me:climber(st.me),opponent:climber(st.opponent),winnerUserId:String(st.winnerUserId||''),viewerWon:Boolean(st.viewerWon),tie:Boolean(st.tie),networkBotLog:st.networkBotLog||null,completedAt:st.completedAt||null,rejectedSnapshots:Number(window.__mountainRaceRejectedSnapshots||0),sharedRejectedSnapshots:Number(window.__mountainRaceSharedRejectedSnapshots||0)};
+    return{roundId:String(st.roundId||''),revision:Number(st.revision||0),startAt:st.startAt||null,endAt:st.endAt||null,secondsLeft:Number(st.secondsLeft||0),stepsTotal:Number(st.stepsTotal||30),canSubmit:Boolean(st.canSubmit),prompts:Array.isArray(st.prompts)?st.prompts:[],me:climber(st.me),opponent:climber(st.opponent),winnerUserId:String(st.winnerUserId||''),viewerWon:Boolean(st.viewerWon),tie:Boolean(st.tie),networkBotLog:st.networkBotLog||null,completedAt:st.completedAt||null,rejectedSnapshots:Number(window.__mountainRaceRejectedSnapshots||0),sharedRejectedSnapshots:Number(window.__mountainRaceSharedRejectedSnapshots||0)};
    }
    if(g.mode!=='safecracker')return g.rouletteState||g.drawState||g.fishingState||{};
    const st=g.safecrackerState&&typeof g.safecrackerState==='object'?g.safecrackerState:{};

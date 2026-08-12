@@ -81,7 +81,7 @@ if (!html.includes('duelScreen.hidden || document.hidden ||')) html = replaceOnc
       if (!duelScreen || duelScreen.hidden || document.hidden) return;`
 );
 
-if (!html.includes('if (document.hidden) {\n        if (duelPollTimer) clearInterval(duelPollTimer);')) html = replaceOnce(
+if (!/document\.addEventListener\("visibilitychange",\s*\(\)\s*=>\s*\{\s*if\s*\(document\.hidden\)\s*\{\s*if\s*\(duelPollTimer\)/.test(html)) html = replaceOnce(
   html,
   'the multiplayer visibility handler',
   `    document.addEventListener("visibilitychange", () => {
@@ -105,9 +105,11 @@ if (!html.includes('if (document.hidden) {\n        if (duelPollTimer) clearInte
     });`
 );
 
-html = replaceRemoteBotCompletedLoop(html);
+if (!/setInterval\(\(\)=>\s*\{\s*if\(document\.hidden\)return;[\s\S]{0,240}rnbScheduleRematch\(g\);\s*\},1000\);/.test(html)) {
+  html = replaceRemoteBotCompletedLoop(html);
+}
 
-html = replaceOnce(
+if (!html.includes('duelCompletedActivityGameId = String(duelCurrentGameId || "");')) html = replaceOnce(
   html,
   'the local rematch activity timestamp',
   `        if (btn) { btn.disabled = true; btn.textContent = "Requesting rematch…"; }
@@ -118,7 +120,7 @@ html = replaceOnce(
         const data = await duelRequest("act", { gameId: duelCurrentGameId, choice: "rematch" });`
 );
 
-html = replaceOnce(
+if (!html.includes('duelSetStatus("Rematch accepted. Both players must click Ready.", "good");') || !html.includes('queueMicrotask(() => duelRefresh(true));')) html = replaceOnce(
   html,
   'the accepted rematch immediate refresh',
   `          duelSetStatus("Rematch accepted. Both players must click Ready.", "good");
@@ -128,7 +130,7 @@ html = replaceOnce(
           return;`
 );
 
-html = replaceOnce(
+if (!html.includes('duelSetPollRate(data.game || duelLastActiveGame || null);')) html = replaceOnce(
   html,
   'the requested rematch immediate refresh',
   `        duelRenderActive(data.game, false);
@@ -143,13 +145,17 @@ for (const required of [
   'let duelCompletedActivityAt = 0;',
   'completedPollRate = Date.now() - duelCompletedActivityAt < 15000 ?',
   'duelScreen.hidden || document.hidden ||',
-  'duelPollTimer = null;\n        window.__duelPollRate = 0;',
   'if(document.hidden)return;',
-  'rnbScheduleRematch(g);\n  },1000);',
   'duelCompletedActivityAt = Date.now();',
   'queueMicrotask(() => duelRefresh(true));'
 ]) {
   if (!html.includes(required)) throw new Error(`Final multiplayer polling cleanup is missing ${required}`);
+}
+if (!/duelPollTimer\s*=\s*null;\s*window\.__duelPollRate\s*=\s*0;/.test(html)) {
+  throw new Error('Final multiplayer polling cleanup is missing hidden-tab timer cancellation');
+}
+if (!/rnbScheduleRematch\(g\);\s*\},1000\);/.test(html)) {
+  throw new Error('Final multiplayer polling cleanup is missing the lightweight rematch scheduler');
 }
 
 for (const forbidden of [

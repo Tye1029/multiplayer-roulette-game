@@ -2,7 +2,7 @@
 
 `Summit Sprint` is the working title for the original two-player mountain-climbing race mode.
 
-Players race up separate climbing lanes by pressing directional prompts in the exact order shown on the mountain. Correct inputs advance one hold. Incorrect inputs make the climber slip back one hold. The first climber to complete all 24 holds wins; when the 30-second timer expires, the higher climber wins and equal height is a tie.
+Players race up separate climbing lanes by pressing directional prompts in the exact order shown on the mountain. Correct inputs advance one hold. Incorrect inputs make the climber slip back one hold. The first climber to complete all 30 holds wins; when the 30-second timer expires, the higher climber wins and equal height is a tie.
 
 ## Multiplayer testing
 

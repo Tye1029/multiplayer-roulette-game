@@ -389,7 +389,7 @@
           known ? 'known' : 'unknown',
           known ? `direction-${known}` : ''
         ].filter(Boolean).join(' ');
-        return `<span class="${classes}" style="--mr-hold-bottom:${196 + index * 74}px;--mr-hold-left:${holdLeft(index)}%" data-mr-hold-index="${index}" data-mr-outcrop="${index % 4}" aria-hidden="true"><b>${known ? symbol(known) : ''}</b></span>`;
+        return `<span class="${classes}" style="--mr-hold-bottom:${196 + index * 74}px;--mr-hold-left:${holdLeft(index)}%" data-mr-hold-index="${index}" data-mr-outcrop="${index % 6}" aria-hidden="true"><b>${known ? symbol(known) : ''}</b></span>`;
       }).join('');
       return holds + `<span class="mr-finish-ledge mr-summit-plateau" style="--mr-summit-bottom:${196 + Math.max(0, total - 1) * 74}px" aria-hidden="true"><i></i><b>SUMMIT</b></span>`;
     }
@@ -426,8 +426,8 @@
     }
 
   // MOUNTAIN_RACE_FINISH_STABILITY_V47
-  function winnerConfetti() {
-    return '<div class="mr-winner-confetti" style="--mr-confetti-bottom:' + (272 + 23 * 74) + 'px" aria-hidden="true">' + Array.from({ length: 28 }, (_, index) => '<i style="--mr-confetti-index:' + index + ';--mr-confetti-x:' + ((index * 37) % 100) + '%;--mr-confetti-drift:' + ((index - 10) * 3) + 'px"></i>').join('') + '</div>';
+  function winnerConfetti(total) {
+    return '<div class="mr-winner-confetti" style="--mr-confetti-bottom:' + (272 + Math.max(0, total - 1) * 74) + 'px" aria-hidden="true">' + Array.from({ length: 28 }, (_, index) => '<i style="--mr-confetti-index:' + index + ';--mr-confetti-x:' + ((index * 37) % 100) + '%;--mr-confetti-drift:' + ((index - 10) * 3) + 'px"></i>').join('') + '</div>';
   }
 
   function renderLane(rawPlayer, side, total, prompts, reveal, animation) {
@@ -438,8 +438,10 @@
       const summitBottom = 196 + Math.max(0, total - 1) * 74;
       const scroll = Math.max(0, cameraIndex) * 74;
       const progress = total ? Math.min(1, p.promptIndex / total) : 0;
+      const cliffPosition = 42 + progress * 20;
       return `
-        <section class="mr-lane ${side} continuous-mountain ${summitReveal > 0 ? 'summit-approach' : ''} ${summitView ? 'summit-view' : 'cliff-view'}" data-mr-lane-view="${summitView ? 'summit' : summitReveal > 0 ? 'summit-approach' : 'cliff'}" data-mr-summit-reveal="${summitReveal.toFixed(2)}" data-mr-camera-index="${cameraIndex}" aria-label="${escapeHtml(p.name)} climbing lane">
+        <section class="mr-lane ${side} continuous-mountain ${summitReveal > 0 ? 'summit-approach' : ''} ${summitView ? 'summit-view' : 'cliff-view'}" style="--mr-v65-summit-reveal:${summitReveal.toFixed(3)};--mr-v65-cliff-position:${cliffPosition.toFixed(2)}%;--mr-v65-route-progress:${progress.toFixed(3)}" data-mr-lane-view="${summitView ? 'summit' : summitReveal > 0 ? 'summit-approach' : 'cliff'}" data-mr-summit-reveal="${summitReveal.toFixed(2)}" data-mr-camera-index="${cameraIndex}" aria-label="${escapeHtml(p.name)} climbing lane">
+          <div class="mr-v65-scenery" aria-hidden="true"><span class="mr-v65-sky"></span><span class="mr-v65-cliff"></span><span class="mr-v65-light"></span></div>
           <header class="mr-player-card">
             <span class="mr-player-badge" aria-hidden="true">${escapeHtml(p.badge)}</span>
             <span class="mr-player-copy"><strong>${escapeHtml(p.name)}</strong><small>${p.rejectedInputs} ${p.rejectedInputs === 1 ? 'MISTAKE' : 'MISTAKES'}</small></span>
@@ -451,7 +453,7 @@
               <span class="mr-v44-start" aria-hidden="true"><i></i></span>
               ${renderHolds(p.promptIndex, total, prompts, reveal, side)}
               ${renderClimber(p, side, animation, total)}
-              ${animation === 'celebrate' ? winnerConfetti() : ''}
+              ${animation === 'celebrate' ? winnerConfetti(total) : ''}
             </div>
             <div class="mr-altitude-meter" aria-hidden="true"><i style="--mr-altitude:${progress}"></i></div>
           </div>
@@ -1322,6 +1324,17 @@
     root.dataset.mrGroundedWorld = '61';
     root.dataset.mrContinuousScenery = '62';
     root.dataset.mrUnifiedScene = '63';
+    root.dataset.mrApprovedScene = '65';
+    [
+      'mrRockyRebuild', 'mrProfessionalRebuild', 'mrGeneratedAssets',
+      'mrVisualReboot', 'mrContactLedges', 'mrRuggedTerrain',
+      'mrFinishStability', 'mrNaturalTerrain', 'mrSummitContact',
+      'mrSharedMountain', 'mrWinnerSummit', 'mrWinnerCamera',
+      'mrGroundedAscent', 'mrRouteClarity', 'mrNaturalSummit',
+      'mrCelebrationContact', 'mrSummitSky', 'mrContinuousSummit',
+      'mrNaturalWorld', 'mrGroundedWorld', 'mrContinuousScenery',
+      'mrUnifiedScene'
+    ].forEach(key => delete root.dataset[key]);
     // MOUNTAIN_RACE_UNIFIED_SCENE_V63
     // MOUNTAIN_RACE_CONTINUOUS_SCENERY_V62
     // MOUNTAIN_RACE_GROUNDED_WORLD_V61
@@ -1340,7 +1353,7 @@
     // MOUNTAIN_RACE_VISUAL_REBOOT_V44
     // MOUNTAIN_RACE_CONTACT_LEDGES_V45
     // MOUNTAIN_RACE_RUGGED_TERRAIN_V46
-    const total = Math.max(8, Math.min(80, Math.trunc(Number(publicState.stepsTotal) || 24)));
+    const total = Math.max(8, Math.min(80, Math.trunc(Number(publicState.stepsTotal) || 30)));
     const rawRunway = Array.isArray(publicState.inputPrompts) && publicState.inputPrompts.length ? publicState.inputPrompts : publicState.prompts;
     const authoritativePrompts = Array.isArray(rawRunway) ? rawRunway.map(control) : [];
     const presentation = optimisticPresentation(publicState, authoritativePrompts, total);
@@ -1370,9 +1383,9 @@
       <div class="mountain-race-game" data-mode="${MODE}" data-status="${escapeHtml(runtime.game.status)}" data-authoritative="1">
         <header class="mr-titlebar">
           <div class="mr-expedition-heading">
-            <p>ALPINE EXPEDITION · ROUTE 24</p>
+            <p>ALPINE EXPEDITION · ROUTE 30</p>
             <div class="mr-title-lockup"><span class="mr-expedition-mark" aria-hidden="true"><i></i></span><h2>SUMMIT SPRINT</h2></div>
-            <small class="mr-expedition-meta">NORTH FACE · 24 HOLDS · LIVE ASCENT</small>
+            <small class="mr-expedition-meta">NORTH FACE · 30 HOLDS · LIVE ASCENT</small>
           </div>
           <div class="mr-race-clock ${secondsLeft() <= 7 && runtime.game.status === 'playing' ? 'urgent' : ''}"><small>TIME</small><strong data-mr-clock>${String(secondsLeft()).padStart(2, '0')}</strong></div>
         </header>
@@ -1381,21 +1394,17 @@
           ${renderLane(me, 'me', total, prompts, true, meAnimation)}
           ${renderLane(opponent, 'opponent', total, [], false, opponentAnimation)}
           <span class="mr-v51-center-rope" aria-hidden="true"><i></i></span>
+          <section class="mr-command-deck" aria-label="Climbing controls">
+            <div class="mr-next-moves">
+              <span class="mr-prompt-label">YOUR NEXT MOVES</span>
+              <div class="mr-prompt-sequence">${promptQueue(prompts)}</div>
+              <p class="mr-status ${tone}" data-mr-status>${escapeHtml(statusText(publicState))}</p>
+            </div>
+            <div class="mr-direction-pad" aria-label="Direction pad">
+              ${CONTROLS.map(token => `<button type="button" class="mr-control mr-control-${token}" data-mr-network-input="${token}" data-mr-displayed-expected="${escapeHtml(presentation.prompts[0] || '')}" data-mr-displayed-index="${Math.max(0, Math.trunc(Number(presentation.me?.promptIndex) || 0))}" data-mr-displayed-round="${escapeHtml(publicState.roundId || '')}" ${controlsEnabled ? '' : 'disabled'}><b>${symbol(token)}</b><small>${token.toUpperCase()}</small></button>`).join('')}
+            </div>
+          </section>
         </main>
-        <div class="mr-control-terrain" aria-hidden="true">
-          <span class="me" style="--mr-control-world-shift:${Math.max(0, me.promptIndex - 1) * 42}px"></span>
-          <span class="opponent" style="--mr-control-world-shift:${Math.max(0, opponent.promptIndex - 1) * 42}px"></span>
-        </div>
-        <section class="mr-command-deck" aria-label="Climbing controls">
-          <div class="mr-next-moves">
-            <span class="mr-prompt-label">YOUR NEXT MOVES</span>
-            <div class="mr-prompt-sequence">${promptQueue(prompts)}</div>
-            <p class="mr-status ${tone}" data-mr-status>${escapeHtml(statusText(publicState))}</p>
-          </div>
-          <div class="mr-direction-pad" aria-label="Direction pad">
-            ${CONTROLS.map(token => `<button type="button" class="mr-control mr-control-${token}" data-mr-network-input="${token}" data-mr-displayed-expected="${escapeHtml(presentation.prompts[0] || '')}" data-mr-displayed-index="${Math.max(0, Math.trunc(Number(presentation.me?.promptIndex) || 0))}" data-mr-displayed-round="${escapeHtml(publicState.roundId || '')}" ${controlsEnabled ? '' : 'disabled'}><b>${symbol(token)}</b><small>${token.toUpperCase()}</small></button>`).join('')}
-          </div>
-        </section>
         ${countdownOverlay()}
         ${resultOverlay(publicState, me, total)}
       </div>`;
@@ -1566,7 +1575,7 @@
     // MOUNTAIN_RACE_CONFIRMED_LIGHTWEIGHT_V43
     // Correct moves remain bufferable while earlier actions are in flight.
 
-    const total = Math.max(8, Math.min(80, Math.trunc(Number(publicState.stepsTotal) || 24)));
+    const total = Math.max(8, Math.min(80, Math.trunc(Number(publicState.stepsTotal) || 30)));
     const rawRunway = Array.isArray(publicState.inputPrompts) && publicState.inputPrompts.length
       ? publicState.inputPrompts
       : publicState.prompts;
