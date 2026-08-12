@@ -79,7 +79,7 @@ if (!css.includes(marker)) css += String.raw`
   background-image: url('/assets/mountain-race/images/summit-sprint-grounded-world-v61.png') !important;
   background-position: center calc(100% + var(--mr-control-world-shift, 0px)) !important;
   background-size: auto 2397px !important;
-  background-repeat: no-repeat !important;
+  background-repeat: no-repeat !important; /* one sky plate */
   transition: background-position 260ms cubic-bezier(.22,.84,.28,1) !important;
 }
 [data-mountain-race-mount][data-mr-continuous-scenery="62"] .mr-control-terrain > .me {
@@ -102,7 +102,7 @@ if (!css.includes(marker)) css += String.raw`
   background-image: url('/assets/mountain-race/images/summit-sprint-alpine-sky-v58.png') !important;
   background-position: center top !important;
   background-size: auto 100% !important;
-  background-repeat: no-repeat !important;
+  background-repeat: no-repeat !important; /* one summit cutout */
 }
 [data-mountain-race-mount][data-mr-continuous-scenery="62"] .mr-lane.summit-view .mr-winner-confetti {
   background-color: transparent !important;
