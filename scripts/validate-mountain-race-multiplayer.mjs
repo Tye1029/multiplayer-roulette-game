@@ -23,6 +23,7 @@ const [
   css,
   patch,
   integrationSource,
+  duelActionSource,
   safeCrackerClient,
   safeCrackerCss,
   rouletteTurn,
@@ -36,6 +37,7 @@ const [
   readFile(new URL('assets/mountain-race/mountain-race.css', root), 'utf8'),
   readFile(new URL('scripts/patch-mountain-race-multiplayer.mjs', root), 'utf8'),
   readFile(new URL('netlify/functions/mountain-race/integration.js', root), 'utf8'),
+  readFile(new URL('netlify/functions/duel-action.js', root), 'utf8'),
   readFile(new URL('assets/safe-cracker/safe-cracker.js', root)),
   readFile(new URL('assets/safe-cracker/safe-cracker.css', root)),
   readFile(new URL('assets/roulette/turn-animation.js', root)),
@@ -120,6 +122,10 @@ for (const fragment of [
 ]) assert(integrationSource.includes(fragment), `integration service is missing: ${fragment}`);
 assert(!patch.includes("writeFile(new URL('../assets/roulette/"), 'mountain patch writes Roulette assets');
 assert(!patch.includes("writeFile(new URL('../assets/safe-cracker/"), 'mountain patch writes Safe Cracker assets');
+assert(duelActionSource.includes('expectedPromptIndex: body.expectedPromptIndex'), 'shared action route drops the expected Summit prompt index');
+assert(duelActionSource.includes('expectedControl: body.expectedControl'), 'shared action route drops the expected Summit control');
+assert(duelActionSource.includes('inputBatch: body.inputBatch'), 'shared action route drops queued Summit Sprint inputs');
+assert(duelActionSource.includes('X-Summit-Input-Route-Build'), 'deployed Summit input-route marker is missing');
 assert(safeCrackerClient.length > 0 && safeCrackerCss.length > 0, 'protected Safe Cracker assets are unreadable');
 assert(rouletteTurn.length > 0 && rouletteFire.length > 0 && rouletteAudio.length > 0, 'protected Roulette assets are unreadable');
 
@@ -186,27 +192,48 @@ game = response.game;
 assert(game.mountainraceState.players['player-a'].promptIndex === 1, 'correct move did not climb one hold');
 assert(response.skipBalanceLookup === true, 'active move performs an unnecessary balance refresh');
 
+game = await getRaw(game.gameId);
+const batchStartIndex = game.mountainraceState.players['player-a'].promptIndex;
+const batchControls = game.mountainraceState.sequence.slice(batchStartIndex, batchStartIndex + 2);
+response = await integration.action(
+  { id: 'player-a' },
+  game.gameId,
+  'mountainrace:batch',
+  {
+    inputBatch: batchControls.map((control, offset) => ({
+      control,
+      expectedControl: control,
+      expectedPromptIndex: batchStartIndex + offset,
+      actionId: `batch-${offset + 1}`
+    }))
+  }
+);
+game = response.game;
+assert(response.batchAccepted === true, 'queued direction batch was not accepted');
+assert(response.confirmedActionIds.length === 2, 'queued direction batch was not fully confirmed');
+assert(game.mountainraceState.players['player-a'].promptIndex === batchStartIndex + 2, 'queued direction batch did not advance both holds');
+
 const revisionBeforeStale = game.mountainraceState.revision;
 response = await integration.action(
   { id: 'player-a' },
   game.gameId,
-  `mountainrace:input:${game.mountainraceState.sequence[1]}`,
-  { actionId: 'stale-prompt-1', expectedPromptIndex: 0 }
+  `mountainrace:input:${game.mountainraceState.sequence[batchStartIndex + 2]}`,
+  { actionId: 'stale-prompt-1', expectedPromptIndex: batchStartIndex }
 );
 assert(response.ignoredAction === true && response.ignoreReason === 'prompt-changed', 'stale prompt request was not rejected');
 assert(response.game.mountainraceState.revision === revisionBeforeStale, 'stale prompt request changed authoritative state');
 
 game = await getRaw(game.gameId);
-const nextExpected = game.mountainraceState.sequence[1];
+const nextExpected = game.mountainraceState.sequence[batchStartIndex + 2];
 const wrongControl = MOUNTAIN_RACE_CONTROLS.find(token => token !== nextExpected);
 response = await integration.action(
   { id: 'player-a' },
   game.gameId,
   `mountainrace:input:${wrongControl}`,
-  { actionId: 'wrong-1', expectedPromptIndex: 1 }
+  { actionId: 'wrong-1', expectedPromptIndex: batchStartIndex + 2 }
 );
 game = response.game;
-assert(game.mountainraceState.players['player-a'].promptIndex === 0, 'wrong move did not slip back one hold');
+assert(game.mountainraceState.players['player-a'].promptIndex === batchStartIndex + 1, 'wrong move did not slip back one hold');
 assert(game.mountainraceState.players['player-a'].rejectedInputs === 1, 'wrong move was not counted');
 
 const revisionBeforeDuplicate = game.mountainraceState.revision;
@@ -214,7 +241,7 @@ response = await integration.action(
   { id: 'player-a' },
   game.gameId,
   `mountainrace:input:${wrongControl}`,
-  { actionId: 'wrong-1', expectedPromptIndex: 1 }
+  { actionId: 'wrong-1', expectedPromptIndex: batchStartIndex + 2 }
 );
 assert(response.replayedAction === true, 'duplicate action was not identified');
 assert(response.game.mountainraceState.revision === revisionBeforeDuplicate, 'duplicate action changed authoritative state');
