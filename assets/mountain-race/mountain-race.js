@@ -388,6 +388,10 @@
             ${renderLane(state, 'opponent')}
             <span class="mr-v51-center-rope" aria-hidden="true"><i></i></span>
           </main>
+        <div class="mr-control-terrain" aria-hidden="true">
+          <span class="me" style="--mr-control-world-shift:${Math.max(0, state.players.me.promptIndex - 1) * 42}px"></span>
+          <span class="opponent" style="--mr-control-world-shift:${Math.max(0, state.players.opponent.promptIndex - 1) * 42}px"></span>
+        </div>
         <section class="mr-command-deck" aria-label="Climbing controls">
             <div class="mr-next-moves">
               <span class="mr-prompt-label">YOUR NEXT MOVES</span>

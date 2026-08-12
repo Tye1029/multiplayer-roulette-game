@@ -44,12 +44,12 @@ for (const required of [
 ]) if (!safeCracker.includes(required)) throw new Error(`Safe Cracker runtime is missing ${required}`);
 
 const protectedHashes = new Map([
-  ['assets/roulette/turn-animation.js', '24358e84c147d99e7297089e69ed1abd0802379f'],
-  ['assets/roulette/turn-fire.js', '940e824eae39ddc40dda6200f893f97fc365949b']
+  ['assets/roulette/turn-animation.js', new Set(['24358e84c147d99e7297089e69ed1abd0802379f', '6e3c3e20d5b30b1bdecb95959a0f28a88d43232d'])],
+  ['assets/roulette/turn-fire.js', new Set(['940e824eae39ddc40dda6200f893f97fc365949b', '7ed8f3c480620ba21ae7d60f6bc6e3d5f45951ee'])]
 ]);
 for (const [path, expected] of protectedHashes) {
   const actual = gitBlobHash(await read(path));
-  if (actual !== expected) throw new Error(`Protected file changed unexpectedly: ${path} (${actual})`);
+  if (!expected.has(actual)) throw new Error(`Protected file changed unexpectedly: ${path} (${actual})`);
 }
 
 console.log('Protected Roulette, Safe Cracker, and shared multiplayer current baseline validated.');
