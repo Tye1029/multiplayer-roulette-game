@@ -71,7 +71,7 @@ if (!html.includes('// MULTIPLAYER_COHESION_V6') || !html.includes('noFocusedGam
   );
 }
 
-if (!html.includes("lastRevisionKey=''")) html = replaceOnce(
+if (!html.includes('revisionKey=[gameRevision,stateRevision')) html = replaceOnce(
   html,
   'the Remote Bot debug revision state',
   `const logs=[],botLogs=[]; let selectedMode='roulette',lastGameId='',lastRevision=-1;`,
