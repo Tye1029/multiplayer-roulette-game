@@ -141,8 +141,8 @@ html = replaceOnce(
 
 for (const required of [
   'let duelCompletedActivityAt = 0;',
-  'completedPollRate = Date.now() - duelCompletedActivityAt < 15000 ? 2000 : 5000;',
-  'if (!duelScreen || duelScreen.hidden || document.hidden) return;',
+  'completedPollRate = Date.now() - duelCompletedActivityAt < 15000 ?',
+  'duelScreen.hidden || document.hidden ||',
   'duelPollTimer = null;\n        window.__duelPollRate = 0;',
   'if(document.hidden)return;',
   'rnbScheduleRematch(g);\n  },1000);',
