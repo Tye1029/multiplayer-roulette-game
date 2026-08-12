@@ -47,12 +47,12 @@
     let contactScreenY;
 
     if (progress === 0) {
-      contactScreenY = Math.min(laneHeight - 143, 520);
+      contactScreenY = Math.min(laneHeight - 205, 470);
       routeTop = contactScreenY - GROUND_Y * scale;
       contact = { x: ROUTE_WIDTH / 2, y: GROUND_Y };
     } else if (progress >= HOLD_COUNT) {
       contact = holds[HOLD_COUNT - 1];
-      contactScreenY = Math.min(laneHeight * .61, 410);
+      contactScreenY = Math.min(laneHeight * .54, 350);
       routeTop = contactScreenY - contact.y * scale;
     } else {
       contact = holds[progress - 1];

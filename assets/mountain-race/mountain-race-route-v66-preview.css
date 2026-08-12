@@ -178,9 +178,8 @@ button { font: inherit; }
   width: 50%;
   overflow: hidden;
   background:
-    radial-gradient(ellipse at 22% 16%, rgba(255, 255, 255, .82) 0 5%, transparent 14%),
-    radial-gradient(ellipse at 77% 27%, rgba(255, 255, 255, .56) 0 6%, transparent 15%),
-    linear-gradient(180deg, #278fda 0%, #70b9e7 46%, #b5d8ec 100%);
+    linear-gradient(180deg, rgba(25, 121, 194, .04), rgba(19, 75, 121, .18)),
+    url('/assets/mountain-race/images/summit-sprint-alpine-sky-v58.png') center top / cover no-repeat;
 }
 
 .v66-lane[data-v66-lane="0"] { left: 0; }
@@ -198,8 +197,8 @@ button { font: inherit; }
 .v66-lane::before {
   inset: 0;
   background:
-    linear-gradient(107deg, transparent 0 58%, rgba(255,255,255,.12) 60%, transparent 75%),
-    linear-gradient(180deg, transparent 0 66%, rgba(42, 102, 142, .18) 100%);
+    linear-gradient(107deg, transparent 0 58%, rgba(255,255,255,.09) 60%, transparent 75%),
+    linear-gradient(180deg, transparent 0 66%, rgba(42, 102, 142, .12) 100%);
 }
 
 .v66-clouds {
