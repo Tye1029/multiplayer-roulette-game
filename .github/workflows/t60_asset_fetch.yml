@@ -1,0 +1,112 @@
+name: T60 Reference Asset Fetch
+
+on:
+  push:
+    branches:
+      - ai-t60-model-build
+
+permissions:
+  contents: read
+
+jobs:
+  fetch-and-inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out temporary branch
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install inspection tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install objaverse trimesh pygltflib numpy pillow
+
+      - name: Download and inspect CC reference models
+        run: |
+          cat > /tmp/fetch_assets.py <<'PY'
+          import json
+          import os
+          import shutil
+          import traceback
+          from pathlib import Path
+
+          import objaverse
+          import trimesh
+
+          UIDS = {
+              "t60_full": "8cacde414cb84d10a681d557638fef6a",
+              "fatman_candidate": "d92d262618bc42a396e1e42e6b9267df",
+              "t60_helmet": "3915e8ea03c543729839710c4456a052",
+          }
+
+          out = Path("artifact")
+          out.mkdir(parents=True, exist_ok=True)
+          cache = Path("objaverse-cache")
+          report = {"uids": UIDS, "objects": {}, "errors": {}}
+
+          try:
+              annotations = objaverse.load_annotations(list(UIDS.values()))
+          except Exception as exc:
+              annotations = {}
+              report["errors"]["annotations"] = repr(exc)
+
+          try:
+              paths = objaverse.load_objects(
+                  uids=list(UIDS.values()),
+                  download_processes=1,
+                  download_dir=str(cache),
+              )
+          except Exception as exc:
+              report["errors"]["download"] = repr(exc)
+              report["errors"]["download_traceback"] = traceback.format_exc()
+              paths = {}
+
+          for label, uid in UIDS.items():
+              entry = {"uid": uid, "annotation": annotations.get(uid)}
+              src = paths.get(uid)
+              if src and Path(src).exists():
+                  dst = out / f"{label}_{uid}.glb"
+                  shutil.copy2(src, dst)
+                  entry["local_file"] = dst.name
+                  entry["bytes"] = dst.stat().st_size
+                  try:
+                      loaded = trimesh.load(dst, force="scene", process=False)
+                      entry["scene_type"] = type(loaded).__name__
+                      entry["geometry_count"] = len(loaded.geometry)
+                      entry["geometry"] = []
+                      for name, geom in loaded.geometry.items():
+                          bounds = geom.bounds.tolist() if geom.bounds is not None else None
+                          entry["geometry"].append({
+                              "name": name,
+                              "type": type(geom).__name__,
+                              "vertices": int(len(getattr(geom, "vertices", []))),
+                              "faces": int(len(getattr(geom, "faces", []))),
+                              "bounds": bounds,
+                              "watertight": bool(getattr(geom, "is_watertight", False)),
+                          })
+                      entry["scene_graph_nodes"] = sorted(list(loaded.graph.nodes))
+                      entry["scene_bounds"] = loaded.bounds.tolist() if loaded.bounds is not None else None
+                  except Exception as exc:
+                      entry["inspect_error"] = repr(exc)
+                      entry["inspect_traceback"] = traceback.format_exc()
+              else:
+                  entry["missing"] = True
+              report["objects"][label] = entry
+
+          (out / "inspection.json").write_text(json.dumps(report, indent=2, default=str), encoding="utf-8")
+          print(json.dumps(report, indent=2, default=str))
+          PY
+          python /tmp/fetch_assets.py
+
+      - name: Upload reference inspection bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: t60-reference-assets
+          path: artifact
+          if-no-files-found: error
+          retention-days: 3
