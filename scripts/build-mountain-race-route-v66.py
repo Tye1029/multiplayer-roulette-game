@@ -99,6 +99,14 @@ def assemble_native_mountain(source: Image.Image) -> Image.Image:
         segment = feather_segment(segment, 150, 150)
         assembled.alpha_composite(segment, (0, destination_y))
 
+    # A full-opacity ground bed fills the lower camera, including the area
+    # behind the control deck. It is part of this same route image and moves
+    # away with the mountain as the lane climbs.
+    ground_bed = source.crop((0, max(0, source.height - 650), WIDTH, source.height))
+    ground_bed = ground_bed.resize((WIDTH, 800), Image.Resampling.LANCZOS)
+    ground_bed.putalpha(Image.new("L", ground_bed.size, 255))
+    assembled.alpha_composite(ground_bed, (0, HEIGHT - 800))
+
     bottom_height = min(540, source.height)
     bottom = source.crop((0, source.height - bottom_height, WIDTH, source.height))
     bottom = feather_segment(bottom, 210, 0)
