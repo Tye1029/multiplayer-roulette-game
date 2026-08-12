@@ -22741,7 +22741,7 @@ function updateRunnerBalanceDisplay() {
   function rnbAdoptGame(game,force=false){
    if(!game?.gameId)return null;
    const current=rnbCurrentGame(game.gameId);
-   if(current&&rnbCompareSnapshots(game,current)<0){
+   if(current&&game.mode!=='mountainrace'&&rnbCompareSnapshots(game,current)<0){
     line(botLogs,'ignored stale game snapshot',{gameId:String(game.gameId),incoming:rnbSnapshotStamp(game),accepted:rnbSnapshotStamp(current)});
     return current;
    }

@@ -1,4 +1,4 @@
-name: Summit Sprint V64 Recovery
+name: Summit Sprint V65 Approved Scene
 
 on:
   pull_request:
@@ -9,14 +9,14 @@ on:
       - mountain-race-development
 
 concurrency:
-  group: summit-sprint-recovery-v64-${{ github.ref }}
+  group: summit-sprint-approved-scene-v65-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
-  validate-generated-assets:
+  validate-approved-scene:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -34,232 +34,53 @@ jobs:
       - name: Build exact Netlify output
         run: npm run build
 
-      - name: Validate V64 visual recovery
-        run: node scripts/validate-mountain-race-recovery-v64.mjs
-
-      - name: Validate V63 unified scene and protected gameplay
+      - name: Validate V65 scene and multiplayer regressions
         shell: bash
         run: |
           set -euo pipefail
-          node --check scripts/patch-mountain-race-generated-assets-v29.mjs
-          node --check scripts/validate-mountain-race-generated-assets-v29.mjs
-          node scripts/validate-mountain-race-generated-assets-v29.mjs
-          node --check scripts/patch-mountain-race-visual-reboot-v44.mjs
-          node --check scripts/validate-mountain-race-visual-reboot-v44.mjs
-          node scripts/validate-mountain-race-visual-reboot-v44.mjs
-          node --check scripts/patch-mountain-race-contact-ledges-v45.mjs
-          node --check scripts/validate-mountain-race-contact-ledges-v45.mjs
-          node scripts/validate-mountain-race-contact-ledges-v45.mjs
-          node --check scripts/patch-mountain-race-rugged-terrain-v46.mjs
-          node --check scripts/validate-mountain-race-rugged-terrain-v46.mjs
-          node scripts/validate-mountain-race-rugged-terrain-v46.mjs
-          node --check scripts/patch-mountain-race-finish-stability-v47.mjs
-          node --check scripts/validate-mountain-race-finish-stability-v47.mjs
-          node scripts/validate-mountain-race-finish-stability-v47.mjs
-          node --check scripts/patch-shared-runtime-stability-v48.mjs
-          node --check scripts/validate-shared-runtime-stability-v48.mjs
-          node scripts/validate-shared-runtime-stability-v48.mjs
-          node --check scripts/patch-mountain-race-natural-terrain-v49.mjs
-          node --check scripts/validate-mountain-race-natural-terrain-v49.mjs
-          node scripts/validate-mountain-race-natural-terrain-v49.mjs
-          node --check scripts/patch-mountain-race-summit-contact-v50.mjs
-          node --check scripts/validate-mountain-race-summit-contact-v50.mjs
-          node scripts/validate-mountain-race-summit-contact-v50.mjs
-          node --check scripts/patch-mountain-race-shared-mountain-v51.mjs
-          node --check scripts/validate-mountain-race-shared-mountain-v51.mjs
-          node scripts/validate-mountain-race-shared-mountain-v51.mjs
-          node --check scripts/patch-mountain-race-winner-summit-v52.mjs
-          node --check scripts/validate-mountain-race-winner-summit-v52.mjs
-          node scripts/validate-mountain-race-winner-summit-v52.mjs
-          node --check scripts/patch-mountain-race-winner-camera-v53.mjs
-          node --check scripts/validate-mountain-race-winner-camera-v53.mjs
-          node scripts/validate-mountain-race-winner-camera-v53.mjs
-          node --check scripts/patch-mountain-race-grounded-ascent-v54.mjs
-          node --check scripts/validate-mountain-race-grounded-ascent-v54.mjs
-          node scripts/validate-mountain-race-grounded-ascent-v54.mjs
-          node --check scripts/patch-mountain-race-route-clarity-v55.mjs
-          node --check scripts/validate-mountain-race-route-clarity-v55.mjs
-          node scripts/validate-mountain-race-route-clarity-v55.mjs
-          node --check scripts/patch-mountain-race-natural-summit-v56.mjs
-          node --check scripts/validate-mountain-race-natural-summit-v56.mjs
-          node scripts/validate-mountain-race-natural-summit-v56.mjs
-          node --check scripts/patch-mountain-race-celebration-contact-v57.mjs
-          node --check scripts/validate-mountain-race-celebration-contact-v57.mjs
-          node scripts/validate-mountain-race-celebration-contact-v57.mjs
-          node --check scripts/patch-mountain-race-summit-sky-v58.mjs
-          node --check scripts/validate-mountain-race-summit-sky-v58.mjs
-          node scripts/validate-mountain-race-summit-sky-v58.mjs
-          node --check scripts/patch-mountain-race-continuous-summit-v59.mjs
-          node --check scripts/validate-mountain-race-continuous-summit-v59.mjs
-          node scripts/validate-mountain-race-continuous-summit-v59.mjs
-          node --check scripts/patch-mountain-race-natural-world-v60.mjs
-          node --check scripts/validate-mountain-race-natural-world-v60.mjs
-          node scripts/validate-mountain-race-natural-world-v60.mjs
-          node --check scripts/patch-mountain-race-grounded-world-v61.mjs
-          node --check scripts/validate-mountain-race-grounded-world-v61.mjs
-          node scripts/validate-mountain-race-grounded-world-v61.mjs
-          node --check scripts/patch-mountain-race-continuous-scenery-v62.mjs
-          node --check scripts/validate-mountain-race-continuous-scenery-v62.mjs
-          node scripts/validate-mountain-race-continuous-scenery-v62.mjs
-          node --check scripts/patch-mountain-race-unified-scene-v63.mjs
-          node --check scripts/validate-mountain-race-unified-scene-v63.mjs
-          node scripts/validate-mountain-race-recovery-v64.mjs
-          node --check assets/roulette/opening-spin-sync.js
+          node scripts/validate-mountain-race-approved-scene-v65.mjs
+          npm run validate:mountain-race
+          npm run validate:protected-current
+          npm run validate:multiplayer
 
-          node scripts/validate-mountain-race-state-sync.mjs
-          node scripts/validate-mountain-race-gameplay-visibility.mjs
-          node scripts/validate-mountain-race-load-performance.mjs
-          node scripts/validate-multiplayer-cohesion.mjs
-
-          grep -Fq 'MOUNTAIN_RACE_RUGGED_TERRAIN_V46' assets/mountain-race/mountain-race.css
-          grep -Fq 'MOUNTAIN_RACE_RUGGED_TERRAIN_V46' assets/mountain-race/mountain-race-multiplayer.js
-          grep -Fq 'MOUNTAIN_RACE_FINISH_STABILITY_V47' assets/mountain-race/mountain-race.css
-          grep -Fq 'MOUNTAIN_RACE_FINISH_STABILITY_V47' assets/mountain-race/mountain-race-multiplayer.js
-          grep -Fq 'MOUNTAIN_RACE_NATURAL_TERRAIN_V49' assets/mountain-race/mountain-race.css
-          grep -Fq 'MOUNTAIN_RACE_NATURAL_TERRAIN_V49' assets/mountain-race/mountain-race-multiplayer.js
-          grep -Fq 'MOUNTAIN_RACE_SUMMIT_CONTACT_V50' assets/mountain-race/mountain-race.css
-          grep -Fq 'MOUNTAIN_RACE_SUMMIT_CONTACT_V50' assets/mountain-race/mountain-race-multiplayer.js
-          grep -Fq 'MOUNTAIN_RACE_SHARED_MOUNTAIN_V51' assets/mountain-race/mountain-race.css
-          grep -Fq 'MOUNTAIN_RACE_SHARED_MOUNTAIN_V51' assets/mountain-race/mountain-race-multiplayer.js
-          grep -Fq 'MOUNTAIN_RACE_WINNER_SUMMIT_V52' assets/mountain-race/mountain-race-multiplayer.js
-          grep -Fq 'MOUNTAIN_RACE_WINNER_CAMERA_V53' assets/mountain-race/mountain-race-multiplayer.js
-          grep -Fq 'MOUNTAIN_RACE_GROUNDED_ASCENT_V54' assets/mountain-race/mountain-race-multiplayer.js
-          grep -Fq 'MOUNTAIN_RACE_GROUNDED_ASCENT_V54' assets/mountain-race/mountain-race.css
-          grep -Fq 'MOUNTAIN_RACE_ROUTE_CLARITY_V55' assets/mountain-race/mountain-race-multiplayer.js
-          grep -Fq 'MOUNTAIN_RACE_ROUTE_CLARITY_V55' assets/mountain-race/mountain-race.css
-          grep -Fq 'MOUNTAIN_RACE_NATURAL_SUMMIT_V56' assets/mountain-race/mountain-race-multiplayer.js
-          grep -Fq 'MOUNTAIN_RACE_NATURAL_SUMMIT_V56' assets/mountain-race/mountain-race.css
-          grep -Fq 'MOUNTAIN_RACE_SUMMIT_SKY_V58' assets/mountain-race/mountain-race-multiplayer.js
-          grep -Fq 'MOUNTAIN_RACE_SUMMIT_SKY_V58' assets/mountain-race/mountain-race.css
-          grep -Fq 'MOUNTAIN_RACE_CONTINUOUS_SUMMIT_V59' assets/mountain-race/mountain-race-multiplayer.js
-          grep -Fq 'MOUNTAIN_RACE_CONTINUOUS_SUMMIT_V59' assets/mountain-race/mountain-race.css
-          grep -Fq 'MOUNTAIN_RACE_NATURAL_WORLD_V60' assets/mountain-race/mountain-race-multiplayer.js
-          grep -Fq 'MOUNTAIN_RACE_NATURAL_WORLD_V60' assets/mountain-race/mountain-race.css
-          grep -Fq 'MOUNTAIN_RACE_GROUNDED_WORLD_V61' assets/mountain-race/mountain-race-multiplayer.js
-          grep -Fq 'MOUNTAIN_RACE_GROUNDED_WORLD_V61' assets/mountain-race/mountain-race.css
-          grep -Fq 'MOUNTAIN_RACE_CONTINUOUS_SCENERY_V62' assets/mountain-race/mountain-race-multiplayer.js
-          grep -Fq 'MOUNTAIN_RACE_CONTINUOUS_SCENERY_V62' assets/mountain-race/mountain-race.css
-          grep -Fq 'MOUNTAIN_RACE_UNIFIED_SCENE_V63' assets/mountain-race/mountain-race-multiplayer.js
-          grep -Fq 'MOUNTAIN_RACE_UNIFIED_SCENE_V63' assets/mountain-race/mountain-race.css
-          grep -Fq 'scene=63' index.html
-          grep -Fq 'scene=63' mountain-race-preview.html
-          grep -Fq 'SHARED_RUNTIME_STABILITY_V48' index.html
-          grep -Fq 'SHARED_RUNTIME_STABILITY_V48' assets/roulette/opening-spin-sync.js
-          grep -Fq 'opening-spin-sync.js?v=6&trim=1&clamp=1' index.html
-          test -s assets/mountain-race/images/summit-sprint-reboot-background-v44.png
-          test -s assets/mountain-race/images/summit-sprint-rugged-cliff-v46.png
-          test -s assets/mountain-race/images/summit-sprint-rugged-outcrop-1-v46.png
-          test -s assets/mountain-race/images/summit-sprint-rugged-outcrop-2-v46.png
-          test -s assets/mountain-race/images/summit-sprint-rugged-outcrop-3-v46.png
-          test -s assets/mountain-race/images/summit-sprint-rugged-outcrop-4-v46.png
-          test -s assets/mountain-race/images/summit-sprint-natural-cliff-v49.png
-          test -s assets/mountain-race/images/summit-sprint-natural-outcrop-1-v49.png
-          test -s assets/mountain-race/images/summit-sprint-natural-outcrop-2-v49.png
-          test -s assets/mountain-race/images/summit-sprint-natural-outcrop-3-v49.png
-          test -s assets/mountain-race/images/summit-sprint-natural-outcrop-4-v49.png
-          test -s assets/mountain-race/images/summit-sprint-climber-back-sheet-v45.png
-          test -s assets/mountain-race/images/summit-sprint-climber-back-opponent-sheet-v45.png
-          test -s assets/mountain-race/images/summit-sprint-start-grass-v54.png
-          test -s assets/mountain-race/images/summit-sprint-start-climbers-v55.png
-          test -s assets/mountain-race/images/summit-sprint-waiting-climbers-v55.png
-          test -s assets/mountain-race/images/summit-sprint-natural-peak-v56.png
-          test -s assets/mountain-race/images/summit-sprint-celebration-climbers-v57.png
-          test -s assets/mountain-race/images/summit-sprint-alpine-sky-v58.png
-          test -s assets/mountain-race/images/summit-sprint-natural-world-v60.png
-          test -s assets/mountain-race/images/summit-sprint-grounded-world-v61.png
-          test -s assets/mountain-race/images/summit-sprint-skyless-summit-v62.png
-          test -s assets/mountain-race/images/summit-sprint-unified-summit-v63.png
-          test -s assets/mountain-race/images/summit-sprint-clouds-v63.png
-
-          test -s assets/safe-cracker/safe-cracker.js
-          test -s assets/safe-cracker/safe-cracker.css
-          test -s assets/roulette/turn-animation.js
-          test -s assets/roulette/turn-fire.js
-          test -s assets/roulette/audio-bindings.js
-
-      - name: Verify live Netlify V63 deployment
+      - name: Verify live Netlify V65 deployment
         if: github.event_name == 'pull_request'
         shell: bash
         run: |
           set -euo pipefail
           url='https://deploy-preview-20--famous-piroshki-b621da.netlify.app/'
           for attempt in $(seq 1 72); do
-            page="$(curl -fsSL --max-time 20 "${url}?unified_scene_v63=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            runtime="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race-multiplayer.js?scenery=62&scene=63&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            styles="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race.css?scenery=62&scene=63&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            opening="$(curl -fsSL --max-time 20 "${url}assets/roulette/opening-spin-sync.js?v=6&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            scene_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-reboot-background-v44.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            cliff_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-natural-cliff-v49.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            ledge_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-natural-outcrop-1-v49.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            climber_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-climber-back-sheet-v45.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            opponent_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-climber-back-opponent-sheet-v45.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            grass_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-start-grass-v54.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            start_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-start-climbers-v55.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            waiting_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-waiting-climbers-v55.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            summit_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-natural-peak-v56.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            celebration_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-celebration-climbers-v57.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            sky_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-alpine-sky-v58.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            world_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-natural-world-v60.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            grounded_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-grounded-world-v61.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            skyless_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-skyless-summit-v62.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            unified_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-unified-summit-v63.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
-            clouds_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-clouds-v63.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            page="$(curl -fsSL --max-time 20 "${url}?approved_scene_v65=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            runtime="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race-multiplayer.js?scene=65&holds=30&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            styles="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race-scene-v65.css?v=1&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            cliff_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-jagged-cliff-v65.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            ground_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-jagged-ground-v65.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            ledges_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-jagged-ledges-v65.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            summit_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-jagged-summit-v65.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            sky_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-moving-sky-v65.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            css_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/mountain-race-scene-v65.css?v=1&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
 
-            if grep -Fq 'scene=63' <<<"$page" && \
-               grep -Fq 'SHARED_RUNTIME_STABILITY_V48' <<<"$page" && \
-               grep -Fq 'opening-spin-sync.js?v=6&trim=1&clamp=1' <<<"$page" && \
-               grep -Fq 'MOUNTAIN_RACE_FINISH_STABILITY_V47' <<<"$runtime" && \
-               grep -Fq 'MOUNTAIN_RACE_FINISH_STABILITY_V47' <<<"$styles" && \
-               grep -Fq 'MOUNTAIN_RACE_NATURAL_TERRAIN_V49' <<<"$runtime" && \
-               grep -Fq 'MOUNTAIN_RACE_NATURAL_TERRAIN_V49' <<<"$styles" && \
-               grep -Fq 'MOUNTAIN_RACE_SUMMIT_CONTACT_V50' <<<"$runtime" && \
-               grep -Fq 'MOUNTAIN_RACE_SUMMIT_CONTACT_V50' <<<"$styles" && \
-               grep -Fq 'MOUNTAIN_RACE_SHARED_MOUNTAIN_V51' <<<"$runtime" && \
-               grep -Fq 'MOUNTAIN_RACE_SHARED_MOUNTAIN_V51' <<<"$styles" && \
-               grep -Fq 'MOUNTAIN_RACE_WINNER_SUMMIT_V52' <<<"$runtime" && \
-               grep -Fq 'MOUNTAIN_RACE_WINNER_CAMERA_V53' <<<"$runtime" && \
-               grep -Fq 'MOUNTAIN_RACE_GROUNDED_ASCENT_V54' <<<"$runtime" && \
-               grep -Fq 'MOUNTAIN_RACE_GROUNDED_ASCENT_V54' <<<"$styles" && \
-               grep -Fq 'MOUNTAIN_RACE_ROUTE_CLARITY_V55' <<<"$runtime" && \
-               grep -Fq 'MOUNTAIN_RACE_ROUTE_CLARITY_V55' <<<"$styles" && \
-               grep -Fq 'MOUNTAIN_RACE_NATURAL_SUMMIT_V56' <<<"$runtime" && \
-               grep -Fq 'MOUNTAIN_RACE_NATURAL_SUMMIT_V56' <<<"$styles" && \
-               grep -Fq 'MOUNTAIN_RACE_CELEBRATION_CONTACT_V57' <<<"$runtime" && \
-               grep -Fq 'MOUNTAIN_RACE_CELEBRATION_CONTACT_V57' <<<"$styles" && \
-               grep -Fq 'MOUNTAIN_RACE_SUMMIT_SKY_V58' <<<"$runtime" && \
-               grep -Fq 'MOUNTAIN_RACE_SUMMIT_SKY_V58' <<<"$styles" && \
-               grep -Fq 'MOUNTAIN_RACE_CONTINUOUS_SUMMIT_V59' <<<"$runtime" && \
-               grep -Fq 'MOUNTAIN_RACE_CONTINUOUS_SUMMIT_V59' <<<"$styles" && \
-               grep -Fq 'MOUNTAIN_RACE_NATURAL_WORLD_V60' <<<"$runtime" && \
-               grep -Fq 'MOUNTAIN_RACE_NATURAL_WORLD_V60' <<<"$styles" && \
-               grep -Fq 'MOUNTAIN_RACE_GROUNDED_WORLD_V61' <<<"$runtime" && \
-               grep -Fq 'MOUNTAIN_RACE_GROUNDED_WORLD_V61' <<<"$styles" && \
-               grep -Fq 'MOUNTAIN_RACE_CONTINUOUS_SCENERY_V62' <<<"$runtime" && \
-               grep -Fq 'MOUNTAIN_RACE_CONTINUOUS_SCENERY_V62' <<<"$styles" && \
-               grep -Fq 'MOUNTAIN_RACE_UNIFIED_SCENE_V63' <<<"$runtime" && \
-               grep -Fq 'MOUNTAIN_RACE_UNIFIED_SCENE_V63' <<<"$styles" && \
-               grep -Fq 'SHARED_RUNTIME_STABILITY_V48' <<<"$opening" && \
-               grep -Fqi 'content-type: image/png' <<<"$scene_headers" && \
+            if grep -Fq 'mountain-race-scene-v65.css?v=1' <<<"$page" && \
+               grep -Fq 'scene=65&holds=30' <<<"$page" && \
+               grep -Fq 'MOUNTAIN_RACE_APPROVED_SCENE_V65' <<<"$runtime" && \
+               grep -Fq 'MOUNTAIN_RACE_APPROVED_SCENE_V65' <<<"$styles" && \
+               grep -Fq 'summit-sprint-jagged-cliff-v65.png' <<<"$styles" && \
+               grep -Fq 'summit-sprint-jagged-ground-v65.png' <<<"$styles" && \
+               grep -Fq 'summit-sprint-jagged-summit-v65.png' <<<"$styles" && \
+               grep -Fq 'summit-sprint-moving-sky-v65.png' <<<"$styles" && \
                grep -Fqi 'content-type: image/png' <<<"$cliff_headers" && \
-               grep -Fqi 'content-type: image/png' <<<"$ledge_headers" && \
-               grep -Fqi 'content-type: image/png' <<<"$climber_headers" && \
-               grep -Fqi 'content-type: image/png' <<<"$opponent_headers" && \
-               grep -Fqi 'content-type: image/png' <<<"$grass_headers" && \
-               grep -Fqi 'content-type: image/png' <<<"$start_headers" && \
-               grep -Fqi 'content-type: image/png' <<<"$waiting_headers" && \
+               grep -Fqi 'content-type: image/png' <<<"$ground_headers" && \
+               grep -Fqi 'content-type: image/png' <<<"$ledges_headers" && \
                grep -Fqi 'content-type: image/png' <<<"$summit_headers" && \
-               grep -Fqi 'content-type: image/png' <<<"$celebration_headers" && \
                grep -Fqi 'content-type: image/png' <<<"$sky_headers" && \
-               grep -Fqi 'content-type: image/png' <<<"$world_headers" && \
-               grep -Fqi 'content-type: image/png' <<<"$grounded_headers" && \
-               grep -Fqi 'content-type: image/png' <<<"$skyless_headers" && \
-               grep -Fqi 'content-type: image/png' <<<"$unified_headers" && \
-               grep -Fqi 'content-type: image/png' <<<"$clouds_headers"; then
-              echo "Verified live Summit Sprint V63 unified scene at ${url}"
+               grep -Fqi 'content-type: text/css' <<<"$css_headers"; then
+              echo "Verified live Summit Sprint V65 approved scene at ${url}"
               exit 0
             fi
-            echo "Waiting for Netlify Summit Sprint V63 (${attempt}/72)..."
+
+            echo "Waiting for Netlify Summit Sprint V65 (${attempt}/72)..."
             sleep 10
           done
-          echo 'Netlify did not serve the Summit Sprint V63 unified-scene build.' >&2
+
+          echo 'Netlify did not serve the Summit Sprint V65 approved-scene build.' >&2
           exit 1
