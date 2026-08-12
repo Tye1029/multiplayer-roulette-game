@@ -72,7 +72,7 @@ if (!html.includes('let completedPollRate = 2000;')) html = replaceOnce(
       if (window.__duelPollRate !== desired || !duelPollTimer) {`
 );
 
-if (!html.includes('if (!duelScreen || duelScreen.hidden || document.hidden) return;')) html = replaceOnce(
+if (!html.includes('duelScreen.hidden || document.hidden ||')) html = replaceOnce(
   html,
   'the hidden-tab focused refresh guard',
   `    async function duelRefresh(silent = false) {
