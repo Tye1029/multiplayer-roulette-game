@@ -6554,7 +6554,10 @@ async function duelActionGame(user, gameId, details = {}) {
   if (rawChoice.toLowerCase() === "ready") return await duelReadyGame(user, gameId, { asTestPlayer: Boolean(details.asTestPlayer) });
   if (["rematch", "npc-rematch", "remote-bot-rematch"].includes(rawChoice.toLowerCase())) {
     return await withDuelReadyLock(gameId, async () => {
-      let latest = await duelGetRaw(gameId);
+      // A completion save can briefly lag behind the eventual read used by
+      // ordinary polling. Rematch is a lifecycle write, so start from the
+      // authoritative store before deciding whether the race is complete.
+      let latest = await duelGetRawStrong(gameId, 2) || await duelGetRaw(gameId);
       if (!latest) throw new Error("That duel was not found.");
       if (latest.status !== "complete" || !duelSupportsRematch(latest.mode)) throw new Error("Rematches are only available after a completed duel.");
       const playerIds = [cleanUserId(latest.creator?.userId), cleanUserId(latest.joiner?.userId)].filter(Boolean);

@@ -62,7 +62,9 @@ for (const token of [
   "atomicCreateAndAttach: false",
   'String(game.mode || "") !== mode',
   "const existing=await duelGetRawStrong(clientGameId,2);",
-  "A cached 404 can outlive the subsequent write"
+  "A cached 404 can outlive the subsequent write",
+  "let latest = await duelGetRawStrong(gameId, 2) || await duelGetRaw(gameId);",
+  "Rematch is a lifecycle write"
 ]) assert.ok(data.includes(token), `server runtime is missing ${token}`);
 
 assert.ok(!data.includes("Rematches are only available after a completed supported duel."));

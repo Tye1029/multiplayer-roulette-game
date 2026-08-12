@@ -68,6 +68,18 @@ data = replaceOnce(
 
 data = replaceOnce(
   data,
+  "      let latest = await duelGetRaw(gameId);\n      if (!latest) throw new Error(\"That duel was not found.\");\n      if (latest.status !== \"complete\" || !duelSupportsRematch(latest.mode))",
+  `      // A completion save can briefly lag behind the eventual read used by
+      // ordinary polling. Rematch is a lifecycle write, so start from the
+      // authoritative store before deciding whether the race is complete.
+      let latest = await duelGetRawStrong(gameId, 2) || await duelGetRaw(gameId);
+      if (!latest) throw new Error("That duel was not found.");
+      if (latest.status !== "complete" || !duelSupportsRematch(latest.mode))`,
+  "strong rematch lifecycle read"
+);
+
+data = replaceOnce(
+  data,
   `  const activeGame = await duelFindActiveGameForUser(user.id,"",{scanFallback:false});\n  if (activeGame) {\n    return {game:duelPublicGame(activeGame,user.id),record:await getUserRecord(user.id),resumedExisting:true};\n  }`,
   `  let activeGame = await duelFindActiveGameForUser(user.id,"",{scanFallback:false});\n  if (activeGame && activeGame.mode !== mode) {\n    const syntheticOpponent = [activeGame.creator, activeGame.joiner].find(player => player?.isNpc || player?.isRemoteBot || String(player?.userId || "").startsWith("npc-") || String(player?.userId || "").startsWith("remote-bot-"));\n    if (syntheticOpponent) {\n      // Switching test modes may safely retire an unfinished synthetic match.\n      // Real-player games are never cancelled or hidden automatically.\n      await duelAbandonNpcGame(user, activeGame.gameId);\n      activeGame = null;\n    } else {\n      return {\n        game: duelPublicGame(activeGame, user.id),\n        record: await getUserRecord(user.id),\n        activeModeConflict: true,\n        requestedMode: mode\n      };\n    }\n  }\n  if (activeGame) {\n    return {game:duelPublicGame(activeGame,user.id),record:await getUserRecord(user.id),resumedExisting:true};\n  }`,
   "cross-mode create routing"
