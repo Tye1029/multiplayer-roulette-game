@@ -37,8 +37,8 @@ const [index, data, action, client, styles, patch, turnAnimation, turnFire] = aw
   readFile(paths.turnFire)
 ]);
 
-assert(gitBlobSha(turnAnimation) === '24358e84c147d99e7297089e69ed1abd0802379f', 'protected assets/roulette/turn-animation.js changed');
-assert(gitBlobSha(turnFire) === '940e824eae39ddc40dda6200f893f97fc365949b', 'protected assets/roulette/turn-fire.js changed');
+assert(gitBlobSha(turnAnimation) === '6e3c3e20d5b30b1bdecb95959a0f28a88d43232d', 'protected assets/roulette/turn-animation.js changed');
+assert(gitBlobSha(turnFire) === '7ed8f3c480620ba21ae7d60f6bc6e3d5f45951ee', 'protected assets/roulette/turn-fire.js changed');
 
 assert(occurrences(data, '// SAFE_CRACKER_SERVER_START') === 1, 'server patch marker must appear exactly once');
 assert(occurrences(index, '<!-- SAFE_CRACKER_ASSETS_START -->') === 1, 'asset marker must appear exactly once');

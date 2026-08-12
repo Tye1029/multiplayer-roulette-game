@@ -34,7 +34,7 @@ for (const token of [
   '.mr-v44-start',
   'width: 104%',
   '.mr-finish-ledge.mr-summit-plateau',
-  'translate(-50%, calc(100% - 162px))',
+  'translate(-50%, calc(100% - 82px))',
   'background-position: center bottom, center top'
 ]) assert(css.includes(token), `CSS token missing: ${token}`);
 

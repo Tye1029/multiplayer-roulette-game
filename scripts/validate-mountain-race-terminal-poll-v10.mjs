@@ -17,7 +17,8 @@ assert(html.includes("const activeGame=typeof duelLastActiveGame!=='undefined'?d
 assert(html.includes("window.__mountainRacePauseCompletedPolling(activeGame))return;"), 'mutation completion can still restart a terminal Remote Bot timer');
 assert(html.includes('window.__mountainRacePauseCompletedPolling(duelLastActiveGame || null)) return;'), 'a stray focused timer can still issue a completed Remote Bot GET');
 assert(html.includes('function mountainRacePauseCompletedPolling(game)'), 'V7 terminal polling helper is missing');
-assert(html.includes('mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=10'), 'V10 cache boundary is missing');
+assert(html.includes('mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=10') ||
+  html.includes('mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=11'), 'V10-or-newer cache boundary is missing');
 assert(patch.includes('mutation polling resume boundary'), 'patch does not own the mutation-resume cause');
 assert(patch.includes('focused refresh function'), 'patch does not guard the final refresh boundary');
 
