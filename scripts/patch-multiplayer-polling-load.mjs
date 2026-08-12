@@ -72,7 +72,7 @@ if (!html.includes('let completedPollRate = 2000;')) html = replaceOnce(
       if (window.__duelPollRate !== desired || !duelPollTimer) {`
 );
 
-html = replaceOnce(
+if (!html.includes('if (!duelScreen || duelScreen.hidden || document.hidden) return;')) html = replaceOnce(
   html,
   'the hidden-tab focused refresh guard',
   `    async function duelRefresh(silent = false) {
@@ -81,7 +81,7 @@ html = replaceOnce(
       if (!duelScreen || duelScreen.hidden || document.hidden) return;`
 );
 
-html = replaceOnce(
+if (!html.includes('if (document.hidden) {\n        if (duelPollTimer) clearInterval(duelPollTimer);')) html = replaceOnce(
   html,
   'the multiplayer visibility handler',
   `    document.addEventListener("visibilitychange", () => {
