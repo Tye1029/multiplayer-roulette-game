@@ -103,7 +103,7 @@ jobs:
           node scripts/validate-mountain-race-continuous-scenery-v62.mjs
           node --check scripts/patch-mountain-race-unified-scene-v63.mjs
           node --check scripts/validate-mountain-race-unified-scene-v63.mjs
-          node scripts/validate-mountain-race-unified-scene-v63.mjs
+          node scripts/validate-mountain-race-recovery-v64.mjs
           node --check assets/roulette/opening-spin-sync.js
 
           node scripts/validate-mountain-race-state-sync.mjs
