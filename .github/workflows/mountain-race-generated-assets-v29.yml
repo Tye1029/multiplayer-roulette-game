@@ -62,7 +62,7 @@ jobs:
 
             if grep -Fq 'mountain-race-scene-v65.css?v=1' <<<"$page" && \
                grep -Fq 'scene=65&holds=30' <<<"$page" && \
-               grep -Fq 'MOUNTAIN_RACE_APPROVED_SCENE_V65' <<<"$runtime" && \
+               grep -Fq "root.dataset.mrApprovedScene = '65'" <<<"$runtime" && \
                grep -Fq 'MOUNTAIN_RACE_APPROVED_SCENE_V65' <<<"$styles" && \
                grep -Fq 'summit-sprint-jagged-cliff-v65.png' <<<"$styles" && \
                grep -Fq 'summit-sprint-jagged-ground-v65.png' <<<"$styles" && \
