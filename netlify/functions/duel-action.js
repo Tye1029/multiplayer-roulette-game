@@ -1,5 +1,5 @@
 const crypto = require("crypto");
-const DUEL_FUNCTION_BUILD = "safecracker-start-flow-v3";
+const DUEL_FUNCTION_BUILD = "multiplayer_cohesion_v6";
 const {
   initBlobs,
   resolveSiteUser,
@@ -13,6 +13,7 @@ const {
   duelJoinGame,
   duelAddSimpleNpc,
   duelAddRemoteNetworkBot,
+  duelCreateRemoteNetworkBotGame,
   duelActionGame
 } = require("./_data");
 
@@ -84,6 +85,7 @@ exports.handler = async (event) => {
     else if (action === "join") result = await duelJoinGame(user, body.gameId);
     else if (action === "npc") result = await duelAddSimpleNpc(user, body.gameId);
     else if (action === "remote-bot") result = await duelAddRemoteNetworkBot(user, body.gameId, body.profile);
+    else if (action === "create-remote-bot") result = await duelCreateRemoteNetworkBotGame(user, body);
     else if (action === "act") result = await duelActionGame(user, body.gameId, { choice: body.choice, hand: body.hand, clickedAt: body.clickedAt, actionId: body.actionId, chargeMs: body.chargeMs, flightId: body.flightId, visualOffsetMs: body.visualOffsetMs, estimatedOneWayMs: body.estimatedOneWayMs, expectedPhase: body.expectedPhase, expectedRevision: body.expectedRevision, expectedTurnId: body.expectedTurnId, expectedVisualKey: body.expectedVisualKey, asTestPlayer: Boolean(body.controlTestPlayer) });
     else return json(headers, 400, { ok: false, error: "Unknown Multiplayer Arcade action." });
 

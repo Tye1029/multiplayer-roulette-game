@@ -22,11 +22,12 @@ assert(client.includes('// MOUNTAIN_RACE_AUTHORITATIVE_ORDER_V2'), 'client autho
 assert(client.includes('// MOUNTAIN_RACE_RELIABLE_INPUTS_V3'), 'client reliable-input marker is missing');
 assert(client.includes("pendingActionId: ''"), 'pending action ownership is missing');
 assert(client.includes('function compareSnapshotVersions(accepted, incoming)'), 'client race-state-first comparator is missing');
-assert(client.includes('const stale = compareSnapshotVersions(accepted, incoming) < 0;'), 'client still requires both independent revision counters to increase together');
+assert(client.includes('if (incoming.stateRevision !== accepted.stateRevision) return incoming.stateRevision - accepted.stateRevision;'), 'race-state revision no longer decides freshness first');
+assert(client.includes('const stale = differentRound && incoming.statusRank <= accepted.statusRank;'), 'cross-round stale snapshots are not rejected');
 assert(client.includes('options.actionResolved'), 'the action response is not distinguished from background polling');
 assert(client.includes('finishPendingAction(options.actionId'), 'only the matching action response must release the input lock');
-assert(client.includes('expectedPromptIndex: fromIndex'), 'the exact visible prompt index is not submitted');
-assert(client.includes('expectedControl: expected'), 'the exact visible arrow identity is not submitted');
+assert(client.includes('expectedPromptIndex: item.fromIndex'), 'the exact visible prompt index is not submitted');
+assert(client.includes('expectedControl: item.expected'), 'the exact visible arrow identity is not submitted');
 const optimisticStart = client.indexOf('function optimisticPresentation(publicState, prompts, total)');
 const optimisticEnd = client.indexOf('\n  function holdLeft(', optimisticStart);
 const optimistic = optimisticStart >= 0 && optimisticEnd > optimisticStart ? client.slice(optimisticStart, optimisticEnd) : '';
@@ -41,8 +42,8 @@ assert(!integration.includes("cleanUserId(existing.winnerId || '')"), 'an empty 
 assert(integration.includes('expectedControl !== currentExpectedControl'), 'server does not reject a stale displayed arrow without a wrong penalty');
 assert(integration.includes('confirmedState?.processedActionIds.includes(actionId)'), 'server does not confirm persistence using the unique action id');
 assert(integration.includes('latest = await strongRead(game.gameId) || latest'), 'overwritten moves are not retried from strong storage');
-assert(integration.includes('finalGame = await advance(finalGame)'), 'human input does not wake the Network Bot');
-assert(actionRoute.includes('expectedControl: body.expectedControl'), 'Netlify route drops the displayed arrow identity');
+assert(integration.includes('wakeBot = Boolean(!batchItems.length'), 'human input does not signal the Network Bot wake path');
+assert(client.includes("choice: 'mountainrace:batch'"), 'multiplayer batch route is missing');
 
 assert(html.includes('<!-- MOUNTAIN_RACE_STATE_SYNC_V1 -->'), 'deployed state-sync marker is missing');
 assert(html.includes('<!-- MOUNTAIN_RACE_AUTHORITATIVE_ORDER_V2 -->'), 'deployed authoritative-order marker is missing');
@@ -51,7 +52,7 @@ assert(html.includes('function mountainRaceCompareVersions(accepted, incoming)')
 assert(html.includes("game.mode!=='mountainrace'&&rnbCompareSnapshots(game,current)<0"), 'Network Bot still applies its conflicting generic comparator to Summit Sprint');
 assert(html.includes("if(g.mode==='mountainrace')"), 'debug exports still omit the Summit Sprint state');
 assert(html.includes('networkBotLog:st.networkBotLog||null'), 'Network Bot diagnostics are missing from the copied state');
-assert(html.includes('mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=3'), 'fresh reliable-input cache boundary is missing');
+assert(html.includes('mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=11'), 'fresh reliable-input cache boundary is missing');
 
 const rank = status => ({ waiting: 0, ready: 1, countdown: 2, playing: 3, complete: 4, cancelled: 4 })[status] ?? 0;
 const compare = (accepted, incoming) => {

@@ -17,9 +17,8 @@ function assert(condition, message) {
 assert(client.includes('// MOUNTAIN_RACE_VISIBLE_GAMEPLAY_V1'), 'client gameplay marker is missing');
 assert(client.includes('pendingInput: null'), 'client lacks optimistic input state');
 assert(client.includes('function optimisticPresentation(publicState, prompts, total)'), 'optimistic presentation helper is missing');
-assert(client.includes("Correct direction — climbing now!"), 'correct input does not provide immediate feedback');
-assert(client.includes("Wrong direction — slipping!"), 'wrong input does not provide immediate feedback');
-assert(client.includes('expectedPromptIndex: fromIndex'), 'input request does not identify the visible prompt index');
+assert(client.includes('expectedPromptIndex: item.fromIndex'), 'input request does not identify the visible prompt index');
+assert(client.includes("last.correct ? 'Correct move. Keep climbing!' : 'Wrong direction. You slipped back one hold.'"), 'input feedback is missing');
 assert(client.includes('navigator.vibrate'), 'mobile tap feedback is missing');
 assert(client.includes('runtime.pendingInput = null;'), 'authoritative reconciliation does not clear pending input');
 
@@ -30,7 +29,7 @@ assert(css.includes('.mountain-race-game .mr-rock-hold.known b'), 'known mountai
 assert(css.includes('.mountain-race-game .mr-rock-hold.unknown b'), 'unknown holds are not visually separated');
 assert(css.includes('will-change: bottom, transform;'), 'climber movement is not prepared for visible animation');
 
-assert(action.includes('expectedPromptIndex: body.expectedPromptIndex'), 'Netlify action route drops the visible prompt index');
+assert(client.includes("choice: 'mountainrace:batch'"), 'multiplayer input batching is missing');
 assert(html.includes('mountain-race-multiplayer.js?v=1&gameplay=3'), 'fresh multiplayer JS cache boundary is missing');
 assert(html.includes('mountain-race.css?v=3&multiplayer=1&gameplay=3'), 'fresh mountain CSS cache boundary is missing');
 assert(safeCrackerClient.length > 0, 'protected Safe Cracker client is unreadable');
