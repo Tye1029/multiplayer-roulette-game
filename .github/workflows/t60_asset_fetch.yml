@@ -30,7 +30,6 @@ jobs:
         run: |
           cat > /tmp/fetch_assets.py <<'PY'
           import json
-          import os
           import shutil
           import traceback
           from pathlib import Path
@@ -40,34 +39,46 @@ jobs:
 
           UIDS = {
               "t60_full": "8cacde414cb84d10a681d557638fef6a",
-              "fatman_candidate": "d92d262618bc42a396e1e42e6b9267df",
               "t60_helmet": "3915e8ea03c543729839710c4456a052",
+              "fatman_m45": "65bf0e5a4c304ca091d8dfa6a3a4fa8d",
+              "mini_nuke": "a6e39bc846744d958e948d56470d7df0",
+              "fatman_candidate_old": "d92d262618bc42a396e1e42e6b9267df",
           }
 
           out = Path("artifact")
           out.mkdir(parents=True, exist_ok=True)
-          cache = Path("objaverse-cache")
           report = {"uids": UIDS, "objects": {}, "errors": {}}
 
-          try:
-              annotations = objaverse.load_annotations(list(UIDS.values()))
-          except Exception as exc:
-              annotations = {}
-              report["errors"]["annotations"] = repr(exc)
+          all_uids = set(objaverse.load_uids())
+          known = [uid for uid in UIDS.values() if uid in all_uids]
+          report["known_uids"] = known
+          report["unknown_uids"] = [uid for uid in UIDS.values() if uid not in all_uids]
 
-          try:
-              paths = objaverse.load_objects(
-                  uids=list(UIDS.values()),
-                  download_processes=1,
-                  download_dir=str(cache),
-              )
-          except Exception as exc:
-              report["errors"]["download"] = repr(exc)
-              report["errors"]["download_traceback"] = traceback.format_exc()
-              paths = {}
+          annotations = {}
+          if known:
+              try:
+                  annotations = objaverse.load_annotations(known)
+              except Exception as exc:
+                  report["errors"]["annotations"] = repr(exc)
+                  report["errors"]["annotations_traceback"] = traceback.format_exc()
+
+          paths = {}
+          if known:
+              try:
+                  paths = objaverse.load_objects(
+                      uids=known,
+                      download_processes=1,
+                  )
+              except Exception as exc:
+                  report["errors"]["download"] = repr(exc)
+                  report["errors"]["download_traceback"] = traceback.format_exc()
 
           for label, uid in UIDS.items():
-              entry = {"uid": uid, "annotation": annotations.get(uid)}
+              entry = {
+                  "uid": uid,
+                  "present_in_objaverse": uid in all_uids,
+                  "annotation": annotations.get(uid),
+              }
               src = paths.get(uid)
               if src and Path(src).exists():
                   dst = out / f"{label}_{uid}.glb"
@@ -80,13 +91,12 @@ jobs:
                       entry["geometry_count"] = len(loaded.geometry)
                       entry["geometry"] = []
                       for name, geom in loaded.geometry.items():
-                          bounds = geom.bounds.tolist() if geom.bounds is not None else None
                           entry["geometry"].append({
                               "name": name,
                               "type": type(geom).__name__,
                               "vertices": int(len(getattr(geom, "vertices", []))),
                               "faces": int(len(getattr(geom, "faces", []))),
-                              "bounds": bounds,
+                              "bounds": geom.bounds.tolist() if geom.bounds is not None else None,
                               "watertight": bool(getattr(geom, "is_watertight", False)),
                           })
                       entry["scene_graph_nodes"] = sorted(list(loaded.graph.nodes))
@@ -98,7 +108,9 @@ jobs:
                   entry["missing"] = True
               report["objects"][label] = entry
 
-          (out / "inspection.json").write_text(json.dumps(report, indent=2, default=str), encoding="utf-8")
+          (out / "inspection.json").write_text(
+              json.dumps(report, indent=2, default=str), encoding="utf-8"
+          )
           print(json.dumps(report, indent=2, default=str))
           PY
           python /tmp/fetch_assets.py
