@@ -114,3 +114,5 @@ await import('./patch-mountain-race-summit-sky-v58.mjs');
 await import('./validate-mountain-race-summit-sky-v58.mjs');
 await import('./patch-mountain-race-continuous-summit-v59.mjs');
 await import('./validate-mountain-race-continuous-summit-v59.mjs');
+await import('./patch-mountain-race-natural-world-v60.mjs');
+await import('./validate-mountain-race-natural-world-v60.mjs');
