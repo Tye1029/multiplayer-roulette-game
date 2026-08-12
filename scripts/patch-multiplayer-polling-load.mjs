@@ -30,16 +30,18 @@ function replaceRemoteBotCompletedLoop(source) {
   return source.slice(0, start) + replacement.trimStart() + source.slice(end + endMarker.length);
 }
 
-html = replaceOnce(
-  html,
-  'the completed polling state',
-  `    let duelPollTimer = null;
+if (!html.includes('let duelCompletedActivityGameId = "";')) {
+  html = replaceOnce(
+    html,
+    'the completed polling state',
+    `    let duelPollTimer = null;
     let duelBusy = false;`,
-  `    let duelPollTimer = null;
+    `    let duelPollTimer = null;
     let duelCompletedActivityGameId = "";
     let duelCompletedActivityAt = 0;
     let duelBusy = false;`
-);
+  );
+}
 
 html = replaceOnce(
   html,
