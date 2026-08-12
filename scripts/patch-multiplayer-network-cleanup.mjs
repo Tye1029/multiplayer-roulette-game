@@ -242,7 +242,7 @@ for (const required of [
 for (const forbidden of [
   'const lobbyRefreshAge = focusedGameOpen ? 15000 : 1200;',
   '!duelCachedGames.length || !focusedGameOpen',
-  "lastRevision=-1",
+  "let selectedMode='roulette',lastGameId='',lastRevision=-1",
   "if(data?.game){rnbAdoptGame(data.game,false);return data.game}"
 ]) {
   if (html.includes(forbidden)) throw new Error(`Old multiplayer client behavior remains: ${forbidden}`);
