@@ -21,7 +21,7 @@ OUTPUT = IMAGES / "summit-sprint-unified-route-v66.png"
 MANIFEST = IMAGES / "summit-sprint-unified-route-v66.css"
 
 WIDTH = 1024
-HEIGHT = 3840
+HEIGHT = 4100
 BASELINE_Y = 3640
 SUMMIT_Y = 90
 HOLD_COUNT = 30
@@ -82,15 +82,6 @@ def assemble_native_mountain(source: Image.Image) -> Image.Image:
 
     assembled = Image.new("RGBA", (WIDTH, HEIGHT), (0, 0, 0, 0))
 
-    # Lay a softly blurred full-width backing face under the detailed sections.
-    # It is only revealed through their feathered joins and prevents transparent
-    # horizontal cuts without introducing a second readable mountain silhouette.
-    texture = source.crop((145, 390, 879, min(1380, source.height)))
-    texture = texture.resize((WIDTH, HEIGHT), Image.Resampling.LANCZOS)
-    texture = texture.filter(ImageFilter.GaussianBlur(12))
-    texture = ImageEnhance.Contrast(texture).enhance(.72)
-    texture.putalpha(Image.new("L", texture.size, 255))
-    assembled.alpha_composite(texture)
     top_height = min(760, source.height)
     assembled.alpha_composite(feather_segment(source.crop((0, 0, WIDTH, top_height)), 0, 160))
 

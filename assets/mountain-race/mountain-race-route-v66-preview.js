@@ -3,7 +3,6 @@
   if (!review) return;
 
   const ROUTE_WIDTH = 1024;
-  const ROUTE_HEIGHT = 3840;
   const GROUND_Y = 3640;
   const HOLD_COUNT = 30;
   const directions = ['right', 'up', 'left', 'left', 'down', 'right', 'up', 'right'];
@@ -68,7 +67,7 @@
     const overlays = lane.querySelector('.v66-route-overlays');
     overlays.replaceChildren();
 
-    if (laneIndex === 0) {
+    if (laneIndex === 0 && progress < HOLD_COUNT) {
       const firstUpcoming = Math.min(progress, HOLD_COUNT - 1);
       for (let offset = 0; offset < 4; offset += 1) {
         const holdIndex = firstUpcoming + offset;
