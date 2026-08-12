@@ -108,6 +108,17 @@ def build() -> None:
     canvas = build_base_route()
     ledges = atlas_ledges()
 
+    # Shape the base into a true peak before the final shelf is added. The
+    # summit shelf hides this cut and becomes the highest visible rock, so sky
+    # appears above the winner instead of a second mountain cap.
+    summit_cut = Image.new("L", canvas.size, 0)
+    summit_cut_draw = ImageDraw.Draw(summit_cut)
+    summit_cut_draw.polygon(
+        [(0, 0), (WIDTH, 0), (WIDTH, 300), (790, 245), (730, 165), (294, 165), (234, 245), (0, 300)],
+        fill=255,
+    )
+    canvas.paste((0, 0, 0, 0), (0, 0, WIDTH, HEIGHT), summit_cut)
+
     # A broad connected start shelf gives both boots an unmistakable support.
     # It is flattened into the same route bitmap and the grassy source terrain
     # remains visible around and beneath it.

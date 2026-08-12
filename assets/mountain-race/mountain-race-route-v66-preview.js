@@ -46,7 +46,9 @@
     let contactScreenY;
 
     if (progress === 0) {
-      contactScreenY = Math.min(laneHeight - 178, 485);
+      // Keep the visible shelf lip above the controls while the ground and
+      // mountain continue naturally behind the translucent control panel.
+      contactScreenY = Math.min(laneHeight - 245, 410);
       routeTop = contactScreenY - GROUND_Y * scale;
       contact = { x: ROUTE_WIDTH / 2, y: GROUND_Y };
     } else if (progress >= HOLD_COUNT) {
