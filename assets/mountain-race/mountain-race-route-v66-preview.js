@@ -102,9 +102,9 @@
       const directionLeft = contact.x < previous.x;
       climber.classList.add('climbing');
       if (directionLeft) climber.classList.add('direction-left');
-      const handX = directionLeft ? climberWidth * .31 : climberWidth * .69;
+      const handX = directionLeft ? climberWidth * .25 : climberWidth * .75;
       climber.style.left = `${routeX(contact.x) - handX}px`;
-      climber.style.top = `${routeY(contact.y) - 4}px`;
+      climber.style.top = `${routeY(contact.y) - climberHeight * .055}px`;
     }
 
     const confetti = lane.querySelector('.v66-confetti');

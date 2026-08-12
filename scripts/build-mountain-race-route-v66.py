@@ -157,9 +157,9 @@ def build() -> None:
         ledge = crop_alpha(Image.open(path).convert("RGBA"))
         target_width = 248
         ledge = ledge.resize((target_width, round(ledge.height * target_width / ledge.width)), Image.Resampling.LANCZOS)
-        ledge = ImageEnhance.Color(ledge).enhance(0.16)
-        ledge = ImageEnhance.Contrast(ledge).enhance(0.86)
-        ledge = multiply_rgba(ledge, 1.23)
+        ledge = ImageEnhance.Color(ledge).enhance(0.08)
+        ledge = ImageEnhance.Contrast(ledge).enhance(0.80)
+        ledge = multiply_rgba(ledge, 1.08)
         ledges.append(ledge)
 
     first_y = 3405
