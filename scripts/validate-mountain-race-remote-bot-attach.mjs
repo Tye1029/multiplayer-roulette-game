@@ -33,9 +33,9 @@ const compactAtomic = atomicSection.replace(/\s+/g, '');
 
 assert(!data.includes(threeGameAllowlist), 'legacy three-game allowlist remains');
 assert(!data.includes(fourGameAllowlist), 'legacy four-game allowlist remains');
-assert(data.includes('supportsSyntheticOpponent: duelSupportsSyntheticOpponent'), 'shared multiplayer opponent contract is missing');
-assert(directSection.includes('duelSupportsSyntheticOpponent(game.mode)'), 'direct attachment rejects Summit Sprint');
-assert(atomicSection.includes('duelSupportsSyntheticOpponent(game.mode)'), 'testing-dock atomic attachment rejects Summit Sprint');
+assert(occurrences(data, fiveGameAllowlist) >= 2, 'both attachment helpers do not share the Summit Sprint allowlist');
+assert(directSection.includes(fiveGameAllowlist), 'direct attachment rejects Summit Sprint');
+assert(atomicSection.includes(fiveGameAllowlist), 'testing-dock atomic attachment rejects Summit Sprint');
 assert(compactAtomic.includes('mountainraceState:null'), 'atomic attachment does not reset Summit Sprint state');
 assert(compactAtomic.includes('remoteNetworkTest:true'), 'atomic attachment does not mark the Remote Bot game');
 assert(compactAtomic.includes('joiner:bot'), 'atomic attachment does not install the bot as joiner');
@@ -52,7 +52,7 @@ assert(action.includes('action === "create-remote-bot"'), 'Netlify function does
 assert(html.includes('async function rnbAttachBotAtomically(gameId,profile)'), 'testing dock lacks its atomic attachment helper');
 assert(html.includes("duelRequest('create-remote-bot'"), 'testing dock does not call the atomic attachment endpoint');
 assert(html.includes('data-rnb-game="mountainrace"'), 'testing dock lacks the Summit Sprint selector');
-assert(html.includes("const mode=String(selectedMode||current?.mode||$('duelModeSelect')?.value||'roulette')"), 'testing dock does not send the selected Summit Sprint mode');
+assert(html.includes("const mode=String(current?.mode||selectedMode||'roulette')"), 'testing dock does not send the selected Summit Sprint mode');
 assert(html.includes(deploymentMarker), 'deployed page lacks the Summit Sprint Remote Bot fix marker');
 
 assert(patch.includes('replaceAll(data, fourGameAllowlist, fiveGameAllowlist)'), 'patch does not sweep every stale four-game allowlist');

@@ -30,20 +30,18 @@ function replaceRemoteBotCompletedLoop(source) {
   return source.slice(0, start) + replacement.trimStart() + source.slice(end + endMarker.length);
 }
 
-if (!html.includes('let duelCompletedActivityGameId = "";')) {
-  html = replaceOnce(
-    html,
-    'the completed polling state',
-    `    let duelPollTimer = null;
+html = replaceOnce(
+  html,
+  'the completed polling state',
+  `    let duelPollTimer = null;
     let duelBusy = false;`,
-    `    let duelPollTimer = null;
+  `    let duelPollTimer = null;
     let duelCompletedActivityGameId = "";
     let duelCompletedActivityAt = 0;
     let duelBusy = false;`
-  );
-}
+);
 
-if (!html.includes('let completedPollRate = 2000;')) html = replaceOnce(
+html = replaceOnce(
   html,
   'the completed game polling rate',
   `      const desired = sharedLifecycleLive ? 200 : drawPlaying ? 650 : rouletteLive ? 800 : fishingLive ? 450 : completedAwaitingRematch ? 700 : noFocusedGame ? 2000 : 1800;
@@ -72,7 +70,7 @@ if (!html.includes('let completedPollRate = 2000;')) html = replaceOnce(
       if (window.__duelPollRate !== desired || !duelPollTimer) {`
 );
 
-if (!html.includes('duelScreen.hidden || document.hidden ||')) html = replaceOnce(
+html = replaceOnce(
   html,
   'the hidden-tab focused refresh guard',
   `    async function duelRefresh(silent = false) {
@@ -81,7 +79,7 @@ if (!html.includes('duelScreen.hidden || document.hidden ||')) html = replaceOnc
       if (!duelScreen || duelScreen.hidden || document.hidden) return;`
 );
 
-if (!html.includes('if (document.hidden) {\n        if (duelPollTimer) clearInterval(duelPollTimer);')) html = replaceOnce(
+html = replaceOnce(
   html,
   'the multiplayer visibility handler',
   `    document.addEventListener("visibilitychange", () => {
@@ -141,8 +139,8 @@ html = replaceOnce(
 
 for (const required of [
   'let duelCompletedActivityAt = 0;',
-  'completedPollRate = Date.now() - duelCompletedActivityAt < 15000 ?',
-  'duelScreen.hidden || document.hidden ||',
+  'completedPollRate = Date.now() - duelCompletedActivityAt < 15000 ? 2000 : 5000;',
+  'if (!duelScreen || duelScreen.hidden || document.hidden) return;',
   'duelPollTimer = null;\n        window.__duelPollRate = 0;',
   'if(document.hidden)return;',
   'rnbScheduleRematch(g);\n  },1000);',

@@ -45,8 +45,8 @@ function gitBlobSha(source) {
 }
 
 for (const [name, expected, source] of [
-  ['turn-animation.js', '6e3c3e20d5b30b1bdecb95959a0f28a88d43232d', turnLock],
-  ['turn-fire.js', '7ed8f3c480620ba21ae7d60f6bc6e3d5f45951ee', turnFire]
+  ['turn-animation.js', '24358e84c147d99e7297089e69ed1abd0802379f', turnLock],
+  ['turn-fire.js', '940e824eae39ddc40dda6200f893f97fc365949b', turnFire]
 ]) {
   const actual = gitBlobSha(source);
   if (actual !== expected) throw new Error(`${name} hash changed: ${actual}`);

@@ -120,5 +120,3 @@ await import('./patch-mountain-race-grounded-world-v61.mjs');
 await import('./validate-mountain-race-grounded-world-v61.mjs');
 await import('./patch-mountain-race-continuous-scenery-v62.mjs');
 await import('./validate-mountain-race-continuous-scenery-v62.mjs');
-await import('./patch-mountain-race-unified-scene-v63.mjs');
-await import('./validate-mountain-race-unified-scene-v63.mjs');

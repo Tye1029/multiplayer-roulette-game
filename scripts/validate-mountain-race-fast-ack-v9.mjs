@@ -35,8 +35,7 @@ assert(integration.includes('response.skipBalanceLookup = true'), 'playing Summi
 assert(integration.includes('await strongRead(game.gameId)'), 'authoritative action-id confirmation was removed');
 assert(client.includes('// MOUNTAIN_RACE_INPUT_REBASE_V8'), 'authoritative slip rebasing was lost');
 assert(html.includes('<!-- MOUNTAIN_RACE_FAST_ACK_V9 -->'), 'deployment marker is missing');
-assert(html.includes('mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=9') ||
-  html.includes('mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=11'), 'fresh V9-or-newer client cache boundary is missing');
+assert(html.includes('mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=9'), 'fresh client cache boundary is missing');
 assert(safeCracker.length > 0, 'protected Safe Cracker runtime is unreadable');
 assert(roulette.length > 0, 'protected Roulette runtime is unreadable');
 

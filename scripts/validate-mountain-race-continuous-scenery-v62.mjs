@@ -20,12 +20,9 @@ function assert(condition, message) {
 for (const [name, source] of [['runtime', runtime], ['prototype', prototype]]) {
   assert(source.includes('MOUNTAIN_RACE_CONTINUOUS_SCENERY_V62'), `${name} marker missing`);
   assert(source.includes("root.dataset.mrContinuousScenery = '62'"), `${name} dataset missing`);
-  const unifiedScene = source.includes('MOUNTAIN_RACE_UNIFIED_SCENE_V63') && source.includes("root.dataset.mrUnifiedScene = '63'");
-  if (!unifiedScene) {
-    assert(source.includes('class="mr-control-terrain"'), `${name} control terrain missing`);
-    assert(source.includes('class="me" style="--mr-control-world-shift:'), `${name} player terrain missing`);
-    assert(source.includes('class="opponent" style="--mr-control-world-shift:'), `${name} opponent terrain missing`);
-  }
+  assert(source.includes('class="mr-control-terrain"'), `${name} control terrain missing`);
+  assert(source.includes('class="me" style="--mr-control-world-shift:'), `${name} player terrain missing`);
+  assert(source.includes('class="opponent" style="--mr-control-world-shift:'), `${name} opponent terrain missing`);
   assert(source.includes('--mr-wall-scroll:${scroll}px'), `${name} independent camera contract changed`);
 }
 

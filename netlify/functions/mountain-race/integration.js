@@ -10,17 +10,7 @@ const {
 } = require('./state-model');
 
 const MOUNTAIN_RACE_BOT_ERROR_RATE = 0.08;
-const MOUNTAIN_RACE_BOT_CATCH_UP_LIMIT = 1;
-const MOUNTAIN_RACE_BOT_REACTION_MIN_MS = 520;
-const MOUNTAIN_RACE_BOT_REACTION_MAX_MS = 760;
-const MOUNTAIN_RACE_BOT_MIN_STEP_INTERVAL_MS = 800;
-// MOUNTAIN_RACE_BOT_PACING_AND_NETWORK_LOG_V2
-// MOUNTAIN_RACE_RELIABLE_INPUTS_V3
-// MOUNTAIN_RACE_LOW_LATENCY_INPUTS_V4
-// MOUNTAIN_RACE_INSTANT_INPUT_QUEUE_V5
-// MOUNTAIN_RACE_CONTINUOUS_SYNC_V6
-// MOUNTAIN_RACE_STARTUP_COMPLETION_V7
-const MOUNTAIN_RACE_ACTION_CONFIRM_ATTEMPTS = 5;
+const MOUNTAIN_RACE_BOT_CATCH_UP_LIMIT = 10;
 
 function createMountainRaceIntegration(host = {}) {
   const {
@@ -71,11 +61,6 @@ function createMountainRaceIntegration(host = {}) {
     }
   }
 
-  function optionalUserId(value) {
-    const raw = String(value || '').trim();
-    return raw ? cleanUserId(raw) : '';
-  }
-
   function playerIds(game) {
     return [cleanUserId(game?.creator?.userId), cleanUserId(game?.joiner?.userId)].filter(Boolean);
   }
@@ -108,14 +93,9 @@ function createMountainRaceIntegration(host = {}) {
 
   function botDelay(game) {
     const network = remoteNetworkConfig(game);
-    const rawMin = network ? Math.max(100, int(network.minDelayMs, 100)) : 180;
-    const rawMax = network ? Math.max(rawMin, int(network.maxDelayMs, rawMin + 140)) : 320;
-    const networkMin = Math.min(450, rawMin);
-    const networkMax = Math.max(networkMin, Math.min(450, rawMax));
-    const reaction = MOUNTAIN_RACE_BOT_REACTION_MIN_MS
-      + Math.floor(Math.random() * (MOUNTAIN_RACE_BOT_REACTION_MAX_MS - MOUNTAIN_RACE_BOT_REACTION_MIN_MS + 1));
-    const transport = networkMin + Math.floor(Math.random() * (networkMax - networkMin + 1));
-    let delay = reaction + transport;
+    const min = network ? Math.max(100, int(network.minDelayMs, 100)) : 430;
+    const max = network ? Math.max(min, int(network.maxDelayMs, min + 220)) : 690;
+    let delay = min + Math.floor(Math.random() * (max - min + 1));
 
     if (network && Math.random() < Number(network.stallChance || 0)) {
       delay += 900 + Math.floor(Math.random() * 1300);
@@ -217,7 +197,7 @@ function createMountainRaceIntegration(host = {}) {
       processedActionIds: Array.isArray(existing.processedActionIds)
         ? existing.processedActionIds.map(String).slice(-120)
         : [],
-      winnerId: optionalUserId(existing.winnerId),
+      winnerId: cleanUserId(existing.winnerId || ''),
       completedAt: existing.completedAt || null,
       npcActionAt: existing.npcActionAt || null,
       botActionSequence: int(existing.botActionSequence, 0),
@@ -276,7 +256,6 @@ function createMountainRaceIntegration(host = {}) {
         stepsTotal: MOUNTAIN_RACE_DEFAULT_STEPS,
         canSubmit: false,
         prompts: [],
-        inputPrompts: [],
         me: publicPlayer(game, viewer, {}, viewer),
         opponent: publicPlayer(game, opponentId, {}, viewer),
         winnerUserId: '',
@@ -288,18 +267,16 @@ function createMountainRaceIntegration(host = {}) {
     const me = state.players?.[viewer] || {};
     const opponent = state.players?.[opponentId] || {};
     const endAtMs = Date.parse(state.endAt || '');
-    const winnerUserId = optionalUserId(state.winnerId);
+    const winnerUserId = cleanUserId(state.winnerId || '');
     const complete = String(game?.status || '') === 'complete';
     return {
       roundId: state.roundId,
       revision: int(state.revision, 0),
       startAt: state.startAt,
       endAt: state.endAt,
-      secondsLeft: complete || state.completedAt
-        ? 0
-        : Number.isFinite(endAtMs)
-          ? Math.max(0, Math.ceil((endAtMs - Date.now()) / 1000))
-          : 30,
+      secondsLeft: Number.isFinite(endAtMs)
+        ? Math.max(0, Math.ceil((endAtMs - Date.now()) / 1000))
+        : 30,
       stepsTotal: state.sequence.length,
       canSubmit:
         String(game?.status || '') === 'playing'
@@ -307,28 +284,11 @@ function createMountainRaceIntegration(host = {}) {
         && !me.finishedAt
         && !state.completedAt,
       prompts: state.sequence.slice(int(me.promptIndex, 0), int(me.promptIndex, 0) + 4),
-      inputPrompts: state.sequence.slice(int(me.promptIndex, 0)),
       me: publicPlayer(game, viewer, me, viewer),
       opponent: publicPlayer(game, opponentId, opponent, viewer),
       winnerUserId,
       viewerWon: Boolean(winnerUserId && winnerUserId === viewer),
       tie: Boolean(complete && !winnerUserId),
-      networkBotLog: (() => {
-        const profile = botProfile(game);
-        const botId = cleanUserId(profile?.userId || '');
-        const botState = botId ? state.players?.[botId] || {} : {};
-        return {
-          enabled: Boolean(profile && isRemoteBotProfile(profile)),
-          userId: botId,
-          profile: String(game?.remoteNetworkProfile || ''),
-          actionSequence: int(state.botActionSequence, 0),
-          promptIndex: int(botState.promptIndex, 0),
-          acceptedInputs: int(botState.acceptedInputs, 0),
-          rejectedInputs: int(botState.rejectedInputs, 0),
-          lastActionAt: state.botLastActionAt || null,
-          nextActionAt: state.npcActionAt || null
-        };
-      })(),
       completedAt: state.completedAt || null
     };
   }
@@ -355,22 +315,7 @@ function createMountainRaceIntegration(host = {}) {
   }
 
   async function complete(game, state, winnerId = '', reason = '') {
-    const cleanWinner = optionalUserId(winnerId);
-    const totalHolds = Array.isArray(state?.sequence) ? state.sequence.length : 0;
-    const winnerHolds = cleanWinner ? int(state.players?.[cleanWinner]?.promptIndex, 0) : 0;
-    const raceEndMs = Date.parse(state?.endAt || '');
-    const timeoutResolution = Number.isFinite(raceEndMs) && Date.now() >= raceEndMs;
-    if (cleanWinner && winnerHolds < totalHolds && !timeoutResolution) {
-      // Never settle a poll-driven race unless the reported winner actually
-      // reached every hold. Timeout settlement remains valid after endAt.
-      const repairedState = {
-        ...state,
-        winnerId: '',
-        completedAt: null,
-        revision: int(state.revision, 0) + 1
-      };
-      return await saveGame({ ...game, mountainraceState: repairedState, npcActionAt: repairedState.npcActionAt || null });
-    }
+    const cleanWinner = cleanUserId(winnerId);
     const finalState = {
       ...state,
       winnerId: cleanWinner,
@@ -412,7 +357,7 @@ function createMountainRaceIntegration(host = {}) {
       ? Number(options.actionAtMs)
       : Date.now();
     const next = applyMountainRaceInput(state, id, rawControl, actionId, actionAtMs);
-    if (next === state) return { game, changed: false };
+    if (next === state) return game;
 
     if (options.isBot) {
       const scheduleBaseMs = Number.isFinite(Number(options.scheduleFromMs))
@@ -431,97 +376,81 @@ function createMountainRaceIntegration(host = {}) {
       next.botCatchUpCount = int(state.botCatchUpCount, 0);
     }
 
-    return {
-      game: { ...game, mountainraceState: next },
-      changed: true
-    };
+    const candidate = { ...game, mountainraceState: next };
+    if (next.winnerId) {
+      const winnerName = gamePlayer(game, next.winnerId)?.name || 'A climber';
+      return await complete(candidate, next, next.winnerId, winnerName + ' reached the summit first.');
+    }
+    return await saveGame(candidate);
   }
 
   async function applyActionUnlocked(user, game, rawChoice, details = {}, options = {}) {
     const viewer = cleanUserId(user?.id);
     if (!game) throw new Error('That Summit Sprint race was not found.');
     if (game.mode !== 'mountainrace') throw new Error('That duel is not Summit Sprint.');
-    if (!playerIds(game).includes(viewer)) throw new Error('You are not in this Summit Sprint race.');
+    if (!playerIds(game).includes(viewer)) {
+      throw new Error('You are not in this Summit Sprint race.');
+    }
+    if (game.status !== 'playing') {
+      return { game, skipBalanceLookup: true };
+    }
 
-    const match = /^mountainrace:input:(up|left|right|down)$/.exec(String(rawChoice || '').toLowerCase());
-    if (!match) throw new Error('Choose one valid climbing direction.');
+    const state = ensureState(game);
+    if (!state) throw new Error('Summit Sprint could not initialize the mountain course.');
 
-    const submittedControl = match[1];
-    const expectedControl = normalizeMountainRaceControl(details.expectedControl);
-    const expectedPromptIndex = Number(details.expectedPromptIndex);
+    const actionAtMs = Number.isFinite(Number(options.actionAtMs))
+      ? Number(options.actionAtMs)
+      : Date.now();
+    const endAtMs = Date.parse(state.endAt || '');
+    if (Number.isFinite(endAtMs) && actionAtMs >= endAtMs) {
+      return { game: await resolveTimeout({ ...game, mountainraceState: state }, state) };
+    }
+
     const actionId = String(details.actionId || '')
       .replace(/[^A-Za-z0-9._:-]/g, '')
       .slice(0, 120);
-    let latest = game;
-
-    for (let attempt = 0; attempt < MOUNTAIN_RACE_ACTION_CONFIRM_ATTEMPTS; attempt += 1) {
-      if (attempt > 0) latest = await strongRead(game.gameId) || latest;
-      if (!latest || latest.mode !== 'mountainrace') throw new Error('That Summit Sprint race was not found.');
-      if (latest.status !== 'playing') return { game: latest, skipBalanceLookup: true };
-
-      const state = ensureState(latest);
-      if (!state) throw new Error('Summit Sprint could not initialize the mountain course.');
-      const actionAtMs = Number.isFinite(Number(options.actionAtMs)) ? Number(options.actionAtMs) : Date.now();
-      const endAtMs = Date.parse(state.endAt || '');
-      if (Number.isFinite(endAtMs) && actionAtMs >= endAtMs) {
-        return { game: await resolveTimeout({ ...latest, mountainraceState: state }, state) };
-      }
-
-      if (actionId && state.processedActionIds.includes(actionId)) {
-        return { game: { ...latest, mountainraceState: state }, skipBalanceLookup: true, replayedAction: true };
-      }
-
-      const actualPromptIndex = int(state.players?.[viewer]?.promptIndex, 0);
-      const currentExpectedControl = normalizeMountainRaceControl(state.sequence[actualPromptIndex]);
-      if (Number.isFinite(expectedPromptIndex) && expectedPromptIndex >= 0 && expectedPromptIndex !== actualPromptIndex) {
-        return {
-          game: { ...latest, mountainraceState: state },
-          skipBalanceLookup: true,
-          ignoredAction: true,
-          ignoreReason: 'prompt-changed'
-        };
-      }
-      if (expectedControl && expectedControl !== currentExpectedControl) {
-        return {
-          game: { ...latest, mountainraceState: state },
-          skipBalanceLookup: true,
-          ignoredAction: true,
-          ignoreReason: 'prompt-changed'
-        };
-      }
-
-      const built = await applyControl(
-        { ...latest, mountainraceState: state },
-        viewer,
-        submittedControl,
-        actionId,
-        {
-          isBot: Boolean(options.isBot),
-          actionAtMs,
-          scheduleFromMs: options.scheduleFromMs,
-          catchUpCount: options.catchUpCount
-        }
-      );
-      if (!built.changed) return { game: built.game, skipBalanceLookup: true };
-
-      const saved = await saveGame(built.game);
-      if (!actionId) return { game: saved, skipBalanceLookup: saved.status !== 'complete' };
-
-      const confirmed = await strongRead(game.gameId) || saved;
-      const confirmedState = ensureState(confirmed);
-      if (confirmedState?.processedActionIds.includes(actionId)) {
-        let confirmedGame = { ...confirmed, mountainraceState: confirmedState };
-        if (confirmedState.winnerId && confirmedGame.status === 'playing') {
-          const winnerName = gamePlayer(confirmedGame, confirmedState.winnerId)?.name || 'A climber';
-          confirmedGame = await complete(confirmedGame, confirmedState, confirmedState.winnerId, winnerName + ' reached the summit first.');
-        }
-        return { game: confirmedGame, skipBalanceLookup: confirmedGame.status !== 'complete' };
-      }
-
-      latest = confirmed;
+    if (actionId && state.processedActionIds.includes(actionId)) {
+      return {
+        game: { ...game, mountainraceState: state },
+        skipBalanceLookup: true,
+        ignoredAction: true,
+        ignoreReason: 'duplicate'
+      };
     }
 
-    throw new Error('That move could not be confirmed. No incorrect move was recorded; try the highlighted direction again.');
+    const expectedPromptIndex = Number(details.expectedPromptIndex);
+    const actualPromptIndex = int(state.players?.[viewer]?.promptIndex, 0);
+    if (
+      Number.isFinite(expectedPromptIndex)
+      && expectedPromptIndex >= 0
+      && expectedPromptIndex !== actualPromptIndex
+    ) {
+      return {
+        game: { ...game, mountainraceState: state },
+        skipBalanceLookup: true,
+        ignoredAction: true,
+        ignoreReason: 'prompt-changed'
+      };
+    }
+
+    const match = /^mountainrace:input:(up|left|right|down)$/.exec(
+      String(rawChoice || '').toLowerCase()
+    );
+    if (!match) throw new Error('Choose one valid climbing direction.');
+
+    const nextGame = await applyControl(
+      { ...game, mountainraceState: state },
+      viewer,
+      match[1],
+      actionId,
+      {
+        isBot: Boolean(options.isBot),
+        actionAtMs,
+        scheduleFromMs: options.scheduleFromMs,
+        catchUpCount: options.catchUpCount
+      }
+    );
+    return { game: nextGame, skipBalanceLookup: nextGame.status !== 'complete' };
   }
 
   async function advance(game) {
@@ -597,16 +526,6 @@ function createMountainRaceIntegration(host = {}) {
       }
 
       const currentNow = Date.now();
-      const lastBotActionMs = Date.parse(state.botLastActionAt || '');
-      if (
-        Number.isFinite(lastBotActionMs)
-        && currentNow < lastBotActionMs + MOUNTAIN_RACE_BOT_MIN_STEP_INTERVAL_MS
-      ) {
-        // Both the game page and the detached Network Bot page poll this driver.
-        // A server-time gate makes concurrent polls observational only until the
-        // next visible move is genuinely due.
-        return latest;
-      }
       const raceEndMs = Date.parse(state.endAt || '');
       const dueThrough = Number.isFinite(raceEndMs)
         ? Math.min(currentNow, raceEndMs - 1)
@@ -614,9 +533,9 @@ function createMountainRaceIntegration(host = {}) {
       let processed = 0;
 
       // Serverless functions do not have a permanent background process. A focused
-      // GET wakes this driver, but each request may execute only one due bot move.
-      // The next move is scheduled from the current server time so delayed polling can
-      // never replay a burst of invisible moves or let the bot reach the summit instantly.
+      // GET wakes this driver, which replays every bot action whose network timestamp
+      // became due. Each replay uses the same action validation, prompt-index guard,
+      // action-id dedupe, persistence, and winner settlement as a player request.
       while (
         latest?.status === 'playing'
         && Number.isFinite(scheduled)
@@ -637,8 +556,8 @@ function createMountainRaceIntegration(host = {}) {
           { actionId, expectedPromptIndex: promptIndex },
           {
             isBot: true,
-            actionAtMs: currentNow,
-            scheduleFromMs: currentNow,
+            actionAtMs: scheduled,
+            scheduleFromMs: scheduled,
             catchUpCount: processed + 1
           }
         );
@@ -658,8 +577,8 @@ function createMountainRaceIntegration(host = {}) {
             { actionId, expectedPromptIndex: promptIndex },
             {
               isBot: true,
-              actionAtMs: currentNow,
-              scheduleFromMs: currentNow,
+              actionAtMs: scheduled,
+              scheduleFromMs: scheduled,
               catchUpCount: processed
             }
           );
@@ -679,251 +598,24 @@ function createMountainRaceIntegration(host = {}) {
     });
   }
 
-  function mountainRaceBatchItems(details = {}) {
-    const rawItems = Array.isArray(details.inputBatch) ? details.inputBatch.slice(0, 8) : [];
-    return rawItems.map((raw, order) => {
-      const submittedControl = normalizeMountainRaceControl(raw?.control);
-      const expectedControl = normalizeMountainRaceControl(raw?.expectedControl);
-      const expectedPromptIndex = Number(raw?.expectedPromptIndex);
-      const actionId = String(raw?.actionId || '')
-        .replace(/[^A-Za-z0-9._:-]/g, '')
-        .slice(0, 120);
-      if (!submittedControl || !expectedControl || !actionId || !Number.isFinite(expectedPromptIndex) || expectedPromptIndex < 0) return null;
-      return {
-        submittedControl,
-        expectedControl,
-        expectedPromptIndex: Math.trunc(expectedPromptIndex),
-        actionId,
-        order
-      };
-    }).filter(Boolean);
-  }
-
-  async function foldDueBotActions(game, nowMs = Date.now(), maxActions = 4) {
-    let workingGame = game;
-    let state = ensureState(workingGame);
-    const npcProfile = botProfile(workingGame);
-    const npcId = cleanUserId(npcProfile?.userId || '');
-    const actionIds = [];
-    let changed = false;
-    let processed = 0;
-
-    if (!state || !npcId || state.players?.[npcId]?.finishedAt || state.winnerId || state.completedAt) {
-      return { game: workingGame, changed, processed, actionIds };
-    }
-
-    const raceEndMs = Date.parse(state.endAt || '');
-    const dueThrough = Number.isFinite(raceEndMs)
-      ? Math.min(Number(nowMs) || Date.now(), raceEndMs - 1)
-      : Number(nowMs) || Date.now();
-    let scheduled = Date.parse(state.npcActionAt || '');
-
-    while (
-      workingGame?.status === 'playing'
-      && Number.isFinite(scheduled)
-      && scheduled <= dueThrough
-      && processed < Math.max(1, int(maxActions, 4))
-    ) {
-      state = ensureState(workingGame);
-      if (!state || state.players?.[npcId]?.finishedAt || state.winnerId || state.completedAt) break;
-
-      const sequenceNumber = int(state.botActionSequence, 0) + 1;
-      const token = botControl(state, npcId);
-      const actionId = `mountain-${isRemoteBotProfile(npcProfile) ? 'remote' : 'npc'}-${state.roundId}-${sequenceNumber}`;
-      const built = await applyControl(
-        { ...workingGame, mountainraceState: state },
-        npcId,
-        token,
-        actionId,
-        {
-          isBot: true,
-          actionAtMs: scheduled,
-          scheduleFromMs: scheduled,
-          catchUpCount: processed + 1
-        }
-      );
-      if (!built.changed) break;
-
-      workingGame = built.game;
-      changed = true;
-      processed += 1;
-      actionIds.push(actionId);
-      state = ensureState(workingGame);
-      scheduled = Date.parse(state?.npcActionAt || '');
-    }
-
-    return { game: workingGame, changed, processed, actionIds };
-  }
-
-  async function applyBatchUnlocked(user, game, details = {}) {
-    const viewer = cleanUserId(user?.id);
-    const items = mountainRaceBatchItems(details);
-    if (!items.length) throw new Error('Summit Sprint did not receive any queued moves.');
-    if (!game) throw new Error('That Summit Sprint race was not found.');
-    if (game.mode !== 'mountainrace') throw new Error('That duel is not Summit Sprint.');
-    if (!playerIds(game).includes(viewer)) throw new Error('You are not in this Summit Sprint race.');
-
-    const requestedActionIds = items.map(item => item.actionId);
-    let latest = game;
-
-    for (let attempt = 0; attempt < MOUNTAIN_RACE_ACTION_CONFIRM_ATTEMPTS; attempt += 1) {
-      if (attempt > 0) latest = await strongRead(game.gameId) || latest;
-      if (!latest || latest.mode !== 'mountainrace') throw new Error('That Summit Sprint race was not found.');
-      if (latest.status !== 'playing') {
-        const finalState = ensureState(latest);
-        return {
-          game: latest,
-          confirmedActionIds: requestedActionIds.filter(id => finalState?.processedActionIds.includes(id)),
-          ignoredActionIds: [],
-          opponentAdvanced: false
-        };
-      }
-
-      let state = ensureState(latest);
-      if (!state) throw new Error('Summit Sprint could not initialize the mountain course.');
-      const now = Date.now();
-      const endAtMs = Date.parse(state.endAt || '');
-      if (Number.isFinite(endAtMs) && now >= endAtMs) {
-        return {
-          game: await resolveTimeout({ ...latest, mountainraceState: state }, state),
-          confirmedActionIds: [],
-          ignoredActionIds: requestedActionIds,
-          opponentAdvanced: false
-        };
-      }
-
-      const folded = await foldDueBotActions({ ...latest, mountainraceState: state }, now, 4);
-      let workingGame = folded.game;
-      let changed = Boolean(folded.changed);
-      const botActionIds = folded.actionIds;
-      let staleFrom = -1;
-
-      state = ensureState(workingGame);
-      if (state?.winnerId || state?.completedAt) {
-        const winnerName = gamePlayer(workingGame, state.winnerId)?.name || 'A climber';
-        const completed = await complete(workingGame, state, state.winnerId, winnerName + ' reached the summit first.');
-        return {
-          game: completed,
-          confirmedActionIds: [],
-          ignoredActionIds: requestedActionIds,
-          opponentAdvanced: botActionIds.length > 0
-        };
-      }
-
-      for (let index = 0; index < items.length; index += 1) {
-        const item = items[index];
-        state = ensureState(workingGame);
-        if (!state) break;
-        if (state.processedActionIds.includes(item.actionId)) continue;
-
-        const actualPromptIndex = int(state.players?.[viewer]?.promptIndex, 0);
-        const currentExpectedControl = normalizeMountainRaceControl(state.sequence[actualPromptIndex]);
-        if (item.expectedPromptIndex !== actualPromptIndex || item.expectedControl !== currentExpectedControl) {
-          staleFrom = index;
-          break;
-        }
-
-        const built = await applyControl(
-          { ...workingGame, mountainraceState: state },
-          viewer,
-          item.submittedControl,
-          item.actionId,
-          { actionAtMs: now + index }
-        );
-        if (built.changed) {
-          workingGame = built.game;
-          changed = true;
-        }
-        state = ensureState(workingGame);
-        if (state?.winnerId || state?.completedAt) break;
-      }
-
-      state = ensureState(workingGame);
-      const ignoredActionIds = staleFrom >= 0 ? items.slice(staleFrom).map(item => item.actionId) : [];
-      const targetActionIds = staleFrom >= 0 ? items.slice(0, staleFrom).map(item => item.actionId) : requestedActionIds;
-      const persistenceIds = [...targetActionIds, ...botActionIds];
-      if (!changed) {
-        return {
-          game: workingGame,
-          confirmedActionIds: requestedActionIds.filter(id => state?.processedActionIds.includes(id)),
-          ignoredActionIds,
-          ignoredAction: ignoredActionIds.length > 0,
-          ignoreReason: ignoredActionIds.length ? 'prompt-changed' : '',
-          opponentAdvanced: false
-        };
-      }
-
-      let saved;
-      if (state?.winnerId) {
-        const winnerName = gamePlayer(workingGame, state.winnerId)?.name || 'A climber';
-        saved = await complete(workingGame, state, state.winnerId, winnerName + ' reached the summit first.');
-      } else {
-        saved = await saveGame(workingGame);
-      }
-
-      let confirmed = await strongRead(game.gameId) || saved;
-      let confirmedState = ensureState(confirmed);
-      if (confirmedState?.winnerId && confirmed?.status === 'playing') {
-        const winnerName = gamePlayer(confirmed, confirmedState.winnerId)?.name || 'A climber';
-        confirmed = await complete(confirmed, confirmedState, confirmedState.winnerId, winnerName + ' reached the summit first.');
-        confirmedState = ensureState(confirmed);
-      }
-
-      const confirmedActionIds = requestedActionIds.filter(id => confirmedState?.processedActionIds.includes(id));
-      const persistenceConfirmed = persistenceIds.every(id => confirmedState?.processedActionIds.includes(id));
-      if (persistenceConfirmed) {
-        return {
-          game: confirmed,
-          confirmedActionIds,
-          ignoredActionIds,
-          ignoredAction: ignoredActionIds.length > 0,
-          ignoreReason: ignoredActionIds.length ? 'prompt-changed' : '',
-          opponentAdvanced: botActionIds.length > 0
-        };
-      }
-      latest = confirmed;
-    }
-
-    throw new Error('Those queued Summit Sprint moves could not be confirmed. No extra mistake was recorded; the same action IDs can be retried safely.');
-  }
-
   async function action(user, gameId, rawChoice, details = {}) {
-    const batchItems = mountainRaceBatchItems(details);
-    const outcome = await withLock(gameId, async () => {
+    return await withLock(gameId, async () => {
+      const viewer = cleanUserId(user.id);
       const game = await strongRead(gameId);
-      return batchItems.length
-        ? await applyBatchUnlocked(user, game, {
-            ...details,
-            inputBatch: batchItems.map(item => ({
-              control: item.submittedControl,
-              expectedControl: item.expectedControl,
-              expectedPromptIndex: item.expectedPromptIndex,
-              actionId: item.actionId
-            }))
-          })
-        : await applyActionUnlocked(user, game, rawChoice, details, {});
+      const result = await applyActionUnlocked(user, game, rawChoice, details, {});
+      const response = {
+        game: publicGame(result.game, viewer),
+        ...(result.ignoredAction
+          ? { ignoredAction: true, ignoreReason: result.ignoreReason }
+          : {})
+      };
+      if (result.game?.status === 'complete') {
+        response.record = await getUserRecord(viewer);
+      } else {
+        response.skipBalanceLookup = true;
+      }
+      return response;
     });
-
-    const finalGame = outcome.game;
-    const viewer = cleanUserId(user.id);
-    const confirmedActionIds = Array.isArray(outcome.confirmedActionIds) ? outcome.confirmedActionIds : [];
-    const ignoredActionIds = Array.isArray(outcome.ignoredActionIds) ? outcome.ignoredActionIds : [];
-    const wakeBot = Boolean(!batchItems.length && finalGame?.status === 'playing' && !outcome.ignoredAction);
-    const response = {
-      game: publicGame(finalGame, viewer),
-      ...(outcome.ignoredAction ? { ignoredAction: true, ignoreReason: outcome.ignoreReason } : {}),
-      ...(outcome.replayedAction ? { replayedAction: true } : {}),
-      ...(batchItems.length ? {
-        batchAccepted: true,
-        confirmedActionIds,
-        ignoredActionIds,
-        opponentAdvanced: Boolean(outcome.opponentAdvanced)
-      } : {}),
-      ...(wakeBot ? { wakeBot: true } : {})
-    };
-    if (finalGame?.status === 'complete') response.record = await getUserRecord(viewer);
-    else response.skipBalanceLookup = true;
-    return response;
   }
 
   return Object.freeze({
@@ -940,9 +632,5 @@ function createMountainRaceIntegration(host = {}) {
 module.exports = {
   MOUNTAIN_RACE_BOT_ERROR_RATE,
   MOUNTAIN_RACE_BOT_CATCH_UP_LIMIT,
-  MOUNTAIN_RACE_BOT_REACTION_MIN_MS,
-  MOUNTAIN_RACE_BOT_REACTION_MAX_MS,
-  MOUNTAIN_RACE_BOT_MIN_STEP_INTERVAL_MS,
-  MOUNTAIN_RACE_ACTION_CONFIRM_ATTEMPTS,
   createMountainRaceIntegration
 };

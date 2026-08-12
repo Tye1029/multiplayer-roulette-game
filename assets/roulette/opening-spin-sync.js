@@ -194,11 +194,10 @@
 
       const progress = clamp(timing.currentTime / timing.duration, 0, 1);
       if (!Number.isFinite(baseVolume)) {
-        baseVolume = clamp(Number(clip.volume) || 0, 0, 1);
+        baseVolume = Math.max(0, Number(clip.volume) || 0);
       }
 
-      // SHARED_RUNTIME_STABILITY_V48
-      clip.volume = clamp(baseVolume * openingVolumeEnvelope(progress), 0, 1);
+      clip.volume = baseVolume * openingVolumeEnvelope(progress);
       clip.__rrOpeningProgress = progress;
       clip.__rrOpeningVolumeEnvelope = openingVolumeEnvelope(progress);
 
@@ -217,7 +216,7 @@
 
     const startTracking = () => {
       if (stopped) return;
-      baseVolume = clamp(Number(clip.volume) || 0, 0, 1);
+      baseVolume = Math.max(0, Number(clip.volume) || 0);
       synchronizeClip(clip);
       stopEnvelope();
       envelopeFrame = requestAnimationFrame(trackEnvelope);

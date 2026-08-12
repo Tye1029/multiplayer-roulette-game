@@ -150,84 +150,77 @@
   }
 
   function holdHorizontal(index, token) {
-    const base = [38, 58, 44, 62, 40, 55][index % 6];
-    if (token === 'left') return Math.max(30, base - 10);
-    if (token === 'right') return Math.min(70, base + 10);
+    const base = [24, 62, 38, 70, 31, 57][index % 6];
+    if (token === 'left') return Math.max(17, base - 10);
+    if (token === 'right') return Math.min(83, base + 10);
     return base;
   }
 
   function renderHolds(state, playerKey) {
-      const player = state.players[playerKey];
-      const total = state.sequence.length;
-      const firstVisible = Math.max(0, player.promptIndex - 2);
-      const lastVisible = Math.min(total - 1, player.promptIndex + 3);
-      const holds = state.sequence.slice(firstVisible, lastVisible + 1).map((token, offset) => {
-        const index = firstVisible + offset;
-        const isCurrent = index === player.promptIndex && state.status === 'racing';
-        const classes = ['mr-rock-hold', playerKey === 'opponent' && index >= player.promptIndex ? 'opponent-upcoming' : '', isCurrent ? 'current' : '', index === player.promptIndex - 1 ? 'contact' : '', index === total - 1 ? 'final-hold' : '', index < player.promptIndex ? 'passed' : ''].filter(Boolean).join(' ');
-        return `<span class="${classes}" style="--mr-hold-bottom:${196 + index * 74}px;--mr-hold-left:${holdHorizontal(index, token)}%" data-mr-hold-index="${index}" data-mr-outcrop="${index % 4}" aria-hidden="true"><b>${promptLabel(token)}</b></span>`;
-      }).join('');
-      return holds + `<span class="mr-finish-ledge mr-summit-plateau" style="--mr-summit-bottom:${196 + Math.max(0, total - 1) * 74}px" aria-hidden="true"><i></i><b>SUMMIT</b></span>`;
-    }
+    const player = state.players[playerKey];
+    const total = state.sequence.length;
+    const holds = state.sequence.map((token, index) => {
+      const isCurrent = index === player.promptIndex && state.status === 'racing';
+      const isPassed = index < player.promptIndex;
+      const isFuture = index > player.promptIndex + 5;
+      const classes = [
+        'mr-rock-hold',
+        isCurrent ? 'current' : '',
+        isPassed ? 'passed' : '',
+        isFuture ? 'distant' : ''
+      ].filter(Boolean).join(' ');
+      const bottom = 86 + index * 58;
+      const left = holdHorizontal(index, token);
+      return `<span class="${classes}" style="--mr-hold-bottom:${bottom}px;--mr-hold-left:${left}%" aria-hidden="true"><b>${promptLabel(token)}</b></span>`;
+    }).join('');
 
-  function renderClimber(player, playerKey, sequence) {
-      const index = Math.min(TOTAL_HOLDS, Math.max(0, player.promptIndex));
-      const finished = Boolean(player.finishedAt) || index >= TOTAL_HOLDS || player.animation === 'celebrate';
-      const contactIndex = finished ? Math.max(0, TOTAL_HOLDS - 1) : index - 1;
-      const previousContactIndex = contactIndex - 1;
-      const contactLeft = finished ? 50 : contactIndex >= 0 ? holdHorizontal(contactIndex, sequence[contactIndex]) : 50;
-      const previousContactLeft = previousContactIndex >= 0 ? holdHorizontal(previousContactIndex, sequence[previousContactIndex]) : 50;
-      const nextContactLeft = finished ? 50 : index < TOTAL_HOLDS ? holdHorizontal(index, sequence[index]) : contactLeft;
-      const climberLeft = !finished && contactIndex >= 0 ? contactLeft + (nextContactLeft - contactLeft) * 0.3 : contactLeft;
-      const summitApproach = !finished && index === TOTAL_HOLDS - 1;
-      const travelDirection = nextContactLeft < contactLeft ? 'left' : 'right';
-      const gripBottom = finished ? 272 + Math.max(0, TOTAL_HOLDS - 1) * 74 : contactIndex >= 0 ? 228 + contactIndex * 74 : 76;
-      const reachBottom = gripBottom + (summitApproach ? 42 : 0);
-      const raceLive = runtime.state?.status === 'racing';
-      const startClass = !finished && contactIndex < 0 ? 'standing-start' : '';
-      const startPoseClass = !finished && contactIndex < 0 ? (raceLive ? 'start-reaching' : 'start-waiting') : '';
-      const readyClass = !finished && contactIndex >= 0 ? 'ready-next' : '';
-      return `
-        <div class="mr-climber ${playerKey} ${escapeHtml(player.animation)} ${finished ? 'finished standing-on-summit' : ''} ${startClass} ${startPoseClass} ${readyClass} ${summitApproach ? 'summit-reaching' : ''} direction-${travelDirection}" style="--mr-climber-grip-bottom:${reachBottom}px;--mr-climber-left:${climberLeft}%;--mr-previous-climber-left:${previousContactLeft}%" data-mr-animation-key="${escapeHtml(player.lastInput?.at || player.animation)}-${index}" data-mr-contact-index="${contactIndex}" aria-label="${escapeHtml(player.name)} climber">
-          <span class="mr-motion-frame mr-motion-frame-0 mr-v44-climber-sprite mr-v45-climber-sprite" aria-hidden="true"></span>
-        </div>`;
-    }
+    const summitBottom = 86 + total * 58;
+    return `${holds}<span class="mr-finish-ledge" style="--mr-summit-bottom:${summitBottom}px" aria-hidden="true"><i></i><b>SUMMIT</b></span>`;
+  }
 
-  // MOUNTAIN_RACE_REALISTIC_CLIMBERS_V32
-  function winnerConfetti() {
-    return '<div class="mr-winner-confetti" style="--mr-confetti-bottom:' + (272 + 23 * 74) + 'px" aria-hidden="true">' + Array.from({ length: 28 }, (_, index) => '<i style="--mr-confetti-index:' + index + ';--mr-confetti-x:' + ((index * 37) % 100) + '%;--mr-confetti-drift:' + ((index - 10) * 3) + 'px"></i>').join('') + '</div>';
+  function renderClimber(player, playerKey) {
+    const index = Math.min(TOTAL_HOLDS, Math.max(0, player.promptIndex));
+    const bottom = 62 + index * 58;
+    const latestToken = normalizePrompt(player.lastInput?.control || 'up');
+    return `
+      <div class="mr-climber ${playerKey} ${escapeHtml(player.animation)} direction-${latestToken}" style="--mr-climber-bottom:${bottom}px" aria-label="${escapeHtml(player.name)} climber">
+        <span class="mr-arm left-arm"></span>
+        <span class="mr-arm right-arm"></span>
+        <span class="mr-climber-head"></span>
+        <span class="mr-climber-body"></span>
+        <span class="mr-leg left-leg"></span>
+        <span class="mr-leg right-leg"></span>
+      </div>`;
   }
 
   function renderLane(state, playerKey) {
-      const player = state.players[playerKey];
-      const total = state.sequence.length;
-      const progress = progressOf(player, total);
-      const summitView = player.animation === 'celebrate' || Boolean(player.finishedAt) || player.promptIndex >= total;
-      const cameraIndex = player.animation === 'celebrate' ? total : Math.max(0, Math.min(total, player.promptIndex));
-      const summitReveal = Math.max(0, Math.min(1, (cameraIndex - Math.max(0, total - 5)) / 5));
-      const summitBottom = 196 + Math.max(0, total - 1) * 74;
-      const scroll = Math.max(0, cameraIndex) * 74;
-      const status = player.finishedAt ? 'SUMMIT REACHED' : `${player.promptIndex} / ${total}`;
-      const mistakes = player.rejectedInputs;
-      return `
-        <section class="mr-lane ${playerKey} continuous-mountain ${summitReveal > 0 ? 'summit-approach' : ''} ${summitView ? 'summit-view' : 'cliff-view'}" data-mr-lane-view="${summitView ? 'summit' : summitReveal > 0 ? 'summit-approach' : 'cliff'}" data-mr-summit-reveal="${summitReveal.toFixed(2)}" data-mr-camera-index="${cameraIndex}" aria-label="${escapeHtml(player.name)} climbing lane">
-          <header class="mr-player-card">
-            <span class="mr-player-badge" aria-hidden="true">${playerKey === 'me' ? 'P1' : 'CPU'}</span>
-            <span class="mr-player-copy"><strong>${escapeHtml(player.name)}</strong><small>${mistakes} ${mistakes === 1 ? 'MISTAKE' : 'MISTAKES'}</small></span>
-            <span class="mr-player-progress">${status}</span>
-          </header>
-          <div class="mr-climb-viewport">
-            <div class="mr-mountain-wall" style="--mr-wall-scroll:${scroll}px;--mr-wall-height:${Math.max(2600, 580 + total * 74)}px;--mr-summit-bottom:${summitBottom}px;--mr-summit-reveal:${summitReveal}">
-              <span class="mr-v44-cliff" aria-hidden="true"></span>
-              <span class="mr-v44-start" aria-hidden="true"><i></i></span>
-              ${renderHolds(state, playerKey)}
-              ${renderClimber(player, playerKey, state.sequence)}
-              ${player.animation === 'celebrate' ? winnerConfetti() : ''}
-            </div>
-            <div class="mr-altitude-meter" aria-hidden="true"><i style="--mr-altitude:${progress}"></i></div>
+    const player = state.players[playerKey];
+    const total = state.sequence.length;
+    const progress = progressOf(player, total);
+    const progressPercent = Math.round(progress * 100);
+    const scroll = Math.max(0, player.promptIndex - 3) * 58;
+    const status = player.finishedAt ? 'SUMMIT REACHED' : `${player.promptIndex} / ${total}`;
+    const mistakes = player.rejectedInputs;
+
+    return `
+      <section class="mr-lane ${playerKey}" aria-label="${escapeHtml(player.name)} climbing lane">
+        <header class="mr-player-card">
+          <span class="mr-player-badge" aria-hidden="true">${playerKey === 'me' ? 'P1' : 'CPU'}</span>
+          <span class="mr-player-copy">
+            <strong>${escapeHtml(player.name)}</strong>
+            <small>${mistakes} ${mistakes === 1 ? 'MISTAKE' : 'MISTAKES'}</small>
+          </span>
+          <span class="mr-player-progress">${status}</span>
+        </header>
+        <div class="mr-climb-viewport">
+          <div class="mr-mountain-wall" style="--mr-wall-scroll:${scroll}px">
+            ${renderHolds(state, playerKey)}
+            ${renderClimber(player, playerKey)}
           </div>
-        </section>`;
-    }
+          <div class="mr-altitude-meter" aria-hidden="true"><i style="--mr-altitude:${progress}"></i></div>
+        </div>
+      </section>`;
+  }
 
   function visiblePrompts(state) {
     const player = state.players.me;
@@ -294,132 +287,44 @@
     return '';
   }
 
-
-  // MOUNTAIN_RACE_STATIC_SCENE_V40
-  // Preserve decoded terrain/image nodes and patch only stateful DOM fields.
-  function morphMountainNode(current, next) {
-    if (!current || !next) return;
-    if (current.nodeType !== next.nodeType || (current.nodeType === 1 && current.tagName !== next.tagName)) {
-      current.replaceWith(next.cloneNode(true));
-      return;
-    }
-    if (current.nodeType === 3) {
-      if (current.nodeValue !== next.nodeValue) current.nodeValue = next.nodeValue;
-      return;
-    }
-    if (current.nodeType !== 1) return;
-    const currentElement = current;
-    const nextElement = next;
-    const currentAnimationKey = currentElement.getAttribute('data-mr-animation-key');
-    const nextAnimationKey = nextElement.getAttribute('data-mr-animation-key');
-    const animateClimber = currentElement.classList.contains('mr-climber') && currentAnimationKey !== nextAnimationKey;
-    const previousClimberRect = animateClimber ? currentElement.getBoundingClientRect() : null;
-    // MOUNTAIN_RACE_FLIP_MOTION_V42
-    for (const name of currentElement.getAttributeNames()) {
-      if (!nextElement.hasAttribute(name)) currentElement.removeAttribute(name);
-    }
-    for (const attribute of nextElement.attributes) {
-      if (currentElement.getAttribute(attribute.name) !== attribute.value) currentElement.setAttribute(attribute.name, attribute.value);
-    }
-    let index = 0;
-    while (index < nextElement.childNodes.length || index < currentElement.childNodes.length) {
-      const currentChild = currentElement.childNodes[index];
-      const nextChild = nextElement.childNodes[index];
-      if (!nextChild) {
-        currentChild.remove();
-        continue;
-      }
-      if (!currentChild) {
-        currentElement.append(nextChild.cloneNode(true));
-        index += 1;
-        continue;
-      }
-      morphMountainNode(currentChild, nextChild);
-      index += 1;
-    }
-    if (animateClimber && previousClimberRect && typeof currentElement.animate === 'function') {
-      const nextClimberRect = currentElement.getBoundingClientRect();
-      const deltaX = previousClimberRect.left - nextClimberRect.left;
-      const deltaY = previousClimberRect.top - nextClimberRect.top;
-      const slipping = currentElement.classList.contains('slip');
-      const celebrating = currentElement.classList.contains('celebrate');
-      const duration = celebrating ? 1050 : slipping ? 620 : 520;
-      currentElement.getAnimations().forEach(animation => animation.cancel());
-      const keyframes = slipping
-        ? [
-            { translate: deltaX + 'px ' + deltaY + 'px', rotate: '0deg', offset: 0 },
-            { translate: (deltaX + 8) + 'px ' + (deltaY * .52) + 'px', rotate: '6deg', offset: .48 },
-            { translate: '0px 0px', rotate: '0deg', offset: 1 }
-          ]
-        : [
-            { translate: deltaX + 'px ' + deltaY + 'px', offset: 0 },
-            { translate: (deltaX * .22) + 'px ' + (deltaY * .18 - 5) + 'px', offset: .76 },
-            { translate: '0px 0px', offset: 1 }
-          ];
-      const motion = currentElement.animate(keyframes, {
-        duration,
-        easing: 'cubic-bezier(.2,.72,.22,1)',
-        fill: 'both'
-      });
-      motion.addEventListener('finish', () => motion.cancel(), { once: true });
-      const frame = currentElement.querySelector('.mr-motion-frame-0');
-      if (frame) {
-        frame.style.animation = 'none';
-        void frame.offsetWidth;
-        frame.style.removeProperty('animation');
-      }
-    }
-  }
-
   function render() {
-      if (!runtime.root || !runtime.state) return;
-      const state = runtime.state;
-      const previousGameElement = runtime.root.querySelector(':scope > .mountain-race-game');
-      const nextGameMarkup = `
-        <div class="mountain-race-game" data-mode="${MODE}" data-status="${state.status}">
-          <header class="mr-titlebar">
-            <div><p>FIRST TO THE SUMMIT WINS</p><h2>SUMMIT SPRINT</h2></div>
-            <div class="mr-race-clock ${remainingSeconds(state) <= 7 && state.status === 'racing' ? 'urgent' : ''}" aria-label="Race time remaining">
-              <small>TIME</small><strong>${String(remainingSeconds(state)).padStart(2, '0')}</strong>
-            </div>
-          </header>
-          <main class="mr-race-stage">
-            ${renderLane(state, 'me')}
-            ${renderLane(state, 'opponent')}
-            <span class="mr-v51-center-rope" aria-hidden="true"><i></i></span>
-          </main>
+    if (!runtime.root || !runtime.state) return;
+    const state = runtime.state;
+    runtime.root.innerHTML = `
+      <div class="mountain-race-game" data-mode="${MODE}" data-status="${state.status}">
+        <header class="mr-titlebar">
+          <div>
+            <p>FIRST TO THE SUMMIT WINS</p>
+            <h2>SUMMIT SPRINT</h2>
+          </div>
+          <div class="mr-race-clock ${remainingSeconds(state) <= 7 && state.status === 'racing' ? 'urgent' : ''}" aria-label="Race time remaining">
+            <small>TIME</small>
+            <strong>${String(remainingSeconds(state)).padStart(2, '0')}</strong>
+          </div>
+        </header>
+
+        <main class="mr-race-stage">
+          ${renderLane(state, 'me')}
+          ${renderLane(state, 'opponent')}
+        </main>
+
         <section class="mr-command-deck" aria-label="Climbing controls">
-            <div class="mr-next-moves">
-              <span class="mr-prompt-label">YOUR NEXT MOVES</span>
-              <div class="mr-prompt-sequence">${renderPromptQueue(state)}</div>
-              <p class="mr-status ${escapeHtml(state.messageTone)}" data-mr-status>${escapeHtml(state.message)}</p>
-            </div>
-            <div class="mr-direction-pad" aria-label="Direction pad">
-              ${renderControlButton('up')}
-              ${renderControlButton('left')}
-              ${renderControlButton('down')}
-              ${renderControlButton('right')}
-            </div>
-          </section>
-          ${renderOverlay(state)}
-        </div>`;
-      const template = document.createElement('template');
-      template.innerHTML = nextGameMarkup.trim();
-      const nextGameElement = template.content.firstElementChild;
-      if (!nextGameElement) return;
-      if (previousGameElement) {
-        previousGameElement.className = nextGameElement.className;
-        for (const name of previousGameElement.getAttributeNames()) {
-          if (name !== 'class' && !nextGameElement.hasAttribute(name)) previousGameElement.removeAttribute(name);
-        }
-        for (const attribute of nextGameElement.attributes) {
-          if (attribute.name !== 'class') previousGameElement.setAttribute(attribute.name, attribute.value);
-        }
-        morphMountainNode(previousGameElement, nextGameElement);
-      } else {
-        runtime.root.append(nextGameElement);
-      }
-    }
+          <div class="mr-next-moves">
+            <span class="mr-prompt-label">YOUR NEXT MOVES</span>
+            <div class="mr-prompt-sequence">${renderPromptQueue(state)}</div>
+            <p class="mr-status ${escapeHtml(state.messageTone)}" data-mr-status>${escapeHtml(state.message)}</p>
+          </div>
+          <div class="mr-direction-pad" aria-label="Direction pad">
+            ${renderControlButton('up')}
+            ${renderControlButton('left')}
+            ${renderControlButton('down')}
+            ${renderControlButton('right')}
+          </div>
+        </section>
+
+        ${renderOverlay(state)}
+      </div>`;
+  }
 
   function announce(message, tone = 'neutral') {
     if (!runtime.state) return;
@@ -476,7 +381,7 @@
       player.promptIndex = Math.min(state.sequence.length, player.promptIndex + 1);
       player.acceptedInputs += 1;
       player.lastInput = { control: token, expected, correct: true, at: now };
-      setPlayerAnimation(playerKey, `climb-${token}`, 520);
+      setPlayerAnimation(playerKey, `climb-${token}`, 250);
       if (!isBot) {
         announce(`${promptName(token)} — clean move! Keep climbing.`, 'correct');
         navigator.vibrate?.(18);
@@ -490,7 +395,7 @@
       player.promptIndex = Math.max(0, player.promptIndex - 1);
       player.rejectedInputs += 1;
       player.lastInput = { control: token, expected, correct: false, at: now };
-      setPlayerAnimation(playerKey, 'slip', 620);
+      setPlayerAnimation(playerKey, 'slip', 420);
       if (!isBot) {
         announce(`${promptName(token)} was wrong. You slipped back one hold.`, 'wrong');
         navigator.vibrate?.([35, 35, 65]);
@@ -576,47 +481,6 @@
     if (!(root instanceof Element)) throw new TypeError('Summit Sprint requires a valid mount element.');
     unmount();
     runtime.root = root;
-    // MOUNTAIN_RACE_GENERATED_ASSETS_V29
-    root.setAttribute('data-mountain-race-mount', '');
-    root.dataset.mrProfessionalRebuild = '27';
-    root.dataset.mrGeneratedAssets = '29';
-    root.dataset.mrVisualReboot = '44';
-    root.dataset.mrContactLedges = '45';
-    root.dataset.mrRuggedTerrain = '46';
-    root.dataset.mrFinishStability = '47';
-    root.dataset.mrNaturalTerrain = '49';
-    root.dataset.mrSummitContact = '50';
-    root.dataset.mrSharedMountain = '51';
-    root.dataset.mrWinnerSummit = '52';
-    root.dataset.mrWinnerCamera = '53';
-    root.dataset.mrGroundedAscent = '54';
-    root.dataset.mrRouteClarity = '55';
-    root.dataset.mrNaturalSummit = '56';
-    root.dataset.mrCelebrationContact = '57';
-    root.dataset.mrSummitSky = '58';
-    root.dataset.mrContinuousSummit = '59';
-    root.dataset.mrNaturalWorld = '60';
-    root.dataset.mrGroundedWorld = '61';
-    root.dataset.mrContinuousScenery = '62';
-    root.dataset.mrUnifiedScene = '63';
-    // MOUNTAIN_RACE_UNIFIED_SCENE_V63
-    // MOUNTAIN_RACE_CONTINUOUS_SCENERY_V62
-    // MOUNTAIN_RACE_GROUNDED_WORLD_V61
-    // MOUNTAIN_RACE_NATURAL_WORLD_V60
-    // MOUNTAIN_RACE_CONTINUOUS_SUMMIT_V59
-    // MOUNTAIN_RACE_SUMMIT_SKY_V58
-    // MOUNTAIN_RACE_CELEBRATION_CONTACT_V57
-    // MOUNTAIN_RACE_NATURAL_SUMMIT_V56
-    // MOUNTAIN_RACE_ROUTE_CLARITY_V55
-    // MOUNTAIN_RACE_GROUNDED_ASCENT_V54
-    // MOUNTAIN_RACE_WINNER_CAMERA_V53
-    // MOUNTAIN_RACE_WINNER_SUMMIT_V52
-    // MOUNTAIN_RACE_SHARED_MOUNTAIN_V51
-    // MOUNTAIN_RACE_SUMMIT_CONTACT_V50
-    // MOUNTAIN_RACE_NATURAL_TERRAIN_V49
-    // MOUNTAIN_RACE_VISUAL_REBOOT_V44
-    // MOUNTAIN_RACE_CONTACT_LEDGES_V45
-    // MOUNTAIN_RACE_RUGGED_TERRAIN_V46
     runtime.state = options.state || createPrototypeState();
     runtime.mounted = true;
     runtime.onPointerDown = onPointerDown;
