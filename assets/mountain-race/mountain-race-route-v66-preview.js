@@ -3,20 +3,20 @@
   if (!review) return;
 
   const ROUTE_WIDTH = 1024;
-  const GROUND_Y = 3780;
+  const GROUND_Y = 3493;
   const HOLD_COUNT = 30;
   const directions = ['right', 'up', 'left', 'left', 'down', 'right', 'up', 'right'];
   const stateName = new URLSearchParams(location.search).get('state') || 'start';
   const states = {
     start: { progress: [0, 0], time: '30', label: 'START · ARMS DOWN' },
     middle: { progress: [12, 18], time: '17', label: 'MID-RACE · INDEPENDENT CAMERAS' },
-    summit: { progress: [30, 21], time: '06', label: 'SUMMIT · FINAL LEDGE IS THE STAND SURFACE', winner: 0 },
+    summit: { progress: [30, 21], time: '06', label: 'SUMMIT · NATURAL PEAK STAND SURFACE', winner: 0 },
   };
   const state = states[stateName] || states.start;
   const rootStyle = getComputedStyle(document.documentElement);
   const holds = Array.from({ length: HOLD_COUNT }, (_, index) => ({
-    x: parseFloat(rootStyle.getPropertyValue(`--mr-v67-hold-${index}-x`)) / 100 * ROUTE_WIDTH,
-    y: parseFloat(rootStyle.getPropertyValue(`--mr-v67-hold-${index}-y`)),
+    x: parseFloat(rootStyle.getPropertyValue(`--mr-v68-hold-${index}-x`)) / 100 * ROUTE_WIDTH,
+    y: parseFloat(rootStyle.getPropertyValue(`--mr-v68-hold-${index}-y`)),
   }));
 
   document.querySelector('[data-v66-time]').textContent = state.time;
@@ -39,7 +39,7 @@
     const progress = state.progress[laneIndex];
     const laneWidth = lane.clientWidth;
     const laneHeight = lane.clientHeight;
-    const routeWidth = innerWidth <= 640 ? 560 : Math.max(640, laneWidth * 1.12);
+    const routeWidth = innerWidth <= 640 ? 620 : Math.max(720, laneWidth * 1.22);
     const scale = routeWidth / ROUTE_WIDTH;
     let routeTop;
     let contact;
