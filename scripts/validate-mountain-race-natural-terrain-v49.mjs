@@ -44,7 +44,9 @@ for (const source of [runtime, prototype]) {
   ]) assert(source.includes(token), `runtime token missing: ${token}`);
 }
 
-const v49Css = css.slice(css.indexOf('MOUNTAIN_RACE_NATURAL_TERRAIN_V49'));
+const v49Start = css.indexOf('MOUNTAIN_RACE_NATURAL_TERRAIN_V49');
+const nextVersionMarker = css.indexOf('/* MOUNTAIN_RACE_', v49Start + 1);
+const v49Css = css.slice(v49Start, nextVersionMarker < 0 ? undefined : nextVersionMarker);
 for (const token of [
   'summit-sprint-natural-cliff-v49.png',
   'summit-sprint-natural-outcrop-1-v49.png',
