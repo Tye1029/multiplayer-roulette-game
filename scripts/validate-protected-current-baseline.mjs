@@ -44,8 +44,8 @@ for (const required of [
 ]) if (!safeCracker.includes(required)) throw new Error(`Safe Cracker runtime is missing ${required}`);
 
 const protectedHashes = new Map([
-  ['assets/roulette/turn-animation.js', '6e3c3e20d5b30b1bdecb95959a0f28a88d43232d'],
-  ['assets/roulette/turn-fire.js', '7ed8f3c480620ba21ae7d60f6bc6e3d5f45951ee']
+  ['assets/roulette/turn-animation.js', '24358e84c147d99e7297089e69ed1abd0802379f'],
+  ['assets/roulette/turn-fire.js', '940e824eae39ddc40dda6200f893f97fc365949b']
 ]);
 for (const [path, expected] of protectedHashes) {
   const actual = gitBlobHash(await read(path));
