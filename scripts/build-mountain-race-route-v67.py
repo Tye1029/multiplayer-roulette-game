@@ -14,10 +14,10 @@ OUTPUT = IMAGES / "summit-sprint-unified-route-v67.png"
 MANIFEST = IMAGES / "summit-sprint-unified-route-v67.css"
 
 WIDTH = 1024
-HEIGHT = 3072
-GROUND_Y = 2760
-FIRST_HOLD_Y = 2515
-SUMMIT_Y = 154
+HEIGHT = 4096
+GROUND_Y = 3780
+FIRST_HOLD_Y = 3500
+SUMMIT_Y = 190
 HOLD_COUNT = 30
 HOLD_X = [438, 586, 468, 610, 422, 560, 482, 604, 444, 574]
 
@@ -52,16 +52,14 @@ def contact_shadow(image: Image.Image, blur: int = 7, opacity: int = 94) -> Imag
 def build_base_route() -> Image.Image:
     source = clean_alpha(Image.open(SOURCE), 2)
 
-    # One geometric operation only: take a tall central 1:3 crop and enlarge it
-    # uniformly by exactly 2x. There are no repeats, stitched sections, vertical
-    # stretching, fades, or generated filler bands anywhere in this route.
-    crop_width = source.height // 3
+    # One geometric operation only: a single continuous crop is scaled
+    # uniformly into the full route. This
+    # keeps the geology coherent while making room for 30 holds at the former
+    # visual spacing without stitched, repeated, or faded mountain sections.
+    crop_width = round(source.height * WIDTH / HEIGHT)
     left = (source.width - crop_width) // 2
     central = source.crop((left, 0, left + crop_width, source.height))
-    if central.width * 2 != WIDTH or central.height * 2 != HEIGHT:
-        central = central.resize((WIDTH, HEIGHT), Image.Resampling.LANCZOS)
-    else:
-        central = central.resize((WIDTH, HEIGHT), Image.Resampling.LANCZOS)
+    central = central.resize((WIDTH, HEIGHT), Image.Resampling.LANCZOS)
 
     central = ImageEnhance.Contrast(central).enhance(1.05)
     central = ImageEnhance.Sharpness(central).enhance(1.12)

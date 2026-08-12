@@ -3,7 +3,7 @@
   if (!review) return;
 
   const ROUTE_WIDTH = 1024;
-  const GROUND_Y = 2760;
+  const GROUND_Y = 3780;
   const HOLD_COUNT = 30;
   const directions = ['right', 'up', 'left', 'left', 'down', 'right', 'up', 'right'];
   const stateName = new URLSearchParams(location.search).get('state') || 'start';
@@ -86,16 +86,23 @@
     const climber = lane.querySelector('.v66-climber');
     const climberWidth = parseFloat(getComputedStyle(climber).width);
     const climberHeight = parseFloat(getComputedStyle(climber).height);
+    // The transparent sprite sheets include a small margin below the boots.
+    // Offset that margin so the visible soles—not the image box—touch rock.
+    const visibleBottomOffset = progress === 0
+      ? climberHeight * (56 / 1024)
+      : progress >= HOLD_COUNT
+        ? climberHeight * (67 / 1024)
+        : 0;
     climber.className = `v66-climber ${laneIndex === 0 ? 'v66-climber-you' : 'v66-climber-opponent'}`;
 
     if (progress === 0) {
       climber.classList.add('waiting');
       climber.style.left = `${laneWidth / 2 - climberWidth / 2}px`;
-      climber.style.top = `${contactScreenY - climberHeight}px`;
+      climber.style.top = `${contactScreenY - climberHeight + visibleBottomOffset}px`;
     } else if (progress >= HOLD_COUNT) {
       climber.classList.add('celebrating');
       climber.style.left = `${routeX(contact.x) - climberWidth / 2}px`;
-      climber.style.top = `${routeY(contact.y) - climberHeight}px`;
+      climber.style.top = `${routeY(contact.y) - climberHeight + visibleBottomOffset}px`;
     } else {
       const previous = progress > 1 ? holds[progress - 2] : { x: ROUTE_WIDTH / 2 };
       const directionLeft = contact.x < previous.x;
