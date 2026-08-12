@@ -102,8 +102,17 @@ def assemble_native_mountain(source: Image.Image) -> Image.Image:
     bottom_height = min(540, source.height)
     bottom = source.crop((0, source.height - bottom_height, WIDTH, source.height))
     bottom = bottom.resize((WIDTH, 800), Image.Resampling.LANCZOS)
-    bottom.putalpha(Image.new("L", bottom.size, 255))
+    bottom = feather_segment(bottom, 220, 0)
     assembled.alpha_composite(bottom, (0, HEIGHT - bottom.height))
+
+    # Only the low area which sits behind the translucent control deck needs a
+    # fully opaque fill. Keeping it below the climbers avoids any visible seam
+    # through the route while still guaranteeing that sky can never appear
+    # beneath the start UI.
+    ui_fill = source.crop((0, source.height - 320, WIDTH, source.height))
+    ui_fill = ui_fill.resize((WIDTH, 360), Image.Resampling.LANCZOS)
+    ui_fill.putalpha(Image.new("L", ui_fill.size, 255))
+    assembled.alpha_composite(ui_fill, (0, HEIGHT - ui_fill.height))
     return assembled
 
 
