@@ -1,0 +1,21 @@
+name: Summit Sprint V28 Source Diagnostic
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose-v28-sources:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+      - name: Use Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Diagnose V28 source groups
+        run: node scripts/diagnose-mountain-race-v28-sources.mjs

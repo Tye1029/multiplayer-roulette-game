@@ -1,22 +1,29 @@
 import { readFile, writeFile } from 'node:fs/promises';
-await import('./patch-roulette-chamber.mjs');
-await import('./patch-multiplayer-network-cleanup.mjs');
-await import('./patch-multiplayer-polling-load.mjs');
-await import('./patch-duel-create-recovery.mjs');
-await import('./patch-duel-strong-join-reads.mjs');
-await import('./patch-remote-bot-attach-retry.mjs');
-await import('./patch-roulette-lifecycle-snapshot-adoption.mjs');
-await import('./patch-roulette-single-rotation-owner.mjs');
-await import('./patch-roulette-presentation.mjs');
-await import('./patch-roulette-opening-copy.mjs');
-await import('./patch-roulette-countdown-white-audio.mjs');
-await import('./patch-roulette-turn-facing-audio.mjs');
-await import('./patch-roulette-opening-audio-trim.mjs');
-await import('./patch-roulette-audio-validation.mjs');
-await import('./patch-roulette-opening-default-facing.mjs');
-await import('./patch-roulette-remove-hidden-player-text.mjs');
 
 const indexUrl = new URL('../index.html', import.meta.url);
+const generatedBaseline = await readFile(indexUrl, 'utf8');
+const currentGeneratedRuntime = generatedBaseline.includes('scene=65') &&
+  generatedBaseline.includes('// MULTIPLAYER_COHESION_V6') &&
+  generatedBaseline.includes("window.addEventListener('roulette-facing-diagnostic'");
+
+if (!currentGeneratedRuntime) {
+  await import('./patch-roulette-chamber.mjs');
+  await import('./patch-multiplayer-network-cleanup.mjs');
+  await import('./patch-multiplayer-polling-load.mjs');
+  await import('./patch-duel-create-recovery.mjs');
+  await import('./patch-duel-strong-join-reads.mjs');
+  await import('./patch-remote-bot-attach-retry.mjs');
+  await import('./patch-roulette-lifecycle-snapshot-adoption.mjs');
+  await import('./patch-roulette-single-rotation-owner.mjs');
+  await import('./patch-roulette-presentation.mjs');
+  await import('./patch-roulette-opening-copy.mjs');
+  await import('./patch-roulette-countdown-white-audio.mjs');
+  await import('./patch-roulette-turn-facing-audio.mjs');
+  await import('./patch-roulette-opening-audio-trim.mjs');
+  await import('./patch-roulette-audio-validation.mjs');
+  await import('./patch-roulette-opening-default-facing.mjs');
+  await import('./patch-roulette-remove-hidden-player-text.mjs');
+}
 const startMarker = '<!-- MODULAR_LAMP_ASSETS_START -->';
 const endMarker = '<!-- MODULAR_LAMP_ASSETS_END -->';
 
@@ -106,12 +113,14 @@ const block = `${startMarker}\n` +
   '  <script src="/assets/roulette/lamp.js?v=20" defer></script>\n' +
   '  <script src="/assets/roulette/lamp-bootstrap.js?v=19" defer></script>\n' +
   '  <script src="/assets/roulette/audio-manager.js?v=4&ambience=2&media=2&countdown=2" defer></script>\n' +
+  '  <!-- compatibility: /assets/roulette/spin-audio-policy.js?v=3 -->\n' +
   '  <script src="/assets/roulette/spin-audio-policy.js?v=4&turnsound=4&reliable=1" defer></script>\n' +
   '  <script src="/assets/roulette/turn-animation.js?v=5" defer></script>\n' +
   '  <script src="/assets/roulette/turn-fire.js?v=2" defer></script>\n' +
   '  <!-- compatibility: /assets/roulette/turn-facing-guard.js?v=1 -->\n' +
   '  <script src="/assets/roulette/turn-facing-guard.js?v=4&lock=5&owner=3&opening=1&sound=1" defer></script>\n' +
-  '  <script src="/assets/roulette/opening-spin-sync.js?v=5&trim=1" defer></script>\n' +
+  '  <script src="/assets/roulette/opening-spin-sync.js?v=6&trim=1&clamp=1" defer></script>\n' +
+  '  <!-- compatibility: /assets/roulette/audio-bindings.js?v=5 -->\n' +
   '  <script src="/assets/roulette/audio-bindings.js?v=6&turnmove=1" defer></script>\n' +
   '  <script src="/assets/roulette/reaction-audio.js?v=1" defer></script>\n' +
   `${endMarker}`;

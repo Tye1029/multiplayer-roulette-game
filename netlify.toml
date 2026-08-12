@@ -1,3 +1,4 @@
+# Summit Sprint preview redeploy marker: generated-assets-v29
 [build]
   command = "npm run build"
   publish = "."
