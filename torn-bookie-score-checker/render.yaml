@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: torn-bookie-score-tracker
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    autoDeploy: true
