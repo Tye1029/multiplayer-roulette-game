@@ -80,7 +80,8 @@ assert(client.includes('Math.trunc(displayedIndex) !== currentIndex'), 'a tap fr
 assert(client.includes('displayedExpected !== currentExpected'), 'a tap against an old displayed arrow can still be scored');
 assert(client.includes('No mistake counted'), 'stale visual taps do not explain that they are harmless');
 assert(html.includes('<!-- MOUNTAIN_RACE_INPUT_REBASE_V8 -->'), 'deployment marker is missing');
-assert(html.includes('mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=8'), 'V8 cache boundary is missing');
+assert(html.includes('mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=8') ||
+  html.includes('mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=11'), 'V8-or-newer cache boundary is missing');
 
 const runtime = { inputQueue: [] };
 const sandbox = {
