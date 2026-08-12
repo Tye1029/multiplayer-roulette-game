@@ -62,12 +62,14 @@ html = replaceOnce(
           duelLastLobbyFetchAt = Date.now();`
 );
 
-html = replaceOnce(
-  html,
-  'the idle lobby poll rate',
-  `const desired = sharedLifecycleLive ? 200 : drawPlaying ? 650 : rouletteLive ? 800 : fishingLive ? 450 : completedAwaitingRematch ? 700 : noFocusedGame ? 750 : 1800;`,
-  `const desired = sharedLifecycleLive ? 200 : drawPlaying ? 650 : rouletteLive ? 800 : fishingLive ? 450 : completedAwaitingRematch ? 700 : noFocusedGame ? 2000 : 1800;`
-);
+if (!html.includes('// MULTIPLAYER_COHESION_V6') || !html.includes('noFocusedGame ? 2000 : 1800')) {
+  html = replaceOnce(
+    html,
+    'the idle lobby poll rate',
+    `const desired = sharedLifecycleLive ? 200 : drawPlaying ? 650 : rouletteLive ? 800 : fishingLive ? 450 : completedAwaitingRematch ? 700 : noFocusedGame ? 750 : 1800;`,
+    `const desired = sharedLifecycleLive ? 200 : drawPlaying ? 650 : rouletteLive ? 800 : fishingLive ? 450 : completedAwaitingRematch ? 700 : noFocusedGame ? 2000 : 1800;`
+  );
+}
 
 html = replaceOnce(
   html,
