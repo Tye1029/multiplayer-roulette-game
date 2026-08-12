@@ -3,7 +3,7 @@
   if (!review) return;
 
   const ROUTE_WIDTH = 1024;
-  const GROUND_Y = 3493;
+  const GROUND_Y = 3653;
   const HOLD_COUNT = 30;
   const directions = ['right', 'up', 'left', 'left', 'down', 'right', 'up', 'right'];
   const stateName = new URLSearchParams(location.search).get('state') || 'start';

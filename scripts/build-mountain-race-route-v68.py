@@ -3,6 +3,8 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+from collections import deque
+
 from PIL import Image, ImageEnhance, ImageFilter
 
 
@@ -18,7 +20,7 @@ CROP_LEFT = 320
 CROP_RIGHT = 704
 OUTPUT_WIDTH = 1024
 OUTPUT_HEIGHT = 4096
-GROUND_SOURCE_Y = 1310
+GROUND_SOURCE_Y = 1370
 
 # These coordinates sit on the visible top plane or inner lip of the painted
 # geology. Nothing is composited over the approved illustration.
@@ -40,6 +42,54 @@ def route_y(source_y: int) -> int:
     return round(source_y * OUTPUT_HEIGHT / SOURCE_HEIGHT)
 
 
+def clear_connected_sky(route: Image.Image) -> Image.Image:
+    """Expose only the border-connected blue sky for the moving CSS clouds."""
+    rgb = route.convert("RGB")
+    width, height = rgb.size
+    pixels = rgb.load()
+    sky = bytearray(width * height)
+    queue: deque[tuple[int, int]] = deque()
+
+    def qualifies(x: int, y: int) -> bool:
+        red, green, blue = pixels[x, y]
+        return blue > 145 and blue - red > 42 and blue - green > 12
+
+    def enqueue(x: int, y: int) -> None:
+        offset = y * width + x
+        if not sky[offset] and qualifies(x, y):
+            sky[offset] = 1
+            queue.append((x, y))
+
+    for x in range(width):
+        enqueue(x, 0)
+    for y in range(height):
+        enqueue(0, y)
+        enqueue(width - 1, y)
+
+    while queue:
+        x, y = queue.popleft()
+        if x:
+            enqueue(x - 1, y)
+        if x + 1 < width:
+            enqueue(x + 1, y)
+        if y:
+            enqueue(x, y - 1)
+        if y + 1 < height:
+            enqueue(x, y + 1)
+
+    alpha = Image.new("L", (width, height), 255)
+    alpha_pixels = alpha.load()
+    for y in range(height):
+        row = y * width
+        for x in range(width):
+            if sky[row + x]:
+                alpha_pixels[x, y] = 0
+    alpha = alpha.filter(ImageFilter.GaussianBlur(.65))
+    rgba = rgb.convert("RGBA")
+    rgba.putalpha(alpha)
+    return rgba
+
+
 def build() -> None:
     if not SOURCE.exists():
         raise FileNotFoundError(SOURCE)
@@ -54,6 +104,7 @@ def build() -> None:
     route = route.resize((OUTPUT_WIDTH, OUTPUT_HEIGHT), Image.Resampling.LANCZOS)
     route = route.filter(ImageFilter.UnsharpMask(radius=1.15, percent=72, threshold=3))
     route = ImageEnhance.Contrast(route).enhance(1.025)
+    route = clear_connected_sky(route)
     route.save(OUTPUT, optimize=True)
 
     rows: list[str] = []
