@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: torn-bookie-score-tracker
+    runtime: docker
+    plan: free
+    repo: https://github.com/Tye1029/multiplayer-roulette-game
+    branch: torn-bookie-score-checker
+    rootDir: torn-bookie-score-checker
+    healthCheckPath: /health
+    autoDeployTrigger: commit
