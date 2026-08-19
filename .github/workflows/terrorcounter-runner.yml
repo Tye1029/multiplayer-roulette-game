@@ -19,7 +19,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cat chatgpt-build/source.b64.part* | tr -d '[:space:]' | base64 -d > chatgpt-build/TerrorCounter.as
+          tr -d '[:space:]' < chatgpt-build/TerrorCounter.as.gz.b64 | base64 -d | gzip -dc > chatgpt-build/TerrorCounter.as
           echo '46cc541f338f4b249da0f4363d919ee509f970c3c7829dd5c4f92b577c7ba743  chatgpt-build/TerrorCounter.as' | sha256sum -c -
 
       - name: Install Apache Flex compiler
