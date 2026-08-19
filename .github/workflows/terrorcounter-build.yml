@@ -1,0 +1,120 @@
+name: Build TerrorCounter BA2
+
+on:
+  push:
+    branches:
+      - chatgpt/terrorcounter-build
+    paths:
+      - '.github/workflows/terrorcounter-build.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Materialize verified ActionScript source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p chatgpt-build
+          cat > /tmp/TerrorCounter.as.gz.b64 <<'B64'
+          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
+          B64
+          tr -d '[:space:]' < /tmp/TerrorCounter.as.gz.b64 | base64 -d | gzip -dc > chatgpt-build/TerrorCounter.as
+          echo '46cc541f338f4b249da0f4363d919ee509f970c3c7829dd5c4f92b577c7ba743  chatgpt-build/TerrorCounter.as' | sha256sum -c -
+          wc -c chatgpt-build/TerrorCounter.as
+
+      - name: Download Apache Flex 4.16.1
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fL --retry 4 --retry-delay 2 \
+            -o /tmp/flex.tar.gz \
+            https://archive.apache.org/dist/flex/4.16.1/binaries/apache-flex-sdk-4.16.1-bin.tar.gz
+          mkdir -p "$RUNNER_TEMP/flex"
+          tar -xzf /tmp/flex.tar.gz -C "$RUNNER_TEMP/flex" --strip-components=1
+          chmod +x "$RUNNER_TEMP/flex/bin/mxmlc"
+
+      - name: Install Flash 11.1 playerglobal compile stubs
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 https://github.com/nexussays/playerglobal.git "$RUNNER_TEMP/playerglobal"
+          mkdir -p "$RUNNER_TEMP/flex/frameworks/libs/player/11.1"
+          cp "$RUNNER_TEMP/playerglobal/11.1/playerglobal.swc" \
+             "$RUNNER_TEMP/flex/frameworks/libs/player/11.1/playerglobal.swc"
+
+      - name: Compile TerrorCounter.swf
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/package/Interface
+          export FLEX_HOME="$RUNNER_TEMP/flex"
+          "$FLEX_HOME/bin/mxmlc" \
+            -target-player=11.1 \
+            -swf-version=14 \
+            -default-size=1920,1080 \
+            -debug=false \
+            -optimize=true \
+            -static-link-runtime-shared-libraries=true \
+            -output="$GITHUB_WORKSPACE/build/package/Interface/TerrorCounter.swf" \
+            "$GITHUB_WORKSPACE/chatgpt-build/TerrorCounter.as"
+          test -s build/package/Interface/TerrorCounter.swf
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('build/package/Interface/TerrorCounter.swf')
+          magic = p.read_bytes()[:3]
+          assert magic in (b'FWS', b'CWS', b'ZWS'), f'Unexpected SWF magic: {magic!r}'
+          print('SWF bytes:', p.stat().st_size, 'magic:', magic.decode('ascii'))
+          PY
+
+      - name: Build BA2 packer
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc --version
+          cargo install --git https://github.com/DreamWeave-MP/dream_archivetool.git \
+            --locked --root "$RUNNER_TEMP/dream-tools"
+          "$RUNNER_TEMP/dream-tools/bin/dream_archivetool" --help >/dev/null
+
+      - name: Package and verify TerrorCounter.ba2
+        shell: bash
+        run: |
+          set -euo pipefail
+          TOOL="$RUNNER_TEMP/dream-tools/bin/dream_archivetool"
+          "$TOOL" create \
+            build/TerrorCounter.ba2 \
+            build/package \
+            --format ba2 \
+            --ba2-kind gnrl \
+            --ba2-version fallout4
+          test -s build/TerrorCounter.ba2
+          "$TOOL" list --long build/TerrorCounter.ba2 | tee build/ba2-list.txt
+          "$TOOL" verify build/TerrorCounter.ba2 --read-payloads --json | tee build/ba2-verify.json
+          grep -Eqi 'interface[/\\]terrorcounter\.swf' build/ba2-list.txt
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('build/TerrorCounter.ba2')
+          magic = p.read_bytes()[:4]
+          assert magic == b'BTDX', f'Unexpected BA2 magic: {magic!r}'
+          print('BA2 bytes:', p.stat().st_size, 'magic:', magic.decode('ascii'))
+          PY
+          sha256sum build/TerrorCounter.ba2 | tee build/TerrorCounter.ba2.sha256.txt
+
+      - name: Upload finished BA2
+        uses: actions/upload-artifact@v4
+        with:
+          name: TerrorCounter-BA2
+          path: |
+            build/TerrorCounter.ba2
+            build/TerrorCounter.ba2.sha256.txt
+            build/ba2-list.txt
+            build/ba2-verify.json
+          if-no-files-found: error
+          retention-days: 1
