@@ -1,0 +1,1 @@
+Trigger observable TerrorCounter build after workflow activation on main.
