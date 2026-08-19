@@ -1,0 +1,94 @@
+name: Temporary TerrorCounter Build Runner
+
+on:
+  pull_request:
+    branches:
+      - chatgpt/terrorcounter-runner
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Reconstruct and verify ActionScript source
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat chatgpt-build/source.b64.part* | tr -d '[:space:]' | base64 -d > chatgpt-build/TerrorCounter.as
+          echo '46cc541f338f4b249da0f4363d919ee509f970c3c7829dd5c4f92b577c7ba743  chatgpt-build/TerrorCounter.as' | sha256sum -c -
+
+      - name: Install Apache Flex compiler
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fL --retry 4 --retry-delay 2 -o /tmp/flex.tar.gz https://archive.apache.org/dist/flex/4.16.1/binaries/apache-flex-sdk-4.16.1-bin.tar.gz
+          mkdir -p "$RUNNER_TEMP/flex"
+          tar -xzf /tmp/flex.tar.gz -C "$RUNNER_TEMP/flex" --strip-components=1
+          chmod +x "$RUNNER_TEMP/flex/bin/mxmlc"
+          git clone --depth 1 https://github.com/nexussays/playerglobal.git "$RUNNER_TEMP/playerglobal"
+          mkdir -p "$RUNNER_TEMP/flex/frameworks/libs/player/11.1"
+          cp "$RUNNER_TEMP/playerglobal/11.1/playerglobal.swc" "$RUNNER_TEMP/flex/frameworks/libs/player/11.1/playerglobal.swc"
+
+      - name: Compile TerrorCounter SWF
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/package/Interface
+          export FLEX_HOME="$RUNNER_TEMP/flex"
+          "$FLEX_HOME/bin/mxmlc" \
+            -target-player=11.1 \
+            -swf-version=14 \
+            -default-size=1920,1080 \
+            -debug=false \
+            -optimize=true \
+            -static-link-runtime-shared-libraries=true \
+            -output="$GITHUB_WORKSPACE/build/package/Interface/TerrorCounter.swf" \
+            "$GITHUB_WORKSPACE/chatgpt-build/TerrorCounter.as"
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('build/package/Interface/TerrorCounter.swf')
+          assert p.exists() and p.stat().st_size > 0
+          assert p.read_bytes()[:3] in (b'FWS', b'CWS', b'ZWS')
+          print('valid SWF', p.stat().st_size, p.read_bytes()[:3])
+          PY
+
+      - name: Install BA2 archive tool
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo install --git https://github.com/DreamWeave-MP/dream_archivetool.git --locked --root "$RUNNER_TEMP/dream-tools"
+
+      - name: Package and verify TerrorCounter BA2
+        shell: bash
+        run: |
+          set -euo pipefail
+          TOOL="$RUNNER_TEMP/dream-tools/bin/dream_archivetool"
+          "$TOOL" create build/TerrorCounter.ba2 build/package --format ba2 --ba2-kind gnrl --ba2-version fallout4
+          "$TOOL" list --long build/TerrorCounter.ba2 | tee build/ba2-list.txt
+          "$TOOL" verify build/TerrorCounter.ba2 --read-payloads --json | tee build/ba2-verify.json
+          grep -Eqi 'interface[/\\]terrorcounter\.swf' build/ba2-list.txt
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('build/TerrorCounter.ba2')
+          assert p.exists() and p.stat().st_size > 0
+          assert p.read_bytes()[:4] == b'BTDX'
+          print('valid BA2', p.stat().st_size, p.read_bytes()[:4])
+          PY
+          sha256sum build/TerrorCounter.ba2 | tee build/TerrorCounter.ba2.sha256.txt
+
+      - name: Upload finished BA2
+        uses: actions/upload-artifact@v4
+        with:
+          name: TerrorCounter-BA2
+          path: |
+            build/TerrorCounter.ba2
+            build/TerrorCounter.ba2.sha256.txt
+            build/ba2-list.txt
+            build/ba2-verify.json
+          if-no-files-found: error
+          retention-days: 1
