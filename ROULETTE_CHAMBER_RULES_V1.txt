@@ -1,0 +1,13 @@
+Authoritative six-chamber Russian Roulette rules
+
+- Every new game creates one independent server-side chamber cycle.
+- The live round position is selected with crypto.randomInt(1, 7), giving positions 1 through 6 equal probability.
+- bulletPosition stores the original loaded position for the complete chamber cycle.
+- remaining starts at bulletPosition and decreases by exactly one after each accepted blank shot.
+- The live round fires only when remaining equals 1.
+- Pulling the trigger never rerolls or replaces the chamber cycle.
+- Passing the turn never rerolls or replaces the chamber cycle.
+- Only an accepted Spin action creates a new random 1-through-6 chamber cycle.
+- Spin remains limited to one accepted use per player per game.
+- Hidden chamber fields are never returned to either player.
+- Independent random games may legitimately repeat the same position, including position 1.

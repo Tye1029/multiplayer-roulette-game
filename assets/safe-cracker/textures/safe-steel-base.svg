@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" preserveAspectRatio="none">
+  <defs>
+    <linearGradient id="steelTone" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#2c353a"/>
+      <stop offset=".18" stop-color="#748087"/>
+      <stop offset=".34" stop-color="#3d484e"/>
+      <stop offset=".57" stop-color="#69757c"/>
+      <stop offset=".78" stop-color="#30393e"/>
+      <stop offset="1" stop-color="#59656b"/>
+    </linearGradient>
+    <filter id="brush" x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency=".82 .012" numOctaves="3" seed="37" stitchTiles="stitch" result="grain"/>
+      <feColorMatrix in="grain" values=".62 0 0 0 .08  0 .68 0 0 .1  0 0 .72 0 .12  0 0 0 .54 0" result="tinted"/>
+      <feGaussianBlur in="tinted" stdDeviation=".18 2.8" result="streaks"/>
+      <feBlend in="SourceGraphic" in2="streaks" mode="soft-light"/>
+    </filter>
+    <radialGradient id="rubA" cx="26%" cy="18%" rx="38%" ry="23%">
+      <stop offset="0" stop-color="#e4ecef" stop-opacity=".2"/>
+      <stop offset="1" stop-color="#d4dde0" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="rubB" cx="74%" cy="82%" rx="44%" ry="30%">
+      <stop offset="0" stop-color="#050708" stop-opacity=".22"/>
+      <stop offset="1" stop-color="#050708" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#steelTone)" filter="url(#brush)"/>
+  <rect width="512" height="512" fill="url(#rubA)"/>
+  <rect width="512" height="512" fill="url(#rubB)"/>
+  <g fill="none" stroke-linecap="round">
+    <path d="M74 0v512M188 0v512M331 0v512M448 0v512" stroke="#eef4f5" stroke-opacity=".055" stroke-width="2"/>
+    <path d="M92 0v512M307 0v512M421 0v512" stroke="#050708" stroke-opacity=".065" stroke-width="3"/>
+  </g>
+</svg>

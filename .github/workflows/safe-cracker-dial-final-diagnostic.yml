@@ -1,0 +1,110 @@
+name: Safe Cracker Dial Final Diagnostic
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - safe-cracker-development
+
+permissions:
+  contents: read
+
+jobs:
+  dial-final:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+
+      - name: Use Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run exact Netlify build command
+        run: npm run build
+
+      - name: Verify generated final dial refinement
+        shell: bash
+        run: |
+          set -euo pipefail
+          block="$(sed -n '/SAFE_CRACKER_DIAL_LAYOUT_V3_START/,/SAFE_CRACKER_DIAL_LAYOUT_V3_END/p' assets/safe-cracker/safe-cracker.css)"
+          grep -Fq -- '--radius: 91px' <<<"$block"
+          grep -Fq 'top: -46px' <<<"$block"
+          grep -Fq 'top: -38px' <<<"$block"
+          grep -Fq 'border: 3px solid #050708 !important' <<<"$block"
+          grep -Fq 'border-bottom-color: #050708 !important' <<<"$block"
+          grep -Fq 'background: linear-gradient(180deg,' <<<"$block"
+          grep -Fq '#e2e8ea 0%' <<<"$block"
+          grep -Fq '#68757b 100%' <<<"$block"
+          grep -Fq 'color: #ddb362' <<<"$block"
+          grep -Fq -- '-1px -1px 0 #050708' <<<"$block"
+          grep -Fq '1px 1px 0 #050708' <<<"$block"
+          grep -Fq '0 7px 0 #050708' <<<"$block"
+          grep -Fq '.safe-cracker-game .sc-confirm-button:active' <<<"$block"
+          grep -Fq 'transform: translateY(4px) !important' <<<"$block"
+          grep -Fq '0 3px 0 #050708' <<<"$block"
+          ! grep -Fq '0 7px 0 #030506' <<<"$block"
+          ! grep -Fq '0 7px 0 #4d3010' <<<"$block"
+          ! grep -Fq '#855515' <<<"$block"
+          ! grep -Fq '#c98b29' <<<"$block"
+          grep -Fq "function safeCrackerUpdateConfirmControl()" assets/safe-cracker/safe-cracker.js
+          grep -Fq "? 'CHECK NUMBER'" assets/safe-cracker/safe-cracker.js
+          ! grep -Fiq 'RESETTING' assets/safe-cracker/safe-cracker.js
+          grep -Fq '/assets/safe-cracker/textures/dial-reference-face-v7.svg?dial=7&layout=7' assets/safe-cracker/safe-cracker.js
+          grep -Fq '&dial=7&layout=7' index.html
+
+      - name: Verify live Netlify final dial refinement
+        shell: bash
+        run: |
+          set -euo pipefail
+          url='https://deploy-preview-19--famous-piroshki-b621da.netlify.app/'
+          function_url="${url}.netlify/functions/duel-action"
+
+          for attempt in $(seq 1 42); do
+            html="$(curl -fsSL --max-time 20 "${url}?dial_layout=7&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            css="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/safe-cracker.css?v=8&polish=2&dial=7&layout=7&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            js="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/safe-cracker.js?v=8&polish=2&dial=7&layout=7&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            headers="$(curl -fsS --max-time 20 -D - -o /dev/null -X OPTIONS "${function_url}?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            block="$(sed -n '/SAFE_CRACKER_DIAL_LAYOUT_V3_START/,/SAFE_CRACKER_DIAL_LAYOUT_V3_END/p' <<<"$css")"
+
+            if grep -Fq '&dial=7&layout=7' <<<"$html" && \
+               grep -Fq -- '--radius: 91px' <<<"$block" && \
+               grep -Fq 'top: -46px' <<<"$block" && \
+               grep -Fq 'top: -38px' <<<"$block" && \
+               grep -Fq 'border: 3px solid #050708 !important' <<<"$block" && \
+               grep -Fq 'border-bottom-color: #050708 !important' <<<"$block" && \
+               grep -Fq 'background: linear-gradient(180deg,' <<<"$block" && \
+               grep -Fq '#e2e8ea 0%' <<<"$block" && \
+               grep -Fq '#68757b 100%' <<<"$block" && \
+               grep -Fq 'color: #ddb362' <<<"$block" && \
+               grep -Fq -- '-1px -1px 0 #050708' <<<"$block" && \
+               grep -Fq '0 7px 0 #050708' <<<"$block" && \
+               grep -Fq '.safe-cracker-game .sc-confirm-button:active' <<<"$block" && \
+               grep -Fq 'transform: translateY(4px) !important' <<<"$block" && \
+               grep -Fq '0 3px 0 #050708' <<<"$block" && \
+               ! grep -Fq '0 7px 0 #030506' <<<"$block" && \
+               ! grep -Fq '#855515' <<<"$block" && \
+               ! grep -Fq '#c98b29' <<<"$block" && \
+               grep -Fq "function safeCrackerUpdateConfirmControl()" <<<"$js" && \
+               grep -Fq "? 'CHECK NUMBER'" <<<"$js" && \
+               ! grep -Fiq 'RESETTING' <<<"$js" && \
+               grep -Fq '/assets/safe-cracker/textures/dial-reference-face-v7.svg?dial=7&layout=7' <<<"$js" && \
+               grep -Fq 'SAFE_CRACKER_DIAL_ACTIVITY_V16_START' <<<"$js" && \
+               grep -Fiq 'x-duel-function-build: safecracker-direct-v8' <<<"$headers"; then
+              echo "Verified live Safe Cracker final Check Number button refinement at ${url}"
+              exit 0
+            fi
+
+            echo "Waiting for Netlify Safe Cracker final Check Number preview (${attempt}/42)..."
+            sleep 10
+          done
+
+          echo 'Netlify preview did not serve the final Check Number button refinement and current gameplay safeguards.' >&2
+          exit 1

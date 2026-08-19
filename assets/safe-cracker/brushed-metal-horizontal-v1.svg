@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="128" viewBox="0 0 192 128">
+  <defs>
+    <filter id="horizontalBrush" x="-12%" y="-12%" width="124%" height="124%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.009 0.68" numOctaves="3" seed="29" stitchTiles="stitch" result="coarse"/>
+      <feGaussianBlur in="coarse" stdDeviation="7 0.18" result="coarseStreaks"/>
+      <feTurbulence type="fractalNoise" baseFrequency="0.025 0.94" numOctaves="2" seed="61" stitchTiles="stitch" result="fine"/>
+      <feGaussianBlur in="fine" stdDeviation="2.2 0.08" result="fineStreaks"/>
+      <feBlend in="coarseStreaks" in2="fineStreaks" mode="multiply" result="grain"/>
+      <feColorMatrix in="grain" type="matrix" values="0.62 0 0 0 0.16  0 0.66 0 0 0.18  0 0 0.7 0 0.2  0 0 0 1 0"/>
+    </filter>
+    <linearGradient id="softSheen" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#11181c" stop-opacity=".2"/>
+      <stop offset=".28" stop-color="#f5f8f9" stop-opacity=".08"/>
+      <stop offset=".44" stop-color="#ffffff" stop-opacity=".28"/>
+      <stop offset=".58" stop-color="#d8e0e3" stop-opacity=".08"/>
+      <stop offset="1" stop-color="#10171b" stop-opacity=".24"/>
+    </linearGradient>
+  </defs>
+  <rect width="192" height="128" fill="#778388" filter="url(#horizontalBrush)"/>
+  <rect width="192" height="128" fill="url(#softSheen)"/>
+  <g fill="none" stroke-linecap="round">
+    <path d="M8 17H92 M104 17h63" stroke="#f8fafb" stroke-opacity=".16" stroke-width=".55"/>
+    <path d="M28 31h135" stroke="#151c20" stroke-opacity=".14" stroke-width=".7"/>
+    <path d="M2 48h58 M69 48h106" stroke="#ffffff" stroke-opacity=".12" stroke-width=".45"/>
+    <path d="M19 73h149" stroke="#10171a" stroke-opacity=".13" stroke-width=".65"/>
+    <path d="M5 98h77 M94 98h89" stroke="#f7f9fa" stroke-opacity=".13" stroke-width=".5"/>
+    <path d="M35 113h122" stroke="#151c20" stroke-opacity=".12" stroke-width=".55"/>
+  </g>
+</svg>

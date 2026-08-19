@@ -1,0 +1,89 @@
+name: Safe Cracker Build Diagnostic
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - safe-cracker-development
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+
+      - name: Use Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run exact Netlify build command
+        run: npm run build
+
+      - name: Verify generated reference dial
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq 'SAFE_CRACKER_DIAL_DEPTH_V5_START' assets/safe-cracker/safe-cracker.css
+          grep -Fq '.safe-cracker-game .sc-dial-reference-plate' assets/safe-cracker/safe-cracker.css
+          grep -Fq 'background: #050708 !important' assets/safe-cracker/safe-cracker.css
+          grep -Fq 'class="sc-dial-reference-plate"' assets/safe-cracker/safe-cracker.js
+          grep -Fq '/assets/safe-cracker/textures/dial-reference-face-v7.svg?dial=7' assets/safe-cracker/safe-cracker.js
+          grep -Fq 'class="grip-blocks" data-count="40"' assets/safe-cracker/textures/dial-reference-face-v7.svg
+          grep -Fq 'class="silver-bezel"' assets/safe-cracker/textures/dial-reference-face-v7.svg
+          grep -Fq 'class="number-band"' assets/safe-cracker/textures/dial-reference-face-v7.svg
+          grep -Fq 'class="inner-slope"' assets/safe-cracker/textures/dial-reference-face-v7.svg
+          if grep -Eq '<use\b|xlink:href|<filter\b|feTurbulence|feGaussianBlur|feDropShadow' assets/safe-cracker/textures/dial-reference-face-v7.svg; then
+            echo 'Dial v7 must remain flattened and filter-free for mobile rendering.' >&2
+            exit 1
+          fi
+
+      - name: Verify live Netlify preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          url='https://deploy-preview-19--famous-piroshki-b621da.netlify.app/'
+          function_url="${url}.netlify/functions/duel-action"
+
+          for attempt in $(seq 1 42); do
+            html="$(curl -fsSL --max-time 20 "${url}?dial_reference=7&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            headers="$(curl -fsS --max-time 20 -D - -o /dev/null -X OPTIONS "${function_url}?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            js="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/safe-cracker.js?v=8&polish=2&fit=2&result=1&final=1&refine=1&correct=1&input=1&audio=1&dial=7&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            css="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/safe-cracker.css?v=8&polish=2&fit=2&result=1&final=1&refine=1&correct=1&input=1&dial=7&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            dial="$(curl -fsSL --max-time 20 "${url}assets/safe-cracker/textures/dial-reference-face-v7.svg?dial=7&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+
+            if grep -Fq 'class="sth-game" data-mode="safecracker"' <<<"$html" && \
+               grep -Fq '/assets/safe-cracker/safe-cracker.css?v=8&polish=2' <<<"$html" && \
+               grep -Fq '&dial=7' <<<"$html" && \
+               grep -Fq 'SAFE_CRACKER_DIAL_ACTIVITY_V16_START' <<<"$js" && \
+               grep -Fq 'class="sc-dial-reference-plate"' <<<"$js" && \
+               grep -Fq '/assets/safe-cracker/textures/dial-reference-face-v7.svg?dial=7' <<<"$js" && \
+               grep -Fq 'SAFE_CRACKER_DIAL_DEPTH_V5_START' <<<"$css" && \
+               grep -Fq '.safe-cracker-game .sc-dial-reference-plate' <<<"$css" && \
+               grep -Fq 'background: #050708 !important' <<<"$css" && \
+               grep -Fq 'class="grip-blocks" data-count="40"' <<<"$dial" && \
+               grep -Fq 'class="silver-bezel"' <<<"$dial" && \
+               grep -Fq 'class="number-band"' <<<"$dial" && \
+               grep -Fq 'class="inner-slope"' <<<"$dial" && \
+               ! grep -Eq '<use\b|xlink:href|<filter\b|feTurbulence|feGaussianBlur|feDropShadow' <<<"$dial" && \
+               grep -Fiq 'x-duel-function-build: safecracker-direct-v8' <<<"$headers"; then
+              echo "Verified live Safe Cracker flattened reference dial v7, V16 retention, and current authoritative runtime at ${url}"
+              exit 0
+            fi
+
+            echo "Waiting for Netlify Safe Cracker dial-v7 preview (${attempt}/42)..."
+            sleep 10
+          done
+
+          echo 'Netlify preview did not serve the flattened Safe Cracker dial v7 and current gameplay safeguards.' >&2
+          exit 1

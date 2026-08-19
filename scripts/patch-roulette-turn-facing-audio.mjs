@@ -1,0 +1,174 @@
+import { readFile, writeFile } from 'node:fs/promises';
+
+const policyUrl = new URL('../assets/roulette/spin-audio-policy.js', import.meta.url);
+const bindingsUrl = new URL('../assets/roulette/audio-bindings.js', import.meta.url);
+let policy = await readFile(policyUrl, 'utf8');
+let bindings = await readFile(bindingsUrl, 'utf8');
+
+function replaceOnce(source, label, before, after) {
+  if (source.includes(after)) return source;
+  const first = source.indexOf(before);
+  if (first < 0) throw new Error(`Roulette turn audio patch could not find ${label}.`);
+  if (source.indexOf(before, first + before.length) >= 0) {
+    throw new Error(`Roulette turn audio patch found more than one ${label}.`);
+  }
+  return source.slice(0, first) + after + source.slice(first + before.length);
+}
+
+function replaceSection(source, label, startMarker, endMarker, replacement) {
+  if (source.includes(replacement)) return source;
+  const start = source.indexOf(startMarker);
+  const end = source.indexOf(endMarker, start + startMarker.length);
+  if (start < 0 || end < 0) throw new Error(`Roulette turn audio patch could not find ${label}.`);
+  return source.slice(0, start) + replacement + source.slice(end);
+}
+
+const directTurnMovement = `  function playTurnMovement(details = {}) {
+    const gameId = String(details.gameId || '');
+    const fromTurnId = String(details.fromTurnId || '');
+    const turnId = String(details.turnId || '');
+    const epoch = Number(details.epoch || 0);
+    const duration = Math.max(500, Number(details.duration) || 1020);
+    const rotationToken = String(details.rotationToken || '');
+    if (!gameId || !turnId || document.hidden) return false;
+
+    const key = rotationToken || \`${'${gameId}:${fromTurnId}:${turnId}:${epoch}'}\`;
+    const now = performance.now();
+    if (key === lastTurnMovementKey && now - lastTurnMovementAt < 1600) return false;
+    if (!claimAction('turn-move', key, Math.max(1800, duration + 600))) return false;
+
+    stopGroup('turn-move', 24);
+    const clip = playClip(TABLE_MOVE, {
+      group: 'turn-move',
+      volume: 0.048,
+      rate: 1.06,
+      start: 0,
+      duration: 0.72,
+      fadeIn: 0.015,
+      fadeOut: 0.26,
+      turnMovement: true
+    });
+    if (!clip) return false;
+    lastTurnMovementKey = key;
+    lastTurnMovementAt = now;
+    return true;
+  }
+
+`;
+
+if (!policy.includes('function playTurnMovement(details = {})')) {
+  policy = replaceOnce(
+    policy,
+    'the turn movement state',
+    `  let lastGameId = '';
+  let lastTurnId = '';`,
+    `  let lastTurnMovementKey = '';
+  let lastTurnMovementAt = -Infinity;`
+  );
+  policy = policy.replace('  let pollTimer = 0;\n', '');
+  policy = replaceSection(
+    policy,
+    'the polling turn movement implementation',
+    '  function currentGame() {',
+    '  // Remove the manager\'s exported chamber/shot entry points.',
+    directTurnMovement
+  );
+  policy = replaceOnce(
+    policy,
+    'the no-op turn movement export',
+    `    turnRotate() { return null; }`,
+    `    turnRotate(details) {
+      if (!details || typeof details !== 'object') return false;
+      return playTurnMovement(details);
+    }`
+  );
+  policy = policy.replace(
+    `  const poll = () => {
+    syncTurnMovement();
+    pollTimer = global.setTimeout(poll, 300);
+  };
+  poll();
+
+`,
+    ''
+  );
+  policy = replaceOnce(
+    policy,
+    'the turn movement diagnostics',
+    `        lastGameId,
+        lastTurnId,`,
+    `        lastTurnMovementKey,
+        lastTurnMovementAt,`
+  );
+  policy = replaceOnce(
+    policy,
+    'the direct turn movement diagnostics export',
+    `    shotSequence,
+    diagnostics()`,
+    `    shotSequence,
+    playTurnMovement,
+    diagnostics()`
+  );
+  policy = policy.replace('    clearTimeout(pollTimer);\n', '');
+}
+
+if (!policy.includes('if (options.turnMovement === true) clip.__rrAuthorizedTurnMove = true;')) {
+  policy = replaceOnce(
+    policy,
+    'the authorized turn movement media marker',
+    `    if (options.chamber === true) clip.__rrSpinSequenceChamber = true;`,
+    `    if (options.chamber === true) clip.__rrSpinSequenceChamber = true;
+    if (options.turnMovement === true) clip.__rrAuthorizedTurnMove = true;`
+  );
+}
+
+if (!bindings.includes('this.__rrAuthorizedTurnMove !== true')) {
+  bindings = replaceOnce(
+    bindings,
+    'the opening-window media exception for approved turn movement',
+    `        now < openingWoodUntil &&
+        this.__rrAuthorizedOpeningSpin !== true &&
+        OPENING_BLOCKED_SOURCES.some(file => src.includes(file))`,
+    `        now < openingWoodUntil &&
+        this.__rrAuthorizedOpeningSpin !== true &&
+        this.__rrAuthorizedTurnMove !== true &&
+        OPENING_BLOCKED_SOURCES.some(file => src.includes(file))`
+  );
+}
+
+for (const required of [
+  'function playTurnMovement(details = {})',
+  "const rotationToken = String(details.rotationToken || '');",
+  'const key = rotationToken || `${gameId}:${fromTurnId}:${turnId}:${epoch}`',
+  "group: 'turn-move'",
+  'volume: 0.048',
+  'start: 0',
+  'duration: 0.72',
+  'fadeOut: 0.26',
+  'turnMovement: true',
+  'if (options.turnMovement === true) clip.__rrAuthorizedTurnMove = true;',
+  'const clip = playClip(TABLE_MOVE, {',
+  'if (!clip) return false;',
+  "if (!details || typeof details !== 'object') return false;",
+  'return playTurnMovement(details);'
+]) {
+  if (!policy.includes(required)) throw new Error(`Final turn movement audio is missing ${required}`);
+}
+if (!bindings.includes('this.__rrAuthorizedTurnMove !== true')) {
+  throw new Error('Approved turn movement is still blocked by the opening audio window.');
+}
+if (policy.includes('function syncTurnMovement()') || policy.includes('pollTimer')) {
+  throw new Error('Turn movement audio is still driven by polling.');
+}
+if (policy.includes('performance.now() < chamberSpinUntil) return false')) {
+  throw new Error('Turn movement audio is still suppressed by the stale opening chamber window.');
+}
+
+await Promise.all([
+  writeFile(policyUrl, policy),
+  writeFile(bindingsUrl, bindings)
+]);
+console.log('Patched Roulette turn movement: approved rotations start a no-seek authorized sound immediately and are not blocked by the opening-audio window.');
+await import('./patch-roulette-turn-facing-guard.mjs');
+await import('./patch-roulette-active-rotation-hold.mjs');
+await import('./patch-roulette-reliable-turn-sound.mjs');

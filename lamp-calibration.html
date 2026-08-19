@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>Lamp Calibration</title>
+  <link rel="stylesheet" href="/assets/roulette/lamp-calibration.css?v=18">
+  <script src="/assets/roulette/lamp-config.js?v=18" defer></script>
+  <script src="/assets/roulette/lamp.js?v=20" defer></script>
+  <script src="/assets/roulette/lamp-calibration.js?v=18" defer></script>
+</head>
+<body>
+  <iframe id="game" src="./?lampCalibration=20" title="Russian Roulette lamp preview"></iframe>
+  <button id="toggle" type="button">LAMP CALIBRATION</button>
+  <section id="panel">
+    <h3>Visible lamp calibration</h3>
+    <div id="rows"></div>
+    <div class="actions">
+      <button class="action" id="center" type="button">Center light on gun</button>
+      <button class="action" id="save" type="button">Save</button>
+      <button class="action" id="copy" type="button">Copy JSON</button>
+      <button class="action" id="reset" type="button">Reset</button>
+    </div>
+    <p><small>The lamp and table light use their own persistent timelines and do not restart when gun or firing animations run.</small></p>
+  </section>
+  <div id="status">Loading…</div>
+</body>
+</html>
