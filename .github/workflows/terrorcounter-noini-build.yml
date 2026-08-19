@@ -1,12 +1,9 @@
 name: Build TerrorCounter No-INI BA2
 
 on:
-  push:
-    branches:
-      - chatgpt/terrorcounter-noini
   pull_request:
     branches:
-      - main
+      - chatgpt/terrorcounter-noini-runner
   workflow_dispatch:
 
 permissions:
@@ -14,7 +11,7 @@ permissions:
 
 jobs:
   build:
-    if: github.ref == 'refs/heads/chatgpt/terrorcounter-noini' || github.head_ref == 'chatgpt/terrorcounter-noini'
+    if: github.head_ref == 'chatgpt/terrorcounter-noini'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -50,6 +47,7 @@ jobs:
         run: |
           set -euo pipefail
           export FLEX_HOME="$RUNNER_TEMP/flex"
+          export PLAYERGLOBAL_HOME="$RUNNER_TEMP/flex/frameworks/libs/player"
           mkdir -p build/package/Interface
           "$FLEX_HOME/bin/mxmlc" \
             -target-player=11.1 \
