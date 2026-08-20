@@ -28,16 +28,21 @@ jobs:
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
+          import re
           p = Path('chatgpt-build/TerrorCounter.as')
           s = p.read_text(encoding='utf-8')
-          old = 'counterText.defaultTextFormat = new TextFormat("_sans", 20, 0xFFFFFF, true);'
-          new = 'counterText.defaultTextFormat = new TextFormat("$MAIN_Font_Bold", 20, 0xFFFFFF);'
-          assert old in s, 'expected _sans TextFormat not found'
-          s = s.replace(old, new, 1)
+          pattern = r'counterText\.defaultTextFormat\s*=\s*new TextFormat\([^;]*\);'
+          m = re.search(pattern, s)
+          assert m, 'counter TextFormat assignment not found'
+          print('replacing:', m.group(0))
+          replacement = 'counterText.defaultTextFormat = new TextFormat("$MAIN_Font_Bold", 20, 0xFFFFFF);'
+          s = re.sub(pattern, replacement, s, count=1)
           marker = 'counterText.selectable = false;'
-          assert marker in s
-          s = s.replace(marker, marker + '\n            counterText.embedFonts = false;', 1)
+          assert marker in s, 'counter selectable marker not found'
+          if 'counterText.embedFonts = false;' not in s:
+              s = s.replace(marker, marker + '\n            counterText.embedFonts = false;', 1)
           p.write_text(s, encoding='utf-8')
+          assert '$MAIN_Font_Bold' in s
           print('font fix applied: $MAIN_Font_Bold, embedFonts=false')
           PY
           grep -F '$MAIN_Font_Bold' chatgpt-build/TerrorCounter.as
