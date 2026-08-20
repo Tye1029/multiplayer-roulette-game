@@ -1,1 +1,1 @@
-TerrorCounter v0.4 final persistence trigger 7
+TerrorCounter v0.5 session persistence and Ctrl+F11 trigger 1
