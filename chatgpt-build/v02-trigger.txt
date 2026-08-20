@@ -1,1 +1,1 @@
-TerrorCounter v0.8 correction hotkeys trigger 2
+TerrorCounter v0.8 correction hotkeys trigger 3
