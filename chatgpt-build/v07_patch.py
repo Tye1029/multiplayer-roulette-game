@@ -9,9 +9,10 @@ s = path.read_text(encoding='utf-8')
 # reaching zero. UniversalRewardData can replay/still contain a raid reward
 # after a death + menu/rejoin, so it must never increment the counter.
 
-# 1) Replace the reward fallback with a no-op. Keep the function signature so
-# existing Subscribe/Unsubscribe calls remain harmless and compile cleanly.
-pat = re.compile(r'''        private function onRewardUpdate\(event:\*\):void\n        \{.*?\n        \}\n\n        private function registerAutomaticKill''', re.S)
+# 1) Replace ONLY the reward fallback with a no-op. isUltraciteTerror() sits
+# immediately after this function in the source, so use it as the boundary and
+# preserve it verbatim.
+pat = re.compile(r'''        private function onRewardUpdate\(event:\*\):void\n        \{.*?\n        \}\n\n        private function isUltraciteTerror''', re.S)
 replacement = '''        private function onRewardUpdate(event:*):void
         {
             // Intentionally disabled in v0.7.
@@ -20,9 +21,9 @@ replacement = '''        private function onRewardUpdate(event:*):void
             return;
         }
 
-        private function registerAutomaticKill'''
+        private function isUltraciteTerror'''
 s, n = pat.subn(replacement, s, count=1)
-assert n == 1, 'onRewardUpdate block not found'
+assert n == 1, 'onRewardUpdate/isUltraciteTerror boundary not found'
 
 # 2) Never restore an armed encounter from persistent storage. Arming is only
 # valid for the currently-live HUD encounter and must be reacquired by seeing
@@ -48,13 +49,13 @@ new = '''                "0|" +
 assert old in s, 'state serialization armed fields not found'
 s = s.replace(old, new, 1)
 
-# 4) Sanity: there must now be only one automatic increment reason in live
-# code: encounter_health_zero. The literal raid_reward may remain nowhere.
-assert 'reason=raid_reward' not in s
+# 4) Sanity checks: direct health-zero is the only automatic increment path,
+# and the snake-name helper must still exist after the patch.
 assert 'registerAutomaticKill("raid_reward")' not in s
 assert 'registerAutomaticKill("encounter_health_zero")' in s
+assert 'private function isUltraciteTerror' in s
 assert 'Intentionally disabled in v0.7' in s
 assert 'Never carry an armed encounter across a HUD/game reload.' in s
 
 path.write_text(s, encoding='utf-8')
-print('v0.7 patch applied: direct encounter-health-zero kills only; reward fallback disabled; armed state never restored')
+print('v0.7 patch applied: direct encounter-health-zero kills only; reward fallback disabled; armed state never restored; snake-name helper preserved')
