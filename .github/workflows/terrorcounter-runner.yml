@@ -22,6 +22,26 @@ jobs:
           tr -d '[:space:]' < chatgpt-build/TerrorCounter.as.gz.b64 | base64 -d | gzip -dc > chatgpt-build/TerrorCounter.as
           echo 'cd726d4ea47e13b0fdc7b6f14367c379da87222ae17d2a9fb2a603d66e5ea826  chatgpt-build/TerrorCounter.as' | sha256sum -c -
 
+      - name: Apply Fallout 76 font compatibility fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('chatgpt-build/TerrorCounter.as')
+          s = p.read_text(encoding='utf-8')
+          old = 'counterText.defaultTextFormat = new TextFormat("_sans", 20, 0xFFFFFF, true);'
+          new = 'counterText.defaultTextFormat = new TextFormat("$MAIN_Font_Bold", 20, 0xFFFFFF);'
+          assert old in s, 'expected _sans TextFormat not found'
+          s = s.replace(old, new, 1)
+          marker = 'counterText.selectable = false;'
+          assert marker in s
+          s = s.replace(marker, marker + '\n            counterText.embedFonts = false;', 1)
+          p.write_text(s, encoding='utf-8')
+          print('font fix applied: $MAIN_Font_Bold, embedFonts=false')
+          PY
+          grep -F '$MAIN_Font_Bold' chatgpt-build/TerrorCounter.as
+
       - name: Install Apache Flex compiler
         shell: bash
         run: |
@@ -67,26 +87,26 @@ jobs:
         run: |
           set -euo pipefail
           TOOL="$RUNNER_TEMP/dream-tools/bin/dream_archivetool"
-          "$TOOL" create build/TerrorCounter.ba2 build/package --format ba2 --ba2-kind gnrl --ba2-version fallout4
-          "$TOOL" list --long build/TerrorCounter.ba2 | tee build/ba2-list.txt
-          "$TOOL" verify build/TerrorCounter.ba2 --read-payloads --json | tee build/ba2-verify.json
+          "$TOOL" create build/TerrorCounter_v0.2.ba2 build/package --format ba2 --ba2-kind gnrl --ba2-version fallout4
+          "$TOOL" list --long build/TerrorCounter_v0.2.ba2 | tee build/ba2-list.txt
+          "$TOOL" verify build/TerrorCounter_v0.2.ba2 --read-payloads --json | tee build/ba2-verify.json
           grep -Eqi 'interface[/\\]terrorcounter\.swf' build/ba2-list.txt
           python3 - <<'PY'
           from pathlib import Path
-          p=Path('build/TerrorCounter.ba2')
+          p=Path('build/TerrorCounter_v0.2.ba2')
           assert p.exists() and p.stat().st_size > 0
           assert p.read_bytes()[:4] == b'BTDX'
           print('valid BA2', p.stat().st_size, p.read_bytes()[:4])
           PY
-          sha256sum build/TerrorCounter.ba2 | tee build/TerrorCounter.ba2.sha256.txt
+          sha256sum build/TerrorCounter_v0.2.ba2 | tee build/TerrorCounter_v0.2.ba2.sha256.txt
 
       - name: Upload finished BA2
         uses: actions/upload-artifact@v4
         with:
-          name: TerrorCounter-BA2
+          name: TerrorCounter-v0.2-BA2
           path: |
-            build/TerrorCounter.ba2
-            build/TerrorCounter.ba2.sha256.txt
+            build/TerrorCounter_v0.2.ba2
+            build/TerrorCounter_v0.2.ba2.sha256.txt
             build/ba2-list.txt
             build/ba2-verify.json
           if-no-files-found: error
