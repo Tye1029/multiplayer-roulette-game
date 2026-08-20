@@ -30,18 +30,18 @@ jobs:
           grep -F 'TERROR KILLS:' chatgpt-build/TerrorCounter.as
           test "$(grep -c 'counterText' chatgpt-build/TerrorCounter.as)" -eq 1
 
-      - name: Inspect current persistence and encounter code
+      - name: Inspect current persistence lifecycle
         shell: bash
         run: |
           set -euo pipefail
+          echo '=== TOP STATE ==='
+          sed -n '1,115p' chatgpt-build/TerrorCounter.as
+          echo '=== HOUSEKEEPING ==='
+          grep -n -A100 -B20 'private function onHousekeeping' chatgpt-build/TerrorCounter.as || true
           echo '=== LOAD STATE ==='
           grep -n -A90 -B15 'private function loadState' chatgpt-build/TerrorCounter.as || true
           echo '=== SAVE STATE ==='
-          grep -n -A70 -B15 'private function saveState' chatgpt-build/TerrorCounter.as || true
-          echo '=== ENCOUNTER ==='
-          grep -n -A120 -B25 'EncounterHealthMeterArray\|onEncounter\|onTargetPoll' chatgpt-build/TerrorCounter.as || true
-          echo '=== ADDED ==='
-          grep -n -A55 -B10 'onAddedToStage' chatgpt-build/TerrorCounter.as || true
+          grep -n -A55 -B10 'private function saveState' chatgpt-build/TerrorCounter.as || true
 
       - name: Fix persistent count restore
         shell: bash
