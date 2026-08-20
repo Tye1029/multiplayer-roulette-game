@@ -1,1 +1,1 @@
-TerrorCounter v0.3 vector HUD rebuild trigger 3
+TerrorCounter v0.3 vector HUD rebuild trigger 4
