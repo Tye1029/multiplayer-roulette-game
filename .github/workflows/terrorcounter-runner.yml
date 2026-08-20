@@ -58,6 +58,16 @@ jobs:
           grep -F 'getRuntimeInfo' chatgpt-build/TerrorCounter.as
           grep -F 'saved count=' chatgpt-build/TerrorCounter.as
 
+      - name: Disable false raid-reward kill fallback
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 chatgpt-build/v07_patch.py chatgpt-build/TerrorCounter.as
+          grep -F 'Intentionally disabled in v0.7' chatgpt-build/TerrorCounter.as
+          grep -F 'Never carry an armed encounter across a HUD/game reload.' chatgpt-build/TerrorCounter.as
+          grep -F 'registerAutomaticKill("encounter_health_zero")' chatgpt-build/TerrorCounter.as
+          ! grep -F 'registerAutomaticKill("raid_reward")' chatgpt-build/TerrorCounter.as
+
       - name: Install Apache Flex compiler
         shell: bash
         run: |
@@ -103,26 +113,26 @@ jobs:
         run: |
           set -euo pipefail
           TOOL="$RUNNER_TEMP/dream-tools/bin/dream_archivetool"
-          "$TOOL" create build/TerrorCounter_v0.6.ba2 build/package --format ba2 --ba2-kind gnrl --ba2-version fallout4
-          "$TOOL" list --long build/TerrorCounter_v0.6.ba2 | tee build/ba2-list.txt
-          "$TOOL" verify build/TerrorCounter_v0.6.ba2 --read-payloads --json | tee build/ba2-verify.json
+          "$TOOL" create build/TerrorCounter_v0.7.ba2 build/package --format ba2 --ba2-kind gnrl --ba2-version fallout4
+          "$TOOL" list --long build/TerrorCounter_v0.7.ba2 | tee build/ba2-list.txt
+          "$TOOL" verify build/TerrorCounter_v0.7.ba2 --read-payloads --json | tee build/ba2-verify.json
           grep -Eqi 'interface[/\\]terrorcounter\.swf' build/ba2-list.txt
           python3 - <<'PY'
           from pathlib import Path
-          p=Path('build/TerrorCounter_v0.6.ba2')
+          p=Path('build/TerrorCounter_v0.7.ba2')
           assert p.exists() and p.stat().st_size > 0
           assert p.read_bytes()[:4] == b'BTDX'
           print('valid BA2', p.stat().st_size, p.read_bytes()[:4])
           PY
-          sha256sum build/TerrorCounter_v0.6.ba2 | tee build/TerrorCounter_v0.6.ba2.sha256.txt
+          sha256sum build/TerrorCounter_v0.7.ba2 | tee build/TerrorCounter_v0.7.ba2.sha256.txt
 
       - name: Upload finished BA2
         uses: actions/upload-artifact@v4
         with:
-          name: TerrorCounter-v0.6-BA2
+          name: TerrorCounter-v0.7-BA2
           path: |
-            build/TerrorCounter_v0.6.ba2
-            build/TerrorCounter_v0.6.ba2.sha256.txt
+            build/TerrorCounter_v0.7.ba2
+            build/TerrorCounter_v0.7.ba2.sha256.txt
             build/ba2-list.txt
             build/ba2-verify.json
           if-no-files-found: error
