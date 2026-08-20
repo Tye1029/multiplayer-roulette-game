@@ -1,1 +1,1 @@
-TerrorCounter v0.7 direct encounter-health-zero only trigger 3
+TerrorCounter v0.7 direct encounter-health-zero only trigger 4
