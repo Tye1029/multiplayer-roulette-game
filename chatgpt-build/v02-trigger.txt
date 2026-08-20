@@ -1,1 +1,1 @@
-TerrorCounter v0.4 final persistence trigger 6
+TerrorCounter v0.4 final persistence trigger 7
