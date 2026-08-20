@@ -1,1 +1,1 @@
-TerrorCounter v0.8 correction hotkeys trigger 3
+TerrorCounter v0.9 official SharedHUDTools menu trigger 1
