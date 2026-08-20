@@ -1,1 +1,1 @@
-TerrorCounter v0.2 font compatibility rebuild trigger 2
+TerrorCounter v0.3 vector HUD rebuild trigger
