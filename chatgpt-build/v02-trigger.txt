@@ -1,1 +1,1 @@
-TerrorCounter v0.4 persistence diagnostics trigger 4
+TerrorCounter v0.4 housekeeping diagnostics trigger 5
