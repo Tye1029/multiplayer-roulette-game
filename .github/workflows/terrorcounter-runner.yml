@@ -30,26 +30,15 @@ jobs:
           grep -F 'TERROR KILLS:' chatgpt-build/TerrorCounter.as
           test "$(grep -c 'counterText' chatgpt-build/TerrorCounter.as)" -eq 1
 
-      - name: Inspect current persistence lifecycle
-        shell: bash
-        run: |
-          set -euo pipefail
-          echo '=== TOP STATE ==='
-          sed -n '1,115p' chatgpt-build/TerrorCounter.as
-          echo '=== HOUSEKEEPING ==='
-          grep -n -A100 -B20 'private function onHousekeeping' chatgpt-build/TerrorCounter.as || true
-          echo '=== LOAD STATE ==='
-          grep -n -A90 -B15 'private function loadState' chatgpt-build/TerrorCounter.as || true
-          echo '=== SAVE STATE ==='
-          grep -n -A55 -B10 'private function saveState' chatgpt-build/TerrorCounter.as || true
-
       - name: Fix persistent count restore
         shell: bash
         run: |
           set -euo pipefail
           python3 chatgpt-build/persistence_patch.py chatgpt-build/TerrorCounter.as
           grep -F 'restored count=' chatgpt-build/TerrorCounter.as
-          grep -F 'if (!storageLoaded)' chatgpt-build/TerrorCounter.as
+          grep -F '!storageLoaded' chatgpt-build/TerrorCounter.as
+          grep -F 'SharedObject.getLocal("TerrorCounterState")' chatgpt-build/TerrorCounter.as
+          grep -F 'saveLocalState();' chatgpt-build/TerrorCounter.as
 
       - name: Install Apache Flex compiler
         shell: bash
