@@ -30,6 +30,15 @@ jobs:
           grep -F 'TERROR KILLS:' chatgpt-build/TerrorCounter.as
           test "$(grep -c 'counterText' chatgpt-build/TerrorCounter.as)" -eq 1
 
+      - name: Fix persistent count restore
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 chatgpt-build/persistence_patch.py chatgpt-build/TerrorCounter.as
+          grep -F 'restored count=' chatgpt-build/TerrorCounter.as
+          grep -F 'sessionCountValid' chatgpt-build/TerrorCounter.as
+          grep -F 'if (!storageLoaded)' chatgpt-build/TerrorCounter.as
+
       - name: Install Apache Flex compiler
         shell: bash
         run: |
@@ -75,26 +84,26 @@ jobs:
         run: |
           set -euo pipefail
           TOOL="$RUNNER_TEMP/dream-tools/bin/dream_archivetool"
-          "$TOOL" create build/TerrorCounter_v0.3.ba2 build/package --format ba2 --ba2-kind gnrl --ba2-version fallout4
-          "$TOOL" list --long build/TerrorCounter_v0.3.ba2 | tee build/ba2-list.txt
-          "$TOOL" verify build/TerrorCounter_v0.3.ba2 --read-payloads --json | tee build/ba2-verify.json
+          "$TOOL" create build/TerrorCounter_v0.4.ba2 build/package --format ba2 --ba2-kind gnrl --ba2-version fallout4
+          "$TOOL" list --long build/TerrorCounter_v0.4.ba2 | tee build/ba2-list.txt
+          "$TOOL" verify build/TerrorCounter_v0.4.ba2 --read-payloads --json | tee build/ba2-verify.json
           grep -Eqi 'interface[/\\]terrorcounter\.swf' build/ba2-list.txt
           python3 - <<'PY'
           from pathlib import Path
-          p=Path('build/TerrorCounter_v0.3.ba2')
+          p=Path('build/TerrorCounter_v0.4.ba2')
           assert p.exists() and p.stat().st_size > 0
           assert p.read_bytes()[:4] == b'BTDX'
           print('valid BA2', p.stat().st_size, p.read_bytes()[:4])
           PY
-          sha256sum build/TerrorCounter_v0.3.ba2 | tee build/TerrorCounter_v0.3.ba2.sha256.txt
+          sha256sum build/TerrorCounter_v0.4.ba2 | tee build/TerrorCounter_v0.4.ba2.sha256.txt
 
       - name: Upload finished BA2
         uses: actions/upload-artifact@v4
         with:
-          name: TerrorCounter-v0.3-BA2
+          name: TerrorCounter-v0.4-BA2
           path: |
-            build/TerrorCounter_v0.3.ba2
-            build/TerrorCounter_v0.3.ba2.sha256.txt
+            build/TerrorCounter_v0.4.ba2
+            build/TerrorCounter_v0.4.ba2.sha256.txt
             build/ba2-list.txt
             build/ba2-verify.json
           if-no-files-found: error
