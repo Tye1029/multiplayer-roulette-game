@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Blackjack Duel — Component Preview</title>
+  <link rel="stylesheet" href="/assets/blackjack-duel/blackjack-duel.css">
+  <style>
+    html, body { min-height: 100%; margin: 0; background: #070b16; }
+    body { display: grid; place-items: center; padding: 16px; box-sizing: border-box; }
+    [data-blackjack-duel-mount] { width: min(100%, 980px); }
+  </style>
+</head>
+<body>
+  <main data-blackjack-duel-mount aria-label="Blackjack Duel component preview"></main>
+  <script src="/assets/blackjack-duel/blackjack-duel.js"></script>
+  <script>
+    const complete = new URLSearchParams(location.search).get("state") === "complete";
+    window.dispatchEvent(new CustomEvent("blackjackduel:state", { detail: { game: {
+      mode: "blackjackduel",
+      status: complete ? "complete" : "playing",
+      gameId: "blackjack-duel-preview",
+      pot: 5000,
+      tie: complete,
+      joiner: { name: "Remote Network Bot" },
+      blackjackDuelState: {
+        roundId: "preview-round",
+        secondsLeft: 19,
+        deadlineAt: new Date(Date.now() + 19000).toISOString(),
+        deckCommitment: "7ee7191b4b391697a6f52c5f997af66a50f6b172a4f17ba1d965b83f85ef5b3c",
+        opponentName: "Remote Network Bot",
+        opponent: complete
+          ? { cards: [{ rank: "10", suit: "clubs" }, { rank: "8", suit: "diamonds" }], total: 18, status: "stand" }
+          : { cards: [{ hidden: true }, { hidden: true }], total: null, status: "active" },
+        me: {
+          cards: [{ rank: "A", suit: "spades" }, { rank: "7", suit: "hearts" }],
+          total: 18,
+          soft: true,
+          status: complete ? "stand" : "active"
+        },
+        canHit: !complete,
+        canStand: !complete
+      }
+    } } }));
+  </script>
+</body>
+</html>

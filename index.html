@@ -12546,6 +12546,10 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
   <link id="mountainRaceSceneStyles" rel="stylesheet" href="/assets/mountain-race/mountain-race-scene-v65.css?v=1">
   <script id="mountainRaceMultiplayerRuntime" src="/assets/mountain-race/mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=11&scene=65&holds=30" defer></script>
 <!-- MOUNTAIN_RACE_MULTIPLAYER_ASSETS_END -->
+<!-- BLACKJACK_DUEL_ASSETS_START -->
+  <link id="blackjackDuelStyles" rel="stylesheet" href="/assets/blackjack-duel/blackjack-duel.css?v=1">
+  <script id="blackjackDuelRuntime" src="/assets/blackjack-duel/blackjack-duel.js?v=1" defer></script>
+<!-- BLACKJACK_DUEL_ASSETS_END -->
 
 <!-- MOUNTAIN_RACE_V29_PRELOADS -->
 
@@ -12681,6 +12685,7 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
               <option value="roulette">Russian Roulette</option>
               <option value="plinko">Plinko Duel</option>
               <option value="blackjack">Blackjack 1v1</option>
+              <option value="blackjackduel">Blackjack Duel</option>
               <option value="memory">Memory Match Duel</option>
               <option value="safecracker">Safe Cracker Duel</option>
               <option value="cardwar">Card War Strategy</option>
@@ -17297,6 +17302,7 @@ function updateRunnerBalanceDisplay() {
       roulette: { name: "Russian Roulette", icon: "🔫", choices: [] },
       plinko: { name: "Plinko Duel", icon: "🟡", choices: [{v:"drop",t:"Drop Ball"}] },
       blackjack: { name: "Blackjack 1v1", icon: "🃏", choices: [{v:"deal",t:"Deal Hand"}] },
+      blackjackduel: { name: "Blackjack Duel", icon: "♠", choices: [] },
       memory: { name: "Memory Match Duel", icon: "🧠", choices: [{v:"safe",t:"Safe"},{v:"balanced",t:"Balanced"},{v:"risky",t:"Risky"}] },
       safecracker: { name: "Safe Cracker Duel", icon: "🔐", choices: [] },
       cardwar: { name: "Card War Strategy", icon: "🪖", choices: [] },
@@ -17451,6 +17457,31 @@ function updateRunnerBalanceDisplay() {
     window.__mountainRaceAcceptSnapshot = mountainRaceAcceptSnapshot;
     window.__mountainRaceCompareVersions = mountainRaceCompareVersions;
 // MOUNTAIN_RACE_SHARED_SNAPSHOT_GUARD_END
+    const blackjackDuelAcceptedSnapshotByGame = new Map();
+    function blackjackDuelAcceptSnapshot(game) {
+      if (String(game?.mode || "") !== "blackjackduel" || !game?.gameId) return true;
+      const id = String(game.gameId);
+      const incoming = {
+        statusRank: Number(DUEL_STATUS_RANK[String(game.status || "waiting")] || 0),
+        gameRevision: Math.max(-1, Number(game.revision ?? -1)),
+        stateRevision: Math.max(-1, Number(game.blackjackDuelState?.revision ?? -1)),
+        roundId: String(game.blackjackDuelState?.roundId || "")
+      };
+      const accepted = blackjackDuelAcceptedSnapshotByGame.get(id);
+      const differentRound = Boolean(accepted?.roundId && incoming.roundId && accepted.roundId !== incoming.roundId);
+      if (accepted && (differentRound || incoming.statusRank < accepted.statusRank || incoming.stateRevision < accepted.stateRevision)) {
+        window.__blackjackDuelRejectedSnapshots = Number(window.__blackjackDuelRejectedSnapshots || 0) + 1;
+        return false;
+      }
+      blackjackDuelAcceptedSnapshotByGame.set(id, accepted ? {
+        statusRank: Math.max(accepted.statusRank, incoming.statusRank),
+        gameRevision: Math.max(accepted.gameRevision, incoming.gameRevision),
+        stateRevision: Math.max(accepted.stateRevision, incoming.stateRevision),
+        roundId: incoming.roundId || accepted.roundId
+      } : incoming);
+      return true;
+    }
+    window.__blackjackDuelAcceptSnapshot = blackjackDuelAcceptSnapshot;
 
     function duelResetReadyUi(game = null) {
       duelReadyUiState = {
@@ -17593,6 +17624,7 @@ function updateRunnerBalanceDisplay() {
     function duelRenderKey(game) {
       if (!game) return "empty";
       const bj = game.blackjackState || {};
+      const blackjackDuel = game.blackjackDuelState || {};
       const draw = game.drawState || {};
       const fishing = game.fishingState || {};
       const isFishing = game.mode === "fishing";
@@ -17624,6 +17656,14 @@ function updateRunnerBalanceDisplay() {
           hands: bj.hands,
           dealer: bj.dealer,
           logs: bj.roundResults?.length
+        } : null,
+        blackjackDuel: game.mode === "blackjackduel" ? {
+          roundId: blackjackDuel.roundId,
+          revision: blackjackDuel.revision,
+          secondsLeft: blackjackDuel.secondsLeft,
+          me: blackjackDuel.me,
+          opponent: blackjackDuel.opponent,
+          completedAt: blackjackDuel.completedAt
         } : null,
         fishing: game.mode === "fishing" ? {
           revision: fishing.revision || 0,
@@ -18500,6 +18540,7 @@ function updateRunnerBalanceDisplay() {
       const drawPlaying = Boolean(game && game.mode === "draw" && game.status === "playing");
       const fishingLive = Boolean(game && game.mode === "fishing" && game.status === "playing");
       const rouletteLive = Boolean(game && game.mode === "roulette" && game.status === "playing");
+      const blackjackDuelLive = Boolean(game && game.mode === "blackjackduel" && game.status === "playing");
       const safeCrackerLive = Boolean(game && game.mode === "safecracker" && ["ready", "countdown", "playing"].includes(game.status));
       const sharedLifecycleLive = Boolean(game && game.mode !== "safecracker" && ["ready", "countdown"].includes(game.status));
       const completedAwaitingRematch = Boolean(game && game.status === "complete" && DUEL_MODES_UI[String(game.mode || "")]);
@@ -18519,7 +18560,7 @@ function updateRunnerBalanceDisplay() {
         duelCompletedActivityGameId = "";
         duelCompletedActivityAt = 0;
       }
-      const desired = safeCrackerLive ? (game.status === "playing" ? 2200 : 650) : sharedLifecycleLive ? (game.status === "countdown" ? 250 : 350) : drawPlaying ? 650 : rouletteLive ? 800 : fishingLive ? 450 : game?.mode === "mountainrace" && game?.status === "playing" ? 700 : completedAwaitingRematch ? completedPollRate : noFocusedGame ? 2000 : 1800;
+      const desired = safeCrackerLive ? (game.status === "playing" ? 2200 : 650) : sharedLifecycleLive ? (game.status === "countdown" ? 250 : 350) : drawPlaying ? 650 : blackjackDuelLive ? 650 : rouletteLive ? 800 : fishingLive ? 450 : game?.mode === "mountainrace" && game?.status === "playing" ? 700 : completedAwaitingRematch ? completedPollRate : noFocusedGame ? 2000 : 1800;
       if (document.hidden) {
         if (duelPollTimer) clearInterval(duelPollTimer);
         duelPollTimer = null;
@@ -19756,6 +19797,9 @@ function updateRunnerBalanceDisplay() {
     function duelModeArt(game) {
       const mode = game?.mode || "coin";
       if (mode === "blackjack") return duelBlackjackHtml(game);
+      if (mode === "blackjackduel") return ["playing", "complete"].includes(String(game?.status || ""))
+        ? `<div data-blackjack-duel-mount></div>`
+        : `<div class="duel-mode-art"><div class="duel-simple-mode"><div class="duel-simple-icon">♠</div><div class="duel-simple-title">Blackjack Duel</div><div class="duel-simple">No dealer. Private hands from one server-owned deck; closest to 21 wins.</div></div></div>`;
       if (mode === "draw") return duelDrawHtml(game);
       if (mode === "fishing") return duelFishingHtml(game);
       if (mode === "roulette") return rouletteHtml(game);
@@ -20459,6 +20503,7 @@ function updateRunnerBalanceDisplay() {
       document.body.classList.remove('roulette-viewport-lock');
       if (game?.mode === "safecracker" && !safeCrackerAcceptSnapshot(game)) return;
       if (game?.mode === "mountainrace" && !mountainRaceAcceptSnapshot(game)) return;
+      if (game?.mode === "blackjackduel" && !blackjackDuelAcceptSnapshot(game)) return;
       if (game?.mode === "roulette" && !rouletteAcceptSnapshot(game)) return;
       if (game?.mode === "roulette" && rouletteHoldLiveResult(game)) { duelSetPollRate(game); return; }
       if (game?.mode === "draw") duelDrawLatestGame = game;
@@ -20548,7 +20593,7 @@ function updateRunnerBalanceDisplay() {
       } else if (["complete","cancelled"].includes(String(game.status || "")) && duelCurrentGameId === game.gameId) {
         // Keep a completed DRAW match mounted until the player explicitly creates
         // or joins another game. This preserves the Western result poster.
-                  if (!(["draw", "fishing", "roulette", "safecracker", "mountainrace"].includes(game.mode) && game.status === "complete")) {
+                  if (!(["draw", "fishing", "roulette", "safecracker", "mountainrace", "blackjackduel"].includes(game.mode) && game.status === "complete")) {
           duelRememberCurrentGame("");
         }
       }
@@ -20573,13 +20618,13 @@ function updateRunnerBalanceDisplay() {
         // Never mount a second countdown inside any game scene.
         body = "";
       } else if (game.status === "playing") {
-        body = game.mode === "roulette" ? "" : game.mode === "safecracker" ? "" : game.mode === "mountainrace" ? "" : game.mode === "blackjack"
+        body = game.mode === "roulette" ? "" : game.mode === "safecracker" ? "" : game.mode === "mountainrace" ? "" : game.mode === "blackjackduel" ? "" : game.mode === "blackjack"
           ? `<div class="duel-blackjack-actions">${duelActionChoices(game)}</div>`
           : game.mode === "fishing"
             ? `${duelActionChoices(game)}`
             : `<p class="duel-status good">${game.myAction ? "Your action is locked." : "Lock in your action."}</p>${duelActionChoices(game)}`;
       } else if (game.status === "complete") {
-        body = ["draw", "fishing", "roulette", "safecracker", "mountainrace"].includes(game.mode) ? "" : `${duelResultText(game)}<div class="duel-actions"><button class="gold" id="duelNewGameBtn" type="button">Create a New Game</button></div>`;
+        body = ["draw", "fishing", "roulette", "safecracker", "mountainrace", "blackjackduel"].includes(game.mode) ? "" : `${duelResultText(game)}<div class="duel-actions"><button class="gold" id="duelNewGameBtn" type="button">Create a New Game</button></div>`;
       }
 
       if (game.mode === "blackjack") {
@@ -20704,6 +20749,24 @@ function updateRunnerBalanceDisplay() {
         };
         window.dispatchEvent(new CustomEvent("mountainrace:state", { detail: { game } }));
       }
+      if (game.mode === "blackjackduel") {
+        window.__blackjackDuelBridge = {
+          submit: async details => {
+            if (!duelGenericMountedGameMatches(game)) throw new Error("Blackjack Duel board changed. Try again.");
+            const data = await duelRequest("act", { gameId: game.gameId, ...(details || {}) });
+            if (data.game) {
+              duelLastActiveGame = data.game;
+              duelKnownRevisionByGame.set(String(data.game.gameId), String(data.game.blackjackDuelState?.revision || ""));
+              duelRenderActive(data.game, true);
+            }
+            return data;
+          },
+          refresh: () => duelRefresh(true),
+          rematch: () => duelRequestRematch(),
+          newGame: () => duelStartNewGame("blackjackduel")
+        };
+        window.dispatchEvent(new CustomEvent("blackjackduel:state", { detail: { game } }));
+      }
       duelSetPollRate(game);
     }
 
@@ -20764,6 +20827,8 @@ function updateRunnerBalanceDisplay() {
                 active = duelLastActiveGame && String(duelLastActiveGame.gameId) === String(duelCurrentGameId) ? duelLastActiveGame : null;
               } else if (got.game.mode === "mountainrace" && !mountainRaceAcceptSnapshot(got.game)) {
                 active = duelLastActiveGame && String(duelLastActiveGame.gameId) === String(duelCurrentGameId) ? duelLastActiveGame : null;
+              } else if (got.game.mode === "blackjackduel" && !blackjackDuelAcceptSnapshot(got.game)) {
+                active = duelLastActiveGame && String(duelLastActiveGame.gameId) === String(duelCurrentGameId) ? duelLastActiveGame : null;
               } else if (got.game.mode === "roulette" && !rouletteAcceptSnapshot(got.game)) {
                 active = duelLastActiveGame && String(duelLastActiveGame.gameId) === String(duelCurrentGameId) ? duelLastActiveGame : rouletteLatestGame;
               } else {
@@ -20813,6 +20878,7 @@ function updateRunnerBalanceDisplay() {
           const candidateRouletteRevision = rouletteRevision(candidate);
           if(candidate?.mode === "safecracker" && duelLastActiveGame?.mode === "safecracker") active = safeCrackerAcceptSnapshot(candidate) ? candidate : duelLastActiveGame;
           else if(candidate?.mode === "mountainrace" && duelLastActiveGame?.mode === "mountainrace") active = mountainRaceAcceptSnapshot(candidate) ? candidate : duelLastActiveGame;
+          else if(candidate?.mode === "blackjackduel" && duelLastActiveGame?.mode === "blackjackduel") active = blackjackDuelAcceptSnapshot(candidate) ? candidate : duelLastActiveGame;
           else if(candidate?.mode === "roulette" && duelLastActiveGame?.mode === "roulette") active = candidateRouletteRevision >= acceptedRouletteRevision && rouletteAcceptSnapshot(candidate) ? candidate : duelLastActiveGame;
           else if (!duelLastActiveGame || candidate?.mode !== "draw" || candidateRevision >= acceptedRevision) active = candidate;
           else active = duelLastActiveGame;
@@ -22544,14 +22610,14 @@ function updateRunnerBalanceDisplay() {
   #simpleApiStatus.good{color:#68e59a} #simpleApiStatus.bad{color:#ff7887}
   .sth-games{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
   .sth-game{min-height:72px;border:0;border-radius:14px;font-weight:900;font-size:.95rem;color:white;box-shadow:inset 0 1px rgba(255,255,255,.18),0 8px 20px rgba(0,0,0,.25)}
-  .sth-game[data-mode="roulette"]{background:#9d2739}.sth-game[data-mode="draw"]{background:#355f9d}.sth-game[data-mode="fishing"]{background:#24736b}.sth-game[data-mode="safecracker"]{background:linear-gradient(145deg,#8b6525,#564016)}.sth-game[data-mode="mountainrace"]{background:linear-gradient(145deg,#557d45,#263e32)}
+  .sth-game[data-mode="roulette"]{background:#9d2739}.sth-game[data-mode="draw"]{background:#355f9d}.sth-game[data-mode="fishing"]{background:#24736b}.sth-game[data-mode="safecracker"]{background:linear-gradient(145deg,#8b6525,#564016)}.sth-game[data-mode="mountainrace"]{background:linear-gradient(145deg,#557d45,#263e32)}.sth-game[data-mode="blackjackduel"]{background:linear-gradient(145deg,#8d2531,#111d36)}
   .sth-game:disabled{opacity:.38;filter:grayscale(.8)}
   @media(max-width:520px){.sth-row{flex-direction:column}.sth-row button{min-height:46px}.sth-games{grid-template-columns:1fr}.sth-game{min-height:56px}}
 </style>
 <div id="simpleTestHome">
   <main class="sth-card">
     <h1>Multiplayer Test</h1>
-    <p>Choose one of the five multiplayer games currently in active development.</p>
+    <p>Choose one of the six multiplayer games currently in active development.</p>
     <label class="sth-label" for="simpleApiKey">Torn API Key</label>
     <div class="sth-row"><input id="simpleApiKey" type="password" autocomplete="off" placeholder="Enter API key"><button id="simpleSaveKey" type="button">Verify Key</button></div>
     <div id="simpleApiStatus">API verification is required before entering a game.</div>
@@ -22561,6 +22627,7 @@ function updateRunnerBalanceDisplay() {
       <button class="sth-game" data-mode="fishing" disabled>Fishing</button>
       <button class="sth-game" data-mode="safecracker" disabled>Safe Cracker</button>
       <button class="sth-game" data-mode="mountainrace" disabled>Summit Sprint</button>
+      <button class="sth-game" data-mode="blackjackduel" disabled>Blackjack Duel</button>
     </div>
   </main>
 </div>
@@ -22594,19 +22661,21 @@ function updateRunnerBalanceDisplay() {
  save.addEventListener('click',verify);keyInput.addEventListener('keydown',e=>{if(e.key==='Enter')verify()});games.forEach(b=>b.addEventListener('click',()=>openGame(b.dataset.mode)));
  const ob=new MutationObserver(()=>document.querySelectorAll('#duelNpcBtn,#duelNpcActiveBtn,#duelRecoverNpcBtn').forEach(e=>e.remove()));ob.observe(document.body,{subtree:true,childList:true});
  document.title='Multiplayer Test';sync();
+ const requestedMode=new URLSearchParams(location.search).get('game');
+ if(requestedMode&&confirmed())setTimeout(()=>openGame(requestedMode),0);
 })();
 </script>
 
 <style id="remote-network-bot-v60-style">
 #rnbDock{position:fixed;right:10px;bottom:10px;z-index:2147483200;width:min(390px,calc(100vw - 20px));font-family:Arial,sans-serif;color:#eef4ff;filter:drop-shadow(0 14px 30px rgba(0,0,0,.55))}
-.rnb-panel{margin-top:8px;border:1px solid #45546b;border-radius:14px;background:rgba(10,15,23,.97);overflow:hidden}.rnb-head{width:100%;display:flex;justify-content:space-between;align-items:center;padding:11px 13px;border:0;background:#202b3b;color:#fff;font-weight:900;text-align:left}.rnb-body{padding:12px}.rnb-panel[data-collapsed="1"] .rnb-body{display:none}.rnb-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.rnb-grid select,.rnb-grid button,.rnb-full{min-height:42px;border-radius:10px;border:1px solid #51637d;background:#111927;color:#fff;padding:8px;font-weight:800}.rnb-add{background:#9f6b21!important;border-color:#d3a14c!important}.rnb-stop{background:#7d2831!important}.rnb-log{margin-top:8px;max-height:170px;overflow:auto;border-radius:9px;background:#05080d;padding:8px;font:11px/1.45 monospace;white-space:pre-wrap;color:#b8c7db}.rnb-kv{display:grid;grid-template-columns:110px 1fr;gap:5px;font-size:12px;margin-bottom:8px}.rnb-kv b{color:#89a8d0}.rnb-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#6b7480;margin-right:6px}.rnb-live .rnb-dot{background:#58dc8b;box-shadow:0 0 9px #58dc8b}.rnb-note{font-size:11px;line-height:1.4;color:#aebbd0;margin-top:8px}.rnb-games{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:8px}.rnb-games button{min-height:36px;border:0;border-radius:8px;background:#334862;color:white;font-weight:900}.rnb-games [data-rnb-game="roulette"]{background:#9d2739}.rnb-games [data-rnb-game="draw"]{background:#355f9d}.rnb-games [data-rnb-game="fishing"]{background:#24736b}.rnb-games [data-rnb-game="safecracker"]{background:#7b5b20}.rnb-games [data-rnb-game="mountainrace"]{background:#3e673d}.rnb-copy{width:100%;min-height:36px;margin-bottom:9px;border:1px solid #5c7394;border-radius:9px;background:#26364c;color:#fff;font-weight:900}.rnb-copy.copied{background:#276a45;border-color:#58dc8b}.test-refresh-stack{display:flex;flex-direction:column;gap:6px;align-items:stretch;min-width:142px}.test-refresh-stack>button{width:100%;margin:0!important}.test-hard-cancel{min-height:34px;padding:6px 9px;border:1px solid #d55d68;border-radius:8px;background:#7d2831;color:#fff;font-size:.72rem;font-weight:900;line-height:1.1}.test-hard-cancel:hover{background:#982f3b}.test-hard-cancel:disabled{opacity:.55}@media(max-width:520px){#rnbDock{right:6px;bottom:6px;width:calc(100vw - 12px)}.rnb-log{max-height:115px}}
+.rnb-panel{margin-top:8px;border:1px solid #45546b;border-radius:14px;background:rgba(10,15,23,.97);overflow:hidden}.rnb-head{width:100%;display:flex;justify-content:space-between;align-items:center;padding:11px 13px;border:0;background:#202b3b;color:#fff;font-weight:900;text-align:left}.rnb-body{padding:12px}.rnb-panel[data-collapsed="1"] .rnb-body{display:none}.rnb-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.rnb-grid select,.rnb-grid button,.rnb-full{min-height:42px;border-radius:10px;border:1px solid #51637d;background:#111927;color:#fff;padding:8px;font-weight:800}.rnb-add{background:#9f6b21!important;border-color:#d3a14c!important}.rnb-stop{background:#7d2831!important}.rnb-log{margin-top:8px;max-height:170px;overflow:auto;border-radius:9px;background:#05080d;padding:8px;font:11px/1.45 monospace;white-space:pre-wrap;color:#b8c7db}.rnb-kv{display:grid;grid-template-columns:110px 1fr;gap:5px;font-size:12px;margin-bottom:8px}.rnb-kv b{color:#89a8d0}.rnb-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#6b7480;margin-right:6px}.rnb-live .rnb-dot{background:#58dc8b;box-shadow:0 0 9px #58dc8b}.rnb-note{font-size:11px;line-height:1.4;color:#aebbd0;margin-top:8px}.rnb-games{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:8px}.rnb-games button{min-height:36px;border:0;border-radius:8px;background:#334862;color:white;font-weight:900}.rnb-games [data-rnb-game="roulette"]{background:#9d2739}.rnb-games [data-rnb-game="draw"]{background:#355f9d}.rnb-games [data-rnb-game="fishing"]{background:#24736b}.rnb-games [data-rnb-game="safecracker"]{background:#7b5b20}.rnb-games [data-rnb-game="mountainrace"]{background:#3e673d}.rnb-games [data-rnb-game="blackjackduel"]{background:#762839}.rnb-copy{width:100%;min-height:36px;margin-bottom:9px;border:1px solid #5c7394;border-radius:9px;background:#26364c;color:#fff;font-weight:900}.rnb-copy.copied{background:#276a45;border-color:#58dc8b}.test-refresh-stack{display:flex;flex-direction:column;gap:6px;align-items:stretch;min-width:142px}.test-refresh-stack>button{width:100%;margin:0!important}.test-hard-cancel{min-height:34px;padding:6px 9px;border:1px solid #d55d68;border-radius:8px;background:#7d2831;color:#fff;font-size:.72rem;font-weight:900;line-height:1.1}.test-hard-cancel:hover{background:#982f3b}.test-hard-cancel:disabled{opacity:.55}@media(max-width:520px){#rnbDock{right:6px;bottom:6px;width:calc(100vw - 12px)}.rnb-log{max-height:115px}}
 </style>
 <aside id="rnbDock">
  <section class="rnb-panel" id="rnbControlPanel" data-collapsed="1">
   <button class="rnb-head" data-rnb-toggle="rnbControlPanel"><span><i class="rnb-dot"></i>REMOTE NETWORK BOT</span><span>▼</span></button>
   <div class="rnb-body">
    <div class="rnb-grid"><select id="rnbProfile"><option value="normal">Normal (100–400 ms)</option><option value="mobile">Mobile (300–1,500 ms)</option><option value="bad">Bad Connection (500–3,000 ms)</option><option value="stress">Stress Test</option></select><button class="rnb-add" id="rnbAddBot" type="button">Start / Add Remote Bot</button></div>
-   <div class="rnb-games"><button data-rnb-game="roulette">Roulette</button><button data-rnb-game="draw">Draw</button><button data-rnb-game="fishing">Fishing</button><button data-rnb-game="safecracker">Safe Cracker</button><button data-rnb-game="mountainrace">Summit Sprint</button></div>
+   <div class="rnb-games"><button data-rnb-game="roulette">Roulette</button><button data-rnb-game="draw">Draw</button><button data-rnb-game="fishing">Fishing</button><button data-rnb-game="safecracker">Safe Cracker</button><button data-rnb-game="mountainrace">Summit Sprint</button><button data-rnb-game="blackjackduel">Blackjack Duel</button></div>
    <div class="rnb-note">Choose a game and wager, then start it here. One click creates or safely recovers the game and attaches the separate synthetic server player.</div>
   </div>
  </section>
@@ -22628,7 +22697,7 @@ function updateRunnerBalanceDisplay() {
  function startupLine(msg,data){startupLogs.unshift(`${new Date().toLocaleTimeString()}  ${msg}${data?' '+JSON.stringify(data):''}`);startupLogs.splice(RNB_STARTUP_LOG_LIMIT);}
  function rnbLogText(arr,empty){const startup=`STARTUP / LIFECYCLE (${startupLogs.length}/${RNB_STARTUP_LOG_LIMIT})\n${startupLogs.join('\n')||'No startup events recorded.'}`;const recent=`RECENT ACTIVITY (${arr.length}/${RNB_LOG_LIMIT})\n${arr.join('\n')||empty}`;return `${startup}\n\n${recent}`;}
  function render(){
-  const g=(typeof duelLastActiveGame!=='undefined'&&duelLastActiveGame)||(typeof rouletteLatestGame!=='undefined'&&rouletteLatestGame)||null, st=g?.mode==='mountainrace'?(g?.mountainraceState||{}):g?.rouletteState||g?.drawState||g?.fishingState||g?.safecrackerState||{};
+  const g=(typeof duelLastActiveGame!=='undefined'&&duelLastActiveGame)||(typeof rouletteLatestGame!=='undefined'&&rouletteLatestGame)||null, st=g?.mode==='mountainrace'?(g?.mountainraceState||{}):g?.blackjackDuelState||g?.rouletteState||g?.drawState||g?.fishingState||g?.safecrackerState||{};
   $('rnbControlPanel').classList.toggle('rnb-live',!!g?.remoteNetworkTest);
   $('rnbGameKv').innerHTML=`<b>Game</b><span>${g?.gameId||'—'}</span><b>Mode / status</b><span>${g?.mode||'—'} / ${g?.status||'—'}</span><b>Game revision</b><span>${g?.revision??'—'}</span><b>State revision</b><span>${st?.revision??'—'}</span><b>Players</b><span>${g?.creator?.name||'—'} vs ${g?.joiner?.name||'Waiting'}</span><b>Server time</b><span>${g?.serverNow||'—'}</span>`;
   $('rnbBotKv').innerHTML=`<b>Attached</b><span>${g?.remoteNetworkTest?'Yes':'No'}</span><b>Profile</b><span>${g?.remoteNetworkProfile||'—'}</span><b>Bot</b><span>${g?.joiner?.isRemoteBot?g.joiner.name:'—'}</span><b>Turn</b><span>${st?.turnId||'—'}</span><b>Next action</b><span>${g?.npcActionAt||'server scheduled'}</span>`;

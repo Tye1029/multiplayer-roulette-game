@@ -13,6 +13,7 @@
     roulette: "Russian Roulette",
     plinko: "Plinko Duel",
     blackjack: "Blackjack 1v1",
+    blackjackduel: "Blackjack Duel",
     memory: "Memory Match Duel",
     safecracker: "Safe Cracker Duel",
     mountainrace: "Summit Sprint",
@@ -22,13 +23,13 @@
 
   return Object.freeze({
     version: "game-catalog-v1",
-    // These are the five modes currently being developed and regression-tested
+    // These are the six modes currently being developed and regression-tested
     // through the temporary Multiplayer Test shell.
     multiplayerTestModes: Object.freeze([
-      "roulette", "draw", "fishing", "safecracker", "mountainrace"
+      "roulette", "draw", "fishing", "safecracker", "mountainrace", "blackjackduel"
     ]),
     // Older duel implementations remain registered but are not mixed into the
-    // current five-game testing surface until each receives a focused audit.
+    // current six-game testing surface until each receives a focused audit.
     legacyMultiplayerModes: Object.freeze([
       "mines", "rps", "plinko", "blackjack", "memory", "cardwar", "coin"
     ]),

@@ -24,6 +24,7 @@ const POLL_MS = Object.freeze({
     draw: 650,
     fishing: 450,
     roulette: 800,
+    blackjackduel: 650,
     safecracker: 2200,
     mountainrace: 700
   }),

@@ -23,10 +23,10 @@ const index = fs.readFileSync(path.join(root, "index.html"), "utf8");
 
 const expectedModes = [
   "mines", "rps", "draw", "fishing", "roulette", "plinko",
-  "blackjack", "memory", "safecracker", "mountainrace", "cardwar", "coin"
+  "blackjack", "blackjackduel", "memory", "safecracker", "mountainrace", "cardwar", "coin"
 ];
 
-const activeTestModes = ["roulette", "draw", "fishing", "safecracker", "mountainrace"];
+const activeTestModes = ["roulette", "draw", "fishing", "safecracker", "mountainrace", "blackjackduel"];
 const legacyModes = ["mines", "rps", "plinko", "blackjack", "memory", "cardwar", "coin"];
 
 assert.equal(catalog.version, "game-catalog-v1");
@@ -89,8 +89,10 @@ for (const token of [
   'The incorrect game was not opened.',
   'data-rnb-game="roulette"',
   'data-rnb-game="mountainrace"',
+  'data-rnb-game="blackjackduel"',
   'data-mode="safecracker"',
   'data-mode="mountainrace"',
+  'data-mode="blackjackduel"',
   "You still have an unfinished",
   "align-items:flex-start;justify-content:center;overflow-y:auto",
   ".sth-card{width:min(520px,100%);margin:auto",
@@ -122,7 +124,7 @@ for (const token of [
 ]) assert.ok(index.includes(token), `client runtime is missing ${token}`);
 
 assert.ok(!index.includes("if (mountainRacePauseCompletedPolling(game))"), "Summit completion must use shared rematch polling");
-assert.ok(index.includes("one of the five multiplayer games currently in active development"));
+assert.ok(index.includes("one of the six multiplayer games currently in active development"));
 assert.ok(!index.includes('data-rnb-game="mines"'));
 assert.ok(!index.includes('class="sth-game" data-mode="blackjack"'));
 assert.ok(!index.includes("Create a game first."), "Remote Bot startup must not require a separate create click");

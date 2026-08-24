@@ -1,8 +1,10 @@
 const { getStore, connectLambda } = require("@netlify/blobs");
 const drawDatabase = require("./_draw-database");
 const fishingDatabase = require("./_fishing-database");
+const blackjackDuelDatabase = require("./_blackjack-duel-database");
 const crypto = require("crypto");
 const { createMountainRaceIntegration } = require("./mountain-race/integration");
+const { createBlackjackDuelIntegration } = require("./blackjack-duel/integration");
 
 const STORE_NAME = "torn-xan-users";
 const ODDS_SETTINGS_KEY = "settings/odds.json";
@@ -4143,6 +4145,7 @@ function duelHasValidSchema(game) {
   }
   if (game.mode === "safecracker" && ["countdown","playing"].includes(game.status) && !safeCrackerHasValidState(game)) return false;
   if (game.mode === "mountainrace" && ["countdown","playing"].includes(game.status) && !mountainRaceHasValidState(game)) return false;
+  if (game.mode === "blackjackduel" && ["countdown","playing"].includes(game.status) && !blackjackDuelHasValidState(game)) return false;
   return true;
 }
 async function duelSetActivePointer(userId, game) {
@@ -4231,6 +4234,7 @@ function duelSanitizeGame(game = {}) {
     testPlayerMode: Boolean(game.testPlayerMode),
     testControllerUserId: cleanUserId(game.testControllerUserId || ""),
     blackjackState: game.blackjackState && typeof game.blackjackState === "object" ? game.blackjackState : null,
+    blackjackDuelState: game.blackjackDuelState && typeof game.blackjackDuelState === "object" ? game.blackjackDuelState : null,
     drawState: game.drawState && typeof game.drawState === "object" ? game.drawState : null,
     fishingState: game.fishingState && typeof game.fishingState === "object" ? game.fishingState : null,
     rouletteState: game.rouletteState && typeof game.rouletteState === "object" ? game.rouletteState : null,
@@ -4259,6 +4263,7 @@ function duelPublicGame(game = {}, viewerUserId = "") {
   const joinerAction = clean.joiner?.userId ? clean.actions?.[clean.joiner.userId] || null : null;
   const isPlayer = viewer && (clean.creator.userId === viewer || clean.joiner?.userId === viewer);
   const bjState = clean.mode === "blackjack" ? bjPublicTournamentState(clean, viewer) : clean.blackjackState;
+  const blackjackDuelState = clean.mode === "blackjackduel" ? blackjackDuelPublicState(clean, viewer) : clean.blackjackDuelState;
   const bjPhase = bjState?.phase || "";
   const myBjHand = bjState?.hands?.[viewer] || null;
   const myBjBet = bjState?.roundBets?.[viewer] || 0;
@@ -4281,6 +4286,7 @@ function duelPublicGame(game = {}, viewerUserId = "") {
     // anchor it once per game phase instead of re-synchronizing on every poll.
     serverNow: new Date().toISOString(),
     blackjackState: bjState,
+    blackjackDuelState,
     drawState,
     fishingState,
     rouletteState,
@@ -4303,7 +4309,7 @@ function duelPublicGame(game = {}, viewerUserId = "") {
     countdownSeconds: clean.status === "countdown" && startMs ? Math.max(0, Math.ceil((startMs - Date.now()) / 1000)) : 0,
     canCancel: clean.status === "waiting" && viewer && clean.creator.userId === viewer && !clean.joiner,
     canAdvanceRound: blackjackCanAdvance,
-    canAct: clean.mode === "blackjack" ? (blackjackCanBet || blackjackCanPlay || blackjackCanAdvance) : clean.mode === "draw" ? drawCanAct : clean.mode === "fishing" ? (clean.status === "playing" && isPlayer && !fishingState?.myCatch) : clean.mode === "roulette" ? rouletteCanAct(clean, viewer) : clean.mode === "safecracker" ? Boolean(safecrackerState?.canSubmit) : clean.mode === "mountainrace" ? Boolean(mountainraceState?.canSubmit) : (clean.status === "playing" && isPlayer && !myAction)
+    canAct: clean.mode === "blackjackduel" ? Boolean(blackjackDuelState?.canHit || blackjackDuelState?.canStand) : clean.mode === "blackjack" ? (blackjackCanBet || blackjackCanPlay || blackjackCanAdvance) : clean.mode === "draw" ? drawCanAct : clean.mode === "fishing" ? (clean.status === "playing" && isPlayer && !fishingState?.myCatch) : clean.mode === "roulette" ? rouletteCanAct(clean, viewer) : clean.mode === "safecracker" ? Boolean(safecrackerState?.canSubmit) : clean.mode === "mountainrace" ? Boolean(mountainraceState?.canSubmit) : (clean.status === "playing" && isPlayer && !myAction)
   };
 }
 
@@ -4696,6 +4702,7 @@ async function duelJoinGame(user, gameId) {
   game = await duelSaveGame({
     ...joinedGame,
     blackjackState: null,
+    blackjackDuelState: null,
     drawState: null,
     fishingState: null
   });
@@ -5577,6 +5584,7 @@ async function duelMaybeComplete(game, viewerId) {
   if (clean.mode === "roulette") return await rouletteMaybeComplete(clean);
   if (clean.mode === "safecracker") return await safeCrackerAdvanceAndSave(clean);
   if (clean.mode === "mountainrace") return await mountainRaceAdvanceAndSave(clean);
+  if (clean.mode === "blackjackduel") return await blackjackDuelAdvanceAndSave(clean);
   if (clean.status !== "playing" || !clean.creator?.userId || !clean.joiner?.userId) return clean;
   const creatorAction = clean.actions?.[clean.creator.userId];
   const joinerAction = clean.actions?.[clean.joiner.userId];
@@ -6150,6 +6158,24 @@ async function mountainRaceAdvanceAndSave(game) { return await mountainRaceInteg
 async function mountainRaceAction(user, gameId, rawChoice, details) { return await mountainRaceIntegration.action(user, gameId, rawChoice, details); }
 // MOUNTAIN_RACE_SERVER_END
 
+// BLACKJACK_DUEL_SERVER_START
+const blackjackDuelIntegration = createBlackjackDuelIntegration({
+  cleanUserId,
+  int,
+  getRaw: duelGetRaw,
+  getRawStrong: gameId => duelGetRawStrong(gameId, 1),
+  publicGame: duelPublicGame,
+  completeResolved: duelCompleteWithResolved,
+  getUserRecord,
+  database: blackjackDuelDatabase
+});
+function blackjackDuelInitialState(game, startMs) { return blackjackDuelIntegration.initialState(game, startMs); }
+function blackjackDuelHasValidState(game) { return blackjackDuelIntegration.hasValidState(game); }
+function blackjackDuelPublicState(game, viewerId) { return blackjackDuelIntegration.publicState(game, viewerId); }
+async function blackjackDuelAdvanceAndSave(game) { return await blackjackDuelIntegration.advance(game); }
+async function blackjackDuelAction(user, gameId, rawChoice, details) { return await blackjackDuelIntegration.action(user, gameId, rawChoice, details); }
+// BLACKJACK_DUEL_SERVER_END
+
 // Shared duel ready lifecycle. This is the only code allowed to move a duel
 // from ready -> countdown -> playing. The server owns all timestamps.
 const DUEL_READY_WINDOW_MS = 10000;
@@ -6202,6 +6228,7 @@ function duelStartCountdown(game, atMs = Date.now()) {
   if (next.mode === "roulette") next.rouletteState = rouletteInitialState(next, effectiveStartMs);
   if (next.mode === "safecracker") next.safecrackerState = safeCrackerInitialState(next, effectiveStartMs);
   if (next.mode === "mountainrace") next.mountainraceState = mountainRaceInitialState(next, effectiveStartMs);
+  if (next.mode === "blackjackduel") next.blackjackDuelState = blackjackDuelInitialState(next, effectiveStartMs);
   return next;
 }
 
@@ -6224,6 +6251,7 @@ function duelNormalizeReadyState(game) {
       if (next.mode === "roulette" && !next.rouletteState) next.rouletteState = rouletteInitialState(next, startMs);
       if (next.mode === "safecracker" && !safeCrackerHasValidState(next)) next.safecrackerState = safeCrackerInitialState(next, startMs);
       if (next.mode === "mountainrace" && !mountainRaceHasValidState(next)) next.mountainraceState = mountainRaceInitialState(next, startMs);
+      if (next.mode === "blackjackduel" && !blackjackDuelHasValidState(next)) next.blackjackDuelState = blackjackDuelInitialState(next, startMs);
     }
     return next;
   }
@@ -6245,7 +6273,8 @@ function duelNormalizeReadyState(game) {
       drawState: next.mode === "draw" ? null : next.drawState,
       rouletteState: next.mode === "roulette" ? null : next.rouletteState,
       safecrackerState: next.mode === "safecracker" ? null : next.safecrackerState,
-      mountainraceState: next.mode === "mountainrace" ? null : next.mountainraceState
+      mountainraceState: next.mode === "mountainrace" ? null : next.mountainraceState,
+      blackjackDuelState: next.mode === "blackjackduel" ? null : next.blackjackDuelState
     };
   }
 
@@ -6348,14 +6377,14 @@ async function duelAddSimpleNpc(user, gameId) {
     const active = await duelFindActiveGameForUser(viewer);
     if (active && cleanUserId(active.creator?.userId) === viewer) game = active;
   }
-  if (!game) throw new Error("Create a Russian Roulette duel before adding the NPC.");
+  if (!game) throw new Error("Create a duel before adding the NPC.");
   if (game.creator.userId !== viewer) throw new Error("Only the creator can add the NPC.");
   if (!duelSupportsSyntheticOpponent(game.mode)) throw new Error("This game does not support a synthetic opponent.");
   if (game.status !== "waiting" || game.joiner) throw new Error("The NPC can only be added to a waiting duel.");
   const npcId = `npc-${game.mode}-${crypto.randomBytes(4).toString("hex")}`;
   const npcPlayer = duelSanitizePlayer({
     userId: npcId,
-    name: game.mode === "draw" ? "Quickdraw Opponent" : game.mode === "roulette" ? "Roulette Opponent" : game.mode === "safecracker" ? "Vault Cracker" : game.mode === "mountainrace" ? "Mountain Bot" : "Fishing Opponent",
+    name: game.mode === "draw" ? "Quickdraw Opponent" : game.mode === "roulette" ? "Roulette Opponent" : game.mode === "safecracker" ? "Vault Cracker" : game.mode === "mountainrace" ? "Mountain Bot" : game.mode === "blackjackduel" ? "Blackjack Bot" : "Fishing Opponent",
     tornId: npcId,
     avatarUrl: "",
     isNpc: true,
@@ -6378,6 +6407,7 @@ async function duelAddSimpleNpc(user, gameId) {
     npcActionAt: null,
     actions: {},
     blackjackState: null,
+    blackjackDuelState: null,
     drawState: null,
     fishingState: null,
     rouletteState: null,
@@ -6417,7 +6447,7 @@ async function duelAddRemoteNetworkBot(user, gameId, profile = "normal") {
     ...game,status:"ready",pot:game.wager,npcTest:true,remoteNetworkTest:true,remoteNetworkProfile:key,remoteNetworkConfig:network,
     testPlayerMode:false,testControllerUserId:"",joiner:bot,ready:{[game.creator.userId]:false,[bot.userId]:false},
     readyWindowStartedAt:null,readyDeadlineAt:null,countdownStartedAt:null,startAt:null,npcReadyAt:null,npcActionAt:null,actions:{},
-    blackjackState:null,drawState:null,fishingState:null,rouletteState:null,safecrackerState:null,mountainraceState:null,
+    blackjackState:null,blackjackDuelState:null,drawState:null,fishingState:null,rouletteState:null,safecrackerState:null,mountainraceState:null,
     ledgerIds:{...(game.ledgerIds||{}),npc:`duel:${game.gameId}:remote-${game.mode}-bot`}
   });
   return {game:duelPublicGame(game,viewer),record:await getUserRecord(viewer),remoteNetworkProfile:key,remoteNetworkConfig:network};
@@ -6527,6 +6557,7 @@ async function duelCreateRemoteNetworkBotGame(user, details = {}) {
     npcActionAt: null,
     actions: {},
     blackjackState: null,
+    blackjackDuelState: null,
     drawState: null,
     fishingState: null,
     rouletteState: null,
@@ -6664,6 +6695,10 @@ async function duelActionGame(user, gameId, details = {}) {
     return await mountainRaceAction(actorUser, gameId, rawChoice, details);
   }
 
+  if (game.mode === "blackjackduel") {
+    return await blackjackDuelAction(actorUser, gameId, rawChoice, details);
+  }
+
   if (game.mode === "blackjack") {
     const applied = bjApplyTournamentAction(game, viewer, choice || "stand");
     if (applied.complete) {
@@ -6685,7 +6720,7 @@ async function duelActionGame(user, gameId, details = {}) {
 
 function duelAutoNpcGeneric(game) {
   const clean = duelSanitizeGame(game);
-  if (clean.status !== "playing" || !clean.joiner?.isNpc || ["draw","fishing","roulette","blackjack","safecracker","mountainrace"].includes(clean.mode)) return clean;
+  if (clean.status !== "playing" || !clean.joiner?.isNpc || ["draw","fishing","roulette","blackjack","blackjackduel","safecracker","mountainrace"].includes(clean.mode)) return clean;
   const npcId = cleanUserId(clean.joiner.userId);
   if (clean.actions?.[npcId]) return clean;
   const nowMs = Date.now();
@@ -6766,6 +6801,10 @@ async function duelGetGame(user, gameId, options = {}) {
   } else if (game.mode === "mountainrace") {
     let latest = duelNormalizeReadyState(game);
     if (latest.status === "playing") latest = await mountainRaceAdvanceAndSave(latest);
+    game = latest;
+  } else if (game.mode === "blackjackduel") {
+    let latest = duelNormalizeReadyState(game);
+    if (latest.status === "playing") latest = await blackjackDuelAdvanceAndSave(latest);
     game = latest;
   } else {
     const auto = duelAutoNpcGeneric(game);
