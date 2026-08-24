@@ -54,7 +54,7 @@
     const openingDeal = !final && previousCount === 0 && cards.length >= 2;
     const total = hand.total === null || hand.total === undefined ? "?" : String(hand.total);
     const finalSuffix = hand.status === "blackjack" ? " · BLACKJACK" : hand.status === "bust" ? " · BUST" : "";
-    const label = hidden ? "PRIVATE HAND" : final ? `${total}${finalSuffix}` : hand.status === "blackjack" ? "NATURAL BLACKJACK" : hand.status === "bust" ? "BUST" : hand.status === "twentyone" ? "21" : hand.status === "timeout" ? "AUTO-STAND" : hand.status === "stand" ? total : hand.soft ? `SOFT ${total}` : total;
+    const label = hidden ? "PRIVATE HAND" : final ? `${total}${finalSuffix}` : hand.status === "blackjack" ? "NATURAL BLACKJACK" : hand.status === "bust" ? "BUST" : hand.status === "twentyone" ? "21" : hand.autoStood || hand.status === "timeout" ? "AUTO-STAND" : hand.status === "stand" ? total : hand.soft ? `SOFT ${total}` : total;
     return `<div class="bjd-hand ${hidden ? "concealed" : ""}">
       <div class="bjd-hand-cards${handDensityClass(cards.length) ? ` ${handDensityClass(cards.length)}` : ""}" data-card-count="${cards.length}">${cards.map((card, index) => cardHtml(card, index, {
         seat,
@@ -68,7 +68,7 @@
   function handLabel(hand = {}, hidden = false) {
     if (hidden) return "PRIVATE HAND";
     const total = hand.total === null || hand.total === undefined ? "?" : String(hand.total);
-    return hand.status === "blackjack" ? "NATURAL BLACKJACK" : hand.status === "bust" ? "BUST" : hand.status === "twentyone" ? "21" : hand.status === "timeout" ? "AUTO-STAND" : hand.status === "stand" ? "STANDING" : hand.soft ? `SOFT ${total}` : total;
+    return hand.status === "blackjack" ? "NATURAL BLACKJACK" : hand.status === "bust" ? "BUST" : hand.status === "twentyone" ? "21" : hand.autoStood || hand.status === "timeout" ? "AUTO-STAND" : hand.status === "stand" ? "STANDING" : hand.soft ? `SOFT ${total}` : total;
   }
 
   function undealtHandHtml(label = "DEALS AT GO") {
@@ -136,7 +136,9 @@
           button.disabled = pending || (action === "hit" ? !currentState.canHit : !currentState.canStand);
         });
         const currentStatus = scope.querySelector(".bjd-controls p");
-        if (currentStatus) currentStatus.textContent = "Choose now. Your opponent cannot see your cards or your choice.";
+        if (currentStatus) currentStatus.textContent = currentState.isMyTurn
+          ? "Your turn. Choose Hit or Stand before the timer reaches zero."
+          : "Opponent's turn. Your controls unlock after their move.";
       }, maxSequence * 170 + 640);
     }
     cards.forEach((card, fallbackSequence) => {
@@ -176,6 +178,9 @@
       completedAt: state.completedAt || game.completedAt || "",
       canHit: Boolean(state.canHit),
       canStand: Boolean(state.canStand),
+      isMyTurn: Boolean(state.isMyTurn),
+      isOpponentTurn: Boolean(state.isOpponentTurn),
+      turnNumber: Number(state.turnNumber || 0),
       dealing,
       rematch: game.rematch || null,
       rematchGameId: game.rematchGameId || "",
@@ -334,10 +339,13 @@
     if (dealing) return `<div class="bjd-pregame"><b>${game.status === "countdown" ? "CARDS DEAL AT GO" : "DEALING CARDS…"}</b></div>`;
     if (game.status === "complete") return "";
     const canAct = Boolean(state.canHit || state.canStand) && !pending;
-    if (!state.canHit && !state.canStand && !pending) return `<div class="bjd-pregame locked"><b>YOUR HAND IS SET</b><span>Waiting for the 20-second reveal. The other hand stays a mystery until then.</span></div>`;
+    if (!state.canHit && !state.canStand && !pending) {
+      if (state.me?.status === "active" && state.isOpponentTurn) return `<div class="bjd-pregame waiting-turn"><b>OPPONENT'S TURN</b><span>They have 10 seconds to Hit or Stand. Your controls unlock next.</span></div>`;
+      return `<div class="bjd-pregame locked"><b>YOUR HAND IS SET</b><span>Waiting for the other hand to finish. Their cards stay private until the reveal.</span></div>`;
+    }
     const message = pending
       ? pendingAction === "hit" ? "Hit sent — drawing one card…" : "Stand sent — saving your total…"
-      : canAct ? "Choose now. Your opponent cannot see your cards or your choice." : "Waiting for the server…";
+      : canAct ? "Your turn. Choose Hit or Stand before the timer reaches zero." : "Waiting for the server…";
     return `<div class="bjd-controls${pending ? " pending" : ""}">
       <button class="bjd-action hit" data-bjd-action="hit" type="button" ${state.canHit && !pending ? "" : "disabled"}><span>${pendingAction === "hit" ? "Drawing…" : "Hit"}</span><small>Draw one card</small></button>
       <button class="bjd-action stand" data-bjd-action="stand" type="button" ${state.canStand && !pending ? "" : "disabled"}><span>${pendingAction === "stand" ? "Saving…" : "Stand"}</span><small>Keep this total</small></button>
@@ -395,19 +403,23 @@
         const playerTotal = liveSection.querySelector(".bjd-seat.player .bjd-hand-total");
         const opponentTotal = liveSection.querySelector(".bjd-seat.opponent .bjd-hand-total");
         const playerStatus = liveSection.querySelector(".bjd-seat.player .bjd-seat-label b");
+        const opponentStatus = liveSection.querySelector(".bjd-seat.opponent .bjd-seat-label b");
         const playerCount = liveSection.querySelector(".bjd-seat.player .bjd-seat-label em");
         const opponentCount = liveSection.querySelector(".bjd-seat.opponent .bjd-seat-label em");
         const controlsHost = liveSection.querySelector("[data-bjd-controls-host]");
         const clockLabel = liveSection.querySelector(".bjd-clock-label");
+        liveSection.querySelector(".bjd-seat.player")?.classList.toggle("is-turn", Boolean(state.isMyTurn));
+        liveSection.querySelector(".bjd-seat.opponent")?.classList.toggle("is-turn", Boolean(state.isOpponentTurn));
         if (playerTotal) playerTotal.textContent = handLabel(state.me || {}, false);
         if (opponentTotal) opponentTotal.textContent = "PRIVATE HAND";
         if (playerStatus) {
-          playerStatus.textContent = state.me?.status === "active" ? "CHOOSE" : "";
-          playerStatus.hidden = state.me?.status !== "active";
+          playerStatus.textContent = state.isMyTurn ? "YOUR TURN" : state.me?.status === "active" ? "WAITING" : "SET";
+          playerStatus.hidden = false;
         }
+        if (opponentStatus) opponentStatus.textContent = state.isOpponentTurn ? "THEIR TURN" : "PRIVATE";
         if (playerCount) playerCount.textContent = cardCountLabel(meCards.length);
         if (opponentCount) opponentCount.textContent = cardCountLabel(opponentCards.length);
-        if (clockLabel) clockLabel.textContent = "time to choose";
+        if (clockLabel) clockLabel.textContent = state.isMyTurn ? "your turn" : "opponent's turn";
         if (controlsHost) {
           controlsHost.innerHTML = controlsHtml(game, state, false);
           bind(controlsHost, game);
@@ -419,7 +431,7 @@
         if (clock) {
           clock.dataset.target = String(clockTarget || "");
           clock.dataset.clockOffset = String(clockOffset);
-          clock.dataset.clockKind = "decision";
+          clock.dataset.clockKind = "turn";
           clock.textContent = String(seconds);
         }
         lastRenderSignature = signature;
@@ -443,15 +455,16 @@
     const pot = sharedPotView(game);
     const opponentHand = dealing ? undealtHandHtml() : handHtml(state.opponent || {}, !complete, "opponent", animatedCounts.opponent, complete);
     const playerHand = dealing ? undealtHandHtml("YOUR CARDS DEAL AT GO") : handHtml(state.me || {}, false, "player", animatedCounts.me, complete);
-    const playerBadge = dealing ? "GET READY" : state.me?.status === "active" ? "CHOOSE" : "";
-    const opponentBadge = complete ? "" : "PRIVATE";
+    const playerBadge = dealing ? "GET READY" : complete ? "" : state.isMyTurn ? "YOUR TURN" : state.me?.status === "active" ? "WAITING" : "SET";
+    const opponentBadge = complete ? "" : state.isOpponentTurn ? "THEIR TURN" : "PRIVATE";
+    const turnLabel = state.isMyTurn ? "your turn" : "opponent's turn";
     root.innerHTML = `<section class="bjd-game${pendingAction === "hit" ? " is-drawing" : ""}" data-bjd-game-id="${escapeHtml(game.gameId)}" data-bjd-round-id="${escapeHtml(roundId)}">
       <header class="bjd-header"><h2>Blackjack Duel</h2></header>
-      <div class="bjd-howto"><b>Get closer to 21 than your opponent without busting.</b><span>Equal hands push.</span></div>
+      <div class="bjd-howto"><b>Take turns to Hit or Stand. Get closer to 21 without busting.</b><span>Each turn lasts 10 seconds. Equal hands push.</span></div>
       <div class="bjd-table">
-        <div class="bjd-seat player"><div class="bjd-seat-label"><span>YOUR HAND</span>${playerBadge ? `<b>${escapeHtml(playerBadge)}</b>` : ""}<em>${cardCountLabel(dealing ? 0 : meCards.length)}</em></div>${playerHand}</div>
-        <div class="bjd-center"><div class="bjd-center-pot"><img src="/assets/blackjack-duel/images/casino-chip-pile-crisp.svg" alt=""><span>SHARED POT</span><b>${pot.total.toLocaleString()} <small>TICKETS</small></b>${pot.each ? `<em>${pot.each.toLocaleString()} EACH</em>` : ""}</div>${deckHtml(pendingAction === "hit")}<span class="bjd-clock-label">${countdown ? "round begins in" : complete ? "final hands" : "time to choose"}</span>${complete ? "" : `<div class="bjd-clock" data-bjd-clock data-clock-kind="${countdown ? "countdown" : "decision"}" data-target="${escapeHtml(clockTarget || "")}" data-clock-offset="${clockOffset}">${seconds}</div><span>seconds</span>`}</div>
-        <div class="bjd-seat opponent"><div class="bjd-seat-label"><span>${escapeHtml(state.opponentName || game.joiner?.name || "Opponent")}</span>${opponentBadge ? `<b>${opponentBadge}</b>` : ""}<em>${cardCountLabel(dealing ? 0 : opponentCards.length)}</em></div>${opponentHand}</div>
+        <div class="bjd-seat player${state.isMyTurn ? " is-turn" : ""}"><div class="bjd-seat-label"><span>YOUR HAND</span>${playerBadge ? `<b>${escapeHtml(playerBadge)}</b>` : ""}<em>${cardCountLabel(dealing ? 0 : meCards.length)}</em></div>${playerHand}</div>
+        <div class="bjd-center"><div class="bjd-center-pot"><img src="/assets/blackjack-duel/images/casino-chip-pile-crisp.svg" alt=""><span>SHARED POT</span><b>${pot.total.toLocaleString()} <small>TICKETS</small></b>${pot.each ? `<em>${pot.each.toLocaleString()} EACH</em>` : ""}</div>${deckHtml(pendingAction === "hit")}<span class="bjd-clock-label">${countdown ? "round begins in" : complete ? "final hands" : turnLabel}</span>${complete ? "" : `<div class="bjd-clock" data-bjd-clock data-clock-kind="${countdown ? "countdown" : "turn"}" data-target="${escapeHtml(clockTarget || "")}" data-clock-offset="${clockOffset}">${seconds}</div><span>seconds</span>`}</div>
+        <div class="bjd-seat opponent${state.isOpponentTurn ? " is-turn" : ""}"><div class="bjd-seat-label"><span>${escapeHtml(state.opponentName || game.joiner?.name || "Opponent")}</span>${opponentBadge ? `<b>${opponentBadge}</b>` : ""}<em>${cardCountLabel(dealing ? 0 : opponentCards.length)}</em></div>${opponentHand}</div>
       </div>
       <div data-bjd-controls-host>${controlsHtml(game, state, dealing)}</div>
       ${resultHtml(game)}
@@ -526,7 +539,7 @@
           const clockOffset = Number(node.dataset.clockOffset || 0);
           const seconds = Math.max(0, Math.ceil((target - (Date.now() + clockOffset)) / 1000));
           node.textContent = String(seconds);
-          node.classList.toggle("urgent", node.dataset.clockKind === "decision" && seconds <= 5);
+          node.classList.toggle("urgent", node.dataset.clockKind === "turn" && seconds <= 3);
           reachedZero = seconds === 0;
         }
       }

@@ -12570,8 +12570,8 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
   <script id="mountainRaceMultiplayerRuntime" src="/assets/mountain-race/mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=11&scene=65&holds=30" defer></script>
 <!-- MOUNTAIN_RACE_MULTIPLAYER_ASSETS_END -->
 <!-- BLACKJACK_DUEL_ASSETS_START -->
-  <link id="blackjackDuelStyles" rel="stylesheet" href="/assets/blackjack-duel/blackjack-duel.css?v=blackjack-duel-v16">
-  <script id="blackjackDuelRuntime" src="/assets/blackjack-duel/blackjack-duel.js?v=blackjack-duel-v16" defer></script>
+  <link id="blackjackDuelStyles" rel="stylesheet" href="/assets/blackjack-duel/blackjack-duel.css?v=blackjack-duel-v17">
+  <script id="blackjackDuelRuntime" src="/assets/blackjack-duel/blackjack-duel.js?v=blackjack-duel-v17" defer></script>
 <!-- BLACKJACK_DUEL_ASSETS_END -->
 
 <!-- MOUNTAIN_RACE_V29_PRELOADS -->
@@ -20356,6 +20356,9 @@ function updateRunnerBalanceDisplay() {
         }
         duelRenderActive(data.game, false);
         duelSetPollRate(data.game || duelLastActiveGame || null);
+        if (data.game?.remoteNetworkTest) {
+          window.dispatchEvent(new CustomEvent("blackjackduel:double-offered", { detail: { game: data.game } }));
+        }
         queueMicrotask(() => duelRefresh(true));
         duelSetStatus(data.doubleAccepted ? "Both players accepted Double or Nothing. The doubled hand starts when the timer reaches zero." : "Double or Nothing offered. Your opponent has 5 seconds to accept.", "good");
         if (data.game?.npcTest && !data.game?.remoteNetworkTest && !data.game?.rematchGameId) {
@@ -23059,6 +23062,10 @@ async function rnbFetchAuthoritativeGame(gameId){
    const g=(typeof duelLastActiveGame!=='undefined'&&duelLastActiveGame)||(typeof rouletteLatestGame!=='undefined'&&rouletteLatestGame)||null;
    rnbScheduleRematch(g);
   },1000);
+ window.addEventListener('blackjackduel:double-offered',event=>{
+  const offeredGame=event?.detail?.game;
+  if(offeredGame?.mode==='blackjackduel'&&offeredGame?.remoteNetworkTest)rnbScheduleRematch(offeredGame);
+ });
  window.addEventListener('roulette-facing-diagnostic',event=>{line(logs,'rotation',event?.detail||{});render()});
   function rnbDebugState(g){
    if(!g)return{};

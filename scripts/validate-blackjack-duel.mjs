@@ -28,7 +28,7 @@ const {
 
 assert.equal(BLACKJACK_DUEL_MODE, "blackjackduel");
 assert.equal(BLACKJACK_DUEL_STATE_VERSION, 1);
-assert.equal(BLACKJACK_DUEL_DECISION_MS, 20_000);
+assert.equal(BLACKJACK_DUEL_DECISION_MS, 10_000);
 assert.equal(BLACKJACK_DUEL_OPENING_DEAL_GUARD_MS, 2_200);
 const deck = createDeck();
 assert.equal(deck.length, 52, "authoritative deck must contain 52 cards");
@@ -49,6 +49,8 @@ assert.ok(base, "validator could not create two active opening hands");
 assert.equal(base.seatOrder.length, 2);
 assert.equal(base.hands["player-a"].cards.length, 2);
 assert.equal(base.hands["player-b"].cards.length, 2);
+assert.ok(["player-a", "player-b"].includes(base.currentTurnId));
+assert.equal(Date.parse(base.deadlineAt) - now, 10_000, "the opening turn must have ten seconds");
 assert.equal(base.drawQueues["player-a"].length + base.drawQueues["player-b"].length, 48);
 const committed = [...base.hands["player-a"].cards, ...base.hands["player-b"].cards, ...base.drawQueues["player-a"], ...base.drawQueues["player-b"]];
 assert.equal(new Set(committed.map(card => card.id)).size, 52, "deal and fixed hit lanes must consume one finite deck");
@@ -59,30 +61,43 @@ assert.deepEqual(publicA.opponent.cards, [{ hidden: true }, { hidden: true }], "
 assert.equal(publicA.opponent.total, null);
 assert.ok(!("drawQueues" in publicA), "private draw lanes leaked into the public snapshot");
 assert.ok(!("seatOrder" in publicA), "private deal order leaked into the public snapshot");
+const openingPlayer = base.currentTurnId;
+const waitingPlayer = openingPlayer === "player-a" ? "player-b" : "player-a";
+const publicOpeningPlayer = publicBlackjackDuelState(base, openingPlayer, now);
+const publicWaitingPlayer = publicBlackjackDuelState(base, waitingPlayer, now);
+assert.equal(publicOpeningPlayer.isMyTurn, true);
+assert.equal(publicOpeningPlayer.canHit, true);
+assert.equal(publicWaitingPlayer.isOpponentTurn, true);
+assert.equal(publicWaitingPlayer.canHit, false);
 
-// Network arrival order cannot change either player's next assigned card.
-const hitAThenB = applyBlackjackDuelAction(base, "player-a", "hit", "order-a", now + 100).state;
-const hitAThenBFinal = applyBlackjackDuelAction(hitAThenB, "player-b", "hit", "order-b", now + 200).state;
-const hitBThenA = applyBlackjackDuelAction(base, "player-b", "hit", "order-b2", now + 100).state;
-const hitBThenAFinal = applyBlackjackDuelAction(hitBThenA, "player-a", "hit", "order-a2", now + 200).state;
-assert.equal(hitAThenBFinal.hands["player-a"].cards[2]?.id, hitBThenAFinal.hands["player-a"].cards[2]?.id);
-assert.equal(hitAThenBFinal.hands["player-b"].cards[2]?.id, hitBThenAFinal.hands["player-b"].cards[2]?.id);
-const publicAfterOpponentHit = publicBlackjackDuelState(hitAThenB, "player-b", now + 300);
+// Actions must alternate while each player's assigned draw lane stays fixed.
+assert.throws(
+  () => applyBlackjackDuelAction(base, waitingPlayer, "hit", "out-of-turn", now + 50),
+  /Wait for your turn/,
+  "the waiting player must not draw out of turn"
+);
+const firstHit = applyBlackjackDuelAction(base, openingPlayer, "hit", "first-turn-hit", now + 100).state;
+assert.equal(firstHit.hands[openingPlayer].cards[2]?.id, base.drawQueues[openingPlayer][0]?.id);
+assert.equal(firstHit.currentTurnId, waitingPlayer, "a Hit must pass control to the other active hand");
+assert.equal(Date.parse(firstHit.deadlineAt) - (now + 100), 10_000, "each action must reset a ten-second turn");
+const publicAfterOpponentHit = publicBlackjackDuelState(firstHit, waitingPlayer, now + 300);
 assert.equal(publicAfterOpponentHit.opponent.cards.length, 3, "opponent card count must be public");
 assert.ok(publicAfterOpponentHit.opponent.cards.every(card => card.hidden), "opponent card faces must remain private");
 assert.equal(publicAfterOpponentHit.opponent.status, "hidden", "opponent bust/lock state must remain private");
 
 const bothLocked = applyBlackjackDuelAction(
-  applyBlackjackDuelAction(base, "player-a", "stand", "lock-a", now + 100).state,
-  "player-b",
+  applyBlackjackDuelAction(base, openingPlayer, "stand", "lock-first", now + 100).state,
+  waitingPlayer,
   "stand",
-  "lock-b",
+  "lock-second",
   now + 200
 ).state;
 assert.ok(bothLocked.completedAt, "two explicit Stand choices should settle immediately");
 
 const bustThenStand = applyBlackjackDuelAction({
   ...base,
+  currentTurnId: "player-b",
+  seatOrder: ["player-b", "player-a"],
   hands: {
     "player-a": { cards: [{ rank: "K", suit: "spades" }, { rank: "Q", suit: "hearts" }, { rank: "2", suit: "clubs" }], status: "bust" },
     "player-b": { ...base.hands["player-b"], status: "active" }
@@ -92,6 +107,8 @@ assert.ok(bustThenStand.completedAt, "bust plus stand must settle immediately on
 
 const bothBustByAction = applyBlackjackDuelAction({
   ...base,
+  currentTurnId: "player-b",
+  seatOrder: ["player-b", "player-a"],
   hands: {
     "player-a": { cards: [{ rank: "K", suit: "spades" }, { rank: "Q", suit: "hearts" }, { rank: "2", suit: "clubs" }], status: "bust" },
     "player-b": { cards: [{ rank: "K", suit: "clubs" }, { rank: "Q", suit: "diamonds" }], status: "active" }
@@ -105,6 +122,8 @@ assert.equal(bothBustByAction.resolution.tie, true);
 
 const loneBust = applyBlackjackDuelAction({
   ...base,
+  currentTurnId: "player-a",
+  seatOrder: ["player-a", "player-b"],
   hands: {
     "player-a": { cards: [{ rank: "K", suit: "spades" }, { rank: "Q", suit: "hearts" }], status: "active" },
     "player-b": { ...base.hands["player-b"], status: "active" }
@@ -135,15 +154,22 @@ assert.equal(bothBust.resolution.tie, true, "two busted hands must push");
 
 const expired = expireBlackjackDuel({
   ...base,
+  currentTurnId: "player-a",
+  seatOrder: ["player-a", "player-b"],
   deadlineAt: new Date(now - 1).toISOString(),
   hands: {
     "player-a": { ...base.hands["player-a"], status: "active" },
     "player-b": { ...base.hands["player-b"], status: "active" }
   }
 }, now);
-assert.equal(expired.hands["player-a"].status, "timeout");
-assert.equal(expired.hands["player-b"].status, "timeout");
-assert.ok(expired.completedAt, "decision deadline must complete disconnected hands");
+assert.equal(expired.hands["player-a"].status, "stand");
+assert.equal(expired.hands["player-a"].autoStood, true, "an expired turn must automatically Stand");
+assert.equal(expired.hands["player-b"].status, "active");
+assert.equal(expired.currentTurnId, "player-b");
+assert.equal(Date.parse(expired.deadlineAt) - now, 10_000, "the other player must receive a fresh ten-second turn");
+assert.equal(expired.completedAt, null);
+const fullyExpired = expireBlackjackDuel({ ...expired, deadlineAt: new Date(now - 1).toISOString() }, now);
+assert.ok(fullyExpired.completedAt, "the round must resolve after the last active player auto-Stands");
 
 const clone = value => structuredClone(value);
 const games = new Map();
@@ -191,7 +217,7 @@ for (let attempt = 0; attempt < 100; attempt += 1) {
     joiner: { userId: "player-b", name: "Player B" }
   };
   candidate.blackjackDuelState = integration.initialState(candidate, now);
-  if (candidate.blackjackDuelState.hands["player-a"].status === "active" && candidate.blackjackDuelState.hands["player-b"].status === "active") {
+  if (candidate.blackjackDuelState.hands["player-a"].status === "active" && candidate.blackjackDuelState.hands["player-b"].status === "active" && candidate.blackjackDuelState.currentTurnId === "player-a") {
     integrationGame = candidate;
     break;
   }
@@ -205,16 +231,24 @@ assert.deepEqual(actionResponse.game.blackjackDuelState.opponent.cards, [{ hidde
 const duplicateResponse = await integration.action({ id: "player-a" }, integrationGame.gameId, "blackjackduel:stand", { actionId: "integration-stand" });
 assert.equal(duplicateResponse.duplicateAction, true, "action IDs must be idempotent");
 
-const remoteBotOpeningGame = {
-  gameId: "blackjack-opening-animation-guard",
-  mode: "blackjackduel",
-  status: "playing",
-  startAt: new Date(now).toISOString(),
-  creator: { userId: "player-a", name: "Player A" },
-  joiner: { userId: "remote-bot-blackjackduel-validator", name: "Remote Bot", isNpc: true, isRemoteBot: true },
-  remoteNetworkConfig: { minDelayMs: 100, maxDelayMs: 100, stallChance: 0, reconnectChance: 0 }
-};
-const remoteBotOpeningState = integration.initialState(remoteBotOpeningGame, now);
+let remoteBotOpeningState;
+for (let attempt = 0; attempt < 100; attempt += 1) {
+  const remoteBotOpeningGame = {
+    gameId: `blackjack-opening-animation-guard-${attempt}`,
+    mode: "blackjackduel",
+    status: "playing",
+    startAt: new Date(now).toISOString(),
+    creator: { userId: "player-a", name: "Player A" },
+    joiner: { userId: "remote-bot-blackjackduel-validator", name: "Remote Bot", isNpc: true, isRemoteBot: true },
+    remoteNetworkConfig: { minDelayMs: 100, maxDelayMs: 100, stallChance: 0, reconnectChance: 0 }
+  };
+  const candidate = integration.initialState(remoteBotOpeningGame, now);
+  if (candidate.currentTurnId === "remote-bot-blackjackduel-validator" && candidate.hands[candidate.currentTurnId].status === "active") {
+    remoteBotOpeningState = candidate;
+    break;
+  }
+}
+assert.ok(remoteBotOpeningState, "validator could not create a bot-first opening turn");
 assert.ok(
   Date.parse(remoteBotOpeningState.botNextActionAt) - now >= BLACKJACK_DUEL_OPENING_DEAL_GUARD_MS,
   "the Remote Bot's first decision must not overlap or imitate the four-card opening deal"
@@ -274,6 +308,9 @@ const componentPreview = fs.readFileSync(path.join(root, "games/multiplayer/blac
 for (const token of ["CARDS DEAL AT GO", "Draw one card", "Keep this total", "pendingAction", "data-clock-offset", "SHARED DECK", "lastRenderSignature", "just-dealt", "cardCountLabel"]) {
   assert.ok(component.includes(token), `Blackjack Duel interaction guidance is missing ${token}`);
 }
+for (const token of ["Each turn lasts 10 seconds", "OPPONENT'S TURN", "isMyTurn", "isOpponentTurn", "YOUR TURN", "THEIR TURN"]) {
+  assert.ok(component.includes(token), `Blackjack Duel turn guidance is missing ${token}`);
+}
 for (const token of ["bjd-final-totals", "bjd-center-pot", "data-bjd-double", "animatePendingDeals", "canPatchComplete", "casino-chip-pile-crisp.svg", "awaiting-deal", "data-bjd-deal-sequence", "data-bjd-push-clock", "pushRestart", "dealAnimationLedger", "rememberAnimatedCards", "patchDoublePanel", "doubleOfferUi", "sharedPotView", "EACH", "HAND_DENSITY_CLASSES", "syncHandDensity", "data-card-count"]) {
   assert.ok(component.includes(token), `Blackjack Duel final layout is missing ${token}`);
 }
@@ -299,8 +336,9 @@ assert.ok(!component.includes("currentDouble.replaceWith"), "Double or Nothing u
 assert.ok(!component.includes("currentDouble.innerHTML"), "Double or Nothing polling must patch the mounted panel without replacing its contents");
 assert.ok(componentCss.includes("background:linear-gradient(180deg,#08231d 0,#061914 48%,#03100d 100%)"), "the completed result must retain the subdued dark-green table presentation");
 assert.ok(componentCss.includes(".bjd-result.win,.bjd-result.lose,.bjd-result.tie") && componentCss.includes("animation:none!important") && componentCss.includes("filter:none!important"), "shared neon win styling and pulse animation must not recolor Blackjack Duel results");
+assert.ok(componentCss.includes(".bjd-seat.is-turn") && componentCss.includes(".bjd-pregame.waiting-turn"), "the active ten-second turn must be visually unmistakable on both seats");
 assert.ok(!componentCss.includes("animation:bjdReveal"), "the completed result must not replay a flashing reveal animation");
-assert.ok(component.indexOf('class="bjd-seat player"') < component.indexOf('class="bjd-seat opponent"'), "the local player must occupy the left seat before the opponent");
+assert.ok(component.indexOf('class="bjd-seat player${') < component.indexOf('class="bjd-seat opponent${'), "the local player must occupy the left seat before the opponent");
 assert.ok(componentPreview.includes('get("autoDeal") === "1"'), "the component preview must exercise the countdown-to-opening-deal transition");
 assert.ok(componentPreview.includes('get("repeatMount") === "1"') && componentPreview.includes("data-preview-deal-animation-starts"), "the component preview must verify that an opening deal cannot replay after a table remount");
 assert.ok(componentPreview.includes('get("delayDouble") === "1"'), "the component preview must exercise a slow Double or Nothing response while the local timer is visible");
@@ -309,6 +347,7 @@ assert.ok(componentPreview.includes('get("opponentLeft") === "1"') && componentP
 assert.ok(componentPreview.includes('get("singlePot") === "1"') && componentPreview.includes("previewWager"), "the component preview must reproduce a Remote Bot's single escrowed wager");
 assert.ok(componentPreview.includes("previewSharedPulse") && componentPreview.includes('get("opponentName")'), "the component preview must reproduce shared win CSS and long opponent names");
 assert.ok(componentPreview.includes('get("myCards")') && componentPreview.includes('get("opponentCards")') && componentPreview.includes('get("growHands")'), "the component preview must exercise oversized player and opponent hands through the live patch path");
+assert.ok(componentPreview.includes('get("turn") !== "opponent"') && componentPreview.includes("isOpponentTurn"), "the component preview must exercise both sides of alternating play");
 
 const index = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const data = fs.readFileSync(path.join(root, "netlify/functions/_data.js"), "utf8");
@@ -316,7 +355,7 @@ const blackjackDatabase = fs.readFileSync(path.join(root, "netlify/functions/_bl
 for (const token of ["data-mode=\"blackjackduel\"", "data-rnb-game=\"blackjackduel\"", "data-blackjack-duel-mount", "window.__blackjackDuelBridge", "blackjackduel:state"]) {
   assert.ok(index.includes(token), `shared shell is missing ${token}`);
 }
-assert.ok(index.includes("blackjack-duel-v16"), "shared shell is missing the Blackjack Duel cache marker");
+assert.ok(index.includes("blackjack-duel-v17"), "shared shell is missing the Blackjack Duel cache marker");
 assert.ok(index.includes("game.mode==='blackjackduel'"), "Blackjack Duel must own its in-table countdown");
 assert.ok(index.includes("blackjack-duel-focus"), "Blackjack Duel must use the focused active-round shell");
 assert.ok(index.includes("body.duel-mode.blackjack-duel-focus .page") && index.includes("align-content:start") && index.includes("align-self:start") && index.includes("body.duel-mode.blackjack-duel-focus #rouletteDebugDock { display:none!important; }"), "the focused Blackjack shell must fit its content and hide Roulette-only diagnostics");
@@ -325,6 +364,7 @@ assert.ok(index.includes('document.body.classList.contains("blackjack-duel-focus
 assert.ok(index.includes("body.blackjack-duel-focus .result-pop") && index.includes("body.blackjack-duel-focus .duel-big-result { display:none!important; }"), "delayed shared result layers must remain hidden behind the Blackjack Duel result");
 assert.ok(index.includes("canPatchMountedBlackjackDuel"), "Blackjack Duel must retain its mounted table between polls");
 assert.ok(index.includes("shouldRequestFirst=game.mode!=='blackjackduel'"), "the Remote Bot must not repeatedly open unsolicited Double or Nothing windows");
+assert.ok(index.includes('new CustomEvent("blackjackduel:double-offered"') && index.includes("window.addEventListener('blackjackduel:double-offered'"), "a Remote Bot must schedule Double or Nothing acceptance as soon as the human offer is recorded");
 assert.ok(index.includes('choice: "push-rematch"') && index.includes("pushRestart: () => duelRequestPushRestart()"), "a Push must automatically request its next round after five seconds");
 assert.ok(index.includes('choice: "double-or-nothing-start"') && index.includes("doubleStart: () => duelStartAcceptedDoubleOrNothing()"), "both accepted Double or Nothing offers must start only after the visible timer expires");
 assert.ok(index.includes("offerExpiresAt") && component.includes("doubleOfferUi.expiresAt"), "the authoritative acceptance window must share the same five-second deadline already visible to the player");
@@ -347,4 +387,4 @@ for (const token of ["ensureSchema", "CREATE TABLE IF NOT EXISTS blackjack_duel_
   assert.ok(blackjackDatabase.includes(token), `database bootstrap is missing ${token}`);
 }
 
-console.log("Blackjack Duel validation passed: finite deck, private simultaneous play, timeout resolution, idempotent actions, modular UI, and shared lifecycle integration.");
+console.log("Blackjack Duel validation passed: finite deck, private alternating turns, ten-second auto-Stand, idempotent actions, modular UI, and shared lifecycle integration.");

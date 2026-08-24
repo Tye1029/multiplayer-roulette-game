@@ -8,7 +8,8 @@ const {
   createBlackjackDuelState,
   applyBlackjackDuelAction,
   expireBlackjackDuel,
-  publicBlackjackDuelState
+  publicBlackjackDuelState,
+  currentBlackjackDuelTurnId
 } = require("./state-model");
 
 const BLACKJACK_DUEL_BOT_MIN_DELAY_MS = 650;
@@ -56,6 +57,21 @@ function createBlackjackDuelIntegration(host = {}) {
     return delay;
   }
 
+  function scheduleBotTurn(game, state, now = Date.now(), opening = false) {
+    const syntheticId = cleanUserId(bot(game)?.userId);
+    const botHasTurn = Boolean(
+      syntheticId
+      && !state?.completedAt
+      && currentBlackjackDuelTurnId(state) === syntheticId
+      && state.hands?.[syntheticId]?.status === "active"
+    );
+    if (!botHasTurn) return state?.botNextActionAt ? { ...state, botNextActionAt: null } : state;
+    const existing = Date.parse(state.botNextActionAt || "");
+    if (Number.isFinite(existing) && existing > Number(now)) return state;
+    const delay = opening ? Math.max(BLACKJACK_DUEL_OPENING_DEAL_GUARD_MS, botDelay(game)) : botDelay(game);
+    return { ...state, botNextActionAt: new Date(Number(now) + delay).toISOString() };
+  }
+
   function initialState(game, startMs = Date.now()) {
     const playerIds = ids(game);
     if (playerIds.length !== 2) return null;
@@ -65,14 +81,10 @@ function createBlackjackDuelIntegration(host = {}) {
       startAt: Number(startMs),
       decisionMs: BLACKJACK_DUEL_DECISION_MS
     });
-    const synthetic = bot(game);
-    if (!synthetic) return state;
-    return {
-      ...state,
-      // Keep the bot's first hit visually separate from the four-card opening
-      // deal. Later bot decisions retain the normal network/reaction delay.
-      botNextActionAt: new Date(Number(startMs) + Math.max(BLACKJACK_DUEL_OPENING_DEAL_GUARD_MS, botDelay(game))).toISOString()
-    };
+    if (!bot(game)) return state;
+    // Keep a bot-first action visually separate from the four-card opening
+    // deal. If the human starts, the bot is scheduled only when its turn begins.
+    return scheduleBotTurn(game, state, Number(startMs), true);
   }
 
   function ensureState(game) {
@@ -104,6 +116,9 @@ function createBlackjackDuelIntegration(host = {}) {
         startAt: game?.startAt || null,
         deadlineAt: null,
         secondsLeft: 0,
+        turnNumber: 0,
+        isMyTurn: false,
+        isOpponentTurn: false,
         me: { cards: [], total: null, soft: false, status: "hidden" },
         opponent: { cards: [{ hidden: true }, { hidden: true }], total: null, soft: false, status: "hidden" },
         canHit: false,
@@ -179,18 +194,16 @@ function createBlackjackDuelIntegration(host = {}) {
       gameId: game.gameId,
       initialState: initial,
       update: current => {
-        let state = expireBlackjackDuel(current, Date.now());
-        if (!state.completedAt && syntheticId && state.hands?.[syntheticId]?.status === "active") {
+        const now = Date.now();
+        let state = scheduleBotTurn(game, expireBlackjackDuel(current, now), now);
+        if (!state.completedAt && syntheticId && currentBlackjackDuelTurnId(state) === syntheticId && state.hands?.[syntheticId]?.status === "active") {
           const dueAt = Date.parse(state.botNextActionAt || "");
-          if (!Number.isFinite(dueAt) || Date.now() >= dueAt) {
+          if (!Number.isFinite(dueAt) || now >= dueAt) {
             const sequence = int(state.botActionSequence, 0) + 1;
-            const applied = applyBlackjackDuelAction(state, syntheticId, botAction(state, syntheticId), `blackjack-bot-${sequence}`, Date.now());
+            const applied = applyBlackjackDuelAction(state, syntheticId, botAction(state, syntheticId), `blackjack-bot-${sequence}`, now);
             state = {
-              ...applied.state,
-              botActionSequence: sequence,
-              botNextActionAt: applied.state.completedAt || applied.state.hands?.[syntheticId]?.status !== "active"
-                ? null
-                : new Date(Date.now() + botDelay(game)).toISOString()
+              ...scheduleBotTurn(game, { ...applied.state, botNextActionAt: null }, now),
+              botActionSequence: sequence
             };
           }
         }
@@ -222,7 +235,7 @@ function createBlackjackDuelIntegration(host = {}) {
       initialState: initial,
       update: current => {
         const applied = applyBlackjackDuelAction(current, viewer, actionName, actionId, Date.now());
-        return { state: applied.state, meta: { duplicate: applied.duplicate, expired: applied.expired } };
+        return { state: scheduleBotTurn(read, applied.state, Date.now()), meta: { duplicate: applied.duplicate, expired: applied.expired } };
       }
     });
     let game = { ...read, blackjackDuelState: updated.state };

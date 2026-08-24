@@ -4,7 +4,7 @@ const crypto = require("node:crypto");
 
 const BLACKJACK_DUEL_MODE = "blackjackduel";
 const BLACKJACK_DUEL_STATE_VERSION = 1;
-const BLACKJACK_DUEL_DECISION_MS = 20_000;
+const BLACKJACK_DUEL_DECISION_MS = 10_000;
 const BLACKJACK_DUEL_RANKS = Object.freeze(["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]);
 const BLACKJACK_DUEL_SUITS = Object.freeze(["clubs", "diamonds", "hearts", "spades"]);
 const BLACKJACK_DUEL_TERMINAL_STATUSES = Object.freeze(["stand", "bust", "blackjack", "twentyone", "timeout"]);
@@ -84,7 +84,8 @@ function normalizeHand(hand = {}) {
     soft: value.soft,
     status,
     finishedAt: hand.finishedAt || null,
-    lastActionAt: hand.lastActionAt || null
+    lastActionAt: hand.lastActionAt || null,
+    autoStood: Boolean(hand.autoStood)
   };
 }
 
@@ -119,7 +120,10 @@ function createBlackjackDuelState({ gameId, playerIds = [], startAt = Date.now()
     revision: 0,
     startAt: startIso,
     deadlineAt: new Date(safeStartMs + duration).toISOString(),
+    turnDurationMs: duration,
     seatOrder,
+    currentTurnId: seatOrder.find(id => hands[id].status === "active") || "",
+    turnNumber: 0,
     hands,
     drawQueues,
     drawIndexes: Object.fromEntries(ids.map(id => [id, 0])),
@@ -130,8 +134,8 @@ function createBlackjackDuelState({ gameId, playerIds = [], startAt = Date.now()
     botNextActionAt: null,
     botActionSequence: 0
   };
-  // Naturals and locked hands remain private until the shared deadline. Ending
-  // early would reveal useful information to a player who is still deciding.
+  // Opening naturals remain private. The first active hand receives the first
+  // turn; if neither hand can act, the opening deadline controls the reveal.
   return state;
 }
 
@@ -142,6 +146,29 @@ function playerIds(state = {}) {
 function allHandsFinished(state = {}) {
   const ids = playerIds(state);
   return ids.length === 2 && ids.every(id => normalizeHand(state.hands[id]).status !== "active");
+}
+
+function currentBlackjackDuelTurnId(state = {}) {
+  const explicit = cleanId(state.currentTurnId);
+  if (explicit && state.hands?.[explicit] && normalizeHand(state.hands[explicit]).status === "active") return explicit;
+  const ordered = Array.isArray(state.seatOrder) ? state.seatOrder.map(value => cleanId(value)).filter(Boolean) : [];
+  return ordered.find(id => state.hands?.[id] && normalizeHand(state.hands[id]).status === "active")
+    || playerIds(state).find(id => normalizeHand(state.hands?.[id]).status === "active")
+    || "";
+}
+
+function nextBlackjackDuelTurnId(state = {}, previousId = "") {
+  const ids = Array.isArray(state.seatOrder) && state.seatOrder.length
+    ? state.seatOrder.map(value => cleanId(value)).filter(Boolean)
+    : playerIds(state);
+  const active = new Set(ids.filter(id => state.hands?.[id] && normalizeHand(state.hands[id]).status === "active"));
+  if (!active.size) return "";
+  const previousIndex = Math.max(-1, ids.indexOf(cleanId(previousId)));
+  for (let offset = 1; offset <= ids.length; offset += 1) {
+    const candidate = ids[(previousIndex + offset) % ids.length];
+    if (active.has(candidate)) return candidate;
+  }
+  return [...active][0] || "";
 }
 
 function handStrength(hand = {}) {
@@ -162,6 +189,7 @@ function resolveBlackjackDuel(state = {}, at = Date.now()) {
     : (first.total > second.total ? ids[0] : ids[1]));
   return {
     ...state,
+    currentTurnId: "",
     completedAt: state.completedAt || new Date(Number(at)).toISOString(),
     resolution: {
       winnerId,
@@ -178,17 +206,33 @@ function expireBlackjackDuel(state = {}, now = Date.now()) {
   if (state.completedAt) return state;
   const deadline = Date.parse(state.deadlineAt || "");
   if (!Number.isFinite(deadline) || Number(now) < deadline) return state;
-  const hands = { ...(state.hands || {}) };
-  let changed = false;
-  for (const id of playerIds(state)) {
-    const hand = normalizeHand(hands[id]);
-    if (hand.status === "active") {
-      hands[id] = { ...hand, status: "timeout", finishedAt: new Date(deadline).toISOString(), lastActionAt: new Date(deadline).toISOString() };
-      changed = true;
+  const turnId = currentBlackjackDuelTurnId(state);
+  if (!turnId) return allHandsFinished(state) ? resolveBlackjackDuel(state, deadline) : state;
+  const hand = normalizeHand(state.hands?.[turnId]);
+  const hands = {
+    ...(state.hands || {}),
+    [turnId]: {
+      ...hand,
+      status: "stand",
+      autoStood: true,
+      finishedAt: new Date(deadline).toISOString(),
+      lastActionAt: new Date(deadline).toISOString()
     }
-  }
-  const next = { ...state, hands, revision: integer(state.revision, 0) + (changed ? 1 : 0) };
-  return resolveBlackjackDuel(next, deadline);
+  };
+  let next = {
+    ...state,
+    hands,
+    revision: integer(state.revision, 0) + 1,
+    turnNumber: integer(state.turnNumber, 0) + 1
+  };
+  if (allHandsFinished(next)) return resolveBlackjackDuel(next, deadline);
+  const duration = Math.max(5_000, Math.min(60_000, integer(state.turnDurationMs, BLACKJACK_DUEL_DECISION_MS)));
+  next = {
+    ...next,
+    currentTurnId: nextBlackjackDuelTurnId(next, turnId),
+    deadlineAt: new Date(Number(now) + duration).toISOString()
+  };
+  return next;
 }
 
 function applyBlackjackDuelAction(state = {}, playerId, rawAction, actionId = "", now = Date.now()) {
@@ -201,8 +245,10 @@ function applyBlackjackDuelAction(state = {}, playerId, rawAction, actionId = ""
   const deadline = Date.parse(state.deadlineAt || "");
   if (Number.isFinite(deadline) && Number(now) >= deadline) {
     const expired = expireBlackjackDuel(state, now);
-    return { state: expired, duplicate: false, completed: true, expired: true };
+    return { state: expired, duplicate: false, completed: Boolean(expired.completedAt), expired: true };
   }
+  const turnId = currentBlackjackDuelTurnId(state);
+  if (turnId && turnId !== id) throw new Error("Wait for your turn to Hit or Stand.");
   let hand = normalizeHand(state.hands[id]);
   if (hand.status !== "active") throw new Error("Your Blackjack Duel hand is already locked.");
   if (action === "hit") {
@@ -222,14 +268,22 @@ function applyBlackjackDuelAction(state = {}, playerId, rawAction, actionId = ""
     ...state,
     revision: integer(state.revision, 0) + 1,
     hands: { ...(state.hands || {}), [id]: hand },
+    turnNumber: integer(state.turnNumber, 0) + 1,
     processedActionIds: cleanActionId
       ? [...(Array.isArray(state.processedActionIds) ? state.processedActionIds : []), cleanActionId].slice(-160)
       : (Array.isArray(state.processedActionIds) ? state.processedActionIds : [])
   };
-  // Settle as soon as neither player can make another choice. A lone hidden
-  // bust stays private while the opponent is active, but bust + stand and two
-  // busted/locked hands no longer wait out the shared deadline.
+  // Every Hit or Stand consumes one turn. Continue around the table while an
+  // active hand remains; a player whose opponent is already set keeps the turn.
   if (allHandsFinished(next)) next = resolveBlackjackDuel(next, now);
+  else {
+    const duration = Math.max(5_000, Math.min(60_000, integer(state.turnDurationMs, BLACKJACK_DUEL_DECISION_MS)));
+    next = {
+      ...next,
+      currentTurnId: nextBlackjackDuelTurnId(next, id),
+      deadlineAt: new Date(Number(now) + duration).toISOString()
+    };
+  }
   return { state: next, duplicate: false, completed: Boolean(next.completedAt) };
 }
 
@@ -256,6 +310,9 @@ function publicBlackjackDuelState(state = {}, viewerId = "", now = Date.now()) {
   const me = publicHand(state.hands?.[viewer] || {}, true);
   const opponent = publicHand(state.hands?.[opponentId] || {}, complete);
   const deadline = Date.parse(state.deadlineAt || "");
+  const turnId = currentBlackjackDuelTurnId(state);
+  const isMyTurn = !complete && turnId === viewer && me.status === "active";
+  const isOpponentTurn = !complete && turnId === opponentId;
   return {
     version: BLACKJACK_DUEL_STATE_VERSION,
     roundId: String(state.roundId || ""),
@@ -263,10 +320,13 @@ function publicBlackjackDuelState(state = {}, viewerId = "", now = Date.now()) {
     startAt: state.startAt || null,
     deadlineAt: state.deadlineAt || null,
     secondsLeft: complete || !Number.isFinite(deadline) ? 0 : Math.max(0, Math.ceil((deadline - Number(now)) / 1000)),
+    turnNumber: integer(state.turnNumber, 0),
+    isMyTurn,
+    isOpponentTurn,
     me,
     opponent,
-    canHit: !complete && me.status === "active" && Number(now) < deadline,
-    canStand: !complete && me.status === "active" && Number(now) < deadline,
+    canHit: isMyTurn && Number(now) < deadline,
+    canStand: isMyTurn && Number(now) < deadline,
     deckCommitment: String(state.deckCommitment || ""),
     completedAt: state.completedAt || null,
     resolution: complete ? clone(state.resolution || {}) : null,
@@ -290,5 +350,7 @@ module.exports = {
   expireBlackjackDuel,
   resolveBlackjackDuel,
   publicBlackjackDuelState,
+  currentBlackjackDuelTurnId,
+  nextBlackjackDuelTurnId,
   allHandsFinished
 };
