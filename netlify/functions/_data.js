@@ -6422,13 +6422,10 @@ async function duelAddSimpleNpc(user, gameId) {
   return { game: duelPublicGame(game, viewer), record: await getUserRecord(viewer) };
 }
 
-async function duelAddRemoteNetworkBot(user, gameId, profile = "normal") {
+async function duelAttachRemoteNetworkBotToKnownGame(user, knownGame, profile = "normal") {
   const viewer = cleanUserId(user.id);
-  let game = await duelGetRawStrong(gameId);
-  if (!game) {
-    const active = await duelFindActiveGameForUser(viewer);
-    if (active && cleanUserId(active.creator?.userId) === viewer) game = active;
-  }
+  if (!knownGame) throw new Error("Create a duel before adding the Remote Network Bot.");
+  let game = duelSanitizeGame(knownGame);
   if (!game) throw new Error("Create a duel before adding the Remote Network Bot.");
   if (cleanUserId(game.creator?.userId) !== viewer) throw new Error("Only the creator can add the Remote Network Bot.");
   if (!duelSupportsSyntheticOpponent(game.mode)) throw new Error("This game does not support the Remote Network Bot.");
@@ -6455,6 +6452,23 @@ async function duelAddRemoteNetworkBot(user, gameId, profile = "normal") {
     ledgerIds:{...(game.ledgerIds||{}),npc:`duel:${game.gameId}:remote-${game.mode}-bot`}
   });
   return {game:duelPublicGame(game,viewer),record:await getUserRecord(viewer),remoteNetworkProfile:key,remoteNetworkConfig:network};
+}
+
+const duelKnownRemoteBotAttachGames = new Map();
+
+async function duelAddRemoteNetworkBot(user, gameId, profile = "normal") {
+  const viewer = cleanUserId(user.id);
+  const cleanGameId = mpCleanId(gameId);
+  const handedOffGame = duelKnownRemoteBotAttachGames.get(cleanGameId) || null;
+  duelKnownRemoteBotAttachGames.delete(cleanGameId);
+  let game = handedOffGame ? duelSanitizeGame(handedOffGame) : await duelGetRawStrong(gameId);
+  if (!game) {
+    const active = await duelFindActiveGameForUser(viewer);
+    if (active && cleanUserId(active.creator?.userId) === viewer) game = active;
+  }
+  if (!game) throw new Error("Create a duel before adding the Remote Network Bot.");
+  if (!duelSupportsSyntheticOpponent(game.mode)) throw new Error("This game does not support the Remote Network Bot.");
+  return await duelAttachRemoteNetworkBotToKnownGame(user, game, profile);
 }
 
 
@@ -6614,8 +6628,9 @@ async function duelActionGame(user, gameId, details = {}) {
       const requestKind = isDoubleOrNothing ? "double-or-nothing" : "rematch";
       const firstAt = Date.parse(rematch.firstRequestedAt || 0);
       const expiresAt = Date.parse(rematch.expiresAt || 0);
+      const isSyntheticAcceptance = isNpcAcceptance || isRemoteBotRematch;
       if (!firstAt || !expiresAt || now > expiresAt || String(rematch.kind || "rematch") !== requestKind) {
-        if (isNpcAcceptance) throw new Error("The rematch request expired.");
+        if (isSyntheticAcceptance) throw new Error("The rematch request expired.");
         rematch = {
           kind: requestKind,
           requestedBy: {},
@@ -6623,10 +6638,11 @@ async function duelActionGame(user, gameId, details = {}) {
           expiresAt: new Date(now + (isDoubleOrNothing ? 5000 : 10000)).toISOString()
         };
       }
-      if (isNpcAcceptance) {
-        const humanRequestedAt = Object.entries(rematch.requestedBy || {}).find(([id]) => id !== npcId)?.[1];
-        if (!humanRequestedAt) throw new Error("Request the rematch before the NPC can accept.");
-        if (now - Date.parse(humanRequestedAt) < 2200) throw new Error("The NPC is still deciding.");
+      if (isSyntheticAcceptance) {
+        const syntheticId = isRemoteBotRematch ? remoteBotId : npcId;
+        const humanRequestedAt = Object.entries(rematch.requestedBy || {}).find(([id]) => id !== syntheticId)?.[1];
+        if (!humanRequestedAt) throw new Error("Request the rematch before the synthetic opponent can accept.");
+        if (isNpcAcceptance && now - Date.parse(humanRequestedAt) < 2200) throw new Error("The NPC is still deciding.");
       }
       const acceptingId = isRemoteBotRematch ? cleanUserId(remoteBotId) : (isNpcAcceptance ? cleanUserId(npcId) : viewer);
       rematch.requestedBy = { ...(rematch.requestedBy || {}), [acceptingId]: new Date(now).toISOString() };
@@ -6651,9 +6667,15 @@ async function duelActionGame(user, gameId, details = {}) {
           const human = playerFor(humanId);
           creatorForCleanup = human;
           created = await duelCreateGame(human, { mode: latest.mode, wager: nextWager, [DUEL_DOUBLE_OR_NOTHING_CREATE]: isDoubleOrNothing });
-          const attached = syntheticPlayer.isRemoteBot || String(syntheticPlayer.userId || "").startsWith("remote-bot-")
-            ? await duelAddRemoteNetworkBot(human, created.game.gameId, latest.remoteNetworkProfile || "normal")
-            : await duelAddSimpleNpc(human, created.game.gameId);
+          const rebuiltWaitingGame = duelRebuildWaitingGameFromCreateResult(human, latest.mode, nextWager, created.game);
+          let attached;
+          if (syntheticPlayer.isRemoteBot || String(syntheticPlayer.userId || "").startsWith("remote-bot-")) {
+            if (!rebuiltWaitingGame) throw new Error("The Double or Nothing game could not be prepared for the Remote Network Bot.");
+            duelKnownRemoteBotAttachGames.set(mpCleanId(created.game.gameId), rebuiltWaitingGame);
+            attached = await duelAddRemoteNetworkBot(human, created.game.gameId, latest.remoteNetworkProfile || "normal");
+          } else {
+            attached = await duelAddSimpleNpc(human, created.game.gameId);
+          }
           rematchGame = attached.game;
         } else {
           created = await duelCreateGame(playerFor(firstId), { mode: latest.mode, wager: nextWager, [DUEL_DOUBLE_OR_NOTHING_CREATE]: isDoubleOrNothing });

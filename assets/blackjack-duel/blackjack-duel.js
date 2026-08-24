@@ -8,6 +8,7 @@
   let timer = 0;
   let pending = false;
   let pendingAction = "";
+  let openingDealTimer = 0;
   let lastRoot = null;
   let lastRenderSignature = "";
   let shownCards = { gameId: "", roundId: "", me: 0, opponent: 0 };
@@ -16,8 +17,8 @@
     return String(value ?? "").replace(/[&<>'"]/g, token => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[token]);
   }
 
-  function cardHtml(card = {}, index = 0, { seat = "player", justDealt = false } = {}) {
-    const motionAttribute = justDealt ? ` data-bjd-deal="${seat}"` : "";
+  function cardHtml(card = {}, index = 0, { seat = "player", justDealt = false, dealSequence = 0 } = {}) {
+    const motionAttribute = justDealt ? ` data-bjd-deal="${seat}" data-bjd-deal-sequence="${Math.max(0, Number(dealSequence) || 0)}"` : "";
     if (card.hidden) return `<div class="bjd-card hidden"${motionAttribute} style="--card-i:${index}" aria-label="Hidden card"><span>Blackjack Duel</span></div>`;
     const suit = String(card.suit || "spades");
     const symbol = SUIT_SYMBOL[suit] || "♠";
@@ -31,11 +32,16 @@
 
   function handHtml(hand = {}, hidden = false, seat = "player", previousCount = 0, final = false) {
     const cards = Array.isArray(hand.cards) ? hand.cards : [];
+    const openingDeal = !final && previousCount === 0 && cards.length >= 2;
     const total = hand.total === null || hand.total === undefined ? "?" : String(hand.total);
     const finalSuffix = hand.status === "blackjack" ? " · BLACKJACK" : hand.status === "bust" ? " · BUST" : "";
     const label = hidden ? "PRIVATE HAND" : final ? `${total}${finalSuffix}` : hand.status === "blackjack" ? "NATURAL BLACKJACK" : hand.status === "bust" ? "BUST" : hand.status === "twentyone" ? "21" : hand.status === "timeout" ? "AUTO-STAND" : hand.status === "stand" ? total : hand.soft ? `SOFT ${total}` : total;
     return `<div class="bjd-hand ${hidden ? "concealed" : ""}">
-      <div class="bjd-hand-cards">${cards.map((card, index) => cardHtml(card, index, { seat, justDealt: index >= previousCount })).join("")}</div>
+      <div class="bjd-hand-cards">${cards.map((card, index) => cardHtml(card, index, {
+        seat,
+        justDealt: !final && index >= previousCount,
+        dealSequence: openingDeal ? index * 2 + (seat === "opponent" ? 1 : 0) : Math.max(0, index - previousCount)
+      })).join("")}</div>
       <div class="bjd-hand-total">${escapeHtml(label)}</div>
     </div>`;
   }
@@ -48,7 +54,7 @@
 
   function undealtHandHtml(label = "DEALS AT GO") {
     return `<div class="bjd-hand concealed undealt">
-      <div class="bjd-hand-cards">${cardHtml({ hidden: true }, 0)}${cardHtml({ hidden: true }, 1)}</div>
+      <div class="bjd-hand-cards awaiting-deal" aria-label="Cards will deal from the shared deck"></div>
       <div class="bjd-hand-total">${escapeHtml(label)}</div>
     </div>`;
   }
@@ -66,18 +72,42 @@
 
   function animatePendingDeals(scope) {
     const deck = scope?.querySelector?.(".bjd-deck .top");
-    const cards = [...(scope?.querySelectorAll?.("[data-bjd-deal]") || [])];
+    const cards = [...(scope?.querySelectorAll?.("[data-bjd-deal]") || [])]
+      .sort((a, b) => Number(a.dataset.bjdDealSequence || 0) - Number(b.dataset.bjdDealSequence || 0));
     if (!deck || !cards.length) return;
     const deckRect = deck.getBoundingClientRect();
-    cards.forEach((card, sequence) => {
+    const maxSequence = cards.reduce((highest, card) => Math.max(highest, Number(card.dataset.bjdDealSequence || 0)), 0);
+    const openingDeal = cards.length >= 4 && maxSequence >= 3;
+    if (openingDeal) {
+      if (openingDealTimer) clearTimeout(openingDealTimer);
+      scope.classList.add("is-opening-deal");
+      scope.querySelectorAll("[data-bjd-action]").forEach(button => { button.disabled = true; });
+      const status = scope.querySelector(".bjd-controls p");
+      if (status) status.textContent = "Opening deal in progress…";
+      openingDealTimer = setTimeout(() => {
+        openingDealTimer = 0;
+        if (!scope.isConnected) return;
+        scope.classList.remove("is-opening-deal");
+        const currentState = latestGame?.blackjackDuelState || {};
+        scope.querySelectorAll("[data-bjd-action]").forEach(button => {
+          const action = String(button.dataset.bjdAction || "");
+          button.disabled = pending || (action === "hit" ? !currentState.canHit : !currentState.canStand);
+        });
+        const currentStatus = scope.querySelector(".bjd-controls p");
+        if (currentStatus) currentStatus.textContent = "Choose now. Your opponent cannot see your cards or your choice.";
+      }, maxSequence * 170 + 640);
+    }
+    cards.forEach((card, fallbackSequence) => {
       const seat = String(card.dataset.bjdDeal || "player");
+      const sequence = Math.max(0, Number(card.dataset.bjdDealSequence ?? fallbackSequence) || 0);
       const cardRect = card.getBoundingClientRect();
       const deltaX = deckRect.left + deckRect.width / 2 - (cardRect.left + cardRect.width / 2);
       const deltaY = deckRect.top + deckRect.height / 2 - (cardRect.top + cardRect.height / 2);
       delete card.dataset.bjdDeal;
+      delete card.dataset.bjdDealSequence;
       card.style.setProperty("--deal-x", `${deltaX}px`);
       card.style.setProperty("--deal-y", `${deltaY}px`);
-      card.style.setProperty("--deal-delay", `${sequence * 80}ms`);
+      card.style.setProperty("--deal-delay", `${sequence * 170}ms`);
       card.classList.add("just-dealt", `to-${seat}`);
       card.addEventListener("animationend", () => {
         card.classList.remove("just-dealt", `to-${seat}`);
@@ -129,7 +159,7 @@
     return `<div class="bjd-double">
       <div class="bjd-double-title"><b>DOUBLE OR NOTHING</b><span>${activeDouble ? "Both players must accept before time runs out." : `Play again for ${Number(game.wager || 0) * 2} Tickets each.`}</span></div>
       <div class="bjd-double-players">${avatarHtml(game.creator, creatorAccepted)}<strong>VS</strong>${avatarHtml(game.joiner, joinerAccepted)}</div>
-      ${activeDouble ? `<div class="bjd-double-countdown"><span>Agreement closes in</span><b data-bjd-double-clock data-target="${escapeHtml(expiresAt)}">${Math.max(0, Math.ceil((expiresMs - Date.now()) / 1000))}</b></div>` : ""}
+      <div class="bjd-double-countdown${activeDouble ? " is-active" : ""}" aria-hidden="${activeDouble ? "false" : "true"}"><span>Agreement closes in</span><b data-bjd-double-clock data-target="${activeDouble ? escapeHtml(expiresAt) : ""}">${activeDouble ? Math.max(0, Math.ceil((expiresMs - Date.now()) / 1000)) : 5}</b></div>
       <button class="gold bjd-double-button" data-bjd-double type="button" ${myAccepted && activeDouble ? "disabled" : ""}>${myAccepted && activeDouble ? "ACCEPTED — WAITING" : "DOUBLE OR NOTHING"}</button>
     </div>`;
   }
@@ -204,8 +234,15 @@
       const appendCards = (selector, cards, seat) => {
         const host = liveSection.querySelector(selector);
         if (!host || host.children.length > cards.length) return false;
+        const previousCount = host.children.length;
+        const openingDeal = previousCount === 0 && cards.length >= 2;
+        if (cards.length) host.classList.remove("awaiting-deal");
         for (let index = host.children.length; index < cards.length; index += 1) {
-          host.insertAdjacentHTML("beforeend", cardHtml(cards[index], index, { seat, justDealt: true }));
+          host.insertAdjacentHTML("beforeend", cardHtml(cards[index], index, {
+            seat,
+            justDealt: true,
+            dealSequence: openingDeal ? index * 2 + (seat === "opponent" ? 1 : 0) : index - previousCount
+          }));
         }
         return true;
       };
@@ -216,6 +253,8 @@
         const playerCount = liveSection.querySelector(".bjd-seat.player .bjd-seat-label em");
         const opponentCount = liveSection.querySelector(".bjd-seat.opponent .bjd-seat-label em");
         const controlsHost = liveSection.querySelector("[data-bjd-controls-host]");
+        const clockLabel = liveSection.querySelector(".bjd-clock-label");
+        const dealGuidance = liveSection.querySelector(".bjd-center > i");
         if (playerTotal) playerTotal.textContent = handLabel(state.me || {}, false);
         if (opponentTotal) opponentTotal.textContent = "PRIVATE HAND";
         if (playerStatus) {
@@ -224,6 +263,8 @@
         }
         if (playerCount) playerCount.textContent = cardCountLabel(meCards.length);
         if (opponentCount) opponentCount.textContent = cardCountLabel(opponentCards.length);
+        if (clockLabel) clockLabel.textContent = "time to choose";
+        if (dealGuidance) dealGuidance.textContent = "Cards fly from this deck to each hand";
         if (controlsHost) {
           controlsHost.innerHTML = controlsHtml(game, state, false);
           bind(controlsHost, game);
@@ -234,6 +275,8 @@
         if (clock) {
           clock.dataset.target = String(clockTarget || "");
           clock.dataset.clockOffset = String(clockOffset);
+          clock.dataset.clockKind = "decision";
+          clock.textContent = String(seconds);
         }
         lastRenderSignature = signature;
         shownCards = { gameId: String(game.gameId || ""), roundId, me: meCards.length, opponent: opponentCards.length };
@@ -249,8 +292,8 @@
         const me = game.isCreator ? game.creator : game.joiner;
         holder.innerHTML = doublePanelHtml(game, String(me?.userId || ""));
         const freshDouble = holder.firstElementChild;
-        currentDouble.replaceWith(freshDouble);
-        bind(freshDouble, game);
+        currentDouble.innerHTML = freshDouble.innerHTML;
+        bind(currentDouble, game);
         lastRenderSignature = signature;
         startClock();
         return;
@@ -265,9 +308,9 @@
       <header class="bjd-header"><h2>Blackjack Duel</h2></header>
       <div class="bjd-howto"><b>Get closer to 21 than your opponent without busting.</b><span>Equal hands push.</span></div>
       <div class="bjd-table">
-        <div class="bjd-seat player"><div class="bjd-seat-label"><span>YOUR HAND</span>${playerBadge ? `<b>${escapeHtml(playerBadge)}</b>` : ""}<em>${cardCountLabel(dealing ? 2 : meCards.length)}</em></div>${playerHand}</div>
-        <div class="bjd-center"><div class="bjd-center-pot"><img src="/assets/blackjack-duel/images/casino-chip-pile.png" alt=""><span>SHARED POT</span><b>${Number(game.pot || game.wager || 0).toLocaleString()}</b></div>${deckHtml(pendingAction === "hit")}<span class="bjd-clock-label">${countdown ? "round begins in" : complete ? "final hands" : "time to choose"}</span>${complete ? "" : `<div class="bjd-clock" data-bjd-clock data-clock-kind="${countdown ? "countdown" : "decision"}" data-target="${escapeHtml(clockTarget || "")}" data-clock-offset="${clockOffset}">${seconds}</div><span>seconds</span>`}${complete ? "" : `<i>${countdown ? "Cards arrive when the round begins" : "Cards fly from this deck to each hand"}</i>`}</div>
-        <div class="bjd-seat opponent"><div class="bjd-seat-label"><span>${escapeHtml(state.opponentName || game.joiner?.name || "Opponent")}</span>${opponentBadge ? `<b>${opponentBadge}</b>` : ""}<em>${cardCountLabel(dealing ? 2 : opponentCards.length)}</em></div>${opponentHand}</div>
+        <div class="bjd-seat player"><div class="bjd-seat-label"><span>YOUR HAND</span>${playerBadge ? `<b>${escapeHtml(playerBadge)}</b>` : ""}<em>${cardCountLabel(dealing ? 0 : meCards.length)}</em></div>${playerHand}</div>
+        <div class="bjd-center"><div class="bjd-center-pot"><img src="/assets/blackjack-duel/images/casino-chip-pile-crisp.svg" alt=""><span>SHARED POT</span><b>${Number(game.pot || game.wager || 0).toLocaleString()}</b></div>${deckHtml(pendingAction === "hit")}<span class="bjd-clock-label">${countdown ? "round begins in" : complete ? "final hands" : "time to choose"}</span>${complete ? "" : `<div class="bjd-clock" data-bjd-clock data-clock-kind="${countdown ? "countdown" : "decision"}" data-target="${escapeHtml(clockTarget || "")}" data-clock-offset="${clockOffset}">${seconds}</div><span>seconds</span>`}${complete ? "" : `<i>${countdown ? "Cards arrive when the round begins" : "Cards fly from this deck to each hand"}</i>`}</div>
+        <div class="bjd-seat opponent"><div class="bjd-seat-label"><span>${escapeHtml(state.opponentName || game.joiner?.name || "Opponent")}</span>${opponentBadge ? `<b>${opponentBadge}</b>` : ""}<em>${cardCountLabel(dealing ? 0 : opponentCards.length)}</em></div>${opponentHand}</div>
       </div>
       <div data-bjd-controls-host>${controlsHtml(game, state, dealing)}</div>
       ${resultHtml(game)}

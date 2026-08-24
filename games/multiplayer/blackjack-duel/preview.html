@@ -76,6 +76,13 @@
       newGame: () => {}
     };
     window.dispatchEvent(new CustomEvent("blackjackduel:state", { detail: { game: previewGame } }));
+    if (countdown && new URLSearchParams(location.search).get("autoDeal") === "1") {
+      setTimeout(() => {
+        previewGame.status = "playing";
+        previewGame.countdownSeconds = 0;
+        window.dispatchEvent(new CustomEvent("blackjackduel:state", { detail: { game: previewGame } }));
+      }, 650);
+    }
     if (new URLSearchParams(location.search).get("poll") === "1") {
       setInterval(() => window.dispatchEvent(new CustomEvent("blackjackduel:state", { detail: { game: previewGame } })), 250);
     }
