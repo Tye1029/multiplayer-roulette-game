@@ -6597,8 +6597,8 @@ async function duelActionGame(user, gameId, details = {}) {
       if (latest.status !== "complete" || !duelSupportsRematch(latest.mode)) throw new Error("Rematches are only available after a completed duel.");
       const normalizedChoice = rawChoice.toLowerCase();
       const isDoubleOrNothing = normalizedChoice.includes("double-or-nothing");
-      if (isDoubleOrNothing && (latest.mode !== "blackjackduel" || !latest.tie)) {
-        throw new Error("Double or Nothing is only available after a tied Blackjack Duel.");
+      if (isDoubleOrNothing && latest.mode !== "blackjackduel") {
+        throw new Error("Double or Nothing is only available after a completed Blackjack Duel.");
       }
       const playerIds = [cleanUserId(latest.creator?.userId), cleanUserId(latest.joiner?.userId)].filter(Boolean);
       if (!playerIds.includes(viewer)) throw new Error("You are not in this duel.");

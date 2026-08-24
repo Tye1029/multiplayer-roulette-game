@@ -12560,8 +12560,8 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
   <script id="mountainRaceMultiplayerRuntime" src="/assets/mountain-race/mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=11&scene=65&holds=30" defer></script>
 <!-- MOUNTAIN_RACE_MULTIPLAYER_ASSETS_END -->
 <!-- BLACKJACK_DUEL_ASSETS_START -->
-  <link id="blackjackDuelStyles" rel="stylesheet" href="/assets/blackjack-duel/blackjack-duel.css?v=blackjack-duel-v4">
-  <script id="blackjackDuelRuntime" src="/assets/blackjack-duel/blackjack-duel.js?v=blackjack-duel-v4" defer></script>
+  <link id="blackjackDuelStyles" rel="stylesheet" href="/assets/blackjack-duel/blackjack-duel.css?v=blackjack-duel-v5">
+  <script id="blackjackDuelRuntime" src="/assets/blackjack-duel/blackjack-duel.js?v=blackjack-duel-v5" defer></script>
 <!-- BLACKJACK_DUEL_ASSETS_END -->
 
 <!-- MOUNTAIN_RACE_V29_PRELOADS -->
@@ -20308,7 +20308,7 @@ function updateRunnerBalanceDisplay() {
     }
     async function duelRequestDoubleOrNothing() {
       try {
-        if (!duelCurrentGameId) throw new Error("No tied Blackjack Duel was found.");
+        if (!duelCurrentGameId) throw new Error("No completed Blackjack Duel was found.");
         const btn = document.querySelector("[data-bjd-double]");
         if (btn) { btn.disabled = true; btn.textContent = "ACCEPTING…"; }
         duelCompletedActivityGameId = String(duelCurrentGameId || "");
@@ -22949,9 +22949,9 @@ async function rnbFetchAuthoritativeGame(gameId){
  }
  function rnbScheduleRematch(game){
   if(!game?.remoteNetworkTest||game.status!=='complete'||!game.joiner?.isRemoteBot){rnbClearRematchTimer();rnbRematchRuntime.gameId='';return}
-  const isDoubleOrNothing=game.mode==='blackjackduel'&&Boolean(game.tie);
   const gameId=String(game.gameId||''); const rem=game.rematch&&typeof game.rematch==='object'?game.rematch:{}; const req=rem.requestedBy&&typeof rem.requestedBy==='object'?rem.requestedBy:{};
   const botId=String(game.joiner.userId||''); const humanId=String(game.creator.userId||''); const expires=Date.parse(rem.expiresAt||0); const active=Boolean(expires&&expires>Date.now());
+  const isDoubleOrNothing=game.mode==='blackjackduel'&&(!active||String(rem.kind||'')==='double-or-nothing');
   if(game.rematchGameId){rnbClearRematchTimer();return}
   if(req[botId]&&active){rnbClearRematchTimer();return}
   const humanRequested=Boolean(active&&req[humanId]); const shouldRequestFirst=(rnbHash(gameId)%100)<42;

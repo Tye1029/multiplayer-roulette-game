@@ -217,6 +217,12 @@ const component = fs.readFileSync(path.join(root, "assets/blackjack-duel/blackja
 for (const token of ["CARDS DEAL AT GO", "Draw one card", "Keep this total", "pendingAction", "data-clock-offset", "SHARED DECK", "lastRenderSignature", "just-dealt", "cardCountLabel"]) {
   assert.ok(component.includes(token), `Blackjack Duel interaction guidance is missing ${token}`);
 }
+for (const token of ["bjd-final-totals", "bjd-center-pot", "data-bjd-double"]) {
+  assert.ok(component.includes(token), `Blackjack Duel final layout is missing ${token}`);
+}
+assert.ok(!component.includes("NO DEALER"), "the removed no-dealer label must stay out of the table header");
+assert.ok(!component.includes("Deck commitment"), "the deck commitment footer must stay hidden from players");
+assert.ok(!component.includes("Both hands came from the same server deck"), "the removed final-deck copy must stay out of the result");
 assert.ok(component.indexOf('class="bjd-seat player"') < component.indexOf('class="bjd-seat opponent"'), "the local player must occupy the left seat before the opponent");
 
 const index = fs.readFileSync(path.join(root, "index.html"), "utf8");
@@ -225,7 +231,7 @@ const blackjackDatabase = fs.readFileSync(path.join(root, "netlify/functions/_bl
 for (const token of ["data-mode=\"blackjackduel\"", "data-rnb-game=\"blackjackduel\"", "data-blackjack-duel-mount", "window.__blackjackDuelBridge", "blackjackduel:state"]) {
   assert.ok(index.includes(token), `shared shell is missing ${token}`);
 }
-assert.ok(index.includes("blackjack-duel-v4"), "shared shell is missing the Blackjack Duel cache marker");
+assert.ok(index.includes("blackjack-duel-v5"), "shared shell is missing the Blackjack Duel cache marker");
 assert.ok(index.includes("game.mode==='blackjackduel'"), "Blackjack Duel must own its in-table countdown");
 assert.ok(index.includes("blackjack-duel-focus"), "Blackjack Duel must use the focused active-round shell");
 assert.ok(index.includes("canPatchMountedBlackjackDuel"), "Blackjack Duel must retain its mounted table between polls");
@@ -235,6 +241,8 @@ for (const token of ["BLACKJACK_DUEL_SERVER_START", "blackjackDuelInitialState",
 for (const token of ["double-or-nothing", "remote-bot-double-or-nothing", "DUEL_DOUBLE_OR_NOTHING_CREATE"]) {
   assert.ok(data.includes(token) || index.includes(token), `Double or Nothing integration is missing ${token}`);
 }
+assert.ok(data.includes('isDoubleOrNothing && latest.mode !== "blackjackduel"'), "all completed Blackjack Duel results must allow Double or Nothing");
+assert.ok(!data.includes('latest.mode !== "blackjackduel" || !latest.tie'), "Double or Nothing must not be limited to ties");
 for (const token of ["ensureSchema", "CREATE TABLE IF NOT EXISTS blackjack_duel_matches", "CREATE INDEX IF NOT EXISTS blackjack_duel_matches_updated_idx"]) {
   assert.ok(blackjackDatabase.includes(token), `database bootstrap is missing ${token}`);
 }

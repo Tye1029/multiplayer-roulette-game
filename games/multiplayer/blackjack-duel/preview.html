@@ -16,6 +16,7 @@
   <script src="/assets/blackjack-duel/blackjack-duel.js"></script>
   <script>
     const previewState = new URLSearchParams(location.search).get("state") || "playing";
+    const previewOutcome = new URLSearchParams(location.search).get("outcome") || "tie";
     const complete = previewState === "complete";
     const countdown = previewState === "countdown";
     const previewGame = {
@@ -24,7 +25,9 @@
       gameId: "blackjack-duel-preview",
       pot: 5000,
       wager: 2500,
-      tie: complete,
+      tie: complete && previewOutcome === "tie",
+      winnerUserId: complete && previewOutcome !== "tie" ? (previewOutcome === "win" ? "preview-player" : "preview-bot") : "",
+      payout: complete && previewOutcome === "win" ? 5000 : 0,
       isCreator: true,
       creator: { userId: "preview-player", name: "You", avatarUrl: "" },
       joiner: { userId: "preview-bot", name: "Remote Network Bot", avatarUrl: "", isRemoteBot: true },
@@ -38,7 +41,7 @@
         deckCommitment: "preview-commitment-not-a-secret",
         opponentName: "Remote Network Bot",
         opponent: complete
-          ? { cards: [{ rank: "10", suit: "clubs" }, { rank: "8", suit: "diamonds" }], total: 18, status: "stand" }
+          ? { cards: [{ rank: "10", suit: "clubs" }, { rank: previewOutcome === "tie" ? "8" : "7", suit: "diamonds" }], total: previewOutcome === "tie" ? 18 : 17, status: "stand" }
           : { cards: [{ hidden: true }, { hidden: true }], total: null, status: "active" },
         me: {
           cards: [{ rank: "A", suit: "spades" }, { rank: "7", suit: "hearts" }],
