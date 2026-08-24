@@ -9,6 +9,9 @@
     html, body { min-height: 100%; margin: 0; background: #070b16; }
     body { display: grid; place-items: center; padding: 16px; box-sizing: border-box; }
     [data-blackjack-duel-mount] { width: min(100%, 980px); }
+    /* Mirrors the shared site rule that Blackjack Duel must override. */
+    .win { color: #1b001e; background: linear-gradient(90deg, #fff4a3, #59ff97, #39f7ff) !important; animation: previewSharedPulse 900ms ease-in-out infinite alternate; }
+    @keyframes previewSharedPulse { to { transform: scale(1.015); filter: brightness(1.16); } }
   </style>
 </head>
 <body>
@@ -19,6 +22,8 @@
     const previewOutcome = new URLSearchParams(location.search).get("outcome") || "tie";
     const previewParams = new URLSearchParams(location.search);
     const previewWager = Math.max(1, Number(previewParams.get("wager")) || 2500);
+    const previewPlayerName = previewParams.get("playerName") || "You";
+    const previewOpponentName = previewParams.get("opponentName") || "Remote Network Bot";
     const complete = previewState === "complete";
     const countdown = previewState === "countdown";
     const previewGame = {
@@ -31,8 +36,8 @@
       winnerUserId: complete && previewOutcome !== "tie" ? (previewOutcome === "win" ? "preview-player" : "preview-bot") : "",
       payout: complete && previewOutcome === "win" ? (previewParams.get("singlePot") === "1" ? previewWager : previewWager * 2) : 0,
       isCreator: true,
-      creator: { userId: "preview-player", name: "You", avatarUrl: "" },
-      joiner: { userId: "preview-bot", name: "Remote Network Bot", avatarUrl: "", isRemoteBot: true },
+      creator: { userId: "preview-player", name: previewPlayerName, avatarUrl: "" },
+      joiner: { userId: "preview-bot", name: previewOpponentName, avatarUrl: "", isRemoteBot: true },
       serverNow: new Date().toISOString(),
       startAt: new Date(Date.now() + 4000).toISOString(),
       countdownSeconds: 4,
@@ -42,7 +47,7 @@
         secondsLeft: complete ? 0 : 19,
         deadlineAt: new Date(Date.now() + (complete ? -1000 : 19000)).toISOString(),
         deckCommitment: "preview-commitment-not-a-secret",
-        opponentName: "Remote Network Bot",
+        opponentName: previewOpponentName,
         opponent: complete
           ? { cards: [{ rank: "10", suit: "clubs" }, { rank: previewOutcome === "tie" ? "8" : "7", suit: "diamonds" }], total: previewOutcome === "tie" ? 18 : 17, status: "stand" }
           : { cards: [{ hidden: true }, { hidden: true }], total: null, status: "active" },

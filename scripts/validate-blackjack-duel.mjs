@@ -243,15 +243,18 @@ assert.ok(componentCss.includes("--deal-delay"), "card movement must be measured
 assert.ok(componentCss.includes("grid-template-rows:auto auto 36px 46px"), "Double or Nothing must reserve a stable panel height before the timer appears");
 assert.ok(componentCss.includes(".bjd-double-countdown.is-active"), "Double or Nothing must reveal its timer without reflowing the result panel");
 assert.ok(componentCss.includes("font-size:1.52rem") && componentCss.includes("grid-template-columns:112px minmax(112px,auto)"), "the shared pot amount and chip art must have stronger visual emphasis");
+assert.ok(componentCss.includes("grid-template-columns:minmax(0,1fr) 270px minmax(0,1fr)") && componentCss.includes(".bjd-seat-label span{max-width:100%;min-width:0") && componentCss.includes(".bjd-center-pot{box-sizing:border-box"), "player names must stay inside their seats instead of entering the shared pot");
 assert.ok(!component.includes("currentDouble.replaceWith"), "Double or Nothing updates must preserve the mounted panel element");
 assert.ok(!component.includes("currentDouble.innerHTML"), "Double or Nothing polling must patch the mounted panel without replacing its contents");
 assert.ok(componentCss.includes("background:linear-gradient(180deg,#08231d 0,#061914 48%,#03100d 100%)"), "the completed result must retain the subdued dark-green table presentation");
+assert.ok(componentCss.includes(".bjd-result.win,.bjd-result.lose,.bjd-result.tie") && componentCss.includes("animation:none!important") && componentCss.includes("filter:none!important"), "shared neon win styling and pulse animation must not recolor Blackjack Duel results");
 assert.ok(!componentCss.includes("animation:bjdReveal"), "the completed result must not replay a flashing reveal animation");
 assert.ok(component.indexOf('class="bjd-seat player"') < component.indexOf('class="bjd-seat opponent"'), "the local player must occupy the left seat before the opponent");
 assert.ok(componentPreview.includes('get("autoDeal") === "1"'), "the component preview must exercise the countdown-to-opening-deal transition");
 assert.ok(componentPreview.includes('get("repeatMount") === "1"') && componentPreview.includes("data-preview-deal-animation-starts"), "the component preview must verify that an opening deal cannot replay after a table remount");
 assert.ok(componentPreview.includes('get("delayDouble") === "1"'), "the component preview must exercise a slow Double or Nothing response while the local timer is visible");
 assert.ok(componentPreview.includes('get("singlePot") === "1"') && componentPreview.includes("previewWager"), "the component preview must reproduce a Remote Bot's single escrowed wager");
+assert.ok(componentPreview.includes("previewSharedPulse") && componentPreview.includes('get("opponentName")'), "the component preview must reproduce shared win CSS and long opponent names");
 
 const index = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const data = fs.readFileSync(path.join(root, "netlify/functions/_data.js"), "utf8");
@@ -259,7 +262,7 @@ const blackjackDatabase = fs.readFileSync(path.join(root, "netlify/functions/_bl
 for (const token of ["data-mode=\"blackjackduel\"", "data-rnb-game=\"blackjackduel\"", "data-blackjack-duel-mount", "window.__blackjackDuelBridge", "blackjackduel:state"]) {
   assert.ok(index.includes(token), `shared shell is missing ${token}`);
 }
-assert.ok(index.includes("blackjack-duel-v10"), "shared shell is missing the Blackjack Duel cache marker");
+assert.ok(index.includes("blackjack-duel-v11"), "shared shell is missing the Blackjack Duel cache marker");
 assert.ok(index.includes("game.mode==='blackjackduel'"), "Blackjack Duel must own its in-table countdown");
 assert.ok(index.includes("blackjack-duel-focus"), "Blackjack Duel must use the focused active-round shell");
 assert.ok(index.includes('document.body.classList.contains("blackjack-duel-focus")') && index.includes('document.querySelectorAll(".result-pop, .duel-big-result")'), "legacy bright result screens must stay out of the focused Blackjack Duel table");
