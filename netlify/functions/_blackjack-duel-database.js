@@ -11,12 +11,39 @@ function clone(value) {
 }
 
 function database() {
+  if (globalThis.__BLACKJACK_DUEL_DB_CONNECTION) return globalThis.__BLACKJACK_DUEL_DB_CONNECTION;
   const connectionString = String(process.env.NETLIFY_DB_URL || "").trim();
   if (!connectionString) throw new Error("NETLIFY_DB_URL is missing for authoritative Blackjack Duel state.");
-  return getDatabase({ connectionString });
+  globalThis.__BLACKJACK_DUEL_DB_CONNECTION = getDatabase({ connectionString });
+  return globalThis.__BLACKJACK_DUEL_DB_CONNECTION;
+}
+
+async function ensureSchema() {
+  if (!globalThis.__BLACKJACK_DUEL_SCHEMA_PROMISE) {
+    const pool = database().pool;
+    globalThis.__BLACKJACK_DUEL_SCHEMA_PROMISE = (async () => {
+      await pool.query(`CREATE TABLE IF NOT EXISTS blackjack_duel_matches (
+        game_id TEXT PRIMARY KEY,
+        round_id TEXT NOT NULL,
+        state JSONB NOT NULL,
+        revision BIGINT NOT NULL DEFAULT 0,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )`);
+      await pool.query(`CREATE INDEX IF NOT EXISTS blackjack_duel_matches_updated_idx
+        ON blackjack_duel_matches (updated_at DESC)`);
+    })();
+  }
+  try {
+    await globalThis.__BLACKJACK_DUEL_SCHEMA_PROMISE;
+  } catch (error) {
+    globalThis.__BLACKJACK_DUEL_SCHEMA_PROMISE = null;
+    throw error;
+  }
 }
 
 async function transaction(work) {
+  await ensureSchema();
   const client = await database().pool.connect();
   try {
     await client.query("BEGIN");
@@ -91,4 +118,4 @@ async function updateMatch({ gameId, initialState, update }) {
   });
 }
 
-module.exports = { getMatch, updateMatch };
+module.exports = { ensureSchema, getMatch, updateMatch };

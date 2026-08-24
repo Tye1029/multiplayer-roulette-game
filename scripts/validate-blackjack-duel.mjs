@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const require = createRequire(import.meta.url);
+const CommonJsModule = require("node:module");
 const stateModel = require(path.join(root, "netlify/functions/blackjack-duel/state-model.js"));
 const { createBlackjackDuelIntegration } = require(path.join(root, "netlify/functions/blackjack-duel/integration.js"));
 
@@ -153,6 +154,37 @@ assert.deepEqual(actionResponse.game.blackjackDuelState.opponent.cards, [{ hidde
 const duplicateResponse = await integration.action({ id: "player-a" }, integrationGame.gameId, "blackjackduel:stand", { actionId: "integration-stand" });
 assert.equal(duplicateResponse.duplicateAction, true, "action IDs must be idempotent");
 
+// A deploy preview may receive the database connection before Netlify has run
+// a newly-added migration. The first game transaction must bootstrap the table
+// once per Function instance instead of trapping the match in countdown.
+const databaseModulePath = path.join(root, "netlify/functions/_blackjack-duel-database.js");
+const originalModuleLoad = CommonJsModule._load;
+const originalDatabaseUrl = process.env.NETLIFY_DB_URL;
+const schemaQueries = [];
+try {
+  CommonJsModule._load = function(request, parent, isMain) {
+    if (request === "@netlify/database") return {
+      getDatabase: () => ({ pool: { query: async sql => { schemaQueries.push(String(sql)); } } })
+    };
+    return originalModuleLoad.call(this, request, parent, isMain);
+  };
+  process.env.NETLIFY_DB_URL = "postgresql://blackjack-validator.invalid/test";
+  delete require.cache[require.resolve(databaseModulePath)];
+  const runtimeDatabase = require(databaseModulePath);
+  await runtimeDatabase.ensureSchema();
+  await runtimeDatabase.ensureSchema();
+  assert.equal(schemaQueries.length, 2, "database schema bootstrap must run only once per Function instance");
+  assert.ok(schemaQueries[0].includes("CREATE TABLE IF NOT EXISTS blackjack_duel_matches"));
+  assert.ok(schemaQueries[1].includes("CREATE INDEX IF NOT EXISTS blackjack_duel_matches_updated_idx"));
+} finally {
+  CommonJsModule._load = originalModuleLoad;
+  if (originalDatabaseUrl === undefined) delete process.env.NETLIFY_DB_URL;
+  else process.env.NETLIFY_DB_URL = originalDatabaseUrl;
+  delete require.cache[require.resolve(databaseModulePath)];
+  delete globalThis.__BLACKJACK_DUEL_DB_CONNECTION;
+  delete globalThis.__BLACKJACK_DUEL_SCHEMA_PROMISE;
+}
+
 const requiredFiles = [
   "assets/blackjack-duel/blackjack-duel.js",
   "assets/blackjack-duel/blackjack-duel.css",
@@ -170,12 +202,16 @@ for (const file of requiredFiles) assert.ok(fs.statSync(path.join(root, file)).s
 
 const index = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const data = fs.readFileSync(path.join(root, "netlify/functions/_data.js"), "utf8");
+const blackjackDatabase = fs.readFileSync(path.join(root, "netlify/functions/_blackjack-duel-database.js"), "utf8");
 for (const token of ["data-mode=\"blackjackduel\"", "data-rnb-game=\"blackjackduel\"", "data-blackjack-duel-mount", "window.__blackjackDuelBridge", "blackjackduel:state"]) {
   assert.ok(index.includes(token), `shared shell is missing ${token}`);
 }
 assert.ok(index.includes("blackjack-duel-v1"), "shared shell is missing the Blackjack Duel cache marker");
 for (const token of ["BLACKJACK_DUEL_SERVER_START", "blackjackDuelInitialState", "blackjackDuelPublicState", "blackjackDuelAction", "blackjackDuelAdvanceAndSave"]) {
   assert.ok(data.includes(token), `server integration is missing ${token}`);
+}
+for (const token of ["ensureSchema", "CREATE TABLE IF NOT EXISTS blackjack_duel_matches", "CREATE INDEX IF NOT EXISTS blackjack_duel_matches_updated_idx"]) {
+  assert.ok(blackjackDatabase.includes(token), `database bootstrap is missing ${token}`);
 }
 
 console.log("Blackjack Duel validation passed: finite deck, private simultaneous play, timeout resolution, idempotent actions, modular UI, and shared lifecycle integration.");
