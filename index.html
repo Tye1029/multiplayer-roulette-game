@@ -10758,6 +10758,19 @@
 
     body.duel-mode .page { height:auto!important; min-height:100dvh!important; overflow:visible!important; padding-bottom:max(48px, env(safe-area-inset-bottom))!important; }
     body.duel-mode .duel-screen { overflow:visible!important; margin-bottom:40px; }
+    body.duel-mode.blackjack-duel-focus .duel-header,
+    body.duel-mode.blackjack-duel-focus .duel-side-stack,
+    body.duel-mode.blackjack-duel-focus .duel-top-actions { display:none!important; }
+    body.duel-mode.blackjack-duel-focus .duel-grid { grid-template-columns:minmax(0,1fr); }
+    body.duel-mode.blackjack-duel-focus .duel-screen {
+      padding:clamp(7px,1.5vw,16px)!important;
+      background:linear-gradient(180deg,rgba(8,17,17,.96),rgba(5,10,12,.96));
+    }
+    body.duel-mode.blackjack-duel-focus .duel-live-card {
+      padding:0;border:0;background:transparent;box-shadow:none;
+    }
+    body.duel-mode.blackjack-duel-focus .duel-active,
+    body.duel-mode.blackjack-duel-focus .duel-arena.blackjack-duel-clean { min-width:0; }
     @media (max-width:860px) {
       .duel-grid { grid-template-columns:1fr; }
       .duel-header { flex-direction:column; }
@@ -12547,8 +12560,8 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
   <script id="mountainRaceMultiplayerRuntime" src="/assets/mountain-race/mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=11&scene=65&holds=30" defer></script>
 <!-- MOUNTAIN_RACE_MULTIPLAYER_ASSETS_END -->
 <!-- BLACKJACK_DUEL_ASSETS_START -->
-  <link id="blackjackDuelStyles" rel="stylesheet" href="/assets/blackjack-duel/blackjack-duel.css?v=blackjack-duel-v1">
-  <script id="blackjackDuelRuntime" src="/assets/blackjack-duel/blackjack-duel.js?v=blackjack-duel-v1" defer></script>
+  <link id="blackjackDuelStyles" rel="stylesheet" href="/assets/blackjack-duel/blackjack-duel.css?v=blackjack-duel-v2">
+  <script id="blackjackDuelRuntime" src="/assets/blackjack-duel/blackjack-duel.js?v=blackjack-duel-v2" defer></script>
 <!-- BLACKJACK_DUEL_ASSETS_END -->
 
 <!-- MOUNTAIN_RACE_V29_PRELOADS -->
@@ -17391,6 +17404,25 @@ function updateRunnerBalanceDisplay() {
     let duelReadyUiState = { gameId: "", deadlineAt: "", clicked: false, requestPending: false, confirmed: false, statusRank: 0 };
     const DUEL_STATUS_RANK = { waiting: 0, ready: 1, countdown: 2, playing: 3, complete: 4, cancelled: 4 };
     const duelAcceptedStatusByGame = new Map();
+    let blackjackDuelFocusedGameId = "";
+    function blackjackDuelSyncFocus(game) {
+      const status = String(game?.status || "");
+      const active = Boolean(game?.mode === "blackjackduel" && ["countdown", "playing", "complete"].includes(status));
+      document.body.classList.toggle("blackjack-duel-focus", active);
+      if (!active) {
+        blackjackDuelFocusedGameId = "";
+        return;
+      }
+      const gameId = String(game?.gameId || "");
+      if (status === "countdown" && gameId && blackjackDuelFocusedGameId !== gameId) {
+        document.querySelectorAll("#rnbDock .rnb-panel").forEach(panel => {
+          panel.dataset.collapsed = "1";
+          const indicator = panel.querySelector("[data-rnb-toggle] span:last-child");
+          if (indicator) indicator.textContent = "▲";
+        });
+      }
+      blackjackDuelFocusedGameId = gameId;
+    }
 // SAFE_CRACKER_SNAPSHOT_GUARD_START
     const safeCrackerAcceptedSnapshotByGame = new Map();
     function safeCrackerSnapshotVersion(game) {
@@ -19797,7 +19829,7 @@ function updateRunnerBalanceDisplay() {
     function duelModeArt(game) {
       const mode = game?.mode || "coin";
       if (mode === "blackjack") return duelBlackjackHtml(game);
-      if (mode === "blackjackduel") return ["playing", "complete"].includes(String(game?.status || ""))
+      if (mode === "blackjackduel") return ["countdown", "playing", "complete"].includes(String(game?.status || ""))
         ? `<div data-blackjack-duel-mount></div>`
         : `<div class="duel-mode-art"><div class="duel-simple-mode"><div class="duel-simple-icon">♠</div><div class="duel-simple-title">Blackjack Duel</div><div class="duel-simple">No dealer. Private hands from one server-owned deck; closest to 21 wins.</div></div></div>`;
       if (mode === "draw") return duelDrawHtml(game);
@@ -20146,6 +20178,13 @@ function updateRunnerBalanceDisplay() {
         return true;
       }
       if(game.mode==='safecracker'){
+        duelHideCountdownPortal();
+        duelStartLocallyAtAuthoritativeTime(game);
+        return true;
+      }
+      if(game.mode==='blackjackduel'){
+        // Blackjack owns a labelled, in-table pre-deal countdown. Keep the
+        // shared authoritative transition without covering the entire site.
         duelHideCountdownPortal();
         duelStartLocallyAtAuthoritativeTime(game);
         return true;
@@ -20505,6 +20544,7 @@ function updateRunnerBalanceDisplay() {
       if (game?.mode === "mountainrace" && !mountainRaceAcceptSnapshot(game)) return;
       if (game?.mode === "blackjackduel" && !blackjackDuelAcceptSnapshot(game)) return;
       if (game?.mode === "roulette" && !rouletteAcceptSnapshot(game)) return;
+      blackjackDuelSyncFocus(game);
       if (game?.mode === "roulette" && rouletteHoldLiveResult(game)) { duelSetPollRate(game); return; }
       if (game?.mode === "draw") duelDrawLatestGame = game;
       duelDrawSyncWesternMusic(game);
@@ -20584,6 +20624,7 @@ function updateRunnerBalanceDisplay() {
       if (game?.mode !== "draw") duelDrawLocalRenderKey = "";
       if (!game) {
         document.body.classList.remove('roulette-viewport-lock');
+        blackjackDuelSyncFocus(null);
         duelControlTestPlayer = false;
         duelActive.innerHTML = `<p class="duel-status">Create or join a multiplayer arcade duel to start.</p>`;
         return;
@@ -20647,6 +20688,12 @@ function updateRunnerBalanceDisplay() {
       } else if (game.mode === "roulette") {
         rouletteLatestGame = game;
         duelActive.innerHTML = `<div class="duel-arena roulette-clean"><div class="duel-status"><b>${escapeHtml(game.modeName || "Russian Roulette")}</b> • Pot ${money(game.pot || game.wager || 0)}</div><div data-duel-roulette-art>${duelModeArt(game)}</div>${testControlHtml}${body}${npcRecoveryHtml}</div>`;
+      } else if (game.mode === "blackjackduel" && ["countdown", "playing", "complete"].includes(String(game.status || ""))) {
+        duelGenericMountId += 1;
+        duelActive.innerHTML = `<div class="duel-arena blackjack-duel-clean" data-duel-generic-game="1" data-duel-game-id="${escapeHtml(String(game.gameId || ""))}" data-duel-mode="blackjackduel" data-duel-epoch="${genericEpoch}">
+          ${duelModeArt(game)}
+          ${npcRecoveryHtml}
+        </div>`;
       } else if (game.mode === "draw") {
         duelDrawLocalRenderKey = game.status === "playing" ? duelDrawArtKey(game) : "";
         duelActive.innerHTML = `<div class="duel-arena draw-clean" data-duel-game-id="${escapeHtml(String(game.gameId || ""))}" data-duel-phase="${escapeHtml(String(game.status || "waiting"))}">

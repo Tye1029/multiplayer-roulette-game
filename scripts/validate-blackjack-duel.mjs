@@ -200,13 +200,20 @@ const requiredFiles = [
 ];
 for (const file of requiredFiles) assert.ok(fs.statSync(path.join(root, file)).size > 0, `${file} is missing or empty`);
 
+const component = fs.readFileSync(path.join(root, "assets/blackjack-duel/blackjack-duel.js"), "utf8");
+for (const token of ["CARDS DEAL AT GO", "Draw one card", "Keep this total", "pendingAction", "data-clock-offset"]) {
+  assert.ok(component.includes(token), `Blackjack Duel interaction guidance is missing ${token}`);
+}
+
 const index = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const data = fs.readFileSync(path.join(root, "netlify/functions/_data.js"), "utf8");
 const blackjackDatabase = fs.readFileSync(path.join(root, "netlify/functions/_blackjack-duel-database.js"), "utf8");
 for (const token of ["data-mode=\"blackjackduel\"", "data-rnb-game=\"blackjackduel\"", "data-blackjack-duel-mount", "window.__blackjackDuelBridge", "blackjackduel:state"]) {
   assert.ok(index.includes(token), `shared shell is missing ${token}`);
 }
-assert.ok(index.includes("blackjack-duel-v1"), "shared shell is missing the Blackjack Duel cache marker");
+assert.ok(index.includes("blackjack-duel-v2"), "shared shell is missing the Blackjack Duel cache marker");
+assert.ok(index.includes("game.mode==='blackjackduel'"), "Blackjack Duel must own its in-table countdown");
+assert.ok(index.includes("blackjack-duel-focus"), "Blackjack Duel must use the focused active-round shell");
 for (const token of ["BLACKJACK_DUEL_SERVER_START", "blackjackDuelInitialState", "blackjackDuelPublicState", "blackjackDuelAction", "blackjackDuelAdvanceAndSave"]) {
   assert.ok(data.includes(token), `server integration is missing ${token}`);
 }

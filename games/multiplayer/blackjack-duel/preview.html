@@ -15,13 +15,18 @@
   <main data-blackjack-duel-mount aria-label="Blackjack Duel component preview"></main>
   <script src="/assets/blackjack-duel/blackjack-duel.js"></script>
   <script>
-    const complete = new URLSearchParams(location.search).get("state") === "complete";
-    window.dispatchEvent(new CustomEvent("blackjackduel:state", { detail: { game: {
+    const previewState = new URLSearchParams(location.search).get("state") || "playing";
+    const complete = previewState === "complete";
+    const countdown = previewState === "countdown";
+    const previewGame = {
       mode: "blackjackduel",
-      status: complete ? "complete" : "playing",
+      status: complete ? "complete" : countdown ? "countdown" : "playing",
       gameId: "blackjack-duel-preview",
       pot: 5000,
       tie: complete,
+      serverNow: new Date().toISOString(),
+      startAt: new Date(Date.now() + 4000).toISOString(),
+      countdownSeconds: 4,
       joiner: { name: "Remote Network Bot" },
       blackjackDuelState: {
         roundId: "preview-round",
@@ -41,7 +46,14 @@
         canHit: !complete,
         canStand: !complete
       }
-    } } }));
+    };
+    window.__blackjackDuelBridge = {
+      submit: () => new Promise(resolve => setTimeout(() => resolve({ game: previewGame }), 650)),
+      refresh: () => {},
+      rematch: () => {},
+      newGame: () => {}
+    };
+    window.dispatchEvent(new CustomEvent("blackjackduel:state", { detail: { game: previewGame } }));
   </script>
 </body>
 </html>
