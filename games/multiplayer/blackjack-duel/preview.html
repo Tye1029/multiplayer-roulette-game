@@ -36,6 +36,7 @@
       countdownSeconds: 4,
       blackjackDuelState: {
         roundId: "preview-round",
+        completedAt: complete ? new Date().toISOString() : null,
         secondsLeft: complete ? 0 : 19,
         deadlineAt: new Date(Date.now() + (complete ? -1000 : 19000)).toISOString(),
         deckCommitment: "preview-commitment-not-a-secret",
@@ -71,6 +72,30 @@
           firstRequestedAt: new Date().toISOString(),
           expiresAt: new Date(Date.now() + 5000).toISOString()
         };
+        window.dispatchEvent(new CustomEvent("blackjackduel:state", { detail: { game: previewGame } }));
+        if (new URLSearchParams(location.search).get("acceptDouble") === "1") {
+          setTimeout(() => {
+            previewGame.gameId = "blackjack-duel-preview-doubled";
+            previewGame.status = "countdown";
+            previewGame.tie = false;
+            previewGame.wager *= 2;
+            previewGame.pot = previewGame.wager * 2;
+            previewGame.rematch = null;
+            previewGame.startAt = new Date(Date.now() + 4000).toISOString();
+            previewGame.countdownSeconds = 4;
+            previewGame.blackjackDuelState.completedAt = null;
+            window.dispatchEvent(new CustomEvent("blackjackduel:state", { detail: { game: previewGame } }));
+          }, 450);
+        }
+      },
+      pushRestart: () => {
+        previewGame.gameId = "blackjack-duel-preview-push-restart";
+        previewGame.status = "countdown";
+        previewGame.tie = false;
+        previewGame.rematch = null;
+        previewGame.startAt = new Date(Date.now() + 4000).toISOString();
+        previewGame.countdownSeconds = 4;
+        previewGame.blackjackDuelState.completedAt = null;
         window.dispatchEvent(new CustomEvent("blackjackduel:state", { detail: { game: previewGame } }));
       },
       newGame: () => {}

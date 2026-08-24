@@ -12560,8 +12560,8 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
   <script id="mountainRaceMultiplayerRuntime" src="/assets/mountain-race/mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=11&scene=65&holds=30" defer></script>
 <!-- MOUNTAIN_RACE_MULTIPLAYER_ASSETS_END -->
 <!-- BLACKJACK_DUEL_ASSETS_START -->
-  <link id="blackjackDuelStyles" rel="stylesheet" href="/assets/blackjack-duel/blackjack-duel.css?v=blackjack-duel-v7">
-  <script id="blackjackDuelRuntime" src="/assets/blackjack-duel/blackjack-duel.js?v=blackjack-duel-v7" defer></script>
+  <link id="blackjackDuelStyles" rel="stylesheet" href="/assets/blackjack-duel/blackjack-duel.css?v=blackjack-duel-v8">
+  <script id="blackjackDuelRuntime" src="/assets/blackjack-duel/blackjack-duel.js?v=blackjack-duel-v8" defer></script>
 <!-- BLACKJACK_DUEL_ASSETS_END -->
 
 <!-- MOUNTAIN_RACE_V29_PRELOADS -->
@@ -20322,7 +20322,7 @@ function updateRunnerBalanceDisplay() {
           duelLastRenderKey = "";
           duelAcceptedStatusByGame.clear();
           duelRenderActive(data.rematchGame || (await duelRequest("get", { gameId: nextGameId })).game, true);
-          duelSetStatus("Double or Nothing accepted. The wager doubled; both players must click Ready.", "good");
+          duelSetStatus("Double or Nothing accepted. The doubled round countdown has started.", "good");
           queueMicrotask(() => duelRefresh(true));
           return;
         }
@@ -20344,7 +20344,7 @@ function updateRunnerBalanceDisplay() {
                 duelLastRenderKey = "";
                 duelAcceptedStatusByGame.clear();
                 duelRenderActive(npcData.rematchGame || (await duelRequest("get", { gameId: nextGameId })).game, true);
-                duelSetStatus("The NPC accepted Double or Nothing. Press Ready.", "good");
+                duelSetStatus("The NPC accepted Double or Nothing. The doubled round countdown has started.", "good");
               }
             } catch (_) {}
           }, 1500);
@@ -20354,6 +20354,23 @@ function updateRunnerBalanceDisplay() {
         const btn = document.querySelector("[data-bjd-double]");
         if (btn) btn.disabled = false;
       }
+    }
+    async function duelRequestPushRestart() {
+      if (!duelCurrentGameId) throw new Error("No completed Blackjack Duel push was found.");
+      const completedGameId = String(duelCurrentGameId || "");
+      const data = await duelRequest("act", { gameId: completedGameId, choice: "push-rematch" });
+      const nextGameId = data.rematchGame?.gameId || data.game?.rematchGameId || "";
+      if (!nextGameId) throw new Error("The Push restart is still being prepared.");
+      const nextGame = data.rematchGame || (await duelRequest("get", { gameId: nextGameId })).game;
+      duelRememberCurrentGame(nextGameId);
+      duelKnownRevisionByGame.delete(String(nextGameId));
+      duelLastActiveGame = nextGame || null;
+      duelLastRenderKey = "";
+      duelAcceptedStatusByGame.clear();
+      if (nextGame) duelRenderActive(nextGame, true);
+      duelSetStatus("Push complete. The next round countdown has started.", "good");
+      queueMicrotask(() => duelRefresh(true));
+      return data;
     }
     // DUEL_COMPLETED_DISMISSAL_START
     const DUEL_COMPLETED_SEEN_KEY = "torn-duel-completed-seen-v1";
@@ -20874,6 +20891,7 @@ function updateRunnerBalanceDisplay() {
           refresh: () => duelRefresh(true),
           rematch: () => duelRequestRematch(),
           doubleOrNothing: () => duelRequestDoubleOrNothing(),
+          pushRestart: () => duelRequestPushRestart(),
           newGame: () => duelStartNewGame("blackjackduel")
         };
         window.dispatchEvent(new CustomEvent("blackjackduel:state", { detail: { game } }));
@@ -22860,7 +22878,7 @@ function updateRunnerBalanceDisplay() {
   }finally{b.disabled=false}
  });
  const originalFetch=window.fetch.bind(window);window.fetch=async(input,init)=>{
-  const url=typeof input==='string'?input:input?.url||'';let body={},action='';try{body=JSON.parse(init?.body||'{}');action=body.action||''}catch{}const tracked=/duel-action/.test(url);const choice=String(body.choice||'');const lifecycle=tracked&&(['create','create-remote-bot','remote-bot','npc','join','cancel','recover-npc'].includes(action)||(action==='act'&&['ready','rematch','remote-bot-rematch','double-or-nothing','remote-bot-double-or-nothing'].includes(choice)));const requestData={action,choice:choice||undefined,gameId:String(body.gameId||''),mode:String(body.mode||'')||undefined};const start=performance.now();if(tracked)line(logs,'request',requestData);if(lifecycle)startupLine('network request',requestData);
+ const url=typeof input==='string'?input:input?.url||'';let body={},action='';try{body=JSON.parse(init?.body||'{}');action=body.action||''}catch{}const tracked=/duel-action/.test(url);const choice=String(body.choice||'');const lifecycle=tracked&&(['create','create-remote-bot','remote-bot','npc','join','cancel','recover-npc'].includes(action)||(action==='act'&&['ready','rematch','remote-bot-rematch','double-or-nothing','remote-bot-double-or-nothing','push-rematch'].includes(choice)));const requestData={action,choice:choice||undefined,gameId:String(body.gameId||''),mode:String(body.mode||'')||undefined};const start=performance.now();if(tracked)line(logs,'request',requestData);if(lifecycle)startupLine('network request',requestData);
   try{const r=await originalFetch(input,init);const responseData={...requestData,status:r.status,ms:Math.round(performance.now()-start)};if(tracked){line(logs,'response',responseData);if(lifecycle)startupLine('network response',responseData);if(!r.ok)r.clone().json().then(payload=>{const serverError={...responseData,error:String(payload?.error||'Request failed')};line(logs,'response error',serverError);if(lifecycle)startupLine('server error',serverError);render()}).catch(()=>{});if(action==='get'&&typeof duelLastActiveGame!=='undefined'&&duelLastActiveGame?.remoteNetworkTest)line(botLogs,'network bot poll',{status:r.status,ms:responseData.ms})}return r}catch(err){const failure={...requestData,error:String(err?.message||err),ms:Math.round(performance.now()-start)};if(tracked)line(logs,'network error',failure);if(lifecycle)startupLine('network failure',failure);throw err}finally{render()}
  };
 
@@ -22981,7 +22999,7 @@ async function rnbFetchAuthoritativeGame(gameId){
     const data=await duelRequest('act',{gameId,choice:isDoubleOrNothing?'remote-bot-double-or-nothing':'remote-bot-rematch'});rnbRematchRuntime.handledKey=key;line(botLogs,humanRequested?'rematch accepted':'rematch requested first',{gameId,kind:isDoubleOrNothing?'double-or-nothing':'rematch',rematchGameId:data?.rematchGame?.gameId||data?.game?.rematchGameId||''});
     if(data?.rematchGame?.gameId||data?.game?.rematchGameId){
       const nextGame=data.rematchGame||((await duelRequest('get',{gameId:data.game.rematchGameId,knownRevision:''}))?.game);
-      if(nextGame){duelKnownRevisionByGame.delete(String(nextGame.gameId));duelAcceptedStatusByGame.clear();rnbAdoptGame(nextGame,true);duelSetStatus('Remote Bot accepted the rematch. Both players must click Ready.','good')}
+      if(nextGame){duelKnownRevisionByGame.delete(String(nextGame.gameId));duelAcceptedStatusByGame.clear();rnbAdoptGame(nextGame,true);duelSetStatus(isDoubleOrNothing?'Remote Bot accepted Double or Nothing. The doubled round countdown has started.':'Remote Bot accepted the rematch. Both players must click Ready.','good')}
     }else if(data?.game){rnbAdoptGame(data.game,true)}
   }catch(err){line(botLogs,'rematch bot failed',{error:String(err?.message||err)})}finally{rnbRematchRuntime.requesting=false;render()}},delay);
  }

@@ -6601,7 +6601,7 @@ async function duelActionGame(user, gameId, details = {}) {
   const actorUser = { ...user, id: viewer, name: actor.name };
   const rawChoice = String(details.choice || "");
   if (rawChoice.toLowerCase() === "ready") return await duelReadyGame(user, gameId, { asTestPlayer: Boolean(details.asTestPlayer) });
-  if (["rematch", "npc-rematch", "remote-bot-rematch", "double-or-nothing", "npc-double-or-nothing", "remote-bot-double-or-nothing"].includes(rawChoice.toLowerCase())) {
+  if (["rematch", "npc-rematch", "remote-bot-rematch", "double-or-nothing", "npc-double-or-nothing", "remote-bot-double-or-nothing", "push-rematch"].includes(rawChoice.toLowerCase())) {
     return await withDuelReadyLock(gameId, async () => {
       // A completion save can briefly lag behind the eventual read used by
       // ordinary polling. Rematch is a lifecycle write, so start from the
@@ -6611,32 +6611,48 @@ async function duelActionGame(user, gameId, details = {}) {
       if (latest.status !== "complete" || !duelSupportsRematch(latest.mode)) throw new Error("Rematches are only available after a completed duel.");
       const normalizedChoice = rawChoice.toLowerCase();
       const isDoubleOrNothing = normalizedChoice.includes("double-or-nothing");
+      const isPushAutoRematch = normalizedChoice === "push-rematch";
       if (isDoubleOrNothing && latest.mode !== "blackjackduel") {
         throw new Error("Double or Nothing is only available after a completed Blackjack Duel.");
       }
+      if (isPushAutoRematch && latest.mode !== "blackjackduel") throw new Error("Automatic restart is only available after Blackjack Duel.");
+      if (isPushAutoRematch && !latest.tie) throw new Error("Automatic restart requires a Push.");
       const playerIds = [cleanUserId(latest.creator?.userId), cleanUserId(latest.joiner?.userId)].filter(Boolean);
       if (!playerIds.includes(viewer)) throw new Error("You are not in this duel.");
       if (latest.rematchGameId) return { game: duelPublicGame(latest, viewer), record: await getUserRecord(user.id) };
+      const now = Date.now();
+      const completedMs = Date.parse(latest.completedAt || latest.blackjackDuelState?.completedAt || "");
+      if (isPushAutoRematch && Number.isFinite(completedMs) && now < completedMs + 5000) {
+        throw new Error("The Push restart countdown is still running.");
+      }
       const npcId = [latest.creator, latest.joiner].find(player => player?.isNpc || String(player?.userId || "").startsWith("npc-"))?.userId || "";
       const isNpcAcceptance = ["npc-rematch", "npc-double-or-nothing"].includes(normalizedChoice);
       const isRemoteBotRematch = ["remote-bot-rematch", "remote-bot-double-or-nothing"].includes(normalizedChoice);
       if (isNpcAcceptance && (!latest.npcTest || !npcId)) throw new Error("This duel does not have a simple NPC opponent.");
       const remoteBotId = [latest.creator, latest.joiner].find(player => player?.isRemoteBot || String(player?.userId || "").startsWith("remote-bot-"))?.userId || "";
       if (isRemoteBotRematch && (!latest.remoteNetworkTest || !remoteBotId)) throw new Error("This duel does not have a Remote Network Bot opponent.");
-      const now = Date.now();
       let rematch = latest.rematch && typeof latest.rematch === "object" ? { ...latest.rematch } : { requestedBy: {}, firstRequestedAt: null, expiresAt: null };
       const requestKind = isDoubleOrNothing ? "double-or-nothing" : "rematch";
-      const firstAt = Date.parse(rematch.firstRequestedAt || 0);
-      const expiresAt = Date.parse(rematch.expiresAt || 0);
       const isSyntheticAcceptance = isNpcAcceptance || isRemoteBotRematch;
-      if (!firstAt || !expiresAt || now > expiresAt || String(rematch.kind || "rematch") !== requestKind) {
-        if (isSyntheticAcceptance) throw new Error("The rematch request expired.");
+      if (isPushAutoRematch) {
         rematch = {
-          kind: requestKind,
-          requestedBy: {},
+          kind: "rematch",
+          requestedBy: Object.fromEntries(playerIds.map(id => [id, new Date(now).toISOString()])),
           firstRequestedAt: new Date(now).toISOString(),
-          expiresAt: new Date(now + (isDoubleOrNothing ? 5000 : 10000)).toISOString()
+          expiresAt: new Date(now + 10000).toISOString()
         };
+      } else {
+        const firstAt = Date.parse(rematch.firstRequestedAt || 0);
+        const expiresAt = Date.parse(rematch.expiresAt || 0);
+        if (!firstAt || !expiresAt || now > expiresAt || String(rematch.kind || "rematch") !== requestKind) {
+          if (isSyntheticAcceptance) throw new Error("The rematch request expired.");
+          rematch = {
+            kind: requestKind,
+            requestedBy: {},
+            firstRequestedAt: new Date(now).toISOString(),
+            expiresAt: new Date(now + (isDoubleOrNothing ? 5000 : 10000)).toISOString()
+          };
+        }
       }
       if (isSyntheticAcceptance) {
         const syntheticId = isRemoteBotRematch ? remoteBotId : npcId;
@@ -6682,6 +6698,11 @@ async function duelActionGame(user, gameId, details = {}) {
           const joined = await duelJoinGame(playerFor(secondId), created.game.gameId);
           rematchGame = joined.game;
         }
+        if (isDoubleOrNothing || isPushAutoRematch) {
+          const countdownGame = duelSanitizeGame(rematchGame);
+          const countdownReady = Object.fromEntries(duelPlayerIds(countdownGame).map(id => [id, true]));
+          rematchGame = await duelSaveGame(duelStartCountdown({ ...countdownGame, ready: countdownReady }, Date.now()));
+        }
         latest = await duelSaveGame({ ...latest, rematch, rematchGameId: rematchGame.gameId });
         const authoritativeRematch = await duelGetRawStrong(rematchGame.gameId, 2) || await duelGetRaw(rematchGame.gameId) || rematchGame;
         return { game: duelPublicGame(latest, viewer), rematchGame: duelPublicGame(authoritativeRematch, viewer), record: await getUserRecord(user.id) };
@@ -6689,7 +6710,7 @@ async function duelActionGame(user, gameId, details = {}) {
         if (created?.game?.gameId) {
           try { await duelCancelGame(creatorForCleanup, created.game.gameId); } catch (_) {}
         }
-        if (isDoubleOrNothing) {
+        if (isDoubleOrNothing || isPushAutoRematch) {
           try { latest = await duelSaveGame({ ...latest, rematch: null }); } catch (_) {}
         }
         throw error;

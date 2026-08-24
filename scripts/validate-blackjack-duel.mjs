@@ -230,16 +230,19 @@ const componentPreview = fs.readFileSync(path.join(root, "games/multiplayer/blac
 for (const token of ["CARDS DEAL AT GO", "Draw one card", "Keep this total", "pendingAction", "data-clock-offset", "SHARED DECK", "lastRenderSignature", "just-dealt", "cardCountLabel"]) {
   assert.ok(component.includes(token), `Blackjack Duel interaction guidance is missing ${token}`);
 }
-for (const token of ["bjd-final-totals", "bjd-center-pot", "data-bjd-double", "animatePendingDeals", "canPatchComplete", "casino-chip-pile-crisp.svg", "awaiting-deal", "data-bjd-deal-sequence"]) {
+for (const token of ["bjd-final-totals", "bjd-center-pot", "data-bjd-double", "animatePendingDeals", "canPatchComplete", "casino-chip-pile-crisp.svg", "awaiting-deal", "data-bjd-deal-sequence", "data-bjd-push-clock", "pushRestart"]) {
   assert.ok(component.includes(token), `Blackjack Duel final layout is missing ${token}`);
 }
 assert.ok(!component.includes("NO DEALER"), "the removed no-dealer label must stay out of the table header");
 assert.ok(!component.includes("Deck commitment"), "the deck commitment footer must stay hidden from players");
 assert.ok(!component.includes("Both hands came from the same server deck"), "the removed final-deck copy must stay out of the result");
 assert.ok(!component.includes("A natural two-card blackjack beats"), "the removed natural-blackjack instruction must stay out of the table header");
+assert.ok(!component.includes("Cards fly from this deck to each hand") && !component.includes("Cards arrive when the round begins"), "background deck guidance must stay out of the table");
+assert.ok(!componentCss.includes("CARDS DEAL FROM THE CENTER DECK"), "empty opening hands must not contain background explanation text");
 assert.ok(componentCss.includes("--deal-delay"), "card movement must be measured from the shared deck to the destination hand");
 assert.ok(componentCss.includes("grid-template-rows:auto auto 36px 46px"), "Double or Nothing must reserve a stable panel height before the timer appears");
 assert.ok(componentCss.includes(".bjd-double-countdown.is-active"), "Double or Nothing must reveal its timer without reflowing the result panel");
+assert.ok(componentCss.includes("font-size:1.28rem") && componentCss.includes("grid-template-columns:104px auto"), "the shared pot amount and chip art must have stronger visual emphasis");
 assert.ok(!component.includes("currentDouble.replaceWith"), "Double or Nothing updates must preserve the mounted panel element");
 assert.ok(!componentCss.includes("animation:bjdReveal"), "the completed result must not replay a flashing reveal animation");
 assert.ok(component.indexOf('class="bjd-seat player"') < component.indexOf('class="bjd-seat opponent"'), "the local player must occupy the left seat before the opponent");
@@ -251,21 +254,23 @@ const blackjackDatabase = fs.readFileSync(path.join(root, "netlify/functions/_bl
 for (const token of ["data-mode=\"blackjackduel\"", "data-rnb-game=\"blackjackduel\"", "data-blackjack-duel-mount", "window.__blackjackDuelBridge", "blackjackduel:state"]) {
   assert.ok(index.includes(token), `shared shell is missing ${token}`);
 }
-assert.ok(index.includes("blackjack-duel-v7"), "shared shell is missing the Blackjack Duel cache marker");
+assert.ok(index.includes("blackjack-duel-v8"), "shared shell is missing the Blackjack Duel cache marker");
 assert.ok(index.includes("game.mode==='blackjackduel'"), "Blackjack Duel must own its in-table countdown");
 assert.ok(index.includes("blackjack-duel-focus"), "Blackjack Duel must use the focused active-round shell");
 assert.ok(index.includes("canPatchMountedBlackjackDuel"), "Blackjack Duel must retain its mounted table between polls");
 assert.ok(index.includes("shouldRequestFirst=game.mode!=='blackjackduel'"), "the Remote Bot must not repeatedly open unsolicited Double or Nothing windows");
+assert.ok(index.includes('choice: "push-rematch"') && index.includes("pushRestart: () => duelRequestPushRestart()"), "a Push must automatically request its next round after five seconds");
 for (const token of ["BLACKJACK_DUEL_SERVER_START", "blackjackDuelInitialState", "blackjackDuelPublicState", "blackjackDuelAction", "blackjackDuelAdvanceAndSave"]) {
   assert.ok(data.includes(token), `server integration is missing ${token}`);
 }
-for (const token of ["double-or-nothing", "remote-bot-double-or-nothing", "DUEL_DOUBLE_OR_NOTHING_CREATE"]) {
+for (const token of ["double-or-nothing", "remote-bot-double-or-nothing", "DUEL_DOUBLE_OR_NOTHING_CREATE", "push-rematch", "isPushAutoRematch"]) {
   assert.ok(data.includes(token) || index.includes(token), `Double or Nothing integration is missing ${token}`);
 }
 assert.ok(data.includes('isDoubleOrNothing && latest.mode !== "blackjackduel"'), "all completed Blackjack Duel results must allow Double or Nothing");
 assert.ok(!data.includes('latest.mode !== "blackjackduel" || !latest.tie'), "Double or Nothing must not be limited to ties");
 assert.ok(data.includes("duelKnownRemoteBotAttachGames") && data.includes("rebuiltWaitingGame"), "Remote Bot Double or Nothing must hand the known rematch game into the existing attachment contract without an eventually-consistent reread");
 assert.ok(data.includes("isSyntheticAcceptance"), "synthetic opponents must only accept an active human Double or Nothing offer");
+assert.ok(data.includes("isDoubleOrNothing || isPushAutoRematch") && data.includes("duelStartCountdown({ ...countdownGame"), "accepted Double or Nothing and automatic Push rematches must start directly in the next countdown");
 for (const token of ["ensureSchema", "CREATE TABLE IF NOT EXISTS blackjack_duel_matches", "CREATE INDEX IF NOT EXISTS blackjack_duel_matches_updated_idx"]) {
   assert.ok(blackjackDatabase.includes(token), `database bootstrap is missing ${token}`);
 }
