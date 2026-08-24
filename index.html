@@ -10771,6 +10771,8 @@
     }
     body.duel-mode.blackjack-duel-focus .duel-active,
     body.duel-mode.blackjack-duel-focus .duel-arena.blackjack-duel-clean { min-width:0; }
+    body.blackjack-duel-focus .result-pop,
+    body.blackjack-duel-focus .duel-big-result { display:none!important; }
     @media (max-width:860px) {
       .duel-grid { grid-template-columns:1fr; }
       .duel-header { flex-direction:column; }
@@ -12560,8 +12562,8 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
   <script id="mountainRaceMultiplayerRuntime" src="/assets/mountain-race/mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=11&scene=65&holds=30" defer></script>
 <!-- MOUNTAIN_RACE_MULTIPLAYER_ASSETS_END -->
 <!-- BLACKJACK_DUEL_ASSETS_START -->
-  <link id="blackjackDuelStyles" rel="stylesheet" href="/assets/blackjack-duel/blackjack-duel.css?v=blackjack-duel-v9">
-  <script id="blackjackDuelRuntime" src="/assets/blackjack-duel/blackjack-duel.js?v=blackjack-duel-v9" defer></script>
+  <link id="blackjackDuelStyles" rel="stylesheet" href="/assets/blackjack-duel/blackjack-duel.css?v=blackjack-duel-v10">
+  <script id="blackjackDuelRuntime" src="/assets/blackjack-duel/blackjack-duel.js?v=blackjack-duel-v10" defer></script>
 <!-- BLACKJACK_DUEL_ASSETS_END -->
 
 <!-- MOUNTAIN_RACE_V29_PRELOADS -->
@@ -17410,7 +17412,7 @@ function updateRunnerBalanceDisplay() {
       const status = String(game?.status || "");
       const active = Boolean(game?.mode === "blackjackduel" && ["countdown", "playing", "complete"].includes(status));
       document.body.classList.toggle("blackjack-duel-focus", active);
-      if (active) document.querySelectorAll(".result-pop").forEach(popup => popup.remove());
+      if (active) document.querySelectorAll(".result-pop, .duel-big-result").forEach(popup => popup.remove());
       if (!active) {
         blackjackDuelFocusedGameId = "";
         return;

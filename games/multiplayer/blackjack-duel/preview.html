@@ -18,17 +18,18 @@
     const previewState = new URLSearchParams(location.search).get("state") || "playing";
     const previewOutcome = new URLSearchParams(location.search).get("outcome") || "tie";
     const previewParams = new URLSearchParams(location.search);
+    const previewWager = Math.max(1, Number(previewParams.get("wager")) || 2500);
     const complete = previewState === "complete";
     const countdown = previewState === "countdown";
     const previewGame = {
       mode: "blackjackduel",
       status: complete ? "complete" : countdown ? "countdown" : "playing",
       gameId: "blackjack-duel-preview",
-      pot: 5000,
-      wager: 2500,
+      pot: previewParams.get("singlePot") === "1" ? previewWager : previewWager * 2,
+      wager: previewWager,
       tie: complete && previewOutcome === "tie",
       winnerUserId: complete && previewOutcome !== "tie" ? (previewOutcome === "win" ? "preview-player" : "preview-bot") : "",
-      payout: complete && previewOutcome === "win" ? 5000 : 0,
+      payout: complete && previewOutcome === "win" ? (previewParams.get("singlePot") === "1" ? previewWager : previewWager * 2) : 0,
       isCreator: true,
       creator: { userId: "preview-player", name: "You", avatarUrl: "" },
       joiner: { userId: "preview-bot", name: "Remote Network Bot", avatarUrl: "", isRemoteBot: true },

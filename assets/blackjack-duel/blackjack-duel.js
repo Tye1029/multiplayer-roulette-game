@@ -73,6 +73,15 @@
     return `${count} ${count === 1 ? "CARD" : "CARDS"}`;
   }
 
+  function sharedPotView(game = {}) {
+    const wager = Math.max(0, Number(game.wager) || 0);
+    const hasTwoPlayers = Boolean(game.creator?.userId && game.joiner?.userId);
+    const total = hasTwoPlayers && wager > 0
+      ? wager * 2
+      : Math.max(0, Number(game.pot) || wager);
+    return { total, each: hasTwoPlayers ? wager : 0 };
+  }
+
   function dealLedgerKey(gameId, roundId) {
     return `${String(gameId || "")}:${String(roundId || "")}`;
   }
@@ -136,10 +145,11 @@
   }
 
   function renderSignature(game, state, dealing) {
+    const pot = sharedPotView(game);
     return JSON.stringify({
       gameId: game.gameId,
       status: game.status,
-      pot: game.pot || game.wager || 0,
+      pot,
       tie: Boolean(game.tie),
       winnerUserId: game.winnerUserId || "",
       payout: game.payout || 0,
@@ -235,7 +245,7 @@
     const meId = String(me?.userId || "");
     const won = Boolean(game.winnerUserId && String(game.winnerUserId) === meId);
     const title = game.tie ? "PUSH" : won ? "YOU WIN" : "YOU LOSE";
-    const message = game.tie ? "Equal hands. Both stakes returned." : won ? `Shared pot paid: ${Number(game.payout || 0).toLocaleString()} Tickets` : "The opponent finished closer to 21.";
+    const message = game.tie ? "Equal hands. Both stakes returned." : won ? `Payout: ${Number(game.payout || 0).toLocaleString()} Tickets` : "The opponent finished closer to 21.";
     const state = game.blackjackDuelState || {};
     const myTotal = state.me?.total ?? "?";
     const opponentTotal = state.opponent?.total ?? "?";
@@ -363,6 +373,7 @@
       }
     }
     const complete = game.status === "complete";
+    const pot = sharedPotView(game);
     const opponentHand = dealing ? undealtHandHtml() : handHtml(state.opponent || {}, !complete, "opponent", animatedCounts.opponent, complete);
     const playerHand = dealing ? undealtHandHtml("YOUR CARDS DEAL AT GO") : handHtml(state.me || {}, false, "player", animatedCounts.me, complete);
     const playerBadge = dealing ? "GET READY" : state.me?.status === "active" ? "CHOOSE" : "";
@@ -372,7 +383,7 @@
       <div class="bjd-howto"><b>Get closer to 21 than your opponent without busting.</b><span>Equal hands push.</span></div>
       <div class="bjd-table">
         <div class="bjd-seat player"><div class="bjd-seat-label"><span>YOUR HAND</span>${playerBadge ? `<b>${escapeHtml(playerBadge)}</b>` : ""}<em>${cardCountLabel(dealing ? 0 : meCards.length)}</em></div>${playerHand}</div>
-        <div class="bjd-center"><div class="bjd-center-pot"><img src="/assets/blackjack-duel/images/casino-chip-pile-crisp.svg" alt=""><span>SHARED POT</span><b>${Number(game.pot || game.wager || 0).toLocaleString()}</b></div>${deckHtml(pendingAction === "hit")}<span class="bjd-clock-label">${countdown ? "round begins in" : complete ? "final hands" : "time to choose"}</span>${complete ? "" : `<div class="bjd-clock" data-bjd-clock data-clock-kind="${countdown ? "countdown" : "decision"}" data-target="${escapeHtml(clockTarget || "")}" data-clock-offset="${clockOffset}">${seconds}</div><span>seconds</span>`}</div>
+        <div class="bjd-center"><div class="bjd-center-pot"><img src="/assets/blackjack-duel/images/casino-chip-pile-crisp.svg" alt=""><span>SHARED POT</span><b>${pot.total.toLocaleString()} <small>TICKETS</small></b>${pot.each ? `<em>${pot.each.toLocaleString()} EACH</em>` : ""}</div>${deckHtml(pendingAction === "hit")}<span class="bjd-clock-label">${countdown ? "round begins in" : complete ? "final hands" : "time to choose"}</span>${complete ? "" : `<div class="bjd-clock" data-bjd-clock data-clock-kind="${countdown ? "countdown" : "decision"}" data-target="${escapeHtml(clockTarget || "")}" data-clock-offset="${clockOffset}">${seconds}</div><span>seconds</span>`}</div>
         <div class="bjd-seat opponent"><div class="bjd-seat-label"><span>${escapeHtml(state.opponentName || game.joiner?.name || "Opponent")}</span>${opponentBadge ? `<b>${opponentBadge}</b>` : ""}<em>${cardCountLabel(dealing ? 0 : opponentCards.length)}</em></div>${opponentHand}</div>
       </div>
       <div data-bjd-controls-host>${controlsHtml(game, state, dealing)}</div>
