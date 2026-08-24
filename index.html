@@ -12560,8 +12560,8 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
   <script id="mountainRaceMultiplayerRuntime" src="/assets/mountain-race/mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=11&scene=65&holds=30" defer></script>
 <!-- MOUNTAIN_RACE_MULTIPLAYER_ASSETS_END -->
 <!-- BLACKJACK_DUEL_ASSETS_START -->
-  <link id="blackjackDuelStyles" rel="stylesheet" href="/assets/blackjack-duel/blackjack-duel.css?v=blackjack-duel-v8">
-  <script id="blackjackDuelRuntime" src="/assets/blackjack-duel/blackjack-duel.js?v=blackjack-duel-v8" defer></script>
+  <link id="blackjackDuelStyles" rel="stylesheet" href="/assets/blackjack-duel/blackjack-duel.css?v=blackjack-duel-v9">
+  <script id="blackjackDuelRuntime" src="/assets/blackjack-duel/blackjack-duel.js?v=blackjack-duel-v9" defer></script>
 <!-- BLACKJACK_DUEL_ASSETS_END -->
 
 <!-- MOUNTAIN_RACE_V29_PRELOADS -->
@@ -14300,6 +14300,7 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
     }
 
     function showResultPopup(message, type = "win", extraClass = "") {
+      if (document.body.classList.contains("blackjack-duel-focus")) return;
       const pop = document.createElement("div");
       pop.className = `result-pop ${type === "lose" ? "lose" : "win"}${extraClass ? ` ${extraClass}` : ""}`;
       if (extraClass === "coin-result-pop") {
@@ -17409,6 +17410,7 @@ function updateRunnerBalanceDisplay() {
       const status = String(game?.status || "");
       const active = Boolean(game?.mode === "blackjackduel" && ["countdown", "playing", "complete"].includes(status));
       document.body.classList.toggle("blackjack-duel-focus", active);
+      if (active) document.querySelectorAll(".result-pop").forEach(popup => popup.remove());
       if (!active) {
         blackjackDuelFocusedGameId = "";
         return;
@@ -20353,6 +20355,7 @@ function updateRunnerBalanceDisplay() {
         duelSetStatus(error.message || "Unable to offer Double or Nothing.", "bad");
         const btn = document.querySelector("[data-bjd-double]");
         if (btn) btn.disabled = false;
+        throw error;
       }
     }
     async function duelRequestPushRestart() {

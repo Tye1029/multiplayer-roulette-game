@@ -10,9 +10,11 @@
   let pendingAction = "";
   let openingDealTimer = 0;
   let pushRestartRequestedFor = "";
+  let doubleOfferUi = { gameId: "", expiresAt: "" };
   let lastRoot = null;
   let lastRenderSignature = "";
   let shownCards = { gameId: "", roundId: "", me: 0, opponent: 0 };
+  const dealAnimationLedger = new Map();
 
   function escapeHtml(value) {
     return String(value ?? "").replace(/[&<>'"]/g, token => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[token]);
@@ -69,6 +71,20 @@
 
   function cardCountLabel(count) {
     return `${count} ${count === 1 ? "CARD" : "CARDS"}`;
+  }
+
+  function dealLedgerKey(gameId, roundId) {
+    return `${String(gameId || "")}:${String(roundId || "")}`;
+  }
+
+  function animatedCardCounts(gameId, roundId) {
+    return dealAnimationLedger.get(dealLedgerKey(gameId, roundId)) || { me: 0, opponent: 0 };
+  }
+
+  function rememberAnimatedCards(gameId, roundId, me, opponent) {
+    const key = dealLedgerKey(gameId, roundId);
+    dealAnimationLedger.set(key, { me: Math.max(0, Number(me) || 0), opponent: Math.max(0, Number(opponent) || 0) });
+    while (dealAnimationLedger.size > 16) dealAnimationLedger.delete(dealAnimationLedger.keys().next().value);
   }
 
   function animatePendingDeals(scope) {
@@ -142,28 +158,75 @@
 
   function avatarHtml(player = {}, accepted = false) {
     const name = String(player.name || "Player");
+    const playerId = String(player.userId || "");
     const fallback = escapeHtml(name.trim().slice(0, 1).toUpperCase() || "?");
     const picture = player.avatarUrl
       ? `<img src="${escapeHtml(player.avatarUrl)}" alt="${escapeHtml(name)}">`
       : `<span>${fallback}</span>`;
-    return `<div class="bjd-double-player${accepted ? " accepted" : ""}">${picture}<b>${escapeHtml(name)}</b><em>${accepted ? "✓ ACCEPTED" : "WAITING"}</em></div>`;
+    return `<div class="bjd-double-player${accepted ? " accepted" : ""}" data-bjd-double-player-id="${escapeHtml(playerId)}">${picture}<b>${escapeHtml(name)}</b><em>${accepted ? "✓ ACCEPTED" : "WAITING"}</em></div>`;
+  }
+
+  function doublePanelState(game, meId) {
+    const rematch = game.rematch && typeof game.rematch === "object" ? game.rematch : {};
+    const requested = rematch.requestedBy && typeof rematch.requestedBy === "object" ? rematch.requestedBy : {};
+    const authoritativeExpiresAt = String(rematch.expiresAt || "");
+    const authoritativeExpiresMs = Date.parse(authoritativeExpiresAt);
+    const authoritativeActive = rematch.kind === "double-or-nothing" && Number.isFinite(authoritativeExpiresMs) && authoritativeExpiresMs > Date.now();
+    const localMatches = doubleOfferUi.gameId === String(game.gameId || "");
+    const localExpiresAt = localMatches ? String(doubleOfferUi.expiresAt || "") : "";
+    const localExpiresMs = Date.parse(localExpiresAt);
+    const localActive = Number.isFinite(localExpiresMs) && localExpiresMs > Date.now();
+    const activeDouble = authoritativeActive || localActive;
+    const useLocalDeadline = authoritativeActive && Number.isFinite(localExpiresMs) && localExpiresMs < authoritativeExpiresMs;
+    const expiresAt = useLocalDeadline || !authoritativeActive ? localExpiresAt : authoritativeExpiresAt;
+    const expiresMs = Date.parse(expiresAt);
+    const optimisticMe = localActive && String(meId || "");
+    const creatorId = String(game.creator?.userId || "");
+    const joinerId = String(game.joiner?.userId || "");
+    const creatorAccepted = Boolean(requested[creatorId] || optimisticMe === creatorId);
+    const joinerAccepted = Boolean(requested[joinerId] || optimisticMe === joinerId);
+    const myAccepted = Boolean(requested[meId] || optimisticMe === meId);
+    return { activeDouble, expiresAt, expiresMs, creatorAccepted, joinerAccepted, myAccepted };
   }
 
   function doublePanelHtml(game, meId) {
-    const rematch = game.rematch && typeof game.rematch === "object" ? game.rematch : {};
-    const requested = rematch.requestedBy && typeof rematch.requestedBy === "object" ? rematch.requestedBy : {};
-    const creatorAccepted = Boolean(requested[String(game.creator?.userId || "")]);
-    const joinerAccepted = Boolean(requested[String(game.joiner?.userId || "")]);
-    const myAccepted = Boolean(requested[meId]);
-    const expiresAt = String(rematch.expiresAt || "");
-    const expiresMs = Date.parse(expiresAt);
-    const activeDouble = rematch.kind === "double-or-nothing" && Number.isFinite(expiresMs) && expiresMs > Date.now();
+    const view = doublePanelState(game, meId);
     return `<div class="bjd-double">
-      <div class="bjd-double-title"><b>DOUBLE OR NOTHING</b><span>${activeDouble ? "Both players must accept before time runs out." : `Play again for ${Number(game.wager || 0) * 2} Tickets each.`}</span></div>
-      <div class="bjd-double-players">${avatarHtml(game.creator, creatorAccepted)}<strong>VS</strong>${avatarHtml(game.joiner, joinerAccepted)}</div>
-      <div class="bjd-double-countdown${activeDouble ? " is-active" : ""}" aria-hidden="${activeDouble ? "false" : "true"}"><span>Agreement closes in</span><b data-bjd-double-clock data-target="${activeDouble ? escapeHtml(expiresAt) : ""}">${activeDouble ? Math.max(0, Math.ceil((expiresMs - Date.now()) / 1000)) : 5}</b></div>
-      <button class="gold bjd-double-button" data-bjd-double type="button" ${myAccepted && activeDouble ? "disabled" : ""}>${myAccepted && activeDouble ? "ACCEPTED — WAITING" : "DOUBLE OR NOTHING"}</button>
+      <div class="bjd-double-title"><b>DOUBLE OR NOTHING</b><span>${view.activeDouble ? "Both players must accept before time runs out." : `Play again for ${Number(game.wager || 0) * 2} Tickets each.`}</span></div>
+      <div class="bjd-double-players">${avatarHtml(game.creator, view.creatorAccepted)}<strong>VS</strong>${avatarHtml(game.joiner, view.joinerAccepted)}</div>
+      <div class="bjd-double-countdown${view.activeDouble ? " is-active" : ""}" aria-hidden="${view.activeDouble ? "false" : "true"}"><span>Agreement closes in</span><b data-bjd-double-clock data-target="${view.activeDouble ? escapeHtml(view.expiresAt) : ""}">${view.activeDouble ? Math.max(0, Math.ceil((view.expiresMs - Date.now()) / 1000)) : 5}</b></div>
+      <button class="gold bjd-double-button" data-bjd-double type="button" ${view.myAccepted && view.activeDouble ? "disabled" : ""}>${view.myAccepted && view.activeDouble ? "ACCEPTED — WAITING" : "DOUBLE OR NOTHING"}</button>
     </div>`;
+  }
+
+  function patchDoublePanel(panel, game, meId) {
+    if (!panel) return;
+    const view = doublePanelState(game, meId);
+    const title = panel.querySelector(".bjd-double-title span");
+    if (title) title.textContent = view.activeDouble ? "Both players must accept before time runs out." : `Play again for ${Number(game.wager || 0) * 2} Tickets each.`;
+    const acceptedIds = new Set([
+      view.creatorAccepted ? String(game.creator?.userId || "") : "",
+      view.joinerAccepted ? String(game.joiner?.userId || "") : ""
+    ].filter(Boolean));
+    panel.querySelectorAll("[data-bjd-double-player-id]").forEach(player => {
+      const accepted = acceptedIds.has(String(player.dataset.bjdDoublePlayerId || ""));
+      player.classList.toggle("accepted", accepted);
+      const status = player.querySelector("em");
+      if (status) status.textContent = accepted ? "✓ ACCEPTED" : "WAITING";
+    });
+    const countdown = panel.querySelector(".bjd-double-countdown");
+    countdown?.classList.toggle("is-active", view.activeDouble);
+    countdown?.setAttribute("aria-hidden", view.activeDouble ? "false" : "true");
+    const clock = panel.querySelector("[data-bjd-double-clock]");
+    if (clock) {
+      clock.dataset.target = view.activeDouble ? view.expiresAt : "";
+      clock.textContent = view.activeDouble ? String(Math.max(0, Math.ceil((view.expiresMs - Date.now()) / 1000))) : "5";
+    }
+    const button = panel.querySelector("[data-bjd-double]");
+    if (button) {
+      button.disabled = Boolean(view.myAccepted && view.activeDouble);
+      button.textContent = view.myAccepted && view.activeDouble ? "ACCEPTED — WAITING" : "DOUBLE OR NOTHING";
+    }
   }
 
   function resultHtml(game) {
@@ -209,6 +272,7 @@
 
   function render(game) {
     if (!game || game.mode !== MODE) return;
+    if (doubleOfferUi.gameId && doubleOfferUi.gameId !== String(game.gameId || "")) doubleOfferUi = { gameId: "", expiresAt: "" };
     latestGame = game;
     const root = document.querySelector("[data-blackjack-duel-mount]");
     if (!root) return;
@@ -232,27 +296,25 @@
     const sameRound = root === lastRoot && shownCards.gameId === String(game.gameId || "") && shownCards.roundId === roundId;
     const meCards = Array.isArray(state.me?.cards) ? state.me.cards : [];
     const opponentCards = Array.isArray(state.opponent?.cards) ? state.opponent.cards : [];
-    const previousMeCount = sameRound ? shownCards.me : 0;
-    const previousOpponentCount = sameRound ? shownCards.opponent : 0;
+    const animatedCounts = animatedCardCounts(game.gameId, roundId);
     const liveSection = root.querySelector(".bjd-game");
     const canPatchLive = sameRound && game.status === "playing" && liveSection && !liveSection.querySelector(".bjd-result");
     if (canPatchLive) {
-      const appendCards = (selector, cards, seat) => {
+      const appendCards = (selector, cards, seat, animateFrom) => {
         const host = liveSection.querySelector(selector);
         if (!host || host.children.length > cards.length) return false;
-        const previousCount = host.children.length;
-        const openingDeal = previousCount === 0 && cards.length >= 2;
+        const openingDeal = animateFrom === 0 && cards.length >= 2;
         if (cards.length) host.classList.remove("awaiting-deal");
         for (let index = host.children.length; index < cards.length; index += 1) {
           host.insertAdjacentHTML("beforeend", cardHtml(cards[index], index, {
             seat,
-            justDealt: true,
-            dealSequence: openingDeal ? index * 2 + (seat === "opponent" ? 1 : 0) : index - previousCount
+            justDealt: index >= animateFrom,
+            dealSequence: openingDeal ? index * 2 + (seat === "opponent" ? 1 : 0) : Math.max(0, index - animateFrom)
           }));
         }
         return true;
       };
-      if (appendCards(".bjd-seat.player .bjd-hand-cards", meCards, "player") && appendCards(".bjd-seat.opponent .bjd-hand-cards", opponentCards, "opponent")) {
+      if (appendCards(".bjd-seat.player .bjd-hand-cards", meCards, "player", animatedCounts.me) && appendCards(".bjd-seat.opponent .bjd-hand-cards", opponentCards, "opponent", animatedCounts.opponent)) {
         const playerTotal = liveSection.querySelector(".bjd-seat.player .bjd-hand-total");
         const opponentTotal = liveSection.querySelector(".bjd-seat.opponent .bjd-hand-total");
         const playerStatus = liveSection.querySelector(".bjd-seat.player .bjd-seat-label b");
@@ -275,6 +337,7 @@
         }
         liveSection.querySelector(".bjd-deck")?.classList.remove("drawing");
         animatePendingDeals(liveSection);
+        rememberAnimatedCards(game.gameId, roundId, meCards.length, opponentCards.length);
         const clock = liveSection.querySelector("[data-bjd-clock]");
         if (clock) {
           clock.dataset.target = String(clockTarget || "");
@@ -292,20 +355,16 @@
     if (canPatchComplete) {
       const currentDouble = liveSection.querySelector(".bjd-double");
       if (currentDouble) {
-        const holder = document.createElement("div");
         const me = game.isCreator ? game.creator : game.joiner;
-        holder.innerHTML = doublePanelHtml(game, String(me?.userId || ""));
-        const freshDouble = holder.firstElementChild;
-        currentDouble.innerHTML = freshDouble.innerHTML;
-        bind(currentDouble, game);
+        patchDoublePanel(currentDouble, game, String(me?.userId || ""));
         lastRenderSignature = signature;
         startClock();
         return;
       }
     }
     const complete = game.status === "complete";
-    const opponentHand = dealing ? undealtHandHtml() : handHtml(state.opponent || {}, !complete, "opponent", previousOpponentCount, complete);
-    const playerHand = dealing ? undealtHandHtml("YOUR CARDS DEAL AT GO") : handHtml(state.me || {}, false, "player", previousMeCount, complete);
+    const opponentHand = dealing ? undealtHandHtml() : handHtml(state.opponent || {}, !complete, "opponent", animatedCounts.opponent, complete);
+    const playerHand = dealing ? undealtHandHtml("YOUR CARDS DEAL AT GO") : handHtml(state.me || {}, false, "player", animatedCounts.me, complete);
     const playerBadge = dealing ? "GET READY" : state.me?.status === "active" ? "CHOOSE" : "";
     const opponentBadge = complete ? "" : "PRIVATE";
     root.innerHTML = `<section class="bjd-game${pendingAction === "hit" ? " is-drawing" : ""}" data-bjd-game-id="${escapeHtml(game.gameId)}" data-bjd-round-id="${escapeHtml(roundId)}">
@@ -324,6 +383,7 @@
     shownCards = { gameId: String(game.gameId || ""), roundId, me: dealing ? 0 : meCards.length, opponent: dealing ? 0 : opponentCards.length };
     bind(root, game);
     animatePendingDeals(root);
+    if (!dealing) rememberAnimatedCards(game.gameId, roundId, meCards.length, opponentCards.length);
     startClock();
   }
 
@@ -358,7 +418,20 @@
       }
     }));
     root.querySelector("[data-bjd-rematch]")?.addEventListener("click", () => window.__blackjackDuelBridge?.rematch?.());
-    root.querySelector("[data-bjd-double]")?.addEventListener("click", () => window.__blackjackDuelBridge?.doubleOrNothing?.());
+    root.querySelector("[data-bjd-double]")?.addEventListener("click", () => {
+      const gameId = String(game.gameId || "");
+      const pendingExpiry = doubleOfferUi.gameId === gameId ? Date.parse(doubleOfferUi.expiresAt || "") : 0;
+      if (Number.isFinite(pendingExpiry) && pendingExpiry > Date.now()) return;
+      doubleOfferUi = { gameId, expiresAt: new Date(Date.now() + 5000).toISOString() };
+      const me = game.isCreator ? game.creator : game.joiner;
+      patchDoublePanel(root.querySelector(".bjd-double"), game, String(me?.userId || ""));
+      startClock();
+      Promise.resolve(window.__blackjackDuelBridge?.doubleOrNothing?.()).catch(error => {
+        if (doubleOfferUi.gameId === gameId) doubleOfferUi = { gameId: "", expiresAt: "" };
+        patchDoublePanel(document.querySelector(".bjd-double"), latestGame || game, String(me?.userId || ""));
+        if (typeof window.duelSetStatus === "function") window.duelSetStatus(error?.message || "Unable to offer Double or Nothing.", "bad");
+      });
+    });
     root.querySelector("[data-bjd-new-game]")?.addEventListener("click", () => window.__blackjackDuelBridge?.newGame?.());
   }
 

@@ -17,6 +17,7 @@
   <script>
     const previewState = new URLSearchParams(location.search).get("state") || "playing";
     const previewOutcome = new URLSearchParams(location.search).get("outcome") || "tie";
+    const previewParams = new URLSearchParams(location.search);
     const complete = previewState === "complete";
     const countdown = previewState === "countdown";
     const previewGame = {
@@ -54,6 +55,36 @@
         canStand: !complete
       }
     };
+    let previewDealAnimationStarts = 0;
+    document.addEventListener("animationstart", event => {
+      if (!event.target?.classList?.contains("bjd-card")) return;
+      previewDealAnimationStarts += 1;
+      document.documentElement.setAttribute("data-preview-deal-animation-starts", String(previewDealAnimationStarts));
+    }, true);
+    const applyPreviewDoubleOffer = () => {
+      previewGame.rematch = {
+        kind: "double-or-nothing",
+        requestedBy: { "preview-player": new Date().toISOString() },
+        firstRequestedAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 5000).toISOString()
+      };
+      window.dispatchEvent(new CustomEvent("blackjackduel:state", { detail: { game: previewGame } }));
+      if (previewParams.get("acceptDouble") === "1") {
+        setTimeout(() => {
+          previewGame.gameId = "blackjack-duel-preview-doubled";
+          previewGame.status = "countdown";
+          previewGame.tie = false;
+          previewGame.wager *= 2;
+          previewGame.pot = previewGame.wager * 2;
+          previewGame.rematch = null;
+          previewGame.serverNow = new Date().toISOString();
+          previewGame.startAt = new Date(Date.now() + 4000).toISOString();
+          previewGame.countdownSeconds = 4;
+          previewGame.blackjackDuelState.completedAt = null;
+          window.dispatchEvent(new CustomEvent("blackjackduel:state", { detail: { game: previewGame } }));
+        }, 450);
+      }
+    };
     window.__blackjackDuelBridge = {
       submit: details => new Promise(resolve => setTimeout(() => {
         if (String(details?.choice || "").endsWith(":hit") && previewGame.blackjackDuelState.me.cards.length === 2) {
@@ -66,33 +97,16 @@
       refresh: () => {},
       rematch: () => {},
       doubleOrNothing: () => {
-        previewGame.rematch = {
-          kind: "double-or-nothing",
-          requestedBy: { "preview-player": new Date().toISOString() },
-          firstRequestedAt: new Date().toISOString(),
-          expiresAt: new Date(Date.now() + 5000).toISOString()
-        };
-        window.dispatchEvent(new CustomEvent("blackjackduel:state", { detail: { game: previewGame } }));
-        if (new URLSearchParams(location.search).get("acceptDouble") === "1") {
-          setTimeout(() => {
-            previewGame.gameId = "blackjack-duel-preview-doubled";
-            previewGame.status = "countdown";
-            previewGame.tie = false;
-            previewGame.wager *= 2;
-            previewGame.pot = previewGame.wager * 2;
-            previewGame.rematch = null;
-            previewGame.startAt = new Date(Date.now() + 4000).toISOString();
-            previewGame.countdownSeconds = 4;
-            previewGame.blackjackDuelState.completedAt = null;
-            window.dispatchEvent(new CustomEvent("blackjackduel:state", { detail: { game: previewGame } }));
-          }, 450);
-        }
+        if (previewParams.get("delayDouble") === "1") return new Promise(resolve => setTimeout(() => { applyPreviewDoubleOffer(); resolve(); }, 1800));
+        applyPreviewDoubleOffer();
+        return Promise.resolve();
       },
       pushRestart: () => {
         previewGame.gameId = "blackjack-duel-preview-push-restart";
         previewGame.status = "countdown";
         previewGame.tie = false;
         previewGame.rematch = null;
+        previewGame.serverNow = new Date().toISOString();
         previewGame.startAt = new Date(Date.now() + 4000).toISOString();
         previewGame.countdownSeconds = 4;
         previewGame.blackjackDuelState.completedAt = null;
@@ -101,14 +115,21 @@
       newGame: () => {}
     };
     window.dispatchEvent(new CustomEvent("blackjackduel:state", { detail: { game: previewGame } }));
-    if (countdown && new URLSearchParams(location.search).get("autoDeal") === "1") {
+    if (countdown && previewParams.get("autoDeal") === "1") {
       setTimeout(() => {
         previewGame.status = "playing";
         previewGame.countdownSeconds = 0;
         window.dispatchEvent(new CustomEvent("blackjackduel:state", { detail: { game: previewGame } }));
       }, 650);
+      if (previewParams.get("repeatMount") === "1") {
+        setTimeout(() => {
+          const mounted = document.querySelector("[data-blackjack-duel-mount]");
+          if (mounted) mounted.replaceWith(mounted.cloneNode(false));
+          window.dispatchEvent(new CustomEvent("blackjackduel:state", { detail: { game: previewGame } }));
+        }, 2000);
+      }
     }
-    if (new URLSearchParams(location.search).get("poll") === "1") {
+    if (previewParams.get("poll") === "1") {
       setInterval(() => window.dispatchEvent(new CustomEvent("blackjackduel:state", { detail: { game: previewGame } })), 250);
     }
   </script>

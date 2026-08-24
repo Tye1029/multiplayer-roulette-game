@@ -230,7 +230,7 @@ const componentPreview = fs.readFileSync(path.join(root, "games/multiplayer/blac
 for (const token of ["CARDS DEAL AT GO", "Draw one card", "Keep this total", "pendingAction", "data-clock-offset", "SHARED DECK", "lastRenderSignature", "just-dealt", "cardCountLabel"]) {
   assert.ok(component.includes(token), `Blackjack Duel interaction guidance is missing ${token}`);
 }
-for (const token of ["bjd-final-totals", "bjd-center-pot", "data-bjd-double", "animatePendingDeals", "canPatchComplete", "casino-chip-pile-crisp.svg", "awaiting-deal", "data-bjd-deal-sequence", "data-bjd-push-clock", "pushRestart"]) {
+for (const token of ["bjd-final-totals", "bjd-center-pot", "data-bjd-double", "animatePendingDeals", "canPatchComplete", "casino-chip-pile-crisp.svg", "awaiting-deal", "data-bjd-deal-sequence", "data-bjd-push-clock", "pushRestart", "dealAnimationLedger", "rememberAnimatedCards", "patchDoublePanel", "doubleOfferUi"]) {
   assert.ok(component.includes(token), `Blackjack Duel final layout is missing ${token}`);
 }
 assert.ok(!component.includes("NO DEALER"), "the removed no-dealer label must stay out of the table header");
@@ -244,9 +244,13 @@ assert.ok(componentCss.includes("grid-template-rows:auto auto 36px 46px"), "Doub
 assert.ok(componentCss.includes(".bjd-double-countdown.is-active"), "Double or Nothing must reveal its timer without reflowing the result panel");
 assert.ok(componentCss.includes("font-size:1.28rem") && componentCss.includes("grid-template-columns:104px auto"), "the shared pot amount and chip art must have stronger visual emphasis");
 assert.ok(!component.includes("currentDouble.replaceWith"), "Double or Nothing updates must preserve the mounted panel element");
+assert.ok(!component.includes("currentDouble.innerHTML"), "Double or Nothing polling must patch the mounted panel without replacing its contents");
+assert.ok(componentCss.includes("background:linear-gradient(180deg,#08231d 0,#061914 48%,#03100d 100%)"), "the completed result must retain the subdued dark-green table presentation");
 assert.ok(!componentCss.includes("animation:bjdReveal"), "the completed result must not replay a flashing reveal animation");
 assert.ok(component.indexOf('class="bjd-seat player"') < component.indexOf('class="bjd-seat opponent"'), "the local player must occupy the left seat before the opponent");
 assert.ok(componentPreview.includes('get("autoDeal") === "1"'), "the component preview must exercise the countdown-to-opening-deal transition");
+assert.ok(componentPreview.includes('get("repeatMount") === "1"') && componentPreview.includes("data-preview-deal-animation-starts"), "the component preview must verify that an opening deal cannot replay after a table remount");
+assert.ok(componentPreview.includes('get("delayDouble") === "1"'), "the component preview must exercise a slow Double or Nothing response while the local timer is visible");
 
 const index = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const data = fs.readFileSync(path.join(root, "netlify/functions/_data.js"), "utf8");
@@ -254,9 +258,10 @@ const blackjackDatabase = fs.readFileSync(path.join(root, "netlify/functions/_bl
 for (const token of ["data-mode=\"blackjackduel\"", "data-rnb-game=\"blackjackduel\"", "data-blackjack-duel-mount", "window.__blackjackDuelBridge", "blackjackduel:state"]) {
   assert.ok(index.includes(token), `shared shell is missing ${token}`);
 }
-assert.ok(index.includes("blackjack-duel-v8"), "shared shell is missing the Blackjack Duel cache marker");
+assert.ok(index.includes("blackjack-duel-v9"), "shared shell is missing the Blackjack Duel cache marker");
 assert.ok(index.includes("game.mode==='blackjackduel'"), "Blackjack Duel must own its in-table countdown");
 assert.ok(index.includes("blackjack-duel-focus"), "Blackjack Duel must use the focused active-round shell");
+assert.ok(index.includes('document.body.classList.contains("blackjack-duel-focus")') && index.includes('document.querySelectorAll(".result-pop")'), "legacy bright result popups must stay out of the focused Blackjack Duel table");
 assert.ok(index.includes("canPatchMountedBlackjackDuel"), "Blackjack Duel must retain its mounted table between polls");
 assert.ok(index.includes("shouldRequestFirst=game.mode!=='blackjackduel'"), "the Remote Bot must not repeatedly open unsolicited Double or Nothing windows");
 assert.ok(index.includes('choice: "push-rematch"') && index.includes("pushRestart: () => duelRequestPushRestart()"), "a Push must automatically request its next round after five seconds");
