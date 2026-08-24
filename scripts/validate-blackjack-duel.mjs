@@ -258,6 +258,9 @@ for (const token of ["CARDS DEAL AT GO", "Draw one card", "Keep this total", "pe
 for (const token of ["bjd-final-totals", "bjd-center-pot", "data-bjd-double", "animatePendingDeals", "canPatchComplete", "casino-chip-pile-crisp.svg", "awaiting-deal", "data-bjd-deal-sequence", "data-bjd-push-clock", "pushRestart", "dealAnimationLedger", "rememberAnimatedCards", "patchDoublePanel", "doubleOfferUi", "sharedPotView", "EACH", "HAND_DENSITY_CLASSES", "syncHandDensity", "data-card-count"]) {
   assert.ok(component.includes(token), `Blackjack Duel final layout is missing ${token}`);
 }
+assert.ok(component.includes("AUTOMATIC REMATCH") && component.includes("A new hand starts automatically — no action needed."), "Push results must clearly explain their automatic rematch countdown");
+assert.ok(component.includes("OPTIONAL — DOUBLE OR NOTHING") && component.includes("Optional: both players can double the next stake"), "Push results must distinguish optional Double or Nothing from automatic rematching");
+assert.ok(component.includes('state.me?.status === "bust" && state.opponent?.status === "bust"'), "Both-bust results must use their dedicated explanatory message");
 assert.ok(!component.includes("NO DEALER"), "the removed no-dealer label must stay out of the table header");
 assert.ok(!component.includes("Deck commitment"), "the deck commitment footer must stay hidden from players");
 assert.ok(!component.includes("Both hands came from the same server deck"), "the removed final-deck copy must stay out of the result");
@@ -279,6 +282,7 @@ assert.ok(component.indexOf('class="bjd-seat player"') < component.indexOf('clas
 assert.ok(componentPreview.includes('get("autoDeal") === "1"'), "the component preview must exercise the countdown-to-opening-deal transition");
 assert.ok(componentPreview.includes('get("repeatMount") === "1"') && componentPreview.includes("data-preview-deal-animation-starts"), "the component preview must verify that an opening deal cannot replay after a table remount");
 assert.ok(componentPreview.includes('get("delayDouble") === "1"'), "the component preview must exercise a slow Double or Nothing response while the local timer is visible");
+assert.ok(componentPreview.includes('previewOutcome === "both-bust"'), "the component preview must expose a both-bust automatic-rematch result");
 assert.ok(componentPreview.includes('get("singlePot") === "1"') && componentPreview.includes("previewWager"), "the component preview must reproduce a Remote Bot's single escrowed wager");
 assert.ok(componentPreview.includes("previewSharedPulse") && componentPreview.includes('get("opponentName")'), "the component preview must reproduce shared win CSS and long opponent names");
 assert.ok(componentPreview.includes('get("myCards")') && componentPreview.includes('get("opponentCards")') && componentPreview.includes('get("growHands")'), "the component preview must exercise oversized player and opponent hands through the live patch path");
@@ -289,7 +293,7 @@ const blackjackDatabase = fs.readFileSync(path.join(root, "netlify/functions/_bl
 for (const token of ["data-mode=\"blackjackduel\"", "data-rnb-game=\"blackjackduel\"", "data-blackjack-duel-mount", "window.__blackjackDuelBridge", "blackjackduel:state"]) {
   assert.ok(index.includes(token), `shared shell is missing ${token}`);
 }
-assert.ok(index.includes("blackjack-duel-v12"), "shared shell is missing the Blackjack Duel cache marker");
+assert.ok(index.includes("blackjack-duel-v13"), "shared shell is missing the Blackjack Duel cache marker");
 assert.ok(index.includes("game.mode==='blackjackduel'"), "Blackjack Duel must own its in-table countdown");
 assert.ok(index.includes("blackjack-duel-focus"), "Blackjack Duel must use the focused active-round shell");
 assert.ok(index.includes('document.body.classList.contains("blackjack-duel-focus")') && index.includes('document.querySelectorAll(".result-pop, .duel-big-result")'), "legacy bright result screens must stay out of the focused Blackjack Duel table");

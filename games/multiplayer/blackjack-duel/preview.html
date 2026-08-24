@@ -39,8 +39,8 @@
       gameId: "blackjack-duel-preview",
       pot: previewParams.get("singlePot") === "1" ? previewWager : previewWager * 2,
       wager: previewWager,
-      tie: complete && previewOutcome === "tie",
-      winnerUserId: complete && previewOutcome !== "tie" ? (previewOutcome === "win" ? "preview-player" : "preview-bot") : "",
+      tie: complete && (previewOutcome === "tie" || previewOutcome === "both-bust"),
+      winnerUserId: complete && previewOutcome !== "tie" && previewOutcome !== "both-bust" ? (previewOutcome === "win" ? "preview-player" : "preview-bot") : "",
       payout: complete && previewOutcome === "win" ? (previewParams.get("singlePot") === "1" ? previewWager : previewWager * 2) : 0,
       isCreator: true,
       creator: { userId: "preview-player", name: previewPlayerName, avatarUrl: "" },
@@ -56,13 +56,13 @@
         deckCommitment: "preview-commitment-not-a-secret",
         opponentName: previewOpponentName,
         opponent: complete
-          ? { cards: previewCards(previewOpponentCardCount, 7), total: previewOutcome === "tie" ? 18 : 17, status: "stand" }
+          ? { cards: previewCards(previewOpponentCardCount, 7), total: previewOutcome === "both-bust" ? 23 : previewOutcome === "tie" ? 18 : 17, status: previewOutcome === "both-bust" ? "bust" : "stand" }
           : { cards: Array.from({ length: previewGrowHands ? 2 : previewOpponentCardCount }, () => ({ hidden: true })), total: null, status: "active" },
         me: {
           cards: previewCards(previewGrowHands ? 2 : previewMyCardCount),
-          total: 18,
+          total: previewOutcome === "both-bust" ? 22 : 18,
           soft: true,
-          status: complete ? "stand" : "active"
+          status: complete ? (previewOutcome === "both-bust" ? "bust" : "stand") : "active"
         },
         canHit: !complete,
         canStand: !complete

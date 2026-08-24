@@ -216,8 +216,12 @@
 
   function doublePanelHtml(game, meId) {
     const view = doublePanelState(game, meId);
+    const optionalPushOffer = Boolean(game.tie);
+    const idleCopy = optionalPushOffer
+      ? `Optional: both players can double the next stake to ${Number(game.wager || 0) * 2} Tickets each.`
+      : `Play again for ${Number(game.wager || 0) * 2} Tickets each.`;
     return `<div class="bjd-double">
-      <div class="bjd-double-title"><b>DOUBLE OR NOTHING</b><span>${view.activeDouble ? "Both players must accept before time runs out." : `Play again for ${Number(game.wager || 0) * 2} Tickets each.`}</span></div>
+      <div class="bjd-double-title"><b>${optionalPushOffer ? "OPTIONAL — DOUBLE OR NOTHING" : "DOUBLE OR NOTHING"}</b><span>${view.activeDouble ? "Both players must accept before time runs out." : idleCopy}</span></div>
       <div class="bjd-double-players">${avatarHtml(game.creator, view.creatorAccepted)}<strong>VS</strong>${avatarHtml(game.joiner, view.joinerAccepted)}</div>
       <div class="bjd-double-countdown${view.activeDouble ? " is-active" : ""}" aria-hidden="${view.activeDouble ? "false" : "true"}"><span>Agreement closes in</span><b data-bjd-double-clock data-target="${view.activeDouble ? escapeHtml(view.expiresAt) : ""}">${view.activeDouble ? Math.max(0, Math.ceil((view.expiresMs - Date.now()) / 1000)) : 5}</b></div>
       <button class="gold bjd-double-button" data-bjd-double type="button" ${view.myAccepted && view.activeDouble ? "disabled" : ""}>${view.myAccepted && view.activeDouble ? "ACCEPTED — WAITING" : "DOUBLE OR NOTHING"}</button>
@@ -227,8 +231,13 @@
   function patchDoublePanel(panel, game, meId) {
     if (!panel) return;
     const view = doublePanelState(game, meId);
+    const optionalPushOffer = Boolean(game.tie);
     const title = panel.querySelector(".bjd-double-title span");
-    if (title) title.textContent = view.activeDouble ? "Both players must accept before time runs out." : `Play again for ${Number(game.wager || 0) * 2} Tickets each.`;
+    if (title) title.textContent = view.activeDouble
+      ? "Both players must accept before time runs out."
+      : optionalPushOffer
+        ? `Optional: both players can double the next stake to ${Number(game.wager || 0) * 2} Tickets each.`
+        : `Play again for ${Number(game.wager || 0) * 2} Tickets each.`;
     const acceptedIds = new Set([
       view.creatorAccepted ? String(game.creator?.userId || "") : "",
       view.joinerAccepted ? String(game.joiner?.userId || "") : ""
@@ -260,8 +269,9 @@
     const meId = String(me?.userId || "");
     const won = Boolean(game.winnerUserId && String(game.winnerUserId) === meId);
     const title = game.tie ? "PUSH" : won ? "YOU WIN" : "YOU LOSE";
-    const message = game.tie ? "Equal hands. Both stakes returned." : won ? `Payout: ${Number(game.payout || 0).toLocaleString()} Tickets` : "The opponent finished closer to 21.";
     const state = game.blackjackDuelState || {};
+    const bothBust = state.me?.status === "bust" && state.opponent?.status === "bust";
+    const message = bothBust ? "Both players busted. Both stakes returned." : game.tie ? "Equal hands. Both stakes returned." : won ? `Payout: ${Number(game.payout || 0).toLocaleString()} Tickets` : "The opponent finished closer to 21.";
     const myTotal = state.me?.total ?? "?";
     const opponentTotal = state.opponent?.total ?? "?";
     const opponentName = String(state.opponentName || (game.isCreator ? game.joiner?.name : game.creator?.name) || "Opponent");
@@ -274,7 +284,7 @@
       <h2>${title}</h2>
       <p>${escapeHtml(message)}</p>
       <div class="bjd-final-totals"><span><b>YOU</b><strong>${escapeHtml(myTotal)}</strong></span><i>FINAL</i><span><b>${escapeHtml(opponentName)}</b><strong>${escapeHtml(opponentTotal)}</strong></span></div>
-      ${game.tie ? `<div class="bjd-push-restart"><span>NEW ROUND IN</span><b data-bjd-push-clock data-target="${escapeHtml(pushRestartAt)}">${pushSeconds}</b></div>` : ""}
+      ${game.tie ? `<div class="bjd-push-restart"><span><strong>AUTOMATIC REMATCH</strong><small>A new hand starts automatically — no action needed.</small></span><b data-bjd-push-clock data-target="${escapeHtml(pushRestartAt)}">${pushSeconds}</b></div>` : ""}
       ${doublePanel}
       <div class="bjd-result-actions">${game.tie ? "" : '<button class="gold" data-bjd-rematch type="button">Rematch</button>'}<button class="secondary" data-bjd-new-game type="button">New Game</button></div>
     </div>`;
