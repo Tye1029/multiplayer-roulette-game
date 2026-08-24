@@ -10,6 +10,7 @@
   let pendingAction = "";
   let openingDealTimer = 0;
   let pushRestartRequestedFor = "";
+  let doubleStartRequestedFor = "";
   let doubleOfferUi = { gameId: "", expiresAt: "" };
   let lastRoot = null;
   let lastRenderSignature = "";
@@ -177,7 +178,8 @@
       canStand: Boolean(state.canStand),
       dealing,
       rematch: game.rematch || null,
-      rematchGameId: game.rematchGameId || ""
+      rematchGameId: game.rematchGameId || "",
+      resultDepartures: game.resultDepartures || null
     });
   }
 
@@ -196,22 +198,29 @@
     const requested = rematch.requestedBy && typeof rematch.requestedBy === "object" ? rematch.requestedBy : {};
     const authoritativeExpiresAt = String(rematch.expiresAt || "");
     const authoritativeExpiresMs = Date.parse(authoritativeExpiresAt);
-    const authoritativeActive = rematch.kind === "double-or-nothing" && Number.isFinite(authoritativeExpiresMs) && authoritativeExpiresMs > Date.now();
+    const authoritativeOffer = rematch.kind === "double-or-nothing" && Number.isFinite(authoritativeExpiresMs);
+    const authoritativeActive = authoritativeOffer && authoritativeExpiresMs > Date.now();
     const localMatches = doubleOfferUi.gameId === String(game.gameId || "");
     const localExpiresAt = localMatches ? String(doubleOfferUi.expiresAt || "") : "";
     const localExpiresMs = Date.parse(localExpiresAt);
     const localActive = Number.isFinite(localExpiresMs) && localExpiresMs > Date.now();
-    const activeDouble = authoritativeActive || localActive;
-    const useLocalDeadline = authoritativeActive && Number.isFinite(localExpiresMs) && localExpiresMs < authoritativeExpiresMs;
-    const expiresAt = useLocalDeadline || !authoritativeActive ? localExpiresAt : authoritativeExpiresAt;
-    const expiresMs = Date.parse(expiresAt);
     const optimisticMe = localActive && String(meId || "");
     const creatorId = String(game.creator?.userId || "");
     const joinerId = String(game.joiner?.userId || "");
-    const creatorAccepted = Boolean(requested[creatorId] || optimisticMe === creatorId);
-    const joinerAccepted = Boolean(requested[joinerId] || optimisticMe === joinerId);
-    const myAccepted = Boolean(requested[meId] || optimisticMe === meId);
-    return { activeDouble, expiresAt, expiresMs, creatorAccepted, joinerAccepted, myAccepted };
+    const creatorRecorded = Boolean(requested[creatorId]);
+    const joinerRecorded = Boolean(requested[joinerId]);
+    const bothRecorded = Boolean(creatorId && joinerId && creatorRecorded && joinerRecorded);
+    const keepRecordedAcceptance = authoritativeActive || bothRecorded;
+    const creatorAccepted = Boolean((keepRecordedAcceptance && creatorRecorded) || optimisticMe === creatorId);
+    const joinerAccepted = Boolean((keepRecordedAcceptance && joinerRecorded) || optimisticMe === joinerId);
+    const myAccepted = Boolean((keepRecordedAcceptance && requested[meId]) || optimisticMe === meId);
+    const bothAccepted = Boolean(creatorId && joinerId && creatorAccepted && joinerAccepted);
+    const acceptedAwaitingStart = authoritativeOffer && bothAccepted && !game.rematchGameId;
+    const activeDouble = authoritativeActive || localActive || acceptedAwaitingStart;
+    const useLocalDeadline = authoritativeActive && Number.isFinite(localExpiresMs) && localExpiresMs < authoritativeExpiresMs;
+    const expiresAt = authoritativeOffer && !useLocalDeadline ? authoritativeExpiresAt : localExpiresAt;
+    const expiresMs = Date.parse(expiresAt);
+    return { activeDouble, expiresAt, expiresMs, creatorAccepted, joinerAccepted, myAccepted, bothAccepted };
   }
 
   function doublePanelHtml(game, meId) {
@@ -220,11 +229,14 @@
     const idleCopy = optionalPushOffer
       ? `Optional: both players can double the next stake to ${Number(game.wager || 0) * 2} Tickets each.`
       : `Play again for ${Number(game.wager || 0) * 2} Tickets each.`;
+    const activeCopy = view.bothAccepted ? "Both players accepted. The doubled hand starts when the timer reaches zero." : "Both players must accept before time runs out.";
+    const clockLabel = view.bothAccepted ? "Doubled hand starts in" : "Agreement closes in";
+    const buttonLabel = view.bothAccepted ? "BOTH ACCEPTED" : view.myAccepted && view.activeDouble ? "ACCEPTED — WAITING" : "DOUBLE OR NOTHING";
     return `<div class="bjd-double">
-      <div class="bjd-double-title"><b>${optionalPushOffer ? "OPTIONAL — DOUBLE OR NOTHING" : "DOUBLE OR NOTHING"}</b><span>${view.activeDouble ? "Both players must accept before time runs out." : idleCopy}</span></div>
+      <div class="bjd-double-title"><b>${optionalPushOffer ? "OPTIONAL — DOUBLE OR NOTHING" : "DOUBLE OR NOTHING"}</b><span>${view.activeDouble ? activeCopy : idleCopy}</span></div>
       <div class="bjd-double-players">${avatarHtml(game.creator, view.creatorAccepted)}<strong>VS</strong>${avatarHtml(game.joiner, view.joinerAccepted)}</div>
-      <div class="bjd-double-countdown${view.activeDouble ? " is-active" : ""}" aria-hidden="${view.activeDouble ? "false" : "true"}"><span>Agreement closes in</span><b data-bjd-double-clock data-target="${view.activeDouble ? escapeHtml(view.expiresAt) : ""}">${view.activeDouble ? Math.max(0, Math.ceil((view.expiresMs - Date.now()) / 1000)) : 5}</b></div>
-      <button class="gold bjd-double-button" data-bjd-double type="button" ${view.myAccepted && view.activeDouble ? "disabled" : ""}>${view.myAccepted && view.activeDouble ? "ACCEPTED — WAITING" : "DOUBLE OR NOTHING"}</button>
+      <div class="bjd-double-countdown${view.activeDouble ? " is-active" : ""}" aria-hidden="${view.activeDouble ? "false" : "true"}"><span>${clockLabel}</span><b data-bjd-double-clock data-target="${view.activeDouble ? escapeHtml(view.expiresAt) : ""}">${view.activeDouble ? Math.max(0, Math.ceil((view.expiresMs - Date.now()) / 1000)) : 5}</b></div>
+      <button class="gold bjd-double-button" data-bjd-double type="button" ${view.myAccepted && view.activeDouble ? "disabled" : ""}>${buttonLabel}</button>
     </div>`;
   }
 
@@ -234,7 +246,7 @@
     const optionalPushOffer = Boolean(game.tie);
     const title = panel.querySelector(".bjd-double-title span");
     if (title) title.textContent = view.activeDouble
-      ? "Both players must accept before time runs out."
+      ? view.bothAccepted ? "Both players accepted. The doubled hand starts when the timer reaches zero." : "Both players must accept before time runs out."
       : optionalPushOffer
         ? `Optional: both players can double the next stake to ${Number(game.wager || 0) * 2} Tickets each.`
         : `Play again for ${Number(game.wager || 0) * 2} Tickets each.`;
@@ -251,6 +263,8 @@
     const countdown = panel.querySelector(".bjd-double-countdown");
     countdown?.classList.toggle("is-active", view.activeDouble);
     countdown?.setAttribute("aria-hidden", view.activeDouble ? "false" : "true");
+    const countdownLabel = countdown?.querySelector("span");
+    if (countdownLabel) countdownLabel.textContent = view.bothAccepted ? "Doubled hand starts in" : "Agreement closes in";
     const clock = panel.querySelector("[data-bjd-double-clock]");
     if (clock) {
       clock.dataset.target = view.activeDouble ? view.expiresAt : "";
@@ -259,8 +273,29 @@
     const button = panel.querySelector("[data-bjd-double]");
     if (button) {
       button.disabled = Boolean(view.myAccepted && view.activeDouble);
-      button.textContent = view.myAccepted && view.activeDouble ? "ACCEPTED — WAITING" : "DOUBLE OR NOTHING";
+      button.textContent = view.bothAccepted ? "BOTH ACCEPTED" : view.myAccepted && view.activeDouble ? "ACCEPTED — WAITING" : "DOUBLE OR NOTHING";
     }
+  }
+
+  function resultLifecycleState(game, meId, opponentName) {
+    const opponent = game.isCreator ? game.joiner : game.creator;
+    const opponentId = String(opponent?.userId || "");
+    const departures = game.resultDepartures && typeof game.resultDepartures === "object" ? game.resultDepartures : {};
+    const opponentLeft = Boolean(opponentId && departures[opponentId]);
+    const rematch = game.rematch && typeof game.rematch === "object" ? game.rematch : {};
+    const requested = rematch.requestedBy && typeof rematch.requestedBy === "object" ? rematch.requestedBy : {};
+    const regularPending = rematch.kind === "rematch" && Date.parse(rematch.expiresAt || 0) > Date.now() && !game.tie && !game.rematchGameId;
+    const myRequested = Boolean(regularPending && requested[meId]);
+    const opponentRequested = Boolean(regularPending && requested[opponentId]);
+    let notice = "";
+    if (opponentLeft) {
+      notice = `<div class="bjd-result-notice left"><b>OPPONENT LEFT THIS RESULT</b><span>${escapeHtml(opponentName)} chose New Game. Rematch and Double or Nothing are no longer available.</span></div>`;
+    } else if (opponentRequested && !myRequested) {
+      notice = `<div class="bjd-result-notice rematch"><b>REGULAR REMATCH REQUESTED</b><span>${escapeHtml(opponentName)} wants to play again for the same stake. Accept below or choose New Game.</span></div>`;
+    } else if (myRequested && !opponentRequested) {
+      notice = `<div class="bjd-result-notice rematch"><b>REGULAR REMATCH SENT</b><span>Waiting for ${escapeHtml(opponentName)} to accept.</span></div>`;
+    }
+    return { opponentLeft, regularPending, myRequested, opponentRequested, notice };
   }
 
   function resultHtml(game) {
@@ -275,7 +310,11 @@
     const myTotal = state.me?.total ?? "?";
     const opponentTotal = state.opponent?.total ?? "?";
     const opponentName = String(state.opponentName || (game.isCreator ? game.joiner?.name : game.creator?.name) || "Opponent");
-    const doublePanel = doublePanelHtml(game, meId);
+    const lifecycle = resultLifecycleState(game, meId, opponentName);
+    const doublePanel = lifecycle.opponentLeft || lifecycle.regularPending ? "" : doublePanelHtml(game, meId);
+    const rematchButton = lifecycle.regularPending
+      ? `<button class="gold" data-bjd-rematch type="button" ${lifecycle.myRequested ? "disabled" : ""}>${lifecycle.myRequested ? "REMATCH REQUESTED" : "ACCEPT REMATCH"}</button>`
+      : '<button class="gold" data-bjd-rematch type="button">Rematch</button>';
     const completedMs = Date.parse(state.completedAt || game.completedAt || "");
     const pushRestartAt = game.tie && Number.isFinite(completedMs) ? new Date(completedMs + 5000).toISOString() : "";
     const pushSeconds = pushRestartAt ? Math.max(0, Math.ceil((Date.parse(pushRestartAt) - Date.now()) / 1000)) : 5;
@@ -285,8 +324,9 @@
       <p>${escapeHtml(message)}</p>
       <div class="bjd-final-totals"><span><b>YOU</b><strong>${escapeHtml(myTotal)}</strong></span><i>FINAL</i><span><b>${escapeHtml(opponentName)}</b><strong>${escapeHtml(opponentTotal)}</strong></span></div>
       ${game.tie ? `<div class="bjd-push-restart"><span><strong>AUTOMATIC REMATCH</strong><small>A new hand starts automatically — no action needed.</small></span><b data-bjd-push-clock data-target="${escapeHtml(pushRestartAt)}">${pushSeconds}</b></div>` : ""}
+      ${lifecycle.notice}
       ${doublePanel}
-      <div class="bjd-result-actions">${game.tie ? "" : '<button class="gold" data-bjd-rematch type="button">Rematch</button>'}<button class="secondary" data-bjd-new-game type="button">New Game</button></div>
+      <div class="bjd-result-actions">${game.tie || lifecycle.opponentLeft ? "" : rematchButton}<button class="secondary" data-bjd-new-game type="button">New Game</button></div>
     </div>`;
   }
 
@@ -307,6 +347,7 @@
 
   function render(game) {
     if (!game || game.mode !== MODE) return;
+    if (doubleStartRequestedFor && doubleStartRequestedFor !== String(game.gameId || "")) doubleStartRequestedFor = "";
     if (doubleOfferUi.gameId && doubleOfferUi.gameId !== String(game.gameId || "")) doubleOfferUi = { gameId: "", expiresAt: "" };
     latestGame = game;
     const root = document.querySelector("[data-blackjack-duel-mount]");
@@ -463,7 +504,7 @@
       const me = game.isCreator ? game.creator : game.joiner;
       patchDoublePanel(root.querySelector(".bjd-double"), game, String(me?.userId || ""));
       startClock();
-      Promise.resolve(window.__blackjackDuelBridge?.doubleOrNothing?.()).catch(error => {
+      Promise.resolve(window.__blackjackDuelBridge?.doubleOrNothing?.({ expiresAt: doubleOfferUi.expiresAt })).catch(error => {
         if (doubleOfferUi.gameId === gameId) doubleOfferUi = { gameId: "", expiresAt: "" };
         patchDoublePanel(document.querySelector(".bjd-double"), latestGame || game, String(me?.userId || ""));
         if (typeof window.duelSetStatus === "function") window.duelSetStatus(error?.message || "Unable to offer Double or Nothing.", "bad");
@@ -494,6 +535,15 @@
         if (Number.isFinite(target)) {
           const seconds = Math.max(0, Math.ceil((target - Date.now()) / 1000));
           doubleNode.textContent = String(seconds);
+          const gameId = String(latestGame?.gameId || "");
+          const me = latestGame?.isCreator ? latestGame?.creator : latestGame?.joiner;
+          const view = doublePanelState(latestGame || {}, String(me?.userId || ""));
+          if (seconds === 0 && view.bothAccepted && gameId && doubleStartRequestedFor !== gameId) {
+            doubleStartRequestedFor = gameId;
+            Promise.resolve(window.__blackjackDuelBridge?.doubleStart?.()).catch(() => {
+              if (doubleStartRequestedFor === gameId) doubleStartRequestedFor = "";
+            });
+          }
           reachedZero = reachedZero || seconds === 0;
         }
       }
@@ -514,7 +564,11 @@
       if (reachedZero) {
         clearInterval(timer);
         timer = 0;
-        if (doubleNode) lastRenderSignature = "";
+        if (doubleNode) {
+          lastRenderSignature = "";
+          const me = latestGame?.isCreator ? latestGame?.creator : latestGame?.joiner;
+          patchDoublePanel(document.querySelector(".bjd-double"), latestGame || {}, String(me?.userId || ""));
+        }
         window.__blackjackDuelBridge?.refresh?.();
       }
     }, 200);
