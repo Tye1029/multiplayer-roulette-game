@@ -119,6 +119,7 @@
         previewGame.blackjackDuelState.canStand = false;
         previewGame.blackjackDuelState.secondsLeft = 10;
         previewGame.blackjackDuelState.deadlineAt = new Date(Date.now() + 10000).toISOString();
+        previewGame.serverNow = new Date().toISOString();
         resolve({ game: previewGame });
       }, 650)),
       refresh: () => {},
