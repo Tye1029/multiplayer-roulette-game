@@ -8,7 +8,10 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const require = createRequire(import.meta.url);
 const CommonJsModule = require("node:module");
 const stateModel = require(path.join(root, "netlify/functions/blackjack-duel/state-model.js"));
-const { createBlackjackDuelIntegration } = require(path.join(root, "netlify/functions/blackjack-duel/integration.js"));
+const {
+  BLACKJACK_DUEL_OPENING_DEAL_GUARD_MS,
+  createBlackjackDuelIntegration
+} = require(path.join(root, "netlify/functions/blackjack-duel/integration.js"));
 
 const {
   BLACKJACK_DUEL_MODE,
@@ -26,6 +29,7 @@ const {
 assert.equal(BLACKJACK_DUEL_MODE, "blackjackduel");
 assert.equal(BLACKJACK_DUEL_STATE_VERSION, 1);
 assert.equal(BLACKJACK_DUEL_DECISION_MS, 20_000);
+assert.equal(BLACKJACK_DUEL_OPENING_DEAL_GUARD_MS, 2_200);
 const deck = createDeck();
 assert.equal(deck.length, 52, "authoritative deck must contain 52 cards");
 assert.equal(new Set(deck.map(card => card.id)).size, 52, "authoritative deck must not contain duplicate cards");
@@ -200,6 +204,21 @@ assert.equal(actionResponse.game.blackjackDuelState.me.status, "stand");
 assert.deepEqual(actionResponse.game.blackjackDuelState.opponent.cards, [{ hidden: true }, { hidden: true }]);
 const duplicateResponse = await integration.action({ id: "player-a" }, integrationGame.gameId, "blackjackduel:stand", { actionId: "integration-stand" });
 assert.equal(duplicateResponse.duplicateAction, true, "action IDs must be idempotent");
+
+const remoteBotOpeningGame = {
+  gameId: "blackjack-opening-animation-guard",
+  mode: "blackjackduel",
+  status: "playing",
+  startAt: new Date(now).toISOString(),
+  creator: { userId: "player-a", name: "Player A" },
+  joiner: { userId: "remote-bot-blackjackduel-validator", name: "Remote Bot", isNpc: true, isRemoteBot: true },
+  remoteNetworkConfig: { minDelayMs: 100, maxDelayMs: 100, stallChance: 0, reconnectChance: 0 }
+};
+const remoteBotOpeningState = integration.initialState(remoteBotOpeningGame, now);
+assert.ok(
+  Date.parse(remoteBotOpeningState.botNextActionAt) - now >= BLACKJACK_DUEL_OPENING_DEAL_GUARD_MS,
+  "the Remote Bot's first decision must not overlap or imitate the four-card opening deal"
+);
 
 // A deploy preview may receive the database connection before Netlify has run
 // a newly-added migration. The first game transaction must bootstrap the table

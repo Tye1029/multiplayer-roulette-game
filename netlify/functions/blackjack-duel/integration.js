@@ -13,6 +13,7 @@ const {
 
 const BLACKJACK_DUEL_BOT_MIN_DELAY_MS = 650;
 const BLACKJACK_DUEL_BOT_MAX_DELAY_MS = 1_150;
+const BLACKJACK_DUEL_OPENING_DEAL_GUARD_MS = 2_200;
 
 function createBlackjackDuelIntegration(host = {}) {
   const {
@@ -68,7 +69,9 @@ function createBlackjackDuelIntegration(host = {}) {
     if (!synthetic) return state;
     return {
       ...state,
-      botNextActionAt: new Date(Number(startMs) + botDelay(game)).toISOString()
+      // Keep the bot's first hit visually separate from the four-card opening
+      // deal. Later bot decisions retain the normal network/reaction delay.
+      botNextActionAt: new Date(Number(startMs) + Math.max(BLACKJACK_DUEL_OPENING_DEAL_GUARD_MS, botDelay(game))).toISOString()
     };
   }
 
@@ -239,5 +242,6 @@ function createBlackjackDuelIntegration(host = {}) {
 module.exports = {
   BLACKJACK_DUEL_BOT_MIN_DELAY_MS,
   BLACKJACK_DUEL_BOT_MAX_DELAY_MS,
+  BLACKJACK_DUEL_OPENING_DEAL_GUARD_MS,
   createBlackjackDuelIntegration
 };
