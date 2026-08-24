@@ -12560,8 +12560,8 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
   <script id="mountainRaceMultiplayerRuntime" src="/assets/mountain-race/mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=11&scene=65&holds=30" defer></script>
 <!-- MOUNTAIN_RACE_MULTIPLAYER_ASSETS_END -->
 <!-- BLACKJACK_DUEL_ASSETS_START -->
-  <link id="blackjackDuelStyles" rel="stylesheet" href="/assets/blackjack-duel/blackjack-duel.css?v=blackjack-duel-v5">
-  <script id="blackjackDuelRuntime" src="/assets/blackjack-duel/blackjack-duel.js?v=blackjack-duel-v5" defer></script>
+  <link id="blackjackDuelStyles" rel="stylesheet" href="/assets/blackjack-duel/blackjack-duel.css?v=blackjack-duel-v6">
+  <script id="blackjackDuelRuntime" src="/assets/blackjack-duel/blackjack-duel.js?v=blackjack-duel-v6" defer></script>
 <!-- BLACKJACK_DUEL_ASSETS_END -->
 
 <!-- MOUNTAIN_RACE_V29_PRELOADS -->
@@ -22954,7 +22954,11 @@ async function rnbFetchAuthoritativeGame(gameId){
   const isDoubleOrNothing=game.mode==='blackjackduel'&&(!active||String(rem.kind||'')==='double-or-nothing');
   if(game.rematchGameId){rnbClearRematchTimer();return}
   if(req[botId]&&active){rnbClearRematchTimer();return}
-  const humanRequested=Boolean(active&&req[humanId]); const shouldRequestFirst=(rnbHash(gameId)%100)<42;
+  const humanRequested=Boolean(active&&req[humanId]);
+  // Blackjack Duel's five-second Double or Nothing window begins only after
+  // the human explicitly offers it. Otherwise the bot would repeatedly open
+  // new windows after every expiry and churn the completed-result UI.
+  const shouldRequestFirst=game.mode!=='blackjackduel'&&(rnbHash(gameId)%100)<42;
   if(!humanRequested&&!shouldRequestFirst){rnbClearRematchTimer();return}
   const key=`${gameId}:${humanRequested?'accept':'first'}:${String(req[humanId]||rem.firstRequestedAt||'')}`;
   if(rnbRematchRuntime.handledKey===key||rnbRematchRuntime.requesting)return;

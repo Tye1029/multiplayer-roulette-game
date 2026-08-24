@@ -17,12 +17,12 @@
   }
 
   function cardHtml(card = {}, index = 0, { seat = "player", justDealt = false } = {}) {
-    const motionClass = justDealt ? ` just-dealt to-${seat}` : "";
-    if (card.hidden) return `<div class="bjd-card hidden${motionClass}" style="--card-i:${index}" aria-label="Hidden card"><span>Blackjack Duel</span></div>`;
+    const motionAttribute = justDealt ? ` data-bjd-deal="${seat}"` : "";
+    if (card.hidden) return `<div class="bjd-card hidden"${motionAttribute} style="--card-i:${index}" aria-label="Hidden card"><span>Blackjack Duel</span></div>`;
     const suit = String(card.suit || "spades");
     const symbol = SUIT_SYMBOL[suit] || "♠";
     const red = suit === "hearts" || suit === "diamonds";
-    return `<div class="bjd-card ${red ? "red" : "black"}${motionClass}" style="--card-i:${index}" aria-label="${escapeHtml(card.rank)} of ${escapeHtml(suit)}">
+    return `<div class="bjd-card ${red ? "red" : "black"}"${motionAttribute} style="--card-i:${index}" aria-label="${escapeHtml(card.rank)} of ${escapeHtml(suit)}">
       <span class="bjd-card-corner"><b>${escapeHtml(card.rank)}</b><i>${symbol}</i></span>
       <span class="bjd-card-suit">${symbol}</span>
       <span class="bjd-card-corner bottom"><b>${escapeHtml(card.rank)}</b><i>${symbol}</i></span>
@@ -64,6 +64,30 @@
     return `${count} ${count === 1 ? "CARD" : "CARDS"}`;
   }
 
+  function animatePendingDeals(scope) {
+    const deck = scope?.querySelector?.(".bjd-deck .top");
+    const cards = [...(scope?.querySelectorAll?.("[data-bjd-deal]") || [])];
+    if (!deck || !cards.length) return;
+    const deckRect = deck.getBoundingClientRect();
+    cards.forEach((card, sequence) => {
+      const seat = String(card.dataset.bjdDeal || "player");
+      const cardRect = card.getBoundingClientRect();
+      const deltaX = deckRect.left + deckRect.width / 2 - (cardRect.left + cardRect.width / 2);
+      const deltaY = deckRect.top + deckRect.height / 2 - (cardRect.top + cardRect.height / 2);
+      delete card.dataset.bjdDeal;
+      card.style.setProperty("--deal-x", `${deltaX}px`);
+      card.style.setProperty("--deal-y", `${deltaY}px`);
+      card.style.setProperty("--deal-delay", `${sequence * 80}ms`);
+      card.classList.add("just-dealt", `to-${seat}`);
+      card.addEventListener("animationend", () => {
+        card.classList.remove("just-dealt", `to-${seat}`);
+        card.style.removeProperty("--deal-x");
+        card.style.removeProperty("--deal-y");
+        card.style.removeProperty("--deal-delay");
+      }, { once: true });
+    });
+  }
+
   function renderSignature(game, state, dealing) {
     return JSON.stringify({
       gameId: game.gameId,
@@ -93,6 +117,23 @@
     return `<div class="bjd-double-player${accepted ? " accepted" : ""}">${picture}<b>${escapeHtml(name)}</b><em>${accepted ? "✓ ACCEPTED" : "WAITING"}</em></div>`;
   }
 
+  function doublePanelHtml(game, meId) {
+    const rematch = game.rematch && typeof game.rematch === "object" ? game.rematch : {};
+    const requested = rematch.requestedBy && typeof rematch.requestedBy === "object" ? rematch.requestedBy : {};
+    const creatorAccepted = Boolean(requested[String(game.creator?.userId || "")]);
+    const joinerAccepted = Boolean(requested[String(game.joiner?.userId || "")]);
+    const myAccepted = Boolean(requested[meId]);
+    const expiresAt = String(rematch.expiresAt || "");
+    const expiresMs = Date.parse(expiresAt);
+    const activeDouble = rematch.kind === "double-or-nothing" && Number.isFinite(expiresMs) && expiresMs > Date.now();
+    return `<div class="bjd-double">
+      <div class="bjd-double-title"><b>DOUBLE OR NOTHING</b><span>${activeDouble ? "Both players must accept before time runs out." : `Play again for ${Number(game.wager || 0) * 2} Tickets each.`}</span></div>
+      <div class="bjd-double-players">${avatarHtml(game.creator, creatorAccepted)}<strong>VS</strong>${avatarHtml(game.joiner, joinerAccepted)}</div>
+      ${activeDouble ? `<div class="bjd-double-countdown"><span>Agreement closes in</span><b data-bjd-double-clock data-target="${escapeHtml(expiresAt)}">${Math.max(0, Math.ceil((expiresMs - Date.now()) / 1000))}</b></div>` : ""}
+      <button class="gold bjd-double-button" data-bjd-double type="button" ${myAccepted && activeDouble ? "disabled" : ""}>${myAccepted && activeDouble ? "ACCEPTED — WAITING" : "DOUBLE OR NOTHING"}</button>
+    </div>`;
+  }
+
   function resultHtml(game) {
     if (game.status !== "complete") return "";
     const me = game.isCreator ? game.creator : game.joiner;
@@ -104,20 +145,7 @@
     const myTotal = state.me?.total ?? "?";
     const opponentTotal = state.opponent?.total ?? "?";
     const opponentName = String(state.opponentName || (game.isCreator ? game.joiner?.name : game.creator?.name) || "Opponent");
-    const rematch = game.rematch && typeof game.rematch === "object" ? game.rematch : {};
-    const requested = rematch.requestedBy && typeof rematch.requestedBy === "object" ? rematch.requestedBy : {};
-    const creatorAccepted = Boolean(requested[String(game.creator?.userId || "")]);
-    const joinerAccepted = Boolean(requested[String(game.joiner?.userId || "")]);
-    const myAccepted = Boolean(requested[meId]);
-    const expiresAt = String(rematch.expiresAt || "");
-    const expiresMs = Date.parse(expiresAt);
-    const activeDouble = rematch.kind === "double-or-nothing" && Number.isFinite(expiresMs) && expiresMs > Date.now();
-    const doublePanel = `<div class="bjd-double">
-      <div class="bjd-double-title"><b>DOUBLE OR NOTHING</b><span>${activeDouble ? "Both players must accept before time runs out." : `Play again for ${Number(game.wager || 0) * 2} Tickets each.`}</span></div>
-      <div class="bjd-double-players">${avatarHtml(game.creator, creatorAccepted)}<strong>VS</strong>${avatarHtml(game.joiner, joinerAccepted)}</div>
-      ${activeDouble ? `<div class="bjd-double-countdown"><span>Agreement closes in</span><b data-bjd-double-clock data-target="${escapeHtml(expiresAt)}">${Math.max(0, Math.ceil((expiresMs - Date.now()) / 1000))}</b></div>` : ""}
-      <button class="gold bjd-double-button" data-bjd-double type="button" ${myAccepted && activeDouble ? "disabled" : ""}>${myAccepted && activeDouble ? "ACCEPTED — WAITING" : "DOUBLE OR NOTHING"}</button>
-    </div>`;
+    const doublePanel = doublePanelHtml(game, meId);
     return `<div class="bjd-result ${game.tie ? "tie" : won ? "win" : "lose"}">
       <div class="bjd-result-kicker">BLACKJACK DUEL</div>
       <h2>${title}</h2>
@@ -200,6 +228,8 @@
           controlsHost.innerHTML = controlsHtml(game, state, false);
           bind(controlsHost, game);
         }
+        liveSection.querySelector(".bjd-deck")?.classList.remove("drawing");
+        animatePendingDeals(liveSection);
         const clock = liveSection.querySelector("[data-bjd-clock]");
         if (clock) {
           clock.dataset.target = String(clockTarget || "");
@@ -211,6 +241,21 @@
         return;
       }
     }
+    const canPatchComplete = sameRound && game.status === "complete" && liveSection?.querySelector(".bjd-result");
+    if (canPatchComplete) {
+      const currentDouble = liveSection.querySelector(".bjd-double");
+      if (currentDouble) {
+        const holder = document.createElement("div");
+        const me = game.isCreator ? game.creator : game.joiner;
+        holder.innerHTML = doublePanelHtml(game, String(me?.userId || ""));
+        const freshDouble = holder.firstElementChild;
+        currentDouble.replaceWith(freshDouble);
+        bind(freshDouble, game);
+        lastRenderSignature = signature;
+        startClock();
+        return;
+      }
+    }
     const complete = game.status === "complete";
     const opponentHand = dealing ? undealtHandHtml() : handHtml(state.opponent || {}, !complete, "opponent", previousOpponentCount, complete);
     const playerHand = dealing ? undealtHandHtml("YOUR CARDS DEAL AT GO") : handHtml(state.me || {}, false, "player", previousMeCount, complete);
@@ -218,10 +263,10 @@
     const opponentBadge = complete ? "" : "PRIVATE";
     root.innerHTML = `<section class="bjd-game${pendingAction === "hit" ? " is-drawing" : ""}" data-bjd-game-id="${escapeHtml(game.gameId)}" data-bjd-round-id="${escapeHtml(roundId)}">
       <header class="bjd-header"><h2>Blackjack Duel</h2></header>
-      <div class="bjd-howto"><b>Get closer to 21 than your opponent without busting.</b><span>A natural two-card blackjack beats an ordinary 21. Equal results push.</span></div>
+      <div class="bjd-howto"><b>Get closer to 21 than your opponent without busting.</b><span>Equal hands push.</span></div>
       <div class="bjd-table">
         <div class="bjd-seat player"><div class="bjd-seat-label"><span>YOUR HAND</span>${playerBadge ? `<b>${escapeHtml(playerBadge)}</b>` : ""}<em>${cardCountLabel(dealing ? 2 : meCards.length)}</em></div>${playerHand}</div>
-        <div class="bjd-center"><div class="bjd-center-pot"><img src="/assets/blackjack-duel/images/chip-stack.png" alt=""><span>SHARED POT</span><b>${Number(game.pot || game.wager || 0).toLocaleString()}</b></div>${deckHtml(pendingAction === "hit")}<span class="bjd-clock-label">${countdown ? "round begins in" : complete ? "final hands" : "time to choose"}</span>${complete ? "" : `<div class="bjd-clock" data-bjd-clock data-clock-kind="${countdown ? "countdown" : "decision"}" data-target="${escapeHtml(clockTarget || "")}" data-clock-offset="${clockOffset}">${seconds}</div><span>seconds</span>`}${complete ? "" : `<i>${countdown ? "Cards arrive when the round begins" : "Cards fly from this deck to each hand"}</i>`}</div>
+        <div class="bjd-center"><div class="bjd-center-pot"><img src="/assets/blackjack-duel/images/casino-chip-pile.png" alt=""><span>SHARED POT</span><b>${Number(game.pot || game.wager || 0).toLocaleString()}</b></div>${deckHtml(pendingAction === "hit")}<span class="bjd-clock-label">${countdown ? "round begins in" : complete ? "final hands" : "time to choose"}</span>${complete ? "" : `<div class="bjd-clock" data-bjd-clock data-clock-kind="${countdown ? "countdown" : "decision"}" data-target="${escapeHtml(clockTarget || "")}" data-clock-offset="${clockOffset}">${seconds}</div><span>seconds</span>`}${complete ? "" : `<i>${countdown ? "Cards arrive when the round begins" : "Cards fly from this deck to each hand"}</i>`}</div>
         <div class="bjd-seat opponent"><div class="bjd-seat-label"><span>${escapeHtml(state.opponentName || game.joiner?.name || "Opponent")}</span>${opponentBadge ? `<b>${opponentBadge}</b>` : ""}<em>${cardCountLabel(dealing ? 2 : opponentCards.length)}</em></div>${opponentHand}</div>
       </div>
       <div data-bjd-controls-host>${controlsHtml(game, state, dealing)}</div>
@@ -231,6 +276,7 @@
     lastRenderSignature = signature;
     shownCards = { gameId: String(game.gameId || ""), roundId, me: dealing ? 0 : meCards.length, opponent: dealing ? 0 : opponentCards.length };
     bind(root, game);
+    animatePendingDeals(root);
     startClock();
   }
 
@@ -296,6 +342,7 @@
       if (reachedZero) {
         clearInterval(timer);
         timer = 0;
+        if (doubleNode) lastRenderSignature = "";
         window.__blackjackDuelBridge?.refresh?.();
       }
     }, 200);
