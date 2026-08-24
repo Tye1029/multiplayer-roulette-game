@@ -12560,8 +12560,8 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
   <script id="mountainRaceMultiplayerRuntime" src="/assets/mountain-race/mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=11&scene=65&holds=30" defer></script>
 <!-- MOUNTAIN_RACE_MULTIPLAYER_ASSETS_END -->
 <!-- BLACKJACK_DUEL_ASSETS_START -->
-  <link id="blackjackDuelStyles" rel="stylesheet" href="/assets/blackjack-duel/blackjack-duel.css?v=blackjack-duel-v2">
-  <script id="blackjackDuelRuntime" src="/assets/blackjack-duel/blackjack-duel.js?v=blackjack-duel-v2" defer></script>
+  <link id="blackjackDuelStyles" rel="stylesheet" href="/assets/blackjack-duel/blackjack-duel.css?v=blackjack-duel-v3">
+  <script id="blackjackDuelRuntime" src="/assets/blackjack-duel/blackjack-duel.js?v=blackjack-duel-v3" defer></script>
 <!-- BLACKJACK_DUEL_ASSETS_END -->
 
 <!-- MOUNTAIN_RACE_V29_PRELOADS -->
@@ -20562,6 +20562,21 @@ function updateRunnerBalanceDisplay() {
         : duelGenericEpoch;
       const nextKey = duelRenderKey(game);
       if(game?.mode==='roulette'&&roulettePatchMountedRuntime(game)){duelSetPollRate(game);return;}
+      const mountedBlackjackDuel = duelActive.querySelector('.duel-arena.blackjack-duel-clean[data-duel-generic-game="1"]');
+      const canPatchMountedBlackjackDuel = game?.mode === "blackjackduel"
+        && ["countdown", "playing", "complete"].includes(String(game.status || ""))
+        && mountedBlackjackDuel
+        && String(mountedBlackjackDuel.dataset.duelGameId || "") === String(game.gameId || "")
+        && String(mountedBlackjackDuel.dataset.duelMode || "") === "blackjackduel"
+        && Number(mountedBlackjackDuel.dataset.duelEpoch || -1) === Number(duelGenericEpoch)
+        && duelActive.querySelector("[data-blackjack-duel-mount]");
+      if (canPatchMountedBlackjackDuel) {
+        duelLastRenderKey = nextKey;
+        duelSetSharedCountdown(game);
+        window.dispatchEvent(new CustomEvent("blackjackduel:state", { detail: { game } }));
+        duelSetPollRate(game);
+        return;
+      }
       if (!force && game?.status === "ready" && duelPatchReadyDom(game)) {
         duelSetPollRate(game);
         return;
@@ -20804,7 +20819,6 @@ function updateRunnerBalanceDisplay() {
             if (data.game) {
               duelLastActiveGame = data.game;
               duelKnownRevisionByGame.set(String(data.game.gameId), String(data.game.blackjackDuelState?.revision || ""));
-              duelRenderActive(data.game, true);
             }
             return data;
           },

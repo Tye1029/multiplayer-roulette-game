@@ -48,12 +48,22 @@
       }
     };
     window.__blackjackDuelBridge = {
-      submit: () => new Promise(resolve => setTimeout(() => resolve({ game: previewGame }), 650)),
+      submit: details => new Promise(resolve => setTimeout(() => {
+        if (String(details?.choice || "").endsWith(":hit") && previewGame.blackjackDuelState.me.cards.length === 2) {
+          previewGame.blackjackDuelState.me.cards.push({ rank: "2", suit: "clubs" });
+          previewGame.blackjackDuelState.me.total = 20;
+          previewGame.blackjackDuelState.me.soft = true;
+        }
+        resolve({ game: previewGame });
+      }, 650)),
       refresh: () => {},
       rematch: () => {},
       newGame: () => {}
     };
     window.dispatchEvent(new CustomEvent("blackjackduel:state", { detail: { game: previewGame } }));
+    if (new URLSearchParams(location.search).get("poll") === "1") {
+      setInterval(() => window.dispatchEvent(new CustomEvent("blackjackduel:state", { detail: { game: previewGame } })), 250);
+    }
   </script>
 </body>
 </html>
