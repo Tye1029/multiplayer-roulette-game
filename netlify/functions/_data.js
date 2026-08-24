@@ -4124,6 +4124,7 @@ const DUEL_WAITING_TTL_MS = 30 * 60 * 1000;
 const DUEL_ACTIVE_TTL_MS = 2 * 60 * 60 * 1000;
 const DUEL_VALID_WAGER_MIN = 1000;
 const DUEL_VALID_WAGER_MAX = 50000;
+const DUEL_DOUBLE_OR_NOTHING_CREATE = Symbol("duel-double-or-nothing-create");
 function duelGameKey(gameId) { return `${DUEL_GAME_PREFIX}${mpCleanId(gameId)}.json`; }
 function duelActiveKey(userId) { return `${DUEL_ACTIVE_PREFIX}${cleanUserId(userId)}.json`; }
 function duelIsActiveStatus(status) { return ["waiting","ready","countdown","playing"].includes(String(status||"")); }
@@ -4484,7 +4485,10 @@ async function duelCreateGame(user, details = {}) {
   const mode = String(details.mode || "coin").toLowerCase();
   if (!DUEL_MODES[mode]) throw new Error("Choose a valid multiplayer arcade game.");
   const wager = int(details.wager, 0);
-  if (wager < DUEL_VALID_WAGER_MIN || wager > DUEL_VALID_WAGER_MAX || wager % TICKETS_PER_XAN !== 0) {
+  const wagerMaximum = details[DUEL_DOUBLE_OR_NOTHING_CREATE] === true && mode === "blackjackduel"
+    ? DUEL_VALID_WAGER_MAX * 2
+    : DUEL_VALID_WAGER_MAX;
+  if (wager < DUEL_VALID_WAGER_MIN || wager > wagerMaximum || wager % TICKETS_PER_XAN !== 0) {
     throw new Error("Choose a wager from 1,000 to 50,000 Tickets in 1,000 Ticket increments.");
   }
 
@@ -6583,7 +6587,7 @@ async function duelActionGame(user, gameId, details = {}) {
   const actorUser = { ...user, id: viewer, name: actor.name };
   const rawChoice = String(details.choice || "");
   if (rawChoice.toLowerCase() === "ready") return await duelReadyGame(user, gameId, { asTestPlayer: Boolean(details.asTestPlayer) });
-  if (["rematch", "npc-rematch", "remote-bot-rematch"].includes(rawChoice.toLowerCase())) {
+  if (["rematch", "npc-rematch", "remote-bot-rematch", "double-or-nothing", "npc-double-or-nothing", "remote-bot-double-or-nothing"].includes(rawChoice.toLowerCase())) {
     return await withDuelReadyLock(gameId, async () => {
       // A completion save can briefly lag behind the eventual read used by
       // ordinary polling. Rematch is a lifecycle write, so start from the
@@ -6591,22 +6595,33 @@ async function duelActionGame(user, gameId, details = {}) {
       let latest = await duelGetRawStrong(gameId, 2) || await duelGetRaw(gameId);
       if (!latest) throw new Error("That duel was not found.");
       if (latest.status !== "complete" || !duelSupportsRematch(latest.mode)) throw new Error("Rematches are only available after a completed duel.");
+      const normalizedChoice = rawChoice.toLowerCase();
+      const isDoubleOrNothing = normalizedChoice.includes("double-or-nothing");
+      if (isDoubleOrNothing && (latest.mode !== "blackjackduel" || !latest.tie)) {
+        throw new Error("Double or Nothing is only available after a tied Blackjack Duel.");
+      }
       const playerIds = [cleanUserId(latest.creator?.userId), cleanUserId(latest.joiner?.userId)].filter(Boolean);
       if (!playerIds.includes(viewer)) throw new Error("You are not in this duel.");
       if (latest.rematchGameId) return { game: duelPublicGame(latest, viewer), record: await getUserRecord(user.id) };
       const npcId = [latest.creator, latest.joiner].find(player => player?.isNpc || String(player?.userId || "").startsWith("npc-"))?.userId || "";
-      const isNpcAcceptance = rawChoice.toLowerCase() === "npc-rematch";
-      const isRemoteBotRematch = rawChoice.toLowerCase() === "remote-bot-rematch";
+      const isNpcAcceptance = ["npc-rematch", "npc-double-or-nothing"].includes(normalizedChoice);
+      const isRemoteBotRematch = ["remote-bot-rematch", "remote-bot-double-or-nothing"].includes(normalizedChoice);
       if (isNpcAcceptance && (!latest.npcTest || !npcId)) throw new Error("This duel does not have a simple NPC opponent.");
       const remoteBotId = [latest.creator, latest.joiner].find(player => player?.isRemoteBot || String(player?.userId || "").startsWith("remote-bot-"))?.userId || "";
       if (isRemoteBotRematch && (!latest.remoteNetworkTest || !remoteBotId)) throw new Error("This duel does not have a Remote Network Bot opponent.");
       const now = Date.now();
       let rematch = latest.rematch && typeof latest.rematch === "object" ? { ...latest.rematch } : { requestedBy: {}, firstRequestedAt: null, expiresAt: null };
+      const requestKind = isDoubleOrNothing ? "double-or-nothing" : "rematch";
       const firstAt = Date.parse(rematch.firstRequestedAt || 0);
       const expiresAt = Date.parse(rematch.expiresAt || 0);
-      if (!firstAt || !expiresAt || now > expiresAt) {
+      if (!firstAt || !expiresAt || now > expiresAt || String(rematch.kind || "rematch") !== requestKind) {
         if (isNpcAcceptance) throw new Error("The rematch request expired.");
-        rematch = { requestedBy: {}, firstRequestedAt: new Date(now).toISOString(), expiresAt: new Date(now + 10000).toISOString() };
+        rematch = {
+          kind: requestKind,
+          requestedBy: {},
+          firstRequestedAt: new Date(now).toISOString(),
+          expiresAt: new Date(now + (isDoubleOrNothing ? 5000 : 10000)).toISOString()
+        };
       }
       if (isNpcAcceptance) {
         const humanRequestedAt = Object.entries(rematch.requestedBy || {}).find(([id]) => id !== npcId)?.[1];
@@ -6627,6 +6642,7 @@ async function duelActionGame(user, gameId, details = {}) {
       };
       let created;
       let creatorForCleanup = playerFor(firstId);
+      const nextWager = isDoubleOrNothing ? int(latest.wager, 0) * 2 : int(latest.wager, 0);
       try {
         const syntheticPlayer = [latest.creator, latest.joiner].find(player => player?.isNpc || player?.isRemoteBot || String(player?.userId || "").startsWith("npc-") || String(player?.userId || "").startsWith("remote-bot-"));
         let rematchGame;
@@ -6634,13 +6650,13 @@ async function duelActionGame(user, gameId, details = {}) {
           const humanId = playerIds.find(id => id !== cleanUserId(syntheticPlayer.userId));
           const human = playerFor(humanId);
           creatorForCleanup = human;
-          created = await duelCreateGame(human, { mode: latest.mode, wager: latest.wager });
+          created = await duelCreateGame(human, { mode: latest.mode, wager: nextWager, [DUEL_DOUBLE_OR_NOTHING_CREATE]: isDoubleOrNothing });
           const attached = syntheticPlayer.isRemoteBot || String(syntheticPlayer.userId || "").startsWith("remote-bot-")
             ? await duelAddRemoteNetworkBot(human, created.game.gameId, latest.remoteNetworkProfile || "normal")
             : await duelAddSimpleNpc(human, created.game.gameId);
           rematchGame = attached.game;
         } else {
-          created = await duelCreateGame(playerFor(firstId), { mode: latest.mode, wager: latest.wager });
+          created = await duelCreateGame(playerFor(firstId), { mode: latest.mode, wager: nextWager, [DUEL_DOUBLE_OR_NOTHING_CREATE]: isDoubleOrNothing });
           const joined = await duelJoinGame(playerFor(secondId), created.game.gameId);
           rematchGame = joined.game;
         }
@@ -6650,6 +6666,9 @@ async function duelActionGame(user, gameId, details = {}) {
       } catch (error) {
         if (created?.game?.gameId) {
           try { await duelCancelGame(creatorForCleanup, created.game.gameId); } catch (_) {}
+        }
+        if (isDoubleOrNothing) {
+          try { latest = await duelSaveGame({ ...latest, rematch: null }); } catch (_) {}
         }
         throw error;
       }

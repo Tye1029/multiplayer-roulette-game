@@ -23,15 +23,18 @@
       status: complete ? "complete" : countdown ? "countdown" : "playing",
       gameId: "blackjack-duel-preview",
       pot: 5000,
+      wager: 2500,
       tie: complete,
+      isCreator: true,
+      creator: { userId: "preview-player", name: "You", avatarUrl: "" },
+      joiner: { userId: "preview-bot", name: "Remote Network Bot", avatarUrl: "", isRemoteBot: true },
       serverNow: new Date().toISOString(),
       startAt: new Date(Date.now() + 4000).toISOString(),
       countdownSeconds: 4,
-      joiner: { name: "Remote Network Bot" },
       blackjackDuelState: {
         roundId: "preview-round",
-        secondsLeft: 19,
-        deadlineAt: new Date(Date.now() + 19000).toISOString(),
+        secondsLeft: complete ? 0 : 19,
+        deadlineAt: new Date(Date.now() + (complete ? -1000 : 19000)).toISOString(),
         deckCommitment: "preview-commitment-not-a-secret",
         opponentName: "Remote Network Bot",
         opponent: complete
@@ -58,6 +61,15 @@
       }, 650)),
       refresh: () => {},
       rematch: () => {},
+      doubleOrNothing: () => {
+        previewGame.rematch = {
+          kind: "double-or-nothing",
+          requestedBy: { "preview-player": new Date().toISOString() },
+          firstRequestedAt: new Date().toISOString(),
+          expiresAt: new Date(Date.now() + 5000).toISOString()
+        };
+        window.dispatchEvent(new CustomEvent("blackjackduel:state", { detail: { game: previewGame } }));
+      },
       newGame: () => {}
     };
     window.dispatchEvent(new CustomEvent("blackjackduel:state", { detail: { game: previewGame } }));

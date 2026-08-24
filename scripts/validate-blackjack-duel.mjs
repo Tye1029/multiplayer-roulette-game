@@ -25,7 +25,7 @@ const {
 
 assert.equal(BLACKJACK_DUEL_MODE, "blackjackduel");
 assert.equal(BLACKJACK_DUEL_STATE_VERSION, 1);
-assert.equal(BLACKJACK_DUEL_DECISION_MS, 25_000);
+assert.equal(BLACKJACK_DUEL_DECISION_MS, 20_000);
 const deck = createDeck();
 assert.equal(deck.length, 52, "authoritative deck must contain 52 cards");
 assert.equal(new Set(deck.map(card => card.id)).size, 52, "authoritative deck must not contain duplicate cards");
@@ -63,6 +63,19 @@ const hitBThenA = applyBlackjackDuelAction(base, "player-b", "hit", "order-b2", 
 const hitBThenAFinal = applyBlackjackDuelAction(hitBThenA, "player-a", "hit", "order-a2", now + 200).state;
 assert.equal(hitAThenBFinal.hands["player-a"].cards[2]?.id, hitBThenAFinal.hands["player-a"].cards[2]?.id);
 assert.equal(hitAThenBFinal.hands["player-b"].cards[2]?.id, hitBThenAFinal.hands["player-b"].cards[2]?.id);
+const publicAfterOpponentHit = publicBlackjackDuelState(hitAThenB, "player-b", now + 300);
+assert.equal(publicAfterOpponentHit.opponent.cards.length, 3, "opponent card count must be public");
+assert.ok(publicAfterOpponentHit.opponent.cards.every(card => card.hidden), "opponent card faces must remain private");
+assert.equal(publicAfterOpponentHit.opponent.status, "hidden", "opponent bust/lock state must remain private");
+
+const bothLocked = applyBlackjackDuelAction(
+  applyBlackjackDuelAction(base, "player-a", "stand", "lock-a", now + 100).state,
+  "player-b",
+  "stand",
+  "lock-b",
+  now + 200
+).state;
+assert.equal(bothLocked.completedAt, null, "locked hands must remain a mystery until the shared deadline");
 
 const naturalVsTwentyOne = resolveBlackjackDuel({
   ...base,
@@ -212,12 +225,15 @@ const blackjackDatabase = fs.readFileSync(path.join(root, "netlify/functions/_bl
 for (const token of ["data-mode=\"blackjackduel\"", "data-rnb-game=\"blackjackduel\"", "data-blackjack-duel-mount", "window.__blackjackDuelBridge", "blackjackduel:state"]) {
   assert.ok(index.includes(token), `shared shell is missing ${token}`);
 }
-assert.ok(index.includes("blackjack-duel-v3"), "shared shell is missing the Blackjack Duel cache marker");
+assert.ok(index.includes("blackjack-duel-v4"), "shared shell is missing the Blackjack Duel cache marker");
 assert.ok(index.includes("game.mode==='blackjackduel'"), "Blackjack Duel must own its in-table countdown");
 assert.ok(index.includes("blackjack-duel-focus"), "Blackjack Duel must use the focused active-round shell");
 assert.ok(index.includes("canPatchMountedBlackjackDuel"), "Blackjack Duel must retain its mounted table between polls");
 for (const token of ["BLACKJACK_DUEL_SERVER_START", "blackjackDuelInitialState", "blackjackDuelPublicState", "blackjackDuelAction", "blackjackDuelAdvanceAndSave"]) {
   assert.ok(data.includes(token), `server integration is missing ${token}`);
+}
+for (const token of ["double-or-nothing", "remote-bot-double-or-nothing", "DUEL_DOUBLE_OR_NOTHING_CREATE"]) {
+  assert.ok(data.includes(token) || index.includes(token), `Double or Nothing integration is missing ${token}`);
 }
 for (const token of ["ensureSchema", "CREATE TABLE IF NOT EXISTS blackjack_duel_matches", "CREATE INDEX IF NOT EXISTS blackjack_duel_matches_updated_idx"]) {
   assert.ok(blackjackDatabase.includes(token), `database bootstrap is missing ${token}`);

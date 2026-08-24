@@ -4,7 +4,7 @@ const crypto = require("node:crypto");
 
 const BLACKJACK_DUEL_MODE = "blackjackduel";
 const BLACKJACK_DUEL_STATE_VERSION = 1;
-const BLACKJACK_DUEL_DECISION_MS = 25_000;
+const BLACKJACK_DUEL_DECISION_MS = 20_000;
 const BLACKJACK_DUEL_RANKS = Object.freeze(["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]);
 const BLACKJACK_DUEL_SUITS = Object.freeze(["clubs", "diamonds", "hearts", "spades"]);
 const BLACKJACK_DUEL_TERMINAL_STATUSES = Object.freeze(["stand", "bust", "blackjack", "twentyone", "timeout"]);
@@ -130,7 +130,9 @@ function createBlackjackDuelState({ gameId, playerIds = [], startAt = Date.now()
     botNextActionAt: null,
     botActionSequence: 0
   };
-  return allHandsFinished(state) ? resolveBlackjackDuel(state, safeStartMs) : state;
+  // Naturals and locked hands remain private until the shared deadline. Ending
+  // early would reveal useful information to a player who is still deciding.
+  return state;
 }
 
 function playerIds(state = {}) {
@@ -224,14 +226,16 @@ function applyBlackjackDuelAction(state = {}, playerId, rawAction, actionId = ""
       ? [...(Array.isArray(state.processedActionIds) ? state.processedActionIds : []), cleanActionId].slice(-160)
       : (Array.isArray(state.processedActionIds) ? state.processedActionIds : [])
   };
-  if (allHandsFinished(next)) next = resolveBlackjackDuel(next, now);
   return { state: next, duplicate: false, completed: Boolean(next.completedAt) };
 }
 
 function publicHand(hand = {}, reveal = true) {
   const clean = normalizeHand(hand);
   if (!reveal) return {
-    cards: [{ hidden: true }, { hidden: true }],
+    // Card count is public, but values and whether the hand locked/busted are
+    // not. This lets both players see cards leave the shared deck without
+    // leaking the opponent's result before the reveal.
+    cards: clean.cards.map(() => ({ hidden: true })),
     total: null,
     soft: false,
     status: "hidden",

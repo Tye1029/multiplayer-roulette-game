@@ -39,6 +39,12 @@
     </div>`;
   }
 
+  function handLabel(hand = {}, hidden = false) {
+    if (hidden) return "PRIVATE HAND";
+    const total = hand.total === null || hand.total === undefined ? "?" : String(hand.total);
+    return hand.status === "blackjack" ? "NATURAL BLACKJACK" : hand.status === "bust" ? "BUST" : hand.status === "twentyone" ? "21" : hand.status === "timeout" ? "AUTO-STAND" : hand.status === "stand" ? "STANDING" : hand.soft ? `SOFT ${total}` : total;
+  }
+
   function undealtHandHtml(label = "DEALS AT GO") {
     return `<div class="bjd-hand concealed undealt">
       <div class="bjd-hand-cards">${cardHtml({ hidden: true }, 0)}${cardHtml({ hidden: true }, 1)}</div>
@@ -72,22 +78,47 @@
       canHit: Boolean(state.canHit),
       canStand: Boolean(state.canStand),
       dealing,
-      pending,
-      pendingAction
+      rematch: game.rematch || null,
+      rematchGameId: game.rematchGameId || ""
     });
+  }
+
+  function avatarHtml(player = {}, accepted = false) {
+    const name = String(player.name || "Player");
+    const fallback = escapeHtml(name.trim().slice(0, 1).toUpperCase() || "?");
+    const picture = player.avatarUrl
+      ? `<img src="${escapeHtml(player.avatarUrl)}" alt="${escapeHtml(name)}">`
+      : `<span>${fallback}</span>`;
+    return `<div class="bjd-double-player${accepted ? " accepted" : ""}">${picture}<b>${escapeHtml(name)}</b><em>${accepted ? "✓ ACCEPTED" : "WAITING"}</em></div>`;
   }
 
   function resultHtml(game) {
     if (game.status !== "complete") return "";
-    const meId = String(localStorage.getItem("tornVisitorUserId") || "");
+    const me = game.isCreator ? game.creator : game.joiner;
+    const meId = String(me?.userId || "");
     const won = Boolean(game.winnerUserId && String(game.winnerUserId) === meId);
     const title = game.tie ? "PUSH" : won ? "YOU WIN" : "YOU LOSE";
     const message = game.tie ? "Equal hands. Both stakes returned." : won ? `Shared pot paid: ${Number(game.payout || 0).toLocaleString()} Tickets` : "The opponent finished closer to 21.";
+    const rematch = game.rematch && typeof game.rematch === "object" ? game.rematch : {};
+    const requested = rematch.requestedBy && typeof rematch.requestedBy === "object" ? rematch.requestedBy : {};
+    const creatorAccepted = Boolean(requested[String(game.creator?.userId || "")]);
+    const joinerAccepted = Boolean(requested[String(game.joiner?.userId || "")]);
+    const myAccepted = Boolean(requested[meId]);
+    const expiresAt = String(rematch.expiresAt || "");
+    const expiresMs = Date.parse(expiresAt);
+    const activeDouble = game.tie && rematch.kind === "double-or-nothing" && Number.isFinite(expiresMs) && expiresMs > Date.now();
+    const doublePanel = game.tie ? `<div class="bjd-double">
+      <div class="bjd-double-title"><b>DOUBLE OR NOTHING</b><span>${activeDouble ? "Both players must accept before time runs out." : `Play again for ${Number(game.wager || 0) * 2} Tickets each.`}</span></div>
+      <div class="bjd-double-players">${avatarHtml(game.creator, creatorAccepted)}<strong>VS</strong>${avatarHtml(game.joiner, joinerAccepted)}</div>
+      ${activeDouble ? `<div class="bjd-double-countdown"><span>Agreement closes in</span><b data-bjd-double-clock data-target="${escapeHtml(expiresAt)}">${Math.max(0, Math.ceil((expiresMs - Date.now()) / 1000))}</b></div>` : ""}
+      <button class="gold bjd-double-button" data-bjd-double type="button" ${myAccepted && activeDouble ? "disabled" : ""}>${myAccepted && activeDouble ? "ACCEPTED — WAITING" : "DOUBLE OR NOTHING"}</button>
+    </div>` : "";
     return `<div class="bjd-result ${game.tie ? "tie" : won ? "win" : "lose"}">
       <div class="bjd-result-kicker">BLACKJACK DUEL</div>
       <h2>${title}</h2>
       <p>${escapeHtml(message)}</p>
-      <div class="bjd-result-actions"><button class="gold" data-bjd-rematch type="button">Rematch</button><button class="secondary" data-bjd-new-game type="button">New Game</button></div>
+      ${doublePanel}
+      <div class="bjd-result-actions">${game.tie ? "" : '<button class="gold" data-bjd-rematch type="button">Rematch</button>'}<button class="secondary" data-bjd-new-game type="button">New Game</button></div>
     </div>`;
   }
 
@@ -95,7 +126,7 @@
     if (dealing) return `<div class="bjd-pregame"><b>${game.status === "countdown" ? "CARDS DEAL AT GO" : "DEALING CARDS…"}</b><span>Hit and Stand unlock after your private cards arrive.</span></div>`;
     if (game.status === "complete") return "";
     const canAct = Boolean(state.canHit || state.canStand) && !pending;
-    if (!state.canHit && !state.canStand && !pending) return `<div class="bjd-pregame locked"><b>YOUR HAND IS LOCKED</b><span>Waiting for the opponent to finish. Their cards stay hidden until the result.</span></div>`;
+    if (!state.canHit && !state.canStand && !pending) return `<div class="bjd-pregame locked"><b>YOUR HAND IS LOCKED</b><span>Waiting for the 20-second reveal. The other hand stays a mystery until then.</span></div>`;
     const message = pending
       ? pendingAction === "hit" ? "Hit sent — drawing one card…" : "Stand sent — locking your hand…"
       : canAct ? "Choose now. Your opponent cannot see your cards or your choice." : "Waiting for the server…";
@@ -133,6 +164,44 @@
     const opponentCards = Array.isArray(state.opponent?.cards) ? state.opponent.cards : [];
     const previousMeCount = sameRound ? shownCards.me : 0;
     const previousOpponentCount = sameRound ? shownCards.opponent : 0;
+    const liveSection = root.querySelector(".bjd-game");
+    const canPatchLive = sameRound && game.status === "playing" && liveSection && !liveSection.querySelector(".bjd-result");
+    if (canPatchLive) {
+      const appendCards = (selector, cards, seat) => {
+        const host = liveSection.querySelector(selector);
+        if (!host || host.children.length > cards.length) return false;
+        for (let index = host.children.length; index < cards.length; index += 1) {
+          host.insertAdjacentHTML("beforeend", cardHtml(cards[index], index, { seat, justDealt: true }));
+        }
+        return true;
+      };
+      if (appendCards(".bjd-seat.player .bjd-hand-cards", meCards, "player") && appendCards(".bjd-seat.opponent .bjd-hand-cards", opponentCards, "opponent")) {
+        const playerTotal = liveSection.querySelector(".bjd-seat.player .bjd-hand-total");
+        const opponentTotal = liveSection.querySelector(".bjd-seat.opponent .bjd-hand-total");
+        const playerStatus = liveSection.querySelector(".bjd-seat.player .bjd-seat-label b");
+        const playerCount = liveSection.querySelector(".bjd-seat.player .bjd-seat-label em");
+        const opponentCount = liveSection.querySelector(".bjd-seat.opponent .bjd-seat-label em");
+        const controlsHost = liveSection.querySelector("[data-bjd-controls-host]");
+        if (playerTotal) playerTotal.textContent = handLabel(state.me || {}, false);
+        if (opponentTotal) opponentTotal.textContent = "PRIVATE HAND";
+        if (playerStatus) playerStatus.textContent = state.me?.status === "active" ? "CHOOSE" : "LOCKED";
+        if (playerCount) playerCount.textContent = cardCountLabel(meCards.length);
+        if (opponentCount) opponentCount.textContent = cardCountLabel(opponentCards.length);
+        if (controlsHost) {
+          controlsHost.innerHTML = controlsHtml(game, state, false);
+          bind(controlsHost, game);
+        }
+        const clock = liveSection.querySelector("[data-bjd-clock]");
+        if (clock) {
+          clock.dataset.target = String(clockTarget || "");
+          clock.dataset.clockOffset = String(clockOffset);
+        }
+        lastRenderSignature = signature;
+        shownCards = { gameId: String(game.gameId || ""), roundId, me: meCards.length, opponent: opponentCards.length };
+        startClock();
+        return;
+      }
+    }
     const opponentHand = dealing ? undealtHandHtml() : handHtml(state.opponent || {}, game.status !== "complete", "opponent", previousOpponentCount);
     const playerHand = dealing ? undealtHandHtml("YOUR CARDS DEAL AT GO") : handHtml(state.me || {}, false, "player", previousMeCount);
     root.innerHTML = `<section class="bjd-game${pendingAction === "hit" ? " is-drawing" : ""}" data-bjd-game-id="${escapeHtml(game.gameId)}" data-bjd-round-id="${escapeHtml(roundId)}">
@@ -140,10 +209,10 @@
       <div class="bjd-howto"><b>Get closer to 21 than your opponent without busting.</b><span>A natural two-card blackjack beats an ordinary 21. Equal results push.</span></div>
       <div class="bjd-table">
         <div class="bjd-seat player"><div class="bjd-seat-label"><span>YOUR HAND</span><b>${escapeHtml(dealing ? "GET READY" : state.me?.status === "active" ? "CHOOSE" : "LOCKED")}</b><em>${cardCountLabel(dealing ? 2 : meCards.length)}</em></div>${playerHand}</div>
-        <div class="bjd-center">${deckHtml(pendingAction === "hit")}<span class="bjd-clock-label">${countdown ? "round begins in" : "time to choose"}</span><div class="bjd-clock" data-bjd-clock data-clock-kind="${countdown ? "countdown" : "decision"}" data-target="${escapeHtml(clockTarget || "")}" data-clock-offset="${clockOffset}">${seconds}</div><span>seconds</span><i>${countdown ? "Cards arrive when the round begins" : "Cards fly from this deck to each hand"}</i></div>
-        <div class="bjd-seat opponent"><div class="bjd-seat-label"><span>${escapeHtml(state.opponentName || game.joiner?.name || "Opponent")}</span><b>PRIVATE</b><em>${cardCountLabel(dealing ? 2 : opponentCards.length)}</em></div>${opponentHand}</div>
+        <div class="bjd-center">${deckHtml(pendingAction === "hit")}<span class="bjd-clock-label">${countdown ? "round begins in" : game.status === "complete" ? "hands revealed" : "time to choose"}</span>${game.status === "complete" ? "" : `<div class="bjd-clock" data-bjd-clock data-clock-kind="${countdown ? "countdown" : "decision"}" data-target="${escapeHtml(clockTarget || "")}" data-clock-offset="${clockOffset}">${seconds}</div><span>seconds</span>`}<i>${countdown ? "Cards arrive when the round begins" : game.status === "complete" ? "Both hands came from the same server deck" : "Cards fly from this deck to each hand"}</i></div>
+        <div class="bjd-seat opponent"><div class="bjd-seat-label"><span>${escapeHtml(state.opponentName || game.joiner?.name || "Opponent")}</span><b>${game.status === "complete" ? "REVEALED" : "PRIVATE"}</b><em>${cardCountLabel(dealing ? 2 : opponentCards.length)}</em></div>${opponentHand}</div>
       </div>
-      ${controlsHtml(game, state, dealing)}
+      <div data-bjd-controls-host>${controlsHtml(game, state, dealing)}</div>
       ${resultHtml(game)}
       <footer class="bjd-proof">Deck commitment <code>${escapeHtml(String(state.deckCommitment || "").slice(0, 18))}${state.deckCommitment ? "…" : " pending"}</code></footer>
     </section>`;
@@ -165,7 +234,10 @@
       if (pending || !window.__blackjackDuelBridge?.submit) return;
       pending = true;
       pendingAction = String(button.dataset.bjdAction || "");
-      render(latestGame || game);
+      root.querySelectorAll("[data-bjd-action]").forEach(actionButton => { actionButton.disabled = true; });
+      root.querySelector(".bjd-deck")?.classList.toggle("drawing", pendingAction === "hit");
+      const status = root.querySelector(".bjd-controls p");
+      if (status) status.textContent = pendingAction === "hit" ? "Hit sent — drawing one card…" : "Stand sent — locking your hand…";
       let responseGame = null;
       try {
         const response = await window.__blackjackDuelBridge.submit({
@@ -182,6 +254,7 @@
       }
     }));
     root.querySelector("[data-bjd-rematch]")?.addEventListener("click", () => window.__blackjackDuelBridge?.rematch?.());
+    root.querySelector("[data-bjd-double]")?.addEventListener("click", () => window.__blackjackDuelBridge?.doubleOrNothing?.());
     root.querySelector("[data-bjd-new-game]")?.addEventListener("click", () => window.__blackjackDuelBridge?.newGame?.());
   }
 
@@ -189,14 +262,27 @@
     if (timer) clearInterval(timer);
     timer = setInterval(() => {
       const node = document.querySelector("[data-bjd-clock]");
-      if (!node) return;
-      const target = Date.parse(node.dataset.target || "");
-      if (!Number.isFinite(target)) return;
-      const clockOffset = Number(node.dataset.clockOffset || 0);
-      const seconds = Math.max(0, Math.ceil((target - (Date.now() + clockOffset)) / 1000));
-      node.textContent = String(seconds);
-      node.classList.toggle("urgent", node.dataset.clockKind === "decision" && seconds <= 5);
-      if (seconds === 0) {
+      const doubleNode = document.querySelector("[data-bjd-double-clock]");
+      let reachedZero = false;
+      if (node) {
+        const target = Date.parse(node.dataset.target || "");
+        if (Number.isFinite(target)) {
+          const clockOffset = Number(node.dataset.clockOffset || 0);
+          const seconds = Math.max(0, Math.ceil((target - (Date.now() + clockOffset)) / 1000));
+          node.textContent = String(seconds);
+          node.classList.toggle("urgent", node.dataset.clockKind === "decision" && seconds <= 5);
+          reachedZero = seconds === 0;
+        }
+      }
+      if (doubleNode) {
+        const target = Date.parse(doubleNode.dataset.target || "");
+        if (Number.isFinite(target)) {
+          const seconds = Math.max(0, Math.ceil((target - Date.now()) / 1000));
+          doubleNode.textContent = String(seconds);
+          reachedZero = reachedZero || seconds === 0;
+        }
+      }
+      if (reachedZero) {
         clearInterval(timer);
         timer = 0;
         window.__blackjackDuelBridge?.refresh?.();
