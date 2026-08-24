@@ -15,6 +15,7 @@
   let lastRenderSignature = "";
   let shownCards = { gameId: "", roundId: "", me: 0, opponent: 0 };
   const dealAnimationLedger = new Map();
+  const HAND_DENSITY_CLASSES = ["cards-4", "cards-5", "cards-6", "cards-7", "cards-8", "cards-many"];
 
   function escapeHtml(value) {
     return String(value ?? "").replace(/[&<>'"]/g, token => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[token]);
@@ -33,6 +34,20 @@
     </div>`;
   }
 
+  function handDensityClass(count) {
+    const safeCount = Math.max(0, Number(count) || 0);
+    if (safeCount < 4) return "";
+    return safeCount >= 9 ? "cards-many" : `cards-${safeCount}`;
+  }
+
+  function syncHandDensity(host, count) {
+    if (!host) return;
+    host.classList.remove(...HAND_DENSITY_CLASSES);
+    const density = handDensityClass(count);
+    if (density) host.classList.add(density);
+    host.dataset.cardCount = String(Math.max(0, Number(count) || 0));
+  }
+
   function handHtml(hand = {}, hidden = false, seat = "player", previousCount = 0, final = false) {
     const cards = Array.isArray(hand.cards) ? hand.cards : [];
     const openingDeal = !final && previousCount === 0 && cards.length >= 2;
@@ -40,7 +55,7 @@
     const finalSuffix = hand.status === "blackjack" ? " · BLACKJACK" : hand.status === "bust" ? " · BUST" : "";
     const label = hidden ? "PRIVATE HAND" : final ? `${total}${finalSuffix}` : hand.status === "blackjack" ? "NATURAL BLACKJACK" : hand.status === "bust" ? "BUST" : hand.status === "twentyone" ? "21" : hand.status === "timeout" ? "AUTO-STAND" : hand.status === "stand" ? total : hand.soft ? `SOFT ${total}` : total;
     return `<div class="bjd-hand ${hidden ? "concealed" : ""}">
-      <div class="bjd-hand-cards">${cards.map((card, index) => cardHtml(card, index, {
+      <div class="bjd-hand-cards${handDensityClass(cards.length) ? ` ${handDensityClass(cards.length)}` : ""}" data-card-count="${cards.length}">${cards.map((card, index) => cardHtml(card, index, {
         seat,
         justDealt: !final && index >= previousCount,
         dealSequence: openingDeal ? index * 2 + (seat === "opponent" ? 1 : 0) : Math.max(0, index - previousCount)
@@ -315,6 +330,7 @@
         if (!host || host.children.length > cards.length) return false;
         const openingDeal = animateFrom === 0 && cards.length >= 2;
         if (cards.length) host.classList.remove("awaiting-deal");
+        syncHandDensity(host, cards.length);
         for (let index = host.children.length; index < cards.length; index += 1) {
           host.insertAdjacentHTML("beforeend", cardHtml(cards[index], index, {
             seat,

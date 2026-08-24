@@ -84,7 +84,32 @@ const bustThenStand = applyBlackjackDuelAction({
     "player-b": { ...base.hands["player-b"], status: "active" }
   }
 }, "player-b", "stand", "stand-after-bust", now + 250).state;
-assert.equal(bustThenStand.completedAt, null, "a hidden bust must not trigger early settlement when the opponent stands");
+assert.ok(bustThenStand.completedAt, "bust plus stand must settle immediately once neither player can act");
+
+const bothBustByAction = applyBlackjackDuelAction({
+  ...base,
+  hands: {
+    "player-a": { cards: [{ rank: "K", suit: "spades" }, { rank: "Q", suit: "hearts" }, { rank: "2", suit: "clubs" }], status: "bust" },
+    "player-b": { cards: [{ rank: "K", suit: "clubs" }, { rank: "Q", suit: "diamonds" }], status: "active" }
+  },
+  drawQueues: { ...base.drawQueues, "player-b": [{ rank: "2", suit: "hearts" }] },
+  drawIndexes: { ...base.drawIndexes, "player-b": 0 }
+}, "player-b", "hit", "second-player-bust", now + 260).state;
+assert.equal(bothBustByAction.hands["player-b"].status, "bust");
+assert.ok(bothBustByAction.completedAt, "two busted hands must settle immediately");
+assert.equal(bothBustByAction.resolution.tie, true);
+
+const loneBust = applyBlackjackDuelAction({
+  ...base,
+  hands: {
+    "player-a": { cards: [{ rank: "K", suit: "spades" }, { rank: "Q", suit: "hearts" }], status: "active" },
+    "player-b": { ...base.hands["player-b"], status: "active" }
+  },
+  drawQueues: { ...base.drawQueues, "player-a": [{ rank: "2", suit: "clubs" }] },
+  drawIndexes: { ...base.drawIndexes, "player-a": 0 }
+}, "player-a", "hit", "lone-bust", now + 275).state;
+assert.equal(loneBust.hands["player-a"].status, "bust");
+assert.equal(loneBust.completedAt, null, "a lone hidden bust must remain private while the opponent can still act");
 
 const naturalVsTwentyOne = resolveBlackjackDuel({
   ...base,
@@ -230,7 +255,7 @@ const componentPreview = fs.readFileSync(path.join(root, "games/multiplayer/blac
 for (const token of ["CARDS DEAL AT GO", "Draw one card", "Keep this total", "pendingAction", "data-clock-offset", "SHARED DECK", "lastRenderSignature", "just-dealt", "cardCountLabel"]) {
   assert.ok(component.includes(token), `Blackjack Duel interaction guidance is missing ${token}`);
 }
-for (const token of ["bjd-final-totals", "bjd-center-pot", "data-bjd-double", "animatePendingDeals", "canPatchComplete", "casino-chip-pile-crisp.svg", "awaiting-deal", "data-bjd-deal-sequence", "data-bjd-push-clock", "pushRestart", "dealAnimationLedger", "rememberAnimatedCards", "patchDoublePanel", "doubleOfferUi", "sharedPotView", "EACH"]) {
+for (const token of ["bjd-final-totals", "bjd-center-pot", "data-bjd-double", "animatePendingDeals", "canPatchComplete", "casino-chip-pile-crisp.svg", "awaiting-deal", "data-bjd-deal-sequence", "data-bjd-push-clock", "pushRestart", "dealAnimationLedger", "rememberAnimatedCards", "patchDoublePanel", "doubleOfferUi", "sharedPotView", "EACH", "HAND_DENSITY_CLASSES", "syncHandDensity", "data-card-count"]) {
   assert.ok(component.includes(token), `Blackjack Duel final layout is missing ${token}`);
 }
 assert.ok(!component.includes("NO DEALER"), "the removed no-dealer label must stay out of the table header");
@@ -244,6 +269,7 @@ assert.ok(componentCss.includes("grid-template-rows:auto auto 36px 46px"), "Doub
 assert.ok(componentCss.includes(".bjd-double-countdown.is-active"), "Double or Nothing must reveal its timer without reflowing the result panel");
 assert.ok(componentCss.includes("font-size:1.52rem") && componentCss.includes("grid-template-columns:112px minmax(112px,auto)"), "the shared pot amount and chip art must have stronger visual emphasis");
 assert.ok(componentCss.includes("grid-template-columns:minmax(0,1fr) 270px minmax(0,1fr)") && componentCss.includes(".bjd-seat-label span{max-width:100%;min-width:0") && componentCss.includes(".bjd-center-pot{box-sizing:border-box"), "player names must stay inside their seats instead of entering the shared pot");
+assert.ok(componentCss.includes(".bjd-card{box-sizing:border-box") && componentCss.includes(".bjd-hand-cards.cards-5") && componentCss.includes(".bjd-hand-cards.cards-8") && componentCss.includes(".bjd-hand-cards.cards-many"), "large hands must use count-aware border-box card fans that stay inside each seat");
 assert.ok(!component.includes("currentDouble.replaceWith"), "Double or Nothing updates must preserve the mounted panel element");
 assert.ok(!component.includes("currentDouble.innerHTML"), "Double or Nothing polling must patch the mounted panel without replacing its contents");
 assert.ok(componentCss.includes("background:linear-gradient(180deg,#08231d 0,#061914 48%,#03100d 100%)"), "the completed result must retain the subdued dark-green table presentation");
@@ -255,6 +281,7 @@ assert.ok(componentPreview.includes('get("repeatMount") === "1"') && componentPr
 assert.ok(componentPreview.includes('get("delayDouble") === "1"'), "the component preview must exercise a slow Double or Nothing response while the local timer is visible");
 assert.ok(componentPreview.includes('get("singlePot") === "1"') && componentPreview.includes("previewWager"), "the component preview must reproduce a Remote Bot's single escrowed wager");
 assert.ok(componentPreview.includes("previewSharedPulse") && componentPreview.includes('get("opponentName")'), "the component preview must reproduce shared win CSS and long opponent names");
+assert.ok(componentPreview.includes('get("myCards")') && componentPreview.includes('get("opponentCards")') && componentPreview.includes('get("growHands")'), "the component preview must exercise oversized player and opponent hands through the live patch path");
 
 const index = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const data = fs.readFileSync(path.join(root, "netlify/functions/_data.js"), "utf8");
@@ -262,7 +289,7 @@ const blackjackDatabase = fs.readFileSync(path.join(root, "netlify/functions/_bl
 for (const token of ["data-mode=\"blackjackduel\"", "data-rnb-game=\"blackjackduel\"", "data-blackjack-duel-mount", "window.__blackjackDuelBridge", "blackjackduel:state"]) {
   assert.ok(index.includes(token), `shared shell is missing ${token}`);
 }
-assert.ok(index.includes("blackjack-duel-v11"), "shared shell is missing the Blackjack Duel cache marker");
+assert.ok(index.includes("blackjack-duel-v12"), "shared shell is missing the Blackjack Duel cache marker");
 assert.ok(index.includes("game.mode==='blackjackduel'"), "Blackjack Duel must own its in-table countdown");
 assert.ok(index.includes("blackjack-duel-focus"), "Blackjack Duel must use the focused active-round shell");
 assert.ok(index.includes('document.body.classList.contains("blackjack-duel-focus")') && index.includes('document.querySelectorAll(".result-pop, .duel-big-result")'), "legacy bright result screens must stay out of the focused Blackjack Duel table");

@@ -144,11 +144,6 @@ function allHandsFinished(state = {}) {
   return ids.length === 2 && ids.every(id => normalizeHand(state.hands[id]).status !== "active");
 }
 
-function allHandsStood(state = {}) {
-  const ids = playerIds(state);
-  return ids.length === 2 && ids.every(id => normalizeHand(state.hands[id]).status === "stand");
-}
-
 function handStrength(hand = {}) {
   const clean = normalizeHand(hand);
   if (clean.status === "bust" || clean.total > 21) return { category: 0, total: 0 };
@@ -231,10 +226,10 @@ function applyBlackjackDuelAction(state = {}, playerId, rawAction, actionId = ""
       ? [...(Array.isArray(state.processedActionIds) ? state.processedActionIds : []), cleanActionId].slice(-160)
       : (Array.isArray(state.processedActionIds) ? state.processedActionIds : [])
   };
-  // Two explicit Stand choices reveal no bust information advantage, so the
-  // round can settle immediately. Automatic terminal states still wait for
-  // the shared deadline and remain private.
-  if (allHandsStood(next)) next = resolveBlackjackDuel(next, now);
+  // Settle as soon as neither player can make another choice. A lone hidden
+  // bust stays private while the opponent is active, but bust + stand and two
+  // busted/locked hands no longer wait out the shared deadline.
+  if (allHandsFinished(next)) next = resolveBlackjackDuel(next, now);
   return { state: next, duplicate: false, completed: Boolean(next.completedAt) };
 }
 

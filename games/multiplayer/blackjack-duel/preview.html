@@ -24,6 +24,13 @@
     const previewWager = Math.max(1, Number(previewParams.get("wager")) || 2500);
     const previewPlayerName = previewParams.get("playerName") || "You";
     const previewOpponentName = previewParams.get("opponentName") || "Remote Network Bot";
+    const previewMyCardCount = Math.max(2, Math.min(12, Number(previewParams.get("myCards")) || 2));
+    const previewOpponentCardCount = Math.max(2, Math.min(12, Number(previewParams.get("opponentCards")) || 2));
+    const previewGrowHands = previewParams.get("growHands") === "1";
+    const previewCards = (count, offset = 0) => Array.from({ length: count }, (_, index) => ({
+      rank: ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"][(index + offset) % 13],
+      suit: ["spades", "hearts", "clubs", "diamonds"][(index + offset) % 4]
+    }));
     const complete = previewState === "complete";
     const countdown = previewState === "countdown";
     const previewGame = {
@@ -49,10 +56,10 @@
         deckCommitment: "preview-commitment-not-a-secret",
         opponentName: previewOpponentName,
         opponent: complete
-          ? { cards: [{ rank: "10", suit: "clubs" }, { rank: previewOutcome === "tie" ? "8" : "7", suit: "diamonds" }], total: previewOutcome === "tie" ? 18 : 17, status: "stand" }
-          : { cards: [{ hidden: true }, { hidden: true }], total: null, status: "active" },
+          ? { cards: previewCards(previewOpponentCardCount, 7), total: previewOutcome === "tie" ? 18 : 17, status: "stand" }
+          : { cards: Array.from({ length: previewGrowHands ? 2 : previewOpponentCardCount }, () => ({ hidden: true })), total: null, status: "active" },
         me: {
-          cards: [{ rank: "A", suit: "spades" }, { rank: "7", suit: "hearts" }],
+          cards: previewCards(previewGrowHands ? 2 : previewMyCardCount),
           total: 18,
           soft: true,
           status: complete ? "stand" : "active"
@@ -121,6 +128,13 @@
       newGame: () => {}
     };
     window.dispatchEvent(new CustomEvent("blackjackduel:state", { detail: { game: previewGame } }));
+    if (previewGrowHands && !complete && !countdown) {
+      setTimeout(() => {
+        previewGame.blackjackDuelState.me.cards = previewCards(previewMyCardCount);
+        previewGame.blackjackDuelState.opponent.cards = Array.from({ length: previewOpponentCardCount }, () => ({ hidden: true }));
+        window.dispatchEvent(new CustomEvent("blackjackduel:state", { detail: { game: previewGame } }));
+      }, 700);
+    }
     if (countdown && previewParams.get("autoDeal") === "1") {
       setTimeout(() => {
         previewGame.status = "playing";
