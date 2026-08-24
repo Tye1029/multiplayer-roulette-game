@@ -173,6 +173,7 @@ const data = fs.readFileSync(path.join(root, "netlify/functions/_data.js"), "utf
 for (const token of ["data-mode=\"blackjackduel\"", "data-rnb-game=\"blackjackduel\"", "data-blackjack-duel-mount", "window.__blackjackDuelBridge", "blackjackduel:state"]) {
   assert.ok(index.includes(token), `shared shell is missing ${token}`);
 }
+assert.ok(index.includes("blackjack-duel-v1"), "shared shell is missing the Blackjack Duel cache marker");
 for (const token of ["BLACKJACK_DUEL_SERVER_START", "blackjackDuelInitialState", "blackjackDuelPublicState", "blackjackDuelAction", "blackjackDuelAdvanceAndSave"]) {
   assert.ok(data.includes(token), `server integration is missing ${token}`);
 }
