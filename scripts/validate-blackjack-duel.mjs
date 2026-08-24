@@ -296,9 +296,11 @@ const blackjackDatabase = fs.readFileSync(path.join(root, "netlify/functions/_bl
 for (const token of ["data-mode=\"blackjackduel\"", "data-rnb-game=\"blackjackduel\"", "data-blackjack-duel-mount", "window.__blackjackDuelBridge", "blackjackduel:state"]) {
   assert.ok(index.includes(token), `shared shell is missing ${token}`);
 }
-assert.ok(index.includes("blackjack-duel-v14"), "shared shell is missing the Blackjack Duel cache marker");
+assert.ok(index.includes("blackjack-duel-v15"), "shared shell is missing the Blackjack Duel cache marker");
 assert.ok(index.includes("game.mode==='blackjackduel'"), "Blackjack Duel must own its in-table countdown");
 assert.ok(index.includes("blackjack-duel-focus"), "Blackjack Duel must use the focused active-round shell");
+assert.ok(index.includes("body.duel-mode.blackjack-duel-focus .page") && index.includes("align-content:start") && index.includes("align-self:start") && index.includes("body.duel-mode.blackjack-duel-focus #rouletteDebugDock { display:none!important; }"), "the focused Blackjack shell must fit its content and hide Roulette-only diagnostics");
+assert.ok(index.includes("if (!duelRefreshInFlight && Number(window.__duelMutationRequestsInFlight || 0) === 0) duelRefresh(true)"), "interval polling must skip occupied network ticks instead of stacking refreshes");
 assert.ok(index.includes('document.body.classList.contains("blackjack-duel-focus")') && index.includes('document.querySelectorAll(".result-pop, .duel-big-result")'), "legacy bright result screens must stay out of the focused Blackjack Duel table");
 assert.ok(index.includes("body.blackjack-duel-focus .result-pop") && index.includes("body.blackjack-duel-focus .duel-big-result { display:none!important; }"), "delayed shared result layers must remain hidden behind the Blackjack Duel result");
 assert.ok(index.includes("canPatchMountedBlackjackDuel"), "Blackjack Duel must retain its mounted table between polls");

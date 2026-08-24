@@ -10762,10 +10762,18 @@
     body.duel-mode.blackjack-duel-focus .duel-side-stack,
     body.duel-mode.blackjack-duel-focus .duel-top-actions { display:none!important; }
     body.duel-mode.blackjack-duel-focus .duel-grid { grid-template-columns:minmax(0,1fr); }
+    body.duel-mode.blackjack-duel-focus .page {
+      min-height:0!important;
+      align-content:start;
+      padding-bottom:max(12px, env(safe-area-inset-bottom))!important;
+    }
     body.duel-mode.blackjack-duel-focus .duel-screen {
+      align-self:start;
+      margin-bottom:0!important;
       padding:clamp(7px,1.5vw,16px)!important;
       background:linear-gradient(180deg,rgba(8,17,17,.96),rgba(5,10,12,.96));
     }
+    body.duel-mode.blackjack-duel-focus #rouletteDebugDock { display:none!important; }
     body.duel-mode.blackjack-duel-focus .duel-live-card {
       padding:0;border:0;background:transparent;box-shadow:none;
     }
@@ -12562,8 +12570,8 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
   <script id="mountainRaceMultiplayerRuntime" src="/assets/mountain-race/mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=11&scene=65&holds=30" defer></script>
 <!-- MOUNTAIN_RACE_MULTIPLAYER_ASSETS_END -->
 <!-- BLACKJACK_DUEL_ASSETS_START -->
-  <link id="blackjackDuelStyles" rel="stylesheet" href="/assets/blackjack-duel/blackjack-duel.css?v=blackjack-duel-v14">
-  <script id="blackjackDuelRuntime" src="/assets/blackjack-duel/blackjack-duel.js?v=blackjack-duel-v14" defer></script>
+  <link id="blackjackDuelStyles" rel="stylesheet" href="/assets/blackjack-duel/blackjack-duel.css?v=blackjack-duel-v15">
+  <script id="blackjackDuelRuntime" src="/assets/blackjack-duel/blackjack-duel.js?v=blackjack-duel-v15" defer></script>
 <!-- BLACKJACK_DUEL_ASSETS_END -->
 
 <!-- MOUNTAIN_RACE_V29_PRELOADS -->
@@ -18607,7 +18615,12 @@ function updateRunnerBalanceDisplay() {
       if (window.__duelPollRate !== desired || !duelPollTimer) {
         window.__duelPollRate = desired;
         if (duelPollTimer) clearInterval(duelPollTimer);
-        duelPollTimer = setInterval(() => duelRefresh(true), desired);
+        // Interval ticks are disposable. If a refresh or action is already using
+        // the connection, skip this tick instead of queuing an immediate second
+        // GET behind it; explicit UI refreshes can still use duelRefreshPending.
+        duelPollTimer = setInterval(() => {
+          if (!duelRefreshInFlight && Number(window.__duelMutationRequestsInFlight || 0) === 0) duelRefresh(true);
+        }, desired);
       }
 
       if (fishingLive) {
