@@ -1,7 +1,7 @@
 (function fishingControllerBootstrap(global){
   "use strict";
 
-  const VERSION="fishing-controller-v1";
+  const VERSION="fishing-controller-v2";
   const SIDES=["left","right"];
   const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
   const round=value=>Math.round(Number(value||0)*10)/10;
@@ -193,9 +193,10 @@
         if(progress>=1){rig.x=rig.anim.toX;rig.y=rig.anim.toY;rig.baseY=rig.anim.toY;rig.anim=null;}
       }
       const hook=this.hook(rig.side);if(!hook||!this.water)return;
-      const bob=this.reducedMotion?0:Math.sin(now/720+rig.phaseOffset)*(rig.caught?3.5:2.2);
+      const bob=this.reducedMotion?0:Math.sin(now/1280+rig.phaseOffset)*(rig.caught?2.25:1.35);
       hook.style.left=`${rig.x*100}%`;
-      hook.style.top=`calc(${rig.y*100}% + ${bob.toFixed(2)}px)`;
+      hook.style.top=`${rig.y*100}%`;
+      hook.style.transform=`translate3d(-50%,${bob.toFixed(2)}px,0)`;
       const waterRect=this.water.getBoundingClientRect(),tip=this.rodTip(rig.side);
       const sx=clamp((tip.x-waterRect.left)/Math.max(1,waterRect.width)*1000,0,1000);
       const sy=clamp((tip.y-waterRect.top)/Math.max(1,waterRect.height)*430,0,430);
@@ -208,16 +209,22 @@
 
     drawWater(now){
       if(!this.ctx||!this.canvas)return;
-      const ctx=this.ctx,dpr=this.canvasDpr||1,w=this.canvas.width/dpr,h=this.canvas.height/dpr,horizon=h*.36;
+      const ctx=this.ctx,dpr=this.canvasDpr||1,w=this.canvas.width/dpr,h=this.canvas.height/dpr,horizon=h*.42;
       ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);
-      const phase=this.reducedMotion?0:now*.00045;
-      const gradient=ctx.createLinearGradient(0,horizon,0,h);gradient.addColorStop(0,"rgba(61,225,234,.025)");gradient.addColorStop(.55,"rgba(8,147,187,.055)");gradient.addColorStop(1,"rgba(0,68,113,.075)");ctx.fillStyle=gradient;ctx.fillRect(0,horizon,w,h-horizon);
+      const phase=this.reducedMotion?0:now*.00072;
+      const gradient=ctx.createLinearGradient(0,horizon,0,h);gradient.addColorStop(0,"rgba(86,238,244,.035)");gradient.addColorStop(.55,"rgba(18,171,205,.075)");gradient.addColorStop(1,"rgba(0,83,128,.11)");ctx.fillStyle=gradient;ctx.fillRect(0,horizon,w,h-horizon);
       ctx.globalCompositeOperation="screen";
-      for(let row=0;row<17;row++){
-        const y=horizon+18+row*((h-horizon-24)/17),amp=2.2+row*.22,freq=.012+row*.00035;
+      for(let row=0;row<19;row++){
+        const y=horizon+14+row*((h-horizon-20)/19),amp=2.5+row*.2,freq=.0115+row*.00032;
         ctx.beginPath();
-        for(let x=-8;x<=w+8;x+=8){const wave=Math.sin(x*freq+phase*(2.1+row*.045)+row*.73)*amp+Math.sin(x*.004-phase*1.3)*1.4; if(x===-8)ctx.moveTo(x,y+wave);else ctx.lineTo(x,y+wave);}
-        ctx.strokeStyle=`rgba(${row%3===0?"215,253,255":"77,225,230"},${.035+(row%4)*.011})`;ctx.lineWidth=row%4===0?1.6:.8;ctx.stroke();
+        for(let x=-8;x<=w+8;x+=7){const wave=Math.sin(x*freq+phase*(1.7+row*.038)+row*.73)*amp+Math.sin(x*.0042-phase*1.05)*1.55; if(x===-8)ctx.moveTo(x,y+wave);else ctx.lineTo(x,y+wave);}
+        ctx.strokeStyle=`rgba(${row%3===0?"221,254,255":"92,231,235"},${.062+(row%4)*.014})`;ctx.lineWidth=row%4===0?1.45:.75;ctx.stroke();
+      }
+      for(let band=0;band<4;band++){
+        const y=horizon+(band+1)*(h-horizon)/5;
+        ctx.beginPath();
+        for(let x=-40;x<=w+40;x+=12){const wave=Math.sin(x*.008+phase*.62+band*1.8)*(5+band*.8);if(x===-40)ctx.moveTo(x,y+wave);else ctx.lineTo(x,y+wave);}
+        ctx.strokeStyle="rgba(214,252,255,.055)";ctx.lineWidth=5+band;ctx.stroke();
       }
       ctx.globalCompositeOperation="source-over";
     }
@@ -226,7 +233,7 @@
       if(this.destroyed)return;
       if(!this.root.isConnected){this.destroy();return;}
       for(const side of SIDES)this.updateRig(this.rigs[side],now);
-      if(now-this.lastWaterFrame>45){this.lastWaterFrame=now;this.drawWater(now);}
+      if(now-this.lastWaterFrame>32){this.lastWaterFrame=now;this.drawWater(now);}
       this.frameHandle=requestAnimationFrame(this.boundFrame);
     }
 

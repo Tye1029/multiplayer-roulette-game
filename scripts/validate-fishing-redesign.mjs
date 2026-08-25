@@ -10,8 +10,8 @@ const controller = fs.readFileSync(new URL("../assets/fishing/fishing-controller
 const preview = fs.readFileSync(new URL("../games/multiplayer/fishing/preview.html", import.meta.url), "utf8");
 const serverData = fs.readFileSync(new URL("../netlify/functions/_data.js", import.meta.url), "utf8");
 
-assert(html.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v4'), "versioned Fishing stylesheet is not loaded");
-assert(html.includes('/assets/fishing/fishing-controller.js?v=fishing-mechanics-v4'), "shared Fishing controller is not loaded");
+assert(html.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v5'), "versioned Fishing stylesheet is not loaded");
+assert(html.includes('/assets/fishing/fishing-controller.js?v=fishing-mechanics-v5'), "shared Fishing controller is not loaded");
 assert(html.includes('class="fishing-command-bar"'), "game-owned Fishing header is missing");
 assert(html.includes('class="fishing-instructions" aria-label="How to play"'), "visible game instructions are missing");
 assert(html.includes("Bigger ripple, bigger fish"), "ripple-size instruction is missing");
@@ -47,7 +47,12 @@ assert(css.includes('@keyframes fishingCloudTravel'), "moving cloud animation is
 assert(css.includes('@keyframes fishingLakeBreath'), "whole-water motion layer is missing");
 assert(css.includes('@keyframes fishingAnglerIdleLeft'), "smooth fisherman idle animation is missing");
 assert(css.includes('.fishing-water-canvas {'), "visible animated water canvas is missing");
-assert(css.includes('.fishing-hook-node.has-catch::after'), "line-to-fish connector is missing");
+assert(html.includes('class="fishing-water-motion"'), "whole-lake animated water layer is not mounted");
+assert(preview.includes('class="fishing-water-motion"'), "preview is missing the whole-lake animated water layer");
+assert(css.includes('transform: rotate(90deg)'), "docks are not rotated 90 degrees toward the lake");
+assert(css.includes('stroke-width: 1.15'), "fishing line is not using the thin realistic treatment");
+assert(css.includes('top: -11px'), "bobber is not seated directly against the caught fish");
+assert(css.includes('display: none;\n  content: none;'), "obsolete bobber-to-fish connector is still visible");
 assert(css.includes('@keyframes fishingFishHookSway'), "hooked fish sway is missing");
 assert(css.includes('@keyframes fishingFishSway'), "fish sway animation is missing");
 assert(css.includes('@keyframes fishingRareShimmer'), "rare fish shimmer is missing");
