@@ -7097,7 +7097,8 @@ function fishingFishIdentity(size){
   const roll=Math.random();
   let variant="standard", rarity="regular", displayName=baseName;
   if(roll<0.006){variant="crystal";rarity="legendary";displayName=`Crystal ${baseName}`;}
-  else if(roll<0.018){variant="golden";rarity="rare";displayName=`Golden ${baseName}`;}
+  else if(roll<0.012){variant="golden";rarity="rare";displayName=`Golden ${baseName}`;}
+  else if(roll<0.018){variant="silver";rarity="rare";displayName=`Silver ${baseName}`;}
   else if(roll<0.031){variant="albino";rarity="rare";displayName=`Albino ${baseName}`;}
   else if(roll<0.045){variant="midnight";rarity="rare";displayName=`Midnight ${baseName}`;}
   else if(roll<0.065){variant="emerald";rarity="uncommon";displayName=`Emerald ${baseName}`;}
