@@ -12574,7 +12574,7 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
   <script id="blackjackDuelRuntime" src="/assets/blackjack-duel/blackjack-duel.js?v=blackjack-duel-v17" defer></script>
 <!-- BLACKJACK_DUEL_ASSETS_END -->
 <!-- FISHING_DUEL_ASSETS_START -->
-  <link id="fishingDuelStyles" rel="stylesheet" href="/assets/fishing/fishing.css?v=fishing-art-v2">
+  <link id="fishingDuelStyles" rel="stylesheet" href="/assets/fishing/fishing.css?v=fishing-art-v3">
 <!-- FISHING_DUEL_ASSETS_END -->
 
 <!-- MOUNTAIN_RACE_V29_PRELOADS -->
@@ -18865,7 +18865,32 @@ function updateRunnerBalanceDisplay() {
     function duelFishingSceneSvg(state){
       const leftCaught=Boolean(state?.creatorCatch), rightCaught=Boolean(state?.joinerCatch);
       const leftY=leftCaught?206:286, rightY=rightCaught?206:286;
-      return `<img class="fishing-lake-art" src="/assets/fishing/images/v2/lake-bg-v2.png" alt="" aria-hidden="true"><div class="fishing-cloud-bank" aria-hidden="true"><img class="cloud-a" src="/assets/fishing/images/v2/clouds-v2.png" alt=""><img class="cloud-b" src="/assets/fishing/images/v2/clouds-v2.png" alt=""><img class="cloud-c" src="/assets/fishing/images/v2/clouds-v2.png" alt=""></div><div class="fishing-scene-art is-casting" aria-hidden="true"><div class="fishing-angler left"><img src="/assets/fishing/images/v2/fisherman-v2.png" alt=""></div><div class="fishing-angler right"><img src="/assets/fishing/images/v2/fisherman-v2.png" alt=""></div><svg class="fishing-line-art" viewBox="0 0 1000 430" preserveAspectRatio="none"><path class="fishing-line-svg left" data-line-side="left" d="M270 68 Q380 92 420 ${leftY}"/><path class="fishing-line-svg right" data-line-side="right" d="M730 68 Q620 92 580 ${rightY}"/><g class="fishing-bobber left" transform="translate(420 ${leftY})"><circle r="8" fill="#f7f1dc"/><path d="M-8 0A8 8 0 0 1 8 0V3H-8Z" fill="#e95d4e"/></g><g class="fishing-bobber right" transform="translate(580 ${rightY})"><circle r="8" fill="#f7f1dc"/><path d="M-8 0A8 8 0 0 1 8 0V3H-8Z" fill="#e95d4e"/></g></svg></div>`;
+      return `<img class="fishing-lake-art" src="/assets/fishing/images/v2/lake-bg-v2.png" alt="" aria-hidden="true"><img class="fishing-water-motion" src="/assets/fishing/images/v2/lake-bg-v2.png" alt="" aria-hidden="true"><div class="fishing-cloud-bank" aria-hidden="true"><img class="cloud-a" src="/assets/fishing/images/v2/clouds-v2.png" alt=""><img class="cloud-b" src="/assets/fishing/images/v2/clouds-v2.png" alt=""><img class="cloud-c" src="/assets/fishing/images/v2/clouds-v2.png" alt=""></div><div class="fishing-scene-art is-casting" aria-hidden="true"><div class="fishing-angler left"><img src="/assets/fishing/images/v2/fisherman-v2.png" alt=""></div><div class="fishing-angler right"><img src="/assets/fishing/images/v2/fisherman-blue-transparent-v3.png" alt=""></div><svg class="fishing-line-art" viewBox="0 0 1000 430" preserveAspectRatio="none"><path class="fishing-line-svg left" data-line-side="left" data-end-x="420" data-end-y="${leftY}" d="M270 68 Q380 92 420 ${leftY}"/><path class="fishing-line-svg right" data-line-side="right" data-end-x="580" data-end-y="${rightY}" d="M730 68 Q620 92 580 ${rightY}"/><g class="fishing-bobber left" transform="translate(420 ${leftY})"><circle r="8" fill="#f7f1dc"/><path d="M-8 0A8 8 0 0 1 8 0V3H-8Z" fill="#e95d4e"/></g><g class="fishing-bobber right" transform="translate(580 ${rightY})"><circle r="8" fill="#f7f1dc"/><path d="M-8 0A8 8 0 0 1 8 0V3H-8Z" fill="#e95d4e"/></g></svg></div>`;
+    }
+
+    function duelFishingAlignLines(root){
+      const water=root?.querySelector?.("[data-fishing-water]");
+      const scene=water?.querySelector?.(".fishing-scene-art");
+      if(!water||!scene)return;
+      const waterRect=water.getBoundingClientRect();
+      if(!waterRect.width||!waterRect.height)return;
+      for(const side of ["left","right"]){
+        const img=scene.querySelector(`.fishing-angler.${side} img`);
+        const path=scene.querySelector(`.fishing-line-svg.${side}`);
+        if(!img||!path||!img.complete)continue;
+        const r=img.getBoundingClientRect();
+        // The rod tip sits at the upper outside edge of each transparent PNG.
+        // Resolve it from the rendered image so desktop and mobile stay joined.
+        const tipX=side==="left"?r.right-r.width*.018:r.left+r.width*.018;
+        const tipY=r.top+r.height*.045;
+        const startX=Math.max(0,Math.min(1000,(tipX-waterRect.left)/waterRect.width*1000));
+        const startY=Math.max(0,Math.min(430,(tipY-waterRect.top)/waterRect.height*430));
+        const endX=Number(path.dataset.endX|| (side==="left"?420:580));
+        const endY=Number(path.dataset.endY||286);
+        const controlX=startX+(endX-startX)*.66;
+        const controlY=Math.min(startY,endY)-Math.max(20,Math.abs(endX-startX)*.11);
+        path.setAttribute("d",`M${startX.toFixed(1)} ${startY.toFixed(1)} Q${controlX.toFixed(1)} ${controlY.toFixed(1)} ${endX} ${endY}`);
+      }
     }
 
     function duelFishingCatchSlot(c,side,animate=false,showCaption=true){
@@ -18880,6 +18905,11 @@ function updateRunnerBalanceDisplay() {
       if(both)return winner?(winner===myRole?"YOU WIN!":"YOU LOST"):"TIE GAME";
       if(state.myCatch)return"Fish secured — opponent is still fishing";
       return active?"BITE! TAP ANYWHERE IN THE GAME":"Watch the water for the next ripple";
+    }
+    function duelFishingDebugPanel(game,state,active,seconds){
+      const role=game?.isCreator?"creator":"joiner";
+      const bot=game?.creator?.isBot||game?.joiner?.isBot;
+      return `<details class="fishing-debug-panel"><summary><span>Fishing Debug</span><b data-fishing-debug-health>${game?.status==="playing"?"LIVE":"READY"}</b></summary><div class="fishing-debug-grid"><span>Status</span><strong data-fishing-debug-status>${escapeHtml(String(game?.status||"idle"))}</strong><span>Timer</span><strong data-fishing-debug-timer>${Number(seconds||0)}s</strong><span>Role</span><strong>${role}</strong><span>Bot</span><strong data-fishing-debug-bot>${bot?"connected":"none"}</strong><span>Ripple</span><strong data-fishing-debug-ripple>${active?escapeHtml(String(active.id||"active")):"waiting"}</strong><span>Your catch</span><strong data-fishing-debug-catch>${state?.myCatch?"secured":"available"}</strong></div></details>`;
     }
     function duelFishingCatchRumble(catchData){
       if(!catchData||!navigator.vibrate)return;
@@ -18912,6 +18942,7 @@ function updateRunnerBalanceDisplay() {
       const s=duelFishingStableState(g),active=g.status==="playing"?duelFishingActiveEvent(s):null;
       const seconds=g.status==="playing"?Math.min(60,Math.max(0,Math.ceil(duelFishingRemainingMs(s)/1000))):60;
       const clock=duelActive?.querySelector(".fishing-clock");if(clock)clock.textContent=`${seconds}s`;
+      const debugTimer=duelActive?.querySelector("[data-fishing-debug-timer]");if(debugTimer)debugTimer.textContent=`${seconds}s`;
       if(g.status==="countdown")duelFishingPatchDom(g);
       if(g.status==="playing"&&seconds<=10&&seconds>0&&seconds!==duelFishingAudioState.lastSecond)duelFishingPlayTick();
       if(g.status==="playing"&&seconds===0&&!duelFishingAudioState.timedOut){duelFishingAudioState.timedOut=true;duelFishingPlayTimeout();}
@@ -18929,6 +18960,9 @@ function updateRunnerBalanceDisplay() {
       marker.innerHTML='<span class="pull-splash"></span><span class="pull-line"></span>';
       water.appendChild(marker);
       water.classList.add(side==="left"?"pull-left":"pull-right");
+      const pullStarted=performance.now(),root=water.closest("[data-fishing-game]");
+      const trackPull=()=>{duelFishingAlignLines(root);if(performance.now()-pullStarted<1180)requestAnimationFrame(trackPull);};
+      requestAnimationFrame(trackPull);
       duelFishingPlaySplash(side);
       duelFishingScheduleAudio(()=>duelFishingPlayFlop(side),300);
       return {side,eventId:String(active.id||""),marker};
@@ -18944,7 +18978,23 @@ function updateRunnerBalanceDisplay() {
     function duelBindFishing(root){
       if(!root)return;
       const water=root.querySelector("[data-fishing-water]");
-      if(!water||water.dataset.catchBound)return;
+      if(!water)return;
+      const align=()=>duelFishingAlignLines(root);
+      root.querySelectorAll(".fishing-angler img").forEach(img=>img.addEventListener("load",align,{once:true}));
+      requestAnimationFrame(align);
+      if(!root._fishingResizeObserver&&typeof ResizeObserver!=="undefined"){
+        root._fishingResizeObserver=new ResizeObserver(align);
+        root._fishingResizeObserver.observe(water);
+      }
+      const scene=water.querySelector(".fishing-scene-art");
+      if(scene?.classList.contains("is-casting")&&!scene.dataset.castSettled){
+        scene.dataset.castSettled="1";
+        const castStarted=performance.now();
+        const trackCast=()=>{align();if(performance.now()-castStarted<2220)requestAnimationFrame(trackCast);};
+        requestAnimationFrame(trackCast);
+        setTimeout(()=>{scene.classList.remove("is-casting");scene.classList.add("is-idle");align();},2250);
+      }
+      if(water.dataset.catchBound)return;
       water.dataset.catchBound="1";
       water.addEventListener("pointerdown",async ev=>{
         // Only taps physically inside the visible fishing arena count. HUD,
@@ -22568,7 +22618,7 @@ function updateRunnerBalanceDisplay() {
       const state=fishingV3Hydrate(game),active=game.status==="playing"?fishingV3Active():null;
       duelFishingLatestGame=game; const sec=game.status==="playing"?(fishingV3.endLocal?Math.min(60,Math.max(0,Math.ceil(fishingV3Remaining()/1000))):60):0;
       const pot=money(game.pot||game.wager||0);
-      return `<div class="fishing-game" data-fishing-game data-fishing-game-id="${escapeHtml(String(game.gameId||""))}" data-fishing-round-id="${escapeHtml(String(state.roundId||""))}" data-fishing-runtime-key="${escapeHtml(fishingV3.key)}"><header class="fishing-command-bar"><div class="fishing-brand"><span class="fishing-brand-mark" aria-hidden="true">◒</span><span><small>RUMBLE</small><b>FISHING DUEL</b></span></div><div class="fishing-clock" aria-label="Seconds remaining">${game.status==="countdown"?60:sec}s</div><div class="fishing-pot"><small>PRIZE POT</small><b>${pot}</b></div></header><section class="fishing-instructions" aria-label="How to play"><div class="fishing-instruction-heading"><small>HOW TO PLAY</small><b>One cast. Choose wisely.</b></div><ol><li><i>1</i><span><b>Watch</b><small>Wait for ripples</small></span></li><li><i>2</i><span><b>Judge</b><small>Bigger ripple, bigger fish</small></span></li><li><i>3</i><span><b>Tap once</b><small>Largest catch wins</small></span></li></ol></section><div class="fishing-player-strip">${duelFishingPlayerChip(game.creator,"PLAYER 1")}<span class="fishing-versus">VS</span>${duelFishingPlayerChip(game.joiner,"PLAYER 2")}</div><div class="fishing-water season-${atmosphere.season} ${active&&!state.myCatch?"can-tap":""}" data-fishing-water data-fish-id="${escapeHtml(active?.id||"")}"><div class="fishing-sky"><span class="fishing-sun"></span><span class="fishing-cloud c1"></span><span class="fishing-cloud c2"></span><span class="fishing-cloud c3"></span></div>${atmosphere.html}<div class="fishing-water-glint"></div><span class="fishing-bubble b1"></span><span class="fishing-bubble b2"></span><span class="fishing-bubble b3"></span><span class="fishing-leaf l1"></span><span class="fishing-leaf l2"></span><div class="fishing-dock left"><div class="fishing-name">${escapeHtml(game.creator?.name||"Player 1")}</div></div><div class="fishing-dock right"><div class="fishing-name">${escapeHtml(game.joiner?.name||"Player 2")}</div></div>${duelFishingSceneSvg(state)}${active?`<div class="fishing-ripple" data-ripple-id="${escapeHtml(String(active.id||""))}" style="--ripple:${Number(active.ripple||48)}px;--ripple-speed:${Number(active.rippleSpeed||1.05)}s;--ripple-thickness:${Number(active.rippleThickness||4)}px;--ripple-wobble:${Number(active.rippleWobble||1)}"><i></i><i></i><i></i></div>`:""}${duelFishingCatchSlot(state.creatorCatch,"left",false,true)}${duelFishingCatchSlot(state.joinerCatch,"right",false,true)}<div class="fishing-center-status">${escapeHtml(game.status==="countdown"?"Get ready...":duelFishingStatus(game,state,active))}</div>${duelFishingResultOverlay(game)}</div><div class="fishing-controls"><span><b>Tip:</b> You only get one catch, so resist the small ripples.</span></div></div>`;
+      return `<div class="fishing-game" data-fishing-game data-fishing-game-id="${escapeHtml(String(game.gameId||""))}" data-fishing-round-id="${escapeHtml(String(state.roundId||""))}" data-fishing-runtime-key="${escapeHtml(fishingV3.key)}"><header class="fishing-command-bar"><div class="fishing-brand"><span class="fishing-brand-mark" aria-hidden="true">◒</span><span><small>RUMBLE</small><b>FISHING DUEL</b></span></div><div class="fishing-clock" aria-label="Seconds remaining">${game.status==="countdown"?60:sec}s</div><div class="fishing-pot"><small>PRIZE POT</small><b>${pot}</b></div></header><section class="fishing-instructions" aria-label="How to play"><div class="fishing-instruction-heading"><small>HOW TO PLAY</small><b>One cast. Choose wisely.</b></div><ol><li><i>1</i><span><b>Watch</b><small>Wait for ripples</small></span></li><li><i>2</i><span><b>Judge</b><small>Bigger ripple, bigger fish</small></span></li><li><i>3</i><span><b>Tap once</b><small>Largest catch wins</small></span></li></ol></section><div class="fishing-player-strip">${duelFishingPlayerChip(game.creator,"PLAYER 1")}<span class="fishing-versus">VS</span>${duelFishingPlayerChip(game.joiner,"PLAYER 2")}</div><div class="fishing-water season-${atmosphere.season} ${active&&!state.myCatch?"can-tap":""}" data-fishing-water data-fish-id="${escapeHtml(active?.id||"")}"><div class="fishing-sky"><span class="fishing-sun"></span><span class="fishing-cloud c1"></span><span class="fishing-cloud c2"></span><span class="fishing-cloud c3"></span></div>${atmosphere.html}<div class="fishing-water-glint"></div><span class="fishing-bubble b1"></span><span class="fishing-bubble b2"></span><span class="fishing-bubble b3"></span><span class="fishing-leaf l1"></span><span class="fishing-leaf l2"></span><div class="fishing-dock left"><div class="fishing-name">${escapeHtml(game.creator?.name||"Player 1")}</div></div><div class="fishing-dock right"><div class="fishing-name">${escapeHtml(game.joiner?.name||"Player 2")}</div></div>${duelFishingSceneSvg(state)}${active?`<div class="fishing-ripple" data-ripple-id="${escapeHtml(String(active.id||""))}" style="--ripple:${Number(active.ripple||48)}px;--ripple-speed:${Number(active.rippleSpeed||1.05)}s;--ripple-thickness:${Number(active.rippleThickness||4)}px;--ripple-wobble:${Number(active.rippleWobble||1)}"><i></i><i></i><i></i></div>`:""}${duelFishingCatchSlot(state.creatorCatch,"left",false,true)}${duelFishingCatchSlot(state.joinerCatch,"right",false,true)}<div class="fishing-center-status">${escapeHtml(game.status==="countdown"?"Get ready...":duelFishingStatus(game,state,active))}</div>${duelFishingResultOverlay(game)}</div><div class="fishing-controls"><span><b>Tip:</b> You only get one catch, so resist the small ripples.</span></div>${duelFishingDebugPanel(game,state,active,game.status==="countdown"?60:sec)}</div>`;
     };
     duelFishingPatchDom=function(game){
       const root=duelActive?.querySelector('[data-fishing-game]'); if(!root||String(root.dataset.fishingGameId||"")!==String(game?.gameId||""))return false;
@@ -22576,6 +22626,13 @@ function updateRunnerBalanceDisplay() {
       const active=game.status==="playing"?fishingV3Active():null,water=root.querySelector('[data-fishing-water]'); if(!water)return false;
       const clock=root.querySelector('.fishing-clock');
       if(clock)clock.textContent=`${game.status==="countdown"?60:(game.status==="playing"?(fishingV3.endLocal?Math.min(60,Math.max(0,Math.ceil(fishingV3Remaining()/1000))):60):0)}s`;
+      const secondsText=clock?.textContent||"0s";
+      const debugStatus=root.querySelector('[data-fishing-debug-status]');if(debugStatus)debugStatus.textContent=String(game.status||"idle");
+      const debugHealth=root.querySelector('[data-fishing-debug-health]');if(debugHealth)debugHealth.textContent=game.status==="playing"?"LIVE":game.status==="complete"?"DONE":"READY";
+      const debugTimer=root.querySelector('[data-fishing-debug-timer]');if(debugTimer)debugTimer.textContent=secondsText;
+      const debugBot=root.querySelector('[data-fishing-debug-bot]');if(debugBot)debugBot.textContent=(game?.creator?.isBot||game?.joiner?.isBot)?"connected":"none";
+      const debugRipple=root.querySelector('[data-fishing-debug-ripple]');if(debugRipple)debugRipple.textContent=active?String(active.id||"active"):"waiting";
+      const debugCatch=root.querySelector('[data-fishing-debug-catch]');if(debugCatch)debugCatch.textContent=state.myCatch?"secured":"available";
       water.querySelector('[data-fishing-countdown]')?.remove();
       duelPatchSharedCountdown(game);
       const nextRippleId=String(active?.id||"");
@@ -22595,12 +22652,17 @@ function updateRunnerBalanceDisplay() {
         const existing=water.querySelector(`.fishing-catch-slot.${side}`);
         const currentId=String(existing?.dataset?.catchId||"");
         const nextId=String(c?.eventId||"");
-        if(existing&&currentId===nextId)continue;
-        existing?.remove();
-        const center=water.querySelector('.fishing-center-status');
-        if(center)center.insertAdjacentHTML('beforebegin',duelFishingCatchSlot(c,side,Boolean(nextId),true));
-        else water.insertAdjacentHTML('beforeend',duelFishingCatchSlot(c,side,Boolean(nextId),true));
+        if(!existing||currentId!==nextId){
+          existing?.remove();
+          const center=water.querySelector('.fishing-center-status');
+          if(center)center.insertAdjacentHTML('beforebegin',duelFishingCatchSlot(c,side,Boolean(nextId),true));
+          else water.insertAdjacentHTML('beforeend',duelFishingCatchSlot(c,side,Boolean(nextId),true));
+        }
+        const line=water.querySelector(`.fishing-line-svg.${side}`),bobber=water.querySelector(`.fishing-bobber.${side}`),endX=side==='left'?420:580,endY=c?206:286;
+        if(line)line.dataset.endY=String(endY);
+        if(bobber)bobber.setAttribute('transform',`translate(${endX} ${endY})`);
       }
+      duelFishingAlignLines(root);
       const center=water.querySelector('.fishing-center-status');
       if(center)center.textContent=game.status==="countdown"?"Get ready...":duelFishingStatus(game,state,active);
       let resultOverlay=water.querySelector('[data-fishing-result]');

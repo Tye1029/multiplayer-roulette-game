@@ -9,7 +9,7 @@ const css = fs.readFileSync(new URL("../assets/fishing/fishing.css", import.meta
 const preview = fs.readFileSync(new URL("../games/multiplayer/fishing/preview.html", import.meta.url), "utf8");
 const serverData = fs.readFileSync(new URL("../netlify/functions/_data.js", import.meta.url), "utf8");
 
-assert(html.includes('/assets/fishing/fishing.css?v=fishing-art-v2'), "versioned Fishing stylesheet is not loaded");
+assert(html.includes('/assets/fishing/fishing.css?v=fishing-art-v3'), "versioned Fishing stylesheet is not loaded");
 assert(html.includes('class="fishing-command-bar"'), "game-owned Fishing header is missing");
 assert(html.includes('class="fishing-instructions" aria-label="How to play"'), "visible game instructions are missing");
 assert(html.includes("Bigger ripple, bigger fish"), "ripple-size instruction is missing");
@@ -24,7 +24,10 @@ assert(html.includes('fishing-log-entry locked'), "uncaught logbook species are 
 assert(html.includes('fishing-log-question">?</span>'), "uncaught fish do not show question marks");
 assert(!html.includes('<b>${totalWins}</b>Wins'), "the removed Wins logbook statistic is still rendered");
 assert(html.includes('/assets/fishing/images/v2/fisherman-v2.png'), "PNG fisherman characters are missing");
+assert(html.includes('/assets/fishing/images/v2/fisherman-blue-transparent-v3.png'), "distinct second PNG fisherman is missing");
 assert(html.includes('/assets/fishing/images/v2/lake-bg-v2.png'), "PNG lake background is missing");
+assert(html.includes('function duelFishingAlignLines(root)'), "responsive rod-line attachment is missing");
+assert(html.includes('class="fishing-debug-panel"'), "Fishing debug panel is missing");
 assert(html.includes('style="--fish-cm:${cm}"'), "fish art is not scaled from its measured centimeters");
 
 assert(css.includes("grid-template-rows: auto minmax(0, 1fr) auto;"), "result card does not reserve a separate action row");
@@ -36,15 +39,21 @@ assert(css.includes("url('/assets/fishing/images/v2/logbook-v2.png')"), "fisherm
 assert(css.includes('@keyframes fishingCastLeft'), "cast animation is missing");
 assert(css.includes('@keyframes fishingAnglerPull'), "pull animation is missing");
 assert(css.includes('@keyframes fishingCloudTravel'), "moving cloud animation is missing");
+assert(css.includes('@keyframes fishingLakeBreath'), "whole-water motion layer is missing");
+assert(css.includes('@keyframes fishingAnglerIdleLeft'), "smooth fisherman idle animation is missing");
 assert(css.includes('@keyframes fishingFishSway'), "fish sway animation is missing");
 assert(css.includes('@keyframes fishingRareShimmer'), "rare fish shimmer is missing");
 assert(serverData.includes('variant="silver";rarity="rare"'), "silver rare fish cannot be awarded");
 assert(css.includes("@media (max-width: 680px)"), "mobile Fishing redesign rules are missing");
 assert(preview.includes('data-preview-state="live"'), "live Fishing component preview is missing");
 assert(preview.includes('data-preview-state="result"'), "result Fishing component preview is missing");
+assert(preview.includes("setInterval(()=>{seconds=Math.max(0,seconds-1)"), "live preview countdown is not interactive");
+assert(preview.includes("botTimer=setTimeout(()=>catchFish('right')"), "live preview bot does not fish");
+assert(preview.includes("water.addEventListener('pointerdown'"), "live preview cannot pull a fish");
+assert(preview.includes('data-debug-cast'), "live preview debug controls are missing");
 
 const imageRoot=new URL("../assets/fishing/images/v2/",import.meta.url);
-for(const file of ["lake-bg-v2.png","dock-v2.png","fisherman-v2.png","clouds-v2.png","logbook-v2.png","fish/giant-bluefin-tuna-v2.png","rare/golden-wide-v2.png","rare/crystal-wide-v2.png","rare/silver-wide-v2.png","rare/albino-hat-wide-v2.png"]){
+for(const file of ["lake-bg-v2.png","dock-v2.png","fisherman-v2.png","fisherman-blue-transparent-v3.png","clouds-v2.png","logbook-v2.png","fish/giant-bluefin-tuna-v2.png","rare/golden-wide-v2.png","rare/crystal-wide-v2.png","rare/silver-wide-v2.png","rare/albino-hat-wide-v2.png"]){
   assert(fs.existsSync(new URL(file,imageRoot)),`required PNG asset is missing: ${file}`);
 }
 const regularFish=fs.readdirSync(new URL("fish/",imageRoot)).filter(name=>name.endsWith("-v2.png"));
