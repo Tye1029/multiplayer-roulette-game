@@ -1155,6 +1155,17 @@
   user-select: none;
 }
 
+.fishing-water-canvas {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: .92;
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
 .fishing-water-motion {
   position: absolute;
   z-index: 1;
@@ -1294,7 +1305,107 @@
 .fishing-water.pull-left .fishing-angler.left,
 .fishing-water.pull-right .fishing-angler.right { animation: fishingAnglerPull 1.15s cubic-bezier(.18,.78,.22,1) both; }
 .fishing-water.pull-left .fishing-line-svg.left,
-.fishing-water.pull-right .fishing-line-svg.right { animation: fishingLineReel 1.1s cubic-bezier(.18,.78,.22,1) both; }
+.fishing-water.pull-right .fishing-line-svg.right { animation: none !important; opacity: 1 !important; stroke-dashoffset: 0 !important; }
+
+/* Mechanics V4: line, hook, bobber, and fish share one moving rig. */
+.fishing-hook-node {
+  position: absolute;
+  z-index: 4;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+  will-change: top,left;
+}
+
+.fishing-hook-bobber {
+  position: absolute;
+  z-index: 3;
+  top: -8px;
+  left: -8px;
+  width: 16px;
+  height: 21px;
+  border: 1px solid rgba(103, 37, 34, .9);
+  border-radius: 50%;
+  background: linear-gradient(#e95d4e 0 48%, #f7f1dc 49% 100%);
+  box-shadow: 0 4px 10px rgba(0, 23, 41, .3);
+  transform-origin: 50% 0;
+}
+
+.fishing-hook-node.has-catch .fishing-hook-bobber {
+  top: -5px;
+  left: -5px;
+  width: 10px;
+  height: 13px;
+  box-shadow: 0 2px 7px rgba(0, 23, 41, .25);
+}
+
+.fishing-hook-node.has-catch::after {
+  position: absolute;
+  z-index: 2;
+  top: 5px;
+  left: -1px;
+  width: 2px;
+  height: 30px;
+  background: rgba(247, 251, 244, .92);
+  box-shadow: 0 1px rgba(0, 45, 62, .45);
+  content: "";
+}
+
+.fishing-hook-catch {
+  position: absolute;
+  z-index: 2;
+  top: 13px;
+  left: 0;
+  width: 164px;
+  min-height: 145px;
+  transform: translateX(-50%);
+  transform-origin: 50% 0;
+}
+
+.fishing-hook-catch:empty { display: none; }
+
+.fishing-hook-catch .fishing-catch-unit {
+  position: relative;
+  top: auto;
+  left: auto;
+  display: flex;
+  width: 100%;
+  height: auto;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  opacity: 1;
+  transform: none;
+}
+
+.fishing-hook-catch .fishing-catch-unit.is-pulling { animation: fishingFishReveal .44s .24s ease-out both !important; }
+
+.fishing-hook-catch .fishing-fish-png {
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  flex: 0 0 auto;
+  transform: none !important;
+  animation: fishingFishHookSway 2.35s ease-in-out infinite !important;
+}
+
+.fishing-hook-catch.right .fishing-fish-png { transform: scaleX(-1) !important; }
+
+.fishing-hook-catch .fishing-catch-caption {
+  position: relative;
+  top: auto;
+  left: auto;
+  width: min(146px, 100%);
+  transform: none;
+}
+
+.fishing-debug-copy-status {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: #8ebbc2;
+  font-size: .62rem;
+  line-height: 1.35;
+}
 
 /* Keep both catches on the same visual baseline beneath their own line. */
 .fishing-catch-slot {
@@ -1566,6 +1677,8 @@
 @keyframes fishingAnglerPull { 0% { rotate: 0; translate: 0; } 18% { rotate: 4deg; translate: 3px 2px; } 48% { rotate: -12deg; translate: -4px -10px; } 72% { rotate: -5deg; translate: -2px -4px; } 100% { rotate: 1.5deg; translate: 0; } }
 @keyframes fishingLineReel { to { stroke-dashoffset: 390; opacity: .25; } }
 @keyframes fishUnitPullFront { 0% { transform: translate(-50%,100px); opacity: .2; } 42% { opacity: 1; } 78% { transform: translate(-50%,-9px); } 100% { transform: translate(-50%,0); opacity: 1; } }
+@keyframes fishingFishReveal { from { opacity: 0; scale: .78; } to { opacity: 1; scale: 1; } }
+@keyframes fishingFishHookSway { 0%,100% { rotate: -4deg; } 50% { rotate: 4deg; } }
 @keyframes fishingFishSway { 0%,100% { rotate: -4deg; translate: 0 0; } 50% { rotate: 4deg; translate: 0 6px; } }
 @keyframes fishingResultFishFloat { 0%,100% { translate: 0 1px; rotate: -1.5deg; } 50% { translate: 0 -3px; rotate: 1.5deg; } }
 @keyframes fishingFishBlink { 0%,43%,47%,100% { opacity: 0; scale: 1 1; } 44%,46% { opacity: .94; scale: 1 .28; } }
@@ -1583,6 +1696,8 @@
   .fishing-angler { top: 12%; height: 34%; }
   .fishing-angler.left { left: 5%; }
   .fishing-angler.right { right: 5%; }
+  .fishing-hook-catch { width: 112px; }
+  .fishing-hook-catch .fishing-catch-caption { width: 104px; padding: 4px 5px; }
   .fishing-catch-slot { top: 44% !important; width: 104px; height: 190px; }
   .fishing-catch-slot.left { left: calc(42% - 52px); }
   .fishing-catch-slot.right { left: calc(58% - 52px); }
@@ -1605,6 +1720,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .fishing-cloud-bank img,
+  .fishing-water-canvas,
   .fishing-water-motion,
   .fishing-water::before,
   .fishing-angler,

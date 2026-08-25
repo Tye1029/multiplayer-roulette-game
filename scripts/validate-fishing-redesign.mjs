@@ -6,10 +6,12 @@ function assert(condition, message) {
 
 const html = fs.readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const css = fs.readFileSync(new URL("../assets/fishing/fishing.css", import.meta.url), "utf8");
+const controller = fs.readFileSync(new URL("../assets/fishing/fishing-controller.js", import.meta.url), "utf8");
 const preview = fs.readFileSync(new URL("../games/multiplayer/fishing/preview.html", import.meta.url), "utf8");
 const serverData = fs.readFileSync(new URL("../netlify/functions/_data.js", import.meta.url), "utf8");
 
-assert(html.includes('/assets/fishing/fishing.css?v=fishing-art-v3'), "versioned Fishing stylesheet is not loaded");
+assert(html.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v4'), "versioned Fishing stylesheet is not loaded");
+assert(html.includes('/assets/fishing/fishing-controller.js?v=fishing-mechanics-v4'), "shared Fishing controller is not loaded");
 assert(html.includes('class="fishing-command-bar"'), "game-owned Fishing header is missing");
 assert(html.includes('class="fishing-instructions" aria-label="How to play"'), "visible game instructions are missing");
 assert(html.includes("Bigger ripple, bigger fish"), "ripple-size instruction is missing");
@@ -28,6 +30,9 @@ assert(html.includes('/assets/fishing/images/v2/fisherman-blue-transparent-v3.pn
 assert(html.includes('/assets/fishing/images/v2/lake-bg-v2.png'), "PNG lake background is missing");
 assert(html.includes('function duelFishingAlignLines(root)'), "responsive rod-line attachment is missing");
 assert(html.includes('class="fishing-debug-panel"'), "Fishing debug panel is missing");
+assert(html.includes('data-fishing-debug-copy>Copy Debug Report'), "copyable Fishing debug report is missing");
+assert(html.includes('class="fishing-hook-node left"'), "connected left fishing rig is missing");
+assert(html.includes('class="fishing-hook-node right"'), "connected right fishing rig is missing");
 assert(html.includes('style="--fish-cm:${cm}"'), "fish art is not scaled from its measured centimeters");
 
 assert(css.includes("grid-template-rows: auto minmax(0, 1fr) auto;"), "result card does not reserve a separate action row");
@@ -41,16 +46,31 @@ assert(css.includes('@keyframes fishingAnglerPull'), "pull animation is missing"
 assert(css.includes('@keyframes fishingCloudTravel'), "moving cloud animation is missing");
 assert(css.includes('@keyframes fishingLakeBreath'), "whole-water motion layer is missing");
 assert(css.includes('@keyframes fishingAnglerIdleLeft'), "smooth fisherman idle animation is missing");
+assert(css.includes('.fishing-water-canvas {'), "visible animated water canvas is missing");
+assert(css.includes('.fishing-hook-node.has-catch::after'), "line-to-fish connector is missing");
+assert(css.includes('@keyframes fishingFishHookSway'), "hooked fish sway is missing");
 assert(css.includes('@keyframes fishingFishSway'), "fish sway animation is missing");
 assert(css.includes('@keyframes fishingRareShimmer'), "rare fish shimmer is missing");
 assert(serverData.includes('variant="silver";rarity="rare"'), "silver rare fish cannot be awarded");
 assert(css.includes("@media (max-width: 680px)"), "mobile Fishing redesign rules are missing");
 assert(preview.includes('data-preview-state="live"'), "live Fishing component preview is missing");
 assert(preview.includes('data-preview-state="result"'), "result Fishing component preview is missing");
-assert(preview.includes("setInterval(()=>{seconds=Math.max(0,seconds-1)"), "live preview countdown is not interactive");
-assert(preview.includes("botTimer=setTimeout(()=>catchFish('right')"), "live preview bot does not fish");
+assert(preview.includes("if(replay)await controller.replayCast();else await controller.playCast();"), "preview does not cast before starting the round");
+assert(preview.includes("startClock();timers.bite=setTimeout"), "preview countdown does not begin after casting");
+assert(preview.includes("timers.bot=setTimeout"), "live preview bot does not fish");
 assert(preview.includes("water.addEventListener('pointerdown'"), "live preview cannot pull a fish");
+assert(preview.includes("if(!previewState.activeBite)"), "preview accepts catches without an active bite");
+assert(preview.includes("previewState.playerCaught=false;previewState.botCaught=false"), "fresh rounds do not clear both catches");
+assert(preview.includes('data-debug-copy'), "copyable preview debug report is missing");
 assert(preview.includes('data-debug-cast'), "live preview debug controls are missing");
+
+assert(controller.includes('class FishingSceneController'), "Fishing scene controller class is missing");
+assert(controller.includes('playCast(options={})'), "shared casting lifecycle is missing");
+assert(controller.includes('syncCatch(side,catchId,animate=false)'), "authoritative catch synchronization is missing");
+assert(controller.includes('drawWater(now)'), "moving water renderer is missing");
+assert(controller.includes('lineEnd:{x:round(ex),y:round(ey)}'), "line endpoint diagnostics are missing");
+assert(controller.includes('async copyReport(extra={})'), "copyable diagnostic report implementation is missing");
+assert(controller.includes('fishingDebugVersion:VERSION'), "diagnostic version marker is missing");
 
 const imageRoot=new URL("../assets/fishing/images/v2/",import.meta.url);
 for(const file of ["lake-bg-v2.png","dock-v2.png","fisherman-v2.png","fisherman-blue-transparent-v3.png","clouds-v2.png","logbook-v2.png","fish/giant-bluefin-tuna-v2.png","rare/golden-wide-v2.png","rare/crystal-wide-v2.png","rare/silver-wide-v2.png","rare/albino-hat-wide-v2.png"]){
@@ -59,4 +79,4 @@ for(const file of ["lake-bg-v2.png","dock-v2.png","fisherman-v2.png","fisherman-
 const regularFish=fs.readdirSync(new URL("fish/",imageRoot)).filter(name=>name.endsWith("-v2.png"));
 assert(regularFish.length===36,`expected 36 unique regular fish PNGs, found ${regularFish.length}`);
 
-console.log("Fishing redesign validation passed: 36 PNG fish, fishermen, cast/pull motion, moving clouds, proportional measurements, question-mark logbook, themed weigh-in, and non-overlapping actions are present.");
+console.log("Fishing mechanics validation passed: shared lifecycle controller, connected rod/line/hook/fish rigs, post-cast countdown, valid-bite input, delayed bot pull, moving water, copyable diagnostics, 36 PNG fish, and themed results are present.");

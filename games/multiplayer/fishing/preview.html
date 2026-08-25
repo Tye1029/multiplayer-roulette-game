@@ -4,23 +4,24 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Rumble Fishing Duel — Component Preview</title>
-  <link rel="stylesheet" href="/assets/fishing/fishing.css?v=fishing-art-v3">
+  <link rel="stylesheet" href="/assets/fishing/fishing.css?v=fishing-mechanics-v4">
+  <script src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v4"></script>
   <style>
     *{box-sizing:border-box}html,body{min-height:100%;margin:0;background:#041019;color:#fff;font-family:Inter,ui-sans-serif,system-ui,sans-serif}body{display:grid;place-items:center;padding:16px}.preview{width:min(100%,980px)}button{border:0;cursor:pointer}
     [data-preview-state]{display:none}[data-preview-state].active{display:block}.fishing-water{position:relative;min-height:520px;overflow:hidden}.fishing-sky{position:absolute;inset:0 0 64%}.fishing-dock{position:absolute}.fishing-ripple{position:absolute;z-index:12;left:50%;top:68%;width:140px;height:44px;transform:translate(-50%,-50%)}.fishing-ripple i{position:absolute;inset:0;border:4px solid rgba(235,255,255,.9);border-radius:50%;animation:ripple 1.2s ease-out infinite}.fishing-ripple i:nth-child(2){animation-delay:.25s}.fishing-ripple i:nth-child(3){animation-delay:.5s}@keyframes ripple{from{scale:.25;opacity:1}to{scale:1.35;opacity:0}}.fishing-center-status{position:absolute;z-index:15;left:50%;bottom:14px;transform:translateX(-50%)}
-    .fishing-fish{position:absolute;left:50%;top:22%}.fishing-result-overlay{position:relative;height:min(780px,calc(100vh - 32px))}.fishing-result-fish-art .fishing-fish,.fishing-log-thumb .fishing-fish{position:relative;left:auto;top:auto}.fishing-catch-slot{pointer-events:none}.preview-result-link{position:absolute;z-index:24;left:50%;bottom:52px;translate:-50% 0;padding:9px 13px;border-radius:9px;color:#04212a;background:#67eadd;font-size:.75rem;font-weight:900;text-decoration:none;box-shadow:0 7px 20px rgba(0,0,0,.28)}
+    .fishing-fish{position:absolute;left:50%;top:22%}.fishing-result-overlay{position:relative;height:min(780px,calc(100vh - 32px))}.fishing-result-fish-art .fishing-fish,.fishing-log-thumb .fishing-fish{position:relative;left:auto;top:auto}.preview-result-link{position:absolute;z-index:24;left:50%;bottom:52px;translate:-50% 0;padding:9px 13px;border-radius:9px;color:#04212a;background:#67eadd;font-size:.75rem;font-weight:900;text-decoration:none;box-shadow:0 7px 20px rgba(0,0,0,.28)}
   </style>
 </head>
 <body>
   <main class="preview duel-arena fishing-clean">
     <section data-preview-state="live">
-      <div class="fishing-game">
+      <div class="fishing-game" data-fishing-game data-fishing-game-id="preview" data-fishing-round-id="preview-round">
         <header class="fishing-command-bar"><div class="fishing-brand"><span class="fishing-brand-mark">◒</span><span><small>RUMBLE</small><b>FISHING DUEL</b></span></div><div class="fishing-clock">42s</div><div class="fishing-pot"><small>PRIZE POT</small><b>2,000 Tickets</b></div></header>
         <section class="fishing-instructions" aria-label="How to play"><div class="fishing-instruction-heading"><small>HOW TO PLAY</small><b>One cast. Choose wisely.</b></div><ol><li><i>1</i><span><b>Watch</b><small>Wait for ripples</small></span></li><li><i>2</i><span><b>Judge</b><small>Bigger ripple, bigger fish</small></span></li><li><i>3</i><span><b>Tap once</b><small>Largest catch wins</small></span></li></ol></section>
         <div class="fishing-player-strip"><div class="fishing-player-chip"><span class="fishing-player-chip-avatar fishing-player-chip-fallback">C</span><span><small>PLAYER 1</small><b>CowBoyCookie</b></span></div><span class="fishing-versus">VS</span><div class="fishing-player-chip"><span class="fishing-player-chip-avatar fishing-player-chip-fallback">N</span><span><small>PLAYER 2</small><b>Remote Bot (Normal)</b></span></div></div>
-        <div class="fishing-water season-summer can-tap" data-fishing-water><img class="fishing-lake-art" src="/assets/fishing/images/v2/lake-bg-v2.png" alt=""><img class="fishing-water-motion" src="/assets/fishing/images/v2/lake-bg-v2.png" alt=""><div class="fishing-cloud-bank"><img class="cloud-a" src="/assets/fishing/images/v2/clouds-v2.png" alt=""><img class="cloud-b" src="/assets/fishing/images/v2/clouds-v2.png" alt=""><img class="cloud-c" src="/assets/fishing/images/v2/clouds-v2.png" alt=""></div><div class="fishing-dock left"></div><div class="fishing-dock right"></div><div class="fishing-scene-art is-casting"><div class="fishing-angler left"><img src="/assets/fishing/images/v2/fisherman-v2.png" alt=""></div><div class="fishing-angler right"><img src="/assets/fishing/images/v2/fisherman-blue-transparent-v3.png" alt=""></div><svg class="fishing-line-art" viewBox="0 0 1000 430" preserveAspectRatio="none"><path class="fishing-line-svg left" data-end-x="420" data-end-y="286" d="M270 68 Q380 92 420 286"></path><path class="fishing-line-svg right" data-end-x="580" data-end-y="286" d="M730 68 Q620 92 580 286"></path><g class="fishing-bobber left" transform="translate(420 286)"><circle r="8" fill="#f7f1dc"></circle><path d="M-8 0A8 8 0 0 1 8 0V3H-8Z" fill="#e95d4e"></path></g><g class="fishing-bobber right" transform="translate(580 286)"><circle r="8" fill="#f7f1dc"></circle><path d="M-8 0A8 8 0 0 1 8 0V3H-8Z" fill="#e95d4e"></path></g></svg></div><div class="fishing-ripple"><i></i><i></i><i></i></div><div class="fishing-center-status">A fish is circling — tap the water to catch it!</div></div>
+        <div class="fishing-water season-summer" data-fishing-water><img class="fishing-lake-art" src="/assets/fishing/images/v2/lake-bg-v2.png" alt=""><canvas class="fishing-water-canvas" aria-hidden="true"></canvas><div class="fishing-cloud-bank"><img class="cloud-a" src="/assets/fishing/images/v2/clouds-v2.png" alt=""><img class="cloud-b" src="/assets/fishing/images/v2/clouds-v2.png" alt=""><img class="cloud-c" src="/assets/fishing/images/v2/clouds-v2.png" alt=""></div><div class="fishing-dock left"></div><div class="fishing-dock right"></div><div class="fishing-scene-art"><div class="fishing-angler left"><img src="/assets/fishing/images/v2/fisherman-v2.png" alt=""></div><div class="fishing-angler right"><img src="/assets/fishing/images/v2/fisherman-blue-transparent-v3.png" alt=""></div><svg class="fishing-line-art" viewBox="0 0 1000 430" preserveAspectRatio="none"><path class="fishing-line-svg left" d="M270 68 Q380 92 420 286"></path><path class="fishing-line-svg right" d="M730 68 Q620 92 580 286"></path></svg><div class="fishing-hook-node left"><span class="fishing-hook-bobber"></span><div class="fishing-hook-catch left" data-catch-id=""></div></div><div class="fishing-hook-node right"><span class="fishing-hook-bobber"></span><div class="fishing-hook-catch right" data-catch-id=""></div></div></div><div class="fishing-center-status">Preparing both casts…</div></div>
         <div class="fishing-controls"><span><b>Tip:</b> You only get one catch, so resist the small ripples.</span></div>
-        <details class="fishing-debug-panel" open><summary><span>Fishing Debug</span><b data-fishing-debug-health>LIVE</b></summary><div class="fishing-debug-grid"><span>Status</span><strong data-fishing-debug-status>playing</strong><span>Timer</span><strong data-fishing-debug-timer>42s</strong><span>Bot</span><strong data-fishing-debug-bot>thinking</strong><span>Ripple</span><strong data-fishing-debug-ripple>active</strong><span>Your catch</span><strong data-fishing-debug-player>available</strong><span>Bot catch</span><strong data-fishing-debug-catch>waiting</strong><div class="fishing-debug-actions"><button type="button" data-debug-reset>Reset test</button><button type="button" data-debug-bot>Force bot catch</button><button type="button" data-debug-cast>Replay cast</button></div></div></details>
+        <details class="fishing-debug-panel" open><summary><span>Fishing Debug</span><b data-fishing-debug-health>READY</b></summary><div class="fishing-debug-grid"><span>Phase</span><strong data-fishing-debug-status>mounting</strong><span>Timer</span><strong data-fishing-debug-timer>60s</strong><span>Bot</span><strong data-fishing-debug-bot>idle</strong><span>Ripple</span><strong data-fishing-debug-ripple>waiting</strong><span>Your catch</span><strong data-fishing-debug-player>available</strong><span>Bot catch</span><strong data-fishing-debug-catch>waiting</strong><span>Last input</span><strong data-fishing-debug-input>none: No input yet</strong><div class="fishing-debug-actions"><button type="button" data-debug-copy>Copy Debug Report</button><button type="button" data-debug-reset>Start Fresh Round</button><button type="button" data-debug-ripple>Spawn Big Ripple</button><button type="button" data-debug-bot>Force Bot Pull</button><button type="button" data-debug-cast>Replay Cast</button></div><p class="fishing-debug-copy-status" data-fishing-debug-copy-status>Copies mechanics, timing, bot, line-anchor, and recent event details.</p></div></details>
       </div>
     </section>
     <section data-preview-state="result">
@@ -38,48 +39,72 @@
     document.querySelector(`[data-preview-state="${state}"]`)?.classList.add("active");
     if(state==="live"){
       const live=document.querySelector('[data-preview-state="live"]');
+      const root=live.querySelector('[data-fishing-game]');
       const water=live.querySelector('[data-fishing-water]');
-      const scene=water.querySelector('.fishing-scene-art');
       const clock=live.querySelector('.fishing-clock');
       const status=live.querySelector('.fishing-center-status');
-      let seconds=42,playerCaught=false,botCaught=false,botTimer=null;
-      function alignLines(){
-        const wr=water.getBoundingClientRect();if(!wr.width||!wr.height)return;
-        for(const side of ['left','right']){
-          const img=scene.querySelector(`.fishing-angler.${side} img`),path=scene.querySelector(`.fishing-line-svg.${side}`);if(!img?.complete||!path)continue;
-          const r=img.getBoundingClientRect(),tipX=side==='left'?r.right-r.width*.018:r.left+r.width*.018,tipY=r.top+r.height*.045;
-          const sx=(tipX-wr.left)/wr.width*1000,sy=(tipY-wr.top)/wr.height*430,ex=Number(path.dataset.endX),ey=Number(path.dataset.endY),cx=sx+(ex-sx)*.66,cy=Math.min(sy,ey)-Math.max(20,Math.abs(ex-sx)*.11);
-          path.setAttribute('d',`M${sx.toFixed(1)} ${sy.toFixed(1)} Q${cx.toFixed(1)} ${cy.toFixed(1)} ${ex} ${ey}`);
-        }
-      }
-      function trackCast(){const start=performance.now();const frame=()=>{alignLines();if(performance.now()-start<2220)requestAnimationFrame(frame);};requestAnimationFrame(frame);setTimeout(()=>{scene.classList.remove('is-casting');scene.classList.add('is-idle');alignLines();},2250);}
-      function replayCast(){scene.classList.remove('is-idle','is-casting');void scene.offsetWidth;scene.classList.add('is-casting');trackCast();}
+      const controller=new window.FishingSceneController(root,{mode:'preview',gameId:'preview',roundId:'preview-round'});
+      const previewState={seconds:60,started:false,playerCaught:false,botCaught:false,activeBite:'',round:0};
+      const timers={clock:null,bite:null,biteExpiry:null,bot:null};
+      const fish={left:{name:'King Salmon',slug:'king-salmon',size:82},right:{name:'Peacock Bass',slug:'peacock-bass',size:61}};
+      let biteSequence=0;
+
+      function clearTimers(){Object.keys(timers).forEach(key=>{clearTimeout(timers[key]);clearInterval(timers[key]);timers[key]=null;});}
       function fishMarkup(side){
-        const fish=side==='left'?{name:'King Salmon',slug:'king-salmon',size:82}:{name:'Peacock Bass',slug:'peacock-bass',size:61};
-        return `<div class="fishing-catch-slot ${side}" data-catch-id="preview-${side}"><div class="fishing-catch-unit is-pulling"><div class="fishing-fish fishing-fish-png" style="--fish-cm:${fish.size}"><img src="/assets/fishing/images/v2/fish/${fish.slug}-v2.png" alt=""><span class="fishing-fish-eye-blink"></span><span class="fishing-fish-shimmer"></span></div><div class="fishing-catch-caption"><b>${fish.name}</b></div></div></div>`;
+        const f=fish[side];
+        return `<div class="fishing-hook-catch ${side}" data-catch-id="preview-${side}-${previewState.round}"><div class="fishing-catch-unit is-pulling"><div class="fishing-fish fishing-fish-png" style="--fish-cm:${f.size}"><img src="/assets/fishing/images/v2/fish/${f.slug}-v2.png" alt=""><span class="fishing-fish-eye-blink"></span><span class="fishing-fish-shimmer"></span></div><div class="fishing-catch-caption"><b>${f.name}</b></div></div></div>`;
       }
-      function catchFish(side){
-        if(side==='left'&&playerCaught||side==='right'&&botCaught)return;
-        if(side==='left'){playerCaught=true;live.querySelector('[data-fishing-debug-player]').textContent='secured';}
-        else{botCaught=true;live.querySelector('[data-fishing-debug-catch]').textContent='secured';live.querySelector('[data-fishing-debug-bot]').textContent='caught fish';}
-        const line=scene.querySelector(`.fishing-line-svg.${side}`),bobber=scene.querySelector(`.fishing-bobber.${side}`),endX=side==='left'?420:580;
-        line.dataset.endY='206';bobber.setAttribute('transform',`translate(${endX} 206)`);alignLines();
-        water.classList.add(side==='left'?'pull-left':'pull-right');
-        status.textContent=side==='left'?'Reeling in your catch…':'The bot is reeling in a catch…';
-        setTimeout(()=>{
-          water.querySelector(`.fishing-catch-slot.${side}`)?.remove();status.insertAdjacentHTML('beforebegin',fishMarkup(side));water.classList.remove('pull-left','pull-right');
-          if(playerCaught&&botCaught){status.textContent='Both fish are in — open the weigh-in!';water.classList.remove('can-tap');if(!water.querySelector('.preview-result-link'))status.insertAdjacentHTML('beforebegin','<a class="preview-result-link" href="?state=result">View weigh-in</a>');}
-          else status.textContent=playerCaught?'Fish secured — the bot is still fishing':'The bot caught one — tap the ripple for yours!';
-        },1120);
+      function replaceCatch(side,caught){
+        const hook=water.querySelector(`.fishing-hook-node.${side}`),existing=hook.querySelector(`.fishing-hook-catch.${side}`);
+        existing?.remove();hook.insertAdjacentHTML('beforeend',caught?fishMarkup(side):`<div class="fishing-hook-catch ${side}" data-catch-id=""></div>`);
       }
-      water.addEventListener('pointerdown',event=>{if(!event.target.closest('a,button')&&!playerCaught)catchFish('left');});
-      live.querySelector('[data-debug-reset]').addEventListener('click',()=>location.reload());
-      live.querySelector('[data-debug-bot]').addEventListener('click',()=>catchFish('right'));
-      live.querySelector('[data-debug-cast]').addEventListener('click',replayCast);
-      const tick=setInterval(()=>{seconds=Math.max(0,seconds-1);clock.textContent=`${seconds}s`;live.querySelector('[data-fishing-debug-timer]').textContent=`${seconds}s`;if(seconds===0){clearInterval(tick);live.querySelector('[data-fishing-debug-health]').textContent='DONE';if(!playerCaught)status.textContent='Time expired — reset the test to cast again.';}},1000);
-      botTimer=setTimeout(()=>catchFish('right'),5600);
-      window.addEventListener('resize',alignLines);live.querySelectorAll('.fishing-angler img').forEach(img=>img.addEventListener('load',alignLines,{once:true}));
-      trackCast();window.__fishingPreview={catchFish,replayCast,alignLines,getState:()=>({seconds,playerCaught,botCaught})};
+      function clearRipple(reason='cleared'){
+        clearTimeout(timers.biteExpiry);timers.biteExpiry=null;water.querySelector('.fishing-ripple')?.remove();water.classList.remove('can-tap');previewState.activeBite='';controller.setRipple('');controller.log('preview-ripple-cleared',{reason});
+      }
+      function spawnRipple(size=76){
+        if(!previewState.started||previewState.playerCaught||previewState.seconds<=0)return;
+        clearRipple('replaced');const id=`preview-bite-${++biteSequence}`;previewState.activeBite=id;
+        const ripple=document.createElement('div');ripple.className='fishing-ripple';ripple.dataset.rippleId=id;ripple.style.setProperty('--ripple',`${size}px`);ripple.style.setProperty('--ripple-speed','.95s');ripple.style.setProperty('--ripple-thickness','4px');ripple.innerHTML='<i></i><i></i><i></i>';status.insertAdjacentElement('beforebegin',ripple);
+        water.classList.add('can-tap');status.textContent='BITE! Tap the ripple to pull your fish.';controller.setRipple(id);controller.setPhase('bite');
+        timers.biteExpiry=setTimeout(()=>{if(previewState.activeBite!==id)return;clearRipple('expired');status.textContent='That ripple passed — watch for the next one.';controller.setPhase('waiting');timers.bite=setTimeout(()=>spawnRipple(54+(biteSequence%3)*18),1500);},3200);
+      }
+      function finishIfReady(){
+        if(previewState.playerCaught&&previewState.botCaught){clearRipple('both-caught');clearInterval(timers.clock);status.textContent='Both fish are in — open the weigh-in!';controller.setPhase('complete');if(!water.querySelector('.preview-result-link'))status.insertAdjacentHTML('beforebegin','<a class="preview-result-link" href="?state=result">View weigh-in</a>');return;}
+        controller.setPhase(previewState.activeBite?'bite':'waiting');status.textContent=previewState.playerCaught?'Fish secured — the bot is still fishing.':'The bot caught one — wait for a ripple and pull yours!';
+      }
+      function catchFish(side,source='gameplay'){
+        if(side==='left'&&previewState.playerCaught||side==='right'&&previewState.botCaught)return;
+        if(side==='left'){previewState.playerCaught=true;clearRipple('player-caught');}
+        else previewState.botCaught=true;
+        replaceCatch(side,true);controller.syncCatch(side,`preview-${side}-${previewState.round}`,true);controller.setBot(side==='right'?'reeling':controller.bot.status);status.textContent=side==='left'?'Reeling in your catch…':'The Remote Bot is reeling in a catch…';controller.log('preview-catch',{side,source});
+        setTimeout(()=>{if(side==='right')controller.setBot('caught');finishIfReady();},1380);
+      }
+      function scheduleBot(){
+        const at=new Date(Date.now()+9000).toISOString();controller.setBot('watching',at);timers.bot=setTimeout(()=>{if(!previewState.botCaught&&previewState.seconds>0)catchFish('right','scheduled-bot');},9000);
+      }
+      function startClock(){
+        timers.clock=setInterval(()=>{previewState.seconds=Math.max(0,previewState.seconds-1);clock.textContent=`${previewState.seconds}s`;controller.setTimer(previewState.seconds);if(previewState.seconds===0){clearInterval(timers.clock);clearRipple('time-expired');controller.setPhase('complete');status.textContent=previewState.playerCaught?'Time expired — your fish is secured.':'Time expired — start a fresh round to try again.';}},1000);
+      }
+      async function startFresh(replay=false){
+        clearTimers();previewState.round+=1;previewState.seconds=60;previewState.started=false;previewState.playerCaught=false;previewState.botCaught=false;previewState.activeBite='';biteSequence=0;clock.textContent='60s';water.querySelector('.preview-result-link')?.remove();water.classList.remove('can-tap','pull-left','pull-right');replaceCatch('left',false);replaceCatch('right',false);controller.resetRig('left',false);controller.resetRig('right',false);controller.setTimer(60);controller.setBot('waiting');controller.recordInput('none','Fresh round started');status.textContent='Both anglers are casting…';
+        if(replay)await controller.replayCast();else await controller.playCast();
+        previewState.started=true;status.textContent='Lines are in — watch for a ripple.';controller.setPhase('waiting');startClock();timers.bite=setTimeout(()=>spawnRipple(76),1200);scheduleBot();
+      }
+
+      water.addEventListener('pointerdown',event=>{
+        if(event.target.closest('a,button,[data-fishing-result]'))return;
+        if(!previewState.started){controller.recordInput('rejected','Casting is still in progress');return;}
+        if(previewState.playerCaught){controller.recordInput('rejected','You already secured a fish');return;}
+        if(!previewState.activeBite){controller.recordInput('rejected','No active ripple — wait for a bite');status.textContent='No bite yet — wait for a visible ripple.';return;}
+        controller.recordInput('accepted','Active ripple selected',previewState.activeBite);catchFish('left','player-click');
+      });
+      live.querySelector('[data-debug-copy]').addEventListener('click',async event=>{const button=event.currentTarget,message=live.querySelector('[data-fishing-debug-copy-status]');try{await controller.copyReport({previewState:{...previewState}});button.textContent='Copied!';message.textContent='Debug report copied. Paste it into your next message.';setTimeout(()=>button.textContent='Copy Debug Report',1600);}catch(error){message.textContent=`Copy failed: ${String(error?.message||error)}`;}});
+      live.querySelector('[data-debug-reset]').addEventListener('click',()=>startFresh(true));
+      live.querySelector('[data-debug-ripple]').addEventListener('click',()=>spawnRipple(96));
+      live.querySelector('[data-debug-bot]').addEventListener('click',()=>catchFish('right','debug-control'));
+      live.querySelector('[data-debug-cast]').addEventListener('click',()=>startFresh(true));
+      startFresh(false);
+      window.__fishingPreview={startFresh,spawnRipple,catchFish,getState:()=>({...previewState})};
     }
   </script>
 </body>
