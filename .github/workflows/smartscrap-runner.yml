@@ -21,6 +21,8 @@ jobs:
           set -euo pipefail
           mkdir -p chatgpt-build build
           tr -d '[:space:]' < chatgpt-build/SmartScrap.as.gz.b64 | base64 -d | gzip -dc > chatgpt-build/SmartScrap.as
+          echo 'cc6ee77c19bd0d9e2f4a15723691eacfa5e17c38fa5bc7653a107ee545d95220  chatgpt-build/SmartScrap.as' | sha256sum -c -
+          python3 chatgpt-build/smartscrap_fix1.py chatgpt-build/SmartScrap.as
           echo 'cf9ec86458e11f131f8bb3d18334a6259b82c3be9904f133a1bafcaef0d29bde  chatgpt-build/SmartScrap.as' | sha256sum -c -
           grep -F 'DRY RUN ONLY' chatgpt-build/SmartScrap.as
           grep -F 'Workbench::ScrapItem' chatgpt-build/SmartScrap.as || true
