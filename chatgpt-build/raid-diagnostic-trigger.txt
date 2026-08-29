@@ -1,1 +1,1 @@
-Build RaidCheckpointDiagnostic v0.1 diagnostic-only BA2 - Java 8
+Build RaidCheckpointDiagnostic v0.1 diagnostic-only BA2 - PLAYERGLOBAL_HOME fix
