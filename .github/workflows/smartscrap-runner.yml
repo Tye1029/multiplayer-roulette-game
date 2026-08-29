@@ -1,0 +1,71 @@
+name: Temporary SmartScrap Build Runner
+
+on:
+  pull_request:
+    branches:
+      - chatgpt/smartscrap-runner
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Reconstruct and verify SmartScrap source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p chatgpt-build build
+          tr -d '[:space:]' < chatgpt-build/SmartScrap.as.gz.b64 | base64 -d | gzip -dc > chatgpt-build/SmartScrap.as
+          echo 'cc6ee77c19bd0d9e2f4a15723691eacfa5e17c38fa5bc7653a107ee545d95220  chatgpt-build/SmartScrap.as' | sha256sum -c -
+          grep -F 'DRY RUN ONLY' chatgpt-build/SmartScrap.as
+          grep -F 'Workbench::ScrapItem' chatgpt-build/SmartScrap.as || true
+          test "$(grep -c 'dispatchEvent(new CustomEvent.*Workbench::ScrapItem' chatgpt-build/SmartScrap.as || true)" -eq 0
+
+      - name: Install Apache Flex compiler
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fL --connect-timeout 20 --max-time 180 --retry 3 --retry-delay 2 -o /tmp/flex.tar.gz https://dlcdn.apache.org/flex/4.16.1/binaries/apache-flex-sdk-4.16.1-bin.tar.gz
+          mkdir -p "$RUNNER_TEMP/flex"
+          tar -xzf /tmp/flex.tar.gz -C "$RUNNER_TEMP/flex" --strip-components=1
+          chmod +x "$RUNNER_TEMP/flex/bin/mxmlc"
+          git clone --depth 1 https://github.com/nexussays/playerglobal.git "$RUNNER_TEMP/playerglobal"
+
+      - name: Compile SmartScrap replacement SWF
+        shell: bash
+        run: |
+          set -euo pipefail
+          export FLEX_HOME="$RUNNER_TEMP/flex"
+          export PLAYERGLOBAL_HOME="$RUNNER_TEMP/playerglobal"
+          "$FLEX_HOME/bin/mxmlc" \
+            -target-player=11.1 \
+            -swf-version=14 \
+            -default-size=1920,1080 \
+            -debug=false \
+            -optimize=true \
+            -static-link-runtime-shared-libraries=true \
+            -output="$GITHUB_WORKSPACE/build/InventOmaticStash.swf" \
+            "$GITHUB_WORKSPACE/chatgpt-build/SmartScrap.as"
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('build/InventOmaticStash.swf')
+          assert p.exists() and p.stat().st_size > 0
+          assert p.read_bytes()[:3] in (b'FWS', b'CWS', b'ZWS')
+          print('valid SWF', p.stat().st_size, p.read_bytes()[:3])
+          PY
+          sha256sum build/InventOmaticStash.swf > build/InventOmaticStash.swf.sha256.txt
+
+      - name: Upload SmartScrap SWF
+        uses: actions/upload-artifact@v4
+        with:
+          name: SmartScrap-v0.1-SWF
+          path: |
+            build/InventOmaticStash.swf
+            build/InventOmaticStash.swf.sha256.txt
+          if-no-files-found: error
+          retention-days: 1
