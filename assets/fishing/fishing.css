@@ -1281,7 +1281,7 @@
 .fishing-angler {
   position: absolute;
   z-index: 2;
-  top: -14%;
+  top: -15.5%;
   height: 42%;
   transform-origin: 46% 91%;
   filter: drop-shadow(0 8px 7px rgba(0, 34, 48, .3));

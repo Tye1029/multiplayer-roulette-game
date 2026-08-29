@@ -10,8 +10,8 @@ const controller = fs.readFileSync(new URL("../assets/fishing/fishing-controller
 const preview = fs.readFileSync(new URL("../games/multiplayer/fishing/preview.html", import.meta.url), "utf8");
 const serverData = fs.readFileSync(new URL("../netlify/functions/_data.js", import.meta.url), "utf8");
 
-assert(html.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v14'), "versioned Fishing stylesheet is not loaded");
-assert(html.includes('/assets/fishing/fishing-controller.js?v=fishing-mechanics-v14'), "shared Fishing controller is not loaded");
+assert(html.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v15'), "versioned Fishing stylesheet is not loaded");
+assert(html.includes('/assets/fishing/fishing-controller.js?v=fishing-mechanics-v15'), "shared Fishing controller is not loaded");
 assert(html.includes('class="fishing-command-bar"'), "game-owned Fishing header is missing");
 assert(html.includes('class="fishing-instructions" aria-label="How to play"'), "visible game instructions are missing");
 assert(html.includes("Bigger ripple, bigger fish"), "ripple-size instruction is missing");
@@ -57,7 +57,7 @@ assert(html.includes('class="fishing-shore-rig right"'), "right dock and fisherm
 assert(css.includes('top: 44.6%;\n  width: 65%;\n  aspect-ratio: 3 / 2;'), "anchored dock assembly does not preserve the approved off-screen proportions");
 assert(css.includes('.fishing-shore-rig.left { left: -28%;'), "left dock entrance is not cropped beyond the frame");
 assert(css.includes('.fishing-shore-rig.right { right: -28.4%;'), "right dock entrance is not cropped beyond the frame");
-assert(css.includes('z-index: 2;\n  top: -14%;\n  height: 42%;'), "fishermen are not physically layered behind the solid dock posts");
+assert(css.includes('z-index: 2;\n  top: -15.5%;\n  height: 42%;'), "fishermen's soles are not aligned above the dock surface and behind the solid posts");
 assert(css.includes('z-index: 1;\n  inset: 0;'), "dock planks are not layered beneath the fishermen's boots");
 assert(css.includes('clip-path: inset(18% 23% 0 67%);'), "solid foreground posts are not isolated above the fishermen's boots");
 assert(css.includes('.fishing-angler.left { right: 14.5%; }'), "left fisherman does not match the approved outward dock position");
