@@ -1,7 +1,7 @@
 (function fishingControllerBootstrap(global){
   "use strict";
 
-  const VERSION="fishing-controller-v2";
+  const VERSION="fishing-controller-v3";
   const SIDES=["left","right"];
   const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
   const round=value=>Math.round(Number(value||0)*10)/10;
@@ -211,20 +211,20 @@
       if(!this.ctx||!this.canvas)return;
       const ctx=this.ctx,dpr=this.canvasDpr||1,w=this.canvas.width/dpr,h=this.canvas.height/dpr,horizon=h*.42;
       ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);
-      const phase=this.reducedMotion?0:now*.00072;
-      const gradient=ctx.createLinearGradient(0,horizon,0,h);gradient.addColorStop(0,"rgba(86,238,244,.035)");gradient.addColorStop(.55,"rgba(18,171,205,.075)");gradient.addColorStop(1,"rgba(0,83,128,.11)");ctx.fillStyle=gradient;ctx.fillRect(0,horizon,w,h-horizon);
+      const phase=this.reducedMotion?0:now*.00036;
+      const gradient=ctx.createLinearGradient(0,horizon,0,h);gradient.addColorStop(0,"rgba(86,238,244,.014)");gradient.addColorStop(.55,"rgba(18,171,205,.03)");gradient.addColorStop(1,"rgba(0,83,128,.045)");ctx.fillStyle=gradient;ctx.fillRect(0,horizon,w,h-horizon);
       ctx.globalCompositeOperation="screen";
-      for(let row=0;row<19;row++){
-        const y=horizon+14+row*((h-horizon-20)/19),amp=2.5+row*.2,freq=.0115+row*.00032;
+      for(let row=0;row<16;row++){
+        const y=horizon+16+row*((h-horizon-22)/16),amp=1.3+row*.13,freq=.011+row*.0003;
         ctx.beginPath();
-        for(let x=-8;x<=w+8;x+=7){const wave=Math.sin(x*freq+phase*(1.7+row*.038)+row*.73)*amp+Math.sin(x*.0042-phase*1.05)*1.55; if(x===-8)ctx.moveTo(x,y+wave);else ctx.lineTo(x,y+wave);}
-        ctx.strokeStyle=`rgba(${row%3===0?"221,254,255":"92,231,235"},${.062+(row%4)*.014})`;ctx.lineWidth=row%4===0?1.45:.75;ctx.stroke();
+        for(let x=-8;x<=w+8;x+=8){const wave=Math.sin(x*freq+phase*(1.5+row*.032)+row*.73)*amp+Math.sin(x*.004-phase*.82)*.75; if(x===-8)ctx.moveTo(x,y+wave);else ctx.lineTo(x,y+wave);}
+        ctx.strokeStyle=`rgba(${row%3===0?"221,254,255":"92,231,235"},${.026+(row%4)*.008})`;ctx.lineWidth=row%4===0?.95:.55;ctx.stroke();
       }
-      for(let band=0;band<4;band++){
-        const y=horizon+(band+1)*(h-horizon)/5;
+      for(let band=0;band<3;band++){
+        const y=horizon+(band+1)*(h-horizon)/4;
         ctx.beginPath();
-        for(let x=-40;x<=w+40;x+=12){const wave=Math.sin(x*.008+phase*.62+band*1.8)*(5+band*.8);if(x===-40)ctx.moveTo(x,y+wave);else ctx.lineTo(x,y+wave);}
-        ctx.strokeStyle="rgba(214,252,255,.055)";ctx.lineWidth=5+band;ctx.stroke();
+        for(let x=-40;x<=w+40;x+=12){const wave=Math.sin(x*.0075+phase*.52+band*1.8)*(3.2+band*.55);if(x===-40)ctx.moveTo(x,y+wave);else ctx.lineTo(x,y+wave);}
+        ctx.strokeStyle="rgba(214,252,255,.018)";ctx.lineWidth=3+band;ctx.stroke();
       }
       ctx.globalCompositeOperation="source-over";
     }

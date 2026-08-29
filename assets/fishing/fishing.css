@@ -1161,7 +1161,7 @@
   inset: 0;
   width: 100%;
   height: 100%;
-  opacity: 1;
+  opacity: .7;
   mix-blend-mode: screen;
   pointer-events: none;
 }
@@ -1175,11 +1175,11 @@
   object-fit: cover;
   object-position: center;
   clip-path: inset(42% 0 0);
-  opacity: .22;
+  opacity: .12;
   pointer-events: none;
   user-select: none;
   transform-origin: 50% 78%;
-  animation: fishingLakeBreath 7.5s ease-in-out infinite alternate;
+  animation: fishingLakeBreath 12s cubic-bezier(.45,0,.55,1) infinite alternate;
 }
 
 .fishing-water::before {
@@ -1187,11 +1187,11 @@
   z-index: 1;
   inset: 42% 0 0;
   background:
-    linear-gradient(180deg, rgba(45, 194, 219, .075), rgba(1, 72, 112, .21)),
-    repeating-linear-gradient(173deg, transparent 0 16px, rgba(211, 253, 255, .105) 17px 18px, transparent 19px 35px);
+    linear-gradient(180deg, rgba(45, 194, 219, .025), rgba(1, 72, 112, .07)),
+    repeating-linear-gradient(173deg, transparent 0 18px, rgba(211, 253, 255, .052) 19px 20px, transparent 21px 39px);
   content: "";
   pointer-events: none;
-  animation: fishingWaterDrift 7.5s linear infinite;
+  animation: fishingWaterDrift 13s linear infinite;
 }
 
 .fishing-sky {
@@ -1238,8 +1238,8 @@
   transform-origin: 50% 55%;
 }
 
-.fishing-dock.left { left: -4%; transform: rotate(90deg); }
-.fishing-dock.right { right: -4%; transform: scaleX(-1) rotate(90deg); }
+.fishing-dock.left { left: -4%; transform: rotate(-1.2deg); }
+.fishing-dock.right { right: -4%; transform: scaleX(-1) rotate(-1.2deg); }
 .fishing-dock::before,
 .fishing-dock::after { display: none !important; content: none !important; }
 
@@ -1268,8 +1268,8 @@
   user-select: none;
 }
 
-.fishing-angler.left { left: 12%; }
-.fishing-angler.right { right: 12%; transform: scaleX(-1); }
+.fishing-angler.left { left: 22%; }
+.fishing-angler.right { right: 22%; transform: scaleX(-1); }
 
 .fishing-line-art {
   position: absolute;
@@ -1661,7 +1661,7 @@
 }
 
 @keyframes fishingWaterDrift { to { background-position: 0 0, 100px 0; } }
-@keyframes fishingLakeBreath { 0% { opacity: .14; transform: translate3d(-.35%,0,0) scaleX(1.008); } 50% { opacity: .23; transform: translate3d(.25%,1px,0) scaleX(.997); } 100% { opacity: .18; transform: translate3d(.45%,-1px,0) scaleX(1.005); } }
+@keyframes fishingLakeBreath { 0% { opacity: .08; transform: translate3d(-.16%,0,0) scaleX(1.003); } 50% { opacity: .13; transform: translate3d(.08%,.5px,0) scaleX(.999); } 100% { opacity: .1; transform: translate3d(.18%,-.5px,0) scaleX(1.002); } }
 @keyframes fishingCloudTravel { from { transform: translateX(0); } to { transform: translateX(calc(100vw + 430px)); } }
 @keyframes fishingBobberFloat { 50% { translate: 0 5px; rotate: 3deg; } }
 @keyframes fishingCastLeft { 0% { transform: translate3d(-4px,2px,0) rotate(-5deg); } 18% { transform: translate3d(-11px,5px,0) rotate(-12deg); } 46% { transform: translate3d(12px,-8px,0) rotate(13deg); } 67% { transform: translate3d(5px,-3px,0) rotate(4deg); } 84% { transform: translate3d(-2px,1px,0) rotate(-2deg); } 100% { transform: translate3d(0,0,0) rotate(0); } }
