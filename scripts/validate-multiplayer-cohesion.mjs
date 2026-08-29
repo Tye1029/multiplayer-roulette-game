@@ -20,6 +20,7 @@ const catalog = require(fs.existsSync(catalogPath)
 const data = fs.readFileSync(path.join(root, "netlify", "functions", "_data.js"), "utf8");
 const action = fs.readFileSync(path.join(root, "netlify", "functions", "duel-action.js"), "utf8");
 const index = fs.readFileSync(path.join(root, "index.html"), "utf8");
+const duelShell = fs.readFileSync(path.join(root, "assets", "duel-shell.css"), "utf8");
 
 const expectedModes = [
   "mines", "rps", "draw", "fishing", "roulette", "plinko",
@@ -124,7 +125,16 @@ for (const token of [
 ]) assert.ok(index.includes(token), `client runtime is missing ${token}`);
 
 assert.ok(!index.includes("if (mountainRacePauseCompletedPolling(game))"), "Summit completion must use shared rematch polling");
-assert.ok(index.includes("one of the six multiplayer games currently in active development"));
+assert.ok(index.includes("<h1>Rumble Arcade</h1>") && index.includes("<p>Choose a duel.</p>"), "public launcher copy is not concise");
+assert.ok(!index.includes("SIMPLE FISHING NPC BUILD"), "internal build label is still public");
+assert.ok(!index.includes("Create or join quick 1v1 games"), "old instructional subtitle is still public");
+assert.ok(index.includes('/assets/duel-shell.css?v=duel-shell-v1'), "shared professional duel shell is not loaded");
+assert.ok(index.includes('class="duel-side-stack"'), "compact create/join controls are not grouped below the game");
+assert.ok(index.includes('class="duel-create-fields"'), "compact create controls are missing");
+assert.ok(index.includes('class="duel-countdown-frame"'), "shared countdown frame is missing");
+assert.ok(duelShell.includes("grid-template-columns: minmax(0, 1fr) !important;"), "active game does not own the full workspace row");
+assert.ok(duelShell.includes(".duel-side-stack"), "below-game control bar has no shared layout");
+assert.ok(duelShell.includes("border-radius: 0 !important;"), "legacy bubbly workspace shell is not neutralized");
 assert.ok(!index.includes('data-rnb-game="mines"'));
 assert.ok(!index.includes('class="sth-game" data-mode="blackjack"'));
 assert.ok(!index.includes("Create a game first."), "Remote Bot startup must not require a separate create click");

@@ -12561,8 +12561,8 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
   <script id="blackjackDuelRuntime" src="/assets/blackjack-duel/blackjack-duel.js?v=blackjack-duel-v17" defer></script>
 <!-- BLACKJACK_DUEL_ASSETS_END -->
 <!-- FISHING_DUEL_ASSETS_START -->
-  <link id="fishingDuelStyles" rel="stylesheet" href="/assets/fishing/fishing.css?v=fishing-mechanics-v18">
-  <script id="fishingDuelRuntime" defer src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v18"></script>
+  <link id="fishingDuelStyles" rel="stylesheet" href="/assets/fishing/fishing.css?v=fishing-mechanics-v19">
+  <script id="fishingDuelRuntime" defer src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v19"></script>
 <!-- FISHING_DUEL_ASSETS_END -->
 
 <!-- MOUNTAIN_RACE_V29_PRELOADS -->
@@ -12665,9 +12665,9 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
 
     <section class="duel-screen panel" id="duelScreen" hidden>
       <div class="duel-header">
-        <div>
-          <h2 class="duel-title">Multiplayer Arcade <span style="font-size:.42em;vertical-align:middle;padding:.25em .55em;border-radius:999px;background:#2d7a46;color:#fff;white-space:nowrap">SIMPLE FISHING NPC BUILD</span></h2>
-          <p class="duel-subtitle">Create or join quick 1v1 games: Mines Race, Rock Paper Scissors, Plinko Duel, Blackjack 1v1, and Coin Flip Duel.</p>
+        <div class="duel-header-copy">
+          <p class="duel-eyebrow">Rumble Arcade</p>
+          <h2 class="duel-title">Duels</h2>
         </div>
         <div class="duel-balance-card" aria-live="polite">
           <div class="balance-label">Ticket Balance</div>
@@ -12679,8 +12679,8 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
       <div class="duel-grid">
         <div class="duel-card duel-live-card">
           <div class="duel-actions duel-top-actions">
-            <h3>Active Duel</h3>
-            <div class="test-refresh-stack"><button class="secondary" id="duelRefreshBtn" type="button">Refresh</button><button class="test-hard-cancel" id="duelHardCancelAllBtn" type="button">Hard Cancel All Games</button></div>
+            <h3>Active match</h3>
+            <div class="duel-header-tools"><button class="secondary" id="duelRefreshBtn" type="button">Sync</button><details class="duel-test-tools"><summary aria-label="Open test tools">•••</summary><button class="test-hard-cancel" id="duelHardCancelAllBtn" type="button">Hard Cancel All Games</button></details></div>
           </div>
           <div class="duel-active" id="duelActive">
             <p class="duel-status">Create or join a duel to start.</p>
@@ -12688,10 +12688,10 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
         </div>
 
         <div class="duel-side-stack">
-          <div class="duel-card">
-            <h3>Create Duel</h3>
-            <label class="duel-label" for="duelModeSelect">Game</label>
-            <select class="duel-input" id="duelModeSelect">
+          <div class="duel-card duel-create-card">
+            <div class="duel-card-heading"><span>New match</span><small>Choose a game and wager</small></div>
+            <div class="duel-create-fields">
+            <label class="duel-compact-field" for="duelModeSelect"><span>Game</span><select class="duel-input" id="duelModeSelect">
               <option value="mines">Multiplayer Mines Race</option>
               <option value="rps">Rock Paper Scissors Duel</option>
               <option value="draw">DRAW! Western Duel</option>
@@ -12704,15 +12704,15 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
               <option value="safecracker">Safe Cracker Duel</option>
               <option value="cardwar">Card War Strategy</option>
               <option value="coin">Coin Flip Duel</option>
-            </select>
-            <label class="duel-label" for="duelWagerInput">Wager</label>
-            <input class="duel-input" id="duelWagerInput" type="number" min="1000" step="1000" value="1000" placeholder="Tickets" autocomplete="off" inputmode="numeric" data-lpignore="true" data-1p-ignore="true" data-form-type="other" />
-            <button class="gold duel-main-btn" id="duelCreateBtn" type="button">Create</button>
-            <button class="secondary duel-main-btn" id="duelNpcBtn" type="button">Add Simple NPC</button>
+            </select></label>
+            <label class="duel-compact-field" for="duelWagerInput"><span>Wager</span><input class="duel-input" id="duelWagerInput" type="number" min="1000" step="1000" value="1000" placeholder="Tickets" autocomplete="off" inputmode="numeric" data-lpignore="true" data-1p-ignore="true" data-form-type="other" /></label>
+            <button class="gold duel-main-btn" id="duelCreateBtn" type="button">Create match</button>
+            <button class="secondary duel-main-btn" id="duelNpcBtn" type="button">Add NPC</button>
+            </div>
             <p class="duel-status" id="duelStatus">Save your Torn API key first, then create or join a duel.</p>
           </div>
-          <div class="duel-card">
-            <h3>Join A Duel</h3>
+          <div class="duel-card duel-join-card">
+            <div class="duel-card-heading"><span>Open matches</span><small>Join an available duel</small></div>
             <div class="duel-lobby" id="duelLobby"></div>
           </div>
         </div>
@@ -18874,6 +18874,27 @@ function updateRunnerBalanceDisplay() {
       if(state.myCatch)return"Fish secured — opponent is still fishing";
       return active?"BITE! TAP ANYWHERE IN THE GAME":"Watch the water for the next ripple";
     }
+    function duelFishingFormatClock(seconds){
+      const safe=Math.max(0,Math.min(60,Math.ceil(Number(seconds)||0)));
+      return `${Math.floor(safe/60)}:${String(safe%60).padStart(2,"0")}`;
+    }
+    function duelFishingClockHtml(seconds,status="waiting"){
+      const safe=Math.max(0,Math.min(60,Math.ceil(Number(seconds)||0)));
+      const waiting=!['countdown','playing'].includes(String(status||''));
+      const value=waiting?'—:—':duelFishingFormatClock(safe);
+      const progress=waiting?100:(safe/60)*100;
+      return `<div class="fishing-clock${safe<=10&&!waiting?' is-low':''}" data-fishing-clock data-clock-state="${escapeHtml(String(status||'waiting'))}" role="timer" aria-label="Round time remaining"><span class="fishing-clock-label">ROUND TIME</span><strong class="fishing-clock-value" data-fishing-clock-value>${value}</strong><span class="fishing-clock-track" aria-hidden="true"><i data-fishing-clock-progress style="--clock-progress:${progress}%"></i></span></div>`;
+    }
+    function duelFishingUpdateClock(root,seconds,status="playing"){
+      const clock=root?.querySelector?.('[data-fishing-clock]');if(!clock)return;
+      const safe=Math.max(0,Math.min(60,Math.ceil(Number(seconds)||0)));
+      const waiting=!['countdown','playing'].includes(String(status||''));
+      clock.dataset.clockState=String(status||'waiting');
+      clock.classList.toggle('is-low',safe<=10&&!waiting);
+      const value=clock.querySelector('[data-fishing-clock-value]');if(value)value.textContent=waiting?'—:—':duelFishingFormatClock(safe);
+      const progress=clock.querySelector('[data-fishing-clock-progress]');if(progress)progress.style.setProperty('--clock-progress',`${waiting?100:(safe/60)*100}%`);
+      clock.setAttribute('aria-label',waiting?'Round timer waiting to start':`${safe} seconds remaining`);
+    }
     function duelFishingDebugPanel(game,state,active,seconds){
       const role=game?.isCreator?"creator":"joiner";
       const bot=game?.creator?.isBot||game?.joiner?.isBot;
@@ -18909,9 +18930,9 @@ function updateRunnerBalanceDisplay() {
       }
       const s=duelFishingStableState(g),active=g.status==="playing"?duelFishingActiveEvent(s):null;
       const seconds=g.status==="playing"?Math.min(60,Math.max(0,Math.ceil(duelFishingRemainingMs(s)/1000))):60;
-      const clock=duelActive?.querySelector(".fishing-clock");if(clock)clock.textContent=`${seconds}s`;
-      const debugTimer=duelActive?.querySelector("[data-fishing-debug-timer]");if(debugTimer)debugTimer.textContent=`${seconds}s`;
       const fishingRoot=duelActive?.querySelector("[data-fishing-game]");
+      duelFishingUpdateClock(fishingRoot,seconds,g.status);
+      const debugTimer=duelActive?.querySelector("[data-fishing-debug-timer]");if(debugTimer)debugTimer.textContent=`${seconds}s`;
       fishingRoot?._fishingController?.setTimer?.(seconds);
       fishingRoot?._fishingController?.setRipple?.(active?.id||"");
       if(g.status==="countdown")duelFishingPatchDom(g);
@@ -18950,7 +18971,7 @@ function updateRunnerBalanceDisplay() {
       if(window.FishingSceneController||window.__fishingControllerLoading)return;
       window.__fishingControllerLoading=true;
       const script=document.createElement("script");
-      script.src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v18&runtime=1";
+      script.src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v19&runtime=1";
       script.onload=()=>{window.__fishingControllerLoading=false;if(root?.isConnected)duelBindFishing(root);};
       script.onerror=()=>{window.__fishingControllerLoading=false;console.error("Fishing controller failed to load");};
       document.head.appendChild(script);
@@ -19956,6 +19977,27 @@ function updateRunnerBalanceDisplay() {
         if(duelFishingComparisonPhase(latest)==="result")duelFishingStopCompletionTicker();
       },200);
     }
+    function duelFishingResultPortal(){
+      let portal=document.getElementById('fishingResultPortal');
+      if(!portal){portal=document.createElement('div');portal.id='fishingResultPortal';portal.hidden=true;document.body.appendChild(portal);}
+      return portal;
+    }
+    function duelFishingHideResultPortal(){
+      const portal=document.getElementById('fishingResultPortal');
+      if(portal){portal.hidden=true;portal.innerHTML='';}
+      document.body.classList.remove('fishing-result-open');
+    }
+    function duelFishingShowResultPortal(game,html){
+      if(!html)return null;
+      const portal=duelFishingResultPortal();
+      if(!portal.querySelector('[data-fishing-result]'))portal.innerHTML=html;
+      portal.hidden=false;
+      document.body.classList.add('fishing-result-open');
+      document.querySelectorAll('.result-pop,.duel-big-result').forEach(node=>node.remove());
+      duelBindResultButtons(game);
+      duelScheduleCompletedCloseButton(game);
+      return portal.querySelector('[data-fishing-result]');
+    }
     function duelFishingPlayerAvatar(player){
       return player?.avatarUrl?`<img class="fishing-compare-avatar" src="${escapeHtml(player.avatarUrl)}" alt="">`:`<div class="fishing-compare-avatar" style="display:grid;place-items:center">🎣</div>`;
     }
@@ -20153,7 +20195,7 @@ function updateRunnerBalanceDisplay() {
         portal=document.createElement('div');
         portal.id='duelCountdownPortal';
         portal.setAttribute('aria-live','assertive');
-        portal.innerHTML='<div class="duel-countdown-number cue">3</div>';
+        portal.innerHTML='<div class="duel-countdown-frame"><span class="duel-countdown-label">DUEL START</span><div class="duel-countdown-number cue">3</div></div>';
         document.body.appendChild(portal);
       }
       return portal;
@@ -20169,6 +20211,7 @@ function updateRunnerBalanceDisplay() {
     function duelHideCountdownPortal(){
       const portal=document.getElementById('duelCountdownPortal');
       portal?.classList.remove('show');
+      if(portal)delete portal.dataset.duelMode;
       duelCountdownPortalLabel='';
     }
     function duelPlayCountdownSound(game,label){
@@ -20263,8 +20306,11 @@ function updateRunnerBalanceDisplay() {
         return true;
       }
       const portal=duelCountdownPortal();
+      portal.dataset.duelMode=String(game.mode||'duel');
       duelPositionCountdownPortal();
       const text=portal.querySelector('.duel-countdown-number');
+      const heading=portal.querySelector('.duel-countdown-label');
+      if(heading)heading.textContent=game.mode==='fishing'?'LINES IN':game.mode==='draw'?'DRAW SIGNAL':'DUEL START';
       if(label&&label!==duelCountdownPortalLabel){
         duelCountdownPortalLabel=label;
         text.textContent=label;
@@ -20310,6 +20356,7 @@ function updateRunnerBalanceDisplay() {
       rouletteResetVisualRuntime("");
       duelFishingResetRuntime(null);
       duelFishingLatestGame=null;
+      duelFishingHideResultPortal();
       duelDrawLatestGame=null;
       duelDrawSyncWesternMusic(null);
       duelResetGenericRuntime(null);
@@ -20517,6 +20564,7 @@ function updateRunnerBalanceDisplay() {
       duelAcceptedStatusByGame.delete(id);
       duelLastRenderKey = "";
       document.body.classList.remove('roulette-viewport-lock');
+      duelFishingHideResultPortal();
       if (duelActive) duelActive.innerHTML = '<p class="duel-status">' + (restored ? 'Previous game complete. Choose a game to play again.' : 'Game result closed. Choose a game to play again.') + '</p>';
       duelSetPollRate(null);
       setTimeout(() => duelRefresh(true), 0);
@@ -20526,8 +20574,8 @@ function updateRunnerBalanceDisplay() {
       const id = String(game?.gameId || "");
       const attach = () => {
         if (!duelActive || !id || String(duelLastActiveGame?.gameId || id) !== id) return;
-        if (document.querySelector('.sc-result-overlay[data-sc-result-portal] .duel-end-screen-close') || duelActive.querySelector('.duel-end-screen-close')) return;
-        const target = document.querySelector('body > .sc-result-overlay[data-sc-result-portal] .sc-result-card') || duelActive.querySelector('.sc-result-card, [data-fishing-result-card], .roulette-result-card, .draw-result-card, [class*="result-card"], .sc-result-overlay > *, [class*="result-overlay"] > *, .duel-arena') || duelActive;
+        if (document.querySelector('.sc-result-overlay[data-sc-result-portal] .duel-end-screen-close, #fishingResultPortal .duel-end-screen-close') || duelActive.querySelector('.duel-end-screen-close')) return;
+        const target = document.querySelector('body > .sc-result-overlay[data-sc-result-portal] .sc-result-card') || document.querySelector('#fishingResultPortal [data-fishing-result-card]') || duelActive.querySelector('.sc-result-card, [data-fishing-result-card], .roulette-result-card, .draw-result-card, [class*="result-card"], .sc-result-overlay > *, [class*="result-overlay"] > *, .duel-arena') || duelActive;
         target.classList.add('duel-end-screen-close-host');
         const button = document.createElement('button');
         button.type = 'button';
@@ -20539,6 +20587,7 @@ function updateRunnerBalanceDisplay() {
           event.stopPropagation();
           button.closest('.sc-result-overlay[data-sc-result-portal]')?.remove();
           document.body.classList.remove('sc-result-portal-open');
+          duelFishingHideResultPortal();
           duelCloseCompletedScreen(id, false);
         });
         target.appendChild(button);
@@ -20564,6 +20613,9 @@ function updateRunnerBalanceDisplay() {
 
     function duelRenderActive(game, force = false) {
       if (!duelActive) return;
+      if (["draw","fishing","roulette","safecracker","mountainrace","blackjackduel"].includes(String(game?.mode||""))) {
+        document.querySelectorAll('.result-pop,.duel-big-result').forEach(node=>node.remove());
+      }
       // SAFE_CRACKER_DIAL_BOARD_RETENTION_V16_START
       const safeCrackerDialNow = Date.now();
       const safeCrackerDialInteraction = window.__safeCrackerDialInteractionV16 || null;
@@ -22602,8 +22654,9 @@ function updateRunnerBalanceDisplay() {
     duelFishingHtml=function(game){
       const state=fishingV3Hydrate(game),active=game.status==="playing"?fishingV3Active():null;
       duelFishingLatestGame=game; const sec=game.status==="playing"?(fishingV3.endLocal?Math.min(60,Math.max(0,Math.ceil(fishingV3Remaining()/1000))):60):0;
+      if(game.status==="complete")duelFishingEnsureCompletionTicker(game);else duelFishingHideResultPortal();
       const pot=money(game.pot||game.wager||0);
-      return `<div class="fishing-game" data-fishing-game data-fishing-game-id="${escapeHtml(String(game.gameId||""))}" data-fishing-round-id="${escapeHtml(String(state.roundId||""))}" data-fishing-runtime-key="${escapeHtml(fishingV3.key)}"><header class="fishing-command-bar"><div class="fishing-brand"><span class="fishing-brand-mark" aria-hidden="true">◒</span><span><small>RUMBLE</small><b>FISHING DUEL</b></span></div><div class="fishing-clock" aria-label="Seconds remaining">${game.status==="countdown"?60:sec}s</div><div class="fishing-pot"><small>PRIZE POT</small><b>${pot}</b></div></header><section class="fishing-instructions" aria-label="How to play"><div class="fishing-instruction-heading"><small>HOW TO PLAY</small><b>One cast. Choose wisely.</b></div><ol><li><i>1</i><span><b>Watch</b><small>Wait for ripples</small></span></li><li><i>2</i><span><b>Judge</b><small>Bigger ripple, bigger fish</small></span></li><li><i>3</i><span><b>Tap once</b><small>Largest catch wins</small></span></li></ol></section><div class="fishing-player-strip">${duelFishingPlayerChip(game.creator,"PLAYER 1")}<span class="fishing-versus">VS</span>${duelFishingPlayerChip(game.joiner,"PLAYER 2")}</div><div class="fishing-water ${active&&!state.myCatch?"can-tap":""}" data-fishing-water data-fish-id="${escapeHtml(active?.id||"")}"><div class="fishing-water-glint"></div><span class="fishing-bubble b1"></span><span class="fishing-bubble b2"></span><span class="fishing-bubble b3"></span>${duelFishingSceneSvg(state)}${active?`<div class="fishing-ripple" data-ripple-id="${escapeHtml(String(active.id||""))}" style="--ripple:${Number(active.ripple||48)}px;--ripple-speed:${Number(active.rippleSpeed||1.05)}s;--ripple-thickness:${Number(active.rippleThickness||4)}px;--ripple-wobble:${Number(active.rippleWobble||1)}"><i></i><i></i><i></i></div>`:""}<div class="fishing-center-status">${escapeHtml(duelFishingStatus(game,state,active))}</div>${duelFishingResultOverlay(game)}</div><div class="fishing-controls"><span><b>Tip:</b> You only get one catch, so resist the small ripples.</span></div>${duelFishingDebugPanel(game,state,active,game.status==="countdown"?60:sec)}</div>`;
+      return `<div class="fishing-game" data-fishing-game data-fishing-game-id="${escapeHtml(String(game.gameId||""))}" data-fishing-round-id="${escapeHtml(String(state.roundId||""))}" data-fishing-runtime-key="${escapeHtml(fishingV3.key)}"><header class="fishing-command-bar"><div class="fishing-brand"><span class="fishing-brand-mark" aria-hidden="true">◒</span><span><small>RUMBLE</small><b>FISHING DUEL</b></span></div>${duelFishingClockHtml(game.status==="countdown"?60:sec,game.status)}<div class="fishing-pot"><small>PRIZE POT</small><b>${pot}</b></div></header><section class="fishing-instructions" aria-label="How to play"><div class="fishing-instruction-heading"><small>HOW TO PLAY</small><b>One cast. Choose wisely.</b></div><ol><li><i>1</i><span><b>Watch</b><small>Wait for ripples</small></span></li><li><i>2</i><span><b>Judge</b><small>Bigger ripple, bigger fish</small></span></li><li><i>3</i><span><b>Tap once</b><small>Largest catch wins</small></span></li></ol></section><div class="fishing-player-strip">${duelFishingPlayerChip(game.creator,"PLAYER 1")}<span class="fishing-versus">VS</span>${duelFishingPlayerChip(game.joiner,"PLAYER 2")}</div><div class="fishing-water ${active&&!state.myCatch?"can-tap":""}" data-fishing-water data-fish-id="${escapeHtml(active?.id||"")}"><div class="fishing-water-glint"></div><span class="fishing-bubble b1"></span><span class="fishing-bubble b2"></span><span class="fishing-bubble b3"></span>${duelFishingSceneSvg(state)}${active?`<div class="fishing-ripple" data-ripple-id="${escapeHtml(String(active.id||""))}" style="--ripple:${Number(active.ripple||48)}px;--ripple-speed:${Number(active.rippleSpeed||1.05)}s;--ripple-thickness:${Number(active.rippleThickness||4)}px;--ripple-wobble:${Number(active.rippleWobble||1)}"><i></i><i></i><i></i></div>`:""}<div class="fishing-center-status">${escapeHtml(duelFishingStatus(game,state,active))}</div>${game.status==="complete"?duelFishingComparisonOverlay(game):""}</div><div class="fishing-controls"><span><b>Tip:</b> You only get one catch, so resist the small ripples.</span></div>${duelFishingDebugPanel(game,state,active,game.status==="countdown"?60:sec)}</div>`;
     };
     duelFishingPatchDom=function(game){
       const root=duelActive?.querySelector('[data-fishing-game]'); if(!root||String(root.dataset.fishingGameId||"")!==String(game?.gameId||""))return false;
@@ -22611,10 +22664,9 @@ function updateRunnerBalanceDisplay() {
       const active=game.status==="playing"?fishingV3Active():null,water=root.querySelector('[data-fishing-water]'); if(!water)return false;
       duelBindFishing(root);
       const controller=root._fishingController;
-      const clock=root.querySelector('.fishing-clock');
-      if(clock)clock.textContent=`${game.status==="countdown"?60:(game.status==="playing"?(fishingV3.endLocal?Math.min(60,Math.max(0,Math.ceil(fishingV3Remaining()/1000))):60):0)}s`;
-      const secondsText=clock?.textContent||"0s";
-      controller?.setTimer?.(Number.parseInt(secondsText,10)||0);
+      const clockSeconds=game.status==="countdown"?60:(game.status==="playing"?(fishingV3.endLocal?Math.min(60,Math.max(0,Math.ceil(fishingV3Remaining()/1000))):60):0);
+      duelFishingUpdateClock(root,clockSeconds,game.status);
+      controller?.setTimer?.(clockSeconds);
       controller?.setRipple?.(active?.id||"");
       const hasBot=Boolean(game?.creator?.isBot||game?.joiner?.isBot);
       const botCatch=game?.creator?.isBot?state.creatorCatch:game?.joiner?.isBot?state.joinerCatch:null;
@@ -22649,7 +22701,7 @@ function updateRunnerBalanceDisplay() {
       }
       const center=water.querySelector('.fishing-center-status');
       if(center)center.textContent=game.status==="countdown"?"Get ready...":duelFishingStatus(game,state,active);
-      let resultOverlay=water.querySelector('[data-fishing-result]');
+      let resultOverlay=document.querySelector('#fishingResultPortal [data-fishing-result]');
       let compareOverlay=water.querySelector('[data-fishing-comparison]');
       if(game.status==="complete"){
         duelFishingEnsureCompletionTicker(game);
@@ -22669,6 +22721,7 @@ function updateRunnerBalanceDisplay() {
         scratch.innerHTML=overlayHtml;
         const fresh=scratch.firstElementChild;
         if(phase!=="result"){
+          duelFishingHideResultPortal();
           resultOverlay?.remove();
           const currentPhase=String(compareOverlay?.dataset?.comparisonPhase||"");
           if(!compareOverlay&&fresh){water.appendChild(fresh);compareOverlay=fresh;}
@@ -22693,7 +22746,7 @@ function updateRunnerBalanceDisplay() {
           if(!water.dataset.compareTimer){water.dataset.compareTimer="1";setTimeout(()=>{delete water.dataset.compareTimer;if(duelFishingLatestGame?.status==="complete")duelFishingPatchDom(duelFishingLatestGame);},wait);}
         }else{
           compareOverlay?.remove();
-          if(!resultOverlay&&fresh){water.appendChild(fresh);resultOverlay=fresh;}
+          if(!resultOverlay&&fresh){resultOverlay=duelFishingShowResultPortal(game,overlayHtml);}
           else if(resultOverlay&&fresh){
             const oldRematch=resultOverlay.querySelector('#duelRematchBtn');
             const newRematch=fresh.querySelector('#duelRematchBtn');
@@ -22702,7 +22755,7 @@ function updateRunnerBalanceDisplay() {
           if(!duelFishingCompleteUi.resultSoundPlayed){duelFishingCompleteUi.resultSoundPlayed=true;duelFishingPlayResult(game);if(navigator.vibrate&&!game.tie)navigator.vibrate([35,50,70]);}
           duelBindResultButtons(game);
         }
-      }else{duelFishingStopCompletionTicker();resultOverlay?.remove();compareOverlay?.remove();water.classList.remove('compare-mode');}
+      }else{duelFishingStopCompletionTicker();duelFishingHideResultPortal();resultOverlay?.remove();compareOverlay?.remove();water.classList.remove('compare-mode');}
       return true;
     };
     const fishingV3NavIds=new Set(['singleGameMenuBtn','multiGameMenuBtn','runnerGameMenuBtn','horseGameMenuBtn','arcadeGameMenuBtn','duelGameMenuBtn','mpBackBtn','duelCreateBtn','duelNpcBtn','duelNpcActiveBtn','duelNewGameBtn']);
@@ -22842,8 +22895,8 @@ function updateRunnerBalanceDisplay() {
 </style>
 <div id="simpleTestHome">
   <main class="sth-card">
-    <h1>Multiplayer Test</h1>
-    <p>Choose one of the six multiplayer games currently in active development.</p>
+    <h1>Rumble Arcade</h1>
+    <p>Choose a duel.</p>
     <label class="sth-label" for="simpleApiKey">Torn API Key</label>
     <div class="sth-row"><input id="simpleApiKey" type="password" autocomplete="off" placeholder="Enter API key"><button id="simpleSaveKey" type="button">Verify Key</button></div>
     <div id="simpleApiStatus">API verification is required before entering a game.</div>
@@ -22886,7 +22939,7 @@ function updateRunnerBalanceDisplay() {
  }
  save.addEventListener('click',verify);keyInput.addEventListener('keydown',e=>{if(e.key==='Enter')verify()});games.forEach(b=>b.addEventListener('click',()=>openGame(b.dataset.mode)));
  const ob=new MutationObserver(()=>document.querySelectorAll('#duelNpcBtn,#duelNpcActiveBtn,#duelRecoverNpcBtn').forEach(e=>e.remove()));ob.observe(document.body,{subtree:true,childList:true});
- document.title='Multiplayer Test';sync();
+ document.title='Rumble Arcade';sync();
  const requestedMode=new URLSearchParams(location.search).get('game');
  if(requestedMode&&confirmed())setTimeout(()=>openGame(requestedMode),0);
 })();
@@ -24617,6 +24670,7 @@ body.roulette-viewport-lock .page,body.roulette-viewport-lock .duel-screen{heigh
 [data-roulette-game] .rr-table .rr-chair-png{display:none!important}
 </style>
 
+<link id="duelShellStyles" rel="stylesheet" href="/assets/duel-shell.css?v=duel-shell-v1">
 </html>
 
 

@@ -1724,6 +1724,242 @@
   .fishing-cloud-bank img { width: 150px; }
 }
 
+/* V19: one readable, themed round clock with a visible authoritative progress
+   track. The game shell is full-width, so this remains mathematically centered. */
+.fishing-command-bar {
+  grid-template-columns: minmax(0, 1fr) minmax(126px, 168px) minmax(0, 1fr);
+}
+
+.fishing-command-bar > .fishing-clock {
+  position: static !important;
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  gap: 3px;
+  padding: 7px 10px 8px;
+  border: 1px solid rgba(128, 211, 202, .38);
+  border-radius: 6px;
+  color: #effaf7;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,.035), transparent 28%, transparent 72%, rgba(255,255,255,.025)),
+    #0b3038;
+  box-shadow: inset 0 1px rgba(255,255,255,.07), 0 7px 18px rgba(0, 0, 0, .18);
+  text-align: center;
+  transform: none !important;
+}
+
+.fishing-clock-label {
+  color: #83b9b6;
+  font-size: .49rem;
+  font-weight: 850;
+  letter-spacing: .2em;
+  line-height: 1;
+}
+
+.fishing-clock-value {
+  color: #f4fbf8;
+  font: 760 1.28rem/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.05em;
+}
+
+.fishing-clock-track {
+  display: block;
+  height: 3px;
+  overflow: hidden;
+  background: rgba(3, 18, 23, .72);
+}
+
+.fishing-clock-track > i {
+  display: block;
+  width: var(--clock-progress, 100%);
+  height: 100%;
+  background: linear-gradient(90deg, #55bfb4, #a9ded1);
+  transition: width .18s linear, background .2s ease;
+}
+
+.fishing-clock.is-low { border-color: rgba(227, 165, 96, .58); }
+.fishing-clock.is-low .fishing-clock-value { color: #ffd6a0; }
+.fishing-clock.is-low .fishing-clock-track > i { background: #df9458; }
+.fishing-clock[data-clock-state="waiting"],
+.fishing-clock[data-clock-state="ready"],
+.fishing-clock[data-clock-state="complete"] { opacity: .72; }
+
+/* Natural lake ripples: thin broken highlights with soft displacement instead
+   of thick cartoon rings. Ripple size still comes from the authoritative fish. */
+.fishing-ripple {
+  position: absolute !important;
+  z-index: 12 !important;
+  top: 64% !important;
+  left: 50% !important;
+  width: calc(var(--ripple) * 1.18) !important;
+  height: calc(var(--ripple) * .26) !important;
+  min-width: 44px;
+  min-height: 12px;
+  filter: none !important;
+  mix-blend-mode: screen;
+  opacity: .86;
+  pointer-events: none;
+  transform: translate(-50%, -50%) scaleX(var(--ripple-wobble, 1)) !important;
+}
+
+.fishing-ripple::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 54%;
+  height: 42%;
+  border-top: 1px solid rgba(241, 255, 255, .76);
+  border-bottom: 1px solid rgba(107, 204, 218, .32);
+  border-radius: 50%;
+  content: "";
+  opacity: .58;
+  transform: translate(-50%, -50%);
+  animation: fishingNaturalRippleCore calc(var(--ripple-speed, 1.05s) * 1.35) ease-in-out infinite;
+}
+
+.fishing-ripple::before {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 22%;
+  height: 34%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(236,255,255,.42), rgba(162,236,242,.12) 48%, transparent 72%);
+  content: "";
+  transform: translate(-50%, -50%);
+  animation: fishingNaturalRippleCore calc(var(--ripple-speed, 1.05s) * 1.35) ease-in-out infinite;
+}
+
+.fishing-ripple i {
+  position: absolute;
+  inset: 12% 0 !important;
+  border: 0 !important;
+  border-top: 1px solid rgba(231, 255, 255, .72) !important;
+  border-bottom: 1px solid rgba(112, 211, 223, .26) !important;
+  border-radius: 50% !important;
+  box-shadow: 0 -1px 2px rgba(255,255,255,.12), inset 0 1px rgba(25,140,169,.12);
+  opacity: 0;
+  animation: fishingNaturalRipple var(--ripple-speed, 1.05s) cubic-bezier(.12,.5,.35,1) infinite !important;
+}
+
+.fishing-ripple i:nth-child(2) { animation-delay: calc(var(--ripple-speed, 1.05s) * -.66) !important; }
+.fishing-ripple i:nth-child(3) { animation-delay: calc(var(--ripple-speed, 1.05s) * -.33) !important; }
+
+@keyframes fishingNaturalRipple {
+  0% { opacity: 0; transform: scale(.22,.52); }
+  18% { opacity: .68; }
+  64% { opacity: .28; }
+  100% { opacity: 0; transform: scale(1.08,1); }
+}
+
+@keyframes fishingNaturalRippleCore {
+  0%,100% { opacity: .25; transform: translate(-50%,-50%) scale(.72); }
+  50% { opacity: .58; transform: translate(-50%,-50%) scale(1.08,.82); }
+}
+
+/* The shared countdown uses the same structure in every game. Fishing supplies
+   only its lake/tackle visual treatment. */
+#duelCountdownPortal[data-duel-mode="fishing"] {
+  background: linear-gradient(180deg, rgba(1, 25, 36, .36), rgba(1, 16, 26, .7));
+  backdrop-filter: blur(4px);
+}
+
+#duelCountdownPortal[data-duel-mode="fishing"] .duel-countdown-frame {
+  position: relative;
+  overflow: hidden;
+  border-color: rgba(120, 212, 201, .42);
+  border-radius: 7px;
+  background:
+    repeating-linear-gradient(90deg, rgba(255,255,255,.022) 0 1px, transparent 1px 19px),
+    linear-gradient(180deg, #123a42, #092731);
+  box-shadow: 0 26px 80px rgba(0,0,0,.48), inset 0 1px rgba(255,255,255,.08);
+}
+
+#duelCountdownPortal[data-duel-mode="fishing"] .duel-countdown-frame::after {
+  position: absolute;
+  right: 17px;
+  bottom: -7px;
+  width: 14px;
+  height: 20px;
+  border: 2px solid rgba(255,255,255,.72);
+  border-radius: 50%;
+  background: linear-gradient(#d95649 0 48%, #f3eed9 49%);
+  content: "";
+  rotate: 8deg;
+}
+
+#duelCountdownPortal[data-duel-mode="fishing"] .duel-countdown-label { color: #75d7ca; }
+#duelCountdownPortal[data-duel-mode="fishing"] .duel-countdown-number,
+#duelCountdownPortal[data-duel-mode="fishing"] .duel-countdown-number.go {
+  color: #f5fbf7;
+  font-family: Georgia, "Times New Roman", serif;
+  letter-spacing: -.04em;
+  text-shadow: 0 4px 18px rgba(0,0,0,.3);
+}
+
+/* The result owns a viewport portal. The field log now uses the result's main
+   scroll area and can never be compressed to the lake's aspect-ratio height. */
+#fishingResultPortal {
+  position: fixed;
+  z-index: 2147482600;
+  inset: 0;
+  display: grid;
+  width: 100vw;
+  height: 100dvh;
+  overflow: hidden;
+  place-items: center;
+}
+
+#fishingResultPortal[hidden] { display: none !important; }
+body.fishing-result-open { overflow: hidden !important; }
+
+#fishingResultPortal .fishing-result-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+#fishingResultPortal .fishing-result-card {
+  width: min(94vw, 820px);
+  height: min(92dvh, 880px);
+  max-height: none;
+  border-radius: 14px;
+}
+
+#fishingResultPortal .fishing-result-content {
+  padding: 16px 20px 22px;
+}
+
+#fishingResultPortal .fishing-logbook-body {
+  max-height: none;
+  overflow: visible;
+}
+
+#fishingResultPortal .fishing-result-actions { position: relative; z-index: 8; }
+#fishingResultPortal .duel-end-screen-close { z-index: 20; }
+
+@media (max-width: 680px) {
+  .fishing-command-bar { grid-template-columns: minmax(0, 1fr) 112px minmax(0, 1fr); }
+  .fishing-command-bar > .fishing-clock { padding: 6px 7px 7px; }
+  .fishing-clock-value { font-size: 1.08rem; }
+  #fishingResultPortal .fishing-result-overlay { padding: 6px; }
+  #fishingResultPortal .fishing-result-card { width: 100%; height: calc(100dvh - 12px); border-radius: 9px; }
+  #fishingResultPortal .fishing-result-header { padding: 15px 16px 13px; }
+  #fishingResultPortal .fishing-result-content { padding: 12px 10px 16px; }
+  #fishingResultPortal .fishing-logbook-body { padding: 42px 24px 48px; }
+}
+
+@media (max-width: 430px) {
+  .fishing-command-bar { grid-template-columns: minmax(0, 1fr) 92px minmax(0, 1fr); padding-inline: 9px; }
+  .fishing-clock-label { font-size: .4rem; letter-spacing: .12em; }
+  .fishing-clock-value { font-size: .98rem; }
+  #fishingResultPortal .fishing-result-header { grid-template-columns: 32px minmax(0,1fr) 32px; gap: 8px; }
+  #fishingResultPortal .fishing-result-catches { gap: 6px; }
+  #fishingResultPortal .fishing-logbook-body { padding: 35px 16px 42px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .fishing-cloud-bank img,
   .fishing-water-canvas,

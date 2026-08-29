@@ -10,8 +10,9 @@ const controller = fs.readFileSync(new URL("../assets/fishing/fishing-controller
 const preview = fs.readFileSync(new URL("../games/multiplayer/fishing/preview.html", import.meta.url), "utf8");
 const serverData = fs.readFileSync(new URL("../netlify/functions/_data.js", import.meta.url), "utf8");
 
-assert(html.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v18'), "versioned Fishing stylesheet is not loaded");
-assert(html.includes('id="fishingDuelRuntime" defer src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v18"'), "deferred shared Fishing controller is not loaded");
+assert(html.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v19'), "versioned Fishing stylesheet is not loaded");
+assert(html.includes('id="fishingDuelRuntime" defer src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v19"'), "deferred shared Fishing controller is not loaded");
+assert(preview.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v19'), "preview is not using the current Fishing stylesheet");
 assert(html.includes('function duelFishingEnsureController(root)'), "Fishing controller recovery loader is missing");
 assert(html.includes('class="fishing-command-bar"'), "game-owned Fishing header is missing");
 assert(html.includes('class="fishing-instructions" aria-label="How to play"'), "visible game instructions are missing");
@@ -40,6 +41,12 @@ assert(html.includes('data-fishing-debug-copy>Copy Debug Report'), "copyable Fis
 assert(html.includes('class="fishing-hook-node left"'), "connected left fishing rig is missing");
 assert(html.includes('class="fishing-hook-node right"'), "connected right fishing rig is missing");
 assert(html.includes('style="--fish-cm:${cm}"'), "fish art is not scaled from its measured centimeters");
+assert(html.includes('function duelFishingClockHtml(seconds,status="waiting")'), "Fishing timer does not use the shared structured clock component");
+assert(html.includes('function duelFishingUpdateClock(root,seconds,status="playing")'), "Fishing timer cannot update without replacing the scene");
+assert(html.includes('data-fishing-clock-progress'), "Fishing timer progress indicator is missing");
+assert(html.includes('function duelFishingResultPortal()'), "Fishing result is not mounted in its own viewport portal");
+assert(html.includes('function duelFishingShowResultPortal(game,html)'), "Fishing result portal cannot be shown after the reveal delay");
+assert(html.includes('["draw","fishing","roulette","safecracker","mountainrace","blackjackduel"].includes'), "themed modes do not suppress the generic result fallback");
 
 assert(css.includes("grid-template-rows: auto minmax(0, 1fr) auto;"), "result card does not reserve a separate action row");
 assert(css.includes(".fishing-result-content {"), "scrollable result content region is missing");
@@ -52,6 +59,10 @@ assert(css.includes('@keyframes fishingAnglerPull'), "pull animation is missing"
 assert(css.includes('@keyframes fishingCloudTravel'), "moving cloud animation is missing");
 assert(!css.match(/\.fishing-cloud-bank\s*\{[^}]*display:\s*none/s), "moving PNG cloud bank is hidden");
 assert(css.includes('@keyframes fishingLakeBreath'), "whole-water motion layer is missing");
+assert(css.includes('@keyframes fishingNaturalRipple'), "natural thin-water ripple animation is missing");
+assert(css.includes('border: 0 !important;'), "legacy cartoon ripple borders can still override the realistic treatment");
+assert(css.includes('#fishingResultPortal .fishing-result-card'), "Fishing result portal does not own its layout");
+assert(css.includes('height: min(92dvh, 880px);'), "Fishing result/logbook can still collapse to the game scene height");
 assert(css.includes('@keyframes fishingAnglerIdleLeft'), "smooth fisherman idle animation is missing");
 assert(css.includes('.fishing-water-canvas {'), "visible animated water canvas is missing");
 assert(css.includes('aspect-ratio: 1620 / 883;'), "Fishing scene does not preserve the supplied preview scene aspect ratio");
@@ -82,6 +93,8 @@ assert(preview.includes('data-preview-state="live"'), "live Fishing component pr
 assert(preview.includes('data-preview-state="result"'), "result Fishing component preview is missing");
 assert(preview.includes("if(replay)await controller.replayCast();else await controller.playCast();"), "preview does not cast before starting the round");
 assert(preview.includes("startClock();timers.bite=setTimeout"), "preview countdown does not begin after casting");
+assert(preview.includes("updateClock(previewState.seconds,'playing')"), "preview timer is not updated through the structured clock");
+assert(!preview.includes("clock.textContent=`${previewState.seconds}s`"), "preview still replaces the themed timer with legacy text");
 assert(preview.includes("timers.bot=setTimeout"), "live preview bot does not fish");
 assert(preview.includes("water.addEventListener('pointerdown'"), "live preview cannot pull a fish");
 assert(preview.includes("if(!previewState.activeBite)"), "preview accepts catches without an active bite");
@@ -105,4 +118,4 @@ for(const file of ["approved-preview-clean-v1.png","lake-bg-v2.png","dock-v2.png
 const regularFish=fs.readdirSync(new URL("fish/",imageRoot)).filter(name=>name.endsWith("-v2.png"));
 assert(regularFish.length===36,`expected 36 unique regular fish PNGs, found ${regularFish.length}`);
 
-console.log("Fishing mechanics validation passed: recoverable shared controller, no seasonal overlays, moving PNG clouds and water, connected rigs, post-cast countdown, valid-bite input, delayed bot pull, diagnostics, 36 PNG fish, and themed results are present.");
+console.log("Fishing mechanics validation passed: structured clock, realistic ripples, viewport logbook result, recoverable controller, moving clouds and water, connected rigs, bot timing, diagnostics, and 36 PNG fish are present.");
