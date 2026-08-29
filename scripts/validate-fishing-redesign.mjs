@@ -10,9 +10,9 @@ const controller = fs.readFileSync(new URL("../assets/fishing/fishing-controller
 const preview = fs.readFileSync(new URL("../games/multiplayer/fishing/preview.html", import.meta.url), "utf8");
 const serverData = fs.readFileSync(new URL("../netlify/functions/_data.js", import.meta.url), "utf8");
 
-assert(html.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v21'), "versioned Fishing stylesheet is not loaded");
-assert(html.includes('id="fishingDuelRuntime" defer src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v21"'), "deferred shared Fishing controller is not loaded");
-assert(preview.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v21'), "preview is not using the current Fishing stylesheet");
+assert(html.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v22'), "versioned Fishing stylesheet is not loaded");
+assert(html.includes('id="fishingDuelRuntime" defer src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v22"'), "deferred shared Fishing controller is not loaded");
+assert(preview.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v22'), "preview is not using the current Fishing stylesheet");
 assert(html.includes('function duelFishingEnsureController(root)'), "Fishing controller recovery loader is missing");
 assert(html.includes('class="fishing-command-bar"'), "game-owned Fishing header is missing");
 assert(html.includes('class="fishing-instructions" aria-label="How to play"'), "visible game instructions are missing");
@@ -69,6 +69,10 @@ assert(css.includes('@keyframes fishingCloudTravel'), "moving cloud animation is
 assert(!css.match(/\.fishing-cloud-bank\s*\{[^}]*display:\s*none/s), "moving PNG cloud bank is hidden");
 assert(css.includes('@keyframes fishingLakeBreath'), "whole-water motion layer is missing");
 assert(css.includes('@keyframes fishingNaturalRipple'), "natural thin-water ripple animation is missing");
+assert(css.includes('@keyframes fishingRipplePresenceIn'), "ripples do not fade in smoothly");
+assert(css.includes('@keyframes fishingRipplePresenceOut'), "ripples do not fade out smoothly");
+assert(html.includes("ripple.classList.add('is-fading-out')"), "live ripples are still removed abruptly");
+assert(preview.includes("ripple.classList.add('is-fading-out')"), "preview ripples are still removed abruptly");
 assert(css.includes('border: 0 !important;'), "legacy cartoon ripple borders can still override the realistic treatment");
 assert(css.includes('width: clamp(72px, calc(var(--ripple) * 1.85), 210px)'), "ordinary ripples are still too small to see");
 assert(css.includes('top: calc(66.5% + clamp(11px, calc(var(--ripple) * .25), 32px) + 17px) !important;'), "ripples are not positioned below the resting bobbers");

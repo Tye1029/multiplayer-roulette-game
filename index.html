@@ -12561,8 +12561,8 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
   <script id="blackjackDuelRuntime" src="/assets/blackjack-duel/blackjack-duel.js?v=blackjack-duel-v17" defer></script>
 <!-- BLACKJACK_DUEL_ASSETS_END -->
 <!-- FISHING_DUEL_ASSETS_START -->
-  <link id="fishingDuelStyles" rel="stylesheet" href="/assets/fishing/fishing.css?v=fishing-mechanics-v21">
-  <script id="fishingDuelRuntime" defer src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v21"></script>
+  <link id="fishingDuelStyles" rel="stylesheet" href="/assets/fishing/fishing.css?v=fishing-mechanics-v22">
+  <script id="fishingDuelRuntime" defer src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v22"></script>
 <!-- FISHING_DUEL_ASSETS_END -->
 
 <!-- MOUNTAIN_RACE_V29_PRELOADS -->
@@ -18983,7 +18983,7 @@ function updateRunnerBalanceDisplay() {
       if(window.FishingSceneController||window.__fishingControllerLoading)return;
       window.__fishingControllerLoading=true;
       const script=document.createElement("script");
-      script.src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v21&runtime=1";
+      script.src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v22&runtime=1";
       script.onload=()=>{window.__fishingControllerLoading=false;if(root?.isConnected)duelBindFishing(root);};
       script.onerror=()=>{window.__fishingControllerLoading=false;console.error("Fishing controller failed to load");};
       document.head.appendChild(script);
@@ -22688,13 +22688,14 @@ function updateRunnerBalanceDisplay() {
       water.querySelector('[data-fishing-countdown]')?.remove();
       duelPatchSharedCountdown(game);
       const nextRippleId=String(active?.id||"");
-      const currentRipple=water.querySelector('.fishing-ripple');
+      const currentRipple=water.querySelector('.fishing-ripple:not(.is-fading-out)');
       const currentRippleId=String(currentRipple?.dataset?.rippleId||"");
       water.dataset.fishId=nextRippleId;
       water.classList.toggle('can-tap',Boolean(active&&!state.myCatch&&!duelFishingLocalCatchLock.locked));
-      if(!nextRippleId){ currentRipple?.remove(); }
+      const fadeRipple=ripple=>{if(!ripple||ripple.classList.contains('is-fading-out'))return;ripple.classList.add('is-fading-out');setTimeout(()=>ripple.remove(),540);};
+      if(!nextRippleId){ fadeRipple(currentRipple); }
       else if(currentRippleId!==nextRippleId){
-        currentRipple?.remove();
+        fadeRipple(currentRipple);
         const r=document.createElement('div'); r.className='fishing-ripple'; r.dataset.rippleId=nextRippleId;
         r.style.setProperty('--ripple',`${Number(active.ripple||48)}px`); r.style.setProperty('--ripple-speed',`${Number(active.rippleSpeed||1.05)}s`); r.style.setProperty('--ripple-thickness',`${Number(active.rippleThickness||4)}px`); r.style.setProperty('--ripple-wobble',`${Number(active.rippleWobble||1)}`); r.innerHTML='<i></i><i></i><i></i>'; water.appendChild(r);
       }

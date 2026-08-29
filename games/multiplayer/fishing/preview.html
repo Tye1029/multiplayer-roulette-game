@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Rumble Fishing Duel — Component Preview</title>
-  <link rel="stylesheet" href="/assets/fishing/fishing.css?v=fishing-mechanics-v21">
-  <script src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v21"></script>
+  <link rel="stylesheet" href="/assets/fishing/fishing.css?v=fishing-mechanics-v22">
+  <script src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v22"></script>
   <style>
     *{box-sizing:border-box}html,body{min-height:100%;margin:0;background:#041019;color:#fff;font-family:Inter,ui-sans-serif,system-ui,sans-serif}body{display:grid;place-items:center;padding:16px}.preview{width:min(100%,980px)}button{border:0;cursor:pointer}
     [data-preview-state]{display:none}[data-preview-state].active{display:block}.fishing-water{position:relative;min-height:0;aspect-ratio:1620/883;overflow:hidden}.fishing-sky{position:absolute;inset:0 0 64%}.fishing-dock{position:absolute}.fishing-center-status{position:absolute;z-index:15;left:50%;bottom:14px;transform:translateX(-50%)}
@@ -65,7 +65,7 @@
         existing?.remove();hook.insertAdjacentHTML('beforeend',caught?fishMarkup(side):`<div class="fishing-hook-catch ${side}" data-catch-id=""></div>`);
       }
       function clearRipple(reason='cleared'){
-        clearTimeout(timers.biteExpiry);timers.biteExpiry=null;water.querySelector('.fishing-ripple')?.remove();water.classList.remove('can-tap');previewState.activeBite='';controller.setRipple('');controller.log('preview-ripple-cleared',{reason});
+        clearTimeout(timers.biteExpiry);timers.biteExpiry=null;const ripple=water.querySelector('.fishing-ripple:not(.is-fading-out)');if(ripple){ripple.classList.add('is-fading-out');setTimeout(()=>ripple.remove(),540);}water.classList.remove('can-tap');previewState.activeBite='';controller.setRipple('');controller.log('preview-ripple-cleared',{reason});
       }
       function spawnRipple(size=76){
         if(!previewState.started||previewState.playerCaught||previewState.seconds<=0)return;

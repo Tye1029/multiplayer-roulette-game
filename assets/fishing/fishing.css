@@ -1796,11 +1796,16 @@
   height: clamp(22px, calc(var(--ripple) * .5), 64px) !important;
   min-width: 72px;
   min-height: 22px;
-  filter: drop-shadow(0 1px 1px rgba(0, 57, 76, .48)) !important;
+  filter: drop-shadow(0 1px 2px rgba(0, 48, 72, .62)) drop-shadow(0 0 3px rgba(225, 255, 255, .34)) !important;
   mix-blend-mode: normal;
-  opacity: 1;
+  opacity: 0;
   pointer-events: none;
   transform: translate(-50%, -50%) scaleX(var(--ripple-wobble, 1)) !important;
+  animation: fishingRipplePresenceIn .52s cubic-bezier(.2,.72,.25,1) forwards;
+}
+
+.fishing-ripple.is-fading-out {
+  animation: fishingRipplePresenceOut .52s ease-in forwards !important;
 }
 
 .fishing-ripple::after {
@@ -1809,8 +1814,8 @@
   left: 50%;
   width: 62%;
   height: 50%;
-  border-top: 2px solid rgba(247, 255, 255, .94);
-  border-bottom: 1px solid rgba(42, 137, 165, .7);
+  border-top: 2.5px solid rgba(250, 255, 255, .98);
+  border-bottom: 1.5px solid rgba(28, 125, 155, .78);
   border-radius: 50%;
   box-shadow: 0 -1px rgba(255,255,255,.18), inset 0 1px rgba(0,86,115,.18);
   content: "";
@@ -1826,7 +1831,7 @@
   width: 31%;
   height: 48%;
   border-radius: 50%;
-  background: radial-gradient(ellipse, rgba(244,255,255,.6), rgba(91,194,214,.2) 48%, transparent 73%);
+  background: radial-gradient(ellipse, rgba(248,255,255,.72), rgba(76,185,210,.28) 48%, transparent 73%);
   content: "";
   transform: translate(-50%, -50%);
   animation: fishingNaturalRippleCore calc(var(--ripple-speed, 1.05s) * 1.35) ease-in-out infinite;
@@ -1836,12 +1841,12 @@
   position: absolute;
   inset: 7% 0 !important;
   border: 0 !important;
-  border-top: 2px solid rgba(245, 255, 255, .92) !important;
-  border-bottom: 1px solid rgba(40, 143, 171, .58) !important;
+  border-top: 2.5px solid rgba(250, 255, 255, .98) !important;
+  border-bottom: 1.5px solid rgba(27, 132, 164, .68) !important;
   border-radius: 50% !important;
   box-shadow: 0 -1px 2px rgba(255,255,255,.25), 0 1px 1px rgba(0,72,100,.24), inset 0 1px rgba(25,140,169,.2);
   opacity: 0;
-  animation: fishingNaturalRipple var(--ripple-speed, 1.05s) cubic-bezier(.12,.5,.35,1) infinite !important;
+  animation: fishingNaturalRipple var(--ripple-speed, 1.05s) ease-in-out infinite !important;
 }
 
 .fishing-ripple i:nth-child(2) { animation-delay: calc(var(--ripple-speed, 1.05s) * -.66) !important; }
@@ -1849,14 +1854,28 @@
 
 @keyframes fishingNaturalRipple {
   0% { opacity: 0; transform: scale(.22,.52); }
-  18% { opacity: .94; }
-  66% { opacity: .48; }
-  100% { opacity: .06; transform: scale(1.08,1); }
+  14% { opacity: .28; }
+  30% { opacity: 1; }
+  68% { opacity: .62; }
+  90% { opacity: .16; }
+  100% { opacity: 0; transform: scale(1.08,1); }
 }
 
 @keyframes fishingNaturalRippleCore {
-  0%,100% { opacity: .48; transform: translate(-50%,-50%) scale(.72); }
-  50% { opacity: .92; transform: translate(-50%,-50%) scale(1.08,.82); }
+  0%,100% { opacity: .56; transform: translate(-50%,-50%) scale(.72); }
+  50% { opacity: 1; transform: translate(-50%,-50%) scale(1.08,.82); }
+}
+
+@keyframes fishingRipplePresenceIn {
+  0% { opacity: 0; }
+  35% { opacity: .3; }
+  100% { opacity: 1; }
+}
+
+@keyframes fishingRipplePresenceOut {
+  0% { opacity: 1; }
+  65% { opacity: .3; }
+  100% { opacity: 0; }
 }
 
 .fishing-center-status:empty { display: none !important; }
