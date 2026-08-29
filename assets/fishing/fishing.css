@@ -1231,14 +1231,14 @@
 .fishing-shore-rig {
   position: absolute;
   z-index: 0;
-  top: 44.6%;
-  width: 65%;
-  aspect-ratio: 3 / 2;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   pointer-events: none;
 }
 
-.fishing-shore-rig.left { left: -28%; }
-.fishing-shore-rig.right { right: -28.4%; }
+.fishing-shore-rig.left,
+.fishing-shore-rig.right { right: 0; left: 0; }
 
 .fishing-shore-rig .fishing-dock,
 .fishing-shore-rig .fishing-dock.left,
@@ -1285,8 +1285,11 @@
 .fishing-angler {
   position: absolute;
   z-index: 2;
-  top: -15.5%;
-  height: 42%;
+  top: 32.3%;
+  right: auto;
+  left: auto;
+  width: max-content;
+  height: 33.4%;
   transform-origin: 46% 91%;
   filter: drop-shadow(0 8px 7px rgba(0, 34, 48, .3));
   will-change: transform;
@@ -1299,8 +1302,8 @@
   user-select: none;
 }
 
-.fishing-angler.left { right: 14.5%; }
-.fishing-angler.right { left: 15%; transform: scaleX(-1); }
+.fishing-angler.left { right: auto; left: 10.7%; }
+.fishing-angler.right { right: auto; left: 73.15%; transform: scaleX(-1); }
 
 .fishing-line-art {
   position: absolute;
