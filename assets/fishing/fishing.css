@@ -279,11 +279,7 @@
   letter-spacing: .14em;
 }
 
-.fishing-water,
-.fishing-water.season-spring,
-.fishing-water.season-summer,
-.fishing-water.season-autumn,
-.fishing-water.season-winter {
+.fishing-water {
   min-height: 490px;
   border: 0;
   border-top: 1px solid rgba(207, 249, 248, .15);
@@ -923,11 +919,7 @@
     height: 32px;
   }
 
-  .fishing-water,
-  .fishing-water.season-spring,
-  .fishing-water.season-summer,
-  .fishing-water.season-autumn,
-  .fishing-water.season-winter {
+  .fishing-water {
     min-height: 420px;
   }
 
@@ -1131,11 +1123,7 @@
 }
 
 /* Fishing Art V2 --------------------------------------------------------- */
-.fishing-water,
-.fishing-water.season-spring,
-.fishing-water.season-summer,
-.fishing-water.season-autumn,
-.fishing-water.season-winter {
+.fishing-water {
   position: relative;
   min-height: 0 !important;
   aspect-ratio: 1620 / 883;
@@ -1211,7 +1199,6 @@
   z-index: 2;
   inset: 0 0 62%;
   overflow: hidden;
-  display: none;
   pointer-events: none;
 }
 
@@ -1714,11 +1701,7 @@
 @keyframes fishingRareShimmer { 0%,18% { transform: translateX(-90%) rotate(8deg); } 58%,100% { transform: translateX(90%) rotate(8deg); } }
 
 @media (max-width: 680px) {
-  .fishing-water,
-  .fishing-water.season-spring,
-  .fishing-water.season-summer,
-  .fishing-water.season-autumn,
-  .fishing-water.season-winter { min-height: 0 !important; }
+  .fishing-water { min-height: 0 !important; }
   .fishing-hook-catch { width: 112px; }
   .fishing-hook-catch .fishing-catch-caption { width: 104px; padding: 4px 5px; }
   .fishing-catch-slot { top: 44% !important; width: 104px; height: 190px; }

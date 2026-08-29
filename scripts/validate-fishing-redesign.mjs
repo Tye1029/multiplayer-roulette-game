@@ -10,8 +10,9 @@ const controller = fs.readFileSync(new URL("../assets/fishing/fishing-controller
 const preview = fs.readFileSync(new URL("../games/multiplayer/fishing/preview.html", import.meta.url), "utf8");
 const serverData = fs.readFileSync(new URL("../netlify/functions/_data.js", import.meta.url), "utf8");
 
-assert(html.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v17'), "versioned Fishing stylesheet is not loaded");
-assert(html.includes('/assets/fishing/fishing-controller.js?v=fishing-mechanics-v17'), "shared Fishing controller is not loaded");
+assert(html.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v18'), "versioned Fishing stylesheet is not loaded");
+assert(html.includes('id="fishingDuelRuntime" defer src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v18"'), "deferred shared Fishing controller is not loaded");
+assert(html.includes('function duelFishingEnsureController(root)'), "Fishing controller recovery loader is missing");
 assert(html.includes('class="fishing-command-bar"'), "game-owned Fishing header is missing");
 assert(html.includes('class="fishing-instructions" aria-label="How to play"'), "visible game instructions are missing");
 assert(html.includes("Bigger ripple, bigger fish"), "ripple-size instruction is missing");
@@ -28,6 +29,11 @@ assert(!html.includes('<b>${totalWins}</b>Wins'), "the removed Wins logbook stat
 assert(html.includes('/assets/fishing/images/v2/fisherman-v2.png'), "PNG fisherman characters are missing");
 assert(html.includes('/assets/fishing/images/v2/fisherman-blue-transparent-v3.png'), "distinct second PNG fisherman is missing");
 assert(html.includes('/assets/fishing/images/v2/approved-preview-clean-v1.png'), "approved preview composition is missing");
+assert(html.includes('class="fishing-cloud-bank"'), "moving PNG cloud bank is missing from the game");
+assert(!html.includes('function duelFishingAtmosphere(game)'), "seasonal atmosphere generator is still present");
+assert(!html.includes('class="fishing-season-layer"'), "seasonal particles are still rendered");
+assert(!html.includes('fishing-water season-${'), "seasonal Fishing scene classes are still rendered");
+assert(html.includes('Waiting for an opponent — add a Remote Bot or another player to start'), "waiting Fishing duel does not explain how gameplay starts");
 assert(html.includes('function duelFishingAlignLines(root)'), "responsive rod-line attachment is missing");
 assert(html.includes('class="fishing-debug-panel"'), "Fishing debug panel is missing");
 assert(html.includes('data-fishing-debug-copy>Copy Debug Report'), "copyable Fishing debug report is missing");
@@ -44,11 +50,14 @@ assert(css.includes("url('/assets/fishing/images/v2/logbook-v2.png')"), "fisherm
 assert(css.includes('@keyframes fishingCastLeft'), "cast animation is missing");
 assert(css.includes('@keyframes fishingAnglerPull'), "pull animation is missing");
 assert(css.includes('@keyframes fishingCloudTravel'), "moving cloud animation is missing");
+assert(!css.match(/\.fishing-cloud-bank\s*\{[^}]*display:\s*none/s), "moving PNG cloud bank is hidden");
 assert(css.includes('@keyframes fishingLakeBreath'), "whole-water motion layer is missing");
 assert(css.includes('@keyframes fishingAnglerIdleLeft'), "smooth fisherman idle animation is missing");
 assert(css.includes('.fishing-water-canvas {'), "visible animated water canvas is missing");
 assert(css.includes('aspect-ratio: 1620 / 883;'), "Fishing scene does not preserve the supplied preview scene aspect ratio");
 assert(preview.includes('/assets/fishing/images/v2/approved-preview-clean-v1.png'), "preview does not use the approved composition plate");
+assert(preview.includes('class="fishing-cloud-bank"'), "preview does not include moving PNG clouds");
+assert(!preview.includes('season-summer'), "preview still enables seasonal styling");
 assert(css.includes('object-position: center bottom;'), "approved composition is not cropped from its exact scene boundary");
 assert(css.includes('transform: rotate(-1.2deg)'), "left dock does not extend inward from the screen edge");
 assert(css.includes('transform: scaleX(-1) rotate(-1.2deg)'), "right dock is not mirrored toward the center");
@@ -81,6 +90,7 @@ assert(preview.includes('data-debug-copy'), "copyable preview debug report is mi
 assert(preview.includes('data-debug-cast'), "live preview debug controls are missing");
 
 assert(controller.includes('class FishingSceneController'), "Fishing scene controller class is missing");
+assert(controller.includes('const VERSION="fishing-controller-v15"'), "Fishing diagnostics do not identify the restored motion controller");
 assert(controller.includes('playCast(options={})'), "shared casting lifecycle is missing");
 assert(controller.includes('syncCatch(side,catchId,animate=false)'), "authoritative catch synchronization is missing");
 assert(controller.includes('drawWater(now)'), "moving water renderer is missing");
@@ -95,4 +105,4 @@ for(const file of ["approved-preview-clean-v1.png","lake-bg-v2.png","dock-v2.png
 const regularFish=fs.readdirSync(new URL("fish/",imageRoot)).filter(name=>name.endsWith("-v2.png"));
 assert(regularFish.length===36,`expected 36 unique regular fish PNGs, found ${regularFish.length}`);
 
-console.log("Fishing mechanics validation passed: shared lifecycle controller, connected rod/line/hook/fish rigs, post-cast countdown, valid-bite input, delayed bot pull, moving water, copyable diagnostics, 36 PNG fish, and themed results are present.");
+console.log("Fishing mechanics validation passed: recoverable shared controller, no seasonal overlays, moving PNG clouds and water, connected rigs, post-cast countdown, valid-bite input, delayed bot pull, diagnostics, 36 PNG fish, and themed results are present.");

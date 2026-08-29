@@ -11888,13 +11888,10 @@
 @keyframes fishingSunGlow{50%{transform:scale(1.05);filter:brightness(1.08)}}
 .fishing-water-glint{position:absolute;z-index:2;left:18%;top:39%;width:66%;height:35%;pointer-events:none;opacity:.38;background:repeating-linear-gradient(174deg,transparent 0 13px,rgba(255,255,255,.22) 14px 16px,transparent 17px 31px);animation:fishingGlint 9s linear infinite}
 @keyframes fishingGlint{to{background-position:110px 34px}}
-.fishing-bubble,.fishing-leaf{position:absolute;z-index:3;pointer-events:none}
+.fishing-bubble{position:absolute;z-index:3;pointer-events:none}
 .fishing-bubble{bottom:-18px;width:8px;height:8px;border:2px solid rgba(232,250,255,.72);border-radius:50%;animation:fishingBubbleRise 7s ease-in infinite}
 .fishing-bubble.b1{left:43%;animation-delay:-1s}.fishing-bubble.b2{left:57%;width:12px;height:12px;animation-delay:-4.2s}.fishing-bubble.b3{left:70%;width:6px;height:6px;animation-delay:-2.4s}
 @keyframes fishingBubbleRise{0%{transform:translateY(0) scale(.65);opacity:0}15%{opacity:.75}100%{transform:translate(18px,-250px) scale(1.2);opacity:0}}
-.fishing-leaf{top:48%;left:-40px;width:24px;height:12px;border-radius:90% 10% 90% 10%;background:#88a83f;box-shadow:inset -5px -2px rgba(51,91,26,.35);animation:fishingLeafFloat 19s linear infinite}
-.fishing-leaf.l2{top:63%;animation-duration:25s;animation-delay:-9s;transform:scale(.7)}
-@keyframes fishingLeafFloat{to{left:108%;rotate:360deg}}
 .fishing-water.compare-mode .fishing-center-status{opacity:0}
 .fishing-comparison-overlay{position:absolute;inset:0;z-index:32;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:18px;background:linear-gradient(180deg,rgba(4,39,62,.20),rgba(2,25,44,.68));pointer-events:none;animation:fishingCompareFade .36s ease-out both}
 @keyframes fishingCompareFade{from{opacity:0}to{opacity:1}}
@@ -11927,7 +11924,7 @@
 @keyframes fishingRecordPop{0%{opacity:0;transform:scale(.35) rotate(-8deg)}70%{opacity:1;transform:scale(1.12) rotate(2deg)}100%{opacity:1;transform:scale(1) rotate(0)}}
 @keyframes fishResultFloat{50%{translate:0 -4px;rotate:2deg}}
 @media(max-width:520px){.fishing-comparison-overlay{padding:10px}.fishing-comparison-fish{gap:5px}.fishing-compare-art{width:108px;height:68px}.fishing-compare-avatar{width:34px;height:34px}.fishing-compare-name{font-size:.72rem}.fishing-compare-size{font-size:.95rem}.fishing-result-fish-art{height:64px}}
-@media(prefers-reduced-motion:reduce){.fishing-cloud,.fishing-sun,.fishing-water-glint,.fishing-bubble,.fishing-leaf,.fishing-compare-art .fishing-fish,.fishing-result-fish-art .fishing-fish{animation:none!important}}
+@media(prefers-reduced-motion:reduce){.fishing-cloud,.fishing-sun,.fishing-water-glint,.fishing-bubble,.fishing-compare-art .fishing-fish,.fishing-result-fish-art .fishing-fish{animation:none!important}}
 
 
 /* Fishing suspense, seamless environment, and compact result controls */
@@ -11952,9 +11949,6 @@
   animation:fishingGlintSeamless 12s linear infinite;
 }
 @keyframes fishingGlintSeamless{from{background-position:0 0}to{background-position:192px 96px}}
-.fishing-leaf{animation-name:fishingLeafFloatSeamless;will-change:transform}
-@keyframes fishingLeafFloatSeamless{from{transform:translate3d(-70px,0,0) rotate(0deg)}to{transform:translate3d(calc(100vw + 140px),18px,0) rotate(360deg)}}
-.fishing-leaf.l2{transform:none}
 .fishing-compare-size.concealed{color:#d9f5ff;letter-spacing:.12em}
 .fishing-compare-side.pending-winner{border-color:rgba(255,255,255,.16);box-shadow:none;transform:none}
 .fishing-comparison-overlay.revealed .fishing-comparison-title{color:#ffe690}
@@ -12031,14 +12025,7 @@
 @media(prefers-reduced-motion:reduce){.fishing-water::after,.fishing-water-glint,.fishing-compare-fill,.fishing-comparison-overlay.compare .fishing-comparison-fish{animation:none!important}.fishing-compare-fill{transform:scaleX(1)}}
 
 
-/* Fishing collection, variants, expressive ripples, tie and seasonal atmosphere */
-.fishing-water.season-spring{background:linear-gradient(#a8e2ff 0 28%,#70c5df 28% 31%,#1287bd 31% 72%,#075b8e 100%)}
-.fishing-water.season-summer{background:linear-gradient(#76d8ff 0 28%,#42b8df 28% 31%,#078cc3 31% 72%,#075b8e 100%)}
-.fishing-water.season-autumn{background:linear-gradient(#f2bd85 0 28%,#5ca9c1 28% 31%,#147ba9 31% 72%,#07527f 100%)}
-.fishing-water.season-winter{background:linear-gradient(#c6dff0 0 28%,#87b8cf 28% 31%,#327c9e 31% 72%,#155675 100%)}
-.fishing-season-layer{position:absolute;inset:0;z-index:3;pointer-events:none;overflow:hidden}
-.fishing-season-particle{position:absolute;top:-12%;font-size:15px;opacity:.72;animation:seasonDrift var(--dur,12s) linear infinite;animation-delay:var(--delay,0s)}
-@keyframes seasonDrift{to{transform:translate(var(--drift,80px),560px) rotate(440deg)}}
+/* Fishing collection, variants, expressive ripples, and ties */
 .fishing-ripple{transform:translate(-50%,-50%) scaleX(var(--ripple-wobble,1))}
 .fishing-ripple i{border-width:var(--ripple-thickness,4px)!important;animation-duration:var(--ripple-speed,1.05s)!important}
 .fishing-fish.variant-golden{filter:drop-shadow(0 0 9px #ffe36d) drop-shadow(0 7px 3px rgba(0,0,0,.25))}.fishing-fish.variant-golden .fish-body{background:linear-gradient(150deg,#fff3a0,#f4bf24 60%,#b86e00)!important}.fishing-fish.variant-golden .fish-tail,.fishing-fish.variant-golden .fish-fin{background:#e6a816!important}
@@ -12574,8 +12561,8 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
   <script id="blackjackDuelRuntime" src="/assets/blackjack-duel/blackjack-duel.js?v=blackjack-duel-v17" defer></script>
 <!-- BLACKJACK_DUEL_ASSETS_END -->
 <!-- FISHING_DUEL_ASSETS_START -->
-  <link id="fishingDuelStyles" rel="stylesheet" href="/assets/fishing/fishing.css?v=fishing-mechanics-v17">
-  <script src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v17"></script>
+  <link id="fishingDuelStyles" rel="stylesheet" href="/assets/fishing/fishing.css?v=fishing-mechanics-v18">
+  <script id="fishingDuelRuntime" defer src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v18"></script>
 <!-- FISHING_DUEL_ASSETS_END -->
 
 <!-- MOUNTAIN_RACE_V29_PRELOADS -->
@@ -18864,7 +18851,7 @@ function updateRunnerBalanceDisplay() {
     }
     function duelFishingPerson(name,side){return "";}
     function duelFishingSceneSvg(state){
-      return `<img class="fishing-lake-art" src="/assets/fishing/images/v2/approved-preview-clean-v1.png" alt="" aria-hidden="true"><canvas class="fishing-water-canvas" aria-hidden="true"></canvas><div class="fishing-scene-art" aria-hidden="true"><div class="fishing-shore-rig left"><div class="fishing-dock left"></div><div class="fishing-angler left"><img src="/assets/fishing/images/v2/fisherman-v2.png" alt=""></div></div><div class="fishing-shore-rig right"><div class="fishing-dock right"></div><div class="fishing-angler right"><img src="/assets/fishing/images/v2/fisherman-blue-transparent-v3.png" alt=""></div></div><svg class="fishing-line-art" viewBox="0 0 1000 430" preserveAspectRatio="none"><path class="fishing-line-svg left" data-line-side="left" d="M270 68 Q380 92 420 286"/><path class="fishing-line-svg right" data-line-side="right" d="M730 68 Q620 92 580 286"/></svg><div class="fishing-hook-node left"><span class="fishing-hook-bobber" aria-hidden="true"></span>${duelFishingCatchSlot(state?.creatorCatch,"left",false,true)}</div><div class="fishing-hook-node right"><span class="fishing-hook-bobber" aria-hidden="true"></span>${duelFishingCatchSlot(state?.joinerCatch,"right",false,true)}</div></div>`;
+      return `<img class="fishing-lake-art" src="/assets/fishing/images/v2/approved-preview-clean-v1.png" alt="" aria-hidden="true"><canvas class="fishing-water-canvas" aria-hidden="true"></canvas><div class="fishing-cloud-bank" aria-hidden="true"><img class="cloud-a" src="/assets/fishing/images/v2/clouds-v2.png" alt=""><img class="cloud-b" src="/assets/fishing/images/v2/clouds-v2.png" alt=""><img class="cloud-c" src="/assets/fishing/images/v2/clouds-v2.png" alt=""></div><div class="fishing-scene-art" aria-hidden="true"><div class="fishing-shore-rig left"><div class="fishing-dock left"></div><div class="fishing-angler left"><img src="/assets/fishing/images/v2/fisherman-v2.png" alt=""></div></div><div class="fishing-shore-rig right"><div class="fishing-dock right"></div><div class="fishing-angler right"><img src="/assets/fishing/images/v2/fisherman-blue-transparent-v3.png" alt=""></div></div><svg class="fishing-line-art" viewBox="0 0 1000 430" preserveAspectRatio="none"><path class="fishing-line-svg left" data-line-side="left" d="M270 68 Q380 92 420 286"/><path class="fishing-line-svg right" data-line-side="right" d="M730 68 Q620 92 580 286"/></svg><div class="fishing-hook-node left"><span class="fishing-hook-bobber" aria-hidden="true"></span>${duelFishingCatchSlot(state?.creatorCatch,"left",false,true)}</div><div class="fishing-hook-node right"><span class="fishing-hook-bobber" aria-hidden="true"></span>${duelFishingCatchSlot(state?.joinerCatch,"right",false,true)}</div></div>`;
     }
 
     function duelFishingAlignLines(root){
@@ -18880,6 +18867,9 @@ function updateRunnerBalanceDisplay() {
     }
     function duelFishingStatus(game,state,active){
       const both=Boolean(state.creatorCatch&&state.joinerCatch),myRole=game.isCreator?"creator":"joiner",winner=game.result?.winnerRole||game.resolved?.winnerRole||"";
+      if(game.status==="waiting")return"Waiting for an opponent — add a Remote Bot or another player to start";
+      if(game.status==="ready")return"Both players are here — press Ready to begin";
+      if(game.status==="countdown")return"Get ready...";
       if(both)return winner?(winner===myRole?"YOU WIN!":"YOU LOST"):"TIE GAME";
       if(state.myCatch)return"Fish secured — opponent is still fishing";
       return active?"BITE! TAP ANYWHERE IN THE GAME":"Watch the water for the next ripple";
@@ -18956,12 +18946,22 @@ function updateRunnerBalanceDisplay() {
       water.classList.remove("pull-left","pull-right");
     }
 
+    function duelFishingEnsureController(root){
+      if(window.FishingSceneController||window.__fishingControllerLoading)return;
+      window.__fishingControllerLoading=true;
+      const script=document.createElement("script");
+      script.src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v18&runtime=1";
+      script.onload=()=>{window.__fishingControllerLoading=false;if(root?.isConnected)duelBindFishing(root);};
+      script.onerror=()=>{window.__fishingControllerLoading=false;console.error("Fishing controller failed to load");};
+      document.head.appendChild(script);
+    }
     function duelBindFishing(root){
       if(!root)return;
       root=root.matches?.("[data-fishing-game]")?root:root.querySelector?.("[data-fishing-game]");
       if(!root)return;
       const water=root.querySelector("[data-fishing-water]");
       if(!water)return;
+      if(!window.FishingSceneController)duelFishingEnsureController(root);
       if(!root._fishingController&&window.FishingSceneController){
         const current=duelFishingLatestGame||{};
         const playerSide=current.isCreator?"left":"right";
@@ -18972,11 +18972,12 @@ function updateRunnerBalanceDisplay() {
         root._fishingController.syncCatch("left",leftId,false);
         root._fishingController.syncCatch("right",rightId,false);
         if(!leftId&&!rightId){
-          if(current.status==="countdown"||current.status==="waiting")root._fishingController.playCast();
-          else{root._fishingController.castPlayed=true;root.querySelector(".fishing-scene-art")?.classList.add("is-idle");root._fishingController.setPhase(current.status==="playing"?"waiting":String(current.status||"waiting"));}
+          if(current.status==="countdown")root._fishingController.playCast();
+          else{root.querySelector(".fishing-scene-art")?.classList.add("is-idle");root._fishingController.setPhase(current.status==="playing"?"waiting":String(current.status||"waiting"));}
         }
       }
       const controller=root._fishingController;
+      if(controller&&duelFishingLatestGame?.status==="countdown"&&!controller.castPlayed&&controller.phase!=="casting")controller.playCast();
       const copyButton=root.querySelector("[data-fishing-debug-copy]");
       if(copyButton&&!copyButton.dataset.bound){
         copyButton.dataset.bound="1";
@@ -22598,28 +22599,11 @@ function updateRunnerBalanceDisplay() {
       // The shared arcade overlay is the only countdown shown for every mode.
       return "";
     }
-    function duelFishingAtmosphere(game){
-      const key=String(game?.fishingState?.season||game?.gameId||"summer");
-      let hash=0; for(let i=0;i<key.length;i++) hash=((hash<<5)-hash+key.charCodeAt(i))|0;
-      const seasons=["spring","summer","autumn","winter"];
-      const season=seasons[Math.abs(hash)%seasons.length];
-      const symbols={spring:["🌸","·","🌸"],summer:["✦","·","✧"],autumn:["🍂","🍁","·"],winter:["❄","·","❅"]}[season];
-      const particles=Array.from({length:9},(_,i)=>{
-        const left=(Math.abs(hash+i*37)%96)+2;
-        const dur=10+(Math.abs(hash+i*19)%9);
-        const delay=-(Math.abs(hash+i*23)%16);
-        const drift=((hash+i*41)%150)-75;
-        const symbol=symbols[i%symbols.length];
-        return `<span class="fishing-season-particle" style="left:${left}%;--dur:${dur}s;--delay:${delay}s;--drift:${drift}px">${symbol}</span>`;
-      }).join("");
-      return {season,html:`<div class="fishing-season-layer" aria-hidden="true">${particles}</div>`};
-    }
     duelFishingHtml=function(game){
-      const atmosphere=duelFishingAtmosphere(game);
       const state=fishingV3Hydrate(game),active=game.status==="playing"?fishingV3Active():null;
       duelFishingLatestGame=game; const sec=game.status==="playing"?(fishingV3.endLocal?Math.min(60,Math.max(0,Math.ceil(fishingV3Remaining()/1000))):60):0;
       const pot=money(game.pot||game.wager||0);
-      return `<div class="fishing-game" data-fishing-game data-fishing-game-id="${escapeHtml(String(game.gameId||""))}" data-fishing-round-id="${escapeHtml(String(state.roundId||""))}" data-fishing-runtime-key="${escapeHtml(fishingV3.key)}"><header class="fishing-command-bar"><div class="fishing-brand"><span class="fishing-brand-mark" aria-hidden="true">◒</span><span><small>RUMBLE</small><b>FISHING DUEL</b></span></div><div class="fishing-clock" aria-label="Seconds remaining">${game.status==="countdown"?60:sec}s</div><div class="fishing-pot"><small>PRIZE POT</small><b>${pot}</b></div></header><section class="fishing-instructions" aria-label="How to play"><div class="fishing-instruction-heading"><small>HOW TO PLAY</small><b>One cast. Choose wisely.</b></div><ol><li><i>1</i><span><b>Watch</b><small>Wait for ripples</small></span></li><li><i>2</i><span><b>Judge</b><small>Bigger ripple, bigger fish</small></span></li><li><i>3</i><span><b>Tap once</b><small>Largest catch wins</small></span></li></ol></section><div class="fishing-player-strip">${duelFishingPlayerChip(game.creator,"PLAYER 1")}<span class="fishing-versus">VS</span>${duelFishingPlayerChip(game.joiner,"PLAYER 2")}</div><div class="fishing-water season-${atmosphere.season} ${active&&!state.myCatch?"can-tap":""}" data-fishing-water data-fish-id="${escapeHtml(active?.id||"")}"><div class="fishing-sky"><span class="fishing-sun"></span><span class="fishing-cloud c1"></span><span class="fishing-cloud c2"></span><span class="fishing-cloud c3"></span></div>${atmosphere.html}<div class="fishing-water-glint"></div><span class="fishing-bubble b1"></span><span class="fishing-bubble b2"></span><span class="fishing-bubble b3"></span><span class="fishing-leaf l1"></span><span class="fishing-leaf l2"></span>${duelFishingSceneSvg(state)}${active?`<div class="fishing-ripple" data-ripple-id="${escapeHtml(String(active.id||""))}" style="--ripple:${Number(active.ripple||48)}px;--ripple-speed:${Number(active.rippleSpeed||1.05)}s;--ripple-thickness:${Number(active.rippleThickness||4)}px;--ripple-wobble:${Number(active.rippleWobble||1)}"><i></i><i></i><i></i></div>`:""}<div class="fishing-center-status">${escapeHtml(game.status==="countdown"?"Get ready...":duelFishingStatus(game,state,active))}</div>${duelFishingResultOverlay(game)}</div><div class="fishing-controls"><span><b>Tip:</b> You only get one catch, so resist the small ripples.</span></div>${duelFishingDebugPanel(game,state,active,game.status==="countdown"?60:sec)}</div>`;
+      return `<div class="fishing-game" data-fishing-game data-fishing-game-id="${escapeHtml(String(game.gameId||""))}" data-fishing-round-id="${escapeHtml(String(state.roundId||""))}" data-fishing-runtime-key="${escapeHtml(fishingV3.key)}"><header class="fishing-command-bar"><div class="fishing-brand"><span class="fishing-brand-mark" aria-hidden="true">◒</span><span><small>RUMBLE</small><b>FISHING DUEL</b></span></div><div class="fishing-clock" aria-label="Seconds remaining">${game.status==="countdown"?60:sec}s</div><div class="fishing-pot"><small>PRIZE POT</small><b>${pot}</b></div></header><section class="fishing-instructions" aria-label="How to play"><div class="fishing-instruction-heading"><small>HOW TO PLAY</small><b>One cast. Choose wisely.</b></div><ol><li><i>1</i><span><b>Watch</b><small>Wait for ripples</small></span></li><li><i>2</i><span><b>Judge</b><small>Bigger ripple, bigger fish</small></span></li><li><i>3</i><span><b>Tap once</b><small>Largest catch wins</small></span></li></ol></section><div class="fishing-player-strip">${duelFishingPlayerChip(game.creator,"PLAYER 1")}<span class="fishing-versus">VS</span>${duelFishingPlayerChip(game.joiner,"PLAYER 2")}</div><div class="fishing-water ${active&&!state.myCatch?"can-tap":""}" data-fishing-water data-fish-id="${escapeHtml(active?.id||"")}"><div class="fishing-water-glint"></div><span class="fishing-bubble b1"></span><span class="fishing-bubble b2"></span><span class="fishing-bubble b3"></span>${duelFishingSceneSvg(state)}${active?`<div class="fishing-ripple" data-ripple-id="${escapeHtml(String(active.id||""))}" style="--ripple:${Number(active.ripple||48)}px;--ripple-speed:${Number(active.rippleSpeed||1.05)}s;--ripple-thickness:${Number(active.rippleThickness||4)}px;--ripple-wobble:${Number(active.rippleWobble||1)}"><i></i><i></i><i></i></div>`:""}<div class="fishing-center-status">${escapeHtml(duelFishingStatus(game,state,active))}</div>${duelFishingResultOverlay(game)}</div><div class="fishing-controls"><span><b>Tip:</b> You only get one catch, so resist the small ripples.</span></div>${duelFishingDebugPanel(game,state,active,game.status==="countdown"?60:sec)}</div>`;
     };
     duelFishingPatchDom=function(game){
       const root=duelActive?.querySelector('[data-fishing-game]'); if(!root||String(root.dataset.fishingGameId||"")!==String(game?.gameId||""))return false;
