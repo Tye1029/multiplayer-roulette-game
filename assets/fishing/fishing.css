@@ -1268,7 +1268,7 @@
 .fishing-angler {
   position: absolute;
   z-index: 2;
-  top: -39%;
+  top: -36%;
   height: 56%;
   transform-origin: 46% 91%;
   filter: drop-shadow(0 8px 7px rgba(0, 34, 48, .3));
@@ -1282,8 +1282,8 @@
   user-select: none;
 }
 
-.fishing-angler.left { right: -3.5%; }
-.fishing-angler.right { left: 4%; transform: scaleX(-1); }
+.fishing-angler.left { right: -1.9%; }
+.fishing-angler.right { left: -1.3%; transform: scaleX(-1); }
 
 .fishing-line-art {
   position: absolute;
