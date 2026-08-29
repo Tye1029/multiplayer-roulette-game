@@ -1789,16 +1789,16 @@
    of thick cartoon rings. Ripple size still comes from the authoritative fish. */
 .fishing-ripple {
   position: absolute !important;
-  z-index: 12 !important;
-  top: 64% !important;
+  z-index: 14 !important;
+  top: 62% !important;
   left: 50% !important;
-  width: calc(var(--ripple) * 1.18) !important;
-  height: calc(var(--ripple) * .26) !important;
-  min-width: 44px;
-  min-height: 12px;
-  filter: none !important;
-  mix-blend-mode: screen;
-  opacity: .86;
+  width: clamp(72px, calc(var(--ripple) * 1.85), 210px) !important;
+  height: clamp(22px, calc(var(--ripple) * .5), 64px) !important;
+  min-width: 72px;
+  min-height: 22px;
+  filter: drop-shadow(0 1px 1px rgba(0, 57, 76, .48)) !important;
+  mix-blend-mode: normal;
+  opacity: 1;
   pointer-events: none;
   transform: translate(-50%, -50%) scaleX(var(--ripple-wobble, 1)) !important;
 }
@@ -1807,13 +1807,14 @@
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 54%;
-  height: 42%;
-  border-top: 1px solid rgba(241, 255, 255, .76);
-  border-bottom: 1px solid rgba(107, 204, 218, .32);
+  width: 62%;
+  height: 50%;
+  border-top: 2px solid rgba(247, 255, 255, .94);
+  border-bottom: 1px solid rgba(42, 137, 165, .7);
   border-radius: 50%;
+  box-shadow: 0 -1px rgba(255,255,255,.18), inset 0 1px rgba(0,86,115,.18);
   content: "";
-  opacity: .58;
+  opacity: .82;
   transform: translate(-50%, -50%);
   animation: fishingNaturalRippleCore calc(var(--ripple-speed, 1.05s) * 1.35) ease-in-out infinite;
 }
@@ -1822,10 +1823,10 @@
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 22%;
-  height: 34%;
+  width: 31%;
+  height: 48%;
   border-radius: 50%;
-  background: radial-gradient(ellipse, rgba(236,255,255,.42), rgba(162,236,242,.12) 48%, transparent 72%);
+  background: radial-gradient(ellipse, rgba(244,255,255,.6), rgba(91,194,214,.2) 48%, transparent 73%);
   content: "";
   transform: translate(-50%, -50%);
   animation: fishingNaturalRippleCore calc(var(--ripple-speed, 1.05s) * 1.35) ease-in-out infinite;
@@ -1833,12 +1834,12 @@
 
 .fishing-ripple i {
   position: absolute;
-  inset: 12% 0 !important;
+  inset: 7% 0 !important;
   border: 0 !important;
-  border-top: 1px solid rgba(231, 255, 255, .72) !important;
-  border-bottom: 1px solid rgba(112, 211, 223, .26) !important;
+  border-top: 2px solid rgba(245, 255, 255, .92) !important;
+  border-bottom: 1px solid rgba(40, 143, 171, .58) !important;
   border-radius: 50% !important;
-  box-shadow: 0 -1px 2px rgba(255,255,255,.12), inset 0 1px rgba(25,140,169,.12);
+  box-shadow: 0 -1px 2px rgba(255,255,255,.25), 0 1px 1px rgba(0,72,100,.24), inset 0 1px rgba(25,140,169,.2);
   opacity: 0;
   animation: fishingNaturalRipple var(--ripple-speed, 1.05s) cubic-bezier(.12,.5,.35,1) infinite !important;
 }
@@ -1848,14 +1849,49 @@
 
 @keyframes fishingNaturalRipple {
   0% { opacity: 0; transform: scale(.22,.52); }
-  18% { opacity: .68; }
-  64% { opacity: .28; }
-  100% { opacity: 0; transform: scale(1.08,1); }
+  18% { opacity: .94; }
+  66% { opacity: .48; }
+  100% { opacity: .06; transform: scale(1.08,1); }
 }
 
 @keyframes fishingNaturalRippleCore {
-  0%,100% { opacity: .25; transform: translate(-50%,-50%) scale(.72); }
-  50% { opacity: .58; transform: translate(-50%,-50%) scale(1.08,.82); }
+  0%,100% { opacity: .48; transform: translate(-50%,-50%) scale(.72); }
+  50% { opacity: .92; transform: translate(-50%,-50%) scale(1.08,.82); }
+}
+
+.fishing-center-status:empty { display: none !important; }
+
+/* Eight practical tips rotate once during the 60-second round. */
+.fishing-controls {
+  display: grid !important;
+  min-height: 48px;
+  place-items: center;
+  overflow: hidden;
+}
+
+.fishing-tip-rotator {
+  position: relative;
+  width: 100%;
+  min-height: 1.7em;
+}
+
+.fishing-tip {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .35em;
+  opacity: 0;
+  padding-inline: 8px;
+  animation: fishingTipCycle 64s linear infinite;
+  line-height: 1.35;
+  text-align: center;
+}
+
+@keyframes fishingTipCycle {
+  0%, 11.5% { opacity: 1; transform: translateY(0); }
+  12.5%, 100% { opacity: 0; transform: translateY(-4px); }
 }
 
 /* The shared countdown uses the same structure in every game. Fishing supplies
@@ -1944,6 +1980,9 @@ body.fishing-result-open { overflow: hidden !important; }
   .fishing-command-bar { grid-template-columns: minmax(0, 1fr) 112px minmax(0, 1fr); }
   .fishing-command-bar > .fishing-clock { padding: 6px 7px 7px; }
   .fishing-clock-value { font-size: 1.08rem; }
+  .fishing-controls { min-height: 62px; padding-inline: 8px; }
+  .fishing-tip-rotator { min-height: 3.2em; }
+  .fishing-tip { align-content: center; flex-wrap: wrap; font-size: .62rem; }
   #fishingResultPortal .fishing-result-overlay { padding: 6px; }
   #fishingResultPortal .fishing-result-card { width: 100%; height: calc(100dvh - 12px); border-radius: 9px; }
   #fishingResultPortal .fishing-result-header { padding: 15px 16px 13px; }
@@ -1969,4 +2008,6 @@ body.fishing-result-open { overflow: hidden !important; }
   .fishing-line-svg,
   .fishing-fish-png,
   .fishing-fish-shimmer::before { animation: none !important; }
+  .fishing-tip { display: none; animation: none !important; }
+  .fishing-tip:first-child { position: static; display: flex; opacity: 1; transform: none; }
 }

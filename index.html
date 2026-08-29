@@ -12561,8 +12561,8 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
   <script id="blackjackDuelRuntime" src="/assets/blackjack-duel/blackjack-duel.js?v=blackjack-duel-v17" defer></script>
 <!-- BLACKJACK_DUEL_ASSETS_END -->
 <!-- FISHING_DUEL_ASSETS_START -->
-  <link id="fishingDuelStyles" rel="stylesheet" href="/assets/fishing/fishing.css?v=fishing-mechanics-v19">
-  <script id="fishingDuelRuntime" defer src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v19"></script>
+  <link id="fishingDuelStyles" rel="stylesheet" href="/assets/fishing/fishing.css?v=fishing-mechanics-v20">
+  <script id="fishingDuelRuntime" defer src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v20"></script>
 <!-- FISHING_DUEL_ASSETS_END -->
 
 <!-- MOUNTAIN_RACE_V29_PRELOADS -->
@@ -18872,7 +18872,20 @@ function updateRunnerBalanceDisplay() {
       if(game.status==="countdown")return"Get ready...";
       if(both)return winner?(winner===myRole?"YOU WIN!":"YOU LOST"):"TIE GAME";
       if(state.myCatch)return"Fish secured — opponent is still fishing";
-      return active?"BITE! TAP ANYWHERE IN THE GAME":"Watch the water for the next ripple";
+      return"";
+    }
+    const FISHING_TIPS=[
+      "Sometimes being patient can give you an opportunity for a bigger fish!",
+      "If your opponent has already caught a fish, you can wait for a bigger ripple—but don't wait too long!",
+      "If you think you see a BIG fish, catch it first—special catches are first come, first served!",
+      "Did you see that strange glow? Maybe there's a special fish in there!",
+      "One catch is all you get, so don't spend it on the first tiny ripple.",
+      "Rare fish can shimmer differently from ordinary catches, so watch the water closely.",
+      "A huge ripple hints at size, while an unusual glow may hint at rarity.",
+      "Watch the timer as closely as the water—patience only works while there is time left."
+    ];
+    function duelFishingTipsHtml(){
+      return `<div class="fishing-tip-rotator" aria-label="Fishing tips">${FISHING_TIPS.map((tip,index)=>`<span class="fishing-tip" style="animation-delay:${index*8}s" ${index?'aria-hidden="true"':''}><b>Tip:</b> ${escapeHtml(tip)}</span>`).join("")}</div>`;
     }
     function duelFishingFormatClock(seconds){
       const safe=Math.max(0,Math.min(60,Math.ceil(Number(seconds)||0)));
@@ -18971,7 +18984,7 @@ function updateRunnerBalanceDisplay() {
       if(window.FishingSceneController||window.__fishingControllerLoading)return;
       window.__fishingControllerLoading=true;
       const script=document.createElement("script");
-      script.src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v19&runtime=1";
+      script.src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v20&runtime=1";
       script.onload=()=>{window.__fishingControllerLoading=false;if(root?.isConnected)duelBindFishing(root);};
       script.onerror=()=>{window.__fishingControllerLoading=false;console.error("Fishing controller failed to load");};
       document.head.appendChild(script);
@@ -22656,7 +22669,7 @@ function updateRunnerBalanceDisplay() {
       duelFishingLatestGame=game; const sec=game.status==="playing"?(fishingV3.endLocal?Math.min(60,Math.max(0,Math.ceil(fishingV3Remaining()/1000))):60):0;
       if(game.status==="complete")duelFishingEnsureCompletionTicker(game);else duelFishingHideResultPortal();
       const pot=money(game.pot||game.wager||0);
-      return `<div class="fishing-game" data-fishing-game data-fishing-game-id="${escapeHtml(String(game.gameId||""))}" data-fishing-round-id="${escapeHtml(String(state.roundId||""))}" data-fishing-runtime-key="${escapeHtml(fishingV3.key)}"><header class="fishing-command-bar"><div class="fishing-brand"><span class="fishing-brand-mark" aria-hidden="true">◒</span><span><small>RUMBLE</small><b>FISHING DUEL</b></span></div>${duelFishingClockHtml(game.status==="countdown"?60:sec,game.status)}<div class="fishing-pot"><small>PRIZE POT</small><b>${pot}</b></div></header><section class="fishing-instructions" aria-label="How to play"><div class="fishing-instruction-heading"><small>HOW TO PLAY</small><b>One cast. Choose wisely.</b></div><ol><li><i>1</i><span><b>Watch</b><small>Wait for ripples</small></span></li><li><i>2</i><span><b>Judge</b><small>Bigger ripple, bigger fish</small></span></li><li><i>3</i><span><b>Tap once</b><small>Largest catch wins</small></span></li></ol></section><div class="fishing-player-strip">${duelFishingPlayerChip(game.creator,"PLAYER 1")}<span class="fishing-versus">VS</span>${duelFishingPlayerChip(game.joiner,"PLAYER 2")}</div><div class="fishing-water ${active&&!state.myCatch?"can-tap":""}" data-fishing-water data-fish-id="${escapeHtml(active?.id||"")}"><div class="fishing-water-glint"></div><span class="fishing-bubble b1"></span><span class="fishing-bubble b2"></span><span class="fishing-bubble b3"></span>${duelFishingSceneSvg(state)}${active?`<div class="fishing-ripple" data-ripple-id="${escapeHtml(String(active.id||""))}" style="--ripple:${Number(active.ripple||48)}px;--ripple-speed:${Number(active.rippleSpeed||1.05)}s;--ripple-thickness:${Number(active.rippleThickness||4)}px;--ripple-wobble:${Number(active.rippleWobble||1)}"><i></i><i></i><i></i></div>`:""}<div class="fishing-center-status">${escapeHtml(duelFishingStatus(game,state,active))}</div>${game.status==="complete"?duelFishingComparisonOverlay(game):""}</div><div class="fishing-controls"><span><b>Tip:</b> You only get one catch, so resist the small ripples.</span></div>${duelFishingDebugPanel(game,state,active,game.status==="countdown"?60:sec)}</div>`;
+      return `<div class="fishing-game" data-fishing-game data-fishing-game-id="${escapeHtml(String(game.gameId||""))}" data-fishing-round-id="${escapeHtml(String(state.roundId||""))}" data-fishing-runtime-key="${escapeHtml(fishingV3.key)}"><header class="fishing-command-bar"><div class="fishing-brand"><span class="fishing-brand-mark" aria-hidden="true">◒</span><span><small>RUMBLE</small><b>FISHING DUEL</b></span></div>${duelFishingClockHtml(game.status==="countdown"?60:sec,game.status)}<div class="fishing-pot"><small>PRIZE POT</small><b>${pot}</b></div></header><section class="fishing-instructions" aria-label="How to play"><div class="fishing-instruction-heading"><small>HOW TO PLAY</small><b>One cast. Choose wisely.</b></div><ol><li><i>1</i><span><b>Watch</b><small>Read the water</small></span></li><li><i>2</i><span><b>Bigger ripple = Bigger Fish!</b><small>Wait for the best one</small></span></li><li><i>3</i><span><b>Tap once</b><small>Largest catch wins</small></span></li></ol></section><div class="fishing-player-strip">${duelFishingPlayerChip(game.creator,"PLAYER 1")}<span class="fishing-versus">VS</span>${duelFishingPlayerChip(game.joiner,"PLAYER 2")}</div><div class="fishing-water ${active&&!state.myCatch?"can-tap":""}" data-fishing-water data-fish-id="${escapeHtml(active?.id||"")}"><div class="fishing-water-glint"></div><span class="fishing-bubble b1"></span><span class="fishing-bubble b2"></span><span class="fishing-bubble b3"></span>${duelFishingSceneSvg(state)}${active?`<div class="fishing-ripple" data-ripple-id="${escapeHtml(String(active.id||""))}" style="--ripple:${Number(active.ripple||48)}px;--ripple-speed:${Number(active.rippleSpeed||1.05)}s;--ripple-thickness:${Number(active.rippleThickness||4)}px;--ripple-wobble:${Number(active.rippleWobble||1)}"><i></i><i></i><i></i></div>`:""}<div class="fishing-center-status">${escapeHtml(duelFishingStatus(game,state,active))}</div>${game.status==="complete"?duelFishingComparisonOverlay(game):""}</div><div class="fishing-controls">${duelFishingTipsHtml()}</div>${duelFishingDebugPanel(game,state,active,game.status==="countdown"?60:sec)}</div>`;
     };
     duelFishingPatchDom=function(game){
       const root=duelActive?.querySelector('[data-fishing-game]'); if(!root||String(root.dataset.fishingGameId||"")!==String(game?.gameId||""))return false;
