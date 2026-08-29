@@ -1137,7 +1137,8 @@
 .fishing-water.season-autumn,
 .fishing-water.season-winter {
   position: relative;
-  min-height: 520px;
+  min-height: 0 !important;
+  aspect-ratio: 1450 / 777;
   isolation: isolate;
   background: #0a7697 !important;
   box-shadow: inset 0 -90px 130px rgba(0, 35, 70, .28);
@@ -1225,21 +1226,34 @@
 .fishing-cloud-bank .cloud-b { top: 19%; left: -32%; width: clamp(120px, 18vw, 220px); opacity: .68; animation-duration: 45s; animation-delay: -17s; }
 .fishing-cloud-bank .cloud-c { top: -1%; left: -36%; width: clamp(100px, 14vw, 170px); opacity: .58; animation-duration: 57s; animation-delay: -38s; }
 
-.fishing-dock,
-.fishing-dock.left,
-.fishing-dock.right {
-  z-index: 5;
+.fishing-shore-rig {
+  position: absolute;
+  z-index: 0;
   top: 44%;
-  width: 60%;
-  height: 72%;
+  width: 46%;
+  aspect-ratio: 3 / 2;
+  pointer-events: none;
+}
+
+.fishing-shore-rig.left { left: -9.5%; }
+.fishing-shore-rig.right { right: -11.5%; }
+
+.fishing-shore-rig .fishing-dock,
+.fishing-shore-rig .fishing-dock.left,
+.fishing-shore-rig .fishing-dock.right {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   border: 0;
   background: url('/assets/fishing/images/v2/dock-v2.png') center / contain no-repeat;
   box-shadow: none;
   transform-origin: 50% 55%;
 }
 
-.fishing-dock.left { left: -18%; transform: rotate(-1.2deg); }
-.fishing-dock.right { right: -18%; transform: scaleX(-1) rotate(-1.2deg); }
+.fishing-shore-rig.left .fishing-dock { transform: rotate(-1.2deg); }
+.fishing-shore-rig.right .fishing-dock { transform: scaleX(-1) rotate(-1.2deg); }
 .fishing-dock::before,
 .fishing-dock::after { display: none !important; content: none !important; }
 
@@ -1254,8 +1268,8 @@
 .fishing-angler {
   position: absolute;
   z-index: 2;
-  top: 21%;
-  height: 33%;
+  top: -36%;
+  height: 55%;
   transform-origin: 46% 91%;
   filter: drop-shadow(0 8px 7px rgba(0, 34, 48, .3));
   will-change: transform;
@@ -1268,8 +1282,8 @@
   user-select: none;
 }
 
-.fishing-angler.left { left: 20%; }
-.fishing-angler.right { right: 20%; transform: scaleX(-1); }
+.fishing-angler.left { right: 1%; }
+.fishing-angler.right { left: 8%; transform: scaleX(-1); }
 
 .fishing-line-art {
   position: absolute;
@@ -1684,13 +1698,7 @@
   .fishing-water.season-spring,
   .fishing-water.season-summer,
   .fishing-water.season-autumn,
-  .fishing-water.season-winter { min-height: 440px; }
-  .fishing-dock,.fishing-dock.left,.fishing-dock.right { top: 46%; width: 76%; height: 62%; }
-  .fishing-dock.left { left: -30%; }
-  .fishing-dock.right { right: -30%; }
-  .fishing-angler { top: 33%; height: 30%; }
-  .fishing-angler.left { left: 10%; }
-  .fishing-angler.right { right: 10%; }
+  .fishing-water.season-winter { min-height: 0 !important; }
   .fishing-hook-catch { width: 112px; }
   .fishing-hook-catch .fishing-catch-caption { width: 104px; padding: 4px 5px; }
   .fishing-catch-slot { top: 44% !important; width: 104px; height: 190px; }
