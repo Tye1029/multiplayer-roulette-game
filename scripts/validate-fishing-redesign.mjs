@@ -10,8 +10,8 @@ const controller = fs.readFileSync(new URL("../assets/fishing/fishing-controller
 const preview = fs.readFileSync(new URL("../games/multiplayer/fishing/preview.html", import.meta.url), "utf8");
 const serverData = fs.readFileSync(new URL("../netlify/functions/_data.js", import.meta.url), "utf8");
 
-assert(html.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v11'), "versioned Fishing stylesheet is not loaded");
-assert(html.includes('/assets/fishing/fishing-controller.js?v=fishing-mechanics-v11'), "shared Fishing controller is not loaded");
+assert(html.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v12'), "versioned Fishing stylesheet is not loaded");
+assert(html.includes('/assets/fishing/fishing-controller.js?v=fishing-mechanics-v12'), "shared Fishing controller is not loaded");
 assert(html.includes('class="fishing-command-bar"'), "game-owned Fishing header is missing");
 assert(html.includes('class="fishing-instructions" aria-label="How to play"'), "visible game instructions are missing");
 assert(html.includes("Bigger ripple, bigger fish"), "ripple-size instruction is missing");
@@ -57,10 +57,9 @@ assert(html.includes('class="fishing-shore-rig right"'), "right dock and fisherm
 assert(css.includes('top: 46.1%;\n  width: 48.8%;\n  aspect-ratio: 3 / 2;'), "anchored dock assembly does not preserve the approved preview proportions");
 assert(css.includes('.fishing-shore-rig.left { left: -12.9%;'), "left dock assembly does not continue beyond the left edge");
 assert(css.includes('.fishing-shore-rig.right { right: -12.1%;'), "right dock assembly does not continue beyond the right edge");
-assert(css.includes('z-index: 3;\n  inset: 0;'), "dock posts do not layer in front of the fishermen's boots");
-assert(css.includes('top: -36%;\n  height: 56%;'), "fishermen are not seated down onto the dock surface");
-assert(css.includes('.fishing-angler.left { right: -1.9%; }'), "left fisherman is not centered between the dock posts");
-assert(css.includes('.fishing-angler.right { left: -1.3%;'), "right fisherman is not centered between the dock posts");
+assert(css.includes('z-index: 4;\n  top: -21%;'), "fishermen are not planted on top of the dock surface");
+assert(css.includes('.fishing-angler.left { right: 14.5%; }'), "left fisherman does not match the approved outward dock position");
+assert(css.includes('.fishing-angler.right { left: 21%;'), "right fisherman does not match the approved outward dock position");
 assert(css.includes('animation: fishingLakeBreath 6s'), "visible subtle whole-lake motion timing is missing");
 assert(css.includes('stroke-width: 1.15'), "fishing line is not using the thin realistic treatment");
 assert(css.includes('top: -11px'), "bobber is not seated directly against the caught fish");
