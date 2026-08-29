@@ -12561,8 +12561,8 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
   <script id="blackjackDuelRuntime" src="/assets/blackjack-duel/blackjack-duel.js?v=blackjack-duel-v17" defer></script>
 <!-- BLACKJACK_DUEL_ASSETS_END -->
 <!-- FISHING_DUEL_ASSETS_START -->
-  <link id="fishingDuelStyles" rel="stylesheet" href="/assets/fishing/fishing.css?v=fishing-mechanics-v20">
-  <script id="fishingDuelRuntime" defer src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v20"></script>
+  <link id="fishingDuelStyles" rel="stylesheet" href="/assets/fishing/fishing.css?v=fishing-mechanics-v21">
+  <script id="fishingDuelRuntime" defer src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v21"></script>
 <!-- FISHING_DUEL_ASSETS_END -->
 
 <!-- MOUNTAIN_RACE_V29_PRELOADS -->
@@ -18877,11 +18877,10 @@ function updateRunnerBalanceDisplay() {
     const FISHING_TIPS=[
       "Sometimes being patient can give you an opportunity for a bigger fish!",
       "If your opponent has already caught a fish, you can wait for a bigger ripple—but don't wait too long!",
-      "If you think you see a BIG fish, catch it first—special catches are first come, first served!",
+      "If you think you see a BIG fish, catch it first—first come, first served!",
       "Did you see that strange glow? Maybe there's a special fish in there!",
       "One catch is all you get, so don't spend it on the first tiny ripple.",
       "Rare fish can shimmer differently from ordinary catches, so watch the water closely.",
-      "A huge ripple hints at size, while an unusual glow may hint at rarity.",
       "Watch the timer as closely as the water—patience only works while there is time left."
     ];
     function duelFishingTipsHtml(){
@@ -18984,7 +18983,7 @@ function updateRunnerBalanceDisplay() {
       if(window.FishingSceneController||window.__fishingControllerLoading)return;
       window.__fishingControllerLoading=true;
       const script=document.createElement("script");
-      script.src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v20&runtime=1";
+      script.src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v21&runtime=1";
       script.onload=()=>{window.__fishingControllerLoading=false;if(root?.isConnected)duelBindFishing(root);};
       script.onerror=()=>{window.__fishingControllerLoading=false;console.error("Fishing controller failed to load");};
       document.head.appendChild(script);

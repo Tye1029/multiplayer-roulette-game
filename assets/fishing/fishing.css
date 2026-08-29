@@ -1790,7 +1790,7 @@
 .fishing-ripple {
   position: absolute !important;
   z-index: 14 !important;
-  top: 62% !important;
+  top: calc(66.5% + clamp(11px, calc(var(--ripple) * .25), 32px) + 17px) !important;
   left: 50% !important;
   width: clamp(72px, calc(var(--ripple) * 1.85), 210px) !important;
   height: clamp(22px, calc(var(--ripple) * .5), 64px) !important;
@@ -1861,7 +1861,7 @@
 
 .fishing-center-status:empty { display: none !important; }
 
-/* Eight practical tips rotate once during the 60-second round. */
+/* Seven practical tips rotate during the 60-second round. */
 .fishing-controls {
   display: grid !important;
   min-height: 48px;
@@ -1884,14 +1884,14 @@
   gap: .35em;
   opacity: 0;
   padding-inline: 8px;
-  animation: fishingTipCycle 64s linear infinite;
+  animation: fishingTipCycle 56s linear infinite;
   line-height: 1.35;
   text-align: center;
 }
 
 @keyframes fishingTipCycle {
-  0%, 11.5% { opacity: 1; transform: translateY(0); }
-  12.5%, 100% { opacity: 0; transform: translateY(-4px); }
+  0%, 13.2% { opacity: 1; transform: translateY(0); }
+  14.3%, 100% { opacity: 0; transform: translateY(-4px); }
 }
 
 /* The shared countdown uses the same structure in every game. Fishing supplies

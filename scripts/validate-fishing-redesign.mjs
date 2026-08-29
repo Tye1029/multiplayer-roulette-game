@@ -10,9 +10,9 @@ const controller = fs.readFileSync(new URL("../assets/fishing/fishing-controller
 const preview = fs.readFileSync(new URL("../games/multiplayer/fishing/preview.html", import.meta.url), "utf8");
 const serverData = fs.readFileSync(new URL("../netlify/functions/_data.js", import.meta.url), "utf8");
 
-assert(html.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v20'), "versioned Fishing stylesheet is not loaded");
-assert(html.includes('id="fishingDuelRuntime" defer src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v20"'), "deferred shared Fishing controller is not loaded");
-assert(preview.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v20'), "preview is not using the current Fishing stylesheet");
+assert(html.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v21'), "versioned Fishing stylesheet is not loaded");
+assert(html.includes('id="fishingDuelRuntime" defer src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v21"'), "deferred shared Fishing controller is not loaded");
+assert(preview.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v21'), "preview is not using the current Fishing stylesheet");
 assert(html.includes('function duelFishingEnsureController(root)'), "Fishing controller recovery loader is missing");
 assert(html.includes('class="fishing-command-bar"'), "game-owned Fishing header is missing");
 assert(html.includes('class="fishing-instructions" aria-label="How to play"'), "visible game instructions are missing");
@@ -21,6 +21,9 @@ assert(html.includes("One catch is all you get"), "one-catch rule is missing");
 assert(html.includes('const FISHING_TIPS=['), "rotating Fishing tip catalog is missing");
 assert(html.includes("Sometimes being patient can give you an opportunity for a bigger fish!"), "patience tip is missing");
 assert(html.includes("Did you see that strange glow? Maybe there's a special fish in there!"), "special-fish glow tip is missing");
+assert(html.includes("If you think you see a BIG fish, catch it first—first come, first served!"), "first-come big-fish tip is missing");
+assert(!html.includes("A huge ripple hints at size, while an unusual glow may hint at rarity."), "removed size-and-rarity tip is still present");
+assert(!html.includes("special catches are first come, first served"), "big-fish tip still implies the catch is special");
 assert(html.includes('function duelFishingTipsHtml()'), "Fishing tip carousel renderer is missing");
 assert(!html.includes('return active?"BITE! TAP ANYWHERE IN THE GAME"'), "active-ripple prompt text is still rendered over the lake");
 assert(!preview.includes("status.textContent='BITE! Tap the ripple"), "preview still renders active-ripple prompt text");
@@ -68,6 +71,7 @@ assert(css.includes('@keyframes fishingLakeBreath'), "whole-water motion layer i
 assert(css.includes('@keyframes fishingNaturalRipple'), "natural thin-water ripple animation is missing");
 assert(css.includes('border: 0 !important;'), "legacy cartoon ripple borders can still override the realistic treatment");
 assert(css.includes('width: clamp(72px, calc(var(--ripple) * 1.85), 210px)'), "ordinary ripples are still too small to see");
+assert(css.includes('top: calc(66.5% + clamp(11px, calc(var(--ripple) * .25), 32px) + 17px) !important;'), "ripples are not positioned below the resting bobbers");
 assert(css.includes('mix-blend-mode: normal;'), "bright-water blending can still erase ripples");
 assert(css.includes('.fishing-center-status:empty { display: none !important; }'), "empty bite prompt does not collapse cleanly");
 assert(css.includes('@keyframes fishingTipCycle'), "Fishing tips do not rotate during the round");
