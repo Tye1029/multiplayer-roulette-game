@@ -116,6 +116,8 @@
 .duel-screen {
   gap: 12px !important;
   width: 100% !important;
+  grid-template-rows: auto auto !important;
+  align-content: start !important;
   padding: clamp(10px, 1.7vw, 20px) !important;
   border: 0 !important;
   border-radius: 0 !important;
@@ -183,6 +185,9 @@
 .duel-grid {
   display: grid !important;
   grid-template-columns: minmax(0, 1fr) !important;
+  grid-auto-rows: max-content !important;
+  align-content: start !important;
+  align-items: start !important;
   gap: 10px !important;
 }
 
@@ -204,7 +209,7 @@
   letter-spacing: .02em !important;
 }
 
-.duel-live-card { min-width: 0; padding: 0 !important; overflow: hidden; }
+.duel-live-card { min-width: 0; align-self: start; padding: 0 !important; overflow: hidden; }
 
 .duel-top-actions {
   min-height: 44px;
@@ -245,6 +250,7 @@
 .duel-side-stack {
   display: grid !important;
   grid-template-columns: minmax(0, 2fr) minmax(260px, .8fr) !important;
+  align-self: start;
   gap: 10px !important;
 }
 

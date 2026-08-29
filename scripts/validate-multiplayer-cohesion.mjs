@@ -128,7 +128,7 @@ assert.ok(!index.includes("if (mountainRacePauseCompletedPolling(game))"), "Summ
 assert.ok(index.includes("<h1>Rumble Arcade</h1>") && index.includes("<p>Choose a duel.</p>"), "public launcher copy is not concise");
 assert.ok(!index.includes("SIMPLE FISHING NPC BUILD"), "internal build label is still public");
 assert.ok(!index.includes("Create or join quick 1v1 games"), "old instructional subtitle is still public");
-assert.ok(index.includes('/assets/duel-shell.css?v=duel-shell-v1'), "shared professional duel shell is not loaded");
+assert.ok(index.includes('/assets/duel-shell.css?v=duel-shell-v2'), "shared professional duel shell is not loaded");
 assert.ok(index.includes('class="duel-side-stack"'), "compact create/join controls are not grouped below the game");
 assert.ok(index.includes('class="duel-create-fields"'), "compact create controls are missing");
 assert.ok(index.includes('class="duel-countdown-frame"'), "shared countdown frame is missing");
