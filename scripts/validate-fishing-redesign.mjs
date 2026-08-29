@@ -10,9 +10,9 @@ const controller = fs.readFileSync(new URL("../assets/fishing/fishing-controller
 const preview = fs.readFileSync(new URL("../games/multiplayer/fishing/preview.html", import.meta.url), "utf8");
 const serverData = fs.readFileSync(new URL("../netlify/functions/_data.js", import.meta.url), "utf8");
 
-assert(html.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v22'), "versioned Fishing stylesheet is not loaded");
-assert(html.includes('id="fishingDuelRuntime" defer src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v22"'), "deferred shared Fishing controller is not loaded");
-assert(preview.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v22'), "preview is not using the current Fishing stylesheet");
+assert(html.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v23'), "versioned Fishing stylesheet is not loaded");
+assert(html.includes('id="fishingDuelRuntime" defer src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v23"'), "deferred shared Fishing controller is not loaded");
+assert(preview.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v23'), "preview is not using the current Fishing stylesheet");
 assert(html.includes('function duelFishingEnsureController(root)'), "Fishing controller recovery loader is missing");
 assert(html.includes('class="fishing-command-bar"'), "game-owned Fishing header is missing");
 assert(html.includes('class="fishing-instructions" aria-label="How to play"'), "visible game instructions are missing");
@@ -35,6 +35,8 @@ assert(html.includes("const picture=duelFishSvg"), "logbook pictures are not spe
 assert(html.includes('const FISHING_SPECIES=['), "the complete Fishing species catalog is missing");
 assert(html.includes('fishing-log-entry locked'), "uncaught logbook species are not represented by locked entries");
 assert(html.includes('fishing-log-question">?</span>'), "uncaught fish do not show question marks");
+assert(html.includes('data-fishing-log-unlock'), "temporary unlock-all-fish testing control is missing");
+assert(html.includes('"Aurora Koi","Celestial Anglerfish","Nemo"'), "new special fish are missing from the collection catalog");
 assert(!html.includes('<b>${totalWins}</b>Wins'), "the removed Wins logbook statistic is still rendered");
 assert(html.includes('/assets/fishing/images/v2/fisherman-v2.png'), "PNG fisherman characters are missing");
 assert(html.includes('/assets/fishing/images/v2/fisherman-blue-transparent-v3.png'), "distinct second PNG fisherman is missing");
@@ -74,8 +76,10 @@ assert(css.includes('@keyframes fishingRipplePresenceOut'), "ripples do not fade
 assert(html.includes("ripple.classList.add('is-fading-out')"), "live ripples are still removed abruptly");
 assert(preview.includes("ripple.classList.add('is-fading-out')"), "preview ripples are still removed abruptly");
 assert(css.includes('border: 0 !important;'), "legacy cartoon ripple borders can still override the realistic treatment");
-assert(css.includes('width: clamp(72px, calc(var(--ripple) * 1.85), 210px)'), "ordinary ripples are still too small to see");
-assert(css.includes('top: calc(66.5% + clamp(11px, calc(var(--ripple) * .25), 32px) + 17px) !important;'), "ripples are not positioned below the resting bobbers");
+assert(css.includes('width: clamp(58px, var(--ripple), 196px)'), "ripple width is not directly mapped to fish size");
+assert(css.includes('top: 69% !important;'), "ripples are not positioned below the resting bobbers");
+assert(css.includes('.fishing-ripple.is-special'), "special-fish ripple glow is missing");
+assert(css.includes('@keyframes fishingRippleSparkle'), "special-fish ripple sparkle animation is missing");
 assert(css.includes('mix-blend-mode: normal;'), "bright-water blending can still erase ripples");
 assert(css.includes('.fishing-center-status:empty { display: none !important; }'), "empty bite prompt does not collapse cleanly");
 assert(css.includes('@keyframes fishingTipCycle'), "Fishing tips do not rotate during the round");
@@ -106,6 +110,9 @@ assert(css.includes('@keyframes fishingFishHookSway'), "hooked fish sway is miss
 assert(css.includes('@keyframes fishingFishSway'), "fish sway animation is missing");
 assert(css.includes('@keyframes fishingRareShimmer'), "rare fish shimmer is missing");
 assert(serverData.includes('variant="silver";rarity="rare"'), "silver rare fish cannot be awarded");
+assert(serverData.includes('ripple:Number((58+ratio*138).toFixed(1))'), "server ripple size is not globally correlated with fish length");
+assert(serverData.includes('const size=Number((12+Math.random()*88).toFixed(1))'), "fish sizes are not newly randomized for every round");
+assert(serverData.includes('variant:"celestial"')&&serverData.includes('variant:"aurora"')&&serverData.includes('variant:"nemo"'), "new independent special-fish rolls are missing");
 assert(css.includes("@media (max-width: 680px)"), "mobile Fishing redesign rules are missing");
 assert(preview.includes('data-preview-state="live"'), "live Fishing component preview is missing");
 assert(preview.includes('data-preview-state="result"'), "result Fishing component preview is missing");
@@ -130,10 +137,10 @@ assert(controller.includes('async copyReport(extra={})'), "copyable diagnostic r
 assert(controller.includes('fishingDebugVersion:VERSION'), "diagnostic version marker is missing");
 
 const imageRoot=new URL("../assets/fishing/images/v2/",import.meta.url);
-for(const file of ["approved-preview-clean-v1.png","lake-bg-v2.png","dock-v2.png","fisherman-v2.png","fisherman-blue-transparent-v3.png","clouds-v2.png","logbook-v2.png","fish/giant-bluefin-tuna-v2.png","rare/golden-wide-v2.png","rare/crystal-wide-v2.png","rare/silver-wide-v2.png","rare/albino-hat-wide-v2.png"]){
+for(const file of ["approved-preview-clean-v1.png","lake-bg-v2.png","dock-v2.png","fisherman-v2.png","fisherman-blue-transparent-v3.png","clouds-v2.png","logbook-v2.png","fish/giant-bluefin-tuna-v2.png","fish/atlantic-cod-v2.png","fish/zebra-pleco-v2.png","rare/golden-wide-v2.png","rare/crystal-wide-v2.png","rare/silver-wide-v2.png","rare/albino-hat-wide-v2.png","rare/aurora-koi-v2.png","rare/celestial-anglerfish-v2.png","rare/nemo-v2.png"]){
   assert(fs.existsSync(new URL(file,imageRoot)),`required PNG asset is missing: ${file}`);
 }
 const regularFish=fs.readdirSync(new URL("fish/",imageRoot)).filter(name=>name.endsWith("-v2.png"));
-assert(regularFish.length===36,`expected 36 unique regular fish PNGs, found ${regularFish.length}`);
+assert(regularFish.length===53,`expected 53 unique regular fish PNGs, found ${regularFish.length}`);
 
-console.log("Fishing mechanics validation passed: structured clock, realistic ripples, viewport logbook result, recoverable controller, moving clouds and water, connected rigs, bot timing, diagnostics, and 36 PNG fish are present.");
+console.log("Fishing mechanics validation passed: structured clock, size-faithful and special ripples, scrollable 56-fish logbook, recoverable controller, moving clouds and water, connected rigs, bot timing, diagnostics, 53 regular PNG fish, and 3 named special fish are present.");

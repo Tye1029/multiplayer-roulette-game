@@ -1771,7 +1771,7 @@ function addAdjustment(adjustments, adjustment) { return [...(Array.isArray(adju
 function addWithdrawal(withdrawals, withdrawal) { return [...(Array.isArray(withdrawals) ? withdrawals : []), withdrawal].slice(-MAX_WITHDRAWALS); }
 
 function fishingSpeciesKey(value) {
-  return String(value || "fish").toLowerCase().replace(/^(golden|albino|midnight|crystal|emerald)\s+/, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80) || "fish";
+  return String(value || "fish").toLowerCase().replace(/^(golden|silver|albino|midnight|crystal|emerald)\s+/, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80) || "fish";
 }
 function sanitizeFishingLogbook(value) {
   const raw = value && typeof value === "object" ? value : {};
@@ -7088,12 +7088,18 @@ async function withFishingGameLock(gameId, task) {
 function fishingRand(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
 function fishingFishIdentity(size){
   let pool;
-  if(size>=88) pool=["Titan Sturgeon","Grand Marlin","Giant Bluefin Tuna","Broadbill Swordfish","Arapaima","Mekong Giant Catfish"];
-  else if(size>=70) pool=["King Salmon","Northern Muskie","Lake Sturgeon","Alligator Gar","Wels Catfish","Goliath Tigerfish"];
-  else if(size>=48) pool=["Largemouth Bass","Rainbow Trout","Red Snapper","Northern Pike","Striped Bass","Mahi-Mahi","Peacock Bass","Common Carp"];
-  else if(size>=28) pool=["Yellow Perch","Black Crappie","Bluegill","Brook Trout","Koi Carp","Clown Knifefish","Oscar","River Bream"];
-  else pool=["Silver Minnow","Sardine","Tiny Sunfish","Anchovy","Neon Tetra","Guppy","Smelt","Dwarf Gourami"];
+  if(size>=88) pool=["Titan Sturgeon","Grand Marlin","Giant Bluefin Tuna","Broadbill Swordfish","Arapaima","Mekong Giant Catfish","Sailfish","Paddlefish"];
+  else if(size>=70) pool=["King Salmon","Northern Muskie","Lake Sturgeon","Alligator Gar","Wels Catfish","Goliath Tigerfish","Tarpon","Great Barracuda","Electric Eel","Red Drum"];
+  else if(size>=48) pool=["Largemouth Bass","Rainbow Trout","Red Snapper","Northern Pike","Striped Bass","Mahi-Mahi","Peacock Bass","Common Carp","Atlantic Cod","Black Sea Bass","Lionfish","Moonfish","Coelacanth"];
+  else if(size>=28) pool=["Yellow Perch","Black Crappie","Bluegill","Brook Trout","Koi Carp","Clown Knifefish","Oscar","River Bream","Blue Tang","Copperband Butterflyfish","Pufferfish","Mandarinfish"];
+  else pool=["Silver Minnow","Sardine","Tiny Sunfish","Anchovy","Neon Tetra","Guppy","Smelt","Dwarf Gourami","Royal Gramma","Zebra Pleco"];
   const baseName=pool[fishingRand(0,pool.length-1)];
+  // Named special fish are rolled independently of length. A tiny legendary
+  // fish is possible, and a large ordinary fish can still win the duel.
+  const specialRoll=Math.random();
+  if(specialRoll<0.0025)return {name:"Celestial Anglerfish",baseName:"Celestial Anglerfish",variant:"celestial",rarity:"legendary"};
+  if(specialRoll<0.006)return {name:"Aurora Koi",baseName:"Aurora Koi",variant:"aurora",rarity:"legendary"};
+  if(specialRoll<0.012)return {name:"Nemo",baseName:"Nemo",variant:"nemo",rarity:"rare"};
   const roll=Math.random();
   let variant="standard", rarity="regular", displayName=baseName;
   if(roll<0.006){variant="crystal";rarity="legendary";displayName=`Crystal ${baseName}`;}
@@ -7109,13 +7115,15 @@ function fishingInitialState(game, requestedStartMs){
   const startMs=Number.isFinite(requested)?requested:Date.now();
   const endMs=startMs+60000;
   const count=fishingRand(7,9);
-  // Every fish in a round has a unique measured length, so two visibly different
-  // catches can never be resolved as a tie because of duplicate generated sizes.
-  const sizePool=Array.from({length:89},(_,i)=>i+12).sort(()=>Math.random()-.5);
-  const sizes=sizePool.slice(0,count);
-  const min=Math.min(...sizes), max=Math.max(...sizes);
-  const rippleMin=fishingRand(42,54), rippleMax=fishingRand(150,184);
-  const rumbleMin=fishingRand(10,18), rumbleMax=fishingRand(82,98);
+  // Length is freshly sampled for every bite. Tenths of a centimetre provide
+  // hundreds of subtly different ripple sizes while keeping exact ties rare.
+  const sizes=[];
+  const usedSizes=new Set();
+  while(sizes.length<count){
+    const size=Number((12+Math.random()*88).toFixed(1));
+    const key=size.toFixed(1);
+    if(!usedSizes.has(key)){usedSizes.add(key);sizes.push(size);}
+  }
   const events=[];
   const firstAt=startMs+2800;
   const lastEnd=endMs-2200;
@@ -7129,18 +7137,23 @@ function fishingInitialState(game, requestedStartMs){
   const quietGap=Math.max(minimumQuietGap,naturalGap);
   for(let i=0;i<count;i++){
     const size=sizes[i];
-    const ratio=max===min?.5:(size-min)/(max-min);
+    // Ripple dimensions use one global scale, not the smallest/largest fish in
+    // this particular round. The same measured fish always makes the same-sized
+    // signal, so players can learn to judge the water reliably.
+    const ratio=Math.max(0,Math.min(1,(size-12)/88));
+    const identity=fishingFishIdentity(size);
     const at=Math.round(firstAt+i*(duration+quietGap));
     const endAt=Math.min(at+duration,lastEnd);
     events.push({
       id:`bite-${i+1}-${crypto.randomBytes(3).toString("hex")}`,
       at:new Date(at).toISOString(), endAt:new Date(endAt).toISOString(),
-      size, ...fishingFishIdentity(size),
-      ripple:Math.round(rippleMin+(rippleMax-rippleMin)*Math.pow(ratio,.78)),
-      rippleSpeed:Number((1.34-ratio*.46+(Math.random()-.5)*.08).toFixed(2)),
-      rippleThickness:Math.round(3+ratio*4),
+      size, ...identity,
+      ripple:Number((58+ratio*138).toFixed(1)),
+      rippleSpeed:Number((1.32-ratio*.28+(Math.random()-.5)*.04).toFixed(2)),
+      rippleThickness:Number((1.7+ratio*.9).toFixed(2)),
       rippleWobble:Number((0.92+Math.random()*.18).toFixed(2)),
-      rumble:Math.round(rumbleMin+(rumbleMax-rumbleMin)*Math.pow(ratio,.72)),
+      rumble:Math.round(12+ratio*84),
+      special:identity.rarity!=="regular",
       claimedBy:"", claimedAt:null
     });
   }
@@ -7174,7 +7187,7 @@ function fishingNormalizeClaims(game){
     const e=info.event;
     usedUsers.add(c.uid); usedEvents.add(c.eventId);
     e.claimedBy=c.uid; e.claimedAt=c.atText;
-    catches[c.uid]={eventId:e.id,size:e.size,measuredSize:Number(e.size),name:e.name,at:c.atText,ripple:e.ripple,rumble:e.rumble};
+    catches[c.uid]={eventId:e.id,size:e.size,measuredSize:Number(e.size),name:e.name,baseName:e.baseName||e.name,variant:e.variant||"standard",rarity:e.rarity||"regular",special:Boolean(e.special||e.rarity&&e.rarity!=="regular"),at:c.atText,ripple:e.ripple,rippleSpeed:e.rippleSpeed,rippleThickness:e.rippleThickness,rippleWobble:e.rippleWobble,rumble:e.rumble};
   }
   const changed=JSON.stringify(original.catches||{})!==JSON.stringify(catches)||JSON.stringify((original.events||[]).map(e=>({id:e.id,claimedBy:e.claimedBy||"",claimedAt:e.claimedAt||null})))!==JSON.stringify(events.map(e=>({id:e.id,claimedBy:e.claimedBy||"",claimedAt:e.claimedAt||null})));
   return {...game,fishingState:{...original,events,catches,npcPlanEventIds:Array.isArray(original.npcPlanEventIds)&&original.npcPlanEventIds.length?original.npcPlanEventIds:events.map(e=>e.id),revision:int(original.revision,0)+(changed?1:0),serverNow:nowIso()},updatedAt:changed?nowIso():game.updatedAt};
@@ -7221,7 +7234,7 @@ function fishingPublicState(game,viewer){
     startEpochMs:Number.isFinite(startEpochMs)?startEpochMs:0,
     endEpochMs:Number.isFinite(endEpochMs)?endEpochMs:0,
     remainingMs,
-    events:(state.events||[]).map(e=>({id:e.id,at:e.at,endAt:e.endAt,atMs:Date.parse(e.at||"")||0,endAtMs:Date.parse(e.endAt||"")||0,ripple:e.ripple,rumble:e.rumble,claimedBy:e.claimedBy||"",claimedAt:e.claimedAt||null,size:e.claimedBy?e.size:undefined,name:e.claimedBy?e.name:undefined})),
+    events:(state.events||[]).map(e=>({id:e.id,at:e.at,endAt:e.endAt,atMs:Date.parse(e.at||"")||0,endAtMs:Date.parse(e.endAt||"")||0,ripple:e.ripple,rippleSpeed:e.rippleSpeed,rippleThickness:e.rippleThickness,rippleWobble:e.rippleWobble,rumble:e.rumble,special:Boolean(e.special||e.rarity&&e.rarity!=="regular"),claimedBy:e.claimedBy||"",claimedAt:e.claimedAt||null,size:e.claimedBy?e.size:undefined,name:e.claimedBy?e.name:undefined,baseName:e.claimedBy?e.baseName:undefined,variant:e.claimedBy?e.variant:undefined,rarity:e.claimedBy?e.rarity:undefined})),
     myCatch:state.catches?.[viewer]||null,creatorCatch:state.catches?.[game.creator?.userId]||null,joinerCatch:state.catches?.[game.joiner?.userId]||null,
     secondsLeft:Math.max(0,Math.ceil(remainingMs/1000))};
 }
@@ -7262,7 +7275,7 @@ async function fishingTap(user,gameId,eventId,clickedAt){
     if(now<begin-graceMs||now>finish+graceMs||saneReported<begin-graceMs||saneReported>finish+graceMs) throw new Error("That fish is no longer biting.");
     if(e.claimedBy) throw new Error("Your opponent hooked that fish first.");
     e.claimedBy=viewer; e.claimedAt=new Date(Math.min(now,Math.max(begin,saneReported))).toISOString();
-    s.catches[viewer]={eventId:e.id,size:e.size,measuredSize:Number(e.size),name:e.name,at:e.claimedAt,ripple:e.ripple,rumble:e.rumble};
+    s.catches[viewer]={eventId:e.id,size:e.size,measuredSize:Number(e.size),name:e.name,baseName:e.baseName||e.name,variant:e.variant||"standard",rarity:e.rarity||"regular",special:Boolean(e.special||e.rarity&&e.rarity!=="regular"),at:e.claimedAt,ripple:e.ripple,rippleSpeed:e.rippleSpeed,rippleThickness:e.rippleThickness,rippleWobble:e.rippleWobble,rumble:e.rumble};
     s.revision=int(s.revision,0)+1; s.serverNow=nowIso();
     let candidate=fishingNormalizeClaims({...game,fishingState:s});
     // A stale or simultaneous request may have attempted to claim an already-used
