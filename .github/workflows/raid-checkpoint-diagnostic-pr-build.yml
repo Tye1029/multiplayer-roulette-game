@@ -53,6 +53,7 @@ jobs:
           set -euo pipefail
           mkdir -p build/package/Interface
           export FLEX_HOME="$RUNNER_TEMP/flex"
+          export PLAYERGLOBAL_HOME="$FLEX_HOME/frameworks/libs/player"
           "$FLEX_HOME/bin/mxmlc" \
             -target-player=11.1 \
             -swf-version=14 \
