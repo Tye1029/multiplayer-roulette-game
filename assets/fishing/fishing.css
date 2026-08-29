@@ -1161,7 +1161,7 @@
   inset: 0;
   width: 100%;
   height: 100%;
-  opacity: .95;
+  opacity: 1;
   mix-blend-mode: screen;
   pointer-events: none;
 }
@@ -1175,11 +1175,11 @@
   object-fit: cover;
   object-position: center;
   clip-path: inset(42% 0 0);
-  opacity: .18;
+  opacity: .3;
   pointer-events: none;
   user-select: none;
   transform-origin: 50% 78%;
-  animation: fishingLakeBreath 9.5s cubic-bezier(.45,0,.55,1) infinite alternate;
+  animation: fishingLakeBreath 6s cubic-bezier(.45,0,.55,1) infinite alternate;
 }
 
 .fishing-water::before {
@@ -1187,11 +1187,11 @@
   z-index: 1;
   inset: 42% 0 0;
   background:
-    linear-gradient(180deg, rgba(45, 194, 219, .035), rgba(1, 72, 112, .09)),
-    repeating-linear-gradient(173deg, transparent 0 18px, rgba(211, 253, 255, .078) 19px 20px, transparent 21px 39px);
+    linear-gradient(180deg, rgba(45, 194, 219, .045), rgba(1, 72, 112, .1)),
+    repeating-linear-gradient(173deg, transparent 0 18px, rgba(211, 253, 255, .13) 19px 21px, transparent 22px 39px);
   content: "";
   pointer-events: none;
-  animation: fishingWaterDrift 8s linear infinite;
+  animation: fishingWaterDrift 5.5s linear infinite;
 }
 
 .fishing-sky {
@@ -1229,17 +1229,17 @@
 .fishing-dock.left,
 .fishing-dock.right {
   z-index: 5;
-  top: 45%;
-  width: 40%;
-  height: 51%;
+  top: 44%;
+  width: 60%;
+  height: 72%;
   border: 0;
   background: url('/assets/fishing/images/v2/dock-v2.png') center / contain no-repeat;
   box-shadow: none;
   transform-origin: 50% 55%;
 }
 
-.fishing-dock.left { left: -4%; transform: rotate(-1.2deg); }
-.fishing-dock.right { right: -4%; transform: scaleX(-1) rotate(-1.2deg); }
+.fishing-dock.left { left: -18%; transform: rotate(-1.2deg); }
+.fishing-dock.right { right: -18%; transform: scaleX(-1) rotate(-1.2deg); }
 .fishing-dock::before,
 .fishing-dock::after { display: none !important; content: none !important; }
 
@@ -1254,7 +1254,7 @@
 .fishing-angler {
   position: absolute;
   z-index: 2;
-  top: 20%;
+  top: 21%;
   height: 33%;
   transform-origin: 46% 91%;
   filter: drop-shadow(0 8px 7px rgba(0, 34, 48, .3));
@@ -1660,8 +1660,8 @@
   font-weight: 900;
 }
 
-@keyframes fishingWaterDrift { to { background-position: 0 0, 100px 0; } }
-@keyframes fishingLakeBreath { 0% { opacity: .13; transform: translate3d(-.32%,0,0) scaleX(1.005); } 50% { opacity: .2; transform: translate3d(.14%,1px,0) scaleX(.998); } 100% { opacity: .16; transform: translate3d(.34%,-1px,0) scaleX(1.004); } }
+@keyframes fishingWaterDrift { from { background-position: 0 0, 0 0; } to { background-position: 0 0, 140px 8px; } }
+@keyframes fishingLakeBreath { 0% { opacity: .25; transform: translate3d(-1.1%,0,0) scale(1.012,1.004); } 50% { opacity: .34; transform: translate3d(.2%,2px,0) scale(1.002,1.008); } 100% { opacity: .28; transform: translate3d(1.1%,-2px,0) scale(1.012,1.003); } }
 @keyframes fishingCloudTravel { from { transform: translateX(0); } to { transform: translateX(calc(100vw + 430px)); } }
 @keyframes fishingBobberFloat { 50% { translate: 0 5px; rotate: 3deg; } }
 @keyframes fishingCastLeft { 0% { transform: translate3d(-4px,2px,0) rotate(-5deg); } 18% { transform: translate3d(-11px,5px,0) rotate(-12deg); } 46% { transform: translate3d(12px,-8px,0) rotate(13deg); } 67% { transform: translate3d(5px,-3px,0) rotate(4deg); } 84% { transform: translate3d(-2px,1px,0) rotate(-2deg); } 100% { transform: translate3d(0,0,0) rotate(0); } }
@@ -1685,10 +1685,10 @@
   .fishing-water.season-summer,
   .fishing-water.season-autumn,
   .fishing-water.season-winter { min-height: 440px; }
-  .fishing-dock,.fishing-dock.left,.fishing-dock.right { top: 42%; width: 48%; height: 44%; }
-  .fishing-dock.left { left: -7%; }
-  .fishing-dock.right { right: -7%; }
-  .fishing-angler { top: 25%; height: 30%; }
+  .fishing-dock,.fishing-dock.left,.fishing-dock.right { top: 46%; width: 76%; height: 62%; }
+  .fishing-dock.left { left: -30%; }
+  .fishing-dock.right { right: -30%; }
+  .fishing-angler { top: 33%; height: 30%; }
   .fishing-angler.left { left: 10%; }
   .fishing-angler.right { right: 10%; }
   .fishing-hook-catch { width: 112px; }
