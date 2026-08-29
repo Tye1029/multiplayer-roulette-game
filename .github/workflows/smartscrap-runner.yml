@@ -62,12 +62,13 @@ jobs:
           PY
           sha256sum build/InventOmaticStash.swf > build/InventOmaticStash.swf.sha256.txt
 
-      - name: Upload SmartScrap SWF
+      - name: Upload SmartScrap SWF and reconstructed source
         uses: actions/upload-artifact@v4
         with:
           name: SmartScrap-v0.1-SWF
           path: |
             build/InventOmaticStash.swf
             build/InventOmaticStash.swf.sha256.txt
+            chatgpt-build/SmartScrap.as
           if-no-files-found: error
           retention-days: 1
