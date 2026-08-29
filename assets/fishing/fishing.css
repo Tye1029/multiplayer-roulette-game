@@ -1161,7 +1161,7 @@
   inset: 0;
   width: 100%;
   height: 100%;
-  opacity: .7;
+  opacity: .95;
   mix-blend-mode: screen;
   pointer-events: none;
 }
@@ -1175,11 +1175,11 @@
   object-fit: cover;
   object-position: center;
   clip-path: inset(42% 0 0);
-  opacity: .12;
+  opacity: .18;
   pointer-events: none;
   user-select: none;
   transform-origin: 50% 78%;
-  animation: fishingLakeBreath 12s cubic-bezier(.45,0,.55,1) infinite alternate;
+  animation: fishingLakeBreath 9.5s cubic-bezier(.45,0,.55,1) infinite alternate;
 }
 
 .fishing-water::before {
@@ -1187,11 +1187,11 @@
   z-index: 1;
   inset: 42% 0 0;
   background:
-    linear-gradient(180deg, rgba(45, 194, 219, .025), rgba(1, 72, 112, .07)),
-    repeating-linear-gradient(173deg, transparent 0 18px, rgba(211, 253, 255, .052) 19px 20px, transparent 21px 39px);
+    linear-gradient(180deg, rgba(45, 194, 219, .035), rgba(1, 72, 112, .09)),
+    repeating-linear-gradient(173deg, transparent 0 18px, rgba(211, 253, 255, .078) 19px 20px, transparent 21px 39px);
   content: "";
   pointer-events: none;
-  animation: fishingWaterDrift 13s linear infinite;
+  animation: fishingWaterDrift 8s linear infinite;
 }
 
 .fishing-sky {
@@ -1229,9 +1229,9 @@
 .fishing-dock.left,
 .fishing-dock.right {
   z-index: 5;
-  top: 25%;
-  width: 43%;
-  height: 56%;
+  top: 45%;
+  width: 40%;
+  height: 51%;
   border: 0;
   background: url('/assets/fishing/images/v2/dock-v2.png') center / contain no-repeat;
   box-shadow: none;
@@ -1254,8 +1254,8 @@
 .fishing-angler {
   position: absolute;
   z-index: 2;
-  top: 7.5%;
-  height: 37.5%;
+  top: 20%;
+  height: 33%;
   transform-origin: 46% 91%;
   filter: drop-shadow(0 8px 7px rgba(0, 34, 48, .3));
   will-change: transform;
@@ -1268,8 +1268,8 @@
   user-select: none;
 }
 
-.fishing-angler.left { left: 22%; }
-.fishing-angler.right { right: 22%; transform: scaleX(-1); }
+.fishing-angler.left { left: 20%; }
+.fishing-angler.right { right: 20%; transform: scaleX(-1); }
 
 .fishing-line-art {
   position: absolute;
@@ -1661,7 +1661,7 @@
 }
 
 @keyframes fishingWaterDrift { to { background-position: 0 0, 100px 0; } }
-@keyframes fishingLakeBreath { 0% { opacity: .08; transform: translate3d(-.16%,0,0) scaleX(1.003); } 50% { opacity: .13; transform: translate3d(.08%,.5px,0) scaleX(.999); } 100% { opacity: .1; transform: translate3d(.18%,-.5px,0) scaleX(1.002); } }
+@keyframes fishingLakeBreath { 0% { opacity: .13; transform: translate3d(-.32%,0,0) scaleX(1.005); } 50% { opacity: .2; transform: translate3d(.14%,1px,0) scaleX(.998); } 100% { opacity: .16; transform: translate3d(.34%,-1px,0) scaleX(1.004); } }
 @keyframes fishingCloudTravel { from { transform: translateX(0); } to { transform: translateX(calc(100vw + 430px)); } }
 @keyframes fishingBobberFloat { 50% { translate: 0 5px; rotate: 3deg; } }
 @keyframes fishingCastLeft { 0% { transform: translate3d(-4px,2px,0) rotate(-5deg); } 18% { transform: translate3d(-11px,5px,0) rotate(-12deg); } 46% { transform: translate3d(12px,-8px,0) rotate(13deg); } 67% { transform: translate3d(5px,-3px,0) rotate(4deg); } 84% { transform: translate3d(-2px,1px,0) rotate(-2deg); } 100% { transform: translate3d(0,0,0) rotate(0); } }
@@ -1685,12 +1685,12 @@
   .fishing-water.season-summer,
   .fishing-water.season-autumn,
   .fishing-water.season-winter { min-height: 440px; }
-  .fishing-dock,.fishing-dock.left,.fishing-dock.right { top: 28%; width: 50%; height: 48%; }
-  .fishing-dock.left { left: -9%; }
-  .fishing-dock.right { right: -9%; }
-  .fishing-angler { top: 12%; height: 34%; }
-  .fishing-angler.left { left: 8%; }
-  .fishing-angler.right { right: 8%; }
+  .fishing-dock,.fishing-dock.left,.fishing-dock.right { top: 42%; width: 48%; height: 44%; }
+  .fishing-dock.left { left: -7%; }
+  .fishing-dock.right { right: -7%; }
+  .fishing-angler { top: 25%; height: 30%; }
+  .fishing-angler.left { left: 10%; }
+  .fishing-angler.right { right: 10%; }
   .fishing-hook-catch { width: 112px; }
   .fishing-hook-catch .fishing-catch-caption { width: 104px; padding: 4px 5px; }
   .fishing-catch-slot { top: 44% !important; width: 104px; height: 190px; }
