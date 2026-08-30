@@ -1,0 +1,110 @@
+name: Build Stage 2 Fuel Diagnostic v0.1 BA2
+
+on:
+  pull_request:
+    branches:
+      - chatgpt/stage2-fuel-diagnostic-runner
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate diagnostic source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s chatgpt-build/Stage2FuelDiagnostic.as
+          grep -q 'class Stage2FuelDiagnostic' chatgpt-build/Stage2FuelDiagnostic.as
+          grep -q 'diagnostic-only' chatgpt-build/Stage2FuelDiagnostic.as
+          grep -q 'Raid Fuel' chatgpt-build/Stage2FuelDiagnostic.as
+          grep -q '0001F66A' chatgpt-build/Stage2FuelDiagnostic.as
+          if grep -Eqi 'setposition|setpos|teleport|writeprocessmemory|noclip|removeitem|additem' chatgpt-build/Stage2FuelDiagnostic.as; then
+            echo 'Unexpected active inventory or movement primitive found in read-only diagnostic source' >&2
+            exit 1
+          fi
+
+      - name: Set up Java 8
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '8'
+
+      - name: Download compiler and Flash API stubs
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fL --retry 4 --retry-delay 2 -o /tmp/flex.tar.gz https://archive.apache.org/dist/flex/4.16.1/binaries/apache-flex-sdk-4.16.1-bin.tar.gz
+          mkdir -p "$RUNNER_TEMP/flex"
+          tar -xzf /tmp/flex.tar.gz -C "$RUNNER_TEMP/flex" --strip-components=1
+          chmod +x "$RUNNER_TEMP/flex/bin/mxmlc"
+          git clone --depth 1 https://github.com/nexussays/playerglobal.git "$RUNNER_TEMP/playerglobal"
+          mkdir -p "$RUNNER_TEMP/flex/frameworks/libs/player/11.1"
+          cp "$RUNNER_TEMP/playerglobal/11.1/playerglobal.swc" "$RUNNER_TEMP/flex/frameworks/libs/player/11.1/playerglobal.swc"
+
+      - name: Compile SWF
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/package/Interface
+          export FLEX_HOME="$RUNNER_TEMP/flex"
+          export PLAYERGLOBAL_HOME="$FLEX_HOME/frameworks/libs/player"
+          "$FLEX_HOME/bin/mxmlc" \
+            -target-player=11.1 \
+            -swf-version=14 \
+            -default-size=1920,1080 \
+            -debug=false \
+            -optimize=true \
+            -static-link-runtime-shared-libraries=true \
+            -output="$GITHUB_WORKSPACE/build/package/Interface/Stage2FuelDiagnostic.swf" \
+            "$GITHUB_WORKSPACE/chatgpt-build/Stage2FuelDiagnostic.as"
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('build/package/Interface/Stage2FuelDiagnostic.swf')
+          assert p.exists() and p.stat().st_size>0
+          assert p.read_bytes()[:3] in (b'FWS',b'CWS',b'ZWS')
+          print('valid SWF',p.stat().st_size,p.read_bytes()[:3])
+          PY
+
+      - name: Build BA2 tool
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo install --git https://github.com/DreamWeave-MP/dream_archivetool.git --locked --root "$RUNNER_TEMP/dream-tools"
+
+      - name: Package and verify BA2
+        shell: bash
+        run: |
+          set -euo pipefail
+          TOOL="$RUNNER_TEMP/dream-tools/bin/dream_archivetool"
+          OUT="build/Stage2FuelDiagnostic_v0.1.ba2"
+          "$TOOL" create "$OUT" build/package --format ba2 --ba2-kind gnrl --ba2-version fallout4
+          "$TOOL" list --long "$OUT" | tee build/ba2-list.txt
+          "$TOOL" verify "$OUT" --read-payloads --json | tee build/ba2-verify.json
+          grep -Eqi 'interface[/\\]stage2fueldiagnostic\.swf' build/ba2-list.txt
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('build/Stage2FuelDiagnostic_v0.1.ba2')
+          assert p.exists() and p.stat().st_size>0
+          assert p.read_bytes()[:4]==b'BTDX'
+          print('valid BA2',p.stat().st_size,p.read_bytes()[:4])
+          PY
+          sha256sum "$OUT" | tee build/Stage2FuelDiagnostic_v0.1.ba2.sha256.txt
+
+      - name: Upload finished BA2
+        uses: actions/upload-artifact@v4
+        with:
+          name: Stage2FuelDiagnostic-v0.1-BA2
+          path: |
+            build/Stage2FuelDiagnostic_v0.1.ba2
+            build/Stage2FuelDiagnostic_v0.1.ba2.sha256.txt
+            build/ba2-list.txt
+            build/ba2-verify.json
+          if-no-files-found: error
+          retention-days: 1
