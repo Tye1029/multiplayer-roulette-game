@@ -1,0 +1,131 @@
+name: Build TerrorCounter v0.15 Personal Raid Target
+
+on:
+  pull_request:
+    branches:
+      - chatgpt/terrorcounter-v015-runner
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Reconstruct ActionScript source
+        shell: bash
+        run: |
+          set -euo pipefail
+          tr -d '[:space:]' < chatgpt-build/TerrorCounter.as.gz.b64 | base64 -d | gzip -dc > chatgpt-build/TerrorCounter.as
+          echo 'cd726d4ea47e13b0fdc7b6f14367c379da87222ae17d2a9fb2a603d66e5ea826  chatgpt-build/TerrorCounter.as' | sha256sum -c -
+
+      - name: Apply TerrorCounter personal checkpoint patches
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 chatgpt-build/vector_patch.py chatgpt-build/TerrorCounter.as
+          python3 chatgpt-build/persistence_patch.py chatgpt-build/TerrorCounter.as
+          python3 chatgpt-build/v05_patch.py chatgpt-build/TerrorCounter.as
+          python3 chatgpt-build/v06_patch.py chatgpt-build/TerrorCounter.as
+          python3 chatgpt-build/v07_patch.py chatgpt-build/TerrorCounter.as
+          python3 chatgpt-build/v08_patch.py chatgpt-build/TerrorCounter.as
+          python3 chatgpt-build/v09_patch.py chatgpt-build/TerrorCounter.as
+          python3 chatgpt-build/raid_telemetry_patch.py chatgpt-build/TerrorCounter.as
+          python3 chatgpt-build/v011_event_trace_patch.py chatgpt-build/TerrorCounter.as
+          python3 chatgpt-build/v012_deathdata_native_test_patch.py chatgpt-build/TerrorCounter.as
+          python3 chatgpt-build/v013_single_flight_checkpoint_patch.py chatgpt-build/TerrorCounter.as
+          python3 chatgpt-build/v014_simplified_checkpoint_patch.py chatgpt-build/TerrorCounter.as
+          python3 chatgpt-build/v015_personal_raid_target_patch.py chatgpt-build/TerrorCounter.as
+
+          grep -F 'TERROR KILLS:' chatgpt-build/TerrorCounter.as
+          grep -F 'Saved Target: Ultracite Terror' chatgpt-build/TerrorCounter.as
+          grep -F 'SAVE CURRENT RAID AREA' chatgpt-build/TerrorCounter.as
+          grep -F 'RETURN TO MY RAID CHECKPOINT' chatgpt-build/TerrorCounter.as
+          grep -F 'Auto Return on Raid Entry: ' chatgpt-build/TerrorCounter.as
+          grep -F 'TerrorCounterPersonalRaidCheckpoint' chatgpt-build/TerrorCounter.as
+          grep -F 'encounter_meter_verified' chatgpt-build/TerrorCounter.as
+          grep -F 'AUTO_RETURN dispatching one single-flight request' chatgpt-build/TerrorCounter.as
+          if grep -Eqi 'setposition|setpos|teleport|writeprocessmemory|noclip' chatgpt-build/TerrorCounter.as; then
+            echo 'Unexpected movement/manipulation primitive found in source' >&2
+            exit 1
+          fi
+
+      - name: Set up Java 8
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '8'
+
+      - name: Install Apache Flex compiler
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fL --connect-timeout 20 --max-time 180 --retry 3 --retry-delay 2 -o /tmp/flex.tar.gz https://dlcdn.apache.org/flex/4.16.1/binaries/apache-flex-sdk-4.16.1-bin.tar.gz
+          mkdir -p "$RUNNER_TEMP/flex"
+          tar -xzf /tmp/flex.tar.gz -C "$RUNNER_TEMP/flex" --strip-components=1
+          chmod +x "$RUNNER_TEMP/flex/bin/mxmlc"
+          git clone --depth 1 https://github.com/nexussays/playerglobal.git "$RUNNER_TEMP/playerglobal"
+
+      - name: Compile TerrorCounter SWF
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/package/Interface
+          export FLEX_HOME="$RUNNER_TEMP/flex"
+          export PLAYERGLOBAL_HOME="$RUNNER_TEMP/playerglobal"
+          "$FLEX_HOME/bin/mxmlc" \
+            -target-player=11.1 \
+            -swf-version=14 \
+            -default-size=1920,1080 \
+            -debug=false \
+            -optimize=true \
+            -static-link-runtime-shared-libraries=true \
+            -output="$GITHUB_WORKSPACE/build/package/Interface/TerrorCounter.swf" \
+            "$GITHUB_WORKSPACE/chatgpt-build/TerrorCounter.as"
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('build/package/Interface/TerrorCounter.swf')
+          assert p.exists() and p.stat().st_size > 0
+          assert p.read_bytes()[:3] in (b'FWS', b'CWS', b'ZWS')
+          print('valid SWF', p.stat().st_size, p.read_bytes()[:3])
+          PY
+
+      - name: Install BA2 archive tool
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo install --git https://github.com/DreamWeave-MP/dream_archivetool.git --locked --root "$RUNNER_TEMP/dream-tools"
+
+      - name: Package and verify TerrorCounter BA2
+        shell: bash
+        run: |
+          set -euo pipefail
+          TOOL="$RUNNER_TEMP/dream-tools/bin/dream_archivetool"
+          OUT="build/TerrorCounter_v0.15_PersonalRaidTarget.ba2"
+          "$TOOL" create "$OUT" build/package --format ba2 --ba2-kind gnrl --ba2-version fallout4
+          "$TOOL" list --long "$OUT" | tee build/ba2-list.txt
+          "$TOOL" verify "$OUT" --read-payloads --json | tee build/ba2-verify.json
+          grep -Eqi 'interface[/\\]terrorcounter\.swf' build/ba2-list.txt
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('build/TerrorCounter_v0.15_PersonalRaidTarget.ba2')
+          assert p.exists() and p.stat().st_size > 0
+          assert p.read_bytes()[:4] == b'BTDX'
+          print('valid BA2', p.stat().st_size, p.read_bytes()[:4])
+          PY
+          sha256sum "$OUT" | tee build/TerrorCounter_v0.15_PersonalRaidTarget.ba2.sha256.txt
+
+      - name: Upload finished BA2
+        uses: actions/upload-artifact@v4
+        with:
+          name: TerrorCounter-v0.15-PersonalRaidTarget-BA2
+          path: |
+            build/TerrorCounter_v0.15_PersonalRaidTarget.ba2
+            build/TerrorCounter_v0.15_PersonalRaidTarget.ba2.sha256.txt
+            build/ba2-list.txt
+            build/ba2-verify.json
+          if-no-files-found: error
+          retention-days: 1
