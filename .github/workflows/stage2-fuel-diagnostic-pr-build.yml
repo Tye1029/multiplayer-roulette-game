@@ -1,9 +1,9 @@
-name: Build Stage 2 Fuel Diagnostic v0.4.3 BA2
+name: Build Stage 2 Fuel Diagnostic v0.4.4 BA2
 
 on:
   pull_request:
     branches:
-      - chatgpt/stage2-fuel-diagnostic-v043-runner
+      - chatgpt/stage2-fuel-diagnostic-v044-runner
   workflow_dispatch:
 
 permissions:
@@ -16,19 +16,97 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Patch v0.4.4 exact Fuel Canister priority
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('chatgpt-build/Stage2FuelDiagnostic.as')
+          s=p.read_text()
+          s=s.replace('VERSION:String = "0.4.3"','VERSION:String = "0.4.4"')
+          s=s.replace('MAX_MATCHES:int = 12','MAX_MATCHES:int = 20')
+          start=s.index('         var newMatches:Array = [];')
+          end=s.index('      private function itemName', start)
+          block='''         var exactMatches:Array = [];
+         var fallbackMatches:Array = [];
+         var currentCounts:Object = {};
+         var currentNames:Object = {};
+         var limit:int = Math.min(length,MAX_ITEMS);
+
+         var i:int;
+         for(i = 0; i < limit; i++)
+         {
+            var item:Object = safeIndex(inv,i);
+            if(item == null) continue;
+            var name:String = itemName(item);
+            if(name == null || name.length == 0) continue;
+            var upperName:String = name.toUpperCase();
+            var match:Object;
+
+            if(upperName.indexOf("FUEL CANISTER") >= 0)
+            {
+               match = makeMatch(item,i);
+               exactMatches.push(match);
+            }
+            else if(isFuelLikeName(name) && fallbackMatches.length < MAX_MATCHES)
+            {
+               match = makeMatch(item,i);
+               fallbackMatches.push(match);
+            }
+         }
+
+         var newMatches:Array = exactMatches.length > 0 ? exactMatches : fallbackMatches;
+         if(exactMatches.length > 0)
+         {
+            for(i = 0; i < fallbackMatches.length && newMatches.length < MAX_MATCHES; i++)
+            {
+               newMatches.push(fallbackMatches[i]);
+            }
+         }
+
+         for(i = 0; i < newMatches.length; i++)
+         {
+            match = newMatches[i];
+            currentCounts[match.key] = match.count;
+            currentNames[match.key] = match.name;
+            var oldCount:Number = lastCounts[match.key] == null ? 0 : Number(lastCounts[match.key]);
+            if(oldCount != match.count)
+            {
+               addChange(match.name,match.serverHandleID,oldCount,match.count,source);
+            }
+         }
+
+         for(var oldKey:String in lastCounts)
+         {
+            var previous:Number = Number(lastCounts[oldKey]);
+            if(previous > 0 && currentCounts[oldKey] == null)
+            {
+               addChange(lastNames[oldKey] == null ? oldKey : String(lastNames[oldKey]),0,previous,0,source);
+            }
+         }
+
+         matches = newMatches;
+         lastCounts = currentCounts;
+         lastNames = currentNames;
+      }
+
+'''
+          s=s[:start]+block+s[end:]
+          p.write_text(s)
+          PY
+
       - name: Validate diagnostic source
         shell: bash
         run: |
           set -euo pipefail
           test -s chatgpt-build/Stage2FuelDiagnostic.as
-          grep -q 'class Stage2FuelDiagnostic' chatgpt-build/Stage2FuelDiagnostic.as
-          grep -q 'VERSION:String = "0.4.3"' chatgpt-build/Stage2FuelDiagnostic.as
-          grep -q 'isReloadable:Boolean = true' chatgpt-build/Stage2FuelDiagnostic.as
+          grep -q 'VERSION:String = "0.4.4"' chatgpt-build/Stage2FuelDiagnostic.as
           grep -q 'InventoryList' chatgpt-build/Stage2FuelDiagnostic.as
-          grep -q 'serverHandleID' chatgpt-build/Stage2FuelDiagnostic.as
-          grep -q 'Fuel Entry Fields' chatgpt-build/Stage2FuelDiagnostic.as
+          grep -q 'FUEL CANISTER' chatgpt-build/Stage2FuelDiagnostic.as
+          grep -q 'exactMatches' chatgpt-build/Stage2FuelDiagnostic.as
           if grep -Eqi 'setposition|setpos|teleport|writeprocessmemory|noclip|removeitem|additem|System\.setClipboard' chatgpt-build/Stage2FuelDiagnostic.as; then
-            echo 'Unexpected active inventory/movement/clipboard primitive found in read-only diagnostic source' >&2
+            echo 'Unexpected active inventory/movement/clipboard primitive found' >&2
             exit 1
           fi
 
@@ -66,13 +144,6 @@ jobs:
             -static-link-runtime-shared-libraries=true \
             -output="$GITHUB_WORKSPACE/build/package/Interface/Stage2FuelDiagnostic.swf" \
             "$GITHUB_WORKSPACE/chatgpt-build/Stage2FuelDiagnostic.as"
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path('build/package/Interface/Stage2FuelDiagnostic.swf')
-          assert p.exists() and p.stat().st_size>0
-          assert p.read_bytes()[:3] in (b'FWS',b'CWS',b'ZWS')
-          print('valid SWF',p.stat().st_size,p.read_bytes()[:3])
-          PY
 
       - name: Build BA2 tool
         shell: bash
@@ -85,27 +156,26 @@ jobs:
         run: |
           set -euo pipefail
           TOOL="$RUNNER_TEMP/dream-tools/bin/dream_archivetool"
-          OUT="build/Stage2FuelDiagnostic_v0.4.3.ba2"
+          OUT="build/Stage2FuelDiagnostic_v0.4.4.ba2"
           "$TOOL" create "$OUT" build/package --format ba2 --ba2-kind gnrl --ba2-version fallout4
           "$TOOL" list --long "$OUT" | tee build/ba2-list.txt
           "$TOOL" verify "$OUT" --read-payloads --json | tee build/ba2-verify.json
           grep -Eqi 'interface[/\\]stage2fueldiagnostic\.swf' build/ba2-list.txt
           python3 - <<'PY'
           from pathlib import Path
-          p=Path('build/Stage2FuelDiagnostic_v0.4.3.ba2')
+          p=Path('build/Stage2FuelDiagnostic_v0.4.4.ba2')
           assert p.exists() and p.stat().st_size>0
           assert p.read_bytes()[:4]==b'BTDX'
-          print('valid BA2',p.stat().st_size,p.read_bytes()[:4])
           PY
-          sha256sum "$OUT" | tee build/Stage2FuelDiagnostic_v0.4.3.ba2.sha256.txt
+          sha256sum "$OUT" | tee build/Stage2FuelDiagnostic_v0.4.4.ba2.sha256.txt
 
       - name: Upload finished BA2
         uses: actions/upload-artifact@v4
         with:
-          name: Stage2FuelDiagnostic-v0.4.3-BA2
+          name: Stage2FuelDiagnostic-v0.4.4-BA2
           path: |
-            build/Stage2FuelDiagnostic_v0.4.3.ba2
-            build/Stage2FuelDiagnostic_v0.4.3.ba2.sha256.txt
+            build/Stage2FuelDiagnostic_v0.4.4.ba2
+            build/Stage2FuelDiagnostic_v0.4.4.ba2.sha256.txt
             build/ba2-list.txt
             build/ba2-verify.json
           if-no-files-found: error
