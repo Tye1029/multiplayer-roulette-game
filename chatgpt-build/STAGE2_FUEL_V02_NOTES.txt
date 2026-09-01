@@ -1,1 +1,1 @@
-Stage2FuelDiagnostic v0.2: lightweight startup; subscribes core HUD providers first; delays inventory/provider probing until Stage 2 or trace window; read-only diagnostic for Private/Custom World fuel pickup/deposit research.
+Stage2FuelDiagnostic v0.2: lightweight startup; subscribes core HUD providers first; delays inventory/provider probing until Stage 2 or trace window; read-only diagnostic for Private/Custom World fuel pickup/deposit research. Build retry after workflow validation adjustment.
