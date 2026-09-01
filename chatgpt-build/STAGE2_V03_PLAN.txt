@@ -1,0 +1,1 @@
+Stage2FuelDiagnostic v0.3 loader-proof diagnostic: public isReloadable flag, font-free visible startup bar, ZFE startup logging, delayed Stage 2 inventory/activation tracing. Read-only Private/Custom World test build.
