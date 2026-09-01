@@ -1,4 +1,4 @@
-name: Build TerrorCounter v0.10 Raid Telemetry
+name: Build TerrorCounter v0.11 Event Raid Trace
 
 on:
   pull_request:
@@ -91,8 +91,17 @@ jobs:
           python3 chatgpt-build/raid_telemetry_patch.py chatgpt-build/TerrorCounter.as
           grep -F 'TerrorCounter v0.10 integrated raid telemetry active' chatgpt-build/TerrorCounter.as
           grep -F 'private function raidTelemetryTick(now:Number):void' chatgpt-build/TerrorCounter.as
-          grep -F 'raid-position-delta' chatgpt-build/TerrorCounter.as
-          grep -F 'respawn-window' chatgpt-build/TerrorCounter.as
+
+      - name: Upgrade to event-driven respawn tracing
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 chatgpt-build/v011_event_trace_patch.py chatgpt-build/TerrorCounter.as
+          grep -F 'raidUiDataManager["Subscribe"]("HUDModeData",raidOnHudModeEvent);' chatgpt-build/TerrorCounter.as
+          grep -F 'new Timer(250)' chatgpt-build/TerrorCounter.as
+          grep -F 'respawn-observe' chatgpt-build/TerrorCounter.as
+          grep -F 'raidLogProviderAvailability("entry")' chatgpt-build/TerrorCounter.as
+          grep -F 'GetDataFromClient"](provider,false,false)' chatgpt-build/TerrorCounter.as
           if grep -Eqi 'setposition|setpos|teleport|writeprocessmemory|noclip' chatgpt-build/TerrorCounter.as; then
             echo 'Unexpected movement/manipulation primitive found in telemetry source' >&2
             exit 1
@@ -149,27 +158,27 @@ jobs:
         run: |
           set -euo pipefail
           TOOL="$RUNNER_TEMP/dream-tools/bin/dream_archivetool"
-          OUT="build/TerrorCounter_v0.10_RaidTelemetry.ba2"
+          OUT="build/TerrorCounter_v0.11_RaidEventTrace.ba2"
           "$TOOL" create "$OUT" build/package --format ba2 --ba2-kind gnrl --ba2-version fallout4
           "$TOOL" list --long "$OUT" | tee build/ba2-list.txt
           "$TOOL" verify "$OUT" --read-payloads --json | tee build/ba2-verify.json
           grep -Eqi 'interface[/\\]terrorcounter\.swf' build/ba2-list.txt
           python3 - <<'PY'
           from pathlib import Path
-          p=Path('build/TerrorCounter_v0.10_RaidTelemetry.ba2')
+          p=Path('build/TerrorCounter_v0.11_RaidEventTrace.ba2')
           assert p.exists() and p.stat().st_size > 0
           assert p.read_bytes()[:4] == b'BTDX'
           print('valid BA2', p.stat().st_size, p.read_bytes()[:4])
           PY
-          sha256sum "$OUT" | tee build/TerrorCounter_v0.10_RaidTelemetry.ba2.sha256.txt
+          sha256sum "$OUT" | tee build/TerrorCounter_v0.11_RaidEventTrace.ba2.sha256.txt
 
       - name: Upload finished BA2
         uses: actions/upload-artifact@v4
         with:
-          name: TerrorCounter-v0.10-RaidTelemetry-BA2
+          name: TerrorCounter-v0.11-RaidEventTrace-BA2
           path: |
-            build/TerrorCounter_v0.10_RaidTelemetry.ba2
-            build/TerrorCounter_v0.10_RaidTelemetry.ba2.sha256.txt
+            build/TerrorCounter_v0.11_RaidEventTrace.ba2
+            build/TerrorCounter_v0.11_RaidEventTrace.ba2.sha256.txt
             build/ba2-list.txt
             build/ba2-verify.json
           if-no-files-found: error
