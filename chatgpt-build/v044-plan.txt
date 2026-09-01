@@ -1,0 +1,1 @@
+Stage2FuelDiagnostic v0.4.4 plan: scan the entire Fallout 76 PlayerInventoryData.InventoryList for exact Fuel Canister entries before collecting generic fuel/drill fallback matches. Exact Fuel Canister must always be shown first. Read-only diagnostic only.
