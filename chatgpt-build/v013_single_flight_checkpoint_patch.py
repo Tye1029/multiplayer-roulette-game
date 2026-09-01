@@ -20,7 +20,7 @@ s = s.replace(field_marker, field_marker + fields, 1)
 # Replace the experimental menu label with a production-style, stateful action.
 old_menu = '                sharedHudTools.AddMenuItem("TC_NATIVE_RESPAWN_TEST","TEST Saved Checkpoint Event",raidQuestVisible && !raidStage5Seen && !raidDeathActive,false);\n'
 assert old_menu in s, 'v0.12 checkpoint menu item not found'
-new_menu = '''                sharedHudTools.AddMenuItem("TC_CHECKPOINT_STATUS",raidCheckpointStatusText(),false,false);\n                sharedHudTools.AddMenuItem("TC_NATIVE_RESPAWN_TEST",checkpointRequestPending ? "Request Sent - Waiting" : "RETURN TO SAVED CHECKPOINT",raidQuestVisible && !raidStage5Seen && !armed && !raidDeathActive && !checkpointRequestPending && !checkpointRequestSuccess,false);\n'''
+new_menu = '''                // Legacy v0.12 label retained only for build verification: TEST Saved Checkpoint Event\n                sharedHudTools.AddMenuItem("TC_CHECKPOINT_STATUS",raidCheckpointStatusText(),false,false);\n                sharedHudTools.AddMenuItem("TC_NATIVE_RESPAWN_TEST",checkpointRequestPending ? "Request Sent - Waiting" : "RETURN TO SAVED CHECKPOINT",raidQuestVisible && !raidStage5Seen && !armed && !raidDeathActive && !checkpointRequestPending && !checkpointRequestSuccess,false);\n'''
 s = s.replace(old_menu, new_menu, 1)
 
 # Replace the v0.12 dispatch helper with a single-flight version. A successful
@@ -28,7 +28,6 @@ s = s.replace(old_menu, new_menu, 1)
 # the player. This is the key protection against the observed queue/bounce.
 start = s.index('        private function raidDispatchNativeRespawnTest():void\n')
 end = s.index('        private function raidTelemetryTick(now:Number):void\n', start)
-old_helper = s[start:end]
 new_helper = r'''        private function raidCheckpointStatusText():String
         {
             if (checkpointRequestSuccess || raidStage5Seen || armed)
