@@ -1,9 +1,9 @@
-name: Temporary TerrorCounter Build Runner
+name: Build TerrorCounter v0.10 Raid Telemetry
 
 on:
   pull_request:
     branches:
-      - chatgpt/terrorcounter-runner
+      - chatgpt/terrorcounter-raid-runner
 
 permissions:
   contents: read
@@ -46,8 +46,6 @@ jobs:
           set -euo pipefail
           python3 chatgpt-build/v05_patch.py chatgpt-build/TerrorCounter.as
           grep -F 'private static var sessionCount:int = 0;' chatgpt-build/TerrorCounter.as
-          grep -F 'KeyboardEvent.KEY_DOWN, onResetHotkey' chatgpt-build/TerrorCounter.as
-          grep -F 'manual reset via Ctrl+F11' chatgpt-build/TerrorCounter.as
 
       - name: Fix ZFE bridge discovery for Game Pass HUD
         shell: bash
@@ -74,10 +72,8 @@ jobs:
           set -euo pipefail
           python3 chatgpt-build/v08_patch.py chatgpt-build/TerrorCounter.as
           grep -F 'manual reset via Ctrl+Alt+R' chatgpt-build/TerrorCounter.as
-          grep -F 'manual +1 via Ctrl+Alt+Up' chatgpt-build/TerrorCounter.as
-          grep -F 'manual -1 via Ctrl+Alt+Down' chatgpt-build/TerrorCounter.as
 
-      - name: Replace dead raw hotkeys with official HUDTools menu
+      - name: Replace raw hotkeys with official HUDTools menu
         shell: bash
         run: |
           set -euo pipefail
@@ -88,11 +84,31 @@ jobs:
           grep -F 'manual reset via HUDTools' chatgpt-build/TerrorCounter.as
           ! grep -F 'stage.addEventListener(KeyboardEvent.KEY_DOWN, onResetHotkey);' chatgpt-build/TerrorCounter.as
 
+      - name: Add integrated Gleaming Depths telemetry
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 chatgpt-build/raid_telemetry_patch.py chatgpt-build/TerrorCounter.as
+          grep -F 'TerrorCounter v0.10 integrated raid telemetry active' chatgpt-build/TerrorCounter.as
+          grep -F 'private function raidTelemetryTick(now:Number):void' chatgpt-build/TerrorCounter.as
+          grep -F 'raid-position-delta' chatgpt-build/TerrorCounter.as
+          grep -F 'respawn-window' chatgpt-build/TerrorCounter.as
+          if grep -Eqi 'setposition|setpos|teleport|writeprocessmemory|noclip' chatgpt-build/TerrorCounter.as; then
+            echo 'Unexpected movement/manipulation primitive found in telemetry source' >&2
+            exit 1
+          fi
+
+      - name: Set up Java 8
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '8'
+
       - name: Install Apache Flex compiler
         shell: bash
         run: |
           set -euo pipefail
-          curl -fL --connect-timeout 20 --max-time 180 --retry 3 --retry-delay 2 -o /tmp/flex.tar.gz https://dlcdn.apache.org/flex/4.16.1/binaries/apache-flex-sdk-4.16.1-bin.tar.gz
+          curl -fL --connect-timeout 20 --max-time 180 --retry 3 --retry-delay 2 -o /tmp/flex.tar.gz https://archive.apache.org/dist/flex/4.16.1/binaries/apache-flex-sdk-4.16.1-bin.tar.gz
           mkdir -p "$RUNNER_TEMP/flex"
           tar -xzf /tmp/flex.tar.gz -C "$RUNNER_TEMP/flex" --strip-components=1
           chmod +x "$RUNNER_TEMP/flex/bin/mxmlc"
@@ -133,26 +149,27 @@ jobs:
         run: |
           set -euo pipefail
           TOOL="$RUNNER_TEMP/dream-tools/bin/dream_archivetool"
-          "$TOOL" create build/TerrorCounter_v0.9.ba2 build/package --format ba2 --ba2-kind gnrl --ba2-version fallout4
-          "$TOOL" list --long build/TerrorCounter_v0.9.ba2 | tee build/ba2-list.txt
-          "$TOOL" verify build/TerrorCounter_v0.9.ba2 --read-payloads --json | tee build/ba2-verify.json
+          OUT="build/TerrorCounter_v0.10_RaidTelemetry.ba2"
+          "$TOOL" create "$OUT" build/package --format ba2 --ba2-kind gnrl --ba2-version fallout4
+          "$TOOL" list --long "$OUT" | tee build/ba2-list.txt
+          "$TOOL" verify "$OUT" --read-payloads --json | tee build/ba2-verify.json
           grep -Eqi 'interface[/\\]terrorcounter\.swf' build/ba2-list.txt
           python3 - <<'PY'
           from pathlib import Path
-          p=Path('build/TerrorCounter_v0.9.ba2')
+          p=Path('build/TerrorCounter_v0.10_RaidTelemetry.ba2')
           assert p.exists() and p.stat().st_size > 0
           assert p.read_bytes()[:4] == b'BTDX'
           print('valid BA2', p.stat().st_size, p.read_bytes()[:4])
           PY
-          sha256sum build/TerrorCounter_v0.9.ba2 | tee build/TerrorCounter_v0.9.ba2.sha256.txt
+          sha256sum "$OUT" | tee build/TerrorCounter_v0.10_RaidTelemetry.ba2.sha256.txt
 
       - name: Upload finished BA2
         uses: actions/upload-artifact@v4
         with:
-          name: TerrorCounter-v0.9-BA2
+          name: TerrorCounter-v0.10-RaidTelemetry-BA2
           path: |
-            build/TerrorCounter_v0.9.ba2
-            build/TerrorCounter_v0.9.ba2.sha256.txt
+            build/TerrorCounter_v0.10_RaidTelemetry.ba2
+            build/TerrorCounter_v0.10_RaidTelemetry.ba2.sha256.txt
             build/ba2-list.txt
             build/ba2-verify.json
           if-no-files-found: error
