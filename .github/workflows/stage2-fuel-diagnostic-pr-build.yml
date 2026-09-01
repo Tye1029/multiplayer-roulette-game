@@ -16,6 +16,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Materialize diagnostic source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s chatgpt-build/Stage2FuelDiagnostic.as.gz.b64
+          base64 -d chatgpt-build/Stage2FuelDiagnostic.as.gz.b64 | gzip -dc > chatgpt-build/Stage2FuelDiagnostic.as
+
       - name: Validate diagnostic source
         shell: bash
         run: |
