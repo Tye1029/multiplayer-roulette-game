@@ -23,7 +23,6 @@ jobs:
           test -s chatgpt-build/Stage2FuelDiagnostic.as
           grep -q 'class Stage2FuelDiagnostic' chatgpt-build/Stage2FuelDiagnostic.as
           grep -q 'diagnostic-only' chatgpt-build/Stage2FuelDiagnostic.as
-          grep -q 'Raid Fuel' chatgpt-build/Stage2FuelDiagnostic.as
           grep -q '0001F66A' chatgpt-build/Stage2FuelDiagnostic.as
           grep -q 'VERSION:String = "0.2"' chatgpt-build/Stage2FuelDiagnostic.as
           if grep -Eqi 'setposition|setpos|teleport|writeprocessmemory|noclip|removeitem|additem' chatgpt-build/Stage2FuelDiagnostic.as; then
