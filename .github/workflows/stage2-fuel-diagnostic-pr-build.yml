@@ -20,8 +20,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -s chatgpt-build/Stage2FuelDiagnostic.as.gz.b64
-          base64 -d chatgpt-build/Stage2FuelDiagnostic.as.gz.b64 | gzip -dc > chatgpt-build/Stage2FuelDiagnostic.as
+          cat chatgpt-build/stage2v041.part00 chatgpt-build/stage2v041.part01 chatgpt-build/stage2v041.part02 chatgpt-build/stage2v041.part03 chatgpt-build/stage2v041.part04 > /tmp/stage2v041.b64
+          test "$(wc -c < /tmp/stage2v041.b64)" -eq 7708
+          base64 -d /tmp/stage2v041.b64 | gzip -dc > chatgpt-build/Stage2FuelDiagnostic.as
 
       - name: Validate diagnostic source
         shell: bash
