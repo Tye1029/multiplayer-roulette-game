@@ -1,9 +1,9 @@
-name: Build Stage 2 Fuel Diagnostic v0.4.2 BA2
+name: Build Stage 2 Fuel Diagnostic v0.4.3 BA2
 
 on:
   pull_request:
     branches:
-      - chatgpt/stage2-fuel-diagnostic-v042-runner
+      - chatgpt/stage2-fuel-diagnostic-v043-runner
   workflow_dispatch:
 
 permissions:
@@ -22,11 +22,11 @@ jobs:
           set -euo pipefail
           test -s chatgpt-build/Stage2FuelDiagnostic.as
           grep -q 'class Stage2FuelDiagnostic' chatgpt-build/Stage2FuelDiagnostic.as
-          grep -q 'VERSION:String = "0.4.2"' chatgpt-build/Stage2FuelDiagnostic.as
+          grep -q 'VERSION:String = "0.4.3"' chatgpt-build/Stage2FuelDiagnostic.as
           grep -q 'isReloadable:Boolean = true' chatgpt-build/Stage2FuelDiagnostic.as
-          grep -q 'aItems' chatgpt-build/Stage2FuelDiagnostic.as
-          grep -q 'uFormID' chatgpt-build/Stage2FuelDiagnostic.as
-          grep -q 'uHandleID' chatgpt-build/Stage2FuelDiagnostic.as
+          grep -q 'InventoryList' chatgpt-build/Stage2FuelDiagnostic.as
+          grep -q 'serverHandleID' chatgpt-build/Stage2FuelDiagnostic.as
+          grep -q 'Fuel Entry Fields' chatgpt-build/Stage2FuelDiagnostic.as
           if grep -Eqi 'setposition|setpos|teleport|writeprocessmemory|noclip|removeitem|additem|System\.setClipboard' chatgpt-build/Stage2FuelDiagnostic.as; then
             echo 'Unexpected active inventory/movement/clipboard primitive found in read-only diagnostic source' >&2
             exit 1
@@ -85,27 +85,27 @@ jobs:
         run: |
           set -euo pipefail
           TOOL="$RUNNER_TEMP/dream-tools/bin/dream_archivetool"
-          OUT="build/Stage2FuelDiagnostic_v0.4.2.ba2"
+          OUT="build/Stage2FuelDiagnostic_v0.4.3.ba2"
           "$TOOL" create "$OUT" build/package --format ba2 --ba2-kind gnrl --ba2-version fallout4
           "$TOOL" list --long "$OUT" | tee build/ba2-list.txt
           "$TOOL" verify "$OUT" --read-payloads --json | tee build/ba2-verify.json
           grep -Eqi 'interface[/\\]stage2fueldiagnostic\.swf' build/ba2-list.txt
           python3 - <<'PY'
           from pathlib import Path
-          p=Path('build/Stage2FuelDiagnostic_v0.4.2.ba2')
+          p=Path('build/Stage2FuelDiagnostic_v0.4.3.ba2')
           assert p.exists() and p.stat().st_size>0
           assert p.read_bytes()[:4]==b'BTDX'
           print('valid BA2',p.stat().st_size,p.read_bytes()[:4])
           PY
-          sha256sum "$OUT" | tee build/Stage2FuelDiagnostic_v0.4.2.ba2.sha256.txt
+          sha256sum "$OUT" | tee build/Stage2FuelDiagnostic_v0.4.3.ba2.sha256.txt
 
       - name: Upload finished BA2
         uses: actions/upload-artifact@v4
         with:
-          name: Stage2FuelDiagnostic-v0.4.2-BA2
+          name: Stage2FuelDiagnostic-v0.4.3-BA2
           path: |
-            build/Stage2FuelDiagnostic_v0.4.2.ba2
-            build/Stage2FuelDiagnostic_v0.4.2.ba2.sha256.txt
+            build/Stage2FuelDiagnostic_v0.4.3.ba2
+            build/Stage2FuelDiagnostic_v0.4.3.ba2.sha256.txt
             build/ba2-list.txt
             build/ba2-verify.json
           if-no-files-found: error
