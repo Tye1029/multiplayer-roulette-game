@@ -1,9 +1,9 @@
-name: Build Raid Checkpoint Diagnostic v0.1 BA2
+name: Build Raid Checkpoint Diagnostic v0.3.1 BA2
 
 on:
   pull_request:
     branches:
-      - chatgpt/raid-diagnostic-runner
+      - chatgpt/raid-diagnostic-v031-runner
   workflow_dispatch:
 
 permissions:
@@ -16,16 +16,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Validate diagnostic source
+      - name: Validate safe diagnostic source
         shell: bash
         run: |
           set -euo pipefail
           test -s chatgpt-build/RaidCheckpointDiagnostic.as
           grep -q 'class RaidCheckpointDiagnostic' chatgpt-build/RaidCheckpointDiagnostic.as
+          grep -q 'VERSION:String = "0.3.1"' chatgpt-build/RaidCheckpointDiagnostic.as
           grep -q 'QuestTrackerProvider' chatgpt-build/RaidCheckpointDiagnostic.as
+          grep -q 'safe flat coordinate probing' chatgpt-build/RaidCheckpointDiagnostic.as
           grep -q 'diagnostic-only, no movement actions are performed' chatgpt-build/RaidCheckpointDiagnostic.as
-          if grep -Eqi 'setposition|setpos|teleport|writeprocessmemory|noclip' chatgpt-build/RaidCheckpointDiagnostic.as; then
-            echo 'Unexpected movement/manipulation primitive found in diagnostic source' >&2
+          if grep -Eqi 'setposition|setpos|teleport|writeprocessmemory|noclip|scanCoordinateCandidates|logDisplayTree' chatgpt-build/RaidCheckpointDiagnostic.as; then
+            echo 'Unexpected movement primitive or aggressive recursive scanner found in v0.3.1 source' >&2
             exit 1
           fi
 
@@ -82,27 +84,27 @@ jobs:
         run: |
           set -euo pipefail
           TOOL="$RUNNER_TEMP/dream-tools/bin/dream_archivetool"
-          OUT="build/RaidCheckpointDiagnostic_v0.1.ba2"
+          OUT="build/RaidCheckpointDiagnostic_v0.3.1.ba2"
           "$TOOL" create "$OUT" build/package --format ba2 --ba2-kind gnrl --ba2-version fallout4
           "$TOOL" list --long "$OUT" | tee build/ba2-list.txt
           "$TOOL" verify "$OUT" --read-payloads --json | tee build/ba2-verify.json
           grep -Eqi 'interface[/\\]raidcheckpointdiagnostic\.swf' build/ba2-list.txt
           python3 - <<'PY'
           from pathlib import Path
-          p=Path('build/RaidCheckpointDiagnostic_v0.1.ba2')
+          p=Path('build/RaidCheckpointDiagnostic_v0.3.1.ba2')
           assert p.exists() and p.stat().st_size>0
           assert p.read_bytes()[:4]==b'BTDX'
           print('valid BA2',p.stat().st_size,p.read_bytes()[:4])
           PY
-          sha256sum "$OUT" | tee build/RaidCheckpointDiagnostic_v0.1.ba2.sha256.txt
+          sha256sum "$OUT" | tee build/RaidCheckpointDiagnostic_v0.3.1.ba2.sha256.txt
 
       - name: Upload finished BA2
         uses: actions/upload-artifact@v4
         with:
-          name: RaidCheckpointDiagnostic-v0.1-BA2
+          name: RaidCheckpointDiagnostic-v0.3.1-BA2
           path: |
-            build/RaidCheckpointDiagnostic_v0.1.ba2
-            build/RaidCheckpointDiagnostic_v0.1.ba2.sha256.txt
+            build/RaidCheckpointDiagnostic_v0.3.1.ba2
+            build/RaidCheckpointDiagnostic_v0.3.1.ba2.sha256.txt
             build/ba2-list.txt
             build/ba2-verify.json
           if-no-files-found: error
