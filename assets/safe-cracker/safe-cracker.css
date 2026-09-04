@@ -5190,3 +5190,124 @@ body.sc-result-win-open .duel-end-screen-close {
   .safe-cracker-game .sc-step-controls button { transition:none; }
 }
 /* SAFE_CRACKER_BANK_VAULT_V3_END */
+
+/* SAFE_CRACKER_WALL_AND_RESULTS_V4_START */
+/* Match the room's warm steel. A dark contact seam seats the safe in the wall. */
+.safe-cracker-game .sc-safe-shell {
+  padding:12px;border:1px solid #817255;border-radius:8px;
+  background:linear-gradient(180deg,#615b4c,#38372f) !important;
+  background-size:100% 100% !important;background-repeat:no-repeat !important;background-blend-mode:normal !important;
+  box-shadow:inset 0 0 0 3px #282820,inset 0 4px 8px #000a,0 0 0 5px #1c1d1880,0 2px 0 6px #c5ac7226 !important;
+}
+.safe-cracker-game .sc-safe-door {
+  border-radius:5px;
+  background-image:linear-gradient(180deg,#dab46b1a,#211c150d),url('/assets/safe-cracker/textures/metal-wear.svg'),url('/assets/safe-cracker/textures/safe-steel-base.svg') !important;
+  background-size:cover,cover,cover !important;
+  box-shadow:inset 0 0 0 2px #92846a,inset 0 0 0 5px #36382e,inset 0 3px 0 #f4d59830,0 2px 3px #0009 !important;
+}
+.safe-cracker-game .sc-safe-door::before { border-color:#ac9a7440;border-radius:3px; }
+.safe-cracker-game .sc-command-bar,
+.safe-cracker-game .sc-instructions,
+.safe-cracker-game .sc-tip-bar { background:linear-gradient(110deg,#302e26f5,#1c1e19f5); }
+.safe-cracker-game .sc-player-card { background:linear-gradient(#3a382f,#282a23); }
+.safe-cracker-game .sc-display { background:linear-gradient(110deg,#827b68,#41453a) !important;border-color:#767461 !important; }
+.safe-cracker-game .sc-dial-wrap::after {
+  background:radial-gradient(circle at 7px 9px,#c8bd9e 0 1px,#2a2c23 2px 3px,transparent 4px),radial-gradient(circle at calc(100% - 7px) 9px,#c8bd9e 0 1px,#2a2c23 2px 3px,transparent 4px),linear-gradient(110deg,#827b66,#4d5142) !important;
+}
+.safe-cracker-game .sc-step-controls { background:linear-gradient(#34382e,#706d5b); }
+.safe-cracker-game .sc-step-controls button { background:linear-gradient(#98907a,#746f5e 20%,#5e6251 85%,#484f40) !important; }
+
+/* Crisp text: remove outline/glow effects and the condensed display face. */
+.safe-cracker-game,
+.sc-result-overlay { font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;font-weight:500;line-height:1.4; }
+.safe-cracker-game *,
+.sc-result-overlay * { text-shadow:none !important;-webkit-text-stroke:0 !important; }
+.safe-cracker-game button,
+.safe-cracker-game .sc-display-status,
+.safe-cracker-game .sc-display-meta,
+.sc-result-overlay,
+.sc-result-overlay * { font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif !important; }
+.safe-cracker-game .sc-confirm-button { font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif !important;font-size:15px !important;font-weight:700 !important;letter-spacing:.045em !important; }
+.safe-cracker-game .sc-display-status { font-weight:700;letter-spacing:.05em;font-size:16px; }
+.safe-cracker-game .sc-display-glass::before { opacity:0; }
+.safe-cracker-game .sc-display-meta small,.safe-cracker-game .sc-display-meta b { font-size:11px;letter-spacing:.025em;font-weight:600; }
+.safe-cracker-game .sc-instructions li small { font-size:12px;line-height:1.4; }
+.safe-cracker-game .sc-command-bar h2 { letter-spacing:.045em; }
+.safe-cracker-game .sc-player-card b { font-size:13px; }
+.safe-cracker-game .sc-dial { filter:none; }
+.safe-cracker-game .sc-dial-number > span,
+.safe-cracker-game .sc-dial-number.selected > span { transform:none; }
+
+/* Fishing-sized result: title above two comparison cards, actions at the foot. */
+body > .sc-result-overlay[data-sc-result-portal] {
+  padding:14px !important;background:#0c100dde !important;backdrop-filter:none !important;
+}
+body > .sc-result-overlay[data-sc-result-portal] .sc-result-card {
+  --sc-result-accent:#d7b778;
+  width:min(94vw,820px);height:min(92dvh,720px);max-height:calc(100dvh - 28px);
+  padding:0;border:1px solid #988259;border-radius:12px;overflow:hidden;
+  background:#1c211b;box-shadow:inset 0 0 0 3px #d5b87920,0 18px 60px #0009;
+}
+body > .sc-result-overlay.lose[data-sc-result-portal] .sc-result-card { --sc-result-accent:#efb397; }
+body > .sc-result-overlay.win[data-sc-result-portal] .sc-result-card { --sc-result-accent:#ecda9c; }
+body > .sc-result-overlay[data-sc-result-portal].sc-result-portal-ready .sc-result-card { animation:scResultCrispIn .22s ease-out both !important;transform:none !important;filter:none !important; }
+body > .sc-result-overlay[data-sc-result-portal] .sc-result-card::before { content:none; }
+body > .sc-result-overlay[data-sc-result-portal] .sc-result-content {
+  display:flex;flex-direction:column;height:100%;min-height:0;padding:0;overflow-y:auto;
+}
+.sc-result-heading {
+  padding:28px 48px 24px;border-bottom:1px solid #b596585c;text-align:center;
+  background:linear-gradient(#171b16a8,#1c211bf2),url('/assets/safe-cracker/images/bank-vault-v1.png') center 12% / cover;
+}
+.sc-result-seal { display:grid;place-items:center;width:72px;height:72px;margin:0 auto 14px;border:1px solid #c7ad765c;border-radius:50%;background:#1a2018; }
+.sc-result-seal svg { width:46px;height:46px;fill:none;stroke:var(--sc-result-accent);stroke-width:2; }
+body > .sc-result-overlay[data-sc-result-portal] .sc-result-kicker { font-size:12px;letter-spacing:.13em;font-weight:650;color:var(--sc-result-accent); }
+body > .sc-result-overlay[data-sc-result-portal] .sc-result-card h2 { margin:10px 0 12px;color:#f6efdc;font-size:clamp(30px,5vw,48px);font-weight:750;line-height:1.12;letter-spacing:-.025em; }
+body > .sc-result-overlay[data-sc-result-portal] .sc-result-card p { max-width:50ch;margin:0 auto;color:#dfdfd0;font-size:15px;font-weight:400;line-height:1.55; }
+.sc-result-summary { flex:1;display:flex;flex-direction:column;padding:24px 28px; }
+.sc-result-summary-title { display:flex;justify-content:space-between;gap:12px;color:#e8dcc0;font-size:12px;font-weight:700;letter-spacing:.08em; }
+.sc-result-summary-title > span { color:#b3b8a8;font-size:10px;font-weight:500; }
+body > .sc-result-overlay[data-sc-result-portal] .sc-code-reveal { flex:1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:14px 0 0; }
+.sc-result-player { display:flex;flex-direction:column;min-width:0;padding:18px;border:1px solid #69715d;border-radius:8px;background:linear-gradient(#30372b,#252c21); }
+.sc-result-player.winner { border-color:#c8ad6f;background:linear-gradient(#3b3f2c,#2a3021); }
+.sc-result-player-label { display:flex;justify-content:space-between;gap:5px;flex-wrap:wrap;font-size:11px;letter-spacing:.06em;font-weight:700;color:#cfd3c3; }
+.sc-result-player-label em { color:#f5dda2;font-size:10px;font-style:normal; }
+.sc-result-player h3 { margin:8px 0 18px;font-size:16px;line-height:1.35;color:#f0eddf;overflow-wrap:anywhere; }
+.sc-result-code { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:auto 0; }
+body > .sc-result-overlay[data-sc-result-portal] .sc-result-code b { display:grid;place-items:center;min-height:64px;margin:0;border:1px solid #9c8c65;border-radius:4px;background:#141c14;color:#f4e1a4;font-family:ui-monospace,Consolas,monospace !important;font-size:32px;font-weight:600;letter-spacing:0;box-shadow:inset 0 2px 3px #0008; }
+.sc-result-player dl { margin:18px 0 0; }
+.sc-result-player dl > div { display:flex;justify-content:space-between;gap:6px;margin-top:8px; }
+.sc-result-player dt { font-size:12px;color:#bac4af; }
+.sc-result-player dd { margin:0;color:#eef0dd;font-size:13px;font-weight:650; }
+body > .sc-result-overlay[data-sc-result-portal] .sc-result-actions { flex:none;display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:0;padding:18px 28px;border-top:1px solid #7e74564d;background:#191f17; }
+body > .sc-result-overlay[data-sc-result-portal] .sc-result-actions button { min-height:54px;margin:0;padding:12px;border-radius:6px;font-size:14px;font-weight:700;letter-spacing:.02em;box-shadow:none; }
+body > .sc-result-overlay[data-sc-result-portal] .sc-result-actions .gold { border:1px solid #e0c78b;background:#d8bd7d;color:#242518; }
+body > .sc-result-overlay[data-sc-result-portal] .sc-result-actions .secondary { border:1px solid #8e957f;background:#343d2c;color:#edf0de; }
+body > .sc-result-overlay[data-sc-result-portal] .duel-end-screen-close { top:12px;right:12px;width:36px;height:36px;border:1px solid #bcab805c;background:#192018;color:#efe7d0; }
+@keyframes scResultCrispIn { from { opacity:0; } to { opacity:1; } }
+@media(max-width:700px) {
+  .safe-cracker-game .sc-safe-shell { padding:8px; }
+  .safe-cracker-game .sc-player-card b { font-size:12px; }
+  .safe-cracker-game .sc-instructions li small { font-size:11px; }
+  .safe-cracker-game .sc-display-status { font-size:14px; }
+  .safe-cracker-game .sc-display-meta small,.safe-cracker-game .sc-display-meta b { font-size:10px; }
+  body > .sc-result-overlay[data-sc-result-portal] { padding:8px !important; }
+  body > .sc-result-overlay[data-sc-result-portal] .sc-result-card { width:100%;height:min(760px,calc(100dvh - 16px));max-height:calc(100dvh - 16px);border-radius:8px; }
+  .sc-result-heading { padding:24px 20px 20px; }
+  .sc-result-seal { width:60px;height:60px;margin-bottom:12px; }.sc-result-seal svg { width:38px;height:38px; }
+  body > .sc-result-overlay[data-sc-result-portal] .sc-result-kicker { font-size:10px;letter-spacing:.08em; }
+  body > .sc-result-overlay[data-sc-result-portal] .sc-result-card p { font-size:14px; }
+  .sc-result-summary { padding:20px 14px; }
+  .sc-result-summary-title { font-size:11px; }.sc-result-summary-title > span { font-size:9px; }
+  body > .sc-result-overlay[data-sc-result-portal] .sc-code-reveal { gap:9px; }
+  .sc-result-player { padding:12px 10px; }.sc-result-player h3 { font-size:13px;min-height:2.7em;margin-bottom:12px; }
+  .sc-result-code { gap:4px; }
+  body > .sc-result-overlay[data-sc-result-portal] .sc-result-code b { min-height:48px;font-size:25px; }
+  .sc-result-player dt { font-size:11px; }.sc-result-player dd { font-size:12px; }
+  body > .sc-result-overlay[data-sc-result-portal] .sc-result-actions { padding:14px;gap:9px; }
+  body > .sc-result-overlay[data-sc-result-portal] .sc-result-actions button { font-size:12px;min-height:50px; }
+}
+@media(prefers-reduced-motion:reduce) {
+  body > .sc-result-overlay[data-sc-result-portal].sc-result-portal-ready .sc-result-card { animation:none !important; }
+}
+/* SAFE_CRACKER_WALL_AND_RESULTS_V4_END */

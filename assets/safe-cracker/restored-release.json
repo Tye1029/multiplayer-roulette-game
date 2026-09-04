@@ -1,5 +1,5 @@
 {
-  "release": "20260904-bank4",
+  "release": "20260904-wall5",
   "sourcePreview": "https://deploy-preview-19--famous-piroshki-b621da.netlify.app/",
   "sourceDeploy": "6a70b46ca5416100089b828b",
   "sourceBranch": "safe-cracker-development",
@@ -28,8 +28,8 @@
     "assets/safe-cracker/audio-data/safe-unlock.b64": "aea99693d78b8fab937b9e07098f0f0cb65afdc4e70b5caba13db8166d513bf1",
     "assets/safe-cracker/audio-data/submit-latch.b64": "f946badd32b429169b00b2a1e0956aab235e224ce142bb56080aa437306cadd2",
     "assets/safe-cracker/audio-data/tumbler-lock.b64": "ab70c5fe2cc2a0b8466871418bb2f0af6274b52ba1659c5c3d4fa723aa403754",
-    "assets/safe-cracker/safe-cracker.css": "3b0e85ea9902eefebb931bdec8e87fc38ffe1872b65c63c7b0ca02306ba7de04",
-    "assets/safe-cracker/safe-cracker.js": "d25202cfd2c10925c040de921071b51b8f476a4bd7b5a5bf33d09000b8f99450",
+    "assets/safe-cracker/safe-cracker.css": "0e550cb4801b0d03018ab9ed463630027cfde679d40985a0261eeb5a39a883ed",
+    "assets/safe-cracker/safe-cracker.js": "d1fdb12a7eff48c056a5fc6090a84b51dab9806dfd007173637bcc33d80481ac",
     "assets/safe-cracker/textures/dial-machined.svg": "e4f73a99dccca8a9bdcb79ac8fb93d3b93c26a843c01bf6ffd65cd2e081fa361",
     "assets/safe-cracker/textures/dial-reference-face-v7.svg": "4ac122e6319ef8ae3b604f64726994af47d9a7815f58c2898f8143dd3fa339c0",
     "assets/safe-cracker/textures/metal-wear.svg": "ca22e39bd6a2d21ef5c6634a035f024e016ecbc7c908caab9ea1597bb28a1824",
@@ -40,6 +40,7 @@
   "changes": [
     "Reserve pointer-housing clearance below the digital display at desktop, mobile, and compact-mobile sizes.",
     "Use the real board in waiting and ready screens with instructions above and a tip bar below; enlarge matched progress tiles; soften metal shading and bolt the pointer mount to the dial rim; stop the completed timer.",
-    "Restore scratched steel with even shading; add a bank vault PNG and brass instrument panels; remove opponent status; improve dial numerals and recessed step buttons; use authoritative 60-second rounds."
+    "Restore scratched steel with even shading; add a bank vault PNG and brass instrument panels; remove opponent status; improve dial numerals and recessed step buttons; use authoritative 60-second rounds.",
+    "Seat the safe into the vault wall with warm steel and contact seams; remove text shadows and condensed control fonts; add a large responsive results report with authoritative codes, progress and rematch actions."
   ]
 }

@@ -682,20 +682,36 @@
     const message = tied
       ? 'Neither safe opened before time expired. Both wagers were returned.'
       : won
-        ? `You opened your safe first and won ${Number(game.payout || 0).toLocaleString('en-US')} Tickets.`
+        ? `You opened your safe first and won ${Number(game.payout || 0).toLocaleString('en-US')} Chips.`
         : funnyLoss(game.gameId);
     const reveal = state.revealedCodes || {};
-    const codes = reveal.my || reveal.opponent
-      ? '<div class="sc-code-reveal"><span>Your code <b>' + escapeHtml(reveal.my || '---') + '</b></span><span>Opponent <b>' + escapeHtml(reveal.opponent || '---') + '</b></span></div>'
-      : '';
+    const me = game.isCreator ? game.creator : game.joiner;
+    const opponent = game.isCreator ? game.joiner : game.creator;
+    const comparisonCard = (label, player, progress, code, winner) => {
+      const digits = /^[0-9]{3}$/.test(String(code || '')) ? String(code).split('') : ['—','—','—'];
+      const stage = Math.max(0, Math.min(STAGES, Number(progress?.stage || 0)));
+      const attempts = Math.max(0, Number(progress?.attemptCount || 0));
+      return '<section class="sc-result-player' + (winner ? ' winner' : '') + '">' +
+        '<div class="sc-result-player-label">' + label + (winner ? '<em>WINNER</em>' : '') + '</div>' +
+        '<h3>' + escapeHtml(player?.name || 'Player') + '</h3>' +
+        '<div class="sc-result-code" aria-label="' + label + ' code ' + escapeHtml(code || 'unavailable') + '">' + digits.map(digit => '<b>' + digit + '</b>').join('') + '</div>' +
+        '<dl><div><dt>Locks opened</dt><dd>' + stage + ' / ' + STAGES + '</dd></div><div><dt>Attempts</dt><dd>' + attempts + '</dd></div></dl></section>';
+    };
+    const codes = '<div class="sc-code-reveal">' +
+      comparisonCard('YOUR SAFE', me, state.me, reveal.my, won && !tied) +
+      comparisonCard('OPPONENT', opponent, state.opponent, reveal.opponent, !won && !tied && Boolean(game.winnerUserId)) + '</div>';
     return '<div class="sc-result-overlay ' + resultClass + '" data-sc-result-sequence>' +
       '<div class="sc-result-card">' +
         resultVaultMechanism() +
         '<div class="sc-result-content">' +
+          '<div class="sc-result-heading">' +
+          '<div class="sc-result-seal" aria-hidden="true"><svg viewBox="0 0 64 64"><rect x="9" y="6" width="46" height="52" rx="5"/><circle cx="32" cy="30" r="13"/><circle cx="32" cy="30" r="4"/><path d="M32 17v9m0 8v9M19 30h9m8 0h9M15 14v6m0 26v5"/></svg></div>' +
           '<div class="sc-result-kicker">SAFE CRACKER · ' + accessLabel + '</div>' +
           '<h2>' + title + '</h2>' +
           '<p>' + escapeHtml(message) + '</p>' +
+          '</div><div class="sc-result-summary"><div class="sc-result-summary-title">THE VAULT REPORT <span>FINAL COMBINATIONS</span></div>' +
           codes +
+          '</div>' +
           '<div class="sc-result-actions">' +
             '<button class="gold" data-sc-rematch type="button">Rematch</button>' +
             '<button class="secondary" data-sc-new-game type="button">Create a New Game</button>' +

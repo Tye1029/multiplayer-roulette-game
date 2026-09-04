@@ -72,4 +72,21 @@ assert.equal(authority.safeCrackerPublicState(match,'one').secondsLeft,0);
 assert.equal(authority.safeCrackerPublicState(match,'one').opponent.code,undefined);
 match.status='complete';
 assert.equal(authority.safeCrackerPublicState(match,'one').canSubmit,false);
+
+// Result comparisons use authoritative final codes and the viewer's role.
+context.escapeHtml = value => String(value).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('"','&quot;');
+context.funnyLoss = () => 'Try the next vault.';
+context.resultVaultMechanism = () => '';
+vm.runInContext(section(client, 'function resultOverlay(game)', '// SAFE_CRACKER_LATCH_SEQUENCE_V1_HELPER'), context);
+const resultGame = {status:'complete',isCreator:true,winnerUserId:'one',payout:2000,creator:{userId:'one',name:'You <script>'},joiner:{userId:'two',name:'Rival'},safecrackerState:{revealedCodes:{my:'012',opponent:'987'},me:{stage:3,attemptCount:9},opponent:{stage:2,attemptCount:7}}};
+const win = context.resultOverlay(resultGame);
+assert.ok(win.includes('SAFE CRACKED!') && win.includes('2,000 Chips.'));
+assert.ok(win.includes('You &lt;script>') && !win.includes('You <script>'));
+assert.ok(win.includes('YOUR SAFE code 012') && win.includes('<b>0</b>'));
+assert.ok(win.includes('data-sc-rematch') && win.includes('data-sc-new-game'));
+assert.ok(win.includes('<dd>3 / 3</dd>') && win.includes('<dd>9</dd>'));
+assert.ok(context.resultOverlay({...resultGame,winnerUserId:'two'}).includes('YOU LOSE'));
+assert.ok(context.resultOverlay({...resultGame,isCreator:false,winnerUserId:'two'}).includes('SAFE CRACKED!'));
+assert.ok(context.resultOverlay({...resultGame,tie:true,winnerUserId:''}).includes('Both wagers were returned.'));
+assert.equal(context.resultOverlay({...resultGame,status:'playing'}),'');
 console.log('Safe Cracker layout: all lifecycle screens mount the real board, private unlocked digits stay accurate, pre-race guesses stay disabled, timer stops at completion, and other game routing is unchanged.');
