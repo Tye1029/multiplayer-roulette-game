@@ -4,9 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Rumble Fishing Duel — Component Preview</title>
-  <script src="/shared/games/fishing-catalog.js?v=fishing-mechanics-v28"></script>
-  <link rel="stylesheet" href="/assets/fishing/fishing.css?v=fishing-mechanics-v28">
-  <script src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v28"></script>
+  <script src="/shared/games/fishing-catalog.js?v=fishing-mechanics-v29"></script>
+  <link rel="stylesheet" href="/assets/fishing/fishing.css?v=fishing-mechanics-v29">
+  <script src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v29"></script>
   <style>
     *{box-sizing:border-box}html,body{min-height:100%;margin:0;background:#041019;color:#fff;font-family:Inter,ui-sans-serif,system-ui,sans-serif}body{display:grid;place-items:center;padding:16px}.preview{width:min(100%,980px)}button{border:0;cursor:pointer}
     [data-preview-state]{display:none}[data-preview-state].active{display:block}.fishing-water{position:relative;min-height:0;aspect-ratio:1620/883;overflow:hidden}.fishing-sky{position:absolute;inset:0 0 64%}.fishing-dock{position:absolute}.fishing-center-status{position:absolute;z-index:15;left:50%;bottom:14px;transform:translateX(-50%)}
@@ -81,7 +81,7 @@
           if(caught)return `<div class="fishing-log-entry" ${attrs}><div class="fishing-log-thumb">${previewFishArt(caught)}</div><div class="fishing-log-copy"><b>${name}</b>${badge}<span>Personal best <strong>${caught.size} cm</strong></span><span>1 caught</span></div></div>`;
           return `<div class="fishing-log-entry locked" ${attrs}><div class="fishing-log-thumb"><span class="fishing-log-question">?</span><span class="fishing-log-unlock-preview">${previewFishArt({...fish,size:48})}</span></div><div class="fishing-log-copy"><b><span class="fishing-log-locked-name">???</span><span class="fishing-log-unlock-name">${name}</span></b>${badge}<span>Not caught yet</span></div></div>`;
         }).join('');
-        return `<h3 class="fishing-log-section ${tier.id}" data-rarity-section="${tier.id}"><span>${tier.label}</span><small>${Math.round(tier.chance*100)}% appearance chance</small></h3>${rows}`;
+        return `<h3 class="fishing-log-section ${tier.id}" data-rarity-section="${tier.id}"><span>${tier.label}</span></h3>${rows}`;
       }).join('');
       portal.querySelector('[data-preview-logbook]').innerHTML=`<details class="fishing-logbook" data-fishing-logbook open><summary><span class="fishing-logbook-title"><i>▱</i><span>Angler's field log<small>Your personal fish collection</small></span></span><span class="fishing-logbook-count">${discovered.size} / ${PREVIEW_FISH_SPECIES.length}</span></summary><div class="fishing-logbook-body"><div class="fishing-logbook-tools"><button type="button" class="fishing-log-unlock" data-fishing-log-unlock aria-pressed="false">Unlock all fish (testing)</button><small>Temporary collection preview</small></div><div class="fishing-logbook-stats"><div class="fishing-logbook-stat"><b>${discovered.size} / ${PREVIEW_FISH_SPECIES.length}</b>Discovered</div><div class="fishing-logbook-stat"><b>2</b>Total catches</div><div class="fishing-logbook-stat"><b>${[...discovered.values()].filter(f=>f.special).length}</b>Rare finds</div></div><div class="fishing-logbook-grid">${entries}</div></div></details>`;
       const book=portal.querySelector('[data-fishing-logbook]'),button=book.querySelector('[data-fishing-log-unlock]');

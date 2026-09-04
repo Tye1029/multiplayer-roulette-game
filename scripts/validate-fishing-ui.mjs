@@ -67,6 +67,10 @@ const rareRows=[...sortedBook.matchAll(/data-fish-rarity="(common|uncommon|rare|
 assert.equal(rareRows.length,62);
 assert.deepEqual(rareRows,fishingCatalog.ordered.map(f=>f.rarity),'Collection order must follow all four tiers');
 assert.deepEqual([...sortedBook.matchAll(/data-rarity-section="([^"]+)"/g)].map(m=>m[1]),['common','uncommon','rare','mythical']);
+assert(!/\d+%|appearance chance/i.test(sortedBook), 'Logbook must not display catch percentages');
+assert(!/\d+%|appearance chance/i.test(run('duelFishingLogbookHtml({})')), 'Empty logbook must not display catch percentages');
+const componentPreview=fs.readFileSync(path.join(root,'games/multiplayer/fishing/preview.html'),'utf8');
+assert(!componentPreview.includes('% appearance chance'), 'Component preview must match the live logbook');
 assert(!sortedBook.includes('Keep watching the ripples'));
 assert.match(sortedBook,/fish\/silver-minnow-v2.png/,'Silver Minnow is a species, not a silver variant of a missing Minnow');
 assert.equal(run(`duelFishingBaseName('Golden Silver Minnow')`),'Gilded Sovereign');
