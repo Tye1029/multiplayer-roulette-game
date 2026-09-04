@@ -1,5 +1,5 @@
 {
-  "release": "20260904-depth12",
+  "release": "20260904-crack13",
   "sourcePreview": "https://deploy-preview-19--famous-piroshki-b621da.netlify.app/",
   "sourceDeploy": "6a70b46ca5416100089b828b",
   "sourceBranch": "safe-cracker-development",
@@ -28,8 +28,8 @@
     "assets/safe-cracker/audio-data/safe-unlock.b64": "aea99693d78b8fab937b9e07098f0f0cb65afdc4e70b5caba13db8166d513bf1",
     "assets/safe-cracker/audio-data/submit-latch.b64": "f946badd32b429169b00b2a1e0956aab235e224ce142bb56080aa437306cadd2",
     "assets/safe-cracker/audio-data/tumbler-lock.b64": "ab70c5fe2cc2a0b8466871418bb2f0af6274b52ba1659c5c3d4fa723aa403754",
-    "assets/safe-cracker/safe-cracker.css": "b7851909934099a8485616b66760dc86f4c8ba0de2205bee1364cf9c63e9c6ab",
-    "assets/safe-cracker/safe-cracker.js": "dfacc51dd42bfa06e4961155514f102c1b0b35d4782afee201bfaf04185ed0db",
+    "assets/safe-cracker/safe-cracker.css": "68fadc3fef745717d3d56bff882969fb5b0b49ed9cf4365c47ebfd6ed840f135",
+    "assets/safe-cracker/safe-cracker.js": "bbff74696a1fce46ae665a75900979a9291e82f47bb893c85346fb33c7af001a",
     "assets/safe-cracker/textures/dial-machined.svg": "e4f73a99dccca8a9bdcb79ac8fb93d3b93c26a843c01bf6ffd65cd2e081fa361",
     "assets/safe-cracker/textures/dial-reference-face-v7.svg": "4ac122e6319ef8ae3b604f64726994af47d9a7815f58c2898f8143dd3fa339c0",
     "assets/safe-cracker/textures/metal-wear.svg": "ca22e39bd6a2d21ef5c6634a035f024e016ecbc7c908caab9ea1597bb28a1824",
@@ -52,6 +52,7 @@
     "Match scratched gunmetal to a wall-only bank room; keep the safe mounted through completion, sequence latch release before the door swing, and preserve fast dial input with one stage-scoped queued check.",
     "Replace pebbled safe grain with smooth dark machined steel and fine straight scratches, preserving the slate color; shade the stationary frame as a recessed jamb.",
     "Restore warm interior light and reflected glow, use a controlled hinge perspective, and allow a 500ms open-safe hold before the win report. Validate result timing, polling continuity, and reduced motion.",
-    "Open the safe outward with a weighted 1500ms swing, visible 3D steel edge planes, and localized golden cavity light reflected onto the door rim, thickness and frame."
+    "Open the safe outward with a weighted 1500ms swing, visible 3D steel edge planes, and localized golden cavity light reflected onto the door rim, thickness and frame.",
+    "Restore the earlier restrained 15-degree outward opening and its detent-like timing, retaining the new steel texture, physical door thickness and localized golden lighting."
   ]
 }

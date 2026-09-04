@@ -26,7 +26,7 @@ assert(occurrences(css, '/* SAFE_CRACKER_RESULT_FLOW_V5_END */') === 1, 'result-
 assert(client.includes('function mountSafeCrackerResultPortal(game, mount)'), 'result portal helper is missing');
 assert(client.includes("shell.classList.add(won ? 'sc-gameplay-win' : tied ? 'sc-gameplay-tie' : 'sc-gameplay-lose');"), 'actual gameplay safe is not assigned result animation states');
 assert(client.includes("shell.style.setProperty('--sc-result-animation-delay', '-' + Math.min(elapsed, 1200) + 'ms');"), 'safe-opening animation does not preserve progress across polling renders');
-assert(client.includes('const revealDelay = reducedMotion ? 0 : won ? 2000 : tied ? 420 : 520;'), 'win card must leave 500ms to see the glowing safe after its 1500ms swing');
+assert(client.includes('const revealDelay = reducedMotion ? 0 : won ? 1600 : tied ? 420 : 520;'), 'win card must leave 520ms to see the glowing safe after its 1080ms swing');
 // Exercise the real portal scheduler: polling must not restart the door/light
 // sequence or shorten its viewing time, and reduced motion must reveal at once.
 const portalStart = client.indexOf('function mountSafeCrackerResultPortal(game, mount)');
@@ -46,14 +46,14 @@ function checkPortalTiming(reducedMotion) {
   vm.runInContext(client.slice(portalStart,portalEnd),sandbox);
   const game={gameId:'opening',status:'complete',isCreator:true,creator:{userId:'winner'},winnerUserId:'winner'};
   sandbox.mountSafeCrackerResultPortal(game,mount);
-  assert(timers[0]===(reducedMotion?0:2000),'incorrect result reveal deadline');
+  assert(timers[0]===(reducedMotion?0:1600),'incorrect result reveal deadline');
   now=800;result=fresh();sandbox.mountSafeCrackerResultPortal(game,mount);
   assert(timers.length===1 && animationStarts===1 && audioStarts===1,'polling restarted the opening sequence');
 }
 checkPortalTiming(false);checkPortalTiming(true);
 const finalOpeningCss=css.slice(css.indexOf('/* SAFE_CRACKER_RECESSED_WALL_V6_START */'));
 assert(finalOpeningCss.includes('animation:scVaultWarmReveal 650ms') && finalOpeningCss.includes('animation:scVaultWarmSpill 700ms'), 'final CSS must retain both the interior glow and reflected light');
-assert(finalOpeningCss.includes('animation-duration:1500ms') && finalOpeningCss.includes('rotateY(-58deg)') && finalOpeningCss.includes('perspective-origin:0 50%'), 'door must swing outward with the slower, weighted hinge motion');
+assert(finalOpeningCss.includes('animation-duration:1080ms') && finalOpeningCss.includes('rotateY(-15deg)') && finalOpeningCss.includes('perspective-origin:0 50%'), 'door must retain the earlier small outward crack rather than a wide swing');
 assert(finalOpeningCss.includes('transform:rotateY(90deg)') && finalOpeningCss.includes('--sc-door-depth:32px') && client.includes('sc-door-edge-right'), 'opening must include a real right-hand thickness plane');
 assert(finalOpeningCss.includes('scVaultMetalBounce') && client.includes('sc-door-light'), 'warm light must affect the door edge and front rim');
 assert(client.includes("fresh.setAttribute('data-sc-result-portal', '');"), 'result overlay is not moved into a viewport portal');

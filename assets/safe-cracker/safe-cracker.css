@@ -5387,8 +5387,8 @@ body > .sc-result-overlay.tie[data-sc-result-portal] .sc-result-card {
   --sc-door-depth:32px;
   overflow:visible;transform-style:preserve-3d;
   transform-origin:0 50%;
-  animation-duration:1500ms;
-  animation-timing-function:cubic-bezier(.4,0,.2,1);
+  animation-duration:1080ms;
+  animation-timing-function:cubic-bezier(.18,.76,.2,1);
   will-change:transform;
 }
 /* These are steel side planes behind the front plate, not a painted drop shadow. */
@@ -5431,8 +5431,9 @@ body > .sc-result-overlay.tie[data-sc-result-portal] .sc-result-card {
   animation-delay:calc(var(--sc-result-animation-delay,0ms) + 430ms);
 }
 @keyframes scGameplaySafeDoorOpen {
-  0%,23% { transform:rotateY(0deg); }
-  100% { transform:rotateY(-58deg); }
+  0%,18% { transform:rotateY(0deg) translateX(0) scale(1); }
+  42% { transform:rotateY(-2deg) translateX(-1px) scale(.998); }
+  100% { transform:rotateY(-15deg) translateX(-5px) scale(.988); }
 }
 @keyframes scVaultWarmReveal { from { opacity:0; } to { opacity:1; } }
 @keyframes scVaultWarmSpill { from { opacity:0; } to { opacity:.8; } }
@@ -5442,7 +5443,7 @@ body > .sc-result-overlay.tie[data-sc-result-portal] .sc-result-card {
   .safe-cracker-game .sc-safe-shell.sc-gameplay-win .sc-safe-door { --sc-door-depth:22px; }
 }
 @media(prefers-reduced-motion:reduce) {
-  .safe-cracker-game .sc-safe-shell.sc-gameplay-win .sc-safe-door { animation:none !important;transform:rotateY(-58deg);will-change:auto; }
+  .safe-cracker-game .sc-safe-shell.sc-gameplay-win .sc-safe-door { animation:none !important;transform:rotateY(-15deg) translateX(-5px) scale(.988);will-change:auto; }
   .safe-cracker-game .sc-safe-shell.sc-gameplay-win .sc-bolts.right i.sc-latch-releasing { animation:none !important; }
   .safe-cracker-game .sc-safe-shell.sc-gameplay-win::before,
   .safe-cracker-game .sc-safe-shell.sc-gameplay-win::after { animation:none !important;opacity:1; }
