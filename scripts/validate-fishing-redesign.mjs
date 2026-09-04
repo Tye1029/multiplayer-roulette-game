@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import "./validate-fishing-ui.mjs";
 
 function assert(condition, message) {
   if (!condition) throw new Error(`Fishing redesign validation failed: ${message}`);
@@ -10,9 +11,9 @@ const controller = fs.readFileSync(new URL("../assets/fishing/fishing-controller
 const preview = fs.readFileSync(new URL("../games/multiplayer/fishing/preview.html", import.meta.url), "utf8");
 const serverData = fs.readFileSync(new URL("../netlify/functions/_data.js", import.meta.url), "utf8");
 
-assert(html.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v23'), "versioned Fishing stylesheet is not loaded");
-assert(html.includes('id="fishingDuelRuntime" defer src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v23"'), "deferred shared Fishing controller is not loaded");
-assert(preview.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v23'), "preview is not using the current Fishing stylesheet");
+assert(html.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v24'), "versioned Fishing stylesheet is not loaded");
+assert(html.includes('id="fishingDuelRuntime" defer src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v24"'), "deferred shared Fishing controller is not loaded");
+assert(preview.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v24'), "preview is not using the current Fishing stylesheet");
 assert(html.includes('function duelFishingEnsureController(root)'), "Fishing controller recovery loader is missing");
 assert(html.includes('class="fishing-command-bar"'), "game-owned Fishing header is missing");
 assert(html.includes('class="fishing-instructions" aria-label="How to play"'), "visible game instructions are missing");
@@ -77,7 +78,10 @@ assert(html.includes("ripple.classList.add('is-fading-out')"), "live ripples are
 assert(preview.includes("ripple.classList.add('is-fading-out')"), "preview ripples are still removed abruptly");
 assert(css.includes('border: 0 !important;'), "legacy cartoon ripple borders can still override the realistic treatment");
 assert(css.includes('width: clamp(58px, var(--ripple), 196px)'), "ripple width is not directly mapped to fish size");
-assert(css.includes('top: 69% !important;'), "ripples are not positioned below the resting bobbers");
+assert(css.includes('top: var(--fishing-ripple-y, 69%) !important;'), "ripples are not positioned below the resting bobbers");
+assert(css.includes('top: var(--fishing-ripple-y, 69%);'), "catch ripple does not share the bite position");
+assert(css.includes('grid-area: 1 / 1;'), "tip carousel does not reserve its full wrapped-text height");
+assert(html.includes('function duelFishingRareBadge('), "logbook rarity labels are missing");
 assert(css.includes('.fishing-ripple.is-special'), "special-fish ripple glow is missing");
 assert(css.includes('@keyframes fishingRippleSparkle'), "special-fish ripple sparkle animation is missing");
 assert(css.includes('mix-blend-mode: normal;'), "bright-water blending can still erase ripples");

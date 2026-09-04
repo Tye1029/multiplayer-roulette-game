@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Rumble Fishing Duel — Component Preview</title>
-  <link rel="stylesheet" href="/assets/fishing/fishing.css?v=fishing-mechanics-v23">
-  <script src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v23"></script>
+  <link rel="stylesheet" href="/assets/fishing/fishing.css?v=fishing-mechanics-v24">
+  <script src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v24"></script>
   <style>
     *{box-sizing:border-box}html,body{min-height:100%;margin:0;background:#041019;color:#fff;font-family:Inter,ui-sans-serif,system-ui,sans-serif}body{display:grid;place-items:center;padding:16px}.preview{width:min(100%,980px)}button{border:0;cursor:pointer}
     [data-preview-state]{display:none}[data-preview-state].active{display:block}.fishing-water{position:relative;min-height:0;aspect-ratio:1620/883;overflow:hidden}.fishing-sky{position:absolute;inset:0 0 64%}.fishing-dock{position:absolute}.fishing-center-status{position:absolute;z-index:15;left:50%;bottom:14px;transform:translateX(-50%)}
@@ -74,9 +74,9 @@
       const discovered=new Map([[catches.left.name,catches.left],[catches.right.name,catches.right]]);
       const entries=PREVIEW_FISH_SPECIES.map(name=>{
         const caught=discovered.get(name);
-        if(caught)return `<div class="fishing-log-entry"><div class="fishing-log-thumb">${previewFishArt(caught)}</div><div class="fishing-log-copy"><b>${name}</b><span>Personal best <strong>${caught.size} cm</strong></span><span>1 caught${caught.special?' • 1 rare':''}</span></div></div>`;
+        if(caught)return `<div class="fishing-log-entry"><div class="fishing-log-thumb">${previewFishArt(caught)}</div><div class="fishing-log-copy"><b>${name}${caught.variant!=='standard'?'<span class="fishing-log-rare-badge">Rare</span>':''}</b><span>Personal best <strong>${caught.size} cm</strong></span><span>1 caught${caught.special?' • 1 rare':''}</span></div></div>`;
         const preview={name,size:48,variant:PREVIEW_SPECIAL_VARIANTS[name]||'standard',rarity:PREVIEW_SPECIAL_VARIANTS[name]?(PREVIEW_SPECIAL_VARIANTS[name]==='nemo'?'rare':'legendary'):'regular'};
-        return `<div class="fishing-log-entry locked"><div class="fishing-log-thumb"><span class="fishing-log-question">?</span><span class="fishing-log-unlock-preview">${previewFishArt(preview)}</span></div><div class="fishing-log-copy"><b><span class="fishing-log-locked-name">???</span><span class="fishing-log-unlock-name">${name}</span></b><span>Not caught yet</span><span>Keep watching the ripples</span></div></div>`;
+        return `<div class="fishing-log-entry locked"><div class="fishing-log-thumb"><span class="fishing-log-question">?</span><span class="fishing-log-unlock-preview">${previewFishArt(preview)}</span></div><div class="fishing-log-copy"><b><span class="fishing-log-locked-name">???</span><span class="fishing-log-unlock-name">${name}${preview.variant!=='standard'?'<span class="fishing-log-rare-badge">Rare</span>':''}</span></b><span>Not caught yet</span><span>Keep watching the ripples</span></div></div>`;
       }).join('');
       portal.querySelector('[data-preview-logbook]').innerHTML=`<details class="fishing-logbook" data-fishing-logbook open><summary><span class="fishing-logbook-title"><i>▱</i><span>Angler's field log<small>Your personal fish collection</small></span></span><span class="fishing-logbook-count">${discovered.size} / ${PREVIEW_FISH_SPECIES.length}</span></summary><div class="fishing-logbook-body"><div class="fishing-logbook-tools"><button type="button" class="fishing-log-unlock" data-fishing-log-unlock aria-pressed="false">Unlock all fish (testing)</button><small>Temporary collection preview</small></div><div class="fishing-logbook-stats"><div class="fishing-logbook-stat"><b>${discovered.size} / ${PREVIEW_FISH_SPECIES.length}</b>Discovered</div><div class="fishing-logbook-stat"><b>2</b>Total catches</div><div class="fishing-logbook-stat"><b>${[...discovered.values()].filter(f=>f.special).length}</b>Rare finds</div></div><div class="fishing-logbook-grid">${entries}</div></div></details>`;
       const book=portal.querySelector('[data-fishing-logbook]'),button=book.querySelector('[data-fishing-log-unlock]');
@@ -129,6 +129,12 @@
       }
       function catchFish(side,source='gameplay'){
         if(side==='left'&&previewState.playerCaught||side==='right'&&previewState.botCaught)return;
+        if(side==='left'){
+          const ripple=water.querySelector('.fishing-ripple:not(.is-fading-out)'),marker=document.createElement('div');
+          marker.className='fishing-pull-preview left';marker.setAttribute('aria-hidden','true');
+          marker.style.setProperty('--ripple',ripple?.style.getPropertyValue('--ripple')||'100px');
+          marker.innerHTML='<span class="pull-splash"></span>';water.appendChild(marker);setTimeout(()=>marker.remove(),720);
+        }
         if(side==='left'){fish.left=previewState.activeFish||previewRandomFish();previewState.playerCaught=true;clearRipple('player-caught');previewState.activeFish=null;}
         else {fish.right=previewRandomFish();previewState.botCaught=true;}
         replaceCatch(side,true);controller.syncCatch(side,`preview-${side}-${previewState.round}`,true);controller.setBot(side==='right'?'reeling':controller.bot.status);status.textContent=side==='left'?'Reeling in your catch…':'The Remote Bot is reeling in a catch…';controller.log('preview-catch',{side,source});

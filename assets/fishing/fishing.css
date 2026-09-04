@@ -1658,6 +1658,27 @@
 }
 
 .fishing-log-copy b { color: #3b281b; }
+.fishing-log-copy > b {
+  display: block;
+  overflow: visible;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.45;
+}
+.fishing-log-copy .fishing-log-rare-badge {
+  display: inline-block;
+  margin-left: .45em;
+  padding: 1px 5px;
+  border: 1px solid #947035;
+  border-radius: 3px;
+  color: #624214;
+  background: #f8e6ae;
+  font: 800 .52rem/1.4 ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  vertical-align: middle;
+  white-space: nowrap;
+}
 .fishing-log-copy span { color: #74583e; }
 .fishing-log-copy strong { color: #8e5616; }
 
@@ -1767,6 +1788,10 @@
 
 /* V19: one readable, themed round clock with a visible authoritative progress
    track. The game shell is full-width, so this remains mathematically centered. */
+.fishing-game > .fishing-command-bar {
+  /* The site's old phone layout hides generic header elements. */
+  display: grid !important;
+}
 .fishing-command-bar {
   grid-template-columns: minmax(0, 1fr) minmax(126px, 168px) minmax(0, 1fr);
 }
@@ -1774,6 +1799,10 @@
 .fishing-command-bar > .fishing-clock {
   position: static !important;
   display: grid;
+  justify-self: center;
+  justify-items: stretch;
+  align-content: center;
+  margin: 0;
   width: 100%;
   min-width: 0;
   gap: 3px;
@@ -1790,6 +1819,10 @@
 }
 
 .fishing-clock-label {
+  display: block;
+  width: 100%;
+  margin: 0;
+  text-align: center;
   color: #83b9b6;
   font-size: .49rem;
   font-weight: 850;
@@ -1798,10 +1831,14 @@
 }
 
 .fishing-clock-value {
+  display: block;
+  width: 100%;
+  margin: 0;
+  text-align: center;
   color: #f4fbf8;
   font: 760 1.28rem/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -.05em;
+  letter-spacing: 0;
 }
 
 .fishing-clock-track {
@@ -1831,8 +1868,8 @@
 .fishing-ripple {
   position: absolute !important;
   z-index: 14 !important;
-  top: 69% !important;
-  left: 50% !important;
+  top: var(--fishing-ripple-y, 69%) !important;
+  left: var(--fishing-ripple-x, 50%) !important;
   width: clamp(58px, var(--ripple), 196px) !important;
   height: clamp(18px, calc(var(--ripple) * .29), 57px) !important;
   min-width: 58px;
@@ -1958,29 +1995,69 @@
 
 .fishing-center-status:empty { display: none !important; }
 
+/* Catch feedback belongs to the same patch of water as the bite, not a
+   player-side legacy hook offset. It expands in place and has no extra line. */
+.fishing-water > .fishing-pull-preview {
+  position: absolute;
+  top: var(--fishing-ripple-y, 69%);
+  left: var(--fishing-ripple-x, 50%);
+  right: auto;
+  width: clamp(58px, var(--ripple, 100px), 196px);
+  height: clamp(18px, calc(var(--ripple, 100px) * .29), 57px);
+  z-index: 15;
+  transform: translate(-50%, -50%);
+  animation: none;
+  pointer-events: none;
+}
+.fishing-water .fishing-pull-preview .pull-splash {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 1px solid rgba(235, 253, 255, .8);
+  border-top: 2px solid rgba(240, 255, 255, .95);
+  border-radius: 50%;
+  box-shadow: 0 1px 4px rgba(0, 48, 72, .35), inset 0 1px 3px rgba(214, 251, 255, .35);
+  animation: fishingCatchRipple .7s ease-out forwards;
+}
+@keyframes fishingCatchRipple {
+  from { opacity: 0; transform: scale(.8); }
+  18% { opacity: 1; }
+  to { opacity: 0; transform: scale(1.7); }
+}
+
 /* Seven practical tips rotate during the 60-second round. */
 .fishing-controls {
   display: grid !important;
-  min-height: 48px;
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 56px;
+  width: 100%;
+  min-width: 0;
   place-items: center;
-  overflow: hidden;
+  overflow: visible;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: .72rem;
 }
 
 .fishing-tip-rotator {
   position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   width: 100%;
+  min-width: 0;
   min-height: 1.7em;
 }
 
 .fishing-tip {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: .35em;
+  position: relative;
+  grid-area: 1 / 1;
+  align-self: center;
+  display: block;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
   opacity: 0;
-  padding-inline: 8px;
+  padding: 5px 8px;
   animation: fishingTipCycle 56s linear infinite;
   line-height: 1.35;
   text-align: center;
@@ -2000,6 +2077,10 @@
 
 #duelCountdownPortal[data-duel-mode="fishing"] .duel-countdown-frame {
   position: relative;
+  margin: 0;
+  justify-self: center;
+  align-self: center;
+  text-align: center;
   overflow: hidden;
   border-color: rgba(120, 212, 201, .42);
   border-radius: 7px;
@@ -2027,7 +2108,11 @@
 #duelCountdownPortal[data-duel-mode="fishing"] .duel-countdown-number.go {
   color: #f5fbf7;
   font-family: Georgia, "Times New Roman", serif;
-  letter-spacing: -.04em;
+  letter-spacing: 0;
+  margin: 0;
+  width: 100%;
+  text-align: center;
+  transform-origin: center;
   text-shadow: 0 4px 18px rgba(0,0,0,.3);
 }
 
@@ -2080,7 +2165,7 @@ body.fishing-result-open { overflow: hidden !important; }
   .fishing-clock-value { font-size: 1.08rem; }
   .fishing-controls { min-height: 62px; padding-inline: 8px; }
   .fishing-tip-rotator { min-height: 3.2em; }
-  .fishing-tip { align-content: center; flex-wrap: wrap; font-size: .62rem; }
+  .fishing-tip { font-size: .68rem; }
   #fishingResultPortal .fishing-result-overlay { padding: 6px; }
   #fishingResultPortal .fishing-result-card { width: 100%; height: calc(100dvh - 12px); border-radius: 9px; }
   #fishingResultPortal .fishing-result-header { padding: 15px 16px 13px; }
@@ -2107,5 +2192,5 @@ body.fishing-result-open { overflow: hidden !important; }
   .fishing-fish-png,
   .fishing-fish-shimmer::before { animation: none !important; }
   .fishing-tip { display: none; animation: none !important; }
-  .fishing-tip:first-child { position: static; display: flex; opacity: 1; transform: none; }
+  .fishing-tip:first-child { position: static; display: block; opacity: 1; transform: none; }
 }

@@ -12561,8 +12561,8 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
   <script id="blackjackDuelRuntime" src="/assets/blackjack-duel/blackjack-duel.js?v=blackjack-duel-v17" defer></script>
 <!-- BLACKJACK_DUEL_ASSETS_END -->
 <!-- FISHING_DUEL_ASSETS_START -->
-  <link id="fishingDuelStyles" rel="stylesheet" href="/assets/fishing/fishing.css?v=fishing-mechanics-v23">
-  <script id="fishingDuelRuntime" defer src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v23"></script>
+  <link id="fishingDuelStyles" rel="stylesheet" href="/assets/fishing/fishing.css?v=fishing-mechanics-v24">
+  <script id="fishingDuelRuntime" defer src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v24"></script>
 <!-- FISHING_DUEL_ASSETS_END -->
 
 <!-- MOUNTAIN_RACE_V29_PRELOADS -->
@@ -18935,11 +18935,6 @@ function updateRunnerBalanceDisplay() {
     }
     function duelFishingTick(){
       const g=duelFishingLatestGame;if(!g||g.mode!=="fishing")return;
-      if(g.status==="playing"){
-        const ctx=getAudioContext();
-        if(ctx&&ctx.state==="suspended"&&!document.hidden)ctx.resume().catch(()=>{});
-        duelFishingStartOcean();
-      }
       const s=duelFishingStableState(g),active=g.status==="playing"?duelFishingActiveEvent(s):null;
       const seconds=g.status==="playing"?Math.min(60,Math.max(0,Math.ceil(duelFishingRemainingMs(s)/1000))):60;
       const fishingRoot=duelActive?.querySelector("[data-fishing-game]");
@@ -18948,12 +18943,20 @@ function updateRunnerBalanceDisplay() {
       fishingRoot?._fishingController?.setTimer?.(seconds);
       fishingRoot?._fishingController?.setRipple?.(active?.id||"");
       if(g.status==="countdown")duelFishingPatchDom(g);
-      if(g.status==="playing"&&seconds<=10&&seconds>0&&seconds!==duelFishingAudioState.lastSecond)duelFishingPlayTick();
-      if(g.status==="playing"&&seconds===0&&!duelFishingAudioState.timedOut){duelFishingAudioState.timedOut=true;duelFishingPlayTimeout();}
-      duelFishingAudioState.lastSecond=seconds;
-      duelFishingHandleAudio(g,s,active);
-      duelFishingRumbleNewCatch(g,s);
       const id=duelActive?.querySelector("[data-fishing-water]")?.dataset.fishId||"";if((active?.id||"")!==id)duelFishingPatchDom(g);
+      // Presentation audio must never prevent the clock or bite window updating.
+      try{
+        if(g.status==="playing"){
+          const ctx=getAudioContext();
+          if(ctx&&ctx.state==="suspended"&&!document.hidden)ctx.resume().catch(()=>{});
+          duelFishingStartOcean();
+        }
+        if(g.status==="playing"&&seconds<=10&&seconds>0&&seconds!==duelFishingAudioState.lastSecond)duelFishingPlayTick();
+        if(g.status==="playing"&&seconds===0&&!duelFishingAudioState.timedOut){duelFishingAudioState.timedOut=true;duelFishingPlayTimeout();}
+        duelFishingAudioState.lastSecond=seconds;
+        duelFishingHandleAudio(g,s,active);
+        duelFishingRumbleNewCatch(g,s);
+      }catch(error){if(fishingRoot&&!fishingRoot.dataset.audioError){fishingRoot.dataset.audioError="1";console.warn("Fishing audio unavailable; gameplay continues",error);}}
     }
     function duelFishingBeginOptimisticPull(water, game, active){
       if(!water||!game||!active)return null;
@@ -18961,8 +18964,12 @@ function updateRunnerBalanceDisplay() {
       const marker=document.createElement("div");
       marker.className=`fishing-pull-preview ${side}`;
       marker.dataset.pendingEvent=String(active.id||"");
-      marker.innerHTML='<span class="pull-splash"></span><span class="pull-line"></span>';
+      marker.setAttribute('aria-hidden','true');
+      marker.style.setProperty('--ripple',`${Number(active.ripple||58)}px`);
+      marker.innerHTML='<span class="pull-splash"></span>';
       water.appendChild(marker);
+      // Let the water ring finish even if the server acknowledges the catch early.
+      setTimeout(()=>marker.remove(),720);
       water.classList.add(side==="left"?"pull-left":"pull-right");
       const pullStarted=performance.now(),root=water.closest("[data-fishing-game]");
       const trackPull=()=>{duelFishingAlignLines(root);if(performance.now()-pullStarted<1180)requestAnimationFrame(trackPull);};
@@ -18974,8 +18981,6 @@ function updateRunnerBalanceDisplay() {
 
     function duelFishingClearOptimisticPull(water, pending){
       if(!water||!pending)return;
-      pending.marker?.remove();
-      water.querySelectorAll(`.fishing-pull-preview.${pending.side}`).forEach(el=>el.remove());
       water.classList.remove("pull-left","pull-right");
     }
 
@@ -18983,7 +18988,7 @@ function updateRunnerBalanceDisplay() {
       if(window.FishingSceneController||window.__fishingControllerLoading)return;
       window.__fishingControllerLoading=true;
       const script=document.createElement("script");
-      script.src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v23&runtime=1";
+      script.src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v24&runtime=1";
       script.onload=()=>{window.__fishingControllerLoading=false;if(root?.isConnected)duelBindFishing(root);};
       script.onerror=()=>{window.__fishingControllerLoading=false;console.error("Fishing controller failed to load");};
       document.head.appendChild(script);
@@ -20049,6 +20054,10 @@ function updateRunnerBalanceDisplay() {
     function duelFishingPreviewVariant(speciesName){
       return {"Aurora Koi":"aurora","Celestial Anglerfish":"celestial","Nemo":"nemo"}[String(speciesName||"")]||"standard";
     }
+    function duelFishingRareBadge(variant="standard",rarity="regular"){
+      const special=Boolean(duelFishVariantClass({variant}))||["rare","epic","legendary"].includes(String(rarity).toLowerCase());
+      return special?'<span class="fishing-log-rare-badge">Rare</span>':"";
+    }
     function duelBindFishingLogbookPreview(root=document){
       root?.querySelectorAll?.('[data-fishing-logbook]').forEach(book=>{
         const button=book.querySelector('[data-fishing-log-unlock]');
@@ -20077,17 +20086,17 @@ function updateRunnerBalanceDisplay() {
         if(!entry){
           const previewVariant=duelFishingPreviewVariant(speciesName);
           const preview=duelFishSvg(48,speciesName,{variant:previewVariant,rarity:previewVariant==="standard"?"regular":previewVariant==="nemo"?"rare":"legendary"});
-          return `<div class="fishing-log-entry locked" data-fish-species="${escapeHtml(speciesName)}"><div class="fishing-log-thumb" aria-hidden="true"><span class="fishing-log-question">?</span><span class="fishing-log-unlock-preview">${preview}</span></div><div class="fishing-log-copy"><b><span class="fishing-log-locked-name">???</span><span class="fishing-log-unlock-name">${escapeHtml(speciesName)}</span></b><span>Not caught yet</span><span>Keep watching the ripples</span></div></div>`;
+          return `<div class="fishing-log-entry locked" data-fish-species="${escapeHtml(speciesName)}"><div class="fishing-log-thumb" aria-hidden="true"><span class="fishing-log-question">?</span><span class="fishing-log-unlock-preview">${preview}</span></div><div class="fishing-log-copy"><b><span class="fishing-log-locked-name">???</span><span class="fishing-log-unlock-name">${escapeHtml(speciesName)}${duelFishingRareBadge(previewVariant)}</span></b><span>Not caught yet</span><span>Keep watching the ripples</span></div></div>`;
         }
         const rawName = String(entry.name||speciesName);
         const name = escapeHtml(rawName);
         const best = Number(entry.bestSize||0);
         const count = Math.max(0, Number(entry.count||0));
         const rare = Math.max(0, Number(entry.rareCount||0));
-        const variant = String(entry.bestVariant||"standard");
+        const variant = String(entry.bestVariant||duelFishingPreviewVariant(speciesName));
         const variantText = variant && variant !== "standard" ? ` • ${escapeHtml(variant)}` : "";
         const picture=duelFishSvg(best||48,rawName,{variant});
-        return `<div class="fishing-log-entry"><div class="fishing-log-thumb" aria-hidden="true">${picture}</div><div class="fishing-log-copy"><b>${name}</b><span>Personal best <strong>${best>0?`${best} cm`:"—"}</strong>${variantText}</span><span>${count} caught${rare?` • ${rare} rare`:""}</span></div></div>`;
+        return `<div class="fishing-log-entry"><div class="fishing-log-thumb" aria-hidden="true">${picture}</div><div class="fishing-log-copy"><b>${name}${duelFishingRareBadge(variant,entry.bestRarity)}</b><span>Personal best <strong>${best>0?`${best} cm`:"—"}</strong>${variantText}</span><span>${count} caught${rare?` • ${rare} rare`:""}</span></div></div>`;
       }).join("");
       return `<details class="fishing-logbook" data-fishing-logbook open><summary><span class="fishing-logbook-title"><i aria-hidden="true">▱</i><span>Angler's field log<small>Your personal fish collection</small></span></span>${newSpecies?'<span class="fishing-new-species">NEW SPECIES</span>':`<span class="fishing-logbook-count">${discovered} / ${FISHING_SPECIES.length}</span>`}</summary><div class="fishing-logbook-body"><div class="fishing-logbook-tools"><button type="button" class="fishing-log-unlock" data-fishing-log-unlock aria-pressed="false">Unlock all fish (testing)</button><small>Temporary collection preview</small></div><div class="fishing-logbook-stats"><div class="fishing-logbook-stat"><b>${discovered} / ${FISHING_SPECIES.length}</b>Discovered</div><div class="fishing-logbook-stat"><b>${totalCaught}</b>Total catches</div><div class="fishing-logbook-stat"><b>${rareCaught}</b>Rare finds</div></div><div class="fishing-logbook-grid">${speciesHtml}</div></div></details>`;
     }
@@ -20271,6 +20280,7 @@ function updateRunnerBalanceDisplay() {
       }catch(_){}
     }
     function duelCountdownNow(game){
+      if(game?.mode==='fishing')return duelFishingCountdownNow(game);
       const gameId=String(game?.gameId||'');
       const startMs=Date.parse(String(game?.startAt||''));
       const serverMs=Date.parse(String(game?.serverNow||''));
@@ -22617,6 +22627,15 @@ function updateRunnerBalanceDisplay() {
     // Fishing V3: one authoritative local projection per server round.
     // This final controller intentionally does not use any older fishing clock/cache.
     const fishingV3 = { key:"", game:null, endLocal:0, events:new Map(), creatorCatch:null, joinerCatch:null, myCatch:null, timer:null, epoch:0 };
+    let fishingCountdownAnchor={key:"",serverMs:0,perfAt:0};
+    function duelFishingCountdownNow(game){
+      const key=`${game?.gameId||""}:${game?.startAt||""}`;
+      if(fishingCountdownAnchor.key!==key){
+        const serverMs=Date.parse(String(game?.serverNow||""));
+        fishingCountdownAnchor={key,serverMs:Number.isFinite(serverMs)?serverMs:Date.now(),perfAt:performance.now()};
+      }
+      return fishingCountdownAnchor.serverMs+Math.max(0,performance.now()-fishingCountdownAnchor.perfAt);
+    }
     function fishingV3Key(game){ const st=game?.fishingState||{}; const perspective=String(game?.controlPerspective||((game?.isJoiner&&!game?.isCreator)?"joiner":"creator")); return `${String(game?.gameId||"")}:${String(st.roundId||st.startAt||"pending")}:${perspective}`; }
     function fishingV3StopAudio(){
       duelFishingAudioEpoch+=1; duelFishingClearAudioTimeouts(); duelFishingStopOcean(true); duelFishingRippleRumble(false);
@@ -22634,9 +22653,14 @@ function updateRunnerBalanceDisplay() {
       const key=fishingV3Key(game); if(key!==fishingV3.key)fishingV3Reset(game); fishingV3.game=game;
       const st=game.fishingState||{}, now=Date.now();
       if(game.status==="playing"){
-        const serverNow=Number(st.serverEpochMs||Date.parse(st.serverNow||""));
+        const serverNow=Number(st.serverEpochMs||Date.parse(st.serverNow||game.serverNow||""));
         const serverEnd=Number(st.endEpochMs||Date.parse(st.endAt||""));
-        const projectedEnd=(Number.isFinite(serverNow)&&Number.isFinite(serverEnd)&&serverEnd>=serverNow)?now+(serverEnd-serverNow):0;
+        const startMs=Date.parse(st.startAt||game.startAt||"");
+        // A local countdown-to-playing transition may arrive before fish state.
+        // Use the server's scheduled start, never a new sixty-second timer per poll.
+        const endMs=Number.isFinite(serverEnd)?serverEnd:Number.isFinite(startMs)?startMs+60000:NaN;
+        const remaining=Number.isFinite(serverNow)&&Number.isFinite(endMs)?Math.max(0,endMs-serverNow):Number.isFinite(st.remainingMs)?st.remainingMs:Number.isFinite(st.secondsLeft)?st.secondsLeft*1000:NaN;
+        const projectedEnd=Number.isFinite(remaining)?now+Math.max(0,Math.min(60000,remaining)):0;
         // Anchor the deadline once per round. Network latency can make repeated
         // server projections move in both directions; a countdown must never rise.
         // We only accept a later poll when it shortens the remaining time materially.
