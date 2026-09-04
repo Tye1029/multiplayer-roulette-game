@@ -1,5 +1,5 @@
 {
-  "release": "20260904-bank3",
+  "release": "20260904-bank4",
   "sourcePreview": "https://deploy-preview-19--famous-piroshki-b621da.netlify.app/",
   "sourceDeploy": "6a70b46ca5416100089b828b",
   "sourceBranch": "safe-cracker-development",
@@ -28,7 +28,7 @@
     "assets/safe-cracker/audio-data/safe-unlock.b64": "aea99693d78b8fab937b9e07098f0f0cb65afdc4e70b5caba13db8166d513bf1",
     "assets/safe-cracker/audio-data/submit-latch.b64": "f946badd32b429169b00b2a1e0956aab235e224ce142bb56080aa437306cadd2",
     "assets/safe-cracker/audio-data/tumbler-lock.b64": "ab70c5fe2cc2a0b8466871418bb2f0af6274b52ba1659c5c3d4fa723aa403754",
-    "assets/safe-cracker/safe-cracker.css": "7a67f719ad441e758cb3402223ed2889a519dc20984188f769b1c4e15d983403",
+    "assets/safe-cracker/safe-cracker.css": "3b0e85ea9902eefebb931bdec8e87fc38ffe1872b65c63c7b0ca02306ba7de04",
     "assets/safe-cracker/safe-cracker.js": "d25202cfd2c10925c040de921071b51b8f476a4bd7b5a5bf33d09000b8f99450",
     "assets/safe-cracker/textures/dial-machined.svg": "e4f73a99dccca8a9bdcb79ac8fb93d3b93c26a843c01bf6ffd65cd2e081fa361",
     "assets/safe-cracker/textures/dial-reference-face-v7.svg": "4ac122e6319ef8ae3b604f64726994af47d9a7815f58c2898f8143dd3fa339c0",
