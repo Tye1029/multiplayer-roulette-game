@@ -5074,100 +5074,100 @@ body.sc-result-win-open .duel-end-screen-close {
 /* SAFE_CRACKER_BANK_VAULT_V3_START */
 .safe-cracker-game {
   padding:64px 38px 30px;
-  border:1px solid #786746;
+  border:1px solid #565f69;
   border-radius:8px;
-  background:#242722 url('/assets/safe-cracker/images/bank-vault-v1.png') center center / cover no-repeat;
+  background:#242722 url('/assets/safe-cracker/images/bank-vault-slate-v4.png') center center / cover no-repeat;
   box-shadow:inset 0 0 0 3px #171916,0 8px 24px #0008;
 }
 .safe-cracker-game .sc-command-bar {
   display:flex !important;
   padding:10px 14px;margin-bottom:10px;
-  border:1px solid #8f7952;border-radius:4px;
+  border:1px solid #65717c;border-radius:4px;
   background:linear-gradient(110deg,#30342ff5,#181d19f5);
-  box-shadow:inset 0 1px 0 #f3d59a44,0 2px 4px #0008;
+  box-shadow:inset 0 1px 0 #c1c7cc44,0 2px 4px #0008;
 }
-.safe-cracker-game .sc-command-bar h2 { color:#f1d69a;font-family:Georgia,serif;font-size:22px;letter-spacing:.12em; }
-.safe-cracker-game .sc-command-bar small { color:#c9bc9d; }
-.safe-cracker-game .sc-prize b { color:#f0dcae; }
+.safe-cracker-game .sc-command-bar h2 { color:#c0c5cb;font-family:Georgia,serif;font-size:22px;letter-spacing:.12em; }
+.safe-cracker-game .sc-command-bar small { color:#abb3bb; }
+.safe-cracker-game .sc-prize b { color:#cacfd4; }
 .safe-cracker-game .sc-instructions,
 .safe-cracker-game .sc-tip-bar {
-  border:1px solid #9c875e;border-radius:4px;
+  border:1px solid #717d8a;border-radius:4px;
   background:linear-gradient(100deg,#242a24f5,#171d18f5);
-  box-shadow:inset 0 1px 0 #f4e0b22e,0 2px 4px #0007;
+  box-shadow:inset 0 1px 0 #cfd3d72e,0 2px 4px #0007;
 }
-.safe-cracker-game .sc-instructions > div small { color:#d3b57a; }
-.safe-cracker-game .sc-instructions > div b { color:#f0e4c9; }
-.safe-cracker-game .sc-instructions li > i { border-radius:50%;border-color:#b89a61;background:#413d2d;color:#f8dfaa; }
-.safe-cracker-game .sc-instructions li b { color:#f2ead6; }
-.safe-cracker-game .sc-instructions li small,.safe-cracker-game .sc-tip-bar { color:#d4d4c4; }
+.safe-cracker-game .sc-instructions > div small { color:#9ea7af; }
+.safe-cracker-game .sc-instructions > div b { color:#d9dde0; }
+.safe-cracker-game .sc-instructions li > i { border-radius:50%;border-color:#818d98;background:#32373d;color:#ccd1d6; }
+.safe-cracker-game .sc-instructions li b { color:#e1e4e7; }
+.safe-cracker-game .sc-instructions li small,.safe-cracker-game .sc-tip-bar { color:#c7ccd1; }
 .safe-cracker-game .sc-topbar { margin-bottom:14px; }
 .safe-cracker-game .sc-player-card {
-  border:1px solid #8d7a55;border-radius:4px;
-  background:linear-gradient(180deg,#383e35,#222922);
-  box-shadow:inset 0 1px 0 #ead9b12b,0 2px 3px #0006;
+  border:1px solid #66717c;border-radius:4px;
+  background:linear-gradient(180deg,#343a3f,#222629);
+  box-shadow:inset 0 1px 0 #c9ced22b,0 2px 3px #0006;
 }
-.safe-cracker-game .sc-player-card small { color:#d1b778; }
-.safe-cracker-game .sc-player-card b { color:#ece9dc; }
+.safe-cracker-game .sc-player-card small { color:#9ba4ae; }
+.safe-cracker-game .sc-player-card b { color:#e1e4e7; }
 .safe-cracker-game .sc-player-card.me .sc-known-code span,
 .safe-cracker-game .sc-player-card.opponent .sc-stage-light {
-  border-color:#857655;background:linear-gradient(#151c17,#30392e);color:#d1c7a8;
-  box-shadow:inset 0 2px 4px #000b,0 1px 0 #e4cf9f33;
+  border-color:#626d78;background:linear-gradient(#16181b,#2e3439);color:#b6bdc3;
+  box-shadow:inset 0 2px 4px #000b,0 1px 0 #bbc2c833;
 }
 .safe-cracker-game .sc-player-card.me .sc-known-code span.known,
 .safe-cracker-game .sc-player-card.opponent .sc-stage-light.locked {
-  color:#e9ffd1;border-color:#91b277;background:linear-gradient(#273e27,#395232);
+  color:#e6e8ea;border-color:#8a959f;background:linear-gradient(#2d3338,#3b4249);
 }
 .safe-cracker-game .sc-timer {
-  border:1px solid #a08755;border-radius:4px;background:#111a14;color:#f6d791;
+  border:1px solid #6e7a87;border-radius:4px;background:#131618;color:#bec3c9;
   font-family:ui-monospace,Consolas,monospace;font-variant-numeric:tabular-nums;
-  box-shadow:inset 0 2px 5px #000b,0 1px 0 #eddaaa44;
+  box-shadow:inset 0 2px 5px #000b,0 1px 0 #c6ccd144;
 }
-.safe-cracker-game .sc-timer::before { color:#d0b875; }
-.safe-cracker-game .sc-safe-shell { background:linear-gradient(120deg,#7a8075,#444c43); }
+.safe-cracker-game .sc-timer::before { color:#99a3ac; }
+.safe-cracker-game .sc-safe-shell { background:linear-gradient(120deg,#6e7a87,#40484f); }
 .safe-cracker-game .sc-safe-door {
   background-image:url('/assets/safe-cracker/textures/metal-wear.svg'),url('/assets/safe-cracker/textures/safe-steel-base.svg') !important;
   background-size:cover,cover !important;
   background-repeat:no-repeat !important;
   background-blend-mode:normal !important;
-  box-shadow:inset 0 0 0 3px #8a9080,inset 0 0 0 7px #30382e,inset 0 1px 0 #eee9c93b,0 3px 6px #0006 !important;
+  box-shadow:inset 0 0 0 3px #7c8894,inset 0 0 0 7px #2e3338,inset 0 1px 0 #d8dcdf3b,0 3px 6px #0006 !important;
 }
 .safe-cracker-game .sc-dial-face { container-type:inline-size; }
 .safe-cracker-game .sc-dial-number {
   /* Center engraved numerals in the SVG's 96–126 radius number band. */
   --radius:34.375cqw;
-  color:#fae7b8;font-family:Arial,Helvetica,sans-serif;font-weight:800;font-size:1.38rem;letter-spacing:0;
+  color:#d5d9dd;font-family:Arial,Helvetica,sans-serif;font-weight:800;font-size:1.38rem;letter-spacing:0;
   text-shadow:0 1px 1px #000,0 -1px 0 #fff5;
 }
 .safe-cracker-game .sc-dial-number > span { transform:none; }
-.safe-cracker-game .sc-dial-number.selected { color:#fff7dd;text-shadow:0 1px 2px #000,0 0 5px #f8cd6b88; }
+.safe-cracker-game .sc-dial-number.selected { color:#eceef0;text-shadow:0 1px 2px #000,0 0 5px #aab2b988; }
 .safe-cracker-game .sc-dial-number.selected > span { transform:scale(1.05); }
-.safe-cracker-game .sc-current-number { color:#ffe9ac;text-shadow:0 2px 2px #000; }
+.safe-cracker-game .sc-current-number { color:#d1d6da;text-shadow:0 2px 2px #000; }
 .safe-cracker-game .sc-step-controls {
   position:relative;width:min(78%,300px);margin:12px auto 8px;padding:7px;gap:9px;
-  border:2px solid #272f29;border-radius:7px;
-  background:linear-gradient(180deg,#30392e,#6a7163);
-  box-shadow:inset 0 2px 4px #000b,0 1px 0 #d4d5b955;
+  border:2px solid #272b2f;border-radius:7px;
+  background:linear-gradient(180deg,#2e3439,#5f6a75);
+  box-shadow:inset 0 2px 4px #000b,0 1px 0 #c1c7cd55;
 }
 .safe-cracker-game .sc-step-controls button {
   flex:1;min-width:0;width:auto;height:52px;opacity:1;
-  border:2px solid #858c7e !important;border-radius:4px;outline:none !important;
-  color:#fff1c9;background:linear-gradient(180deg,#909584 0%,#666e5e 18%,#515b4c 85%,#424d3f 100%) !important;
-  text-shadow:0 2px 1px #172017;filter:none !important;
-  box-shadow:inset 0 1px 0 #f2f0ca9c,inset 0 -2px 0 #353f31,0 3px 0 #161e16 !important;
+  border:2px solid #798591 !important;border-radius:4px;outline:none !important;
+  color:#e1e4e7;background:linear-gradient(180deg,#818d98 0%,#5c6670 18%,#4b535c 85%,#3f464d 100%) !important;
+  text-shadow:0 2px 1px #191c1e;filter:none !important;
+  box-shadow:inset 0 1px 0 #dbdee19c,inset 0 -2px 0 #32383e,0 3px 0 #171a1d !important;
   transition:transform 70ms ease,box-shadow 70ms ease,background 70ms ease;
 }
 .safe-cracker-game .sc-step-controls button:not(:active) { transform:none; }
 .safe-cracker-game .sc-step-controls button:not(:disabled):active {
   transform:translateY(3px) !important;
-  background:linear-gradient(#424e3d,#616b57) !important;
-  box-shadow:inset 0 3px 6px #000b,inset 0 -1px 0 #d1dab166,0 0 0 #161e16 !important;
+  background:linear-gradient(#3f464c,#57616b) !important;
+  box-shadow:inset 0 3px 6px #000b,inset 0 -1px 0 #c0c5cb66,0 0 0 #171a1d !important;
 }
-.safe-cracker-game .sc-step-controls button:disabled { opacity:1;color:#c0c4b5; }
+.safe-cracker-game .sc-step-controls button:disabled { opacity:1;color:#b6bdc3; }
 .safe-cracker-game .sc-step-controls button::after { content:none !important; }
-.safe-cracker-game .sc-step-controls button:focus-visible { outline:2px solid #ffe2a0 !important;outline-offset:3px !important; }
+.safe-cracker-game .sc-step-controls button:focus-visible { outline:2px solid #cbd0d4 !important;outline-offset:3px !important; }
 .safe-cracker-game .sc-confirm-button {
-  color:#fff0c0;background:linear-gradient(180deg,#a08c57,#776337) !important;
-  border-color:#a4936d !important;text-shadow:0 2px 1px #302510;
+  color:#dce0e3;background:linear-gradient(180deg,#6f7c88,#4e5760) !important;
+  border-color:#7d8994 !important;text-shadow:0 2px 1px #1d2023;
 }
 @media(max-width:700px) {
   .safe-cracker-game { padding:48px 12px 20px; }
@@ -5192,30 +5192,30 @@ body.sc-result-win-open .duel-end-screen-close {
 /* SAFE_CRACKER_BANK_VAULT_V3_END */
 
 /* SAFE_CRACKER_WALL_AND_RESULTS_V4_START */
-/* Match the room's warm steel. A dark contact seam seats the safe in the wall. */
+/* Match the room's cool steel. A dark contact seam seats the safe in the wall. */
 .safe-cracker-game .sc-safe-shell {
-  padding:12px;border:1px solid #817255;border-radius:8px;
-  background:linear-gradient(180deg,#615b4c,#38372f) !important;
+  padding:12px;border:1px solid #606b76;border-radius:8px;
+  background:linear-gradient(180deg,#4e575f,#2e3439) !important;
   background-size:100% 100% !important;background-repeat:no-repeat !important;background-blend-mode:normal !important;
-  box-shadow:inset 0 0 0 3px #282820,inset 0 4px 8px #000a,0 0 0 5px #1c1d1880,0 2px 0 6px #c5ac7226 !important;
+  box-shadow:inset 0 0 0 3px #202428,inset 0 4px 8px #000a,0 0 0 5px #1c1d1880,0 2px 0 6px #929ca526 !important;
 }
 .safe-cracker-game .sc-safe-door {
   border-radius:5px;
-  background-image:linear-gradient(180deg,#dab46b1a,#211c150d),url('/assets/safe-cracker/textures/metal-wear.svg'),url('/assets/safe-cracker/textures/safe-steel-base.svg') !important;
+  background-image:linear-gradient(180deg,#99a3ac1a,#181b1e0d),url('/assets/safe-cracker/textures/metal-wear.svg'),url('/assets/safe-cracker/textures/safe-steel-base.svg') !important;
   background-size:cover,cover,cover !important;
-  box-shadow:inset 0 0 0 2px #92846a,inset 0 0 0 5px #36382e,inset 0 3px 0 #f4d59830,0 2px 3px #0009 !important;
+  box-shadow:inset 0 0 0 2px #717e8b,inset 0 0 0 5px #2e3338,inset 0 3px 0 #c0c6cc30,0 2px 3px #0009 !important;
 }
-.safe-cracker-game .sc-safe-door::before { border-color:#ac9a7440;border-radius:3px; }
+.safe-cracker-game .sc-safe-door::before { border-color:#85909b40;border-radius:3px; }
 .safe-cracker-game .sc-command-bar,
 .safe-cracker-game .sc-instructions,
-.safe-cracker-game .sc-tip-bar { background:linear-gradient(110deg,#302e26f5,#1c1e19f5); }
-.safe-cracker-game .sc-player-card { background:linear-gradient(#3a382f,#282a23); }
-.safe-cracker-game .sc-display { background:linear-gradient(110deg,#827b68,#41453a) !important;border-color:#767461 !important; }
+.safe-cracker-game .sc-tip-bar { background:linear-gradient(110deg,#272b2ff5,#1c1e19f5); }
+.safe-cracker-game .sc-player-card { background:linear-gradient(#2f353a,#23272a); }
+.safe-cracker-game .sc-display { background:linear-gradient(110deg,#697581,#394046) !important;border-color:#616c76 !important; }
 .safe-cracker-game .sc-dial-wrap::after {
-  background:radial-gradient(circle at 7px 9px,#c8bd9e 0 1px,#2a2c23 2px 3px,transparent 4px),radial-gradient(circle at calc(100% - 7px) 9px,#c8bd9e 0 1px,#2a2c23 2px 3px,transparent 4px),linear-gradient(110deg,#827b66,#4d5142) !important;
+  background:radial-gradient(circle at 7px 9px,#abb3bb 0 1px,#24282b 2px 3px,transparent 4px),radial-gradient(circle at calc(100% - 7px) 9px,#abb3bb 0 1px,#24282b 2px 3px,transparent 4px),linear-gradient(110deg,#687480,#424a51) !important;
 }
-.safe-cracker-game .sc-step-controls { background:linear-gradient(#34382e,#706d5b); }
-.safe-cracker-game .sc-step-controls button { background:linear-gradient(#98907a,#746f5e 20%,#5e6251 85%,#484f40) !important; }
+.safe-cracker-game .sc-step-controls { background:linear-gradient(#2e3338,#5b6670); }
+.safe-cracker-game .sc-step-controls button { background:linear-gradient(#7d8995,#5e6973 20%,#515a62 85%,#40484f) !important; }
 
 /* Crisp text: remove outline/glow effects and the condensed display face. */
 .safe-cracker-game,
@@ -5245,47 +5245,47 @@ body > .sc-result-overlay[data-sc-result-portal] {
   z-index:2147483300 !important;padding:14px !important;background:#0c100dde !important;backdrop-filter:none !important;
 }
 body > .sc-result-overlay[data-sc-result-portal] .sc-result-card {
-  --sc-result-accent:#d7b778;
+  --sc-result-accent:#9fa8b0;
   width:min(94vw,820px);height:min(92dvh,720px);max-height:calc(100dvh - 28px);
-  padding:0;border:1px solid #988259;border-radius:12px;overflow:hidden;
-  background:#1c211b;box-shadow:inset 0 0 0 3px #d5b87920,0 18px 60px #0009;
+  padding:0;border:1px solid #6c7985;border-radius:12px;overflow:hidden;
+  background:#1c211b;box-shadow:inset 0 0 0 3px #9ea7b020,0 18px 60px #0009;
 }
-body > .sc-result-overlay.lose[data-sc-result-portal] .sc-result-card { --sc-result-accent:#efb397; }
-body > .sc-result-overlay.win[data-sc-result-portal] .sc-result-card { --sc-result-accent:#ecda9c; }
+body > .sc-result-overlay.lose[data-sc-result-portal] .sc-result-card { --sc-result-accent:#bdc3c9; }
+body > .sc-result-overlay.win[data-sc-result-portal] .sc-result-card { --sc-result-accent:#bec4ca; }
 body > .sc-result-overlay[data-sc-result-portal].sc-result-portal-ready .sc-result-card { animation:scResultCrispIn .22s ease-out both !important;transform:none !important;filter:none !important; }
 body > .sc-result-overlay[data-sc-result-portal] .sc-result-card::before { content:none; }
 body > .sc-result-overlay[data-sc-result-portal] .sc-result-content {
   display:flex;flex-direction:column;height:100%;min-height:0;padding:0;overflow-y:auto;
 }
 .sc-result-heading {
-  padding:28px 48px 24px;border-bottom:1px solid #b596585c;text-align:center;
-  background:linear-gradient(#171b16a8,#1c211bf2),url('/assets/safe-cracker/images/bank-vault-v1.png') center 12% / cover;
+  padding:28px 48px 24px;border-bottom:1px solid #7a87935c;text-align:center;
+  background:linear-gradient(#171b16a8,#1c211bf2),url('/assets/safe-cracker/images/bank-vault-slate-v4.png') center 12% / cover;
 }
-.sc-result-seal { display:grid;place-items:center;width:72px;height:72px;margin:0 auto 14px;border:1px solid #c7ad765c;border-radius:50%;background:#1a2018; }
+.sc-result-seal { display:grid;place-items:center;width:72px;height:72px;margin:0 auto 14px;border:1px solid #959fa85c;border-radius:50%;background:#191c1f; }
 .sc-result-seal svg { width:46px;height:46px;fill:none;stroke:var(--sc-result-accent);stroke-width:2; }
 body > .sc-result-overlay[data-sc-result-portal] .sc-result-kicker { font-size:12px;letter-spacing:.13em;font-weight:650;color:var(--sc-result-accent); }
-body > .sc-result-overlay[data-sc-result-portal] .sc-result-card h2 { margin:10px 0 12px;color:#f6efdc;font-size:clamp(30px,5vw,48px);font-weight:750;line-height:1.12;letter-spacing:-.025em; }
-body > .sc-result-overlay[data-sc-result-portal] .sc-result-card p { max-width:50ch;margin:0 auto;color:#dfdfd0;font-size:15px;font-weight:400;line-height:1.55; }
+body > .sc-result-overlay[data-sc-result-portal] .sc-result-card h2 { margin:10px 0 12px;color:#e7e9eb;font-size:clamp(30px,5vw,48px);font-weight:750;line-height:1.12;letter-spacing:-.025em; }
+body > .sc-result-overlay[data-sc-result-portal] .sc-result-card p { max-width:50ch;margin:0 auto;color:#d4d8db;font-size:15px;font-weight:400;line-height:1.55; }
 .sc-result-summary { flex:1;display:flex;flex-direction:column;padding:24px 28px; }
-.sc-result-summary-title { display:flex;justify-content:space-between;gap:12px;color:#e8dcc0;font-size:12px;font-weight:700;letter-spacing:.08em; }
-.sc-result-summary-title > span { color:#b3b8a8;font-size:10px;font-weight:500; }
+.sc-result-summary-title { display:flex;justify-content:space-between;gap:12px;color:#d0d4d8;font-size:12px;font-weight:700;letter-spacing:.08em; }
+.sc-result-summary-title > span { color:#a8b0b8;font-size:10px;font-weight:500; }
 body > .sc-result-overlay[data-sc-result-portal] .sc-code-reveal { flex:1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:14px 0 0; }
-.sc-result-player { display:flex;flex-direction:column;min-width:0;padding:18px;border:1px solid #69715d;border-radius:8px;background:linear-gradient(#30372b,#252c21); }
-.sc-result-player.winner { border-color:#c8ad6f;background:linear-gradient(#3b3f2c,#2a3021); }
-.sc-result-player-label { display:flex;justify-content:space-between;gap:5px;flex-wrap:wrap;font-size:11px;letter-spacing:.06em;font-weight:700;color:#cfd3c3; }
-.sc-result-player-label em { color:#f5dda2;font-size:10px;font-style:normal; }
-.sc-result-player h3 { margin:8px 0 18px;font-size:16px;line-height:1.35;color:#f0eddf;overflow-wrap:anywhere; }
+.sc-result-player { display:flex;flex-direction:column;min-width:0;padding:18px;border:1px solid #5d6771;border-radius:8px;background:linear-gradient(#2c3136,#23272a); }
+.sc-result-player.winner { border-color:#929ca5;background:linear-gradient(#30363b,#24292d); }
+.sc-result-player-label { display:flex;justify-content:space-between;gap:5px;flex-wrap:wrap;font-size:11px;letter-spacing:.06em;font-weight:700;color:#c6cbd0; }
+.sc-result-player-label em { color:#c6ccd1;font-size:10px;font-style:normal; }
+.sc-result-player h3 { margin:8px 0 18px;font-size:16px;line-height:1.35;color:#e5e8ea;overflow-wrap:anywhere; }
 .sc-result-code { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:auto 0; }
-body > .sc-result-overlay[data-sc-result-portal] .sc-result-code b { display:grid;place-items:center;min-height:64px;margin:0;border:1px solid #9c8c65;border-radius:4px;background:#141c14;color:#f4e1a4;font-family:ui-monospace,Consolas,monospace !important;font-size:32px;font-weight:600;letter-spacing:0;box-shadow:inset 0 2px 3px #0008; }
+body > .sc-result-overlay[data-sc-result-portal] .sc-result-code b { display:grid;place-items:center;min-height:64px;margin:0;border:1px solid #74818d;border-radius:4px;background:#16181a;color:#c7ccd1;font-family:ui-monospace,Consolas,monospace !important;font-size:32px;font-weight:600;letter-spacing:0;box-shadow:inset 0 2px 3px #0008; }
 .sc-result-player dl { margin:18px 0 0; }
 .sc-result-player dl > div { display:flex;justify-content:space-between;gap:6px;margin-top:8px; }
-.sc-result-player dt { font-size:12px;color:#bac4af; }
-.sc-result-player dd { margin:0;color:#eef0dd;font-size:13px;font-weight:650; }
-body > .sc-result-overlay[data-sc-result-portal] .sc-result-actions { flex:none;display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:0;padding:18px 28px;border-top:1px solid #7e74564d;background:#191f17; }
+.sc-result-player dt { font-size:12px;color:#b3bac0; }
+.sc-result-player dd { margin:0;color:#e4e7e9;font-size:13px;font-weight:650; }
+body > .sc-result-overlay[data-sc-result-portal] .sc-result-actions { flex:none;display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:0;padding:18px 28px;border-top:1px solid #5f6a754d;background:#181b1e; }
 body > .sc-result-overlay[data-sc-result-portal] .sc-result-actions button { min-height:54px;margin:0;padding:12px;border-radius:6px;font-size:14px;font-weight:700;letter-spacing:.02em;box-shadow:none; }
-body > .sc-result-overlay[data-sc-result-portal] .sc-result-actions .gold { border:1px solid #e0c78b;background:#d8bd7d;color:#242518; }
-body > .sc-result-overlay[data-sc-result-portal] .sc-result-actions .secondary { border:1px solid #8e957f;background:#343d2c;color:#edf0de; }
-body > .sc-result-overlay[data-sc-result-portal] .duel-end-screen-close { top:12px;right:12px;width:36px;height:36px;border:1px solid #bcab805c;background:#192018;color:#efe7d0; }
+body > .sc-result-overlay[data-sc-result-portal] .sc-result-actions .gold { border:1px solid #aeb6bd;background:#a2abb3;color:#1b1e22; }
+body > .sc-result-overlay[data-sc-result-portal] .sc-result-actions .secondary { border:1px solid #7e8a96;background:#2f353a;color:#e5e7e9; }
+body > .sc-result-overlay[data-sc-result-portal] .duel-end-screen-close { top:12px;right:12px;width:36px;height:36px;border:1px solid #949ea85c;background:#191c1f;color:#dce0e3; }
 @keyframes scResultCrispIn { from { opacity:0; } to { opacity:1; } }
 @media(max-width:700px) {
   .safe-cracker-game .sc-safe-shell { padding:8px; }
@@ -5313,3 +5313,48 @@ body > .sc-result-overlay[data-sc-result-portal] .duel-end-screen-close { top:12
   body > .sc-result-overlay[data-sc-result-portal].sc-result-portal-ready .sc-result-card { animation:none !important; }
 }
 /* SAFE_CRACKER_WALL_AND_RESULTS_V4_END */
+
+/* SAFE_CRACKER_COOL_WALL_V5_START */
+/* Lift the board 24px while retaining the room height and its floor framing. */
+.safe-cracker-game {
+  --sc-brass:#91b6d6;--sc-brass-light:#d7eafa;
+  padding-top:40px;padding-bottom:54px;
+  background-color:#20262b;border-color:#687580;
+}
+.safe-cracker-game .sc-safe-door {
+  background-image:linear-gradient(180deg,#c4d1dc16,#171b1f0d),url('/assets/safe-cracker/textures/metal-wear.svg'),url('/assets/safe-cracker/textures/safe-steel-base.svg?cool=3') !important;
+}
+.safe-cracker-game .sc-safe-shell { background:linear-gradient(#4c6073,#303c46) !important;border-color:#73879b; }
+.safe-cracker-game .sc-command-bar,
+.safe-cracker-game .sc-instructions,
+.safe-cracker-game .sc-tip-bar { background:linear-gradient(110deg,#283744f5,#1b252ef5);border-color:#758b9d; }
+.safe-cracker-game .sc-player-card { background:linear-gradient(#33414a,#242e36); }
+.safe-cracker-game .sc-confirm-button { background:linear-gradient(#8398a9,#586c7d) !important; }
+.safe-cracker-game .sc-timer { color:#d7edff;border-color:#7393ae;background:#111e2b; }
+.safe-cracker-game .sc-timer::before { color:#adcbe1; }
+.safe-cracker-game .sc-dial-pointer { background:linear-gradient(90deg,#7d8a95,#e1e8ed 48%,#8b99a3); }
+.safe-cracker-game .sc-current-number { color:#e3f3ff; }
+.safe-cracker-game .sc-dial-number { color:#dcebf7; }
+.safe-cracker-game .sc-dial-number.selected { color:#ffffff; }
+.safe-cracker-game .sc-confirm-button { color:#f3f8ff; }
+.safe-cracker-game .sc-confirm-button span { color:#f3f8ff; }
+.safe-cracker-game .sc-confirm-button::after { background:#28343f !important; }
+.safe-cracker-game .sc-tip-bar > b { color:#b6d6ed; }
+/* Correct guesses keep their green meaning against the cooler instrument panels. */
+.safe-cracker-game .sc-player-card.me .sc-known-code span.known,
+.safe-cracker-game .sc-player-card.opponent .sc-stage-light.locked { background:linear-gradient(#224740,#19352f);border-color:#80bcb0;color:#d5faee; }
+.safe-cracker-game .sc-player-card.opponent .sc-stage-light.active { border-color:#acd5f5;color:#edf7ff; }
+body > .sc-result-overlay.lose[data-sc-result-portal] .sc-result-card { --sc-result-accent:#e9b6c5; }
+body > .sc-result-overlay.win[data-sc-result-portal] { background:#101821e8 !important; }
+body > .sc-result-overlay.win[data-sc-result-portal] .sc-result-card,
+body > .sc-result-overlay.lose[data-sc-result-portal] .sc-result-card,
+body > .sc-result-overlay.tie[data-sc-result-portal] .sc-result-card {
+  border-color:#8298a9;background:#202930;
+  box-shadow:inset 0 0 0 3px #b2c9d820,0 18px 60px #0009;
+}
+.sc-result-player.winner { border-color:#92bcd7;background:linear-gradient(#2b3c49,#25323c); }
+@media(max-width:700px) {
+  /* A 16px lift preserves the lamp clearance on narrow screens. */
+  .safe-cracker-game { padding-top:32px;padding-bottom:36px; }
+}
+/* SAFE_CRACKER_COOL_WALL_V5_END */
