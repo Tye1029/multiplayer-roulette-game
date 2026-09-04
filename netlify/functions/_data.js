@@ -4329,6 +4329,17 @@ function duelPublicGame(game = {}, viewerUserId = "") {
   };
 }
 
+// Keep a terminal Safe Cracker receipt outside the mutable gameplay snapshot.
+// Different Function instances have separate in-memory locks: a bot save that
+// started before the final digit can otherwise land after the completion save.
+function safeCrackerResultKey(gameId) { return `safecracker-result:${mpCleanId(gameId)}`; }
+async function safeCrackerReadCompleted(game) {
+  if (game?.mode !== 'safecracker' || game.status === 'complete') return game;
+  const receipt = await getUsersStore().get(safeCrackerResultKey(game.gameId), { type: 'json', consistency: 'strong' });
+  return receipt?.mode === 'safecracker' && receipt.status === 'complete' && receipt.gameId === game.gameId
+    ? duelSanitizeGame(receipt) : game;
+}
+
 async function duelGetRaw(gameId, options = {}) {
   const id = mpCleanId(gameId);
   if (!id) return null;
@@ -4336,7 +4347,7 @@ async function duelGetRaw(gameId, options = {}) {
     const readOptions = { type: "json" };
     if (options?.consistency === "strong") readOptions.consistency = "strong";
     const raw = await getUsersStore().get(duelGameKey(id), readOptions);
-    return raw ? duelSanitizeGame(raw) : null;
+    return raw ? await safeCrackerReadCompleted(duelSanitizeGame(raw)) : null;
   } catch {
     return null;
   }
@@ -4360,12 +4371,12 @@ async function duelGetRawStrong(gameId, attempts = 4) {
   for (let attempt = 0; attempt < total; attempt++) {
     try {
       const raw = await primaryStore.get(duelGameKey(id), { type: "json", consistency: "strong" });
-      if (raw) return duelSanitizeGame(raw);
+      if (raw) return await safeCrackerReadCompleted(duelSanitizeGame(raw));
     } catch {}
     try {
       explicitStrongStore ||= duelGetStrongStore();
       const raw = await explicitStrongStore.get(duelGameKey(id), { type: "json", consistency: "strong" });
-      if (raw) return duelSanitizeGame(raw);
+      if (raw) return await safeCrackerReadCompleted(duelSanitizeGame(raw));
     } catch {}
     if (attempt + 1 < total) await sleep(Math.min(900, 180 * (attempt + 1)));
   }
@@ -4374,6 +4385,13 @@ async function duelGetRawStrong(gameId, attempts = 4) {
 
 async function duelSaveGame(game) {
   const clean = duelSanitizeGame({ ...game, schemaVersion: DUEL_SCHEMA_VERSION, revision: int(game?.revision, 0) + 1, updatedAt: nowIso() });
+  if (clean.mode === 'safecracker') {
+    const settled = await safeCrackerReadCompleted(clean);
+    if (settled !== clean) return settled;
+    // Save this before publishing completion or clearing the active pointer.
+    // A late nonterminal write can never erase this independent result.
+    if (clean.status === 'complete') await getUsersStore().setJSON(safeCrackerResultKey(clean.gameId), clean);
+  }
   await getUsersStore().setJSON(duelGameKey(clean.gameId), clean);
   if (duelIsActiveStatus(clean.status)) await Promise.all([clean.creator?.userId,clean.joiner?.userId].filter(Boolean).map(id=>duelSetActivePointer(id,clean)));
   else await duelClearPointers(clean);
