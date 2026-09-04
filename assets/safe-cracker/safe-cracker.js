@@ -112,6 +112,8 @@
   }
 
   function secondsLeft(game = runtime.game) {
+    if (game?.status === 'complete') return 0;
+    if (['waiting', 'ready'].includes(String(game?.status || ''))) return 75;
     const endAt = Date.parse(String(stateFor(game)?.endAt || ''));
     if (!Number.isFinite(endAt)) return 75;
     return Math.max(0, Math.ceil((endAt - serverNowMs()) / 1000));
@@ -887,7 +889,7 @@
               ? 'CHECK NUMBER'
               : 'WAITING';
     const displayTier = latest?.tier || 'idle';
-    const displayText = latest ? tierLabel(latest.tier) : game.status === 'countdown' ? 'GET READY' : 'TURN THE DIAL';
+    const displayText = latest ? tierLabel(latest.tier) : game.status === 'countdown' ? 'GET READY' : game.status === 'ready' ? 'READY TO CRACK' : game.status === 'waiting' ? 'AWAITING RIVAL' : 'TURN THE DIAL';
     const startCountdownLabel = safeCrackerMonotonicCountdownLabel(game);
     const opponentName = game.isCreator ? game.joiner?.name : game.creator?.name;
     const opponentPlayer = game.isCreator ? game.joiner : game.creator;
@@ -899,6 +901,8 @@
         <div class="sc-countdown-vault" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><div class="sc-countdown-ring"></div></div>
         <div class="sc-countdown-copy"><small>VAULT SEQUENCE</small><span data-sc-countdown-value class="${startCountdownLabel === 'GO!' ? 'go' : ''}">${escapeHtml(startCountdownLabel)}</span><b data-sc-countdown-status>${startCountdownLabel === 'GO!' ? 'DIAL ACTIVE' : 'LOCKS ENGAGING'}</b></div>
       </div>` : ''}
+      <header class="sc-command-bar"><div><small>XAN DUELS</small><h2>SAFE CRACKER</h2></div><div class="sc-prize"><small>PRIZE POT</small><b>${Math.max(0, Number(game.pot || game.wager || 0)).toLocaleString()} Chips</b></div></header>
+      <section class="sc-instructions" aria-label="How to play"><div><small>HOW TO PLAY</small><b>Read the lock. Find your code.</b></div><ol><li><i>1</i><span><b>Turn the dial</b><small>Choose a number</small></span></li><li><i>2</i><span><b>Check the lights</b><small>Warmer means closer</small></span></li><li><i>3</i><span><b>Unlock all three</b><small>First safe open wins</small></span></li></ol></section>
       <div class="sc-topbar">
         <div class="sc-player-card me"><div class="sc-avatar">${playerAvatar(myPlayer, 'Y')}</div><div class="sc-player-copy"><small>YOU</small><b>${escapeHtml(myPlayer?.name || 'Player')}</b>${lockedCode(me)}<div class="sc-progress-lights">${progressLights(me)}</div></div></div>
         <div class="sc-timer" data-sc-timer>${formatTimer(secondsLeft(game))}</div>
@@ -926,16 +930,17 @@
           </div>
           <div class="sc-dial-wrap">
             <div class="sc-dial-pointer" aria-hidden="true"></div>
-            <div class="sc-dial" role="slider" tabindex="0" aria-label="Safe dial" aria-valuemin="0" aria-valuemax="9" aria-valuenow="${runtime.selected}" data-sc-dial>
+            <div class="sc-dial" role="slider" tabindex="${game.status === 'playing' ? 0 : -1}" aria-disabled="${game.status !== 'playing'}" aria-label="Safe dial" aria-valuemin="0" aria-valuemax="9" aria-valuenow="${runtime.selected}" data-sc-dial>
               <div class="sc-dial-face" data-sc-dial-face style="transform:rotate(${runtime.rotation}deg)"><img class="sc-dial-reference-plate" src="/assets/safe-cracker/textures/dial-reference-face-v7.svg?dial=7&layout=7" alt="" aria-hidden="true" draggable="false">${dialNumbers()}<div class="sc-dial-hub"></div></div>
             </div>
             <div class="sc-current-number" data-sc-current>${runtime.selected}</div>
           </div>
-          <div class="sc-step-controls"><button type="button" data-sc-step="-1" aria-label="Previous number">−</button><button type="button" data-sc-step="1" aria-label="Next number">+</button></div>
+          <div class="sc-step-controls"><button type="button" data-sc-step="-1" ${game.status === 'playing' ? '' : 'disabled'} aria-label="Previous number">−</button><button type="button" data-sc-step="1" ${game.status === 'playing' ? '' : 'disabled'} aria-label="Next number">+</button></div>
           <button class="sc-confirm-button" type="button" data-sc-confirm ${canSubmit ? '' : 'disabled'}><span>${confirmLabel}</span></button>
           <div class="sc-safe-handle"><span></span></div>
         </div>
       </div>
+      <aside class="sc-tip-bar"><b>TIP</b><span>Red → orange → yellow → green. Try nearby numbers as the lights get warmer.</span></aside>
       ${resultOverlay(game)}
     </section>`;
 
@@ -1098,6 +1103,7 @@
       dial.addEventListener('pointerup', finishDrag);
       dial.addEventListener('pointercancel', finishDrag);
       dial.addEventListener('keydown', event => {
+        if (runtime.game?.status !== 'playing') return;
         if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') {
           setSelected(runtime.selected - 1);
           event.preventDefault();

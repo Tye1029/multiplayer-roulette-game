@@ -4976,3 +4976,97 @@ body.sc-result-win-open .duel-end-screen-close {
   .safe-cracker-game .sc-display { margin-bottom: 30px; }
 }
 /* SAFE_CRACKER_DISPLAY_CLEARANCE_V1_END */
+
+/* SAFE_CRACKER_GAME_LAYOUT_V2_START */
+/* Keep the shared lifecycle mount; the game owns its header and player strip. */
+[data-duel-mode="safecracker"] > .duel-vs,
+[data-duel-mode="safecracker"] > .duel-status { display: none; }
+.safe-cracker-game {
+  box-sizing: border-box;
+  width: min(100%, 920px);
+  padding: 14px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #18252c, #10191f);
+  box-shadow: inset 0 1px 0 #ffffff12, 0 8px 24px #0005;
+}
+.safe-cracker-game::before,
+.safe-cracker-game::after { content: none; }
+.sc-command-bar { display:flex;align-items:center;justify-content:space-between;gap:12px;padding:2px 2px 12px; }
+.sc-command-bar small,.sc-instructions > div small { display:block;font-size:10px;font-weight:800;letter-spacing:.13em;color:#99acb7; }
+.sc-command-bar h2 { margin:3px 0 0;font-size:21px;letter-spacing:.07em;color:#f0dfb6; }
+.sc-prize { text-align:right; }
+.sc-prize b { display:block;margin-top:4px;font-size:14px;color:#f0dfb6; }
+.sc-instructions { padding:12px 14px;margin-bottom:12px;border:1px solid #61707855;border-radius:12px;background:#26353d; }
+.sc-instructions > div { display:flex;align-items:center;justify-content:space-between;gap:12px; }
+.sc-instructions > div b { font-size:13px;color:#e2e9ed; }
+.sc-instructions ol { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;list-style:none;padding:0;margin:12px 0 0; }
+.sc-instructions li { display:flex;gap:8px;align-items:center;min-width:0; }
+.sc-instructions li > i { display:grid;place-items:center;flex:0 0 26px;height:26px;border:1px solid #d9b96d55;border-radius:8px;background:#dbc17e19;color:#ecd49d;font-style:normal;font-weight:900; }
+.sc-instructions li b { display:block;font-size:12px;line-height:1.3;color:#f1f4f5; }
+.sc-instructions li small { display:block;margin-top:3px;font-size:11px;line-height:1.3;color:#b3c2ca; }
+.sc-tip-bar { display:flex;gap:10px;align-items:center;padding:11px 13px;margin-top:14px;border:1px solid #66838a44;border-radius:10px;background:#22343b;color:#c9d8df;font-size:12px;line-height:1.5; }
+.sc-tip-bar > b { flex:none;color:#efcf84;font-size:10px;letter-spacing:.1em; }
+.safe-cracker-game .sc-topbar { grid-template-columns:minmax(0,1fr) 74px minmax(0,1fr);gap:8px; }
+.safe-cracker-game .sc-player-card { height:auto;min-height:92px;padding:9px;align-items:center;background:linear-gradient(180deg,#34434b,#233039);box-shadow:inset 0 1px 0 #ffffff12; }
+.safe-cracker-game .sc-player-copy { flex:1;overflow:visible; }
+.safe-cracker-game .sc-player-card b { font-size:12px;line-height:1.35; }
+.safe-cracker-game .sc-avatar { width:30px;height:30px;flex-basis:30px; }
+.safe-cracker-game .sc-player-card.me .sc-progress-lights { display:none; }
+.safe-cracker-game .sc-player-card.me .sc-known-code { display:block;margin:7px 0 0;width:auto; }
+.safe-cracker-game .sc-known-code small { display:none; }
+.safe-cracker-game .sc-player-card.me .sc-known-code > div,
+.safe-cracker-game .sc-player-card.opponent .sc-progress-lights { display:grid;grid-template-columns:repeat(3,32px);gap:5px;margin-top:7px;width:100%; }
+.safe-cracker-game .sc-player-card.me .sc-known-code span,
+.safe-cracker-game .sc-player-card.opponent .sc-stage-light { width:32px;height:32px;min-width:0;margin:0;transform:none;border:1px solid #74838b;border-radius:5px;background:linear-gradient(180deg,#4b5961,#26323a);box-shadow:inset 0 1px 0 #ffffff25,inset 0 -2px 3px #0004;color:#9daeb7;font:800 18px/1 ui-monospace,monospace; }
+.safe-cracker-game .sc-known-code span { display:grid;place-items:center; }
+.safe-cracker-game .sc-player-card.opponent .sc-stage-light b { font-size:18px;line-height:1; }
+.safe-cracker-game .sc-stage-light em,.safe-cracker-game .sc-stage-bolt { display:none; }
+.safe-cracker-game .sc-known-code span.known,
+.safe-cracker-game .sc-player-card.opponent .sc-stage-light.locked { border-color:#84bda1;background:linear-gradient(180deg,#315e4d,#203e34);color:#c5f1ce;box-shadow:inset 0 1px 0 #cdf6da30; }
+.safe-cracker-game .sc-player-card.opponent .sc-stage-light.active { border-color:#c7ae6e;color:#f3d99e; }
+.safe-cracker-game .sc-timer { min-width:0;align-self:stretch;display:flex;flex-direction:column;justify-content:center;background:#233039;box-shadow:inset 0 1px 0 #ffffff12;font-size:20px; }
+.safe-cracker-game .sc-opponent-strip { background:#1e2b32;box-shadow:inset 0 1px 0 #ffffff0d;margin-bottom:12px; }
+.safe-cracker-game .sc-safe-shell { background:linear-gradient(135deg,#5b686e,#303e45);box-shadow:inset 0 1px 0 #ffffff40,inset 0 0 0 4px #19252c,0 4px 8px #0005; }
+.safe-cracker-game .sc-safe-door {
+  background-image:repeating-linear-gradient(0deg,#ffffff03 0 1px,transparent 1px 4px),linear-gradient(115deg,#56666e,#414f57 55%,#35434a) !important;
+  background-size:100% 100% !important;background-repeat:no-repeat !important;background-blend-mode:normal !important;
+  box-shadow:inset 0 0 0 3px #819096,inset 0 0 0 7px #28353c,inset 0 1px 0 #ffffff33,0 3px 6px #0005 !important;
+}
+.safe-cracker-game .sc-safe-door::before { background:none;box-shadow:none !important; }
+.safe-cracker-game .sc-dial-wrap { filter:none;box-shadow:inset 0 2px 5px #0005,0 3px 5px #0004 !important; }
+.safe-cracker-game .sc-dial-wrap::before { box-shadow:inset 0 0 0 5px #0d161c,inset 0 2px 3px #ffffff1c,0 3px 5px #0006; }
+.safe-cracker-game .sc-dial { filter:drop-shadow(0 3px 3px #0006); }
+.safe-cracker-game .sc-dial-wrap::after {
+  height:46px;border-radius:6px 6px 2px 2px;
+  background:radial-gradient(circle at 7px 9px,#c0cbd0 0 1px,#202b32 2px 3px,transparent 4px),radial-gradient(circle at calc(100% - 7px) 9px,#c0cbd0 0 1px,#202b32 2px 3px,transparent 4px),linear-gradient(110deg,#697981,#405058) !important;
+  box-shadow:inset 0 1px 0 #e0e8eb77,inset 0 -2px 3px #0005,0 1px 2px #0007 !important;
+}
+.safe-cracker-game .sc-dial-pointer { background:linear-gradient(90deg,#ad813b,#e5c47f 48%,#ae8745);box-shadow:none;filter:drop-shadow(0 1px 0 #0007); }
+.safe-cracker-game .sc-display { box-shadow:inset 0 0 0 2px #67777f,0 2px 4px #0006 !important; }
+.safe-cracker-game .sc-display-meta small,.safe-cracker-game .sc-display-meta b { font-size:10px;letter-spacing:.06em; }
+.safe-cracker-game[data-sc-status="waiting"] .sc-dial,
+.safe-cracker-game[data-sc-status="ready"] .sc-dial { cursor:default; }
+.safe-cracker-game .sc-step-controls button:disabled { opacity:.6;cursor:default; }
+@media(max-width:700px) {
+  .safe-cracker-game { padding:9px;border-radius:13px; }
+  .sc-command-bar h2 { font-size:17px; }.sc-prize b { font-size:12px; }
+  .sc-instructions { padding:10px;margin-bottom:10px; }
+  .sc-instructions > div { display:block; }.sc-instructions > div b { display:block;margin-top:4px;font-size:12px; }
+  .sc-instructions ol { gap:8px;margin-top:10px; }.sc-instructions li { display:block; }
+  .sc-instructions li > i { width:22px;height:22px;margin-bottom:6px; }.sc-instructions li b { font-size:11px; }.sc-instructions li small { font-size:10px; }
+  .safe-cracker-game .sc-topbar { grid-template-columns:minmax(0,1fr) 56px minmax(0,1fr);gap:5px; }
+  .safe-cracker-game .sc-player-card { padding:7px;min-height:89px; }
+  .safe-cracker-game .sc-avatar { display:none; }
+  .safe-cracker-game .sc-player-card b { font-size:11px; }
+  .safe-cracker-game .sc-player-card.me .sc-known-code > div,
+  .safe-cracker-game .sc-player-card.opponent .sc-progress-lights { grid-template-columns:repeat(3,minmax(0,1fr));gap:4px; }
+  .safe-cracker-game .sc-player-card.me .sc-known-code span,.safe-cracker-game .sc-player-card.opponent .sc-stage-light { width:100%;height:30px;min-height:30px;font-size:17px; }
+  .safe-cracker-game .sc-player-card.opponent .sc-stage-light b { font-size:17px; }
+  .safe-cracker-game .sc-timer { font-size:17px; }.safe-cracker-game .sc-timer::before { font-size:8px; }
+  .safe-cracker-game .sc-dial-wrap::after { height:31px; }
+  .sc-tip-bar { margin-top:12px;padding:9px 10px;font-size:11px; }
+}
+@media(max-width:700px) and (max-height:720px) {
+  .safe-cracker-game .sc-dial-wrap::after { height:24px; }
+}
+/* SAFE_CRACKER_GAME_LAYOUT_V2_END */

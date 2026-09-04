@@ -43,4 +43,5 @@ for (const check of [
   'dial-sample-v18', 'sample-mix'
 ]) await import(`./validate-safe-cracker-${check}.mjs`);
 await import('./validate-safe-cracker-feedback-endpoint.mjs');
+await import('./validate-safe-cracker-game-layout.mjs');
 console.log(`Verified complete Safe Cracker restored release ${release.release}: ${Object.keys(release.sha256).length} files.`);

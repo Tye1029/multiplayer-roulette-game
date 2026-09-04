@@ -1,5 +1,5 @@
 {
-  "release": "20260904-layout1",
+  "release": "20260904-layout2",
   "sourcePreview": "https://deploy-preview-19--famous-piroshki-b621da.netlify.app/",
   "sourceDeploy": "6a70b46ca5416100089b828b",
   "sourceBranch": "safe-cracker-development",
@@ -28,8 +28,8 @@
     "assets/safe-cracker/audio-data/safe-unlock.b64": "aea99693d78b8fab937b9e07098f0f0cb65afdc4e70b5caba13db8166d513bf1",
     "assets/safe-cracker/audio-data/submit-latch.b64": "f946badd32b429169b00b2a1e0956aab235e224ce142bb56080aa437306cadd2",
     "assets/safe-cracker/audio-data/tumbler-lock.b64": "ab70c5fe2cc2a0b8466871418bb2f0af6274b52ba1659c5c3d4fa723aa403754",
-    "assets/safe-cracker/safe-cracker.css": "6c45c87abc8727ca6bc83c38e4e85df81910ae90b7b3353c538d645e97590d5f",
-    "assets/safe-cracker/safe-cracker.js": "778c8342fd9a49f778cd6cc08bc89fad55320c2cab4e46e1a68aff1bd3ede96f",
+    "assets/safe-cracker/safe-cracker.css": "4cb4d8b04342713648a6f4d3e73e79ba85bc5c9406d8965f0a0fa5676c1e51d8",
+    "assets/safe-cracker/safe-cracker.js": "6a5a305aa03bdc549f4a3a926bcdef8bead371479d7e89f98409ded3261906e3",
     "assets/safe-cracker/textures/dial-machined.svg": "e4f73a99dccca8a9bdcb79ac8fb93d3b93c26a843c01bf6ffd65cd2e081fa361",
     "assets/safe-cracker/textures/dial-reference-face-v7.svg": "4ac122e6319ef8ae3b604f64726994af47d9a7815f58c2898f8143dd3fa339c0",
     "assets/safe-cracker/textures/metal-wear.svg": "ca22e39bd6a2d21ef5c6634a035f024e016ecbc7c908caab9ea1597bb28a1824",
@@ -37,6 +37,7 @@
   },
   "sourceNote": "Recovered from the last deployed Safe Cracker preview; one whitespace-only runtime line was cleaned. Supporting generated SVG and recordings were rebuilt from the unchanged repository sources and matched that deployment.",
   "changes": [
-    "Reserve pointer-housing clearance below the digital display at desktop, mobile, and compact-mobile sizes."
+    "Reserve pointer-housing clearance below the digital display at desktop, mobile, and compact-mobile sizes.",
+    "Use the real board in waiting and ready screens with instructions above and a tip bar below; enlarge matched progress tiles; soften metal shading and bolt the pointer mount to the dial rim; stop the completed timer."
   ]
 }
