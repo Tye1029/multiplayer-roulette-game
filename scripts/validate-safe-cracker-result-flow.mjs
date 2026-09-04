@@ -42,6 +42,7 @@ function checkPortalTiming(reducedMotion) {
   const sandbox=vm.createContext({runtime:{},performance:{now:()=>now},
     document:{querySelector:()=>existing,body:{appendChild:p=>{existing=p;},classList:{add:()=>{},toggle:()=>{}}}},
     window:{matchMedia:()=>({matches:reducedMotion}),setTimeout:(fn,delay)=>{timers.push(delay);return timers.length;},clearTimeout:()=>{}},
+    syncSafeCrackerRematchControl:()=>{},
     playSafeCrackerResultSequence:()=>audioStarts++,clearSafeCrackerResultPortal:()=>{},revealSafeCrackerResultPortal:()=>{}});
   vm.runInContext(client.slice(portalStart,portalEnd),sandbox);
   const game={gameId:'opening',status:'complete',isCreator:true,creator:{userId:'winner'},winnerUserId:'winner'};

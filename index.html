@@ -12524,8 +12524,8 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
   <script src="/assets/roulette/reaction-audio.js?v=1" defer></script>
 <!-- MODULAR_LAMP_ASSETS_END -->
 <!-- SAFE_CRACKER_ASSETS_START -->
-  <link id="safeCrackerStyles" rel="stylesheet" href="/assets/safe-cracker/safe-cracker.css?v=8&polish=2&fit=2&result=1&final=1&refine=1&correct=1&input=1&texture=3&shadow=3&dial=7&layout=7&latch=9&screw=1&trim=1&render=1&restore=20260904-crack13">
-  <script id="safeCrackerRuntime" src="/assets/safe-cracker/safe-cracker.js?v=8&polish=2&fit=2&result=1&final=1&refine=1&correct=1&input=1&audio=1&samples=1&clicks=27&dial=7&layout=7&latch=9&screw=1&trim=1&render=1&recorded=13&restore=20260904-crack13" defer></script>
+  <link id="safeCrackerStyles" rel="stylesheet" href="/assets/safe-cracker/safe-cracker.css?v=8&polish=2&fit=2&result=1&final=1&refine=1&correct=1&input=1&texture=3&shadow=3&dial=7&layout=7&latch=9&screw=1&trim=1&render=1&restore=20260904-flow14">
+  <script id="safeCrackerRuntime" src="/assets/safe-cracker/safe-cracker.js?v=8&polish=2&fit=2&result=1&final=1&refine=1&correct=1&input=1&audio=1&samples=1&clicks=27&dial=7&layout=7&latch=9&screw=1&trim=1&render=1&recorded=13&restore=20260904-flow14" defer></script>
 <!-- SAFE_CRACKER_ASSETS_END -->
 
 <!-- SAFE_CRACKER_COMPACT_DOCK_START -->
@@ -12585,6 +12585,7 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
   <link rel="preload" as="image" href="/assets/mountain-race/images/summit-sprint-start-climbers-v55.png" fetchpriority="high">
   <link rel="preload" as="image" href="/assets/mountain-race/images/summit-sprint-waiting-climbers-v55.png" fetchpriority="high">
   <link rel="preload" as="image" href="/assets/mountain-race/images/summit-sprint-celebration-climbers-v57.png" fetchpriority="high">
+<link id="duelShellStyles" rel="stylesheet" href="/assets/duel-shell.css?v=xan-duels-v3&flow=14">
 </head>
 <body class="test-shell-loading">
 
@@ -12592,13 +12593,8 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
     <button class="game-menu-button" id="gameMenuBtn" type="button" aria-label="Open game menu">☰</button>
     <nav class="game-menu-panel" id="gameMenuPanel" hidden>
       <div class="game-menu-title">Games</div>
-      <button class="secondary" id="singleGameMenuBtn" type="button">Scratch Tickets</button>
-      <button class="gold" id="multiGameMenuBtn" type="button">Multiplayer Scratcher</button>
-      <button class="secondary" id="runnerGameMenuBtn" type="button">Street Runner</button>
-      <button class="gold" id="horseGameMenuBtn" type="button">Horse Track Betting</button>
-      <button class="secondary" id="arcadeGameMenuBtn" type="button">Arcade Games</button>
-      <button class="gold" id="duelGameMenuBtn" type="button">Multiplayer Arcade</button>
-      <button class="secondary" id="settingsMenuBtn" type="button">Settings</button>
+      <button class="gold" id="duelGameMenuBtn" type="button">All Games</button>
+      <button class="secondary" id="settingsMenuBtn" type="button">Account &amp; API</button>
       <div class="menu-audio-toggles" aria-label="Audio settings">
         <label class="menu-toggle-row">
           <span>Music</span>
@@ -12619,47 +12615,7 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
 
     </header>
 
-    <section class="multiplayer-screen panel" id="multiplayerScreen" hidden>
-      <div class="mp-header">
-        <div class="mp-heading-copy">
-          <h2 class="mp-title">Multiplayer Scratcher</h2>
-          <p class="mp-subtitle">Compete Head To Head With Another Player! Take Turns Scratching Off Spots On The Card! First One To Reveal 3 Win Spots Gets The Pot!</p>
-        </div>
-        <div class="mp-balance-card" aria-live="polite">
-          <div class="balance-label">Chip Balance</div>
-          <div class="mp-balance" id="mpBalance">0 Chips</div>
-          <div class="balance-equivalent" id="mpBalanceEquivalent">≈ 0 Xanax</div>
-        </div>
-      </div>
 
-      <div class="mp-grid">
-        <div class="mp-card mp-live-card">
-          <h3>Multiplayer Scratcher</h3>
-          <div class="mp-active-game" id="mpActiveGame">
-            <p class="mp-status">Join or create a game to start.</p>
-          </div>
-        </div>
-
-        <div class="mp-side-stack" id="mpSideStack">
-          <div class="mp-card mp-create-card">
-            <h3>Create A Game</h3>
-            <div class="mp-create-row">
-              <input class="mp-input" id="mpWagerInput" type="number" min="1000" step="1000" value="1000" placeholder="Chips to bet" autocomplete="off" inputmode="numeric" data-lpignore="true" data-1p-ignore="true" data-form-type="other" />
-              <button class="gold" id="mpCreateBtn" type="button">Create</button>
-            </div>
-            <p class="mp-status" id="mpStatus">Save your Torn API key first, then create or join a game.</p>
-          </div>
-
-          <div class="mp-card mp-join-card">
-            <div class="mp-actions mp-join-header">
-              <h3>Join A Game</h3>
-              <div class="test-refresh-stack"><button class="secondary" id="mpRefreshBtn" type="button">Refresh</button><button class="test-hard-cancel" id="mpHardCancelAllBtn" type="button">Hard Cancel All Games</button></div>
-            </div>
-            <div class="mp-lobby-list" id="mpLobbyList"></div>
-          </div>
-        </div>
-      </div>
-    </section>
 
 
 
@@ -12716,228 +12672,14 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
       </div>
     </section>
 
-    <section class="arcade-screen panel" id="arcadeScreen" hidden>
-      <div class="arcade-header">
-        <div>
-          <h2 class="arcade-title">Arcade Games</h2>
-          <p class="arcade-subtitle">Eight quick betting games: Plinko, Mines, Crash, Higher or Lower, Wheel Spin, Dice Roll, Treasure Chest, and Soccer Shootout.</p>
-        </div>
-        <div class="arcade-balance-card" aria-live="polite">
-          <div class="balance-label">Chip Balance</div>
-          <div class="arcade-balance" id="arcadeBalance">0 Chips</div>
-          <div class="balance-equivalent" id="arcadeBalanceEquivalent">≈ 0 Xanax</div>
-        </div>
-      </div>
 
-      <div class="arcade-tabs" id="arcadeTabs" aria-label="Arcade game selector"></div>
 
-      <div class="arcade-layout">
-        <div class="arcade-stage-card">
-          <div class="arcade-stage-top">
-            <h3 id="arcadeGameTitle">Plinko</h3>
-            <div class="arcade-pill" id="arcadeGamePill">Quick Play</div>
-          </div>
-          <div class="arcade-stage" id="arcadeStage"></div>
-          <div class="arcade-result" id="arcadeResult">Choose a game, set your bet, and press play.</div>
-        </div>
 
-        <div class="arcade-control-card">
-          <h3>Place Bet</h3>
-          <label class="arcade-label" for="arcadeWagerInput">Chips</label>
-          <input class="arcade-input" id="arcadeWagerInput" type="number" min="1000" step="1000" value="1000" placeholder="Chips" autocomplete="off" inputmode="numeric" data-lpignore="true" data-1p-ignore="true" data-form-type="other" />
-          <div class="arcade-options" id="arcadeOptions"></div>
-          <button class="gold arcade-play-btn" id="arcadePlayBtn" type="button">Play</button>
-          <p class="arcade-status" id="arcadeStatus">All games use your Chip balance and server-confirmed payouts.</p>
-        </div>
-      </div>
-    </section>
 
-    <section class="horse-screen panel" id="horseScreen" hidden>
-      <div class="horse-header">
-        <div>
-          <h2 class="horse-title">Horse Track Betting</h2>
-          <p class="horse-subtitle">Pick a runner, place a Win bet, watch the race, and collect the payout if your horse finishes first.</p>
-        </div>
-        <div class="horse-balance-card" aria-live="polite">
-          <div class="balance-label">Chip Balance</div>
-          <div class="horse-balance" id="horseBalance">0 Chips</div>
-          <div class="balance-equivalent" id="horseBalanceEquivalent">≈ 0 Xanax</div>
-        </div>
-      </div>
 
-      <div class="horse-grid">
-        <div class="horse-track-card">
-          <div class="horse-race-top">
-            <div>
-              <h3>Lucky Downs</h3>
-              <p id="horseRaceStatus">Save your Torn API key, select a horse, then start the race.</p>
-            </div>
-            <div class="horse-race-timer" id="horseRaceTimer">READY</div>
-          </div>
 
-          <div class="horse-track" id="horseTrack" aria-label="Animated horse track">
-            <div class="horse-finish-line"><span>FINISH</span></div>
-            <div class="horse-lanes" id="horseLanes"></div>
-            <div class="horse-crowd" aria-hidden="true"></div>
-          </div>
-
-          <div class="horse-results" id="horseResults" hidden></div>
-        </div>
-
-        <div class="horse-bet-card">
-          <h3>Odds Board</h3>
-          <div class="horse-bet-row">
-            <label for="horseWagerInput">Win Bet</label>
-            <input class="horse-input" id="horseWagerInput" type="number" min="1000" step="1000" value="1000" placeholder="Chips" autocomplete="off" inputmode="numeric" data-lpignore="true" data-1p-ignore="true" data-form-type="other" />
-          </div>
-          <div class="horse-board" id="horseBoard"></div>
-          <button class="gold horse-start-btn" id="horseStartBtn" type="button">Start Race</button>
-          <p class="horse-status" id="horseStatus">Modeled after virtual horse racing: odds board, six runners, fast race animation, and a final payout screen.</p>
-        </div>
-      </div>
-    </section>
-
-    <section class="runner-screen panel" id="runnerScreen" hidden>
-      <div class="runner-header">
-        <div>
-          <h2 class="runner-title">Street Runner</h2>
-          <p class="runner-subtitle">Top-down pixel survival. Bet Chips, pick 1, 2, or 3 blocks at each intersection, and cash out when the multiplier is worth the risk.</p>
-        </div>
-        <div class="runner-balance-card" aria-live="polite">
-          <div class="balance-label">Chip Balance</div>
-          <div class="runner-balance" id="runnerBalance">0 Chips</div>
-          <div class="balance-equivalent" id="runnerBalanceEquivalent">≈ 0 Xanax</div>
-        </div>
-      </div>
-      <div class="runner-grid">
-        <div class="runner-stage crime-city-redo" id="runnerStage" aria-label="Street Runner crime city pixel game">
-          <div class="runner-skyline" aria-hidden="true"></div>
-          <div class="runner-world-scroll" aria-hidden="true">
-            <div class="runner-building-stack left-stack">
-              <div class="runner-building bodega"><span class="sign">PAWN</span></div>
-              <div class="runner-building motel"><span class="sign">MOTEL</span></div>
-              <div class="runner-building boarded"><span class="sign">CLOSED</span></div>
-            </div>
-            <div class="runner-building-stack right-stack">
-              <div class="runner-building laundro"><span class="sign">24H</span></div>
-              <div class="runner-building bar"><span class="sign">BAR</span></div>
-              <div class="runner-building tenement"><span class="sign">RENT</span></div>
-            </div>
-
-            <div class="runner-sidewalk sidewalk-left" aria-hidden="true">
-              <span class="side-prop trashbag p1"></span>
-              <span class="side-prop glass p2"></span>
-              <span class="side-prop dog p3"></span>
-              <span class="side-prop gang p4"></span>
-              <span class="side-prop box p5"></span>
-              <span class="side-prop hydrant p6"></span>
-              <span class="side-prop bottle p7"></span>
-              <span class="side-prop broken-sign p8"></span>
-              <span class="side-prop tire p9"></span>
-              <span class="side-prop graffiti-tag p10">TAG</span>
-              <span class="street-lamp lamp-left-a"></span>
-              <span class="street-lamp lamp-left-b"></span>
-            </div>
-            <div class="runner-sidewalk sidewalk-right" aria-hidden="true">
-              <span class="side-prop dumpster p1"></span>
-              <span class="side-prop broken-car p2"></span>
-              <span class="side-prop criminal p3"></span>
-              <span class="side-prop glass p4"></span>
-              <span class="side-prop trashbag p5"></span>
-              <span class="side-prop cone p6"></span>
-              <span class="side-prop crate p7"></span>
-              <span class="side-prop papers p8"></span>
-              <span class="side-prop tire p9"></span>
-              <span class="side-prop graffiti-tag p10">X</span>
-              <span class="street-lamp lamp-right-a"></span>
-              <span class="street-lamp lamp-right-b"></span>
-            </div>
-
-            <div class="runner-road" id="runnerRoad">
-              <span class="road-crack c1"></span>
-              <span class="road-crack c2"></span>
-              <span class="road-crack c3"></span>
-              <span class="road-crack c4"></span>
-              <span class="road-crack c5"></span>
-              <span class="road-stain s1"></span>
-              <span class="road-stain s2"></span>
-              <span class="road-stain s3"></span>
-              <span class="road-stain s4"></span>
-              <span class="road-trash t1"></span>
-              <span class="road-trash t2"></span>
-              <span class="road-trash t3"></span>
-              <span class="road-trash t4"></span>
-              <span class="road-glass g1"></span>
-              <span class="road-glass g2"></span>
-              <span class="road-glass g3"></span>
-              <span class="road-glass g4"></span>
-              <span class="road-yellow-lines"></span>
-              <span class="road-dash dash1"></span>
-              <span class="road-dash dash2"></span>
-              <span class="road-dash dash3"></span>
-              <span class="road-dash dash4"></span>
-              <span class="road-dash dash5"></span>
-              <span class="road-dash dash6"></span>
-              <span class="road-dash dash7"></span>
-              <span class="road-dash dash8"></span>
-            </div>
-            <div class="runner-seed-props" id="runnerSeedProps" aria-hidden="true"></div>
-          </div>
-
-          <div class="runner-depth-shadow" aria-hidden="true"></div>
-          <div class="runner-player" id="runnerPlayer"></div>
-          <div class="runner-hazard" id="runnerHazard" hidden></div>
-          <div class="runner-pixel-overlay" id="runnerOverlay">Place a bet to start.</div>
-        </div>
-        <aside class="runner-card runner-bottom-panel">
-          <h3>Risk / Reward</h3>
-          <div class="runner-stats">
-            <div class="runner-stat"><span>Multiplier</span><b id="runnerMultiplier">1.00x</b></div>
-            <div class="runner-stat"><span>Safe Turns</span><b id="runnerSteps">0</b></div>
-          </div>
-          <div class="runner-controls runner-bottom-controls">
-            <div class="runner-stage-controls runner-block-controls bottom-block-controls" aria-label="Choose how many blocks to run">
-            <button class="runner-direction-btn runner-block-btn" id="runnerLeftBtn" data-blocks="1" type="button" disabled>
-              <span class="block-count">1 Block</span><span class="block-meta" id="runnerBlock1Meta">—</span>
-            </button>
-            <button class="runner-direction-btn runner-block-btn" id="runnerBlock2Btn" data-blocks="2" type="button" disabled>
-              <span class="block-count">2 Blocks</span><span class="block-meta" id="runnerBlock2Meta">—</span>
-            </button>
-            <button class="runner-direction-btn runner-block-btn" id="runnerRightBtn" data-blocks="3" type="button" disabled>
-              <span class="block-count">3 Blocks</span><span class="block-meta" id="runnerBlock3Meta">—</span>
-            </button>
-          </div>
-            <div class="runner-bet-row">
-              <input class="mp-input" id="runnerWagerInput" type="number" min="1000" step="1000" value="1000" placeholder="Chips to bet" />
-              <button class="gold" id="runnerStartBtn" type="button">Start Run</button>
-            </div>
-            <button class="runner-cashout gold" id="runnerCashoutBtn" type="button" disabled>Cash Out</button>
-            <div class="runner-status" id="runnerStatus">Save your Torn API key first, then start a run.</div>
-            <div class="runner-log" id="runnerLog"></div>
-          </div>
-        </aside>
-      </div>
-    </section>
-
-    <section class="layout" id="singlePlayerLayout">
-      <div class="panel ticket-shell">
-        <article class="ticket" aria-label="Lottery scratch off ticket">
-          <div class="price-badge" id="priceBadge">No Ticket</div>
-
-          <div class="ticket-top">
-            <h1 class="ticket-title">Torn<br><span class="neon">Riches</span></h1>
-            <div class="ticket-rule">Match 3 prizes and win that amount</div>
-          </div>
-
-          <div class="win-strip">Scratch Your Spots</div>
-
-          <div class="scratch-grid" id="scratchGrid"></div>
-
-          <div class="status" id="status">Buy a ticket to start scratching.</div>
-        </article>
-      </div>
-
-      <aside class="panel controls">
+    <section id="accountScreen" class="panel account-screen" hidden>
+      <h1>Account &amp; API</h1>
         <div class="balance-card balance-withdraw">
           <div class="balance-main">
             <div class="balance-label">Chip Balance</div>
@@ -12988,28 +12730,7 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
           </div>
         </div>
 
-        <div class="button-grid">
-          <button data-price="1000">Buy 1,000 Chip Card</button>
-          <button data-price="5000">Buy 5,000 Chip Card</button>
-          <button data-price="10000">Buy 10,000 Chip Card</button>
-          <button data-price="25000">Buy 25,000 Chip Card</button>
-          <button class="secondary" id="revealBtn">Auto Scratch</button>
-          <div class="double-control"><button class="gold" id="doubleBtn" type="button" disabled>Double or Nothing</button><button class="info-button" id="doubleInfoBtn" type="button" aria-label="Double or Nothing info">?</button></div>
-        </div>
-
-        <div class="double-info-panel" id="doubleInfoPanel" hidden>
-          <strong>Double or Nothing!</strong> Win a ticket to unlock a risk-it-all shot: double your current win and double the next card win, or lose the original win if the next card misses.
-        </div>
-
-        <p class="note">
-          <a class="admin-link" href="/admin.html">Admin connected users page</a>
-        </p>
-
-        <div class="payouts">
-          <h2 id="payoutTitle">1,000 Chip Card Prizes</h2>
-          <div id="payoutList"></div>
-        </div>
-      </aside>
+      <p><a href="/admin.html">Admin connected users page</a></p>
     </section>
   </main>
 
@@ -13061,16 +12782,16 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
 
 </style>
 <script>
-    const scratchGrid = document.getElementById("scratchGrid");
-    const statusBox = document.getElementById("status");
+    const scratchGrid = document.createElement("div");
+    const statusBox = document.createElement("div");
     const balanceEl = document.getElementById("balance");
     const mpBalance = document.getElementById("mpBalance");
     const balanceEquivalentEl = document.getElementById("balanceEquivalent");
     const mpBalanceEquivalent = document.getElementById("mpBalanceEquivalent");
-    const priceBadge = document.getElementById("priceBadge");
+    const priceBadge = document.createElement("div");
     const payoutTitle = document.getElementById("payoutTitle");
     const payoutList = document.getElementById("payoutList");
-    const revealBtn = document.getElementById("revealBtn");
+    const revealBtn = document.createElement("button");
     const doubleBtn = document.getElementById("doubleBtn");
     const doubleInfoBtn = document.getElementById("doubleInfoBtn");
     const doubleInfoPanel = document.getElementById("doubleInfoPanel");
@@ -13845,6 +13566,8 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
     }
 
     function renderPayouts(price) {
+      // Retired single-player view: account/API recovery remains available.
+      if (!scratchGrid.isConnected) return;
       payoutTitle.textContent = `${money(price)} Ticket Prizes`;
       const unique = [...new Set(prizeTables[price])].filter(v => v > 0);
       payoutList.innerHTML = unique
@@ -13853,6 +13576,8 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
     }
 
     function renderEmptyTicket() {
+      // Retired single-player view: account/API recovery remains available.
+      if (!scratchGrid.isConnected) return;
       hasActiveTicket = false;
       evaluated = true;
       currentPrizes = [];
@@ -13871,6 +13596,8 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
     }
 
     function renderTicketSpots(prizes) {
+      // Retired single-player view: account/API recovery remains available.
+      if (!scratchGrid.isConnected) return;
       scratchGrid.innerHTML = "";
       prizes.forEach((prize, index) => {
         const spot = document.createElement("div");
@@ -15508,8 +15235,6 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
       event.preventDefault();
       clearAllFoil();
     });
-    doubleBtn.addEventListener("click", startDoubleOrNothing);
-    doubleInfoBtn.addEventListener("click", showDoubleInfo);
     document.querySelectorAll(".copy-receiver").forEach(button => button.addEventListener("click", copyReceiverName));
     withdrawToggleBtn.addEventListener("click", toggleWithdrawMenu);
     withdrawAllBtn.addEventListener("click", fillWithdrawAll);
@@ -17326,6 +17051,12 @@ function updateRunnerBalanceDisplay() {
     let duelCurrentGameId = sessionStorage.getItem("duelCurrentGameId") || localStorage.getItem("duelCurrentGameId") || "";
     if (duelCurrentGameId) sessionStorage.setItem("duelCurrentGameId", duelCurrentGameId);
     function duelRememberCurrentGame(gameId) {
+      // Invalidate reads started for the previous focus before adopting a rematch.
+      if (String(gameId || "") !== duelCurrentGameId) {
+        duelRefreshSequence += 1;
+        window.__safeCrackerDialInteractionV16 = null;
+        window.__safeCrackerDialStableGameV16 = null;
+      }
       duelCurrentGameId = String(gameId || "");
       if (duelCurrentGameId) {
         sessionStorage.setItem("duelCurrentGameId", duelCurrentGameId);
@@ -20381,6 +20112,10 @@ function updateRunnerBalanceDisplay() {
     addEventListener('resize',()=>{if(duelSharedCountdownGame)duelPositionCountdownPortal()},{passive:true});
 
     function duelStartNewGame(requestedMode = ""){
+      // Result buttons may supply no mode (or a click event). Preserve this
+      // game's setup intent so a lobby scan cannot resume an unrelated save.
+      requestedMode = typeof requestedMode === 'string' && requestedMode
+        ? requestedMode : String(duelLastActiveGame?.mode || duelModeSelect?.value || '');
       // Changing games invalidates every poll that began under the prior focus.
       // The requested-mode intent also prevents a lobby list from auto-resuming
       // an older server game while the player is setting up the new one.
@@ -20420,6 +20155,7 @@ function updateRunnerBalanceDisplay() {
     }
 
     async function duelRequestRematch() {
+      const requestedGameId = String(duelCurrentGameId || "");
       try {
         if (!duelCurrentGameId) throw new Error("No completed duel was found.");
         const btn = document.getElementById("duelRematchBtn");
@@ -20427,6 +20163,7 @@ function updateRunnerBalanceDisplay() {
         duelCompletedActivityGameId = String(duelCurrentGameId || "");
         duelCompletedActivityAt = Date.now();
         const data = await duelRequest("act", { gameId: duelCurrentGameId, choice: "rematch" });
+        if (String(duelCurrentGameId || "") !== requestedGameId) return;
         if (data.rematchGame?.gameId || data.game?.rematchGameId) {
           const nextRematchId = data.rematchGame?.gameId || data.game.rematchGameId;
           duelRememberCurrentGame(nextRematchId);
@@ -20466,6 +20203,7 @@ function updateRunnerBalanceDisplay() {
         duelSetStatus(error.message || "Unable to request a rematch.", "bad");
         const btn = document.getElementById("duelRematchBtn");
         if (btn) btn.disabled = false;
+        return { error: error.message || "Unable to request a rematch." };
       }
     }
     async function duelRequestDoubleOrNothing(offer = {}) {
@@ -21156,8 +20894,9 @@ function updateRunnerBalanceDisplay() {
             // revision. Force a full snapshot so rematch acceptance is never hidden by
             // an `unchanged` response.
             const knownRevision = focusedComplete ? "" : (duelKnownRevisionByGame.get(duelCurrentGameId) || "");
-            const got = await duelRequest("get", { gameId: duelCurrentGameId, knownRevision });
-            if (refreshSequence !== duelRefreshSequence) return;
+            const requestedFocusId = String(duelCurrentGameId);
+            const got = await duelRequest("get", { gameId: requestedFocusId, knownRevision });
+            if (refreshSequence !== duelRefreshSequence || requestedFocusId !== String(duelCurrentGameId)) return;
             if (got.unchanged) {
               active = duelLastActiveGame && String(duelLastActiveGame.gameId) === String(duelCurrentGameId) ? duelLastActiveGame : null;
             } else if (got.game) {
@@ -21178,6 +20917,7 @@ function updateRunnerBalanceDisplay() {
             }
           } catch (error) {
             // SHARED_RUNTIME_STABILITY_V48
+            if (refreshSequence !== duelRefreshSequence) return;
             const focusedMessage = String(error?.message || error || "");
             const focusedMissing = /duel was not found/i.test(focusedMessage);
             if (focusedMissing) {
@@ -21233,6 +20973,7 @@ function updateRunnerBalanceDisplay() {
           duelLastActiveGame = null;
           duelLastRenderKey = "";
           const next = await duelRequest("get", { gameId: nextRematchId });
+          if (String(duelCurrentGameId || "") !== nextRematchId) return;
           if (next?.game) {
             active = next.game;
             duelLastActiveGame = next.game;
@@ -21823,6 +21564,7 @@ function updateRunnerBalanceDisplay() {
     }
 
     function showDuelGames() {
+      document.getElementById("accountScreen").hidden = true;
       rememberVisibleGamePage("duel");
       duelResetGenericRuntime(null);
       switchGameMusicTheme("duel-coin");
@@ -22185,32 +21927,7 @@ function updateRunnerBalanceDisplay() {
       }
     }
 
-    function showArcadeGames() {
-      rememberVisibleGamePage("arcade");
-      arcadeResetRuntime();
-      switchGameMusicTheme(`arcade-${arcadeCurrentGame}`);
-      document.body.classList.remove("multiplayer-mode");
-      setHorseScrollMode(false);
-      setArcadeScrollMode(false);
-      setDuelScrollMode(false);
-      setArcadeScrollMode(true);
-      if (singlePlayerLayout) singlePlayerLayout.hidden = true;
-      if (multiplayerScreen) multiplayerScreen.hidden = true;
-      if (runnerScreen) runnerScreen.hidden = true;
-      if (horseScreen) horseScreen.hidden = true;
-      if (arcadeScreen) arcadeScreen.hidden = false;
-      if (duelScreen) duelScreen.hidden = true;
-      if (gameMenuPanel) gameMenuPanel.hidden = true;
-      if (mpPollTimer) clearInterval(mpPollTimer);
-      if (mpTestPlayerTimer) clearTimeout(mpTestPlayerTimer);
-      if (duelPollTimer) clearInterval(duelPollTimer);
-      mpStopTurnCountdown();
-      mpClearRevealRetry();
-      mpPollTimer = null;
-      mpTestPlayerTimer = null;
-      updateArcadeBalanceDisplay();
-      arcadeRender();
-    }
+    function showArcadeGames() { showDuelGames(); }
 
 
     // ---------------- Horse Track Betting UI ----------------
@@ -22472,100 +22189,14 @@ function updateRunnerBalanceDisplay() {
 
     function rememberVisibleGamePage(page){ try{localStorage.setItem("lastVisibleGamePage",page)}catch(_){} }
 
-    function showHorseTrack() {
-      rememberVisibleGamePage("horse");
-      switchGameMusicTheme("horse");
-      document.body.classList.remove("multiplayer-mode");
-      setDuelScrollMode(false);
-      setArcadeScrollMode(false);
-      setHorseScrollMode(true);
-      if (singlePlayerLayout) singlePlayerLayout.hidden = true;
-      if (multiplayerScreen) multiplayerScreen.hidden = true;
-      if (runnerScreen) runnerScreen.hidden = true;
-      if (horseScreen) horseScreen.hidden = true;
-      if (horseScreen) horseScreen.hidden = false;
-      if (arcadeScreen) arcadeScreen.hidden = true;
-      if (duelScreen) duelScreen.hidden = true;
-      if (gameMenuPanel) gameMenuPanel.hidden = true;
-      if (mpPollTimer) clearInterval(mpPollTimer);
-      if (mpTestPlayerTimer) clearTimeout(mpTestPlayerTimer);
-      if (duelPollTimer) clearInterval(duelPollTimer);
-      mpStopTurnCountdown();
-      mpClearRevealRetry();
-      mpPollTimer = null;
-      mpTestPlayerTimer = null;
-      updateHorseBalanceDisplay();
-      horseLoadLocalCard();
-      horseRenderBoard();
-      horseRenderTrack();
-      if (localStorage.getItem("tornVisitorApiKey")) horseGenerateNewCard();
-    }
+    function showHorseTrack() { showDuelGames(); }
 
 
-    function showRunner() {
-      rememberVisibleGamePage("runner");
-      switchGameMusicTheme("runner");
-      document.body.classList.remove("multiplayer-mode");
-      setHorseScrollMode(false);
-      if (singlePlayerLayout) singlePlayerLayout.hidden = true;
-      if (multiplayerScreen) multiplayerScreen.hidden = true;
-      if (runnerScreen) runnerScreen.hidden = false;
-      if (horseScreen) horseScreen.hidden = true;
-      if (arcadeScreen) arcadeScreen.hidden = true;
-      if (duelScreen) duelScreen.hidden = true;
-      if (gameMenuPanel) gameMenuPanel.hidden = true;
-      if (mpPollTimer) clearInterval(mpPollTimer);
-      if (mpTestPlayerTimer) clearTimeout(mpTestPlayerTimer);
-      if (duelPollTimer) clearInterval(duelPollTimer);
-      mpStopTurnCountdown();
-      mpClearRevealRetry();
-      mpPollTimer = null;
-      mpTestPlayerTimer = null;
-      updateRunnerBalanceDisplay();
-      runnerSetWorldOffset(runnerWorldOffset);
-      runnerRenderSeededRoad(1);
-      runnerRender(runnerGame);
-      if (localStorage.getItem("tornVisitorApiKey")) runnerLoadActive(true);
-    }
+    function showRunner() { showDuelGames(); }
 
-    function showSinglePlayer() {
-      rememberVisibleGamePage("single");
-      switchGameMusicTheme("scratch");
-      document.body.classList.remove("multiplayer-mode");
-      setHorseScrollMode(false);
-      setArcadeScrollMode(false);
-      setDuelScrollMode(false);
-      if (singlePlayerLayout) singlePlayerLayout.hidden = false;
-      if (multiplayerScreen) multiplayerScreen.hidden = true;
-      if (runnerScreen) runnerScreen.hidden = true;
-      if (gameMenuPanel) gameMenuPanel.hidden = true;
-      if (mpPollTimer) clearInterval(mpPollTimer);
-      if (mpTestPlayerTimer) clearTimeout(mpTestPlayerTimer);
-      mpStopTurnCountdown();
-      mpClearRevealRetry();
-      mpPollTimer = null;
-      mpTestPlayerTimer = null;
-    }
+    function showSinglePlayer() { showDuelGames(); }
 
-    function showMultiplayer() {
-      rememberVisibleGamePage("multiplayer");
-      switchGameMusicTheme("multiplayer-scratch");
-      setHorseScrollMode(false);
-      setArcadeScrollMode(false);
-      setDuelScrollMode(false);
-      document.body.classList.add("multiplayer-mode");
-      if (singlePlayerLayout) singlePlayerLayout.hidden = true;
-      if (multiplayerScreen) multiplayerScreen.hidden = false;
-      if (runnerScreen) runnerScreen.hidden = true;
-      if (horseScreen) horseScreen.hidden = true;
-      if (arcadeScreen) arcadeScreen.hidden = true;
-      if (duelScreen) duelScreen.hidden = true;
-      if (gameMenuPanel) gameMenuPanel.hidden = true;
-      updateMultiplayerBalanceDisplay();
-      mpRefresh(false);
-      if (mpPollTimer) clearInterval(mpPollTimer);
-      mpPollTimer = setInterval(() => mpRefresh(true), 2200);
-    }
+    function showMultiplayer() { showDuelGames(); }
 
     document.addEventListener("click", event => {
       const target=event.target.closest("button,[data-arcade-game]");
@@ -22585,10 +22216,16 @@ function updateRunnerBalanceDisplay() {
     runnerGameMenuBtn?.addEventListener("click", showRunner);
     horseGameMenuBtn?.addEventListener("click", showHorseTrack);
     arcadeGameMenuBtn?.addEventListener("click", showArcadeGames);
-    duelGameMenuBtn?.addEventListener("click", showDuelGames);
+    duelGameMenuBtn?.addEventListener("click", () => {
+      document.getElementById('simpleTestHome').hidden = false;
+      document.getElementById('accountScreen').hidden = true;
+      gameMenuPanel.hidden = true;
+    });
     settingsMenuBtn?.addEventListener("click", () => {
       gameMenuPanel.hidden = true;
-      alert("Settings menu is ready for future options. Music and game settings stay unchanged for now.");
+      document.getElementById('accountScreen').hidden = false;
+      if (duelScreen) duelScreen.hidden = true;
+      document.body.classList.remove('duel-mode');
     });
     mpBackBtn?.addEventListener("click", showSinglePlayer);
     mpCreateBtn?.addEventListener("click", mpCreateGame);
@@ -22609,10 +22246,7 @@ function updateRunnerBalanceDisplay() {
     updateHorseBalanceDisplay();
     updateArcadeBalanceDisplay();
     updateDuelBalanceDisplay();
-    horseLoadLocalCard();
-    horseRenderBoard();
-    horseRenderTrack();
-    runnerRender(null);
+    // Retired single-player games no longer initialize UI or animations.
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) {
         if (duelPollTimer) clearInterval(duelPollTimer);
@@ -23180,6 +22814,7 @@ async function rnbFetchAuthoritativeGame(gameId){
   rnbRematchRuntime.monitoring=true;rnbRematchRuntime.lastFocusedFetchAt=now;
   try{
    const data=await duelRequest('get',{gameId,knownRevision:''});
+   if(String(duelCurrentGameId||'')!==String(gameId))return null;
    if(data?.game){const adopted=rnbAdoptGame(data.game,false);if(adopted)return adopted}
   }catch(err){line(botLogs,'focused rematch poll failed',{error:String(err?.message||err)})}
   finally{rnbRematchRuntime.monitoring=false;render()}
@@ -23221,7 +22856,7 @@ async function rnbFetchAuthoritativeGame(gameId){
     if(latest?.rematchGameId){rnbRematchRuntime.handledKey=key;return}
     const latestReq=latest?.rematch?.requestedBy||{};
     if(humanRequested&&!latestReq[humanId]){line(botLogs,'rematch acceptance cancelled',{reason:'human request no longer active'});return}
-    const data=await duelRequest('act',{gameId,choice:isDoubleOrNothing?'remote-bot-double-or-nothing':'remote-bot-rematch'});rnbRematchRuntime.handledKey=key;line(botLogs,humanRequested?'rematch accepted':'rematch requested first',{gameId,kind:isDoubleOrNothing?'double-or-nothing':'rematch',rematchGameId:data?.rematchGame?.gameId||data?.game?.rematchGameId||''});
+    const data=await duelRequest('act',{gameId,choice:isDoubleOrNothing?'remote-bot-double-or-nothing':'remote-bot-rematch'});if(String(duelCurrentGameId||'')!==String(gameId))return;rnbRematchRuntime.handledKey=key;line(botLogs,humanRequested?'rematch accepted':'rematch requested first',{gameId,kind:isDoubleOrNothing?'double-or-nothing':'rematch',rematchGameId:data?.rematchGame?.gameId||data?.game?.rematchGameId||''});
     if(data?.rematchGame?.gameId||data?.game?.rematchGameId){
       const nextGame=data.rematchGame||((await duelRequest('get',{gameId:data.game.rematchGameId,knownRevision:''}))?.game);
       if(nextGame){duelKnownRevisionByGame.delete(String(nextGame.gameId));duelAcceptedStatusByGame.clear();rnbAdoptGame(nextGame,true);duelSetStatus(isDoubleOrNothing?'Remote Bot accepted Double or Nothing. The doubled round countdown has started.':'Remote Bot accepted the rematch. Both players must click Ready.','good')}
@@ -24746,7 +24381,7 @@ body.roulette-viewport-lock .page,body.roulette-viewport-lock .duel-screen{heigh
 [data-roulette-game] .rr-table .rr-chair-png{display:none!important}
 </style>
 
-<link id="duelShellStyles" rel="stylesheet" href="/assets/duel-shell.css?v=xan-duels-v3">
+
 </html>
 
 

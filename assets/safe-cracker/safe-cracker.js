@@ -55,6 +55,7 @@
     resultSequenceStartedAt: 0,
     resultSequenceAudioKey: '',
     resultPortalFocusTimer: 0,
+    rematchPendingGameId: '',
     countdownProgressKey: '',
     countdownProgressRank: -1,
     countdownProgressLabel: '',
@@ -488,8 +489,8 @@
       return;
     }
     const hiddenHost = mount.closest('[hidden], [aria-hidden="true"]');
-    const style = window.getComputedStyle(mount);
-    if (hiddenHost || style.display === 'none' || style.visibility === 'hidden') clearSafeCrackerResultPortal();
+    // Avoid forcing style/layout on every dial, timer, and debug-panel mutation.
+    if (hiddenHost) clearSafeCrackerResultPortal();
   });
   safeCrackerResultPortalObserver.observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style', 'hidden', 'aria-hidden'] });
   // SAFE_CRACKER_FINAL_POLISH_V6_END
@@ -509,6 +510,7 @@
     const complete = String(game?.status || '') === 'complete';
     const fresh = mount?.querySelector('[data-sc-result-sequence]') || null;
     const existing = document.querySelector('body > [data-sc-result-sequence][data-sc-result-portal]');
+    if (existing) syncSafeCrackerRematchControl(existing, game);
     if (!complete) {
       clearSafeCrackerResultPortal();
       return;
@@ -776,6 +778,9 @@
     const mountedGameId = String(root?.dataset?.scGameId || '');
     const status = String(game?.status || '');
     const mountedStatus = String(root?.dataset?.scStatus || '');
+    // Rematch metadata can change after completion; the physical board cannot.
+    // Leave its painted layers alone while the opening animation is running.
+    if (root && gameId === mountedGameId && status === 'complete' && mountedStatus === 'complete') return true;
 
     // Retain the physical door through completion so its final latch and swing
     // continue on the same painted elements, including subsequent result polls.
@@ -962,7 +967,7 @@
       ${resultOverlay(game)}
     </section>`;
 
-    if (reusedMountedBoard && game.status === 'complete' && !mount.querySelector('[data-sc-result-sequence]')) {
+    if (reusedMountedBoard && game.status === 'complete' && !document.querySelector('body > [data-sc-result-portal]') && !mount.querySelector('[data-sc-result-sequence]')) {
       mount.firstElementChild.insertAdjacentHTML('beforeend', resultOverlay(game));
     }
     runtime.feedbackFresh = false;
@@ -1148,8 +1153,36 @@
   }
 
   function bindResultControls(mount) {
-    mount.querySelector('[data-sc-rematch]')?.addEventListener('click', () => { clearSafeCrackerResultPortal(); window.__safeCrackerBridge?.rematch?.(); });
+    mount.querySelector('[data-sc-rematch]')?.addEventListener('click', async event => {
+      const button = event.currentTarget;
+      const gameId = String(runtime.game?.gameId || '');
+      if (!gameId || runtime.rematchPendingGameId === gameId) return;
+      runtime.rematchPendingGameId = gameId;
+      button.disabled = true;
+      button.textContent = 'REQUESTING REMATCH…';
+      try {
+        const result = await window.__safeCrackerBridge?.rematch?.();
+        if (result?.error) throw new Error(result.error);
+      } catch (error) {
+        button.title = String(error?.message || 'Unable to request rematch. Try again.');
+      } finally {
+        if (runtime.rematchPendingGameId === gameId) runtime.rematchPendingGameId = '';
+        if (button.isConnected) syncSafeCrackerRematchControl(button.closest('[data-sc-result-portal]'), runtime.game);
+      }
+    });
     mount.querySelector('[data-sc-new-game]')?.addEventListener('click', () => { clearSafeCrackerResultPortal(); window.__safeCrackerBridge?.newGame?.(); });
+  }
+
+  function syncSafeCrackerRematchControl(portal, game) {
+    const button = portal?.querySelector('[data-sc-rematch]');
+    if (!button) return;
+    const pending = runtime.rematchPendingGameId === String(game?.gameId || '');
+    const offer = game?.rematch || {};
+    const seconds = Math.max(0, Math.ceil((Date.parse(offer.expiresAt || '') - Date.now()) / 1000));
+    const me = String(game?.isCreator ? game?.creator?.userId : game?.joiner?.userId);
+    const requested = seconds > 0 && Boolean(offer.requestedBy?.[me]);
+    button.disabled = pending || requested || Boolean(game?.rematchGameId);
+    safeCrackerSetText(button, game?.rematchGameId ? 'STARTING REMATCH…' : pending ? 'REQUESTING REMATCH…' : requested ? 'WAITING FOR OPPONENT · ' + seconds + 's' : seconds > 0 ? 'ACCEPT REMATCH · ' + seconds + 's' : 'REMATCH');
   }
 
   // A single explicitly requested next check can wait for the current request.
@@ -1233,8 +1266,12 @@
     const timer = document.querySelector('[data-sc-timer]');
     if (timer) {
       const seconds = secondsLeft(runtime.game);
-      timer.textContent = formatTimer(seconds);
+      safeCrackerSetText(timer, formatTimer(seconds));
       timer.classList.toggle('danger', seconds <= 10 && runtime.game.status === 'playing');
+    }
+    if (runtime.game.status === 'complete') {
+      syncSafeCrackerRematchControl(document.querySelector('body > [data-sc-result-portal]'), runtime.game);
+      return;
     }
     const countdown = document.querySelector('[data-sc-start-countdown]');
     if (countdown) {

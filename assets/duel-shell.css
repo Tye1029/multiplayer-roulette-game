@@ -9,6 +9,17 @@
   --duel-shell-accent: #62a9c9;
 }
 
+/* Account services remain available independently of the retired games. */
+.account-screen {
+  width: min(640px, 100%); margin: 24px auto; padding: 24px;
+  color: var(--duel-shell-text); background: var(--duel-shell-panel);
+  border: 1px solid var(--duel-shell-line); border-radius: 12px;
+}
+.account-screen[hidden] { display: none !important; }
+.account-screen .api-card { margin-top: 20px; }
+.account-screen h1 { font-size: 1.4rem; }
+.account-screen a { color: #9ec4d5; }
+
 /* Public multiplayer launcher ------------------------------------------------ */
 #simpleTestHome {
   padding: clamp(18px, 4vw, 48px) !important;

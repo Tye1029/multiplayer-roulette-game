@@ -93,6 +93,7 @@ const rnbRematchRuntime={gameId:'',handledKey:'',timer:0,requesting:false};
 const rnbClearRematchTimer=()=>{rnbRematchRuntime.timer=0;scheduledRematches=[];};
 const rnbHash=()=>0,botLogs=[],line=()=>{},render=()=>{},rnbAdoptGame=()=>{};
 const rnbFetchAuthoritativeGame=async()=>freshRematch;
+let duelCurrentGameId='rematch';
 const duelRequest=async(action,args)=>{sentRematches.push(args);return {};};
 `,context);
 context.setTimeout=callback=>{run('scheduledRematches').push(callback);return 1;};
