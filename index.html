@@ -12561,9 +12561,9 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
   <script id="blackjackDuelRuntime" src="/assets/blackjack-duel/blackjack-duel.js?v=blackjack-duel-v17" defer></script>
 <!-- BLACKJACK_DUEL_ASSETS_END -->
 <!-- FISHING_DUEL_ASSETS_START -->
-  <script src="/shared/games/fishing-catalog.js?v=fishing-mechanics-v29"></script>
-  <link id="fishingDuelStyles" rel="stylesheet" href="/assets/fishing/fishing.css?v=fishing-mechanics-v29">
-  <script id="fishingDuelRuntime" defer src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v29"></script>
+  <script src="/shared/games/fishing-catalog.js?v=fishing-mechanics-v30"></script>
+  <link id="fishingDuelStyles" rel="stylesheet" href="/assets/fishing/fishing.css?v=fishing-mechanics-v30">
+  <script id="fishingDuelRuntime" defer src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v30"></script>
 <!-- FISHING_DUEL_ASSETS_END -->
 
 <!-- MOUNTAIN_RACE_V29_PRELOADS -->
@@ -18968,25 +18968,25 @@ function updateRunnerBalanceDisplay() {
       water.appendChild(marker);
       // Let the water ring finish even if the server acknowledges the catch early.
       setTimeout(()=>marker.remove(),720);
-      water.classList.add(side==="left"?"pull-left":"pull-right");
-      const pullStarted=performance.now(),root=water.closest("[data-fishing-game]");
-      const trackPull=()=>{duelFishingAlignLines(root);if(performance.now()-pullStarted<1180)requestAnimationFrame(trackPull);};
-      requestAnimationFrame(trackPull);
+      const root=water.closest("[data-fishing-game]");
+      if(root?._fishingController)root._fishingController.beginPull(side,String(active.id));
+      else water.classList.add(side==="left"?"pull-left":"pull-right");
       duelFishingPlaySplash(side);
-      duelFishingScheduleAudio(()=>duelFishingPlayFlop(side),300);
       return {side,eventId:String(active.id||""),marker};
     }
 
     function duelFishingClearOptimisticPull(water, pending){
       if(!water||!pending)return;
-      water.classList.remove("pull-left","pull-right");
+      const controller=water.closest("[data-fishing-game]")?._fishingController;
+      if(controller)controller.cancelPendingPull(pending.side,pending.eventId);
+      else water.classList.remove(pending.side==="left"?"pull-left":"pull-right");
     }
 
     function duelFishingEnsureController(root){
       if(window.FishingSceneController||window.__fishingControllerLoading)return;
       window.__fishingControllerLoading=true;
       const script=document.createElement("script");
-      script.src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v29&runtime=1";
+      script.src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v30&runtime=1";
       script.onload=()=>{window.__fishingControllerLoading=false;if(root?.isConnected)duelBindFishing(root);};
       script.onerror=()=>{window.__fishingControllerLoading=false;console.error("Fishing controller failed to load");};
       document.head.appendChild(script);
@@ -19047,19 +19047,28 @@ function updateRunnerBalanceDisplay() {
         controller?.recordInput?.("accepted","Valid bite selected",id);
         ev.preventDefault();water.dataset.busy="1";duelFishingLocalCatchLock={gameId,locked:true};water.classList.remove("can-tap");
         const pending=duelFishingBeginOptimisticPull(water,g,active);
+        const requestRound=root.dataset.fishingRuntimeKey;
+        const requestIsCurrent=()=>root.isConnected&&root.dataset.fishingRuntimeKey===requestRound&&String(duelCurrentGameId||"")===gameId;
         try{
           const fishActionId=`fish-${String(id).replace(/[^a-zA-Z0-9_-]/g,"").slice(0,48)}-${Date.now()}-${Math.random().toString(36).slice(2,10)}`;
           const data=await duelRequest("act",{gameId,choice:`fish:${id}`,clickedAt:new Date().toISOString(),actionId:fishActionId});
-          duelFishingClearOptimisticPull(water,pending);
+          if(!requestIsCurrent())return;
           const confirmedState=data.game?.fishingState||{};
           const confirmedCatch=data.game?.isCreator?confirmedState.creatorCatch:confirmedState.joinerCatch;
           const confirmedId=String(confirmedCatch?.eventId||"");
+          if(!confirmedId)throw new Error("Catch confirmation is still unavailable. Checking the server…");
           if(confirmedId){
+            const audioKey=data.game?.isCreator?"creatorCatchId":"joinerCatchId";
+            if(duelFishingAudioState[audioKey]!==confirmedId)duelFishingPlayFlop(pending.side);
             if(data.game?.isCreator)duelFishingAudioState.creatorCatchId=confirmedId;
             else duelFishingAudioState.joinerCatchId=confirmedId;
           }
           duelFishingLatestGame=data.game;duelFishingPatchDom(data.game);duelSetStatus("Fish secured. Waiting for the result.","good");
         }catch(err){
+          if(!requestIsCurrent())return;
+          // A poll can confirm the catch before this request times out. Never
+          // undo that fish or unlock a second catch based on a late error.
+          if(controller?.rigs?.[pending?.side]?.caught){duelSetStatus("Fish secured. Waiting for the result.","good");return;}
           duelFishingClearOptimisticPull(water,pending);
           const alreadyCaught=/already pulled|one fish/i.test(String(err.message||""));
           if(!alreadyCaught)duelFishingLocalCatchLock={gameId,locked:false};
