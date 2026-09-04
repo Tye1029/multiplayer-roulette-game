@@ -541,8 +541,8 @@
     fresh.classList.add('sc-result-portal-pending');
     document.body.appendChild(fresh);
     const reducedMotion = Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches);
-    // Let the 1250ms door swing settle, then hold the glowing interior for 500ms.
-    const revealDelay = reducedMotion ? 0 : won ? 1750 : tied ? 420 : 520;
+    // Let the heavy 1500ms door swing settle, then show its lit interior for 500ms.
+    const revealDelay = reducedMotion ? 0 : won ? 2000 : tied ? 420 : 520;
     const remaining = Math.max(0, revealDelay - elapsed);
     if (runtime.resultPortalTimer) window.clearTimeout(runtime.resultPortalTimer);
     runtime.resultPortalTimer = window.setTimeout(() => {
@@ -931,6 +931,10 @@
 
       <div class="sc-safe-shell ${Number(me.stage || 0) >= STAGES ? 'open' : ''}">
         <div class="sc-safe-door">
+          <i class="sc-door-edge sc-door-edge-right" aria-hidden="true"></i>
+          <i class="sc-door-edge sc-door-edge-top" aria-hidden="true"></i>
+          <i class="sc-door-edge sc-door-edge-bottom" aria-hidden="true"></i>
+          <i class="sc-door-light" aria-hidden="true"></i>
           <div class="sc-door-screws" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
           ${safeCrackerStaticLatchBank('left')}
           ${safeCrackerLatchBank(game, me)}
