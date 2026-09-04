@@ -4335,7 +4335,17 @@ function duelPublicGame(game = {}, viewerUserId = "") {
 function safeCrackerResultKey(gameId) { return `safecracker-result:${mpCleanId(gameId)}`; }
 async function safeCrackerReadCompleted(game) {
   if (game?.mode !== 'safecracker' || game.status === 'complete') return game;
-  const receipt = await getUsersStore().get(safeCrackerResultKey(game.gameId), { type: 'json', consistency: 'strong' });
+  const store = getUsersStore();
+  let receipt;
+  try {
+    receipt = await store.get(safeCrackerResultKey(game.gameId), { type: 'json', consistency: 'strong' });
+  } catch (error) {
+    // The Lambda compatibility adapter does not supply an uncached endpoint.
+    // New blob keys are immediately available globally; this dedicated key
+    // never contains an active round, even when the main snapshot regresses.
+    if (error?.name !== 'BlobsConsistencyError' && !String(error?.message || '').includes('uncachedEdgeURL')) throw error;
+    receipt = await store.get(safeCrackerResultKey(game.gameId), { type: 'json' });
+  }
   return receipt?.mode === 'safecracker' && receipt.status === 'complete' && receipt.gameId === game.gameId
     ? duelSanitizeGame(receipt) : game;
 }

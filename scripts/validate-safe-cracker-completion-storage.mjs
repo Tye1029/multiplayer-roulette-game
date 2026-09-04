@@ -2,8 +2,10 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { readFile } from 'node:fs/promises';
 const source=await readFile(new URL('../netlify/functions/_data.js',import.meta.url),'utf8');
-const records=new Map(); let releaseLate, enteredLate, delayLate=false, receiptReads=0;
-const store={get:async key=>{if(key.startsWith('safecracker-result:'))receiptReads++;return structuredClone(records.get(key)||null);},
+const records=new Map(); let releaseLate, enteredLate, delayLate=false, receiptReads=0, lambdaCompatibility=false;
+const store={get:async (key,options)=>{if(key.startsWith('safecracker-result:'))receiptReads++;
+  if(lambdaCompatibility && options?.consistency==='strong')throw Object.assign(new Error('Missing uncachedEdgeURL'),{name:'BlobsConsistencyError'});
+  return structuredClone(records.get(key)||null);},
   setJSON:async(key,value)=>{if(delayLate && key==='game:test' && value.status==='playing'){
     delayLate=false;enteredLate();await new Promise(resolve=>{releaseLate=resolve;});
   } records.set(key,structuredClone(value));}};
@@ -28,6 +30,10 @@ for(const read of ['duelGetRaw','duelGetRawStrong']){
 const ignored=await sandbox.duelSaveGame({...active,revision:30});assert.equal(ignored.status,'complete');
 await sandbox.duelSaveGame({...complete,rematchGameId:'next'});
 assert.equal((await sandbox.duelGetRawStrong('test')).rematchGameId,'next','Rematch metadata must remain writable');
+lambdaCompatibility=true;
+records.set('game:test',active);
+assert.equal((await sandbox.duelGetRaw('test')).status,'complete','Lambda adapter must read the dedicated result without an uncached endpoint');
+lambdaCompatibility=false;
 records.delete('game:test');assert.equal(await sandbox.duelGetRawStrong('test'),null,'A deleted game must not be resurrected by its receipt');
 receiptReads=0;
 await sandbox.duelSaveGame({...active,mode:'roulette'});await sandbox.duelGetRawStrong('test');
