@@ -5239,8 +5239,10 @@ body.sc-result-win-open .duel-end-screen-close {
 .safe-cracker-game .sc-dial-number.selected > span { transform:none; }
 
 /* Fishing-sized result: title above two comparison cards, actions at the foot. */
+html:has(body.sc-result-portal-open),
+body.duel-mode.sc-result-portal-open { overflow:hidden !important; }
 body > .sc-result-overlay[data-sc-result-portal] {
-  padding:14px !important;background:#0c100dde !important;backdrop-filter:none !important;
+  z-index:2147483300 !important;padding:14px !important;background:#0c100dde !important;backdrop-filter:none !important;
 }
 body > .sc-result-overlay[data-sc-result-portal] .sc-result-card {
   --sc-result-accent:#d7b778;
