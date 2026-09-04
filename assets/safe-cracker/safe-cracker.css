@@ -4962,3 +4962,17 @@ body.sc-result-win-open .duel-end-screen-close {
   }
 }
 /* SAFE_CRACKER_CONTROL_TRIM_V1_END */
+
+/* SAFE_CRACKER_DISPLAY_CLEARANCE_V1_START */
+/* Reserve the pointer housing's upward overhang plus a visible gap. Adjacent
+   block margins collapse, so the display margin must cover that full space. */
+.safe-cracker-game .sc-display { margin-bottom: 54px; }
+
+@media (max-width: 700px) {
+  .safe-cracker-game .sc-display { margin-bottom: 36px; }
+}
+
+@media (max-height: 720px) and (max-width: 700px) {
+  .safe-cracker-game .sc-display { margin-bottom: 30px; }
+}
+/* SAFE_CRACKER_DISPLAY_CLEARANCE_V1_END */
