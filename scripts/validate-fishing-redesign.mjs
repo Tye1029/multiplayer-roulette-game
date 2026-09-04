@@ -12,9 +12,9 @@ const controller = fs.readFileSync(new URL("../assets/fishing/fishing-controller
 const preview = fs.readFileSync(new URL("../games/multiplayer/fishing/preview.html", import.meta.url), "utf8");
 const serverData = fs.readFileSync(new URL("../netlify/functions/_data.js", import.meta.url), "utf8");
 
-assert(html.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v26'), "versioned Fishing stylesheet is not loaded");
-assert(html.includes('id="fishingDuelRuntime" defer src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v26"'), "deferred shared Fishing controller is not loaded");
-assert(preview.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v26'), "preview is not using the current Fishing stylesheet");
+assert(html.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v27'), "versioned Fishing stylesheet is not loaded");
+assert(html.includes('id="fishingDuelRuntime" defer src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v27"'), "deferred shared Fishing controller is not loaded");
+assert(preview.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v27'), "preview is not using the current Fishing stylesheet");
 assert(html.includes('function duelFishingEnsureController(root)'), "Fishing controller recovery loader is missing");
 assert(html.includes('class="fishing-command-bar"'), "game-owned Fishing header is missing");
 assert(html.includes('class="fishing-instructions" aria-label="How to play"'), "visible game instructions are missing");

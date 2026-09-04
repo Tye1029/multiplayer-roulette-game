@@ -2335,6 +2335,14 @@ body.fishing-result-open { overflow: hidden !important; }
 .fishing-log-section small { font-size:.65rem; font-weight:600; text-align:right; }
 .fishing-result-catches > div > b { display:flex; flex-direction:column; align-items:center; gap:5px; overflow:visible; }
 .fishing-comparison-overlay .fishing-rarity-tag { margin: 0; }
+.fishing-water:has(.fishing-hook-node.has-catch) > .fishing-center-status { display: none; }
+@media (max-width:680px) {
+  /* Keep the whole caught fish/name/tier stack inside the shallow phone scene.
+     Both players retain the same centimeters-to-pixels scale. */
+  .fishing-hook-catch .fishing-fish-png { --fish-width: clamp(14px, calc(var(--fish-cm) * .82px), 82px); }
+  .fishing-hook-catch.left .fishing-catch-caption { transform: translateX(-24px); }
+  .fishing-hook-catch.right .fishing-catch-caption { transform: translateX(24px); }
+}
 .fishing-result-content { scrollbar-gutter: stable; }
 @media (max-width: 680px) {
   .fishing-brand b { font-size: .62rem; }
