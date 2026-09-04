@@ -1,6 +1,7 @@
 const { getStore, connectLambda } = require("@netlify/blobs");
 const drawDatabase = require("./_draw-database");
 const fishingDatabase = require("./_fishing-database");
+const fishingCatalog = require("../../shared/games/fishing-catalog");
 const blackjackDuelDatabase = require("./_blackjack-duel-database");
 const crypto = require("crypto");
 const { createMountainRaceIntegration } = require("./mountain-race/integration");
@@ -1771,6 +1772,7 @@ function addAdjustment(adjustments, adjustment) { return [...(Array.isArray(adju
 function addWithdrawal(withdrawals, withdrawal) { return [...(Array.isArray(withdrawals) ? withdrawals : []), withdrawal].slice(-MAX_WITHDRAWALS); }
 
 function fishingSpeciesKey(value) {
+  if(["silver minnow","minnow"].includes(String(value||"").toLowerCase()))return "silver-minnow";
   return String(value || "fish").toLowerCase().replace(/^(golden|silver|albino|midnight|crystal|emerald)\s+/, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80) || "fish";
 }
 function sanitizeFishingLogbook(value) {
@@ -7087,28 +7089,7 @@ async function withFishingGameLock(gameId, task) {
 }
 function fishingRand(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
 function fishingFishIdentity(size){
-  let pool;
-  if(size>=88) pool=["Titan Sturgeon","Grand Marlin","Giant Bluefin Tuna","Broadbill Swordfish","Arapaima","Mekong Giant Catfish","Sailfish","Paddlefish"];
-  else if(size>=70) pool=["King Salmon","Northern Muskie","Lake Sturgeon","Alligator Gar","Wels Catfish","Goliath Tigerfish","Tarpon","Great Barracuda","Electric Eel","Red Drum"];
-  else if(size>=48) pool=["Largemouth Bass","Rainbow Trout","Red Snapper","Northern Pike","Striped Bass","Mahi-Mahi","Peacock Bass","Common Carp","Atlantic Cod","Black Sea Bass","Lionfish","Moonfish","Coelacanth"];
-  else if(size>=28) pool=["Yellow Perch","Black Crappie","Bluegill","Brook Trout","Koi Carp","Clown Knifefish","Oscar","River Bream","Blue Tang","Copperband Butterflyfish","Pufferfish","Mandarinfish"];
-  else pool=["Silver Minnow","Sardine","Tiny Sunfish","Anchovy","Neon Tetra","Guppy","Smelt","Dwarf Gourami","Royal Gramma","Zebra Pleco"];
-  const baseName=pool[fishingRand(0,pool.length-1)];
-  // Named special fish are rolled independently of length. A tiny legendary
-  // fish is possible, and a large ordinary fish can still win the duel.
-  const specialRoll=Math.random();
-  if(specialRoll<0.0025)return {name:"Celestial Anglerfish",baseName:"Celestial Anglerfish",variant:"celestial",rarity:"legendary"};
-  if(specialRoll<0.006)return {name:"Aurora Koi",baseName:"Aurora Koi",variant:"aurora",rarity:"legendary"};
-  if(specialRoll<0.012)return {name:"Nemo",baseName:"Nemo",variant:"nemo",rarity:"rare"};
-  const roll=Math.random();
-  let variant="standard", rarity="regular", displayName=baseName;
-  if(roll<0.006){variant="crystal";rarity="legendary";displayName=`Crystal ${baseName}`;}
-  else if(roll<0.012){variant="golden";rarity="rare";displayName=`Golden ${baseName}`;}
-  else if(roll<0.018){variant="silver";rarity="rare";displayName=`Silver ${baseName}`;}
-  else if(roll<0.031){variant="albino";rarity="rare";displayName=`Albino ${baseName}`;}
-  else if(roll<0.045){variant="midnight";rarity="rare";displayName=`Midnight ${baseName}`;}
-  else if(roll<0.065){variant="emerald";rarity="uncommon";displayName=`Emerald ${baseName}`;}
-  return {name:displayName,baseName,variant,rarity};
+  return fishingCatalog.pick(size);
 }
 function fishingInitialState(game, requestedStartMs){
   const requested=Number(requestedStartMs);
@@ -7153,7 +7134,7 @@ function fishingInitialState(game, requestedStartMs){
       rippleThickness:Number((1.7+ratio*.9).toFixed(2)),
       rippleWobble:Number((0.92+Math.random()*.18).toFixed(2)),
       rumble:Math.round(12+ratio*84),
-      special:identity.rarity!=="regular",
+      special:identity.special,
       claimedBy:"", claimedAt:null
     });
   }
@@ -7187,7 +7168,7 @@ function fishingNormalizeClaims(game){
     const e=info.event;
     usedUsers.add(c.uid); usedEvents.add(c.eventId);
     e.claimedBy=c.uid; e.claimedAt=c.atText;
-    catches[c.uid]={eventId:e.id,size:e.size,measuredSize:Number(e.size),name:e.name,baseName:e.baseName||e.name,variant:e.variant||"standard",rarity:e.rarity||"regular",special:Boolean(e.special||e.rarity&&e.rarity!=="regular"),at:c.atText,ripple:e.ripple,rippleSpeed:e.rippleSpeed,rippleThickness:e.rippleThickness,rippleWobble:e.rippleWobble,rumble:e.rumble};
+    catches[c.uid]={eventId:e.id,size:e.size,measuredSize:Number(e.size),...fishingCatalog.identity(e),at:c.atText,ripple:e.ripple,rippleSpeed:e.rippleSpeed,rippleThickness:e.rippleThickness,rippleWobble:e.rippleWobble,rumble:e.rumble};
   }
   const changed=JSON.stringify(original.catches||{})!==JSON.stringify(catches)||JSON.stringify((original.events||[]).map(e=>({id:e.id,claimedBy:e.claimedBy||"",claimedAt:e.claimedAt||null})))!==JSON.stringify(events.map(e=>({id:e.id,claimedBy:e.claimedBy||"",claimedAt:e.claimedAt||null})));
   return {...game,fishingState:{...original,events,catches,npcPlanEventIds:Array.isArray(original.npcPlanEventIds)&&original.npcPlanEventIds.length?original.npcPlanEventIds:events.map(e=>e.id),revision:int(original.revision,0)+(changed?1:0),serverNow:nowIso()},updatedAt:changed?nowIso():game.updatedAt};
@@ -7234,7 +7215,7 @@ function fishingPublicState(game,viewer){
     startEpochMs:Number.isFinite(startEpochMs)?startEpochMs:0,
     endEpochMs:Number.isFinite(endEpochMs)?endEpochMs:0,
     remainingMs,
-    events:(state.events||[]).map(e=>({id:e.id,at:e.at,endAt:e.endAt,atMs:Date.parse(e.at||"")||0,endAtMs:Date.parse(e.endAt||"")||0,ripple:e.ripple,rippleSpeed:e.rippleSpeed,rippleThickness:e.rippleThickness,rippleWobble:e.rippleWobble,rumble:e.rumble,special:Boolean(e.special||e.rarity&&e.rarity!=="regular"),claimedBy:e.claimedBy||"",claimedAt:e.claimedAt||null,size:e.claimedBy?e.size:undefined,name:e.claimedBy?e.name:undefined,baseName:e.claimedBy?e.baseName:undefined,variant:e.claimedBy?e.variant:undefined,rarity:e.claimedBy?e.rarity:undefined})),
+    events:(state.events||[]).map(e=>({id:e.id,at:e.at,endAt:e.endAt,atMs:Date.parse(e.at||"")||0,endAtMs:Date.parse(e.endAt||"")||0,ripple:e.ripple,rippleSpeed:e.rippleSpeed,rippleThickness:e.rippleThickness,rippleWobble:e.rippleWobble,rumble:e.rumble,special:fishingCatalog.resolve(e).special,claimedBy:e.claimedBy||"",claimedAt:e.claimedAt||null,size:e.claimedBy?e.size:undefined,name:e.claimedBy?e.name:undefined,baseName:e.claimedBy?e.baseName:undefined,variant:e.claimedBy?e.variant:undefined,rarity:e.claimedBy?e.rarity:undefined})),
     myCatch:state.catches?.[viewer]||null,creatorCatch:state.catches?.[game.creator?.userId]||null,joinerCatch:state.catches?.[game.joiner?.userId]||null,
     secondsLeft:Math.max(0,Math.ceil(remainingMs/1000))};
 }
@@ -7275,7 +7256,7 @@ async function fishingTap(user,gameId,eventId,clickedAt){
     if(now<begin-graceMs||now>finish+graceMs||saneReported<begin-graceMs||saneReported>finish+graceMs) throw new Error("That fish is no longer biting.");
     if(e.claimedBy) throw new Error("Your opponent hooked that fish first.");
     e.claimedBy=viewer; e.claimedAt=new Date(Math.min(now,Math.max(begin,saneReported))).toISOString();
-    s.catches[viewer]={eventId:e.id,size:e.size,measuredSize:Number(e.size),name:e.name,baseName:e.baseName||e.name,variant:e.variant||"standard",rarity:e.rarity||"regular",special:Boolean(e.special||e.rarity&&e.rarity!=="regular"),at:e.claimedAt,ripple:e.ripple,rippleSpeed:e.rippleSpeed,rippleThickness:e.rippleThickness,rippleWobble:e.rippleWobble,rumble:e.rumble};
+    s.catches[viewer]={eventId:e.id,size:e.size,measuredSize:Number(e.size),...fishingCatalog.identity(e),at:e.claimedAt,ripple:e.ripple,rippleSpeed:e.rippleSpeed,rippleThickness:e.rippleThickness,rippleWobble:e.rippleWobble,rumble:e.rumble};
     s.revision=int(s.revision,0)+1; s.serverNow=nowIso();
     let candidate=fishingNormalizeClaims({...game,fishingState:s});
     // A stale or simultaneous request may have attempted to claim an already-used

@@ -1,6 +1,7 @@
 "use strict";
 
 const { getDatabase } = require("@netlify/database");
+const fishingCatalog = require("../../shared/games/fishing-catalog");
 
 const LEDGER_LIMIT = 120;
 function cleanId(value,max=120){return String(value||"").replace(/[^a-zA-Z0-9._:-]/g,"").slice(0,max)}
@@ -48,7 +49,7 @@ async function claimRipple({gameId,initialState,userId,eventId,actionId,clickedA
     const at=trusted?reported:now,begin=Date.parse(target.at||""),finish=Date.parse(target.endAt||""),roundEnd=Date.parse(state.endAt||"");
     if(!Number.isFinite(begin)||!Number.isFinite(finish)||at<begin-180||at>finish+180||(Number.isFinite(roundEnd)&&at>roundEnd+180)) throw new Error("That fish is no longer biting.");
     target.claimedBy=safeUserId;target.claimedAt=new Date(at).toISOString();
-    const catchData={eventId:target.id,size:Number(target.size),measuredSize:Number(target.size),name:target.name,baseName:target.baseName||target.name,variant:target.variant||"standard",rarity:target.rarity||"regular",special:Boolean(target.special||target.rarity&&target.rarity!=="regular"),at:target.claimedAt,ripple:target.ripple,rippleSpeed:target.rippleSpeed,rippleThickness:target.rippleThickness,rippleWobble:target.rippleWobble,rumble:target.rumble};
+    const catchData={eventId:target.id,size:Number(target.size),measuredSize:Number(target.size),...fishingCatalog.identity(target),at:target.claimedAt,ripple:target.ripple,rippleSpeed:target.rippleSpeed,rippleThickness:target.rippleThickness,rippleWobble:target.rippleWobble,rumble:target.rumble};
     catches[safeUserId]=catchData;state.catches=catches;
     const sequence=Number(row.revision||0)+1;
     await client.query(`INSERT INTO fishing_actions (game_id,action_id,sequence,user_id,event_id,accepted,reason,action_payload) VALUES ($1,$2,$3,$4,$5,TRUE,'',$6::jsonb)`,[safeGameId,safeActionId,sequence,safeUserId,safeEventId,JSON.stringify({clickedAt:new Date(at).toISOString(),catch:catchData})]);
@@ -69,7 +70,7 @@ async function npcAttempt({gameId,initialState,npcId}){
     }
     const target=(state.events||[]).find(e=>String(e.id)===String(state.npcCatchEventId)),catchAt=Date.parse(state.npcCatchAt||"");
     if(target&&!target.claimedBy&&Number.isFinite(catchAt)&&now>=catchAt&&now<=Date.parse(target.endAt||"")){
-      target.claimedBy=npcId;target.claimedAt=new Date(now).toISOString();catches[npcId]={eventId:target.id,size:Number(target.size),measuredSize:Number(target.size),name:target.name,baseName:target.baseName||target.name,variant:target.variant||"standard",rarity:target.rarity||"regular",special:Boolean(target.special||target.rarity&&target.rarity!=="regular"),at:target.claimedAt,ripple:target.ripple,rippleSpeed:target.rippleSpeed,rippleThickness:target.rippleThickness,rippleWobble:target.rippleWobble,rumble:target.rumble};state.catches=catches;
+      target.claimedBy=npcId;target.claimedAt=new Date(now).toISOString();catches[npcId]={eventId:target.id,size:Number(target.size),measuredSize:Number(target.size),...fishingCatalog.identity(target),at:target.claimedAt,ripple:target.ripple,rippleSpeed:target.rippleSpeed,rippleThickness:target.rippleThickness,rippleWobble:target.rippleWobble,rumble:target.rumble};state.catches=catches;
       const revision=Number(row.revision||0)+1;await client.query(`UPDATE fishing_matches SET state=$2::jsonb,revision=$3,updated_at=NOW() WHERE game_id=$1`,[cleanId(gameId),JSON.stringify(state),revision]);return hydrate(state,revision,await ledger(client,gameId));
     }
     return hydrate(state,row.revision,await ledger(client,gameId));

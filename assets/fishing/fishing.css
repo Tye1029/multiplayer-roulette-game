@@ -107,7 +107,7 @@
   white-space: nowrap;
 }
 
-.fishing-command-bar > .fishing-clock {
+.fishing-player-strip > .fishing-clock {
   position: static !important;
   min-width: 72px;
   padding: 8px 15px;
@@ -218,7 +218,7 @@
 
 .fishing-player-strip {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) clamp(80px, 13vw, 132px) minmax(0, 1fr);
   align-items: center;
   gap: 10px;
   padding: 10px 18px;
@@ -865,7 +865,7 @@
     font-size: .68rem;
   }
 
-  .fishing-command-bar > .fishing-clock {
+  .fishing-player-strip > .fishing-clock {
     min-width: 58px;
     padding: 7px 10px;
     font-size: .95rem;
@@ -1507,6 +1507,40 @@
   user-select: none;
 }
 
+/* Measurement art is centered in its own equal-sized cell, not positioned as
+   though it were still hanging from a line at left:50% / translateX(-50%). */
+.fishing-comparison-fish { align-items: stretch; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); }
+.fishing-compare-side { justify-content: center; }
+.fishing-compare-side.winner { transform: none; }
+.fishing-compare-art { display: grid; place-items: center; width: 100%; height: 92px; }
+.fishing-compare-art .fishing-fish.fishing-fish-png {
+  --fish-width: clamp(16px, calc(var(--fish-cm) * 1.24px), 124px);
+  position: relative !important;
+  inset: auto !important;
+  width: min(100%, var(--fish-width)) !important;
+  height: 100% !important;
+  margin: 0 !important;
+  transform: none !important;
+  animation: none !important;
+}
+.fishing-compare-side.right .fishing-fish.fishing-fish-png { transform: scaleX(-1) !important; }
+.fishing-comparison-overlay.compare .fishing-comparison-fish { animation: none !important; }
+.fishing-compare-name { white-space: normal; text-align: center; line-height: 1.2; }
+@media (max-width:680px) {
+  .fishing-comparison-overlay { gap: 3px; padding: 6px; }
+  .fishing-comparison-title { font-size: .85rem; line-height: 1.1; }
+  .fishing-comparison-sub { font-size: .6rem; line-height: 1.1; }
+  .fishing-comparison-fish { width: 96%; gap: 4px; }
+  .fishing-compare-side { gap: 2px; padding: 4px; border-radius: 5px; }
+  .fishing-compare-avatar { display: none !important; }
+  .fishing-compare-art { height: 42px; flex: 0 0 42px; }
+  .fishing-compare-art .fishing-fish.fishing-fish-png { --fish-width: calc(var(--fish-cm) * .62px); }
+  .fishing-compare-name { font-size: .6rem; }
+  .fishing-compare-size { font-size: .75rem; }
+  .fishing-compare-ruler { height: 27px; flex: 0 0 27px; margin: 0; }
+  .fishing-ruler-labels { font-size: .5rem; }
+}
+
 .fishing-fish-eye-blink {
   position: absolute;
   z-index: 3;
@@ -1808,10 +1842,10 @@
   display: grid !important;
 }
 .fishing-command-bar {
-  grid-template-columns: minmax(0, 1fr) minmax(126px, 168px) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 }
 
-.fishing-command-bar > .fishing-clock {
+.fishing-player-strip > .fishing-clock {
   position: static !important;
   display: grid;
   justify-self: center;
@@ -2181,8 +2215,8 @@ body.fishing-result-open { overflow: hidden !important; }
 #fishingResultPortal .duel-end-screen-close { z-index: 20; }
 
 @media (max-width: 680px) {
-  .fishing-command-bar { grid-template-columns: minmax(0, 1fr) 112px minmax(0, 1fr); }
-  .fishing-command-bar > .fishing-clock { padding: 6px 7px 7px; }
+  .fishing-command-bar { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .fishing-player-strip > .fishing-clock { padding: 6px 7px 7px; }
   .fishing-clock-value { font-size: 1.08rem; }
   .fishing-controls { min-height: 62px; padding-inline: 8px; }
   .fishing-tip-rotator { min-height: 3.2em; }
@@ -2195,7 +2229,7 @@ body.fishing-result-open { overflow: hidden !important; }
 }
 
 @media (max-width: 430px) {
-  .fishing-command-bar { grid-template-columns: minmax(0, 1fr) 92px minmax(0, 1fr); padding-inline: 9px; }
+  .fishing-command-bar { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); padding-inline: 9px; }
   .fishing-clock-label { font-size: .4rem; letter-spacing: .12em; }
   .fishing-clock-value { font-size: .98rem; }
   #fishingResultPortal .fishing-result-header { grid-template-columns: 32px minmax(0,1fr) 32px; gap: 8px; }
@@ -2258,6 +2292,49 @@ body.fishing-result-open { overflow: hidden !important; }
 .fishing-debug-grid { font-size: .7rem; font-weight: 500; }
 .fishing-debug-grid strong { font-weight: 650; }
 .fishing-debug-copy-status { font-size: .7rem; }
+
+/* The same four tier colors label catches, measurements, and collection rows. */
+.fishing-rarity-tag.common, .fishing-log-rare-badge.common { --rarity-ink:#164d2a; --rarity-color:#79d69a; }
+.fishing-rarity-tag.uncommon, .fishing-log-rare-badge.uncommon { --rarity-ink:#183c65; --rarity-color:#79bdff; }
+.fishing-rarity-tag.rare, .fishing-log-rare-badge.rare { --rarity-ink:#522d77; --rarity-color:#cb9dff; }
+.fishing-rarity-tag.mythical, .fishing-log-rare-badge.mythical { --rarity-ink:#654c08; --rarity-color:#ffe071; }
+.fishing-rarity-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  width: fit-content;
+  padding: 2px 7px;
+  border: 1px solid var(--rarity-color);
+  border-radius: 3px;
+  color: var(--rarity-color) !important;
+  background: #092e3c !important;
+  font: 700 .6rem/1.3 ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: .035em;
+  text-transform: uppercase;
+}
+.fishing-log-copy .fishing-rarity-tag {
+  margin: 3px 0;
+  color: var(--rarity-ink) !important;
+  background: var(--rarity-color) !important;
+  align-self: start;
+}
+.fishing-log-copy .fishing-log-rare-badge {
+  margin: 2px 0;
+  color: var(--rarity-ink);
+  background: var(--rarity-color);
+  padding: 1px 7px 1px 2px;
+  border-radius: 4px;
+  width: fit-content;
+}
+.fishing-log-section { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.fishing-log-section.common { border-color:#369256; color:#164d2a; }
+.fishing-log-section.uncommon { border-color:#4187c7; color:#183c65; }
+.fishing-log-section.rare { border-color:#9661c1; color:#522d77; }
+.fishing-log-section.mythical { border-color:#a38326; color:#654c08; }
+.fishing-log-section small { font-size:.65rem; font-weight:600; text-align:right; }
+.fishing-result-catches > div > b { display:flex; flex-direction:column; align-items:center; gap:5px; overflow:visible; }
+.fishing-comparison-overlay .fishing-rarity-tag { margin: 0; }
 .fishing-result-content { scrollbar-gutter: stable; }
 @media (max-width: 680px) {
   .fishing-brand b { font-size: .62rem; }

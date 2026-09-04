@@ -12561,8 +12561,9 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
   <script id="blackjackDuelRuntime" src="/assets/blackjack-duel/blackjack-duel.js?v=blackjack-duel-v17" defer></script>
 <!-- BLACKJACK_DUEL_ASSETS_END -->
 <!-- FISHING_DUEL_ASSETS_START -->
-  <link id="fishingDuelStyles" rel="stylesheet" href="/assets/fishing/fishing.css?v=fishing-mechanics-v25">
-  <script id="fishingDuelRuntime" defer src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v25"></script>
+  <script src="/shared/games/fishing-catalog.js?v=fishing-mechanics-v26"></script>
+  <link id="fishingDuelStyles" rel="stylesheet" href="/assets/fishing/fishing.css?v=fishing-mechanics-v26">
+  <script id="fishingDuelRuntime" defer src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v26"></script>
 <!-- FISHING_DUEL_ASSETS_END -->
 
 <!-- MOUNTAIN_RACE_V29_PRELOADS -->
@@ -18833,21 +18834,22 @@ function updateRunnerBalanceDisplay() {
         if(resultKey!==duelFishingAudioState.resultKey){duelFishingAudioState.resultKey=resultKey;duelFishingScheduleAudio(()=>duelFishingPlayResult(game),480);}
       }
     }
-    const FISHING_SPECIES=["Titan Sturgeon","Grand Marlin","Giant Bluefin Tuna","Broadbill Swordfish","Arapaima","Mekong Giant Catfish","Sailfish","Paddlefish","King Salmon","Northern Muskie","Lake Sturgeon","Alligator Gar","Wels Catfish","Goliath Tigerfish","Tarpon","Great Barracuda","Electric Eel","Red Drum","Largemouth Bass","Rainbow Trout","Red Snapper","Northern Pike","Striped Bass","Mahi-Mahi","Peacock Bass","Common Carp","Atlantic Cod","Black Sea Bass","Lionfish","Moonfish","Coelacanth","Yellow Perch","Black Crappie","Bluegill","Brook Trout","Koi Carp","Clown Knifefish","Oscar","River Bream","Blue Tang","Copperband Butterflyfish","Pufferfish","Mandarinfish","Silver Minnow","Sardine","Tiny Sunfish","Anchovy","Neon Tetra","Guppy","Smelt","Dwarf Gourami","Royal Gramma","Zebra Pleco","Aurora Koi","Celestial Anglerfish","Nemo"];
-    const FISHING_VARIANT_PREFIX=/^(crystal|golden|silver|albino|midnight|emerald)\s+/i;
-    function duelFishingBaseName(name){const raw=String(name||"Fish").trim();return FISHING_SPECIES.find(species=>species.toLowerCase()===raw.toLowerCase())||raw.replace(FISHING_VARIANT_PREFIX,"").trim()||"Fish";}
+    const FISHING_SPECIES=FISHING_CATALOG.entries.map(fish=>fish.name);
+    function duelFishingBaseName(name){return FISHING_CATALOG.resolve(name).name;}
     function duelFishingAssetSlug(name){return duelFishingBaseName(name).toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");}
     function duelFishVariantClass(cOrName){
-      const v=typeof cOrName==="object"?String(cOrName?.variant||"").toLowerCase():String(cOrName||"").toLowerCase().split(" ")[0];
-      return ["golden","silver","albino","midnight","emerald","crystal","aurora","celestial","nemo"].includes(v)?`variant-${v}`:"";
+      const fish=FISHING_CATALOG.resolve(cOrName);
+      return fish.variant==="standard"?"":`variant-${fish.variant}`;
+    }
+    function duelFishingRarityBadge(value,stamp=false){
+      const fish=FISHING_CATALOG.resolve(value),tier=FISHING_CATALOG.tiers.find(t=>t.id===fish.rarity);
+      const seal=stamp?'<svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><circle cx="16" cy="16" r="14"/><circle class="stamp-ring" cx="16" cy="16" r="11.5"/><path d="m16 7 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9Z"/></svg>':"";
+      return `<span class="${stamp?'fishing-log-rare-badge':'fishing-rarity-tag'} ${fish.rarity}" aria-label="${tier.label} fish">${seal}<span>${tier.label}</span></span>`;
     }
     function duelFishSvg(size,name,catchData=null){
       const cm=Math.max(12,Math.min(100,Number(size||12)));
-      const variant=typeof catchData==="object"?String(catchData?.variant||"standard").toLowerCase():String(name||"").toLowerCase().split(" ")[0];
-      const rareAsset={golden:"golden-wide",silver:"silver-wide",albino:"albino-hat-wide",midnight:"midnight-wide",emerald:"emerald-wide",crystal:"crystal-wide",aurora:"aurora-koi",celestial:"celestial-anglerfish",nemo:"nemo"}[variant];
-      const src=rareAsset?`/assets/fishing/images/v2/rare/${rareAsset}-v2.png`:`/assets/fishing/images/v2/fish/${duelFishingAssetSlug(name)}-v2.png`;
-      const rarity=String(catchData?.rarity||"regular").toLowerCase();
-      return `<div class="fishing-fish fishing-fish-png ${duelFishVariantClass(catchData||name)} rarity-${escapeHtml(rarity)}" style="--fish-cm:${cm}" aria-hidden="true"><img src="${src}" alt="" draggable="false"><span class="fishing-fish-eye-blink"></span><span class="fishing-fish-shimmer"></span></div>`;
+      const fish=FISHING_CATALOG.resolve({...catchData,name});
+      return `<div class="fishing-fish fishing-fish-png ${duelFishVariantClass(fish)} rarity-${fish.rarity}" style="--fish-cm:${cm}" aria-hidden="true"><img src="${fish.asset}" alt="" draggable="false"><span class="fishing-fish-eye-blink"></span><span class="fishing-fish-shimmer"></span></div>`;
     }
     function duelFishingPerson(name,side){return "";}
     function duelFishingSceneSvg(state){
@@ -18862,7 +18864,7 @@ function updateRunnerBalanceDisplay() {
       if(!c)return `<div class="fishing-hook-catch ${side}" data-catch-id=""></div>`;
       // Keep the exact measurement secret throughout live gameplay. Players
       // can judge only the illustrated fish and the ripple that produced it.
-      const rarity=String(c.rarity||"regular"); const rarityTag=rarity!=="regular"?`<span class="fishing-rarity-tag ${escapeHtml(rarity)}">${escapeHtml(rarity)}</span>`:""; const caption=showCaption?`<div class="fishing-catch-caption"><b>${escapeHtml(c.name||"Fish")}</b>${rarityTag}</div>`:"";
+      const fish=FISHING_CATALOG.resolve(c); const caption=showCaption?`<div class="fishing-catch-caption"><b>${escapeHtml(fish.name)}</b>${duelFishingRarityBadge(fish)}</div>`:"";
       return `<div class="fishing-hook-catch ${side}" data-catch-id="${escapeHtml(c.eventId||"")}"><div class="fishing-catch-unit${animate?" is-pulling":""}">${duelFishSvg(c.size,c.name,c)}${caption}</div></div>`;
     }
     function duelFishingStatus(game,state,active){
@@ -18988,7 +18990,7 @@ function updateRunnerBalanceDisplay() {
       if(window.FishingSceneController||window.__fishingControllerLoading)return;
       window.__fishingControllerLoading=true;
       const script=document.createElement("script");
-      script.src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v25&runtime=1";
+      script.src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v26&runtime=1";
       script.onload=()=>{window.__fishingControllerLoading=false;if(root?.isConnected)duelBindFishing(root);};
       script.onerror=()=>{window.__fishingControllerLoading=false;console.error("Fishing controller failed to load");};
       document.head.appendChild(script);
@@ -20048,14 +20050,14 @@ function updateRunnerBalanceDisplay() {
       const title=phase==="compare"?"COMPARE THE CATCHES":phase==="measuring"?"MEASURING THE FISH...":"FINAL MEASUREMENTS";
       const sub=phase==="compare"?"Take a good look before the ruler comes out":phase==="measuring"?"The exact sizes are still hidden":"The larger catch takes it";
       const ruler=phase==="compare"?"":`<div class="fishing-compare-ruler" aria-hidden="true"><div class="fishing-compare-fill"></div><div class="fishing-ruler-labels"><span>0</span><span>25</span><span>50</span><span>75</span><span>100 cm</span></div></div>`;
-      return `<div class="fishing-comparison-overlay ${phase}" data-fishing-comparison="1" data-comparison-phase="${phase}"><div class="fishing-comparison-title">${title}</div><div class="fishing-comparison-sub">${sub}</div><div class="fishing-comparison-fish"><div class="fishing-compare-side left ${leftWin?"winner":"pending-winner"}">${duelFishingPlayerAvatar(game.creator)}<div class="fishing-compare-art">${c?duelFishSvg(c.size,c.name,c):""}</div><div class="fishing-compare-name">${escapeHtml(c?.name||"No fish")}</div><div class="fishing-compare-size ${revealed?"":"concealed"}">${leftSize}</div></div><div class="fishing-compare-vs">VS</div><div class="fishing-compare-side right ${rightWin?"winner":"pending-winner"}">${duelFishingPlayerAvatar(game.joiner)}<div class="fishing-compare-art">${j?duelFishSvg(j.size,j.name,j):""}</div><div class="fishing-compare-name">${escapeHtml(j?.name||"No fish")}</div><div class="fishing-compare-size ${revealed?"":"concealed"}">${rightSize}</div></div></div>${ruler}</div>`;
+      return `<div class="fishing-comparison-overlay ${phase}" data-fishing-comparison="1" data-comparison-phase="${phase}"><div class="fishing-comparison-title">${title}</div><div class="fishing-comparison-sub">${sub}</div><div class="fishing-comparison-fish"><div class="fishing-compare-side left ${leftWin?"winner":"pending-winner"}">${duelFishingPlayerAvatar(game.creator)}<div class="fishing-compare-art">${c?duelFishSvg(c.size,c.name,c):""}</div><div class="fishing-compare-name">${escapeHtml(c?FISHING_CATALOG.resolve(c).name:"No fish")}</div>${c?duelFishingRarityBadge(c):""}<div class="fishing-compare-size ${revealed?"":"concealed"}">${leftSize}</div></div><div class="fishing-compare-vs">VS</div><div class="fishing-compare-side right ${rightWin?"winner":"pending-winner"}">${duelFishingPlayerAvatar(game.joiner)}<div class="fishing-compare-art">${j?duelFishSvg(j.size,j.name,j):""}</div><div class="fishing-compare-name">${escapeHtml(j?FISHING_CATALOG.resolve(j).name:"No fish")}</div>${j?duelFishingRarityBadge(j):""}<div class="fishing-compare-size ${revealed?"":"concealed"}">${rightSize}</div></div></div>${ruler}</div>`;
     }
 
     function duelFishingPreviewVariant(speciesName){
-      return {"Aurora Koi":"aurora","Celestial Anglerfish":"celestial","Nemo":"nemo"}[String(speciesName||"")]||"standard";
+      return FISHING_CATALOG.resolve(speciesName).variant;
     }
     function duelFishingIsRareFish(variant="standard",rarity="regular"){
-      return Boolean(duelFishVariantClass({variant}))||["uncommon","rare","epic","legendary"].includes(String(rarity).toLowerCase());
+      return FISHING_CATALOG.resolve({variant}).special;
     }
     function duelFishingCanAcceptRematch(game,now=Date.now()){
       const offer=game?.rematch||{},requested=offer.requestedBy||{};
@@ -20063,7 +20065,7 @@ function updateRunnerBalanceDisplay() {
       return Boolean(game?.mode==="fishing"&&game.status==="complete"&&game.remoteNetworkTest&&game.joiner?.isRemoteBot&&!game.rematchGameId&&requested[game.creator?.userId]&&!requested[game.joiner?.userId]&&Number.isFinite(expires)&&expires>now);
     }
     function duelFishingRareBadge(variant="standard",rarity="regular"){
-      return duelFishingIsRareFish(variant,rarity)?'<span class="fishing-log-rare-badge" aria-label="Rare fish"><svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><circle cx="16" cy="16" r="14"/><circle class="stamp-ring" cx="16" cy="16" r="11.5"/><path d="m16 7 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9Z"/></svg><span>Rare</span></span>':"";
+      return duelFishingIsRareFish(variant,rarity)?duelFishingRarityBadge({variant},true):"";
     }
     function duelBindFishingLogbookPreview(root=document){
       root?.querySelectorAll?.('[data-fishing-logbook]').forEach(book=>{
@@ -20080,38 +20082,22 @@ function updateRunnerBalanceDisplay() {
       });
     }
     function duelFishingLogbookHtml(logbook, newSpecies=false) {
-      const book = logbook && typeof logbook === "object" ? logbook : {};
-      const speciesMap = book.species && typeof book.species === "object" ? book.species : {};
-      const entries = Object.values(speciesMap)
-        .filter(entry => entry && typeof entry === "object");
-      const caughtByBase=new Map(entries.map(entry=>[duelFishingBaseName(entry.baseName||entry.name).toLowerCase(),entry]));
-      const discovered = entries.length;
-      const totalCaught = Math.max(0, Number(book.totalCaught||0));
-      const rareCaught = Math.max(0, Number(book.rareCaught||0));
-      const rareSpecies=name=>{const entry=caughtByBase.get(name.toLowerCase());return duelFishingIsRareFish(entry?.bestVariant||duelFishingPreviewVariant(name),entry?.bestRarity);};
-      const orderedSpecies=[...FISHING_SPECIES].sort((a,b)=>Number(rareSpecies(a))-Number(rareSpecies(b)));
-      let rareSectionStarted=false;
-      const speciesHtml = orderedSpecies.map(speciesName => {
-        const entry=caughtByBase.get(speciesName.toLowerCase());
-        const isRare=rareSpecies(speciesName);
-        const section=isRare&&!rareSectionStarted?'<h3 class="fishing-log-section">Rare finds</h3>':"";
-        if(isRare)rareSectionStarted=true;
-        if(!entry){
-          const previewVariant=duelFishingPreviewVariant(speciesName);
-          const preview=duelFishSvg(48,speciesName,{variant:previewVariant,rarity:previewVariant==="standard"?"regular":previewVariant==="nemo"?"rare":"legendary"});
-          return `${section}<div class="fishing-log-entry locked" data-fish-rarity="${isRare?'rare':'regular'}" data-fish-species="${escapeHtml(speciesName)}"><div class="fishing-log-thumb" aria-hidden="true"><span class="fishing-log-question">?</span><span class="fishing-log-unlock-preview">${preview}</span></div><div class="fishing-log-copy"><b><span class="fishing-log-locked-name">???</span><span class="fishing-log-unlock-name">${escapeHtml(speciesName)}${duelFishingRareBadge(previewVariant)}</span></b><span>Not caught yet</span><span>Keep watching the ripples</span></div></div>`;
-        }
-        const rawName = String(entry.name||speciesName);
-        const name = escapeHtml(rawName);
-        const best = Number(entry.bestSize||0);
-        const count = Math.max(0, Number(entry.count||0));
-        const rare = Math.max(0, Number(entry.rareCount||0));
-        const variant = String(entry.bestVariant||duelFishingPreviewVariant(speciesName));
-        const variantText = variant && variant !== "standard" ? ` • ${escapeHtml(variant)}` : "";
-        const picture=duelFishSvg(best||48,rawName,{variant});
-        return `${section}<div class="fishing-log-entry" data-fish-rarity="${isRare?'rare':'regular'}" data-fish-species="${escapeHtml(speciesName)}"><div class="fishing-log-thumb" aria-hidden="true">${picture}</div><div class="fishing-log-copy"><b>${name}${duelFishingRareBadge(variant,entry.bestRarity)}</b><span>Personal best <strong>${best>0?`${best} cm`:"—"}</strong>${variantText}</span><span>${count} caught${rare?` • ${rare} rare`:""}</span></div></div>`;
+      const book=logbook&&typeof logbook==="object"?logbook:{};
+      const caught=FISHING_CATALOG.records(book),discovered=caught.size;
+      const totalCaught=Math.max(0,Number(book.totalCaught||0)),rareCaught=Math.max(0,Number(book.rareCaught||0));
+      const speciesHtml=FISHING_CATALOG.tiers.map(tier=>{
+        const rows=FISHING_CATALOG.ordered.filter(f=>f.rarity===tier.id).map(fish=>{
+          const entry=caught.get(fish.name),name=escapeHtml(fish.name);
+          const picture=duelFishSvg(entry?.bestSize||48,fish.name,fish);
+          const badge=duelFishingRarityBadge(fish,fish.special);
+          const attributes=`data-fish-rarity="${fish.rarity}" data-fish-species="${name}"`;
+          if(!entry)return `<div class="fishing-log-entry locked" ${attributes}><div class="fishing-log-thumb" aria-hidden="true"><span class="fishing-log-question">?</span><span class="fishing-log-unlock-preview">${picture}</span></div><div class="fishing-log-copy"><b><span class="fishing-log-locked-name">???</span><span class="fishing-log-unlock-name">${name}</span></b>${badge}<span>Not caught yet</span></div></div>`;
+          const best=Number(entry.bestSize||0);
+          return `<div class="fishing-log-entry" ${attributes}><div class="fishing-log-thumb" aria-hidden="true">${picture}</div><div class="fishing-log-copy"><b>${name}</b>${badge}<span>Personal best <strong>${best>0?`${best} cm`:"—"}</strong></span><span>${Math.max(0,Number(entry.count||0))} caught</span></div></div>`;
+        }).join("");
+        return `<h3 class="fishing-log-section ${tier.id}" data-rarity-section="${tier.id}"><span>${tier.label}</span><small>${Math.round(tier.chance*100)}% appearance chance</small></h3>${rows}`;
       }).join("");
-      return `<details class="fishing-logbook" data-fishing-logbook open><summary><span class="fishing-logbook-title"><i aria-hidden="true">▱</i><span>Angler's field log<small>Your personal fish collection</small></span></span>${newSpecies?'<span class="fishing-new-species">NEW SPECIES</span>':`<span class="fishing-logbook-count">${discovered} / ${FISHING_SPECIES.length}</span>`}</summary><div class="fishing-logbook-body"><div class="fishing-logbook-tools"><button type="button" class="fishing-log-unlock" data-fishing-log-unlock aria-pressed="false">Unlock all fish (testing)</button><small>Temporary collection preview</small></div><div class="fishing-logbook-stats"><div class="fishing-logbook-stat"><b>${discovered} / ${FISHING_SPECIES.length}</b>Discovered</div><div class="fishing-logbook-stat"><b>${totalCaught}</b>Total catches</div><div class="fishing-logbook-stat"><b>${rareCaught}</b>Rare finds</div></div><div class="fishing-logbook-grid">${speciesHtml}</div></div></details>`;
+      return `<details class="fishing-logbook" data-fishing-logbook open><summary><span class="fishing-logbook-title"><i aria-hidden="true">▱</i><span>Angler's field log<small>Your personal fish collection</small></span></span>${newSpecies?'<span class="fishing-new-species">NEW SPECIES</span>':`<span class="fishing-logbook-count">${discovered} / ${FISHING_SPECIES.length}</span>`}</summary><div class="fishing-logbook-body"><div class="fishing-logbook-tools"><button type="button" class="fishing-log-unlock" data-fishing-log-unlock aria-pressed="false">Unlock all fish (testing)</button><small>Temporary collection preview</small></div><div class="fishing-logbook-stats"><div class="fishing-logbook-stat"><b>${discovered} / ${FISHING_SPECIES.length}</b>Discovered</div><div class="fishing-logbook-stat"><b>${totalCaught}</b>Total catches</div><div class="fishing-logbook-stat"><b>${rareCaught}</b>Special catches</div></div><div class="fishing-logbook-grid">${speciesHtml}</div></div></details>`;
     }
 
     function duelFishingResultOverlay(game) {
@@ -20126,9 +20112,9 @@ function updateRunnerBalanceDisplay() {
       const isTie = Boolean(game.tie);
       const resultTitle = isTie ? "DEAD HEAT" : meWon ? "BIGGEST CATCH!" : "OUTFISHED";
       const resultClass = isTie ? "tie" : meWon ? "win" : "lose";
-      const catchName = escapeHtml(myCatch?.name || "No fish caught");
+      const catchName = escapeHtml(myCatch?FISHING_CATALOG.resolve(myCatch).name:"No fish caught");
       const catchSize = myCatch ? `${Number(myCatch.size || 0)} cm` : "—";
-      const opponentName = escapeHtml(opponentCatch?.name || "No fish caught");
+      const opponentName = escapeHtml(opponentCatch?FISHING_CATALOG.resolve(opponentCatch).name:"No fish caught");
       const opponentSize = opponentCatch ? `${Number(opponentCatch.size || 0)} cm` : "—";
       const myBigger=!isTie&&Number(myCatch?.size||0)>Number(opponentCatch?.size||0);
       const oppBigger=!isTie&&Number(opponentCatch?.size||0)>Number(myCatch?.size||0);
@@ -20165,7 +20151,7 @@ function updateRunnerBalanceDisplay() {
         return `<div class="fishing-record-row">${badge}<span>${label}: <b>${current>0?`${current} cm`:"—"}</b></span></div>${previousText}`;
       };
       const payoutText=isTie?"WAGERS RETURNED":meWon?`${money(ticketsWon)} WON`:"NEXT CAST AWAITS";
-      return `<div class="fishing-result-overlay ${resultClass}" data-fishing-result="1" role="dialog" aria-label="Fishing match result"><div class="fishing-result-card" data-fishing-result-card="1"><header class="fishing-result-header"><div class="fishing-result-hook" aria-hidden="true">⌁</div><div><div class="fishing-result-kicker">TOURNAMENT WEIGH-IN</div><div class="fishing-result-title">${resultTitle}</div><p>${escapeHtml(resultSummary)}</p></div><div class="fishing-result-float" aria-hidden="true"><i></i></div></header><div class="fishing-result-content">${tieEmblem}<div class="fishing-result-catches"><div class="${myBigger?"winner":""}">${myBigger?'<span class="fishing-result-ribbon">LARGEST</span>':""}<span>Your catch</span><div class="fishing-result-fish-art">${myArt}</div><b>${catchName}</b><strong>${catchSize}</strong>${recordHtml(myRecord,"Personal best")}</div><div class="${oppBigger?"winner":""}">${oppBigger?'<span class="fishing-result-ribbon">LARGEST</span>':""}<span>Opponent catch</span><div class="fishing-result-fish-art">${oppArt}</div><b>${opponentName}</b><strong>${opponentSize}</strong>${recordHtml(opponentRecord,"Personal best")}</div></div>${duelFishingLogbookHtml(myLogbook,myNewSpecies)}<div class="fishing-result-payout"><span>RESULT</span><b>${payoutText}</b></div></div><footer class="fishing-result-actions"><button class="gold duel-rematch-btn ${myRematch ? "requested" : ""}" id="duelRematchBtn" type="button" ${myRematch ? "disabled" : ""}><i aria-hidden="true">↻</i>${rematchLabel}</button><button class="secondary" id="duelNewGameBtn" type="button"><i aria-hidden="true">＋</i><span>Create a New Game</span></button></footer></div></div>`;
+      return `<div class="fishing-result-overlay ${resultClass}" data-fishing-result="1" role="dialog" aria-label="Fishing match result"><div class="fishing-result-card" data-fishing-result-card="1"><header class="fishing-result-header"><div class="fishing-result-hook" aria-hidden="true">⌁</div><div><div class="fishing-result-kicker">TOURNAMENT WEIGH-IN</div><div class="fishing-result-title">${resultTitle}</div><p>${escapeHtml(resultSummary)}</p></div><div class="fishing-result-float" aria-hidden="true"><i></i></div></header><div class="fishing-result-content">${tieEmblem}<div class="fishing-result-catches"><div class="${myBigger?"winner":""}">${myBigger?'<span class="fishing-result-ribbon">LARGEST</span>':""}<span>Your catch</span><div class="fishing-result-fish-art">${myArt}</div><b>${catchName}${myCatch?duelFishingRarityBadge(myCatch):""}</b><strong>${catchSize}</strong>${recordHtml(myRecord,"Personal best")}</div><div class="${oppBigger?"winner":""}">${oppBigger?'<span class="fishing-result-ribbon">LARGEST</span>':""}<span>Opponent catch</span><div class="fishing-result-fish-art">${oppArt}</div><b>${opponentName}${opponentCatch?duelFishingRarityBadge(opponentCatch):""}</b><strong>${opponentSize}</strong>${recordHtml(opponentRecord,"Personal best")}</div></div>${duelFishingLogbookHtml(myLogbook,myNewSpecies)}<div class="fishing-result-payout"><span>RESULT</span><b>${payoutText}</b></div></div><footer class="fishing-result-actions"><button class="gold duel-rematch-btn ${myRematch ? "requested" : ""}" id="duelRematchBtn" type="button" ${myRematch ? "disabled" : ""}><i aria-hidden="true">↻</i>${rematchLabel}</button><button class="secondary" id="duelNewGameBtn" type="button"><i aria-hidden="true">＋</i><span>Create a New Game</span></button></footer></div></div>`;
     }
 
     function duelActionChoices(game) {
@@ -22727,7 +22713,7 @@ function updateRunnerBalanceDisplay() {
       duelFishingLatestGame=game; const sec=game.status==="playing"?(fishingV3.endLocal?Math.min(60,Math.max(0,Math.ceil(fishingV3Remaining()/1000))):60):0;
       if(game.status==="complete")duelFishingEnsureCompletionTicker(game);else duelFishingHideResultPortal();
       const pot=money(game.pot||game.wager||0);
-      return `<div class="fishing-game" data-fishing-game data-fishing-game-id="${escapeHtml(String(game.gameId||""))}" data-fishing-round-id="${escapeHtml(String(state.roundId||""))}" data-fishing-runtime-key="${escapeHtml(fishingV3.key)}"><header class="fishing-command-bar"><div class="fishing-brand"><span class="fishing-brand-mark" aria-hidden="true">◒</span><span><small>RUMBLE</small><b>FISHING DUEL</b></span></div>${duelFishingClockHtml(game.status==="countdown"?60:sec,game.status)}<div class="fishing-pot"><small>PRIZE POT</small><b>${pot}</b></div></header><section class="fishing-instructions" aria-label="How to play"><div class="fishing-instruction-heading"><small>HOW TO PLAY</small><b>One cast. Choose wisely.</b></div><ol><li><i>1</i><span><b>Watch</b><small>Read the water</small></span></li><li><i>2</i><span><b>Bigger ripple = Bigger Fish!</b><small>Wait for the best one</small></span></li><li><i>3</i><span><b>Tap once</b><small>Largest catch wins</small></span></li></ol></section><div class="fishing-player-strip">${duelFishingPlayerChip(game.creator,"PLAYER 1")}<span class="fishing-versus">VS</span>${duelFishingPlayerChip(game.joiner,"PLAYER 2")}</div><div class="fishing-water ${active&&!state.myCatch?"can-tap":""}" data-fishing-water data-fish-id="${escapeHtml(active?.id||"")}"><div class="fishing-water-glint"></div><span class="fishing-bubble b1"></span><span class="fishing-bubble b2"></span><span class="fishing-bubble b3"></span>${duelFishingSceneSvg(state)}${active?`<div class="fishing-ripple${active.special?" is-special":""}" data-ripple-id="${escapeHtml(String(active.id||""))}" style="--ripple:${Number(active.ripple||58)}px;--ripple-speed:${Number(active.rippleSpeed||1.2)}s;--ripple-thickness:${Number(active.rippleThickness||1.8)}px;--ripple-wobble:${Number(active.rippleWobble||1)}"><i></i><i></i><i></i>${active.special?'<span class="fishing-ripple-sparkles" aria-hidden="true"></span>':""}</div>`:""}<div class="fishing-center-status">${escapeHtml(duelFishingStatus(game,state,active))}</div>${game.status==="complete"?duelFishingComparisonOverlay(game):""}</div><div class="fishing-controls">${duelFishingTipsHtml()}</div>${duelFishingDebugPanel(game,state,active,game.status==="countdown"?60:sec)}</div>`;
+      return `<div class="fishing-game" data-fishing-game data-fishing-game-id="${escapeHtml(String(game.gameId||""))}" data-fishing-round-id="${escapeHtml(String(state.roundId||""))}" data-fishing-runtime-key="${escapeHtml(fishingV3.key)}"><header class="fishing-command-bar"><div class="fishing-brand"><span class="fishing-brand-mark" aria-hidden="true">◒</span><span><small>RUMBLE</small><b>FISHING DUEL</b></span></div><div class="fishing-pot"><small>PRIZE POT</small><b>${pot}</b></div></header><section class="fishing-instructions" aria-label="How to play"><div class="fishing-instruction-heading"><small>HOW TO PLAY</small><b>One cast. Choose wisely.</b></div><ol><li><i>1</i><span><b>Watch</b><small>Read the water</small></span></li><li><i>2</i><span><b>Bigger ripple = Bigger Fish!</b><small>Wait for the best one</small></span></li><li><i>3</i><span><b>Tap once</b><small>Largest catch wins</small></span></li></ol></section><div class="fishing-player-strip">${duelFishingPlayerChip(game.creator,"PLAYER 1")}${duelFishingClockHtml(game.status==="countdown"?60:sec,game.status)}${duelFishingPlayerChip(game.joiner,"PLAYER 2")}</div><div class="fishing-water ${active&&!state.myCatch?"can-tap":""}" data-fishing-water data-fish-id="${escapeHtml(active?.id||"")}"><div class="fishing-water-glint"></div><span class="fishing-bubble b1"></span><span class="fishing-bubble b2"></span><span class="fishing-bubble b3"></span>${duelFishingSceneSvg(state)}${active?`<div class="fishing-ripple${active.special?" is-special":""}" data-ripple-id="${escapeHtml(String(active.id||""))}" style="--ripple:${Number(active.ripple||58)}px;--ripple-speed:${Number(active.rippleSpeed||1.2)}s;--ripple-thickness:${Number(active.rippleThickness||1.8)}px;--ripple-wobble:${Number(active.rippleWobble||1)}"><i></i><i></i><i></i>${active.special?'<span class="fishing-ripple-sparkles" aria-hidden="true"></span>':""}</div>`:""}<div class="fishing-center-status">${escapeHtml(duelFishingStatus(game,state,active))}</div>${game.status==="complete"?duelFishingComparisonOverlay(game):""}</div><div class="fishing-controls">${duelFishingTipsHtml()}</div>${duelFishingDebugPanel(game,state,active,game.status==="countdown"?60:sec)}</div>`;
     };
     duelFishingPatchDom=function(game){
       const root=duelActive?.querySelector('[data-fishing-game]'); if(!root||String(root.dataset.fishingGameId||"")!==String(game?.gameId||""))return false;
