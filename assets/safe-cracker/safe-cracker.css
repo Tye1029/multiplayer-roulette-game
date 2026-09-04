@@ -5315,14 +5315,17 @@ body > .sc-result-overlay[data-sc-result-portal] .duel-end-screen-close { top:12
 /* SAFE_CRACKER_WALL_AND_RESULTS_V4_END */
 
 /* SAFE_CRACKER_COOL_WALL_V5_START */
-/* Lift the board 24px while retaining the room height and its floor framing. */
+/* Lift the safe and leave visible masonry beneath it before the room floor. */
 .safe-cracker-game {
   --sc-brass:#91b6d6;--sc-brass-light:#d7eafa;
-  padding-top:40px;padding-bottom:54px;
+  padding-top:24px;padding-bottom:132px;
   background-color:#20262b;border-color:#687580;
 }
 .safe-cracker-game .sc-safe-door {
-  background-image:linear-gradient(180deg,#c4d1dc16,#171b1f0d),url('/assets/safe-cracker/textures/metal-wear.svg'),url('/assets/safe-cracker/textures/safe-steel-base.svg?cool=3') !important;
+  /* One material image moves with the opening door; hardware remains live. */
+  background-image:url('/assets/safe-cracker/images/safe-steel-surface-v1.png') !important;
+  background-size:cover !important;
+  background-position:center !important;
 }
 .safe-cracker-game .sc-safe-shell { background:linear-gradient(#4c6073,#303c46) !important;border-color:#73879b; }
 .safe-cracker-game .sc-command-bar,
@@ -5354,7 +5357,7 @@ body > .sc-result-overlay.tie[data-sc-result-portal] .sc-result-card {
 }
 .sc-result-player.winner { border-color:#92bcd7;background:linear-gradient(#2b3c49,#25323c); }
 @media(max-width:700px) {
-  /* A 16px lift preserves the lamp clearance on narrow screens. */
-  .safe-cracker-game { padding-top:32px;padding-bottom:36px; }
+  /* Keep controls full size while exposing wall below the safe on mobile. */
+  .safe-cracker-game { padding-top:20px;padding-bottom:88px; }
 }
 /* SAFE_CRACKER_COOL_WALL_V5_END */
