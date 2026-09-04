@@ -22219,6 +22219,7 @@ function updateRunnerBalanceDisplay() {
     duelGameMenuBtn?.addEventListener("click", () => {
       document.getElementById('simpleTestHome').hidden = false;
       document.getElementById('accountScreen').hidden = true;
+      if (duelScreen) duelScreen.hidden = true;
       gameMenuPanel.hidden = true;
     });
     settingsMenuBtn?.addEventListener("click", () => {
