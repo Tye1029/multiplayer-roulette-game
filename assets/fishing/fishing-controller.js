@@ -1,7 +1,7 @@
 (function fishingControllerBootstrap(global){
   "use strict";
 
-  const VERSION="fishing-controller-v17";
+  const VERSION="fishing-controller-v18";
   const SIDES=["left","right"];
   const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
   const round=value=>Math.round(Number(value||0)*10)/10;
@@ -123,10 +123,8 @@
 
     resetRig(side,removeCatch=true){
       const rig=this.rigs[side];if(!rig)return;
-      this.stopReel(rig);rig.pending=null;
       rig.x=side==="left"?.42:.58;rig.y=.665;rig.baseY=.665;rig.caught=false;rig.catchId="";rig.anim=null;
       const hook=this.hook(side);hook?.classList.remove("has-catch","is-reeling");
-      this.water?.classList.remove(side==="left"?"pull-left":"pull-right");
       if(removeCatch)hook?.querySelector(".fishing-hook-catch")?.replaceWith(this.emptyCatch(side));
     }
 
@@ -135,74 +133,35 @@
     }
 
     syncCatch(side,catchId,animate=false){
-      const rig=this.rigs[side];if(!rig||this.destroyed)return;
+      const rig=this.rigs[side];if(!rig)return;
       const nextId=String(catchId||"");
-      // Pending requests and older empty polls must not reset this round's pull.
-      if(!nextId){if(!rig.pending&&!rig.caught&&rig.anim?.kind!=="return")this.resetRig(side,false);return;}
+      if(!nextId){this.resetRig(side,false);return;}
       const changed=rig.catchId!==nextId;
-      if(!changed&&rig.caught)return;
       rig.catchId=nextId;rig.caught=true;
       this.hook(side)?.classList.add("has-catch");
-      if(rig.pending||changed&&animate)this.reel(side,nextId);
+      if(changed&&animate)this.reel(side,nextId);
       else{rig.y=this.catchRestY(side);rig.baseY=rig.y;rig.anim=null;}
       this.updateDebug();
     }
 
-    stopReel(rig){
-      clearTimeout(rig.reelTimer);rig.reelTimer=null;
-      rig.resolveReel?.();rig.resolveReel=null;rig.anim=null;
-    }
-
-    beginPull(side,eventId){
-      const rig=this.rigs[side];
-      if(!rig||this.destroyed||rig.caught||rig.pending||!eventId)return false;
-      const now=performance.now();this.advanceRig(rig,now);this.stopReel(rig);
-      rig.pending={eventId:String(eventId),startedAt:now};
-      this.hook(side)?.classList.add("is-reeling");
-      this.water?.classList.add(side==="left"?"pull-left":"pull-right");
-      this.setPhase("reeling",{side,pending:true});
-      // Lift the actual line/bobber now, but never invent an unconfirmed fish.
-      // Slow responses hold at an intermediate point before the final lift.
-      rig.anim={kind:"pending",startedAt:now,duration:this.reducedMotion?80:900,fromX:rig.x,fromY:rig.y,toX:rig.x,toY:.565};
-      this.log("pull-requested",{side,eventId:String(eventId)});
-      return true;
-    }
-
-    cancelPendingPull(side,eventId){
-      const rig=this.rigs[side];
-      if(!rig||this.destroyed||rig.caught||rig.pending?.eventId!==String(eventId))return false;
-      const now=performance.now();this.advanceRig(rig,now);this.stopReel(rig);rig.pending=null;
-      this.hook(side)?.classList.remove("is-reeling");
-      this.water?.classList.remove(side==="left"?"pull-left":"pull-right");
-      rig.anim={kind:"return",startedAt:now,duration:this.reducedMotion?80:350,fromX:rig.x,fromY:rig.y,toX:side==="left"?.42:.58,toY:.665};
-      if(this.phase!=="complete"&&!SIDES.some(s=>this.rigs[s].pending||this.rigs[s].anim?.kind==="reel"))this.setPhase("waiting",{side});
-      this.log("pull-cancelled",{side,eventId:String(eventId)});
-      return true;
-    }
-
     reel(side,catchId=""){
-      const rig=this.rigs[side];if(!rig||this.destroyed)return Promise.resolve();
-      const now=performance.now(),pending=rig.pending;
-      this.advanceRig(rig,now);this.stopReel(rig);rig.pending=null;
-      const duration=this.reducedMotion?80:pending?clamp(1150-(now-pending.startedAt),160,450):1250;
+      const rig=this.rigs[side];if(!rig)return Promise.resolve();
+      const duration=this.reducedMotion?80:1250;
       const hook=this.hook(side);hook?.classList.add("has-catch","is-reeling");
       this.water?.classList.add(side==="left"?"pull-left":"pull-right");
-      if(this.phase!=="complete")this.setPhase("reeling",{side});
+      this.setPhase("reeling",{side});
       rig.caught=true;rig.catchId=String(catchId||rig.catchId||"");
-      const fromY=rig.y;
-      rig.baseY=this.catchRestY(side);
-      rig.anim={kind:"reel",startedAt:now,duration,fromX:rig.x,fromY,toX:side==="left"?.42:.58,toY:rig.baseY};
-      this.log(pending?"pull-confirmed":"reel-started",{side,catchId:rig.catchId,duration,...(pending?{confirmationMs:round(now-pending.startedAt)}:{})});
-      return new Promise(resolve=>{rig.resolveReel=resolve;rig.reelTimer=setTimeout(()=>{
-        rig.reelTimer=null;rig.resolveReel=null;
-        if(this.destroyed){resolve();return;}
-        this.advanceRig(rig,performance.now());
+      const fromY=Math.max(rig.y,.64);
+      rig.y=fromY;rig.baseY=this.catchRestY(side);
+      rig.anim={kind:"reel",startedAt:performance.now(),duration,fromX:rig.x,fromY,toX:side==="left"?.42:.58,toY:rig.baseY};
+      this.log("reel-started",{side,catchId:rig.catchId,duration});
+      return new Promise(resolve=>setTimeout(()=>{
         hook?.classList.remove("is-reeling");
-        this.water?.classList.remove(side==="left"?"pull-left":"pull-right");
-        if(this.phase!=="complete"&&!SIDES.some(s=>this.rigs[s].pending||this.rigs[s].anim?.kind==="reel"))this.setPhase("caught",{side});
+        this.water?.classList.remove("pull-left","pull-right");
+        this.setPhase("caught",{side});
         this.log("catch-secured",{side,catchId:rig.catchId});
         resolve();
-      },duration+30);});
+      },duration+30));
     }
 
     hook(side){return this.scene?.querySelector(`.fishing-hook-node.${side}`)||null;}
@@ -237,7 +196,7 @@
       this.drawWater(performance.now());
     }
 
-    advanceRig(rig,now){
+    updateRig(rig,now){
       if(rig.anim){
         const progress=clamp((now-rig.anim.startedAt)/rig.anim.duration,0,1);
         const eased=rig.anim.kind==="cast"?easeInOutCubic(progress):easeOutCubic(progress);
@@ -245,10 +204,6 @@
         rig.y=rig.anim.fromY+(rig.anim.toY-rig.anim.fromY)*eased;
         if(progress>=1){rig.x=rig.anim.toX;rig.y=rig.anim.toY;rig.baseY=rig.anim.toY;rig.anim=null;}
       }
-    }
-
-    updateRig(rig,now){
-      this.advanceRig(rig,now);
       const hook=this.hook(rig.side);if(!hook||!this.water)return;
       const bob=this.reducedMotion?0:Math.sin(now/1280+rig.phaseOffset)*(rig.caught?2.25:1.35);
       hook.style.left=`${rig.x*100}%`;
@@ -261,7 +216,7 @@
       const cx=sx+(ex-sx)*.64,cy=Math.min(sy,ey)-Math.max(18,Math.abs(ex-sx)*.095);
       const path=this.scene.querySelector(`.fishing-line-svg.${rig.side}`);
       path?.setAttribute("d",`M${sx.toFixed(1)} ${sy.toFixed(1)} Q${cx.toFixed(1)} ${cy.toFixed(1)} ${ex.toFixed(1)} ${ey.toFixed(1)}`);
-      this.geometry[rig.side]={rodTip:{x:round(sx),y:round(sy)},lineEnd:{x:round(ex),y:round(ey)},connectedDelta:0,catchId:rig.catchId||"",caught:rig.caught,pendingEvent:rig.pending?.eventId||""};
+      this.geometry[rig.side]={rodTip:{x:round(sx),y:round(sy)},lineEnd:{x:round(ex),y:round(ey)},connectedDelta:0,catchId:rig.catchId||"",caught:rig.caught};
     }
 
     drawWater(now){
@@ -342,7 +297,6 @@
     }
 
     destroy(){
-      for(const side of SIDES){this.stopReel(this.rigs[side]);this.rigs[side].pending=null;}
       this.destroyed=true;cancelAnimationFrame(this.frameHandle);this.resizeObserver?.disconnect();global.removeEventListener("resize",this.boundResize);global.removeEventListener("error",this.boundError);global.removeEventListener("unhandledrejection",this.boundRejection);
     }
   }

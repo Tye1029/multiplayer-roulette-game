@@ -67,6 +67,11 @@ const rareRows=[...sortedBook.matchAll(/data-fish-rarity="(common|uncommon|rare|
 assert.equal(rareRows.length,62);
 assert.deepEqual(rareRows,fishingCatalog.ordered.map(f=>f.rarity),'Collection order must follow all four tiers');
 assert.deepEqual([...sortedBook.matchAll(/data-rarity-section="([^"]+)"/g)].map(m=>m[1]),['common','uncommon','rare','mythical']);
+const allBook=run(`duelFishingLogbookHtml({species:${JSON.stringify(Object.fromEntries(fishingCatalog.entries.map(f=>[f.name,{name:f.name,bestVariant:f.variant,bestSize:42,count:1}])))} })`);
+for(const name of ['Oscar','Blue Tang','Zebra Pleco','Moonfish','Lionfish','Pufferfish','Koi Carp','Neon Tetra']){
+  const section=allBook.split('data-rarity-section="'+fishingCatalog.resolve(name).rarity+'"')[1]?.split('data-rarity-section=')[0];
+  assert(section?.includes(name),`${name} must appear in its current logbook tier`);
+}
 assert(!/\d+%|appearance chance/i.test(sortedBook), 'Logbook must not display catch percentages');
 assert(!/\d+%|appearance chance/i.test(run('duelFishingLogbookHtml({})')), 'Empty logbook must not display catch percentages');
 const componentPreview=fs.readFileSync(path.join(root,'games/multiplayer/fishing/preview.html'),'utf8');
@@ -120,42 +125,17 @@ let fixtureElapsed=10000; const duelFishingCompletionElapsed=()=>fixtureElapsed;
 // Fixture-only identity; never reads or writes a real account's browser storage.
 const localStorage={getItem:()=> 'fixture-user'};
 const duelActive=document.getElementById('duelActive');
-const startSiteAudio=()=>{},duelFishingEnsureController=()=>{},duelSetStatus=text=>{document.getElementById('request-status').textContent=text;};
-let duelCurrentGameId='offline-check',game,paused=false,phaseTimer,pollTimer,responseMs=1600,rejectCatch=false,catchCheck=null,requestCount=0;
-const tools=document.querySelector('.fixture-tools');
-for(const [id,label,click] of [
- ['latency','Response: 1600ms',event=>{responseMs=responseMs===1600?4000:responseMs===4000?0:1600;event.target.textContent='Response: '+responseMs+'ms';}],
- ['reject','Reject catch: off',event=>{rejectCatch=!rejectCatch;event.target.textContent='Reject catch: '+(rejectCatch?'on':'off');}]
-]){const button=document.createElement('button');button.id=id;button.textContent=label;button.onclick=click;tools.append(button);}
-for(const id of ['request-status','catch-check']){const output=document.createElement('p');output.id=id;output.className='fixture-label';output.style.overflowWrap='anywhere';output.style.minWidth='0';tools.after(output);}
+const startSiteAudio=()=>{},duelFishingEnsureController=()=>{},duelSetStatus=()=>{};
+let duelCurrentGameId='offline-check',game,paused=false,phaseTimer,pollTimer;
 const duelPatchSharedCountdown=()=>{};
-const duelRefresh=async()=>duelFishingPatchDom(game);
 async function duelRequest(action,details){
- const requestedGame=game,delay=responseMs,reject=rejectCatch;
- const event=requestedGame.fishingState.events.find(e=>e.id===String(details.choice).slice(5));
- const hook=duelActive.querySelector('.fishing-hook-node.left');
- catchCheck={request:++requestCount,at:performance.now(),initialY:hook.style.top,firstMotionMs:null,confirmationMs:null,rejected:false};
- const check=catchCheck;
- await new Promise(resolve=>setTimeout(resolve,delay));
- if(reject){check.rejected=true;throw new Error('Test server: this fish was claimed first. Try the next ripple.');}
+ const event=game.fishingState.events.find(e=>e.id===String(details.choice).slice(5));
  const caught={eventId:event.id,name:'Emerald Mekong Giant Catfish',baseName:'Mekong Giant Catfish',variant:'emerald',rarity:'uncommon',size:93.3};
- check.confirmationMs=Math.round(performance.now()-check.at);
- if(game.gameId!==requestedGame.gameId)return {game:{...requestedGame,fishingState:{...requestedGame.fishingState,creatorCatch:caught,myCatch:caught}}};
  game.fishingState.creatorCatch=caught;game.fishingState.myCatch=caught;event.claimedBy='fixture';
  return {game};
 }
-function inspectPull(){
- const hook=duelActive.querySelector('.fishing-hook-node.left');
- if(catchCheck&&hook){
-  if(catchCheck.firstMotionMs===null&&hook.style.top!==catchCheck.initialY)catchCheck.firstMotionMs=Math.round(performance.now()-catchCheck.at);
-  document.getElementById('catch-check').textContent=JSON.stringify({...catchCheck,at:undefined,initialY:undefined,top:hook.style.top,fish:hook.querySelector('.fishing-hook-catch')?.dataset.catchId||'',reeling:hook.classList.contains('is-reeling')});
- }
- requestAnimationFrame(inspectPull);
-}
-requestAnimationFrame(inspectPull);
 function start(){
  clearInterval(phaseTimer);clearInterval(pollTimer);duelActive.querySelector('[data-fishing-game]')?._fishingController?.destroy();fishingV3Reset();
- catchCheck=null;document.getElementById('catch-check').textContent='';document.getElementById('request-status').textContent='';
  const start=Date.now()+3000;
  game={gameId:'offline-'+start,mode:'fishing',status:'countdown',isCreator:true,isPlayer:true,serverNow:new Date().toISOString(),startAt:new Date(start).toISOString(),creator:{name:'Angler One'},joiner:{name:'Angler Two'},fishingState:{roundId:'round-'+start,startAt:new Date(start).toISOString(),endAt:new Date(start+60000).toISOString(),serverEpochMs:Date.now(),events:Array.from({length:8},(_,i)=>({id:'bite-'+i,atMs:start+1200+i*7000,endAtMs:start+7200+i*7000,ripple:158,special:i%2===0}))}};
  duelCurrentGameId=game.gameId;duelActive.innerHTML='<div class="duel-arena fishing-clean">'+duelFishingHtml(game)+'</div>';duelBindFishing(duelActive);

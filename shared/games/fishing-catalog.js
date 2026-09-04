@@ -19,11 +19,12 @@
     ["Yellow Perch","Black Crappie","Bluegill","Brook Trout","Koi Carp","Clown Knifefish","Oscar","River Bream","Blue Tang","Copperband Butterflyfish","Pufferfish","Mandarinfish"],
     ["Silver Minnow","Sardine","Tiny Sunfish","Anchovy","Neon Tetra","Guppy","Smelt","Dwarf Gourami","Royal Gramma","Zebra Pleco"]
   ];
-  const uncommon = new Set(["Titan Sturgeon","Grand Marlin","Arapaima","Mekong Giant Catfish","Alligator Gar","Wels Catfish","Goliath Tigerfish","Electric Eel","Mahi-Mahi","Lionfish","Moonfish","Coelacanth","Clown Knifefish","Copperband Butterflyfish","Pufferfish","Mandarinfish","Royal Gramma","Zebra Pleco"]);
+  const uncommon = new Set(["Titan Sturgeon","Grand Marlin","Arapaima","Mekong Giant Catfish","Alligator Gar","Wels Catfish","Goliath Tigerfish","Electric Eel","Mahi-Mahi","Coelacanth","Clown Knifefish","Copperband Butterflyfish","Mandarinfish","Royal Gramma","Oscar","Blue Tang","Koi Carp","Neon Tetra"]);
+  const rare = new Set(["Zebra Pleco","Moonfish","Lionfish"]);
   const slug = value => String(value).toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
   const ordinary = bands.flatMap((names, band) => names.map(name => ({
-    name, baseName:name, variant:"standard", rarity:uncommon.has(name)?"uncommon":"common",
-    special:false, band, asset:"/assets/fishing/images/v2/fish/"+slug(name)+"-v2.png"
+    name, baseName:name, variant:"standard", rarity:rare.has(name)?"rare":uncommon.has(name)?"uncommon":"common",
+    special:rare.has(name), band, asset:"/assets/fishing/images/v2/fish/"+slug(name)+"-v2.png"
   })));
   const specials = [
     ["Gilded Sovereign","golden","golden-wide","rare"],

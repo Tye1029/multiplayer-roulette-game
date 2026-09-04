@@ -8,6 +8,16 @@ assert.deepEqual(catalog.tiers.map(t=>t.chance),[.70,.24,.05,.01]);
 assert.equal(catalog.entries.length,62);
 assert.equal(new Set(catalog.entries.map(f=>f.name)).size,62,'Every design has a distinct name');
 assert.deepEqual(catalog.entries.filter(f=>f.rarity==='mythical').map(f=>f.name),['Nemo','Aurora Koi','Celestial Anglerfish']);
+const reclassified={Oscar:'uncommon','Blue Tang':'uncommon','Zebra Pleco':'rare',Moonfish:'rare',Lionfish:'rare',Pufferfish:'common','Koi Carp':'uncommon','Neon Tetra':'uncommon'};
+for(const [name,rarity] of Object.entries(reclassified)){
+  assert.equal(catalog.resolve(name).rarity,rarity,`${name} must use the requested rarity`);
+  const legacyCatch={name,variant:'standard',rarity:rarity==='uncommon'?'common':'uncommon'};
+  assert.equal(catalog.identity(legacyCatch).rarity,rarity,'Saved catches resolve to the current category');
+  assert.equal(catalog.resolve(name).special,rarity==='rare','New Rare fish need the same ripple signal as other Rare fish');
+  const record=catalog.records({species:{fish:{...legacyCatch,bestVariant:'standard',bestSize:42,count:2}}}).get(name);
+  assert.equal(record.count,2);assert.equal(record.bestSize,42,'Reclassification preserves discoveries and records');
+}
+assert.deepEqual(catalog.tiers.map(t=>catalog.entries.filter(f=>f.rarity===t.id).length),[32,18,9,3]);
 for(const fish of catalog.entries){
   const pin=catalog.hookAnchors[fish.name];
   assert(pin && pin.length===2, `${fish.name} needs its own image attachment`);

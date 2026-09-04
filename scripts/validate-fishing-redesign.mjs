@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import "./validate-fishing-ui.mjs";
-import "./validate-fishing-catch-response.mjs";
+import "./validate-fishing-catch-timing.mjs";
 import "./validate-fishing-catalog.mjs";
 import "./validate-duel-shell.mjs";
 
@@ -14,9 +14,9 @@ const controller = fs.readFileSync(new URL("../assets/fishing/fishing-controller
 const preview = fs.readFileSync(new URL("../games/multiplayer/fishing/preview.html", import.meta.url), "utf8");
 const serverData = fs.readFileSync(new URL("../netlify/functions/_data.js", import.meta.url), "utf8");
 
-assert(html.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v30'), "versioned Fishing stylesheet is not loaded");
-assert(html.includes('id="fishingDuelRuntime" defer src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v30"'), "deferred shared Fishing controller is not loaded");
-assert(preview.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v30'), "preview is not using the current Fishing stylesheet");
+assert(html.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v31'), "versioned Fishing stylesheet is not loaded");
+assert(html.includes('id="fishingDuelRuntime" defer src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v31"'), "deferred shared Fishing controller is not loaded");
+assert(preview.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v31'), "preview is not using the current Fishing stylesheet");
 assert(html.includes('function duelFishingEnsureController(root)'), "Fishing controller recovery loader is missing");
 assert(html.includes('class="fishing-command-bar"'), "game-owned Fishing header is missing");
 assert(html.includes('class="fishing-instructions" aria-label="How to play"'), "visible game instructions are missing");
@@ -143,8 +143,7 @@ assert(preview.includes('data-debug-copy'), "copyable preview debug report is mi
 assert(preview.includes('data-debug-cast'), "live preview debug controls are missing");
 
 assert(controller.includes('class FishingSceneController'), "Fishing scene controller class is missing");
-assert(controller.includes('const VERSION="fishing-controller-v17"'), "Fishing diagnostics do not identify the immediate-pull controller");
-assert(css.includes('animation: fishingHookReveal .12s ease-out both'), "Confirmed fish still has an artificial reveal delay");
+assert(controller.includes('const VERSION="fishing-controller-v18"'), "Fishing diagnostics do not identify the restored-pull controller");
 assert(controller.includes('playCast(options={})'), "shared casting lifecycle is missing");
 assert(controller.includes('syncCatch(side,catchId,animate=false)'), "authoritative catch synchronization is missing");
 assert(controller.includes('drawWater(now)'), "moving water renderer is missing");

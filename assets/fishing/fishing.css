@@ -1394,7 +1394,7 @@
   transform: none;
 }
 
-.fishing-hook-catch .fishing-catch-unit.is-pulling { animation: fishingHookReveal .12s ease-out both !important; }
+.fishing-hook-catch .fishing-catch-unit.is-pulling { animation: fishingHookReveal .44s .24s ease-out both !important; }
 
 .fishing-hook-catch .fishing-fish-png {
   position: relative !important;
