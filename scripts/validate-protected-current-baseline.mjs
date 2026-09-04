@@ -52,4 +52,5 @@ for (const [path, expected] of protectedHashes) {
   if (!expected.has(actual)) throw new Error(`Protected file changed unexpectedly: ${path} (${actual})`);
 }
 
+await import('./validate-safe-cracker-restored-release.mjs');
 console.log('Protected Roulette, Safe Cracker, and shared multiplayer current baseline validated.');

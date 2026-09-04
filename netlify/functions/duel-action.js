@@ -31,6 +31,7 @@ exports.handler = async (event) => {
     "Access-Control-Allow-Headers": "Content-Type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "X-Duel-Function-Build": DUEL_FUNCTION_BUILD,
+    "X-Safe-Cracker-Feedback": "fast-authoritative-v1",
     "X-Summit-Input-Route-Build": SUMMIT_INPUT_ROUTE_BUILD
   };
 
@@ -93,7 +94,7 @@ exports.handler = async (event) => {
 
     // Unchanged DRAW sync responses intentionally skip the balance lookup and
     // large game payload. This keeps active polling small and inexpensive.
-    if (result?.unchanged || result?.databaseAuthoritative) {
+    if (result?.unchanged || result?.databaseAuthoritative || result?.skipBalanceLookup) {
       return json(headers, 200, { ok: true, siteUserId: user.id, duelSessionToken: refreshedSessionToken || undefined, ...result });
     }
     const record = result.record || await getUserRecord(user.id);
