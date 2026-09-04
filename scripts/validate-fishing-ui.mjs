@@ -57,22 +57,66 @@ run(`sample={...sample,gameId:'remaining-only',fishingState:{roundId:'fallback',
 assert.equal(run('fishingV3Remaining()'),17200);
 for(const variant of ['golden','silver','crystal','albino','midnight','emerald','aurora','celestial','nemo'])assert.match(run(`duelFishingRareBadge('${variant}')`),/>Rare</);
 assert.equal(run('duelFishingRareBadge()'),'');
-assert.match(run(`duelFishingLogbookHtml({species:{nemo:{name:'Nemo',bestVariant:'nemo',bestSize:35,count:1,rareCount:1}}})`),/Nemo<span class="fishing-log-rare-badge">Rare/);
-console.log('Fishing UI runtime tests passed: 3–2–1–GO without polling, elapsed round time, stale snapshots, late joins, fallback timing, event windows, and rare badges.');
+assert.match(run(`duelFishingLogbookHtml({species:{nemo:{name:'Nemo',bestVariant:'nemo',bestSize:35,count:1,rareCount:1}}})`),/Nemo<span class="fishing-log-rare-badge" aria-label="Rare fish"><svg/);
+const sortedBook=run(`duelFishingLogbookHtml({species:{catfish:{name:'Mekong Giant Catfish',bestVariant:'emerald',bestSize:93.3,count:1,rareCount:1},smelt:{name:'Smelt',bestVariant:'standard',bestSize:16.6,count:1},minnow:{name:'Silver Minnow',bestVariant:'standard',bestSize:18,count:1}}})`);
+const rareRows=[...sortedBook.matchAll(/data-fish-rarity="(rare|regular)"/g)].map(m=>m[1]);
+assert.equal(rareRows.length,56);
+assert.deepEqual(rareRows.slice(-4),['rare','rare','rare','rare'],'Named rares and caught rare variants belong at the bottom');
+assert(rareRows.slice(0,-4).every(value=>value==='regular'));
+assert.equal((sortedBook.match(/class="fishing-log-section"/g)||[]).length,1);
+assert.match(sortedBook,/fish\/silver-minnow-v2.png/,'Silver Minnow is a species, not a silver variant of a missing Minnow');
+assert.equal(run(`duelFishingBaseName('Golden Silver Minnow')`),'Silver Minnow');
+run(`var rematchFixture={gameId:'rematch',mode:'fishing',status:'complete',remoteNetworkTest:true,creator:{userId:'human'},joiner:{userId:'bot',isRemoteBot:true}}`);
+assert.equal(run('duelFishingCanAcceptRematch(rematchFixture)'),false,'No unsolicited bot-first rematches');
+run(`rematchFixture.rematch={requestedBy:{human:new Date().toISOString()},expiresAt:new Date(Date.now()+10000).toISOString()}`);
+assert.equal(run('duelFishingCanAcceptRematch(rematchFixture)'),true,'An active human offer can be accepted');
+assert.equal(run('duelFishingCanAcceptRematch(rematchFixture,Date.now()+11000)'),false,'Expired offers cannot be retried');
+assert.equal(run('duelFishingCanAcceptRematch(null)'),false,'Missing fresh state cannot authorize a rematch');
+run(`rematchFixture.rematch.requestedBy.bot='accepted'`);
+assert.equal(run('duelFishingCanAcceptRematch(rematchFixture)'),false,'Accepted offers must not be sent twice');
+vm.runInContext(`
+let scheduledRematches=[],sentRematches=[],freshRematch=null;
+const rnbRematchRuntime={gameId:'',handledKey:'',timer:0,requesting:false};
+const rnbClearRematchTimer=()=>{rnbRematchRuntime.timer=0;scheduledRematches=[];};
+const rnbHash=()=>0,botLogs=[],line=()=>{},render=()=>{},rnbAdoptGame=()=>{};
+const rnbFetchAuthoritativeGame=async()=>freshRematch;
+const duelRequest=async(action,args)=>{sentRematches.push(args);return {};};
+`,context);
+context.setTimeout=callback=>{run('scheduledRematches').push(callback);return 1;};
+vm.runInContext(between(' function rnbScheduleRematch(game){',' setInterval(()=>{'),context);
+run(`rematchFixture.rematch={};rnbScheduleRematch(rematchFixture)`);
+assert.equal(run('scheduledRematches.length'),0,'Scheduler must not schedule bot-first Fishing requests');
+run(`rematchFixture.rematch={requestedBy:{human:'offer-1'},expiresAt:new Date(Date.now()+10000).toISOString()};rnbScheduleRematch(rematchFixture)`);
+assert.equal(run('scheduledRematches.length'),1);
+run(`freshRematch={...rematchFixture,rematch:{...rematchFixture.rematch,expiresAt:new Date(Date.now()-1).toISOString()}}`);
+await run('scheduledRematches.shift()()');
+assert.equal(run('sentRematches.length'),0,'Freshly expired offer must never submit a bot action');
+run(`rnbScheduleRematch(rematchFixture);freshRematch=null`);
+await run('scheduledRematches.shift()()');
+assert.equal(run('sentRematches.length'),0,'Failed refresh must not fall back to a stale Fishing offer');
+run(`rnbScheduleRematch(rematchFixture);freshRematch=rematchFixture`);
+await run('scheduledRematches.shift()()');
+assert.equal(run('sentRematches[0].choice'),'remote-bot-rematch');
+run('rnbScheduleRematch(rematchFixture)');
+assert.equal(run('scheduledRematches.length'),0,'The same accepted offer cannot be scheduled twice');
+console.log('Fishing UI runtime tests passed: countdown, round time, stale snapshots, event windows, star stamps, rare-last ordering, Silver Minnow art, and guarded bot rematch acceptance.');
 
 if(process.argv.includes('--serve')){
   const styles=[...html.matchAll(/<style\b[^>]*>[\s\S]*?<\/style>|<link\b[^>]*rel="stylesheet"[^>]*>/g)].map(m=>m[0]).join('\n');
   const renderer=between('    duelFishingHtml=function(game){','    const fishingV3NavIds=');
   const fixture=`<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">${styles}<script src="/assets/fishing/fishing-controller.js"></script><style>body{margin:0;padding:12px;background:#08121c}#fixture{width:min(100%,1100px);margin:auto}.fixture-tools{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}.fixture-tools button{font:14px system-ui;padding:8px}.fixture-book{margin:12px auto;max-width:800px}.fixture-label{color:#d7e8f0;font:14px system-ui}#duelActive{width:100%}</style></head><body class="duel-mode"><main id="fixture"><p class="fixture-label">Offline UI check — real game renderer, simulated server state, no account or wager</p><div class="fixture-tools"><button id="restart">Restart countdown</button><button id="pause">Pause test updates</button><button id="book">Show rare logbook</button></div><div id="duelActive"></div><div class="fixture-book" id="log"></div></main><script>
 ${declarations}${stubs}${art}${projection}${clocks}${log}
-${fn('duelFishingPlayerChip')}${fn('duelBindFishing')}${renderer}
+${fn('duelFishingPlayerChip')}${fn('duelBindFishing')}${fn('duelFishingResultOverlay')}${renderer}
+const duelFishingCompletionElapsed=()=>10000;
+// Fixture-only identity; never reads or writes a real account's browser storage.
+const localStorage={getItem:()=> 'fixture-user'};
 const duelActive=document.getElementById('duelActive');
 const startSiteAudio=()=>{},duelFishingEnsureController=()=>{},duelSetStatus=()=>{};
 let duelCurrentGameId='offline-check',game,paused=false,phaseTimer,pollTimer;
 const duelPatchSharedCountdown=()=>{};
 async function duelRequest(action,details){
  const event=game.fishingState.events.find(e=>e.id===String(details.choice).slice(5));
- const caught={eventId:event.id,name:'Nemo',baseName:'Nemo',variant:'nemo',rarity:'rare',size:64.2};
+ const caught={eventId:event.id,name:'Emerald Mekong Giant Catfish',baseName:'Mekong Giant Catfish',variant:'emerald',rarity:'uncommon',size:93.3};
  game.fishingState.creatorCatch=caught;game.fishingState.myCatch=caught;event.claimedBy='fixture';
  return {game};
 }
@@ -87,7 +131,15 @@ function start(){
 }
 document.getElementById('restart').onclick=start;
 document.getElementById('pause').onclick=event=>{paused=!paused;event.target.textContent=paused?'Resume test updates':'Pause test updates';};
-document.getElementById('book').onclick=()=>{document.getElementById('log').innerHTML=duelFishingLogbookHtml({totalCaught:3,rareCaught:2,species:{nemo:{name:'Nemo',bestVariant:'nemo',bestSize:64.2,count:1,rareCount:1},koi:{name:'Aurora Koi',bestVariant:'aurora',bestSize:48,count:1,rareCount:1},bass:{name:'Peacock Bass',bestVariant:'standard',bestSize:34,count:1}}});duelBindFishingLogbookPreview(document.getElementById('log'));};
+document.getElementById('book').onclick=()=>{
+ clearInterval(phaseTimer);clearInterval(pollTimer);fishingV3Stop();
+ document.getElementById('duelCountdownPortal')?.classList.remove('show');
+ const logbook={totalCaught:4,rareCaught:3,species:{nemo:{name:'Nemo',bestVariant:'nemo',bestSize:64.2,count:1,rareCount:1},koi:{name:'Aurora Koi',bestVariant:'aurora',bestSize:48,count:1,rareCount:1},catfish:{name:'Mekong Giant Catfish',bestVariant:'emerald',bestSize:93.3,count:1,rareCount:1},smelt:{name:'Smelt',bestVariant:'standard',bestSize:16.6,count:1}}};
+ const result={...game,status:'complete',winnerUserId:'fixture-user',fishingState:{...game.fishingState,creatorCatch:{eventId:'caught-1',name:'Emerald Mekong Giant Catfish',variant:'emerald',rarity:'uncommon',size:93.3},joinerCatch:{eventId:'caught-2',name:'Smelt',variant:'standard',rarity:'regular',size:16.6}},result:{creator:{logbook}}};
+ let portal=document.getElementById('fishingResultPortal');if(!portal){portal=document.createElement('div');portal.id='fishingResultPortal';document.body.append(portal);}
+ portal.innerHTML=duelFishingResultOverlay(result);document.body.classList.add('fishing-result-open');duelBindFishingLogbookPreview(portal);
+ for(const button of portal.querySelectorAll('.fishing-result-actions button'))button.onclick=()=>{portal.remove();document.body.classList.remove('fishing-result-open');start();};
+};
 start();</script></body></html>`;
   const mime={'.css':'text/css','.js':'text/javascript','.png':'image/png','.html':'text/html','.svg':'image/svg+xml','.mp3':'audio/mpeg','.woff2':'font/woff2'};
   http.createServer((req,res)=>{

@@ -12561,8 +12561,8 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
   <script id="blackjackDuelRuntime" src="/assets/blackjack-duel/blackjack-duel.js?v=blackjack-duel-v17" defer></script>
 <!-- BLACKJACK_DUEL_ASSETS_END -->
 <!-- FISHING_DUEL_ASSETS_START -->
-  <link id="fishingDuelStyles" rel="stylesheet" href="/assets/fishing/fishing.css?v=fishing-mechanics-v24">
-  <script id="fishingDuelRuntime" defer src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v24"></script>
+  <link id="fishingDuelStyles" rel="stylesheet" href="/assets/fishing/fishing.css?v=fishing-mechanics-v25">
+  <script id="fishingDuelRuntime" defer src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v25"></script>
 <!-- FISHING_DUEL_ASSETS_END -->
 
 <!-- MOUNTAIN_RACE_V29_PRELOADS -->
@@ -18835,7 +18835,7 @@ function updateRunnerBalanceDisplay() {
     }
     const FISHING_SPECIES=["Titan Sturgeon","Grand Marlin","Giant Bluefin Tuna","Broadbill Swordfish","Arapaima","Mekong Giant Catfish","Sailfish","Paddlefish","King Salmon","Northern Muskie","Lake Sturgeon","Alligator Gar","Wels Catfish","Goliath Tigerfish","Tarpon","Great Barracuda","Electric Eel","Red Drum","Largemouth Bass","Rainbow Trout","Red Snapper","Northern Pike","Striped Bass","Mahi-Mahi","Peacock Bass","Common Carp","Atlantic Cod","Black Sea Bass","Lionfish","Moonfish","Coelacanth","Yellow Perch","Black Crappie","Bluegill","Brook Trout","Koi Carp","Clown Knifefish","Oscar","River Bream","Blue Tang","Copperband Butterflyfish","Pufferfish","Mandarinfish","Silver Minnow","Sardine","Tiny Sunfish","Anchovy","Neon Tetra","Guppy","Smelt","Dwarf Gourami","Royal Gramma","Zebra Pleco","Aurora Koi","Celestial Anglerfish","Nemo"];
     const FISHING_VARIANT_PREFIX=/^(crystal|golden|silver|albino|midnight|emerald)\s+/i;
-    function duelFishingBaseName(name){return String(name||"Fish").replace(FISHING_VARIANT_PREFIX,"").trim()||"Fish";}
+    function duelFishingBaseName(name){const raw=String(name||"Fish").trim();return FISHING_SPECIES.find(species=>species.toLowerCase()===raw.toLowerCase())||raw.replace(FISHING_VARIANT_PREFIX,"").trim()||"Fish";}
     function duelFishingAssetSlug(name){return duelFishingBaseName(name).toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");}
     function duelFishVariantClass(cOrName){
       const v=typeof cOrName==="object"?String(cOrName?.variant||"").toLowerCase():String(cOrName||"").toLowerCase().split(" ")[0];
@@ -18988,7 +18988,7 @@ function updateRunnerBalanceDisplay() {
       if(window.FishingSceneController||window.__fishingControllerLoading)return;
       window.__fishingControllerLoading=true;
       const script=document.createElement("script");
-      script.src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v24&runtime=1";
+      script.src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v25&runtime=1";
       script.onload=()=>{window.__fishingControllerLoading=false;if(root?.isConnected)duelBindFishing(root);};
       script.onerror=()=>{window.__fishingControllerLoading=false;console.error("Fishing controller failed to load");};
       document.head.appendChild(script);
@@ -20054,9 +20054,16 @@ function updateRunnerBalanceDisplay() {
     function duelFishingPreviewVariant(speciesName){
       return {"Aurora Koi":"aurora","Celestial Anglerfish":"celestial","Nemo":"nemo"}[String(speciesName||"")]||"standard";
     }
+    function duelFishingIsRareFish(variant="standard",rarity="regular"){
+      return Boolean(duelFishVariantClass({variant}))||["uncommon","rare","epic","legendary"].includes(String(rarity).toLowerCase());
+    }
+    function duelFishingCanAcceptRematch(game,now=Date.now()){
+      const offer=game?.rematch||{},requested=offer.requestedBy||{};
+      const expires=Date.parse(String(offer.expiresAt||""));
+      return Boolean(game?.mode==="fishing"&&game.status==="complete"&&game.remoteNetworkTest&&game.joiner?.isRemoteBot&&!game.rematchGameId&&requested[game.creator?.userId]&&!requested[game.joiner?.userId]&&Number.isFinite(expires)&&expires>now);
+    }
     function duelFishingRareBadge(variant="standard",rarity="regular"){
-      const special=Boolean(duelFishVariantClass({variant}))||["rare","epic","legendary"].includes(String(rarity).toLowerCase());
-      return special?'<span class="fishing-log-rare-badge">Rare</span>':"";
+      return duelFishingIsRareFish(variant,rarity)?'<span class="fishing-log-rare-badge" aria-label="Rare fish"><svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><circle cx="16" cy="16" r="14"/><circle class="stamp-ring" cx="16" cy="16" r="11.5"/><path d="m16 7 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9Z"/></svg><span>Rare</span></span>':"";
     }
     function duelBindFishingLogbookPreview(root=document){
       root?.querySelectorAll?.('[data-fishing-logbook]').forEach(book=>{
@@ -20081,12 +20088,18 @@ function updateRunnerBalanceDisplay() {
       const discovered = entries.length;
       const totalCaught = Math.max(0, Number(book.totalCaught||0));
       const rareCaught = Math.max(0, Number(book.rareCaught||0));
-      const speciesHtml = FISHING_SPECIES.map(speciesName => {
+      const rareSpecies=name=>{const entry=caughtByBase.get(name.toLowerCase());return duelFishingIsRareFish(entry?.bestVariant||duelFishingPreviewVariant(name),entry?.bestRarity);};
+      const orderedSpecies=[...FISHING_SPECIES].sort((a,b)=>Number(rareSpecies(a))-Number(rareSpecies(b)));
+      let rareSectionStarted=false;
+      const speciesHtml = orderedSpecies.map(speciesName => {
         const entry=caughtByBase.get(speciesName.toLowerCase());
+        const isRare=rareSpecies(speciesName);
+        const section=isRare&&!rareSectionStarted?'<h3 class="fishing-log-section">Rare finds</h3>':"";
+        if(isRare)rareSectionStarted=true;
         if(!entry){
           const previewVariant=duelFishingPreviewVariant(speciesName);
           const preview=duelFishSvg(48,speciesName,{variant:previewVariant,rarity:previewVariant==="standard"?"regular":previewVariant==="nemo"?"rare":"legendary"});
-          return `<div class="fishing-log-entry locked" data-fish-species="${escapeHtml(speciesName)}"><div class="fishing-log-thumb" aria-hidden="true"><span class="fishing-log-question">?</span><span class="fishing-log-unlock-preview">${preview}</span></div><div class="fishing-log-copy"><b><span class="fishing-log-locked-name">???</span><span class="fishing-log-unlock-name">${escapeHtml(speciesName)}${duelFishingRareBadge(previewVariant)}</span></b><span>Not caught yet</span><span>Keep watching the ripples</span></div></div>`;
+          return `${section}<div class="fishing-log-entry locked" data-fish-rarity="${isRare?'rare':'regular'}" data-fish-species="${escapeHtml(speciesName)}"><div class="fishing-log-thumb" aria-hidden="true"><span class="fishing-log-question">?</span><span class="fishing-log-unlock-preview">${preview}</span></div><div class="fishing-log-copy"><b><span class="fishing-log-locked-name">???</span><span class="fishing-log-unlock-name">${escapeHtml(speciesName)}${duelFishingRareBadge(previewVariant)}</span></b><span>Not caught yet</span><span>Keep watching the ripples</span></div></div>`;
         }
         const rawName = String(entry.name||speciesName);
         const name = escapeHtml(rawName);
@@ -20096,7 +20109,7 @@ function updateRunnerBalanceDisplay() {
         const variant = String(entry.bestVariant||duelFishingPreviewVariant(speciesName));
         const variantText = variant && variant !== "standard" ? ` • ${escapeHtml(variant)}` : "";
         const picture=duelFishSvg(best||48,rawName,{variant});
-        return `<div class="fishing-log-entry"><div class="fishing-log-thumb" aria-hidden="true">${picture}</div><div class="fishing-log-copy"><b>${name}${duelFishingRareBadge(variant,entry.bestRarity)}</b><span>Personal best <strong>${best>0?`${best} cm`:"—"}</strong>${variantText}</span><span>${count} caught${rare?` • ${rare} rare`:""}</span></div></div>`;
+        return `${section}<div class="fishing-log-entry" data-fish-rarity="${isRare?'rare':'regular'}" data-fish-species="${escapeHtml(speciesName)}"><div class="fishing-log-thumb" aria-hidden="true">${picture}</div><div class="fishing-log-copy"><b>${name}${duelFishingRareBadge(variant,entry.bestRarity)}</b><span>Personal best <strong>${best>0?`${best} cm`:"—"}</strong>${variantText}</span><span>${count} caught${rare?` • ${rare} rare`:""}</span></div></div>`;
       }).join("");
       return `<details class="fishing-logbook" data-fishing-logbook open><summary><span class="fishing-logbook-title"><i aria-hidden="true">▱</i><span>Angler's field log<small>Your personal fish collection</small></span></span>${newSpecies?'<span class="fishing-new-species">NEW SPECIES</span>':`<span class="fishing-logbook-count">${discovered} / ${FISHING_SPECIES.length}</span>`}</summary><div class="fishing-logbook-body"><div class="fishing-logbook-tools"><button type="button" class="fishing-log-unlock" data-fishing-log-unlock aria-pressed="false">Unlock all fish (testing)</button><small>Temporary collection preview</small></div><div class="fishing-logbook-stats"><div class="fishing-logbook-stat"><b>${discovered} / ${FISHING_SPECIES.length}</b>Discovered</div><div class="fishing-logbook-stat"><b>${totalCaught}</b>Total catches</div><div class="fishing-logbook-stat"><b>${rareCaught}</b>Rare finds</div></div><div class="fishing-logbook-grid">${speciesHtml}</div></div></details>`;
     }
@@ -23182,6 +23195,9 @@ async function rnbFetchAuthoritativeGame(gameId){
   if(game.rematchGameId){rnbClearRematchTimer();return}
   if(req[botId]&&active){rnbClearRematchTimer();return}
   const humanRequested=Boolean(active&&req[humanId]);
+  // Fishing's server only permits a bot to ACCEPT an active human offer.
+  // A bot-first attempt is rejected and used to repeat every few seconds.
+  if(game.mode==='fishing'&&!duelFishingCanAcceptRematch(game)){rnbClearRematchTimer();return}
   // Blackjack Duel's five-second Double or Nothing window begins only after
   // the human explicitly offers it. Otherwise the bot would repeatedly open
   // new windows after every expiry and churn the completed-result UI.
@@ -23201,7 +23217,9 @@ async function rnbFetchAuthoritativeGame(gameId){
   rnbRematchRuntime.timer=setTimeout(async()=>{rnbRematchRuntime.timer=0;rnbRematchRuntime.requesting=true;try{
     // Re-fetch immediately before acting so an expired window or already-created
     // rematch cannot generate a stale 500 action.
-    const latest=await rnbFetchAuthoritativeGame(gameId)||game;
+    const refreshed=await rnbFetchAuthoritativeGame(gameId);
+    const latest=refreshed||(game.mode==='fishing'?null:game);
+    if(game.mode==='fishing'&&(rnbRematchRuntime.gameId!==gameId||!duelFishingCanAcceptRematch(latest))){line(botLogs,'rematch acceptance cancelled',{reason:'no confirmed active fishing offer'});return}
     if(latest?.rematchGameId){rnbRematchRuntime.handledKey=key;return}
     const latestReq=latest?.rematch?.requestedBy||{};
     if(humanRequested&&!latestReq[humanId]){line(botLogs,'rematch acceptance cancelled',{reason:'human request no longer active'});return}

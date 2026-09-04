@@ -11,9 +11,9 @@ const controller = fs.readFileSync(new URL("../assets/fishing/fishing-controller
 const preview = fs.readFileSync(new URL("../games/multiplayer/fishing/preview.html", import.meta.url), "utf8");
 const serverData = fs.readFileSync(new URL("../netlify/functions/_data.js", import.meta.url), "utf8");
 
-assert(html.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v24'), "versioned Fishing stylesheet is not loaded");
-assert(html.includes('id="fishingDuelRuntime" defer src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v24"'), "deferred shared Fishing controller is not loaded");
-assert(preview.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v24'), "preview is not using the current Fishing stylesheet");
+assert(html.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v25'), "versioned Fishing stylesheet is not loaded");
+assert(html.includes('id="fishingDuelRuntime" defer src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v25"'), "deferred shared Fishing controller is not loaded");
+assert(preview.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v25'), "preview is not using the current Fishing stylesheet");
 assert(html.includes('function duelFishingEnsureController(root)'), "Fishing controller recovery loader is missing");
 assert(html.includes('class="fishing-command-bar"'), "game-owned Fishing header is missing");
 assert(html.includes('class="fishing-instructions" aria-label="How to play"'), "visible game instructions are missing");
@@ -82,6 +82,10 @@ assert(css.includes('top: var(--fishing-ripple-y, 69%) !important;'), "ripples a
 assert(css.includes('top: var(--fishing-ripple-y, 69%);'), "catch ripple does not share the bite position");
 assert(css.includes('grid-area: 1 / 1;'), "tip carousel does not reserve its full wrapped-text height");
 assert(html.includes('function duelFishingRareBadge('), "logbook rarity labels are missing");
+assert(html.includes('class="stamp-ring"'), "rare fish star stamp is missing");
+assert(css.includes('html:has(body.fishing-result-open)'), "the page behind the result can still scroll");
+assert(css.includes('#fishingResultPortal .fishing-logbook-body {\n  max-height: none;\n  overflow: visible;'), "logbook still has a competing nested scrollbar");
+assert(css.includes('background: #092e3c;'), "catch captions are not opaque above water effects");
 assert(css.includes('.fishing-ripple.is-special'), "special-fish ripple glow is missing");
 assert(css.includes('@keyframes fishingRippleSparkle'), "special-fish ripple sparkle animation is missing");
 assert(css.includes('mix-blend-mode: normal;'), "bright-water blending can still erase ripples");
