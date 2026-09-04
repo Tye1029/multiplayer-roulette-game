@@ -5370,11 +5370,16 @@ body > .sc-result-overlay.tie[data-sc-result-portal] .sc-result-card {
 }
 .safe-cracker-game .sc-topbar { margin-bottom:10px; }
 .safe-cracker-game .sc-safe-door {
-  background-image:url('/assets/safe-cracker/images/safe-steel-surface-v2.png') !important;
+  background-image:url('/assets/safe-cracker/images/safe-steel-surface-v3.png') !important;
 }
 .safe-cracker-game .sc-safe-shell {
-  box-shadow:inset 0 0 0 3px #111820,inset 0 5px 9px #000b,0 0 0 5px #111820b3,0 2px 0 6px #9cabb333 !important;
+  /* A dark upper/left jamb and lit lower edge recess the door behind the wall lip. */
+  background:linear-gradient(135deg,#10171d,#24333e 46%,#72818b) !important;
+  border-color:#73818b #46535d #34414b #667580;
+  box-shadow:inset 5px 7px 6px #000b,inset -1px -1px 1px #c7d5df66,0 0 0 3px #111820 !important;
 }
+.safe-cracker-game .sc-safe-shell:not(.sc-gameplay-win)::before { inset:3px;border-radius:4px;border-color:#121b23;box-shadow:inset 2px 3px 4px #0008; }
+.safe-cracker-game .sc-safe-shell::after { content:none; }
 .sc-result-heading { background-image:linear-gradient(#17212bb8,#202930f2),url('/assets/safe-cracker/images/bank-vault-wall-v5.png'); }
 /* Keep the final latch ahead of the swing, with stationary left hinges. */
 .safe-cracker-game .sc-safe-shell.sc-gameplay-win .sc-safe-door {
