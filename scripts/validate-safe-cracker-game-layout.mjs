@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
+import crypto from 'node:crypto';
 
 const root = new URL('../', import.meta.url);
 const client = await readFile(new URL('assets/safe-cracker/safe-cracker.js', root), 'utf8');
@@ -27,8 +28,8 @@ for (const status of ['waiting','ready','countdown','playing','complete']) {
 assert.equal(context.duelModeArt({mode:'fishing'}), 'fishing-unchanged');
 assert.equal(context.duelModeArt({mode:'roulette'}), 'roulette-unchanged');
 vm.runInContext(section(client, 'function secondsLeft(game', '// SAFE_CRACKER_START_COUNTDOWN_START'), context);
-assert.equal(context.secondsLeft({status:'ready'}), 75);
-assert.equal(context.secondsLeft({status:'waiting'}), 75);
+assert.equal(context.secondsLeft({status:'ready'}), 60);
+assert.equal(context.secondsLeft({status:'waiting'}), 60);
 assert.equal(context.secondsLeft({status:'complete',safecrackerState:{endAt:new Date(60000).toISOString()}}), 0);
 assert.equal(context.secondsLeft({status:'playing',safecrackerState:{endAt:new Date(60000).toISOString()}}), 50);
 vm.runInContext(section(client, 'function safeCrackerCanSubmit(game', 'function safeCrackerUpdateConfirmControl()'), context);
@@ -45,4 +46,30 @@ const template = section(client, 'if (!reusedMountedBoard) mount.innerHTML', 'ru
 assert.ok(template.indexOf('sc-instructions') < template.indexOf('sc-topbar'));
 assert.ok(template.indexOf('sc-tip-bar') > template.indexOf('data-sc-confirm'));
 assert.ok(!html.includes('Crack your own three-number safe before your opponent.'));
+assert.ok(!template.includes('sc-opponent-strip'), 'Opponent status strip must be removed from the board');
+assert.ok(template.includes('Decide which direction to go!'));
+assert.ok(!template.includes('Warmer means closer'));
+
+// Exercise the authoritative round and public countdown, including its deadline.
+const server = await readFile(new URL('netlify/functions/_data.js', root), 'utf8');
+let now = 100000;
+class Clock extends Date { static now() { return now; } }
+const authority = vm.createContext({crypto, Date:Clock, cleanUserId:id=>String(id||''), int:(n,f=0)=>Number.isFinite(Number(n))?Math.trunc(Number(n)):f});
+vm.runInContext(section(server, 'const SAFE_CRACKER_ROUND_MS', 'function safeCrackerSummary('), authority);
+const match = {status:'ready',creator:{userId:'one'},joiner:{userId:'two'}};
+assert.equal(authority.safeCrackerPublicState(match,'one').secondsLeft,60);
+match.status='playing';
+match.safecrackerState=authority.safeCrackerInitialState(match,now);
+assert.equal(Date.parse(match.safecrackerState.endAt)-Date.parse(match.safecrackerState.startAt),60000);
+assert.ok(authority.safeCrackerHasValidState(match));
+assert.equal(authority.safeCrackerPublicState(match,'one').secondsLeft,60);
+now+=59000;
+assert.equal(authority.safeCrackerPublicState(match,'one').secondsLeft,1);
+now+=1000;
+assert.equal(authority.safeCrackerPublicState(match,'one').secondsLeft,0);
+now+=1000;
+assert.equal(authority.safeCrackerPublicState(match,'one').secondsLeft,0);
+assert.equal(authority.safeCrackerPublicState(match,'one').opponent.code,undefined);
+match.status='complete';
+assert.equal(authority.safeCrackerPublicState(match,'one').canSubmit,false);
 console.log('Safe Cracker layout: all lifecycle screens mount the real board, private unlocked digits stay accurate, pre-race guesses stay disabled, timer stops at completion, and other game routing is unchanged.');

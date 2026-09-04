@@ -26,7 +26,7 @@ assert(client.includes('function safeCrackerMonotonicCountdownLabel(game = runti
 assert(client.includes('if (proposedRank < runtime.countdownProgressRank) return runtime.countdownProgressLabel;'), 'countdown can still move backward');
 assert(client.includes('const startCountdownLabel = safeCrackerMonotonicCountdownLabel(game);'), 'render does not use the monotonic countdown');
 assert(client.includes('const label = safeCrackerMonotonicCountdownLabel(runtime.game);'), 'ticker does not use the monotonic countdown');
-assert(client.includes('<span class="sc-race-copy"><small>OPPONENT STATUS</small></span>'), 'duplicate opponent-name race copy remains');
+assert(!client.includes('OPPONENT STATUS') && !client.includes('class="sc-opponent-strip'), 'removed opponent status bar must not render');
 assert(!client.includes('<small>RACE STATUS</small><strong>${escapeHtml(opponentName'), 'old duplicated opponent race label remains');
 assert(client.includes("const confirmLabel = runtime.busy"), 'purposeful confirm-button state labels are missing');
 assert(client.includes("? 'RESETTING…'"), 'cooldown button does not identify its resetting state');

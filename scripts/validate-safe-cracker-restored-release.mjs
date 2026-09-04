@@ -8,7 +8,8 @@ const release = JSON.parse(await read('assets/safe-cracker/restored-release.json
 // Pin the complete generated release, including every referenced dial/audio asset.
 // The old base JS/CSS can parse successfully while omitting all later features.
 for (const [path, expected] of Object.entries(release.sha256)) {
-  const actual = createHash('sha256').update(await read(path)).digest('hex');
+  const content = path.endsWith('.png') ? await readFile(new URL(path, root)) : await read(path);
+  const actual = createHash('sha256').update(content).digest('hex');
   assert.equal(actual, expected, `Restored Safe Cracker release changed: ${path}`);
 }
 const html = await read('index.html');

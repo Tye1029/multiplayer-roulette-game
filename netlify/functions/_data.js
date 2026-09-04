@@ -5667,7 +5667,7 @@ function duelNpcChoice(mode) {
 
 
 // SAFE_CRACKER_SERVER_START
-const SAFE_CRACKER_ROUND_MS = 75 * 1000;
+const SAFE_CRACKER_ROUND_MS = 60 * 1000;
 const SAFE_CRACKER_VERIFY_MS = 650;
 const SAFE_CRACKER_STAGES = 3;
 const SAFE_CRACKER_LOCKS = globalThis.__SAFE_CRACKER_LOCKS || (globalThis.__SAFE_CRACKER_LOCKS = new Map());
@@ -5818,7 +5818,7 @@ function safeCrackerPublicState(game, viewerUserId) {
   if (!state) {
     return {
       roundId: '', startAt: game?.startAt || null, endAt: null, revision: 0,
-      secondsLeft: 75, canSubmit: false, cooldownMs: 0,
+      secondsLeft: SAFE_CRACKER_ROUND_MS / 1000, canSubmit: false, cooldownMs: 0,
       me: safeCrackerPublicPlayer({}, true), opponent: safeCrackerPublicPlayer({}, false)
     };
   }
@@ -5834,7 +5834,7 @@ function safeCrackerPublicState(game, viewerUserId) {
     startAt: state.startAt,
     endAt: state.endAt,
     revision: int(state.revision, 0),
-    secondsLeft: complete ? 0 : Number.isFinite(endMs) ? Math.max(0, Math.ceil((endMs - now) / 1000)) : 75,
+    secondsLeft: complete ? 0 : Number.isFinite(endMs) ? Math.max(0, Math.ceil((endMs - now) / 1000)) : SAFE_CRACKER_ROUND_MS / 1000,
     canSubmit: String(game?.status || '') === 'playing' && ids.includes(viewer) && cooldownMs <= 0 && int(me.stage, 0) < SAFE_CRACKER_STAGES,
     cooldownMs,
     stagesTotal: SAFE_CRACKER_STAGES,

@@ -113,9 +113,9 @@
 
   function secondsLeft(game = runtime.game) {
     if (game?.status === 'complete') return 0;
-    if (['waiting', 'ready'].includes(String(game?.status || ''))) return 75;
+    if (['waiting', 'ready'].includes(String(game?.status || ''))) return 60;
     const endAt = Date.parse(String(stateFor(game)?.endAt || ''));
-    if (!Number.isFinite(endAt)) return 75;
+    if (!Number.isFinite(endAt)) return 60;
     return Math.max(0, Math.ceil((endAt - serverNowMs()) / 1000));
   }
 
@@ -785,19 +785,6 @@
       playerCopy?.querySelector('.sc-progress-lights')?.insertAdjacentHTML('beforebegin', lockedCode(me));
     }
 
-    const opponentStrip = root.querySelector('.sc-opponent-strip');
-    if (opponentStrip) {
-      for (const tier of ['red', 'orange', 'yellow', 'green']) opponentStrip.classList.remove(tier);
-      const opponentTier = String(opponent?.lastTier || '');
-      if (opponentTier) opponentStrip.classList.add(opponentTier);
-      const raceProgress = opponentStrip.querySelector('.sc-race-progress');
-      if (raceProgress) raceProgress.innerHTML = '<i aria-hidden="true"></i>' + Math.min(STAGES, Number(opponent?.stage || 0)) + ' / ' + STAGES + ' LOCKS';
-      safeCrackerSetText(
-        opponentStrip.querySelector('.sc-race-signal'),
-        opponent?.completed ? 'SAFE OPEN' : opponentTier ? tierLabel(opponentTier) : 'SEARCHING'
-      );
-    }
-
     const display = root.querySelector('[data-sc-display]');
     if (display) {
       for (const tier of ['idle', 'red', 'orange', 'yellow', 'green', 'fresh']) display.classList.remove(tier);
@@ -902,17 +889,11 @@
         <div class="sc-countdown-copy"><small>VAULT SEQUENCE</small><span data-sc-countdown-value class="${startCountdownLabel === 'GO!' ? 'go' : ''}">${escapeHtml(startCountdownLabel)}</span><b data-sc-countdown-status>${startCountdownLabel === 'GO!' ? 'DIAL ACTIVE' : 'LOCKS ENGAGING'}</b></div>
       </div>` : ''}
       <header class="sc-command-bar"><div><small>XAN DUELS</small><h2>SAFE CRACKER</h2></div><div class="sc-prize"><small>PRIZE POT</small><b>${Math.max(0, Number(game.pot || game.wager || 0)).toLocaleString()} Chips</b></div></header>
-      <section class="sc-instructions" aria-label="How to play"><div><small>HOW TO PLAY</small><b>Read the lock. Find your code.</b></div><ol><li><i>1</i><span><b>Turn the dial</b><small>Choose a number</small></span></li><li><i>2</i><span><b>Check the lights</b><small>Warmer means closer</small></span></li><li><i>3</i><span><b>Unlock all three</b><small>First safe open wins</small></span></li></ol></section>
+      <section class="sc-instructions" aria-label="How to play"><div><small>VAULT BREAK-IN</small><b>Three locks. Sixty seconds.</b></div><ol><li><i>1</i><span><b>Turn the dial</b><small>Choose a number</small></span></li><li><i>2</i><span><b>Check the lights</b><small>Decide which direction to go!</small></span></li><li><i>3</i><span><b>Unlock all three</b><small>First safe open wins</small></span></li></ol></section>
       <div class="sc-topbar">
         <div class="sc-player-card me"><div class="sc-avatar">${playerAvatar(myPlayer, 'Y')}</div><div class="sc-player-copy"><small>YOU</small><b>${escapeHtml(myPlayer?.name || 'Player')}</b>${lockedCode(me)}<div class="sc-progress-lights">${progressLights(me)}</div></div></div>
         <div class="sc-timer" data-sc-timer>${formatTimer(secondsLeft(game))}</div>
         <div class="sc-player-card opponent"><div class="sc-player-copy"><small>OPPONENT</small><b>${escapeHtml(opponentName || 'Waiting')}</b><div class="sc-progress-lights">${progressLights(opponent)}</div></div><div class="sc-avatar">${playerAvatar(opponentPlayer, 'O')}</div></div>
-      </div>
-
-      <div class="sc-opponent-strip ${escapeHtml(opponent.lastTier || '')}">
-        <span class="sc-race-copy"><small>OPPONENT STATUS</small></span>
-        <b class="sc-race-progress"><i aria-hidden="true"></i>${Math.min(STAGES, Number(opponent.stage || 0))} / ${STAGES} LOCKS</b>
-        <em class="sc-race-signal">${opponent.completed ? 'SAFE OPEN' : opponent.lastTier ? tierLabel(opponent.lastTier) : 'SEARCHING'}</em>
       </div>
 
       <div class="sc-safe-shell ${Number(me.stage || 0) >= STAGES ? 'open' : ''}">
@@ -940,7 +921,7 @@
           <div class="sc-safe-handle"><span></span></div>
         </div>
       </div>
-      <aside class="sc-tip-bar"><b>TIP</b><span>Red → orange → yellow → green. Try nearby numbers as the lights get warmer.</span></aside>
+      <aside class="sc-tip-bar"><b>TIP</b><span>Red → orange → yellow → green. Use the lights to decide your next move.</span></aside>
       ${resultOverlay(game)}
     </section>`;
 
