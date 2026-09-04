@@ -30,6 +30,14 @@ vm.runInContext(section(html,'function duelStartNewGame(', '    async function d
 navigation.duelStartNewGame();
 assert.equal(navigation.window.__duelRequestedModeIntent,'safecracker');
 
+const ready=vm.createContext({duelReadyUiState:{gameId:'old',clicked:true,confirmed:true,deadlineAt:new Date(Date.now()-1000).toISOString()},DUEL_STATUS_RANK:{ready:1},Date,String,Number,Math,Boolean});
+vm.runInContext(section(html,'function duelResetReadyUi(', '    function duelPatchReadyDom('),ready);
+const nextReady={gameId:'rematch',status:'ready',canReady:true,isCreator:true};
+assert.equal(ready.duelReadyButtonState(nextReady).label,'READY');
+assert.equal(ready.duelReadyButtonState(nextReady).disabled,false);
+ready.duelReadyUiState.clicked=true;
+assert.equal(ready.duelReadyButtonState(nextReady).disabled,true,'Same-match polls must preserve the Ready click');
+
 // Real result handlers: no premature close, one request, expiry/retry recovery.
 let handler, resolveRematch, requests=0, removed=0;
 const game={gameId:'old',status:'complete',isCreator:true,creator:{userId:'me'}};
