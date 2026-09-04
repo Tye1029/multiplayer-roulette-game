@@ -5382,9 +5382,11 @@ body > .sc-result-overlay.tie[data-sc-result-portal] .sc-result-card {
 .safe-cracker-game .sc-safe-shell::after { content:none; }
 .sc-result-heading { background-image:linear-gradient(#17212bb8,#202930f2),url('/assets/safe-cracker/images/bank-vault-wall-v5.png'); }
 /* Keep the final latch ahead of the swing, with stationary left hinges. */
+.safe-cracker-game .sc-safe-shell.sc-gameplay-win { perspective:1800px;perspective-origin:0 50%; }
 .safe-cracker-game .sc-safe-shell.sc-gameplay-win .sc-safe-door {
   transform-origin:0 50%;
-  animation-timing-function:cubic-bezier(.32,0,.24,1);
+  animation-duration:1250ms;
+  animation-timing-function:cubic-bezier(.22,.7,.3,1);
   will-change:transform;
 }
 .safe-cracker-game .sc-safe-shell.sc-gameplay-win .sc-bolts.left .sc-latch-mount > i {
@@ -5392,21 +5394,33 @@ body > .sc-result-overlay.tie[data-sc-result-portal] .sc-result-card {
 }
 .safe-cracker-game .sc-safe-shell.sc-gameplay-win .sc-bolts.right i.sc-latch-releasing { animation-duration:340ms; }
 .safe-cracker-game .sc-safe-shell.sc-gameplay-win::before {
-  inset:12px;border-radius:4px;border-color:#647786;
-  background:linear-gradient(90deg,#060b10,#14222e 70%,#253b4b);
-  box-shadow:inset 0 0 32px #000c;
-  animation:none;opacity:1;
+  inset:12px;border-radius:4px;border-color:#dfb56f;
+  background:radial-gradient(ellipse at 78% 48%,#fff0b8 0%,#eab45e 22%,#744517 52%,#160d06 84%);
+  box-shadow:inset 0 0 38px #ffbf5366,0 0 22px #ffb73c33;
+  opacity:0;
+  animation:scVaultWarmReveal 650ms ease-out both;
+  animation-delay:calc(var(--sc-result-animation-delay,0ms) + 320ms);
 }
-.safe-cracker-game .sc-safe-shell.sc-gameplay-win::after { content:none; }
+.safe-cracker-game .sc-safe-shell.sc-gameplay-win::after {
+  content:'';inset:-4% -6%;border-radius:12px;
+  background:radial-gradient(ellipse at 88% 50%,#ffd98c70, #f9b94c22 28%,transparent 62%);
+  filter:blur(10px);mix-blend-mode:screen;opacity:0;
+  animation:scVaultWarmSpill 700ms ease-out both;
+  animation-delay:calc(var(--sc-result-animation-delay,0ms) + 430ms);
+}
 @keyframes scGameplaySafeDoorOpen {
-  0%,32% { transform:rotateY(0deg); }
-  100% { transform:rotateY(-42deg); }
+  0%,28% { transform:rotateY(0deg); }
+  100% { transform:rotateY(38deg); }
 }
+@keyframes scVaultWarmReveal { from { opacity:0; } to { opacity:1; } }
+@keyframes scVaultWarmSpill { from { opacity:0; } to { opacity:.8; } }
 @media(max-width:700px) {
   .safe-cracker-game { padding-top:12px;padding-bottom:28px; }
 }
 @media(prefers-reduced-motion:reduce) {
-  .safe-cracker-game .sc-safe-shell.sc-gameplay-win .sc-safe-door { animation:none !important;transform:rotateY(-20deg);will-change:auto; }
+  .safe-cracker-game .sc-safe-shell.sc-gameplay-win .sc-safe-door { animation:none !important;transform:rotateY(38deg);will-change:auto; }
   .safe-cracker-game .sc-safe-shell.sc-gameplay-win .sc-bolts.right i.sc-latch-releasing { animation:none !important; }
+  .safe-cracker-game .sc-safe-shell.sc-gameplay-win::before,
+  .safe-cracker-game .sc-safe-shell.sc-gameplay-win::after { animation:none !important;opacity:1; }
 }
 /* SAFE_CRACKER_RECESSED_WALL_V6_END */

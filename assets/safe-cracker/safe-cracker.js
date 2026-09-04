@@ -541,7 +541,8 @@
     fresh.classList.add('sc-result-portal-pending');
     document.body.appendChild(fresh);
     const reducedMotion = Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches);
-    const revealDelay = reducedMotion ? 0 : won ? 1180 : tied ? 420 : 520;
+    // Let the 1250ms door swing settle, then hold the glowing interior for 500ms.
+    const revealDelay = reducedMotion ? 0 : won ? 1750 : tied ? 420 : 520;
     const remaining = Math.max(0, revealDelay - elapsed);
     if (runtime.resultPortalTimer) window.clearTimeout(runtime.resultPortalTimer);
     runtime.resultPortalTimer = window.setTimeout(() => {

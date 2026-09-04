@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import vm from 'node:vm';
 
 const root = new URL('../', import.meta.url);
 const [client, css, index, patch, data, turnAnimation, turnFire] = await Promise.all([
@@ -25,7 +26,34 @@ assert(occurrences(css, '/* SAFE_CRACKER_RESULT_FLOW_V5_END */') === 1, 'result-
 assert(client.includes('function mountSafeCrackerResultPortal(game, mount)'), 'result portal helper is missing');
 assert(client.includes("shell.classList.add(won ? 'sc-gameplay-win' : tied ? 'sc-gameplay-tie' : 'sc-gameplay-lose');"), 'actual gameplay safe is not assigned result animation states');
 assert(client.includes("shell.style.setProperty('--sc-result-animation-delay', '-' + Math.min(elapsed, 1200) + 'ms');"), 'safe-opening animation does not preserve progress across polling renders');
-assert(client.includes('const revealDelay = reducedMotion ? 0 : won ? 1180 : tied ? 420 : 520;'), 'win card is not delayed until after the safe opening');
+assert(client.includes('const revealDelay = reducedMotion ? 0 : won ? 1750 : tied ? 420 : 520;'), 'win card must leave 500ms to see the glowing safe after its 1250ms swing');
+// Exercise the real portal scheduler: polling must not restart the door/light
+// sequence or shorten its viewing time, and reduced motion must reveal at once.
+const portalStart = client.indexOf('function mountSafeCrackerResultPortal(game, mount)');
+const portalEnd = client.indexOf('// SAFE_CRACKER_RESULT_FLOW_V5_END', portalStart);
+function checkPortalTiming(reducedMotion) {
+  let now=100, existing=null, audioStarts=0, animationStarts=0;
+  const timers=[];
+  const classes=new Set();
+  const shell={classList:{contains:c=>classes.has(c),add:c=>classes.add(c)},style:{setProperty:()=>animationStarts++}};
+  const fresh=()=>({setAttribute:()=>{},classList:{add:()=>{},contains:()=>false},remove:()=>{}});
+  let result=fresh();
+  const mount={querySelector:selector=>selector==='.sc-safe-shell'?shell:result};
+  const sandbox=vm.createContext({runtime:{},performance:{now:()=>now},
+    document:{querySelector:()=>existing,body:{appendChild:p=>{existing=p;},classList:{add:()=>{},toggle:()=>{}}}},
+    window:{matchMedia:()=>({matches:reducedMotion}),setTimeout:(fn,delay)=>{timers.push(delay);return timers.length;},clearTimeout:()=>{}},
+    playSafeCrackerResultSequence:()=>audioStarts++,clearSafeCrackerResultPortal:()=>{},revealSafeCrackerResultPortal:()=>{}});
+  vm.runInContext(client.slice(portalStart,portalEnd),sandbox);
+  const game={gameId:'opening',status:'complete',isCreator:true,creator:{userId:'winner'},winnerUserId:'winner'};
+  sandbox.mountSafeCrackerResultPortal(game,mount);
+  assert(timers[0]===(reducedMotion?0:1750),'incorrect result reveal deadline');
+  now=800;result=fresh();sandbox.mountSafeCrackerResultPortal(game,mount);
+  assert(timers.length===1 && animationStarts===1 && audioStarts===1,'polling restarted the opening sequence');
+}
+checkPortalTiming(false);checkPortalTiming(true);
+const finalOpeningCss=css.slice(css.indexOf('/* SAFE_CRACKER_RECESSED_WALL_V6_START */'));
+assert(finalOpeningCss.includes('animation:scVaultWarmReveal 650ms') && finalOpeningCss.includes('animation:scVaultWarmSpill 700ms'), 'final CSS must retain both the interior glow and reflected light');
+assert(finalOpeningCss.includes('animation-duration:1250ms') && finalOpeningCss.includes('rotateY(38deg)') && finalOpeningCss.includes('perspective-origin:0 50%'), 'door must use the slower hinge swing that reveals the interior without projecting over the HUD');
 assert(client.includes("fresh.setAttribute('data-sc-result-portal', '');"), 'result overlay is not moved into a viewport portal');
 assert(client.includes('mountSafeCrackerResultPortal(game, mount);'), 'result portal helper is not called after controls are bound');
 assert(client.indexOf('bindControls(mount, game);') < client.indexOf('mountSafeCrackerResultPortal(game, mount);'), 'result buttons would be moved before their handlers are bound');
