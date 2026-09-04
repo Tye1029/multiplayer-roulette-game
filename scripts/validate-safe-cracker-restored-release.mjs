@@ -45,4 +45,5 @@ for (const check of [
 ]) await import(`./validate-safe-cracker-${check}.mjs`);
 await import('./validate-safe-cracker-feedback-endpoint.mjs');
 await import('./validate-safe-cracker-game-layout.mjs');
+await import('./validate-safe-cracker-rapid-input.mjs');
 console.log(`Verified complete Safe Cracker restored release ${release.release}: ${Object.keys(release.sha256).length} files.`);

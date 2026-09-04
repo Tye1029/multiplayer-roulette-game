@@ -21,6 +21,9 @@
     rotation: 0,
     stageKey: '',
     busy: false,
+    submittedDigit: null,
+    queuedGuess: null,
+    requestToken: null,
     dragging: false,
     pointerId: null,
     lastPointerAngle: 0,
@@ -523,7 +526,7 @@
     }
     const elapsed = Math.max(0, performance.now() - runtime.resultSequenceStartedAt);
     const shell = mount?.querySelector('.sc-safe-shell');
-    if (shell) {
+    if (shell && !shell.classList.contains(won ? 'sc-gameplay-win' : tied ? 'sc-gameplay-tie' : 'sc-gameplay-lose')) {
       shell.classList.add(won ? 'sc-gameplay-win' : tied ? 'sc-gameplay-tie' : 'sc-gameplay-lose');
       shell.style.setProperty('--sc-result-animation-delay', '-' + Math.min(elapsed, 1200) + 'ms');
     }
@@ -635,10 +638,10 @@
     const available = safeCrackerCanSubmit(game);
     const cooling = safeCrackerCooldownActive(game);
     const label = button.querySelector('span');
-    button.disabled = !available;
+    button.disabled = !available && !(game.status === 'playing' && Number(myState(game)?.stage || 0) < STAGES && (runtime.busy || cooling));
     button.classList.toggle('busy', runtime.busy);
     if (!label) return;
-    label.textContent = runtime.busy
+    label.textContent = runtime.queuedGuess ? 'NEXT CHECK QUEUED' : runtime.busy
       ? 'CHECKING…'
       : game.status === 'countdown'
         ? 'LOCKED'
@@ -662,6 +665,7 @@
       runtime.cooldownReleaseTimer = 0;
       if (runtime.cooldownGameId !== gameId) return;
       safeCrackerUpdateConfirmControl();
+      safeCrackerFlushQueuedGuess();
       // Refresh in the background for opponent progress, but local input no longer
       // waits for this request to finish before becoming usable again.
       window.__safeCrackerBridge?.refresh?.();
@@ -772,10 +776,10 @@
     const status = String(game?.status || '');
     const mountedStatus = String(root?.dataset?.scStatus || '');
 
-    // Keep the already-painted, decoded dial and display DOM only while the same
-    // active board remains in the playing lifecycle. Countdown and terminal
-    // transitions still receive a clean full render and fresh event bindings.
-    if (!root || !gameId || mountedGameId !== gameId || status !== 'playing' || mountedStatus !== 'playing') return false;
+    // Retain the physical door through completion so its final latch and swing
+    // continue on the same painted elements, including subsequent result polls.
+    const terminalBoard = root && gameId && mountedGameId === gameId && status === 'complete' && ['playing', 'complete'].includes(mountedStatus);
+    if (!terminalBoard && (!root || !gameId || mountedGameId !== gameId || status !== 'playing' || mountedStatus !== 'playing')) return false;
 
     const me = myState(game);
     const opponent = opponentState(game);
@@ -787,6 +791,10 @@
 
     root.dataset.scStatus = status;
     root.classList.add('sc-stable-render');
+    root.querySelectorAll('[data-sc-step]').forEach(button => { button.disabled = status !== 'playing'; });
+    const mountedDial = root.querySelector('[data-sc-dial]');
+    mountedDial?.setAttribute('aria-disabled', String(status !== 'playing'));
+    mountedDial?.setAttribute('tabindex', status === 'playing' ? '0' : '-1');
 
     const meLights = root.querySelector('.sc-player-card.me .sc-progress-lights');
     if (meLights) meLights.innerHTML = progressLights(me);
@@ -822,9 +830,9 @@
     const releasingLatch = stage > previousLatchStage ? stage : 0;
     root.querySelectorAll('.sc-bolts.right .sc-latch-mount > i').forEach((latch, index) => {
       const latchNumber = index + 1;
-      latch.classList.remove('sc-latch-releasing');
       latch.classList.toggle('sc-latch-released', stage >= latchNumber);
       if (releasingLatch === latchNumber) {
+        latch.classList.remove('sc-latch-releasing');
         void latch.offsetWidth;
         latch.classList.add('sc-latch-releasing');
       }
@@ -850,6 +858,11 @@
 
   function render(game) {
     const incomingGameId = String(game?.gameId || '');
+    if (incomingGameId !== String(runtime.game?.gameId || '')) {
+      runtime.requestToken = null;
+      runtime.busy = false;
+      runtime.queuedGuess = null;
+    }
     if (runtime.cooldownGameId && runtime.cooldownGameId !== incomingGameId) safeCrackerResetLocalCooldown();
     if (game?.status === 'complete') safeCrackerResetLocalCooldown();
     runtime.game = game;
@@ -870,10 +883,13 @@
     runtime.visualStatus = visualStatus;
     if (stageChanged) {
       runtime.stageKey = nextStageKey;
-      runtime.selected = 0;
-      runtime.rotation = nearestRotationForDigit(0, runtime.rotation);
-      runtime.lastDetent = 0;
-      runtime.busy = false;
+      runtime.queuedGuess = null;
+      if (game.status !== 'complete') {
+        cancelDialSettle();
+        runtime.selected = 0;
+        runtime.rotation = nearestRotationForDigit(0, runtime.rotation);
+        runtime.lastDetent = 0;
+      }
     }
 
     const latest = runtime.feedbackResult || null;
@@ -941,9 +957,13 @@
       ${resultOverlay(game)}
     </section>`;
 
+    if (reusedMountedBoard && game.status === 'complete' && !mount.querySelector('[data-sc-result-sequence]')) {
+      mount.firstElementChild.insertAdjacentHTML('beforeend', resultOverlay(game));
+    }
     runtime.feedbackFresh = false;
     mountCountdownPortal(game, mount);
     if (!reusedMountedBoard) bindControls(mount, game);
+    bindResultControls(mount);
     mountSafeCrackerResultPortal(game, mount);
     updateTimerOnly();
   }
@@ -973,7 +993,9 @@
     ], { duration: 240, easing: 'cubic-bezier(.18,.78,.22,1)' });
     runtime.dialSettleAnimation = animation;
     const cleanup = () => {
-      if (runtime.dialSettleAnimation === animation) runtime.dialSettleAnimation = null;
+      // A cancelled animation must never overwrite a newer turn or drag.
+      if (runtime.dialSettleAnimation !== animation) return;
+      runtime.dialSettleAnimation = null;
       face.classList.remove('settling');
       face.style.transform = `rotate(${toRotation}deg)`;
     };
@@ -1018,7 +1040,7 @@
     const dial = mount.querySelector('[data-sc-dial]');
     if (dial) {
       dial.addEventListener('pointerdown', event => {
-        if (runtime.busy || game.status !== 'playing') return;
+        if (runtime.game?.status !== 'playing') return;
         resumeAudio();
         cancelDialSettle();
         runtime.lastDragDirection = 0;
@@ -1112,32 +1134,72 @@
     }
 
     mount.querySelectorAll('[data-sc-step]').forEach(button => {
-      button.addEventListener('click', () => setSelected(runtime.selected + Number(button.dataset.scStep || 0)));
+      button.addEventListener('click', () => {
+        if (runtime.game?.status === 'playing') setSelected(runtime.selected + Number(button.dataset.scStep || 0));
+      });
     });
 
-    mount.querySelector('[data-sc-confirm]')?.addEventListener('click', () => submitGuess(game));
+    mount.querySelector('[data-sc-confirm]')?.addEventListener('click', () => safeCrackerRequestGuess());
+  }
+
+  function bindResultControls(mount) {
     mount.querySelector('[data-sc-rematch]')?.addEventListener('click', () => { clearSafeCrackerResultPortal(); window.__safeCrackerBridge?.rematch?.(); });
     mount.querySelector('[data-sc-new-game]')?.addEventListener('click', () => { clearSafeCrackerResultPortal(); window.__safeCrackerBridge?.newGame?.(); });
   }
 
-  async function submitGuess(game) {
+  // A single explicitly requested next check can wait for the current request.
+  // Never carry it into another tumbler or match, or retry a failed request.
+  function safeCrackerRequestGuess() {
+    const game = runtime.game;
+    if (game?.status !== 'playing' || Number(myState(game)?.stage || 0) >= STAGES) return;
+    if (runtime.busy || safeCrackerCooldownActive(game)) {
+      if (runtime.busy && runtime.selected === runtime.submittedDigit) return;
+      runtime.queuedGuess = { gameId: String(game.gameId), stage: Number(myState(game)?.stage || 0), digit: runtime.selected };
+      safeCrackerUpdateConfirmControl();
+      return;
+    }
+    submitGuess(game);
+  }
+
+  function safeCrackerFlushQueuedGuess() {
+    const queued = runtime.queuedGuess;
+    const game = runtime.game;
+    if (!queued || runtime.busy) return;
+    if (game?.status !== 'playing' || String(game.gameId) !== queued.gameId || Number(myState(game)?.stage || 0) !== queued.stage) {
+      runtime.queuedGuess = null;
+      safeCrackerUpdateConfirmControl();
+      return;
+    }
+    if (!safeCrackerCanSubmit(game) || safeCrackerCooldownActive(game)) return;
+    runtime.queuedGuess = null;
+    // The requested digit is frozen at the click, even if the dial moves again.
+    submitGuess(game, queued.digit);
+  }
+
+  async function submitGuess(game, queuedDigit) {
     const bridge = window.__safeCrackerBridge;
     const activeGame = runtime.game || game;
     if (!bridge?.submit || runtime.busy || !safeCrackerCanSubmit(activeGame)) return;
     runtime.busy = true;
+    const requestToken = {};
+    runtime.requestToken = requestToken;
+    runtime.submittedDigit = queuedDigit ?? runtime.selected;
     const confirmButton = document.querySelector('[data-sc-confirm]');
     if (confirmButton) {
-      confirmButton.disabled = true;
+      confirmButton.disabled = false;
       confirmButton.classList.add('busy');
       const confirmLabel = confirmButton.querySelector('span');
       if (confirmLabel) confirmLabel.textContent = 'CHECKING…';
     }
     try {
       const actionId = `sc-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-      const data = await bridge.submit({
+      const details = {
         choice: `safecracker:guess:${runtime.selected}`,
         actionId
-      });
+      };
+      if (queuedDigit !== undefined) details.choice = `safecracker:guess:${queuedDigit}`;
+      const data = await bridge.submit(details);
+      if (runtime.requestToken !== requestToken || String(runtime.game?.gameId) !== String(activeGame.gameId)) return;
       const nextGame = data?.game || runtime.game || activeGame;
       const resultChanged = adoptSubmittedFeedback(nextGame);
       const result = runtime.feedbackResult;
@@ -1146,8 +1208,12 @@
       safeCrackerArmLocalCooldown(nextGame, Number(nextGame?.safecrackerState?.cooldownMs || 0));
       render(nextGame);
       safeCrackerUpdateConfirmControl();
+      safeCrackerFlushQueuedGuess();
     } catch (error) {
+      if (runtime.requestToken !== requestToken || String(runtime.game?.gameId) !== String(activeGame.gameId)) return;
       runtime.busy = false;
+      runtime.queuedGuess = null;
+      safeCrackerUpdateConfirmControl();
       const display = document.querySelector('[data-sc-display]');
       if (display) {
         display.className = 'sc-display red';
@@ -1494,15 +1560,15 @@
   }
 
   const safeCrackerSubmitGuessWithAudio = submitGuess;
-  submitGuess = async function safeCrackerSubmitGuessAudioWrapper(game) {
+  submitGuess = async function safeCrackerSubmitGuessAudioWrapper(game, queuedDigit) {
     const activeGame = runtime.game || game;
     const state = stateFor(activeGame);
     const canSubmit = typeof safeCrackerCanSubmit === 'function'
       ? safeCrackerCanSubmit(activeGame)
       : Boolean(activeGame?.status === 'playing' && state?.canSubmit && !runtime.busy);
-    if (!canSubmit) return safeCrackerSubmitGuessWithAudio(game);
+    if (!canSubmit) return safeCrackerSubmitGuessWithAudio(game, queuedDigit);
     safeCrackerPlaySubmit();
-    const result = await safeCrackerSubmitGuessWithAudio(game);
+    const result = await safeCrackerSubmitGuessWithAudio(game, queuedDigit);
     window.requestAnimationFrame(() => {
       const display = document.querySelector('[data-sc-display]');
       const text = String(display?.querySelector('span')?.textContent || '').trim().toUpperCase();
