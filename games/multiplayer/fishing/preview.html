@@ -4,9 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Rumble Fishing Duel — Component Preview</title>
-  <script src="/shared/games/fishing-catalog.js?v=fishing-mechanics-v27"></script>
-  <link rel="stylesheet" href="/assets/fishing/fishing.css?v=fishing-mechanics-v27">
-  <script src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v27"></script>
+  <script src="/shared/games/fishing-catalog.js?v=fishing-mechanics-v28"></script>
+  <link rel="stylesheet" href="/assets/fishing/fishing.css?v=fishing-mechanics-v28">
+  <script src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v28"></script>
   <style>
     *{box-sizing:border-box}html,body{min-height:100%;margin:0;background:#041019;color:#fff;font-family:Inter,ui-sans-serif,system-ui,sans-serif}body{display:grid;place-items:center;padding:16px}.preview{width:min(100%,980px)}button{border:0;cursor:pointer}
     [data-preview-state]{display:none}[data-preview-state].active{display:block}.fishing-water{position:relative;min-height:0;aspect-ratio:1620/883;overflow:hidden}.fishing-sky{position:absolute;inset:0 0 64%}.fishing-dock{position:absolute}.fishing-center-status{position:absolute;z-index:15;left:50%;bottom:14px;transform:translateX(-50%)}
@@ -17,7 +17,7 @@
   <main class="preview duel-arena fishing-clean">
     <section data-preview-state="live">
       <div class="fishing-game" data-fishing-game data-fishing-game-id="preview" data-fishing-round-id="preview-round">
-        <header class="fishing-command-bar"><div class="fishing-brand"><span class="fishing-brand-mark">◒</span><span><small>RUMBLE</small><b>FISHING DUEL</b></span></div><div class="fishing-pot"><small>PRIZE POT</small><b>2,000 Tickets</b></div></header>
+        <header class="fishing-command-bar"><div class="fishing-brand"><span class="fishing-brand-mark">◒</span><span><small>XAN DUELS</small><b>FISHING DUEL</b></span></div><div class="fishing-pot"><small>PRIZE POT</small><b>2,000 Chips</b></div></header>
         <section class="fishing-instructions" aria-label="How to play"><div class="fishing-instruction-heading"><small>HOW TO PLAY</small><b>One cast. Choose wisely.</b></div><ol><li><i>1</i><span><b>Watch</b><small>Read the water</small></span></li><li><i>2</i><span><b>Bigger ripple = Bigger Fish!</b><small>Wait for the best one</small></span></li><li><i>3</i><span><b>Tap once</b><small>Largest catch wins</small></span></li></ol></section>
         <div class="fishing-player-strip"><div class="fishing-player-chip"><span class="fishing-player-chip-avatar fishing-player-chip-fallback">C</span><span><small>PLAYER 1</small><b>CowBoyCookie</b></span></div><div class="fishing-clock" data-fishing-clock data-clock-state="waiting" role="timer" aria-label="Round time remaining"><span class="fishing-clock-label">ROUND TIME</span><strong class="fishing-clock-value" data-fishing-clock-value>—:—</strong><span class="fishing-clock-track" aria-hidden="true"><i data-fishing-clock-progress style="--clock-progress:100%"></i></span></div><div class="fishing-player-chip"><span class="fishing-player-chip-avatar fishing-player-chip-fallback">N</span><span><small>PLAYER 2</small><b>Remote Bot (Normal)</b></span></div></div>
         <div class="fishing-water" data-fishing-water><img class="fishing-lake-art" src="/assets/fishing/images/v2/approved-preview-clean-v1.png" alt=""><canvas class="fishing-water-canvas" aria-hidden="true"></canvas><div class="fishing-cloud-bank" aria-hidden="true"><img class="cloud-a" src="/assets/fishing/images/v2/clouds-v2.png" alt=""><img class="cloud-b" src="/assets/fishing/images/v2/clouds-v2.png" alt=""><img class="cloud-c" src="/assets/fishing/images/v2/clouds-v2.png" alt=""></div><div class="fishing-scene-art"><div class="fishing-shore-rig left"><div class="fishing-dock left"></div><div class="fishing-angler left"><img src="/assets/fishing/images/v2/fisherman-v2.png" alt=""></div></div><div class="fishing-shore-rig right"><div class="fishing-dock right"></div><div class="fishing-angler right"><img src="/assets/fishing/images/v2/fisherman-blue-transparent-v3.png" alt=""></div></div><svg class="fishing-line-art" viewBox="0 0 1000 430" preserveAspectRatio="none"><path class="fishing-line-svg left" d="M270 68 Q380 92 420 286"></path><path class="fishing-line-svg right" d="M730 68 Q620 92 580 286"></path></svg><div class="fishing-hook-node left"><span class="fishing-hook-bobber"></span><div class="fishing-hook-catch left" data-catch-id=""></div></div><div class="fishing-hook-node right"><span class="fishing-hook-bobber"></span><div class="fishing-hook-catch right" data-catch-id=""></div></div></div><div class="fishing-center-status">Preparing both casts…</div></div>
@@ -27,7 +27,7 @@
     </section>
     <section id="fishingResultPortal" data-preview-state="result" hidden>
       <div class="fishing-result-overlay win"><div class="fishing-result-card"><header class="fishing-result-header"><div class="fishing-result-hook">⌁</div><div><div class="fishing-result-kicker">TOURNAMENT WEIGH-IN</div><div class="fishing-result-title">BIGGEST CATCH!</div><p>Your catch takes the tournament pot.</p></div><div class="fishing-result-float"><i></i></div></header><div class="fishing-result-content"><div class="fishing-result-catches"><div class="winner" data-preview-result="left"><span class="fishing-result-ribbon">LARGEST</span><span>Your catch</span><div class="fishing-result-fish-art"><div class="fishing-fish fishing-fish-png" style="--fish-cm:95"><img src="/assets/fishing/images/v2/fish/giant-bluefin-tuna-v2.png" alt=""><span class="fishing-fish-eye-blink"></span></div></div><b>Giant Bluefin Tuna</b><strong>95 cm</strong><div class="fishing-record-row"><span>Personal best: <b>95 cm</b></span></div></div><div data-preview-result="right"><span>Opponent catch</span><div class="fishing-result-fish-art"><div class="fishing-fish fishing-fish-png" style="--fish-cm:67"><img src="/assets/fishing/images/v2/fish/peacock-bass-v2.png" alt=""><span class="fishing-fish-eye-blink"></span></div></div><b>Peacock Bass</b><strong>67 cm</strong><div class="fishing-record-row"><span>Personal best: <b>67 cm</b></span></div></div></div>
-          <div data-preview-logbook></div><div class="fishing-result-payout"><span>RESULT</span><b>2,000 TICKETS WON</b></div></div><footer class="fishing-result-actions"><button class="gold duel-rematch-btn"><i>↻</i><span>Rematch</span></button><button class="secondary"><i>＋</i><span>Create a New Game</span></button></footer></div></div>
+          <div data-preview-logbook></div><div class="fishing-result-payout"><span>RESULT</span><b>2,000 CHIPS WON</b></div></div><footer class="fishing-result-actions"><button class="gold duel-rematch-btn"><i>↻</i><span>Rematch</span></button><button class="secondary"><i>＋</i><span>Create a New Game</span></button></footer></div></div>
     </section>
   </main>
   <script>
@@ -40,7 +40,7 @@
     function previewFishArt(value){
       const fish={...value,...FISHING_CATALOG.identity(value)};
       const variantClass=fish.variant==='standard'?'':` variant-${fish.variant}`;
-      return `<div class="fishing-fish fishing-fish-png${variantClass} rarity-${fish.rarity}" style="--fish-cm:${fish.size||48}"><img src="${previewFishAsset(fish)}" alt=""><span class="fishing-fish-eye-blink"></span><span class="fishing-fish-shimmer"></span></div>`;
+      return `<div class="fishing-fish fishing-fish-png${variantClass} rarity-${fish.rarity}" style="--fish-cm:${fish.size||48};${FISHING_CATALOG.hookStyle(fish)}"><img src="${previewFishAsset(fish)}" alt=""><span class="fishing-fish-eye-blink"></span><span class="fishing-fish-shimmer"></span></div>`;
     }
     function previewRandomFish(size=Number((12+Math.random()*88).toFixed(1)),forceSpecial=false){
       const identity=forceSpecial?FISHING_CATALOG.identity(FISHING_CATALOG.entries.filter(f=>f.special)[Math.floor(Math.random()*9)]):FISHING_CATALOG.pick(size);

@@ -125,10 +125,10 @@ for (const token of [
 ]) assert.ok(index.includes(token), `client runtime is missing ${token}`);
 
 assert.ok(!index.includes("if (mountainRacePauseCompletedPolling(game))"), "Summit completion must use shared rematch polling");
-assert.ok(index.includes("<h1>Rumble Arcade</h1>") && index.includes("<p>Choose a duel.</p>"), "public launcher copy is not concise");
+assert.ok(index.includes("<h1>XAN DUELS</h1>") && index.includes("<p>Choose a duel.</p>"), "public launcher copy is not concise");
 assert.ok(!index.includes("SIMPLE FISHING NPC BUILD"), "internal build label is still public");
 assert.ok(!index.includes("Create or join quick 1v1 games"), "old instructional subtitle is still public");
-assert.ok(index.includes('/assets/duel-shell.css?v=duel-shell-v2'), "shared professional duel shell is not loaded");
+assert.ok(index.includes('/assets/duel-shell.css?v=xan-duels-v3'), "shared professional duel shell is not loaded");
 assert.ok(index.includes('class="duel-side-stack"'), "compact create/join controls are not grouped below the game");
 assert.ok(index.includes('class="duel-create-fields"'), "compact create controls are missing");
 assert.ok(index.includes('class="duel-countdown-frame"'), "shared countdown frame is missing");

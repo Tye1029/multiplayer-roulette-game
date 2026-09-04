@@ -26,7 +26,7 @@ const duelFishingStartOcean=()=>{},duelFishingPlayTick=()=>{},duelFishingPlayTim
 const duelFishingPlaySplash=()=>{},duelFishingPlayFlop=()=>{},duelFishingScheduleAudio=()=>{};
 const duelFishingHideResultPortal=()=>{},duelFishingStopCompletionTicker=()=>{};
 const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const money=value=>value+' Test Tickets';
+const money=value=>value+' Test Chips';
 `;
 let now=Date.parse('2026-09-04T12:00:00Z');
 const epoch=now;
@@ -108,7 +108,8 @@ console.log('Fishing UI runtime tests passed: countdown, round time, stale snaps
 if(process.argv.includes('--serve')){
   const styles=[...html.matchAll(/<style\b[^>]*>[\s\S]*?<\/style>|<link\b[^>]*rel="stylesheet"[^>]*>/g)].map(m=>m[0]).join('\n');
   const renderer=between('    duelFishingHtml=function(game){','    const fishingV3NavIds=');
-  const fixture=`<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">${styles}<script src="/shared/games/fishing-catalog.js"></script><script src="/assets/fishing/fishing-controller.js"></script><style>body{margin:0;padding:12px;background:#08121c}#fixture{width:min(100%,1100px);margin:auto}.fixture-tools{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}.fixture-tools button{font:14px system-ui;padding:8px}.fixture-book{margin:12px auto;max-width:800px}.fixture-label{color:#d7e8f0;font:14px system-ui}#duelActive{width:100%}</style></head><body class="duel-mode"><main id="fixture"><p class="fixture-label">Offline UI check — real game renderer, simulated server state, no account or wager</p><div class="fixture-tools"><button id="restart">Restart countdown</button><button id="pause">Pause test updates</button><button id="book">Show rare logbook</button><button id="measure">Show measuring fish</button></div><div id="duelActive"></div><div class="fixture-book" id="log"></div></main><script>
+  const shell=between('    <section class="duel-screen panel"','    <section class="arcade-screen panel"').replace('id="duelScreen" hidden','id="duelScreen"').replace(/<button[^>]*id="duelNpcBtn"[^>]*>[\s\S]*?<\/button>/,'');
+  const fixture=`<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">${styles}<script src="/shared/games/fishing-catalog.js"></script><script src="/assets/fishing/fishing-controller.js"></script><style>body{margin:0;padding:12px;background:#08121c}#fixture{width:min(100%,1100px);margin:auto}.fixture-tools{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}.fixture-tools button{font:14px system-ui;padding:8px}.fixture-book{margin:12px auto;max-width:800px}.fixture-label{color:#d7e8f0;font:14px system-ui}#duelActive{width:100%}</style></head><body class="duel-mode"><main class="page" id="fixture"><header><div class="logo"><span>XAN</span> DUELS</div></header><p class="fixture-label">Offline UI check — real game renderer, simulated server state, no account or wager</p><div class="fixture-tools"><button id="restart">Restart countdown</button><button id="pause">Pause test updates</button><button id="book">Show rare logbook</button><button id="measure">Show measuring fish</button></div>${shell}<div class="fixture-book" id="log"></div></main><script defer src="/assets/duel-shell.js"></script><script>
 ${declarations}${stubs}${art}${projection}${clocks}${log}
 ${fn('duelFishingPlayerAvatar')}${fn('duelFishingComparisonPhase')}${fn('duelFishingComparisonOverlay')}${fn('duelFishingPlayerChip')}${fn('duelBindFishing')}${fn('duelFishingResultOverlay')}${renderer}
 let fixtureElapsed=10000; const duelFishingCompletionElapsed=()=>fixtureElapsed;
@@ -155,9 +156,11 @@ document.getElementById('book').onclick=()=>{
  for(const button of portal.querySelectorAll('.fishing-result-actions button'))button.onclick=()=>{portal.remove();document.body.classList.remove('fishing-result-open');start();};
 };
 start();</script></body></html>`;
+  const attachments=`<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1">${styles}<script src="/shared/games/fishing-catalog.js"></script><style>body{padding:20px}.pin-gallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:12px}.pin-sample{height:200px;position:relative;background:#163b4a;overflow:hidden}.pin-sample h3{text-align:center;font:14px system-ui}.pin-sample .fishing-hook-node{top:70px;left:27%}.pin-sample .fishing-hook-node.right{left:73%}.pin-sample .fishing-fish{--fish-width:95px!important}.pin-sample .fishing-catch-caption{display:none}</style></head><body><h1>All 62 fish attachment checks</h1><div class="pin-gallery"></div><script>document.querySelector('.pin-gallery').innerHTML=FISHING_CATALOG.entries.map(f=>'<section class="pin-sample"><h3>'+f.name+'</h3>'+['left','right'].map(side=>'<div class="fishing-hook-node has-catch '+side+'"><span class="fishing-hook-bobber"></span><div class="fishing-hook-catch '+side+'"><div class="fishing-catch-unit"><div class="fishing-fish fishing-fish-png" style="'+FISHING_CATALOG.hookStyle(f)+'"><img src="'+f.asset+'"></div></div></div></div>').join('')+'</section>').join('');</script></body></html>`;
   const mime={'.css':'text/css','.js':'text/javascript','.png':'image/png','.html':'text/html','.svg':'image/svg+xml','.mp3':'audio/mpeg','.woff2':'font/woff2'};
   http.createServer((req,res)=>{
     const url=new URL(req.url,'http://localhost');
+    if(url.pathname==='/__fish-attachment-check'){res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});return res.end(attachments);}
     if(url.pathname==='/__fishing-ui-check'){res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});return res.end(fixture);}
     const file=path.resolve(root,'.'+decodeURIComponent(url.pathname==='/'?'/index.html':url.pathname));
     if(!file.startsWith(root+path.sep)){res.writeHead(403);return res.end();}

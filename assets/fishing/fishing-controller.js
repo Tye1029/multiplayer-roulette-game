@@ -1,7 +1,7 @@
 (function fishingControllerBootstrap(global){
   "use strict";
 
-  const VERSION="fishing-controller-v15";
+  const VERSION="fishing-controller-v16";
   const SIDES=["left","right"];
   const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
   const round=value=>Math.round(Number(value||0)*10)/10;
@@ -140,7 +140,7 @@
       rig.catchId=nextId;rig.caught=true;
       this.hook(side)?.classList.add("has-catch");
       if(changed&&animate)this.reel(side,nextId);
-      else{rig.y=.48;rig.baseY=.48;rig.anim=null;}
+      else{rig.y=this.catchRestY(side);rig.baseY=rig.y;rig.anim=null;}
       this.updateDebug();
     }
 
@@ -152,8 +152,8 @@
       this.setPhase("reeling",{side});
       rig.caught=true;rig.catchId=String(catchId||rig.catchId||"");
       const fromY=Math.max(rig.y,.64);
-      rig.y=fromY;rig.baseY=.48;
-      rig.anim={kind:"reel",startedAt:performance.now(),duration,fromX:rig.x,fromY,toX:side==="left"?.42:.58,toY:.48};
+      rig.y=fromY;rig.baseY=this.catchRestY(side);
+      rig.anim={kind:"reel",startedAt:performance.now(),duration,fromX:rig.x,fromY,toX:side==="left"?.42:.58,toY:rig.baseY};
       this.log("reel-started",{side,catchId:rig.catchId,duration});
       return new Promise(resolve=>setTimeout(()=>{
         hook?.classList.remove("is-reeling");
@@ -165,6 +165,14 @@
     }
 
     hook(side){return this.scene?.querySelector(`.fishing-hook-node.${side}`)||null;}
+
+    catchRestY(side){
+      // Keep the newly top-attached fish AND its caption inside narrow scenes.
+      // Move the whole rig; the line endpoint and bobber use this same position.
+      const height=this.water?.getBoundingClientRect().height||430;
+      const caughtHeight=this.hook(side)?.querySelector('.fishing-catch-unit')?.offsetHeight||0;
+      return Math.min(.48,Math.max(.2,1-(caughtHeight+8)/height));
+    }
 
     rodTip(side){
       const img=this.scene?.querySelector(`.fishing-angler.${side} img`);
@@ -181,6 +189,10 @@
       const width=Math.max(1,Math.round(rect.width*dpr)),height=Math.max(1,Math.round(rect.height*dpr));
       if(this.canvas.width!==width||this.canvas.height!==height){this.canvas.width=width;this.canvas.height=height;this.canvas.style.width=`${rect.width}px`;this.canvas.style.height=`${rect.height}px`;}
       this.canvasDpr=dpr;
+      for(const side of SIDES){
+        const rig=this.rigs[side];
+        if(rig.caught){rig.baseY=this.catchRestY(side);if(!rig.anim)rig.y=rig.baseY;else if(rig.anim.kind==='reel')rig.anim.toY=rig.baseY;}
+      }
       this.drawWater(performance.now());
     }
 

@@ -9,6 +9,10 @@ assert.equal(catalog.entries.length,62);
 assert.equal(new Set(catalog.entries.map(f=>f.name)).size,62,'Every design has a distinct name');
 assert.deepEqual(catalog.entries.filter(f=>f.rarity==='mythical').map(f=>f.name),['Nemo','Aurora Koi','Celestial Anglerfish']);
 for(const fish of catalog.entries){
+  const pin=catalog.hookAnchors[fish.name];
+  assert(pin && pin.length===2, `${fish.name} needs its own image attachment`);
+  assert(pin[0]>=.25 && pin[0]<=.75 && pin[1]>=0 && pin[1]<.68);
+  assert(catalog.hookStyle(fish).includes('--fish-pin-y:calc(var(--fish-width)'));
   assert(fs.existsSync(new URL('..'+fish.asset,import.meta.url)),fish.asset);
   assert.deepEqual(catalog.identity(fish),catalog.identity(fish.name));
   if(fish.special)assert(!catalog.entries.some(f=>!f.special&&f.name===fish.name));

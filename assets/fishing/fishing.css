@@ -1370,7 +1370,7 @@
 .fishing-hook-catch {
   position: absolute;
   z-index: 2;
-  top: -11px;
+  top: 0;
   left: 0;
   width: 164px;
   min-height: 145px;
@@ -1394,16 +1394,17 @@
   transform: none;
 }
 
-.fishing-hook-catch .fishing-catch-unit.is-pulling { animation: fishingFishReveal .44s .24s ease-out both !important; }
+.fishing-hook-catch .fishing-catch-unit.is-pulling { animation: fishingHookReveal .44s .24s ease-out both !important; }
 
 .fishing-hook-catch .fishing-fish-png {
   position: relative !important;
   top: auto !important;
-  left: auto !important;
+  left: calc(var(--fish-width) * .5 - var(--fish-pin-x, calc(var(--fish-width) * .5))) !important;
   flex: 0 0 auto;
+  margin-top: calc(8px - var(--fish-pin-y, 0px));
   transform: none !important;
   animation: fishingFishHookSway 3.8s cubic-bezier(.45,0,.55,1) infinite !important;
-  transform-origin: 50% 8% !important;
+  transform-origin: var(--fish-pin-x, 50%) var(--fish-pin-y, 0px) !important;
 }
 
 .fishing-hook-catch.right .fishing-fish-png { transform: scaleX(-1) !important; }
@@ -1805,6 +1806,7 @@
 @keyframes fishingLineReel { to { stroke-dashoffset: 390; opacity: .25; } }
 @keyframes fishUnitPullFront { 0% { transform: translate(-50%,100px); opacity: .2; } 42% { opacity: 1; } 78% { transform: translate(-50%,-9px); } 100% { transform: translate(-50%,0); opacity: 1; } }
 @keyframes fishingFishReveal { from { opacity: 0; scale: .78; } to { opacity: 1; scale: 1; } }
+@keyframes fishingHookReveal { from { opacity: 0; } to { opacity: 1; } }
 @keyframes fishingFishHookSway { 0%,100% { rotate: -2deg; } 50% { rotate: 2deg; } }
 @keyframes fishingFishSway { 0%,100% { rotate: -4deg; translate: 0 0; } 50% { rotate: 4deg; translate: 0 6px; } }
 @keyframes fishingResultFishFloat { 0%,100% { translate: 0 1px; rotate: -1.5deg; } 50% { translate: 0 -3px; rotate: 1.5deg; } }

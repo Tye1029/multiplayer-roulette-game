@@ -9,7 +9,7 @@
     mines: "Multiplayer Mines Race",
     rps: "Rock Paper Scissors Duel",
     draw: "DRAW! Western Duel",
-    fishing: "Rumble Fishing Duel",
+    fishing: "Fishing Duel",
     roulette: "Russian Roulette",
     plinko: "Plinko Duel",
     blackjack: "Blackjack 1v1",

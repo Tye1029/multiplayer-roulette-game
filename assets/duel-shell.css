@@ -249,7 +249,7 @@
 
 .duel-side-stack {
   display: grid !important;
-  grid-template-columns: minmax(0, 2fr) minmax(260px, .8fr) !important;
+  grid-template-columns: minmax(0, 1fr) !important;
   align-self: start;
   gap: 10px !important;
 }
@@ -397,4 +397,96 @@
   .duel-eyebrow { display: none; }
   .duel-balance-card { min-width: 112px !important; }
   .duel-create-fields { grid-template-columns: 1fr; }
+}
+
+/* XAN DUELS: neutral shared chrome, outside each game's themed arena. */
+body {
+  background: #080d14 !important;
+  color: #eef3f8;
+}
+body::before { display: none; }
+.page > header { padding: 14px 48px 6px; }
+.page > header .logo {
+  gap: .3em;
+  color: #edf3f8 !important;
+  font: 750 clamp(1.35rem, 3.2vw, 2rem)/1.2 Inter, ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: .12em;
+  text-shadow: none !important;
+}
+.page > header .logo span { color: #a1c4d4 !important; filter: none !important; }
+.page > .game-menu-button {
+  border: 1px solid #273444;
+  border-radius: 6px;
+  color: #cfdee8;
+  background: #111c29;
+  box-shadow: none;
+}
+.duel-screen .duel-header { justify-content: center !important; align-items: center !important; }
+.duel-header-copy { display: none; }
+.duel-screen .duel-balance-card {
+  width: auto !important;
+  min-width: 0 !important;
+  padding: 2px 18px 8px !important;
+  border: 0 !important;
+  background: transparent !important;
+  text-align: center !important;
+}
+.duel-balance-card .balance-label,
+.duel-balance-card .balance-equivalent { display: none; }
+.duel-screen .duel-balance { font-size: clamp(1.2rem, 3vw, 1.5rem) !important; }
+.duel-compact-field > label {
+  color: var(--duel-shell-muted);
+  font-size: .65rem;
+  font-weight: 690;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.duel-create-fields { grid-template-columns: minmax(160px, 1fr) minmax(180px, .8fr) auto; }
+.duel-wager-control {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) 36px;
+  min-width: 0;
+  border: 1px solid var(--duel-shell-line);
+  border-radius: 6px;
+  overflow: hidden;
+  background: #080f18;
+}
+.duel-wager-control #duelWagerInput {
+  min-width: 0;
+  border: 0 !important;
+  border-radius: 0 !important;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+#duelWagerInput::-webkit-inner-spin-button,
+#duelWagerInput::-webkit-outer-spin-button { appearance: none; margin: 0; }
+.duel-create-fields .duel-wager-control button {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  padding: 0 !important;
+  border: 0;
+  border-radius: 0 !important;
+  color: #a8c9d8;
+  background: #14212e;
+}
+.duel-wager-control button svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.8; }
+.duel-wager-control button:hover:not(:disabled) { background: #213549; }
+.duel-wager-control button:disabled { opacity: .35; cursor: not-allowed; }
+.duel-wager-control:focus-within { border-color: #a1c4d4; }
+.duel-wager-control button:focus-visible { outline: 2px solid #a1c4d4; outline-offset: -3px; }
+/* These games remain registered and playable via existing matches, not listed. */
+.sth-game[data-mode="draw"], .sth-game[data-mode="mountainrace"],
+[data-rnb-game="draw"], [data-rnb-game="mountainrace"],
+#duelModeSelect option[hidden] { display: none !important; }
+@media (max-width: 680px) {
+  .duel-create-fields { grid-template-columns: minmax(0, 1fr) minmax(150px, 1fr); }
+  #duelCreateBtn { grid-column: 1 / -1; }
+}
+@media (max-width: 460px) {
+  .duel-create-fields { grid-template-columns: minmax(0, 1fr); }
+  .duel-wager-control { grid-template-columns: 44px minmax(0, 1fr) 44px; }
+  .duel-wager-control button, .duel-wager-control #duelWagerInput { min-height: 44px !important; }
 }

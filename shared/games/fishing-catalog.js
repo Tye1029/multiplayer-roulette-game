@@ -98,5 +98,76 @@
     }
     return result;
   }
-  return Object.freeze({tiers,entries,ordered,resolve,identity,pick,records,rank});
+  // Visible upper-back attachment points, measured from the PNG alpha channel.
+  // Coordinates are relative to rendered width in the .68-aspect fish box;
+  // transparent padding is included, and the outer tail tips are excluded.
+  const hookAnchors = Object.freeze({
+    "Titan Sturgeon":Object.freeze([0.421875,0.24625]),
+    "Grand Marlin":Object.freeze([0.515625,0.066563]),
+    "Giant Bluefin Tuna":Object.freeze([0.597656,0.1525]),
+    "Broadbill Swordfish":Object.freeze([0.492188,0.101719]),
+    "Arapaima":Object.freeze([0.277344,0.211094]),
+    "Mekong Giant Catfish":Object.freeze([0.527344,0.101719]),
+    "Sailfish":Object.freeze([0.486979,0.045729]),
+    "Paddlefish":Object.freeze([0.309896,0.149896]),
+    "King Salmon":Object.freeze([0.464844,0.136875]),
+    "Northern Muskie":Object.freeze([0.257813,0.144688]),
+    "Lake Sturgeon":Object.freeze([0.273438,0.207188]),
+    "Alligator Gar":Object.freeze([0.253906,0.222813]),
+    "Wels Catfish":Object.freeze([0.5625,0.105625]),
+    "Goliath Tigerfish":Object.freeze([0.433594,0.097813]),
+    "Tarpon":Object.freeze([0.484375,0.084792]),
+    "Great Barracuda":Object.freeze([0.585938,0.147292]),
+    "Electric Eel":Object.freeze([0.263021,0.144688]),
+    "Red Drum":Object.freeze([0.601563,0.056146]),
+    "Largemouth Bass":Object.freeze([0.554688,0.093906]),
+    "Rainbow Trout":Object.freeze([0.433594,0.066563]),
+    "Red Snapper":Object.freeze([0.589844,0.066563]),
+    "Northern Pike":Object.freeze([0.261719,0.09]),
+    "Striped Bass":Object.freeze([0.636719,0.086094]),
+    "Mahi-Mahi":Object.freeze([0.625,0.031406]),
+    "Peacock Bass":Object.freeze([0.609375,0.035313]),
+    "Common Carp":Object.freeze([0.460938,0.019688]),
+    "Atlantic Cod":Object.freeze([0.552083,0.074375]),
+    "Black Sea Bass":Object.freeze([0.591146,0.056146]),
+    "Lionfish":Object.freeze([0.591146,0.014479]),
+    "Moonfish":Object.freeze([0.432292,0.030104]),
+    "Coelacanth":Object.freeze([0.518229,0.071771]),
+    "Yellow Perch":Object.freeze([0.613281,0.035313]),
+    "Black Crappie":Object.freeze([0.402344,0.015781]),
+    "Bluegill":Object.freeze([0.585938,0.0275]),
+    "Brook Trout":Object.freeze([0.457031,0.078281]),
+    "Koi Carp":Object.freeze([0.542969,0.031406]),
+    "Clown Knifefish":Object.freeze([0.546875,0.12125]),
+    "Oscar":Object.freeze([0.558594,0.007969]),
+    "River Bream":Object.freeze([0.457031,0.019688]),
+    "Blue Tang":Object.freeze([0.653646,0.061354]),
+    "Copperband Butterflyfish":Object.freeze([0.46875,0.022292]),
+    "Pufferfish":Object.freeze([0.554688,0.043125]),
+    "Mandarinfish":Object.freeze([0.546875,0.032708]),
+    "Silver Minnow":Object.freeze([0.480469,0.101719]),
+    "Sardine":Object.freeze([0.5,0.12125]),
+    "Tiny Sunfish":Object.freeze([0.539063,0.047031]),
+    "Anchovy":Object.freeze([0.503906,0.109531]),
+    "Neon Tetra":Object.freeze([0.460938,0.062656]),
+    "Guppy":Object.freeze([0.253906,0.023594]),
+    "Smelt":Object.freeze([0.484375,0.105625]),
+    "Dwarf Gourami":Object.freeze([0.472656,0.000156]),
+    "Royal Gramma":Object.freeze([0.609375,0.063958]),
+    "Zebra Pleco":Object.freeze([0.507813,0.032708]),
+    "Gilded Sovereign":Object.freeze([0.518229,0.074375]),
+    "Moonsteel Phantom":Object.freeze([0.325521,0.144688]),
+    "Prismfin Monarch":Object.freeze([0.552083,0.071771]),
+    "Captain Pearl":Object.freeze([0.617188,0.061354]),
+    "Midnight Revenant":Object.freeze([0.419271,0.061354]),
+    "Verdant Leviathan":Object.freeze([0.445313,0.063958]),
+    "Nemo":Object.freeze([0.645833,0.032708]),
+    "Aurora Koi":Object.freeze([0.591146,0.032708]),
+    "Celestial Anglerfish":Object.freeze([0.536458,0.017083]),
+  });
+  function hookStyle(value) {
+    const [x,y]=hookAnchors[resolve(value).name]||[.5,0];
+    return "--fish-pin-x:calc(var(--fish-width) * "+x+");--fish-pin-y:calc(var(--fish-width) * "+y+")";
+  }
+  return Object.freeze({tiers,entries,ordered,resolve,identity,pick,records,rank,hookAnchors,hookStyle});
 });

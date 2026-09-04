@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import "./validate-fishing-ui.mjs";
 import "./validate-fishing-catalog.mjs";
+import "./validate-duel-shell.mjs";
 
 function assert(condition, message) {
   if (!condition) throw new Error(`Fishing redesign validation failed: ${message}`);
@@ -12,9 +13,9 @@ const controller = fs.readFileSync(new URL("../assets/fishing/fishing-controller
 const preview = fs.readFileSync(new URL("../games/multiplayer/fishing/preview.html", import.meta.url), "utf8");
 const serverData = fs.readFileSync(new URL("../netlify/functions/_data.js", import.meta.url), "utf8");
 
-assert(html.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v27'), "versioned Fishing stylesheet is not loaded");
-assert(html.includes('id="fishingDuelRuntime" defer src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v27"'), "deferred shared Fishing controller is not loaded");
-assert(preview.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v27'), "preview is not using the current Fishing stylesheet");
+assert(html.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v28'), "versioned Fishing stylesheet is not loaded");
+assert(html.includes('id="fishingDuelRuntime" defer src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v28"'), "deferred shared Fishing controller is not loaded");
+assert(preview.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v28'), "preview is not using the current Fishing stylesheet");
 assert(html.includes('function duelFishingEnsureController(root)'), "Fishing controller recovery loader is missing");
 assert(html.includes('class="fishing-command-bar"'), "game-owned Fishing header is missing");
 assert(html.includes('class="fishing-instructions" aria-label="How to play"'), "visible game instructions are missing");
@@ -53,7 +54,7 @@ assert(html.includes('class="fishing-debug-panel"'), "Fishing debug panel is mis
 assert(html.includes('data-fishing-debug-copy>Copy Debug Report'), "copyable Fishing debug report is missing");
 assert(html.includes('class="fishing-hook-node left"'), "connected left fishing rig is missing");
 assert(html.includes('class="fishing-hook-node right"'), "connected right fishing rig is missing");
-assert(html.includes('style="--fish-cm:${cm}"'), "fish art is not scaled from its measured centimeters");
+assert(html.includes('style="--fish-cm:${cm};${FISHING_CATALOG.hookStyle(fish)}"'), "fish art must use measured centimeters and its image-specific attachment");
 assert(html.includes('function duelFishingClockHtml(seconds,status="waiting")'), "Fishing timer does not use the shared structured clock component");
 assert(html.includes('function duelFishingUpdateClock(root,seconds,status="playing")'), "Fishing timer cannot update without replacing the scene");
 assert(html.includes('data-fishing-clock-progress'), "Fishing timer progress indicator is missing");
@@ -117,7 +118,7 @@ assert(css.includes('.fishing-angler.left { right: auto; left: 10.7%; }'), "left
 assert(css.includes('.fishing-angler.right { right: auto; left: 73.15%;'), "right fisherman does not match the approved scene coordinate");
 assert(css.includes('animation: fishingLakeBreath 6s'), "visible subtle whole-lake motion timing is missing");
 assert(css.includes('stroke-width: 1.15'), "fishing line is not using the thin realistic treatment");
-assert(css.includes('top: -11px'), "bobber is not seated directly against the caught fish");
+assert(css.includes("margin-top: calc(8px - var(--fish-pin-y, 0px))"), "fish outline must meet the bobber bottom");
 assert(css.includes('display: none;\n  content: none;'), "obsolete bobber-to-fish connector is still visible");
 assert(css.includes('@keyframes fishingFishHookSway'), "hooked fish sway is missing");
 assert(css.includes('@keyframes fishingFishSway'), "fish sway animation is missing");
@@ -141,7 +142,7 @@ assert(preview.includes('data-debug-copy'), "copyable preview debug report is mi
 assert(preview.includes('data-debug-cast'), "live preview debug controls are missing");
 
 assert(controller.includes('class FishingSceneController'), "Fishing scene controller class is missing");
-assert(controller.includes('const VERSION="fishing-controller-v15"'), "Fishing diagnostics do not identify the restored motion controller");
+assert(controller.includes('const VERSION="fishing-controller-v16"'), "Fishing diagnostics do not identify the top-attachment controller");
 assert(controller.includes('playCast(options={})'), "shared casting lifecycle is missing");
 assert(controller.includes('syncCatch(side,catchId,animate=false)'), "authoritative catch synchronization is missing");
 assert(controller.includes('drawWater(now)'), "moving water renderer is missing");
