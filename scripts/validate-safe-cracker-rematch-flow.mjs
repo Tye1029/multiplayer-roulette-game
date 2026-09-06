@@ -100,3 +100,20 @@ assert.equal(closed.duelRefreshSequence,5,'Discard responses started before Clos
 assert.equal(closed.duelRefreshPending,false);
 assert.equal(closed.window.__duelRequestedModeIntent,'safecracker','Stay in lobby after Close');
 assert.equal(closed.duelLastActiveGame,null);
+
+// A completed create request must not reopen the game after navigation.
+let finishCreate,createAdoptions=0;
+const creation=vm.createContext({window:{},duelBusy:false,duelCreateBtn:{textContent:'Create',setAttribute(){},removeAttribute(){}},
+ duelPollTimer:null,duelModeSelect:{value:'safecracker'},duelWagerInput:{value:1000},duelRefreshSequence:0,
+ duelReadPendingCreate:()=>null,duelStorePendingCreate:p=>p,duelCreateRandomHex:()=> 'test',
+ duelSetStatus:()=>{},duelRequest:()=>new Promise(resolve=>{finishCreate=resolve}),duelClearPendingCreate:()=>{},
+ duelAdoptCreatedGame:()=>{createAdoptions++},duelSetPollRate:()=>{},duelLastActiveGame:null});
+vm.runInContext(section(html,'async function duelCreate()', '    async function duelAddSimpleNpc()'),creation);
+const delayedCreate=creation.duelCreate();
+assert.equal(creation.duelCreateBtn.textContent,'Creating game…');
+creation.window.__duelNavigationEpoch=1;
+finishCreate({game:{gameId:'late',mode:'safecracker'}});await delayedCreate;
+assert.equal(createAdoptions,0);assert.equal(creation.duelCreateBtn.disabled,false);
+assert.equal(creation.duelCreateBtn.textContent,'Create');
+const acceptedCreate=creation.duelCreate();finishCreate({game:{gameId:'current',mode:'safecracker'}});await acceptedCreate;
+assert.equal(createAdoptions,1);

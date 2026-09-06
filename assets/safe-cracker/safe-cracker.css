@@ -5562,3 +5562,11 @@ body > .sc-result-overlay.tie[data-sc-result-portal] .sc-result-card {
 .safe-cracker-game .sc-display-meta { justify-content:center;text-align:center; }
 .safe-cracker-game .sc-confirm-button::after { content:none !important;display:none !important; }
 .duel-arena[data-duel-mode="safecracker"] #duelCancelBtn { width:auto;min-height:36px;padding:6px 14px;font-size:12px;flex:0 0 auto; }
+
+/* Ambient wall extension uses the existing optimized room art. */
+body:has(.safe-cracker-game) {
+ background-image:linear-gradient(#101923b8,#090f17e8),url('/assets/safe-cracker/images/bank-vault-wall-v5.png');
+ background-size:cover;background-position:center top;background-attachment:fixed;
+}
+.safe-cracker-game .sc-current-number { color:#f3fbff;text-shadow:0 0 8px #afdcf566,0 0 18px #83badb33 !important; }
+@media(prefers-reduced-motion:reduce) { body:has(.safe-cracker-game) { background-attachment:scroll; } }

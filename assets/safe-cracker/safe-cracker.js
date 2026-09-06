@@ -1016,7 +1016,13 @@
     const current = document.querySelector('[data-sc-current]');
     const dial = document.querySelector('[data-sc-dial]');
     if (face) face.style.transform = `rotate(${runtime.rotation}deg)`;
-    if (current) current.textContent = String(runtime.selected);
+    if (current && current.textContent !== String(runtime.selected)) {
+      current.textContent = String(runtime.selected);
+      if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches && current.animate) {
+        current.getAnimations().forEach(animation => animation.cancel());
+        current.animate([{opacity:.65},{opacity:1}], {duration:180,easing:'ease-out'});
+      }
+    }
     document.querySelectorAll('[data-sc-digit]').forEach(number => {
       number.classList.toggle('selected', Number(number.dataset.scDigit) === Number(runtime.selected));
     });
