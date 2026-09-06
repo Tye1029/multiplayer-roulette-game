@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 210" role="img" aria-labelledby="title desc">
+  <title id="title">Pile of casino chips</title>
+  <desc id="desc">Crisp red, black, ivory, and green casino chips arranged in stacks.</desc>
+  <defs>
+    <linearGradient id="redSide" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#fa3541"/><stop offset=".52" stop-color="#a70f20"/><stop offset="1" stop-color="#570713"/></linearGradient>
+    <linearGradient id="blackSide" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#515a66"/><stop offset=".52" stop-color="#171b22"/><stop offset="1" stop-color="#05070a"/></linearGradient>
+    <linearGradient id="greenSide" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#22b778"/><stop offset=".52" stop-color="#08633f"/><stop offset="1" stop-color="#04301f"/></linearGradient>
+    <linearGradient id="ivorySide" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#fff7d9"/><stop offset=".55" stop-color="#d2b978"/><stop offset="1" stop-color="#755c28"/></linearGradient>
+    <radialGradient id="redTop" cx="42%" cy="30%"><stop stop-color="#ff5960"/><stop offset=".62" stop-color="#bc1526"/><stop offset="1" stop-color="#690916"/></radialGradient>
+    <radialGradient id="blackTop" cx="42%" cy="30%"><stop stop-color="#606a77"/><stop offset=".6" stop-color="#242a33"/><stop offset="1" stop-color="#080b10"/></radialGradient>
+    <radialGradient id="greenTop" cx="42%" cy="30%"><stop stop-color="#36d391"/><stop offset=".6" stop-color="#087449"/><stop offset="1" stop-color="#03412a"/></radialGradient>
+    <radialGradient id="ivoryTop" cx="42%" cy="30%"><stop stop-color="#fffdf0"/><stop offset=".62" stop-color="#e8d398"/><stop offset="1" stop-color="#9b7834"/></radialGradient>
+    <filter id="shadow" x="-25%" y="-35%" width="150%" height="185%"><feGaussianBlur stdDeviation="5"/></filter>
+  </defs>
+  <ellipse cx="182" cy="188" rx="156" ry="16" fill="#000" opacity=".34" filter="url(#shadow)"/>
+  <g stroke="#4a0710" stroke-width="1.4">
+    <rect x="132" y="38" width="101" height="70" fill="url(#redSide)"/><ellipse cx="182.5" cy="108" rx="50.5" ry="15" fill="#660814"/>
+    <path d="M132 91c10 9 91 9 101 0M132 74c10 9 91 9 101 0M132 57c10 9 91 9 101 0" fill="none" stroke="#ffb0a0" stroke-width="3" stroke-dasharray="14 8" opacity=".9"/>
+    <ellipse cx="182.5" cy="38" rx="50.5" ry="15" fill="url(#redTop)"/><ellipse cx="182.5" cy="38" rx="36" ry="10.5" fill="none" stroke="#ffe2a2" stroke-width="4" stroke-dasharray="12 8"/><ellipse cx="182.5" cy="38" rx="25" ry="7.5" fill="#a71020" stroke="#efbc50" stroke-width="1.5"/>
+  </g>
+  <g stroke="#06080c" stroke-width="1.4">
+    <rect x="55" y="76" width="104" height="71" fill="url(#blackSide)"/><ellipse cx="107" cy="147" rx="52" ry="15.5" fill="#05070a"/>
+    <path d="M55 130c10 9 94 9 104 0M55 112c10 9 94 9 104 0M55 94c10 9 94 9 104 0" fill="none" stroke="#f6ead1" stroke-width="3" stroke-dasharray="15 8" opacity=".92"/>
+    <ellipse cx="107" cy="76" rx="52" ry="15.5" fill="url(#blackTop)"/><ellipse cx="107" cy="76" rx="37" ry="10.5" fill="none" stroke="#f4ead5" stroke-width="4" stroke-dasharray="13 8"/><ellipse cx="107" cy="76" rx="25" ry="7.5" fill="#171b22" stroke="#e1ad43" stroke-width="1.5"/>
+  </g>
+  <g stroke="#03301e" stroke-width="1.4">
+    <rect x="223" y="81" width="103" height="67" fill="url(#greenSide)"/><ellipse cx="274.5" cy="148" rx="51.5" ry="15" fill="#033522"/>
+    <path d="M223 132c10 9 93 9 103 0M223 115c10 9 93 9 103 0M223 98c10 9 93 9 103 0" fill="none" stroke="#fff1d4" stroke-width="3" stroke-dasharray="14 8" opacity=".92"/>
+    <ellipse cx="274.5" cy="81" rx="51.5" ry="15" fill="url(#greenTop)"/><ellipse cx="274.5" cy="81" rx="37" ry="10.5" fill="none" stroke="#fff1d4" stroke-width="4" stroke-dasharray="13 8"/><ellipse cx="274.5" cy="81" rx="25" ry="7.5" fill="#08603d" stroke="#e1ad43" stroke-width="1.5"/>
+  </g>
+  <g transform="rotate(-13 94 160)" stroke="#5b0713" stroke-width="1.5">
+    <ellipse cx="94" cy="165" rx="61" ry="23" fill="#610916"/><rect x="33" y="151" width="122" height="14" fill="url(#redSide)"/><ellipse cx="94" cy="151" rx="61" ry="23" fill="url(#redTop)"/><ellipse cx="94" cy="151" rx="45" ry="17" fill="none" stroke="#fff0d1" stroke-width="6" stroke-dasharray="16 10"/><ellipse cx="94" cy="151" rx="28" ry="10.5" fill="#a20f20" stroke="#edbd56" stroke-width="2"/>
+  </g>
+  <g transform="rotate(12 260 164)" stroke="#735b2e" stroke-width="1.5">
+    <ellipse cx="260" cy="171" rx="59" ry="22" fill="#806626"/><rect x="201" y="158" width="118" height="13" fill="url(#ivorySide)"/><ellipse cx="260" cy="158" rx="59" ry="22" fill="url(#ivoryTop)"/><ellipse cx="260" cy="158" rx="43" ry="16" fill="none" stroke="#292c31" stroke-width="6" stroke-dasharray="15 10"/><ellipse cx="260" cy="158" rx="27" ry="10" fill="#efe0ad" stroke="#bd8d2c" stroke-width="2"/>
+  </g>
+  <g transform="rotate(2 178 174)" stroke="#062c20" stroke-width="1.5">
+    <ellipse cx="178" cy="183" rx="64" ry="23" fill="#043222"/><rect x="114" y="169" width="128" height="14" fill="url(#greenSide)"/><ellipse cx="178" cy="169" rx="64" ry="23" fill="url(#greenTop)"/><ellipse cx="178" cy="169" rx="47" ry="17" fill="none" stroke="#fff0d1" stroke-width="6" stroke-dasharray="16 10"/><ellipse cx="178" cy="169" rx="29" ry="10.5" fill="#08613e" stroke="#e0ac43" stroke-width="2"/>
+  </g>
+</svg>

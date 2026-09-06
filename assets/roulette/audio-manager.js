@@ -40,6 +40,7 @@
   const legacyNoop = function () { return null; };
 
   let unlocked = false;
+  let primed = false;
   let enabled = true;
   let master = 1;
   let roomWanted = false;
@@ -518,10 +519,38 @@
     previous = { gameId, status, turnId, joinerId, revision, outcome };
   }
 
-  function unlock() {
-    if (unlocked) return;
+  function shouldWarmForInteraction(selection = '') {
+    if (document.hidden) return false;
+    if (typeof selection === 'string' && selection) return selection === 'roulette';
+    const choice = selection?.target?.closest?.('.sth-game[data-mode], [data-rnb-game]');
+    if (choice) return !choice.disabled && (choice.dataset.mode || choice.dataset.rnbGame) === 'roulette';
+    const home = document.getElementById('simpleTestHome');
+    if (home && !home.hidden) return false;
+    if (document.getElementById('duelScreen')?.hidden) return false;
+    const intent = String(global.__duelRequestedModeIntent || '');
+    if (intent) return intent === 'roulette';
+    const board = document.querySelector('[data-roulette-game]');
+    if (board && !board.closest('[hidden]')) return true;
+    const mode = String(document.getElementById('duelModeSelect')?.value || '');
+    return mode ? mode === 'roulette' : Boolean(currentGame());
+  }
+
+  function preload(selection = '') {
+    if (!shouldWarmForInteraction(selection)) return;
+    if (!primed) {
+      primed = true;
+      for (const name of Object.keys(FILES)) template(name).load();
+    }
+    global.RouletteReactionAudio?.preload('roulette');
+  }
+
+  function unlock(event) {
+    if (unlocked || !shouldWarmForInteraction(event)) return;
     unlocked = true;
-    for (const name of Object.keys(FILES)) template(name).load();
+    preload('roulette');
+    for (const type of ['pointerdown', 'pointerup', 'touchstart', 'click', 'keydown']) {
+      document.removeEventListener(type, unlock, true);
+    }
     sync();
     refreshLoops();
   }
@@ -564,6 +593,8 @@
 
   global.RouletteAudio = Object.freeze({
     FILES,
+    preload,
+    shouldWarmForInteraction,
     unlock,
     sync,
     openingSpin,
@@ -580,7 +611,9 @@
 
   silenceLegacyRouletteAudio();
   for (const type of ['pointerdown', 'pointerup', 'touchstart', 'click', 'keydown']) {
-    document.addEventListener(type, unlock, { capture: true, passive: true, once: true });
+    // Keep listening after unrelated gestures so a later Roulette visit still
+    // unlocks during its real pointer/keyboard activation on mobile browsers.
+    document.addEventListener(type, unlock, { capture: true, passive: true });
   }
 
   const poll = () => {

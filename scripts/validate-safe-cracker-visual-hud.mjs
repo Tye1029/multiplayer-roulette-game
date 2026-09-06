@@ -23,7 +23,8 @@ assert(client.includes('function feedbackMeter(tier = \'\')'), 'feedback proximi
 assert(client.includes('class="sc-stage-bolt"'), 'physical tumbler bolt markup is missing');
 assert(client.includes('class="sc-display-glass"'), 'industrial display glass markup is missing');
 assert(client.includes('class="sc-display-meta"'), 'display metadata row is missing');
-assert(client.includes('class="sc-race-progress"'), 'compact opponent race HUD is missing');
+assert(!client.includes('class="sc-opponent-strip'), 'removed opponent status strip must not render');
+assert(client.includes('class="sc-player-card opponent"') && client.includes('${progressLights(opponent)}'), 'opponent progress tiles must remain visible');
 assert(!client.includes('class="sc-attempt-panel"'), 'removed bottom attempt console still renders');
 assert(client.includes("choice: `safecracker:guess:${runtime.selected}`"), 'visual HUD pass changed authoritative guess submission');
 assert(css.includes('.sc-stage-bolt'), 'physical tumbler bolt styling is missing');
@@ -43,4 +44,4 @@ assert(!patch.includes('assets/roulette/turn-animation.js'), 'visual HUD patch r
 assert(!patch.includes('assets/roulette/turn-fire.js'), 'visual HUD patch references the protected firing animation');
 assert(!patch.includes('netlify/functions/_data.js'), 'visual HUD patch must not modify server gameplay logic');
 
-console.log('Safe Cracker visual-HUD validation passed: industrial feedback display, physical progress locks, compact race HUD, and the no-history viewport layout remain intact.');
+console.log('Safe Cracker visual-HUD validation passed: industrial feedback display and opponent progress locks remain intact; redundant opponent status strip stays removed.');

@@ -1,0 +1,86 @@
+name: Summit Sprint V65 Approved Scene
+
+on:
+  pull_request:
+    branches:
+      - safe-cracker-development
+  push:
+    branches:
+      - mountain-race-development
+
+concurrency:
+  group: summit-sprint-approved-scene-v65-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate-approved-scene:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+
+      - name: Use Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build exact Netlify output
+        run: npm run build
+
+      - name: Validate V65 scene and multiplayer regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/validate-mountain-race-approved-scene-v65.mjs
+          npm run validate:mountain-race
+          npm run validate:protected-current
+          npm run validate:multiplayer
+
+      - name: Verify live Netlify V65 deployment
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          url='https://deploy-preview-20--famous-piroshki-b621da.netlify.app/'
+          for attempt in $(seq 1 72); do
+            page="$(curl -fsSL --max-time 20 "${url}?approved_scene_v65=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            runtime="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race-multiplayer.js?scene=65&holds=30&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            styles="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race-scene-v65.css?v=1&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            cliff_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-jagged-cliff-v65.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            ground_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-jagged-ground-v65.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            ledges_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-jagged-ledges-v65.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            summit_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-jagged-summit-v65.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            sky_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-moving-sky-v65.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            css_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/mountain-race-scene-v65.css?v=1&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+
+            if grep -Fq 'mountain-race-scene-v65.css?v=1' <<<"$page" && \
+               grep -Fq 'scene=65&holds=30' <<<"$page" && \
+               grep -Fq "root.dataset.mrApprovedScene = '65'" <<<"$runtime" && \
+               grep -Fq 'MOUNTAIN_RACE_APPROVED_SCENE_V65' <<<"$styles" && \
+               grep -Fq 'summit-sprint-jagged-cliff-v65.png' <<<"$styles" && \
+               grep -Fq 'summit-sprint-jagged-ground-v65.png' <<<"$styles" && \
+               grep -Fq 'summit-sprint-jagged-summit-v65.png' <<<"$styles" && \
+               grep -Fq 'summit-sprint-moving-sky-v65.png' <<<"$styles" && \
+               grep -Fqi 'content-type: image/png' <<<"$cliff_headers" && \
+               grep -Fqi 'content-type: image/png' <<<"$ground_headers" && \
+               grep -Fqi 'content-type: image/png' <<<"$ledges_headers" && \
+               grep -Fqi 'content-type: image/png' <<<"$summit_headers" && \
+               grep -Fqi 'content-type: image/png' <<<"$sky_headers" && \
+               grep -Fqi 'content-type: text/css' <<<"$css_headers"; then
+              echo "Verified live Summit Sprint V65 approved scene at ${url}"
+              exit 0
+            fi
+
+            echo "Waiting for Netlify Summit Sprint V65 (${attempt}/72)..."
+            sleep 10
+          done
+
+          echo 'Netlify did not serve the Summit Sprint V65 approved-scene build.' >&2
+          exit 1

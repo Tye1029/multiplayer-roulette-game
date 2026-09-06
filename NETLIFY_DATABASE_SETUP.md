@@ -58,3 +58,8 @@ Shared cards remain shared, as requested. Postgres guarantees exactly one winner
 
 This build also includes `netlify/database/migrations/002_fishing_authoritative.sql`.
 Netlify Database migrations create `fishing_matches` and `fishing_actions` alongside the DRAW tables. Fishing ripple claims are row-locked, idempotent, revisioned, and stored separately from DRAW.
+
+## Authoritative Blackjack Duel table
+
+The deployment also applies `netlify/database/migrations/003_blackjack_duel_authoritative.sql`.
+It creates `blackjack_duel_matches`, whose row lock serializes hits, stands, timeout resolution, and Remote Bot decisions. The complete shuffled deck and each player's fixed draw lane remain server-only; browser snapshots expose only the viewer's cards until the hand is complete.

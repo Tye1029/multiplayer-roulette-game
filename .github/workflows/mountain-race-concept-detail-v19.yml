@@ -1,0 +1,89 @@
+name: Summit Sprint Concept Detail V19
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: summit-sprint-concept-detail-v19-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate-concept-detail:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+
+      - name: Use Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build exact Netlify output
+        run: npm run build
+
+      - name: Verify concept detail and authoritative protections
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check scripts/patch-mountain-race-concept-detail-v19.mjs
+          node --check scripts/validate-mountain-race-concept-detail-v19.mjs
+          node --check assets/mountain-race/mountain-race-multiplayer.js
+          node --check netlify/functions/_data.js
+          node --check netlify/functions/mountain-race/integration.js
+          node --check netlify/functions/duel-action.js
+
+          node scripts/validate-mountain-race-concept-detail-v19.mjs
+          node scripts/validate-mountain-race-state-sync.mjs
+          node scripts/validate-mountain-race-start-stability.mjs
+          node scripts/validate-mountain-race-gameplay-visibility.mjs
+          node scripts/validate-mountain-race-load-performance.mjs
+
+          grep -Fq 'MOUNTAIN_RACE_CONCEPT_DETAIL_V19' assets/mountain-race/mountain-race.css
+          grep -Fq 'MOUNTAIN_RACE_CONCEPT_DETAIL_V19' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'concept=19' index.html
+          grep -Fq 'function ensureConceptDetailV19(root)' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'function createCliffTextureV19()' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'function createGrassTextureV19()' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'function createLedgeSpriteV19()' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq -- '--mr-cliff-detail-v19' assets/mountain-race/mountain-race.css
+          grep -Fq -- '--mr-grass-detail-v19' assets/mountain-race/mountain-race.css
+          grep -Fq -- '--mr-ledge-sprite-v19' assets/mountain-race/mountain-race.css
+
+          test -s assets/safe-cracker/safe-cracker.js
+          test -s assets/safe-cracker/safe-cracker.css
+          test -s assets/roulette/turn-animation.js
+          test -s assets/roulette/turn-fire.js
+          test -s assets/roulette/audio-bindings.js
+
+      - name: Verify live Netlify Concept Detail V19 deployment
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          url='https://deploy-preview-20--famous-piroshki-b621da.netlify.app/'
+          for attempt in $(seq 1 48); do
+            page="$(curl -fsSL --max-time 20 "${url}?summit_concept_detail_v19=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            runtime="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race-multiplayer.js?concept=19&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            styles="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race.css?concept=19&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            if grep -Fq 'concept=19' <<<"$page" && \
+               grep -Fq 'MOUNTAIN_RACE_CONCEPT_DETAIL_V19' <<<"$runtime" && \
+               grep -Fq 'function ensureConceptDetailV19(root)' <<<"$runtime" && \
+               grep -Fq 'function createCliffTextureV19()' <<<"$runtime" && \
+               grep -Fq 'MOUNTAIN_RACE_CONCEPT_DETAIL_V19' <<<"$styles" && \
+               grep -Fq -- '--mr-cliff-detail-v19' <<<"$styles"; then
+              echo 'Verified live Summit Sprint Concept Detail V19 deployment.'
+              exit 0
+            fi
+            echo "Waiting for Netlify Concept Detail V19 deployment (${attempt}/48)..."
+            sleep 10
+          done
+          echo 'Netlify did not serve Summit Sprint Concept Detail V19.' >&2
+          exit 1

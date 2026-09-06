@@ -1,0 +1,90 @@
+name: Summit Sprint Full Cliff V23
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: summit-sprint-full-cliff-v23-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate-full-cliff:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+
+      - name: Use Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build exact Netlify output
+        run: npm run build
+
+      - name: Verify V23 terrain and protected games
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check scripts/patch-mountain-race-full-cliff-v23.mjs
+          node --check scripts/validate-mountain-race-full-cliff-v23.mjs
+          node --check assets/mountain-race/mountain-race-multiplayer.js
+          node --check netlify/functions/_data.js
+          node --check netlify/functions/mountain-race/integration.js
+          node --check netlify/functions/duel-action.js
+
+          node scripts/validate-mountain-race-full-cliff-v23.mjs
+          node scripts/validate-mountain-race-reference-rebuild-v22.mjs
+          node scripts/validate-mountain-race-reference-atlas-v21.mjs
+          node scripts/validate-mountain-race-concept-detail-v19.mjs
+          node scripts/validate-mountain-race-concept-target-v18.mjs
+          node scripts/validate-mountain-race-environment-polish-v17.mjs
+          node scripts/validate-mountain-race-raster-cliff-v16.mjs
+          node scripts/validate-mountain-race-visual-rebuild-v14.mjs
+          node scripts/validate-mountain-race-input-rebase-v8.mjs
+          node scripts/validate-mountain-race-terminal-poll-v10.mjs
+          node scripts/validate-mountain-race-lifecycle-guard-v11.mjs
+          node scripts/validate-mountain-race-state-sync.mjs
+          node scripts/validate-mountain-race-load-performance.mjs
+
+          grep -Fq 'MOUNTAIN_RACE_FULL_CLIFF_V23' assets/mountain-race/mountain-race.css
+          grep -Fq 'MOUNTAIN_RACE_FULL_CLIFF_V23' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'fullcliff=23' index.html
+          test -s assets/mountain-race/images/summit-sprint-reference-v21.jpg
+
+          test -s assets/safe-cracker/safe-cracker.js
+          test -s assets/safe-cracker/safe-cracker.css
+          test -s assets/roulette/turn-animation.js
+          test -s assets/roulette/turn-fire.js
+          test -s assets/roulette/audio-bindings.js
+
+      - name: Verify live Netlify Full Cliff V23 deployment
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          url='https://deploy-preview-20--famous-piroshki-b621da.netlify.app/'
+          for attempt in $(seq 1 48); do
+            page="$(curl -fsSL --max-time 20 "${url}?summit_full_cliff_v23=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            runtime="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race-multiplayer.js?fullcliff=23&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            styles="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race.css?fullcliff=23&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            reference_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-reference-v21.jpg?fullcliff=23&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            if grep -Fq 'fullcliff=23' <<<"$page" && \
+               grep -Fq 'MOUNTAIN_RACE_FULL_CLIFF_V23' <<<"$runtime" && \
+               grep -Fq 'MOUNTAIN_RACE_FULL_CLIFF_V23' <<<"$styles" && \
+               grep -Fqi 'content-type: image/jpeg' <<<"$reference_headers"; then
+              echo 'Verified live Summit Sprint Full Cliff V23 deployment.'
+              exit 0
+            fi
+            echo "Waiting for Netlify Full Cliff V23 deployment (${attempt}/48)..."
+            sleep 10
+          done
+          echo 'Netlify did not serve Summit Sprint Full Cliff V23.' >&2
+          exit 1

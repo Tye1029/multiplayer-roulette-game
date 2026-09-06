@@ -1,7 +1,11 @@
 const { getStore, connectLambda } = require("@netlify/blobs");
 const drawDatabase = require("./_draw-database");
 const fishingDatabase = require("./_fishing-database");
+const fishingCatalog = require("../../shared/games/fishing-catalog");
+const blackjackDuelDatabase = require("./_blackjack-duel-database");
 const crypto = require("crypto");
+const { createMountainRaceIntegration } = require("./mountain-race/integration");
+const { createBlackjackDuelIntegration } = require("./blackjack-duel/integration");
 
 const STORE_NAME = "torn-xan-users";
 const ODDS_SETTINGS_KEY = "settings/odds.json";
@@ -1768,7 +1772,8 @@ function addAdjustment(adjustments, adjustment) { return [...(Array.isArray(adju
 function addWithdrawal(withdrawals, withdrawal) { return [...(Array.isArray(withdrawals) ? withdrawals : []), withdrawal].slice(-MAX_WITHDRAWALS); }
 
 function fishingSpeciesKey(value) {
-  return String(value || "fish").toLowerCase().replace(/^(golden|albino|midnight|crystal|emerald)\s+/, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80) || "fish";
+  if(["silver minnow","minnow"].includes(String(value||"").toLowerCase()))return "silver-minnow";
+  return String(value || "fish").toLowerCase().replace(/^(golden|silver|albino|midnight|crystal|emerald)\s+/, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80) || "fish";
 }
 function sanitizeFishingLogbook(value) {
   const raw = value && typeof value === "object" ? value : {};
@@ -2435,7 +2440,8 @@ function mpCleanId(value) {
 function mpPublicPlayer(player = {}) {
   const userId = cleanUserId(player.userId || player.id);
   const name = String(player.name || "Unknown").slice(0, 80);
-  const isNpc = Boolean(player.isNpc) || userId.startsWith("npc-");
+  const isRemoteBot = Boolean(player.isRemoteBot) || userId.startsWith("remote-bot-");
+  const isNpc = Boolean(player.isNpc) || userId.startsWith("npc-") || isRemoteBot;
   return {
     userId,
     name,
@@ -2443,6 +2449,7 @@ function mpPublicPlayer(player = {}) {
     avatarUrl: player.avatarUrl ? String(player.avatarUrl).slice(0, 500) : null,
     profileInitial: isNpc ? "N" : (Boolean(player.isTestPlayer) ? "T" : (name.trim().charAt(0).toUpperCase() || "?")),
     isNpc,
+    isRemoteBot,
     isTestPlayer: Boolean(player.isTestPlayer),
     controlledBy: player.controlledBy ? cleanUserId(player.controlledBy) : null
   };
@@ -4104,6 +4111,14 @@ async function arcadePlayGame(user, details = {}) {
 
 
 // ---------------- Multiplayer Arcade Duels ----------------
+// MULTIPLAYER_COHESION_V6
+const {
+  MULTIPLAYER_CONTRACT_VERSION,
+  MODE_NAMES: DUEL_MODES,
+  supportsRematch: duelSupportsRematch,
+  supportsSyntheticOpponent: duelSupportsSyntheticOpponent,
+  countdownMs: duelCountdownMs
+} = require("./multiplayer-contract");
 const DUEL_GAME_PREFIX = "duel-game/";
 const DUEL_ACTIVE_PREFIX = "duel-active/";
 const DUEL_SCHEMA_VERSION = 3;
@@ -4111,20 +4126,7 @@ const DUEL_WAITING_TTL_MS = 30 * 60 * 1000;
 const DUEL_ACTIVE_TTL_MS = 2 * 60 * 60 * 1000;
 const DUEL_VALID_WAGER_MIN = 1000;
 const DUEL_VALID_WAGER_MAX = 50000;
-const DUEL_MODES = {
-  mines: "Multiplayer Mines Race",
-  rps: "Rock Paper Scissors Duel",
-  draw: "DRAW! Western Duel",
-  fishing: "Rumble Fishing Duel",
-  roulette: "Russian Roulette",
-  plinko: "Plinko Duel",
-  blackjack: "Blackjack 1v1",
-  memory: "Memory Match Duel",
-  safecracker: "Safe Cracker Duel",
-  cardwar: "Card War Strategy",
-  coin: "Coin Flip Duel"
-};
-
+const DUEL_DOUBLE_OR_NOTHING_CREATE = Symbol("duel-double-or-nothing-create");
 function duelGameKey(gameId) { return `${DUEL_GAME_PREFIX}${mpCleanId(gameId)}.json`; }
 function duelActiveKey(userId) { return `${DUEL_ACTIVE_PREFIX}${cleanUserId(userId)}.json`; }
 function duelIsActiveStatus(status) { return ["waiting","ready","countdown","playing"].includes(String(status||"")); }
@@ -4144,6 +4146,9 @@ function duelHasValidSchema(game) {
     const start=Date.parse(st.startAt||""), end=Date.parse(st.endAt||"");
     if (!st.roundId || !Number.isFinite(start) || !Number.isFinite(end) || end-start !== 60000 || !Array.isArray(st.events) || !st.catches || typeof st.catches!=="object") return false;
   }
+  if (game.mode === "safecracker" && ["countdown","playing"].includes(game.status) && !safeCrackerHasValidState(game)) return false;
+  if (game.mode === "mountainrace" && ["countdown","playing"].includes(game.status) && !mountainRaceHasValidState(game)) return false;
+  if (game.mode === "blackjackduel" && ["countdown","playing"].includes(game.status) && !blackjackDuelHasValidState(game)) return false;
   return true;
 }
 async function duelSetActivePointer(userId, game) {
@@ -4155,25 +4160,36 @@ async function duelSetActivePointer(userId, game) {
 async function duelClearPointers(game) {
   await Promise.all([game?.creator?.userId,game?.joiner?.userId].filter(Boolean).map(id=>duelSetActivePointer(id,null)));
 }
-async function duelFindActiveGameForUser(userId, excludeGameId="") {
+async function duelFindActiveGameForUser(userId, excludeGameId="", options={}) {
   const viewer=cleanUserId(userId), excluded=mpCleanId(excludeGameId); if(!viewer) return null;
   const store=getUsersStore();
   try {
-    const pointer=await store.get(duelActiveKey(viewer),{type:"json"});
+    const pointer=await store.get(duelActiveKey(viewer),{type:"json",consistency:"strong"});
     if(pointer?.gameId && pointer.schemaVersion===DUEL_SCHEMA_VERSION && mpCleanId(pointer.gameId)!==excluded){
-      const g=await duelGetRaw(pointer.gameId);
+      const g=await duelGetRawStrong(pointer.gameId,2) || await duelGetRaw(pointer.gameId);
       if(g && duelIsActiveStatus(g.status) && !duelIsExpired(g) && duelHasValidSchema(g) && [g.creator?.userId,g.joiner?.userId].map(cleanUserId).includes(viewer)) return g;
       await duelSetActivePointer(viewer,null);
     }
   } catch {}
+  // Creating a game uses the authoritative active pointer only. Falling back to
+  // a full Blob scan made every create increasingly slow as historical games grew.
+  if(options?.scanFallback===false) return null;
   try {
-    const listed = await store.list({ prefix: DUEL_GAME_PREFIX });
-    for (const entry of (listed?.blobs || [])) {
-      const raw=await store.get(entry.key,{type:"json"}); if(!raw) continue;
-      const g=duelSanitizeGame(raw);
-      if(excluded && g.gameId===excluded) continue;
-      if(!duelIsActiveStatus(g.status) || duelIsExpired(g) || !duelHasValidSchema(g)) continue;
-      if([g.creator?.userId,g.joiner?.userId].map(cleanUserId).includes(viewer)){ await duelSetActivePointer(viewer,g); return g; }
+    const listed=await store.list({prefix:DUEL_GAME_PREFIX});
+    const entries=Array.isArray(listed?.blobs)?listed.blobs:[];
+    const batchSize=8;
+    for(let offset=0;offset<entries.length;offset+=batchSize){
+      const batch=await Promise.all(entries.slice(offset,offset+batchSize).map(async entry=>{
+        try{
+          const raw=await store.get(entry.key,{type:"json"});if(!raw)return null;
+          const g=duelSanitizeGame(raw);
+          if(excluded&&g.gameId===excluded)return null;
+          if(!duelIsActiveStatus(g.status)||duelIsExpired(g)||!duelHasValidSchema(g))return null;
+          return [g.creator?.userId,g.joiner?.userId].map(cleanUserId).includes(viewer)?g:null;
+        }catch{return null}
+      }));
+      const found=batch.find(Boolean);
+      if(found){await duelSetActivePointer(viewer,found);return found}
     }
   } catch {}
   return null;
@@ -4182,6 +4198,18 @@ async function duelFindActiveGameForUser(userId, excludeGameId="") {
 
 function duelSanitizePlayer(player = {}) {
   return mpPublicPlayer(player);
+}
+
+function duelSanitizeResultDepartures(value = {}) {
+  if (!value || typeof value !== "object") return {};
+  return Object.fromEntries(Object.entries(value).map(([userId, departure]) => {
+    const id = cleanUserId(userId);
+    if (!id || !departure || typeof departure !== "object") return null;
+    return [id, {
+      kind: String(departure.kind || "new-game") === "new-game" ? "new-game" : "left",
+      at: String(departure.at || "").slice(0, 40)
+    }];
+  }).filter(Boolean));
 }
 
 function duelSanitizeGame(game = {}) {
@@ -4208,12 +4236,25 @@ function duelSanitizeGame(game = {}) {
     payout: int(game.payout, 0),
     houseCut: int(game.houseCut, 0),
     npcTest: Boolean(game.npcTest),
+    remoteNetworkTest: Boolean(game.remoteNetworkTest),
+    remoteNetworkProfile: ["normal", "mobile", "bad", "stress"].includes(String(game.remoteNetworkProfile || "")) ? String(game.remoteNetworkProfile) : "",
+    remoteNetworkConfig: game.remoteNetworkConfig && typeof game.remoteNetworkConfig === "object" ? {
+      label: String(game.remoteNetworkConfig.label || "").slice(0, 40),
+      minDelayMs: Math.max(100, int(game.remoteNetworkConfig.minDelayMs, 100)),
+      maxDelayMs: Math.max(Math.max(100, int(game.remoteNetworkConfig.minDelayMs, 100)), int(game.remoteNetworkConfig.maxDelayMs, 400)),
+      stallChance: Math.max(0, Math.min(1, Number(game.remoteNetworkConfig.stallChance) || 0)),
+      duplicateChance: Math.max(0, Math.min(1, Number(game.remoteNetworkConfig.duplicateChance) || 0)),
+      reconnectChance: Math.max(0, Math.min(1, Number(game.remoteNetworkConfig.reconnectChance) || 0))
+    } : null,
     testPlayerMode: Boolean(game.testPlayerMode),
     testControllerUserId: cleanUserId(game.testControllerUserId || ""),
     blackjackState: game.blackjackState && typeof game.blackjackState === "object" ? game.blackjackState : null,
+    blackjackDuelState: game.blackjackDuelState && typeof game.blackjackDuelState === "object" ? game.blackjackDuelState : null,
     drawState: game.drawState && typeof game.drawState === "object" ? game.drawState : null,
     fishingState: game.fishingState && typeof game.fishingState === "object" ? game.fishingState : null,
     rouletteState: game.rouletteState && typeof game.rouletteState === "object" ? game.rouletteState : null,
+    safecrackerState: game.safecrackerState && typeof game.safecrackerState === "object" ? game.safecrackerState : null,
+    mountainraceState: game.mountainraceState && typeof game.mountainraceState === "object" ? game.mountainraceState : null,
     ready: game.ready && typeof game.ready === "object" ? game.ready : {},
     readyWindowStartedAt: game.readyWindowStartedAt || null,
     readyDeadlineAt: game.readyDeadlineAt || null,
@@ -4225,7 +4266,8 @@ function duelSanitizeGame(game = {}) {
     npcActionAt: game.npcActionAt || null,
     ledgerIds: game.ledgerIds && typeof game.ledgerIds === "object" ? game.ledgerIds : {},
     rematch: game.rematch && typeof game.rematch === "object" ? game.rematch : null,
-    rematchGameId: mpCleanId(game.rematchGameId || "")
+    rematchGameId: mpCleanId(game.rematchGameId || ""),
+    resultDepartures: duelSanitizeResultDepartures(game.resultDepartures)
   };
 }
 
@@ -4237,6 +4279,7 @@ function duelPublicGame(game = {}, viewerUserId = "") {
   const joinerAction = clean.joiner?.userId ? clean.actions?.[clean.joiner.userId] || null : null;
   const isPlayer = viewer && (clean.creator.userId === viewer || clean.joiner?.userId === viewer);
   const bjState = clean.mode === "blackjack" ? bjPublicTournamentState(clean, viewer) : clean.blackjackState;
+  const blackjackDuelState = clean.mode === "blackjackduel" ? blackjackDuelPublicState(clean, viewer) : clean.blackjackDuelState;
   const bjPhase = bjState?.phase || "";
   const myBjHand = bjState?.hands?.[viewer] || null;
   const myBjBet = bjState?.roundBets?.[viewer] || 0;
@@ -4246,6 +4289,8 @@ function duelPublicGame(game = {}, viewerUserId = "") {
   const drawState = clean.mode === "draw" ? ((clean.status === "playing" || clean.status === "countdown") ? drawPublicState(clean, viewer) : null) : clean.drawState;
   const fishingState = clean.mode === "fishing" ? fishingPublicState(clean, viewer) : clean.fishingState;
   const rouletteState = clean.mode === "roulette" ? roulettePublicState(clean, viewer) : clean.rouletteState;
+  const safecrackerState = clean.mode === "safecracker" ? safeCrackerPublicState(clean, viewer) : clean.safecrackerState;
+  const mountainraceState = clean.mode === "mountainrace" ? mountainRacePublicState(clean, viewer) : clean.mountainraceState;
   const drawCanAct = clean.mode === "draw" && clean.status === "playing" && isPlayer && drawState && Date.now() < Date.parse(drawState.endAt || 0);
   const readyDeadlineMs = clean.readyDeadlineAt ? Date.parse(clean.readyDeadlineAt) : 0;
   const startMs = clean.startAt ? Date.parse(clean.startAt) : (drawState?.startAt ? Date.parse(drawState.startAt) : 0);
@@ -4257,9 +4302,12 @@ function duelPublicGame(game = {}, viewerUserId = "") {
     // anchor it once per game phase instead of re-synchronizing on every poll.
     serverNow: new Date().toISOString(),
     blackjackState: bjState,
+    blackjackDuelState,
     drawState,
     fishingState,
     rouletteState,
+    safecrackerState,
+    mountainraceState,
     actions: clean.status === "complete" ? clean.actions : undefined,
     myAction,
     myBlackjackHand: myBjHand,
@@ -4277,23 +4325,83 @@ function duelPublicGame(game = {}, viewerUserId = "") {
     countdownSeconds: clean.status === "countdown" && startMs ? Math.max(0, Math.ceil((startMs - Date.now()) / 1000)) : 0,
     canCancel: clean.status === "waiting" && viewer && clean.creator.userId === viewer && !clean.joiner,
     canAdvanceRound: blackjackCanAdvance,
-    canAct: clean.mode === "blackjack" ? (blackjackCanBet || blackjackCanPlay || blackjackCanAdvance) : clean.mode === "draw" ? drawCanAct : clean.mode === "fishing" ? (clean.status === "playing" && isPlayer && !fishingState?.myCatch) : clean.mode === "roulette" ? rouletteCanAct(clean, viewer) : (clean.status === "playing" && isPlayer && !myAction)
+    canAct: clean.mode === "blackjackduel" ? Boolean(blackjackDuelState?.canHit || blackjackDuelState?.canStand) : clean.mode === "blackjack" ? (blackjackCanBet || blackjackCanPlay || blackjackCanAdvance) : clean.mode === "draw" ? drawCanAct : clean.mode === "fishing" ? (clean.status === "playing" && isPlayer && !fishingState?.myCatch) : clean.mode === "roulette" ? rouletteCanAct(clean, viewer) : clean.mode === "safecracker" ? Boolean(safecrackerState?.canSubmit) : clean.mode === "mountainrace" ? Boolean(mountainraceState?.canSubmit) : (clean.status === "playing" && isPlayer && !myAction)
   };
 }
 
-async function duelGetRaw(gameId) {
+// Keep a terminal Safe Cracker receipt outside the mutable gameplay snapshot.
+// Different Function instances have separate in-memory locks: a bot save that
+// started before the final digit can otherwise land after the completion save.
+function safeCrackerResultKey(gameId) { return `safecracker-result:${mpCleanId(gameId)}`; }
+async function safeCrackerReadCompleted(game) {
+  if (game?.mode !== 'safecracker' || game.status === 'complete') return game;
+  const store = getUsersStore();
+  let receipt;
+  try {
+    receipt = await store.get(safeCrackerResultKey(game.gameId), { type: 'json', consistency: 'strong' });
+  } catch (error) {
+    // The Lambda compatibility adapter does not supply an uncached endpoint.
+    // New blob keys are immediately available globally; this dedicated key
+    // never contains an active round, even when the main snapshot regresses.
+    if (error?.name !== 'BlobsConsistencyError' && !String(error?.message || '').includes('uncachedEdgeURL')) throw error;
+    receipt = await store.get(safeCrackerResultKey(game.gameId), { type: 'json' });
+  }
+  return receipt?.mode === 'safecracker' && receipt.status === 'complete' && receipt.gameId === game.gameId
+    ? duelSanitizeGame(receipt) : game;
+}
+
+async function duelGetRaw(gameId, options = {}) {
   const id = mpCleanId(gameId);
   if (!id) return null;
   try {
-    const raw = await getUsersStore().get(duelGameKey(id), { type: "json" });
-    return raw ? duelSanitizeGame(raw) : null;
+    const readOptions = { type: "json" };
+    if (options?.consistency === "strong") readOptions.consistency = "strong";
+    const raw = await getUsersStore().get(duelGameKey(id), readOptions);
+    return raw ? await safeCrackerReadCompleted(duelSanitizeGame(raw)) : null;
   } catch {
     return null;
   }
 }
 
+function duelGetStrongStore() {
+  const siteID = process.env.NETLIFY_SITE_ID || process.env.SITE_ID || "";
+  const token = process.env.NETLIFY_BLOBS_TOKEN || process.env.NETLIFY_TOKEN || "";
+  const options = { name: STORE_NAME, consistency: "strong" };
+  if (siteID) options.siteID = siteID;
+  if (token) options.token = token;
+  return getStore(options);
+}
+
+async function duelGetRawStrong(gameId, attempts = 4) {
+  const id = mpCleanId(gameId);
+  if (!id) return null;
+  const total = Math.max(1, Math.min(6, int(attempts, 4)));
+  const primaryStore = getUsersStore();
+  let explicitStrongStore = null;
+  for (let attempt = 0; attempt < total; attempt++) {
+    try {
+      const raw = await primaryStore.get(duelGameKey(id), { type: "json", consistency: "strong" });
+      if (raw) return await safeCrackerReadCompleted(duelSanitizeGame(raw));
+    } catch {}
+    try {
+      explicitStrongStore ||= duelGetStrongStore();
+      const raw = await explicitStrongStore.get(duelGameKey(id), { type: "json", consistency: "strong" });
+      if (raw) return await safeCrackerReadCompleted(duelSanitizeGame(raw));
+    } catch {}
+    if (attempt + 1 < total) await sleep(Math.min(900, 180 * (attempt + 1)));
+  }
+  return null;
+}
+
 async function duelSaveGame(game) {
   const clean = duelSanitizeGame({ ...game, schemaVersion: DUEL_SCHEMA_VERSION, revision: int(game?.revision, 0) + 1, updatedAt: nowIso() });
+  if (clean.mode === 'safecracker') {
+    const settled = await safeCrackerReadCompleted(clean);
+    if (settled !== clean) return settled;
+    // Save this before publishing completion or clearing the active pointer.
+    // A late nonterminal write can never erase this independent result.
+    if (clean.status === 'complete') await getUsersStore().setJSON(safeCrackerResultKey(clean.gameId), clean);
+  }
   await getUsersStore().setJSON(duelGameKey(clean.gameId), clean);
   if (duelIsActiveStatus(clean.status)) await Promise.all([clean.creator?.userId,clean.joiner?.userId].filter(Boolean).map(id=>duelSetActivePointer(id,clean)));
   else await duelClearPointers(clean);
@@ -4335,22 +4443,25 @@ async function duelListGames(user) {
   const viewer = cleanUserId(user.id);
   const store = getUsersStore();
   const games = [];
+  const recordPromise = getUserRecord(viewer);
   try {
     const listed = await store.list({ prefix: DUEL_GAME_PREFIX });
-    for (const entry of (listed?.blobs || [])) {
-      try {
-        const game = await store.get(entry.key, { type: "json" });
-        if (!game) continue;
-        let clean = duelSanitizeGame(game);
-        if (duelIsActiveStatus(clean.status) && (duelIsExpired(clean) || !duelHasValidSchema(clean))) { clean = await duelInvalidateLegacyGame(clean, "Expired or incompatible multiplayer game state."); }
-        if (["ready", "countdown"].includes(clean.status)) {
-          const normalized = duelNormalizeReadyState(clean);
-          if (JSON.stringify(normalized) !== JSON.stringify(clean)) clean = await duelSaveGame(normalized);
-        }
-        if (["waiting", "ready", "countdown", "playing", "complete"].includes(clean.status)) {
-          // A playing DRAW match stores rapid claims in Postgres, not in the
-          // Blob lobby record. Hydrate the viewer's own active DRAW entry so a
-          // lobby refresh can never reintroduce the stale zero-score snapshot.
+    const entries = Array.isArray(listed?.blobs) ? listed.blobs : [];
+    const batchSize = 8;
+    for (let offset = 0; offset < entries.length; offset += batchSize) {
+      const batch = await Promise.all(entries.slice(offset, offset + batchSize).map(async entry => {
+        try {
+          const game = await store.get(entry.key, { type: "json" });
+          if (!game) return null;
+          let clean = duelSanitizeGame(game);
+          if (duelIsActiveStatus(clean.status) && (duelIsExpired(clean) || !duelHasValidSchema(clean))) {
+            clean = await duelInvalidateLegacyGame(clean, "Expired or incompatible multiplayer game state.");
+          }
+          if (["ready", "countdown"].includes(clean.status)) {
+            const normalized = duelNormalizeReadyState(clean);
+            if (JSON.stringify(normalized) !== JSON.stringify(clean)) clean = await duelSaveGame(normalized);
+          }
+          if (!["waiting", "ready", "countdown", "playing", "complete"].includes(clean.status)) return null;
           const viewerIsPlayer = clean.creator?.userId === viewer || clean.joiner?.userId === viewer;
           if (clean.mode === "draw" && clean.status === "playing" && viewerIsPlayer) {
             try {
@@ -4359,10 +4470,7 @@ async function duelListGames(user) {
               clean = await drawMaybeCompleteDatabase(clean);
             } catch (error) {
               console.error("[duel list draw hydrate]", error.message || error);
-              // Do not publish a known-stale zero-score copy for the current
-              // player. Their focused get request or last accepted snapshot is
-              // safer than regressing the live board.
-              continue;
+              return null;
             }
           }
           if (clean.mode === "fishing" && clean.status === "playing" && viewerIsPlayer) {
@@ -4372,16 +4480,19 @@ async function duelListGames(user) {
               clean = await fishingMaybeCompleteDatabase(clean);
             } catch (error) {
               console.error("[duel list fishing hydrate]", error.message || error);
-              continue;
+              return null;
             }
           }
-          games.push(duelPublicGame(clean, viewer));
+          return duelPublicGame(clean, viewer);
+        } catch {
+          return null;
         }
-      } catch {}
+      }));
+      for (const publicGame of batch) if (publicGame) games.push(publicGame);
     }
   } catch {}
   games.sort((a, b) => String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")));
-  return { games: games.slice(0, 40), record: await getUserRecord(viewer) };
+  return { games: games.slice(0, 40), record: await recordPromise };
 }
 
 async function duelFindActiveFishingGameForUser(userId, excludeGameId = "") {
@@ -4405,22 +4516,71 @@ async function duelFindActiveFishingGameForUser(userId, excludeGameId = "") {
   return null;
 }
 
+function duelClientCreateGameId(mode, value) {
+  const candidate=mpCleanId(value||"");
+  if(!candidate)return "";
+  const pattern=new RegExp(`^duel-${mode}-\\d{10,16}-[a-f0-9]{10,32}$`);
+  return pattern.test(candidate)?candidate:"";
+}
+
 async function duelCreateGame(user, details = {}) {
   await duelEnsureSchemaMigration();
   const mode = String(details.mode || "coin").toLowerCase();
   if (!DUEL_MODES[mode]) throw new Error("Choose a valid multiplayer arcade game.");
-  const activeGame = await duelFindActiveGameForUser(user.id);
-  if (activeGame) throw new Error("Finish or cancel your current multiplayer arcade game before creating another one.");
   const wager = int(details.wager, 0);
-  if (wager < DUEL_VALID_WAGER_MIN || wager > DUEL_VALID_WAGER_MAX || wager % TICKETS_PER_XAN !== 0) {
+  const wagerMaximum = details[DUEL_DOUBLE_OR_NOTHING_CREATE] === true && mode === "blackjackduel"
+    ? DUEL_VALID_WAGER_MAX * 2
+    : DUEL_VALID_WAGER_MAX;
+  if (wager < DUEL_VALID_WAGER_MIN || wager > wagerMaximum || wager % TICKETS_PER_XAN !== 0) {
     throw new Error("Choose a wager from 1,000 to 50,000 Tickets in 1,000 Ticket increments.");
   }
+
+  const suppliedClientGameId=String(details.clientGameId||"").trim();
+  const clientGameId=duelClientCreateGameId(mode,suppliedClientGameId);
+  if(suppliedClientGameId&&!clientGameId)throw new Error("The create request ID was invalid. Please try again.");
+
+  if(clientGameId){
+    // Never issue an eventually-consistent GET for a proposed new key.
+    // A cached 404 can outlive the subsequent write and make Ready/polling
+    // report that the successfully-created game does not exist.
+    const existing=await duelGetRawStrong(clientGameId,2);
+    if(existing){
+      const clean=duelSanitizeGame(existing);
+      if(cleanUserId(clean.creator?.userId)!==cleanUserId(user.id)||clean.mode!==mode||Number(clean.wager)!==wager){
+        throw new Error("That create request ID belongs to a different game.");
+      }
+      const record=await getUserRecord(user.id);
+      return {game:duelPublicGame(clean,user.id),record,recoveredCreate:true};
+    }
+  }
+
+  let activeGame = await duelFindActiveGameForUser(user.id,"",{scanFallback:false});
+  if (activeGame && activeGame.mode !== mode) {
+    const syntheticOpponent = [activeGame.creator, activeGame.joiner].find(player => player?.isNpc || player?.isRemoteBot || String(player?.userId || "").startsWith("npc-") || String(player?.userId || "").startsWith("remote-bot-"));
+    if (syntheticOpponent) {
+      // Switching test modes may safely retire an unfinished synthetic match.
+      // Real-player games are never cancelled or hidden automatically.
+      await duelAbandonNpcGame(user, activeGame.gameId);
+      activeGame = null;
+    } else {
+      return {
+        game: duelPublicGame(activeGame, user.id),
+        record: await getUserRecord(user.id),
+        activeModeConflict: true,
+        requestedMode: mode
+      };
+    }
+  }
+  if (activeGame) {
+    return {game:duelPublicGame(activeGame,user.id),record:await getUserRecord(user.id),resumedExisting:true};
+  }
+
   let record = await getUserRecord(user.id);
   record = prepareLedgerRecord(record || { userId: String(user.id), name: user.name || "Unknown", ledgerStartedAt: nowIso(), balanceBaseline: 0, financialLedger: [] });
   const balanceBefore = getRecordBalance(record);
   if (balanceBefore < wager) throw new Error(`You need ${formatTickets(wager)} to create this duel.`);
   const at = nowIso();
-  const gameId = `duel-${mode}-${Date.now()}-${crypto.randomBytes(5).toString("hex")}`;
+  const gameId = clientGameId || `duel-${mode}-${Date.now()}-${crypto.randomBytes(5).toString("hex")}`;
   const ledgerId = `duel:${gameId}:creator-escrow`;
   const ledgerResult = addLedgerEntry(record, makeLedgerEntry({
     id: ledgerId,
@@ -4435,8 +4595,8 @@ async function duelCreateGame(user, details = {}) {
     ...ledgerResult.record,
     name: user.name || ledgerResult.record.name || "Unknown",
     lastBetAt: at,
-    totalWagered: int(ledgerResult.record.totalWagered, 0) + wager,
-    recentEvents: addEvent(ledgerResult.record.recentEvents || [], {
+    totalWagered: int(ledgerResult.record.totalWagered, 0) + (ledgerResult.added ? wager : 0),
+    recentEvents: ledgerResult.added ? addEvent(ledgerResult.record.recentEvents || [], {
       type: "duel_create",
       at,
       gameId,
@@ -4444,7 +4604,7 @@ async function duelCreateGame(user, details = {}) {
       balanceBefore,
       balanceAfter: getRecordBalance(ledgerResult.record),
       message: `${user.name || "Unknown"} created ${DUEL_MODES[mode]} for ${formatTickets(wager)}.`
-    })
+    }) : (ledgerResult.record.recentEvents || [])
   }));
   const game = await duelSaveGame({
     schemaVersion: DUEL_SCHEMA_VERSION,
@@ -4461,7 +4621,7 @@ async function duelCreateGame(user, details = {}) {
     actions: {},
     ledgerIds: { creator: ledgerId }
   });
-  return { game: duelPublicGame(game, saved.userId), record: saved };
+  return { game: duelPublicGame(game, saved.userId), record: saved, recoveredCreate:false };
 }
 
 async function duelCancelGame(user, gameId) {
@@ -4536,13 +4696,12 @@ async function duelAbandonNpcGame(user, gameId = "") {
 
 async function duelJoinGame(user, gameId) {
   await duelEnsureSchemaMigration();
-  let game = await duelGetRaw(gameId);
+  let game = await duelGetRawStrong(gameId);
   if (!game) throw new Error("That duel was not found.");
   const viewer = cleanUserId(user.id);
   if (game.status !== "waiting") throw new Error("That duel is no longer joinable.");
   if (game.creator.userId === viewer) throw new Error("You cannot join your own duel.");
-  const activeGame = await duelFindActiveGameForUser(viewer, game.gameId);
-  if (activeGame) throw new Error("Finish or cancel your current multiplayer arcade game before joining another one.");
+  // Joining another game preserves the existing duel and its separate escrow.
   const wager = int(game.wager, 0);
   let record = await getUserRecord(viewer);
   record = prepareLedgerRecord(record || { userId: viewer, name: user.name || "Unknown", ledgerStartedAt: nowIso(), balanceBaseline: 0, financialLedger: [] });
@@ -4589,6 +4748,7 @@ async function duelJoinGame(user, gameId) {
   game = await duelSaveGame({
     ...joinedGame,
     blackjackState: null,
+    blackjackDuelState: null,
     drawState: null,
     fishingState: null
   });
@@ -5017,7 +5177,7 @@ function duelValidateResolvedWinner(game, resolved = {}) {
 
 async function duelCompleteWithResolved(game, resolved) {
   const clean = duelSanitizeGame(game);
-  const at = nowIso();
+  const at = String(resolved?.completionAt || clean.completedAt || nowIso());
   resolved = await duelApplyFishingRecords(clean, resolved, at);
   resolved = duelValidateResolvedWinner(clean, resolved);
   const pot = int(clean.pot, clean.wager * 2);
@@ -5468,6 +5628,9 @@ async function duelMaybeComplete(game, viewerId) {
   if (clean.mode === "draw") return await drawMaybeComplete(clean);
   if (clean.mode === "fishing") return await fishingMaybeComplete(clean);
   if (clean.mode === "roulette") return await rouletteMaybeComplete(clean);
+  if (clean.mode === "safecracker") return await safeCrackerAdvanceAndSave(clean);
+  if (clean.mode === "mountainrace") return await mountainRaceAdvanceAndSave(clean);
+  if (clean.mode === "blackjackduel") return await blackjackDuelAdvanceAndSave(clean);
   if (clean.status !== "playing" || !clean.creator?.userId || !clean.joiner?.userId) return clean;
   const creatorAction = clean.actions?.[clean.creator.userId];
   const joinerAction = clean.actions?.[clean.joiner.userId];
@@ -5530,6 +5693,535 @@ function duelNpcChoice(mode) {
 
 
 
+// SAFE_CRACKER_SERVER_START
+const SAFE_CRACKER_ROUND_MS = 60 * 1000;
+const SAFE_CRACKER_VERIFY_MS = 650;
+const SAFE_CRACKER_STAGES = 3;
+const SAFE_CRACKER_LOCKS = globalThis.__SAFE_CRACKER_LOCKS || (globalThis.__SAFE_CRACKER_LOCKS = new Map());
+
+async function withSafeCrackerLock(gameId, task) {
+  const key = mpCleanId(gameId);
+  const previous = SAFE_CRACKER_LOCKS.get(key) || Promise.resolve();
+  let release;
+  const gate = new Promise(resolve => { release = resolve; });
+  const queued = previous.then(() => gate);
+  SAFE_CRACKER_LOCKS.set(key, queued);
+  await previous;
+  try { return await task(); }
+  finally {
+    release();
+    if (SAFE_CRACKER_LOCKS.get(key) === queued) SAFE_CRACKER_LOCKS.delete(key);
+  }
+}
+
+function safeCrackerPlayerIds(game) {
+  return [cleanUserId(game?.creator?.userId), cleanUserId(game?.joiner?.userId)].filter(Boolean);
+}
+
+function safeCrackerGenerateCode() {
+  const digits = Array.from({ length: 10 }, (_, digit) => digit);
+  for (let index = digits.length - 1; index > 0; index -= 1) {
+    const swap = Math.floor(Math.random() * (index + 1));
+    [digits[index], digits[swap]] = [digits[swap], digits[index]];
+  }
+  return digits.slice(0, SAFE_CRACKER_STAGES).join('');
+}
+
+function safeCrackerInitialPlayer(code) {
+  return {
+    code,
+    stage: 0,
+    attempts: [],
+    lastResult: null,
+    nextGuessAt: null,
+    completedAt: null
+  };
+}
+
+function safeCrackerInitialState(game, startMs = Date.now()) {
+  const ids = safeCrackerPlayerIds(game);
+  const players = {};
+  const usedCodes = new Set();
+  for (const id of ids) {
+    let code = safeCrackerGenerateCode();
+    while (usedCodes.has(code)) code = safeCrackerGenerateCode();
+    usedCodes.add(code);
+    players[id] = safeCrackerInitialPlayer(code);
+  }
+  return {
+    roundId: 'safe-' + crypto.randomBytes(7).toString('hex'),
+    startAt: new Date(startMs).toISOString(),
+    endAt: new Date(startMs + SAFE_CRACKER_ROUND_MS).toISOString(),
+    revision: 1,
+    players,
+    winnerUserId: '',
+    processedActionIds: [],
+    npcActionAt: null
+  };
+}
+
+function safeCrackerEnsureState(game) {
+  const startMs = Date.parse(game?.startAt || '') || Date.now();
+  const existing = game?.safecrackerState && typeof game.safecrackerState === 'object' ? game.safecrackerState : null;
+  if (!existing?.players || typeof existing.players !== 'object') return safeCrackerInitialState(game, startMs);
+  const players = { ...existing.players };
+  for (const id of safeCrackerPlayerIds(game)) {
+    const current = players[id] && typeof players[id] === 'object' ? players[id] : safeCrackerInitialPlayer(safeCrackerGenerateCode());
+    const rawCode = String(current.code || '').replace(/[^0-9]/g, '').slice(0, SAFE_CRACKER_STAGES);
+    const code = rawCode.length === SAFE_CRACKER_STAGES ? rawCode : safeCrackerGenerateCode();
+    players[id] = {
+      code,
+      stage: Math.max(0, Math.min(SAFE_CRACKER_STAGES, int(current.stage, 0))),
+      attempts: Array.isArray(current.attempts) ? current.attempts.slice(-80) : [],
+      lastResult: current.lastResult && typeof current.lastResult === 'object' ? current.lastResult : null,
+      nextGuessAt: current.nextGuessAt || null,
+      completedAt: current.completedAt || null
+    };
+  }
+  return {
+    roundId: String(existing.roundId || ('safe-' + crypto.randomBytes(7).toString('hex'))),
+    startAt: existing.startAt || new Date(startMs).toISOString(),
+    endAt: existing.endAt || new Date(startMs + SAFE_CRACKER_ROUND_MS).toISOString(),
+    revision: Math.max(1, int(existing.revision, 1)),
+    players,
+    winnerUserId: cleanUserId(existing.winnerUserId || ''),
+    processedActionIds: Array.isArray(existing.processedActionIds) ? existing.processedActionIds.map(String).slice(-80) : [],
+    npcActionAt: existing.npcActionAt || null
+  };
+}
+
+function safeCrackerHasValidState(game) {
+  const state = game?.safecrackerState;
+  if (!state || typeof state !== 'object' || !state.players || typeof state.players !== 'object') return false;
+  const start = Date.parse(state.startAt || '');
+  const end = Date.parse(state.endAt || '');
+  if (!state.roundId || !Number.isFinite(start) || !Number.isFinite(end) || end - start !== SAFE_CRACKER_ROUND_MS) return false;
+  return safeCrackerPlayerIds(game).every(id => /^[0-9]{3}$/.test(String(state.players?.[id]?.code || '')));
+}
+
+function safeCrackerCircularDistance(first, second) {
+  const distance = Math.abs(int(first, 0) - int(second, 0));
+  return Math.min(distance, 10 - distance);
+}
+
+function safeCrackerTier(distance) {
+  if (distance <= 0) return 'green';
+  if (distance === 1) return 'yellow';
+  if (distance <= 3) return 'orange';
+  return 'red';
+}
+
+function safeCrackerPublicPlayer(player, includeAttempts) {
+  const attempts = Array.isArray(player?.attempts) ? player.attempts : [];
+  const lastResult = player?.lastResult && typeof player.lastResult === 'object' ? {
+    stage: int(player.lastResult.stage, 0),
+    guess: int(player.lastResult.guess, 0),
+    tier: String(player.lastResult.tier || ''),
+    correct: Boolean(player.lastResult.correct),
+    at: player.lastResult.at || null
+  } : null;
+  return {
+    stage: Math.max(0, Math.min(SAFE_CRACKER_STAGES, int(player?.stage, 0))),
+    attempts: includeAttempts ? attempts.map(attempt => ({
+      stage: int(attempt.stage, 0),
+      guess: int(attempt.guess, 0),
+      tier: String(attempt.tier || ''),
+      correct: Boolean(attempt.correct),
+      at: attempt.at || null
+    })) : undefined,
+    attemptCount: attempts.length,
+    lastResult: includeAttempts ? lastResult : undefined,
+    lastTier: lastResult?.tier || '',
+    completed: Boolean(player?.completedAt) || int(player?.stage, 0) >= SAFE_CRACKER_STAGES,
+    completedAt: player?.completedAt || null
+  };
+}
+
+function safeCrackerPublicState(game, viewerUserId) {
+  const state = game?.safecrackerState && typeof game.safecrackerState === 'object' ? safeCrackerEnsureState(game) : null;
+  const viewer = cleanUserId(viewerUserId);
+  const ids = safeCrackerPlayerIds(game);
+  const opponentId = ids.find(id => id !== viewer) || '';
+  if (!state) {
+    return {
+      roundId: '', startAt: game?.startAt || null, endAt: null, revision: 0,
+      secondsLeft: SAFE_CRACKER_ROUND_MS / 1000, canSubmit: false, cooldownMs: 0,
+      me: safeCrackerPublicPlayer({}, true), opponent: safeCrackerPublicPlayer({}, false)
+    };
+  }
+  const me = state.players?.[viewer] || {};
+  const opponent = state.players?.[opponentId] || {};
+  const now = Date.now();
+  const nextGuessMs = Date.parse(me.nextGuessAt || '');
+  const endMs = Date.parse(state.endAt || '');
+  const cooldownMs = Number.isFinite(nextGuessMs) ? Math.max(0, nextGuessMs - now) : 0;
+  const complete = String(game?.status || '') === 'complete';
+  return {
+    roundId: state.roundId,
+    startAt: state.startAt,
+    endAt: state.endAt,
+    revision: int(state.revision, 0),
+    secondsLeft: complete ? 0 : Number.isFinite(endMs) ? Math.max(0, Math.ceil((endMs - now) / 1000)) : SAFE_CRACKER_ROUND_MS / 1000,
+    canSubmit: String(game?.status || '') === 'playing' && ids.includes(viewer) && cooldownMs <= 0 && int(me.stage, 0) < SAFE_CRACKER_STAGES,
+    cooldownMs,
+    stagesTotal: SAFE_CRACKER_STAGES,
+    me: safeCrackerPublicPlayer(me, true),
+    opponent: safeCrackerPublicPlayer(opponent, false),
+    revealedCodes: complete ? { my: String(me.code || ''), opponent: String(opponent.code || '') } : undefined
+  };
+}
+
+function safeCrackerSummary(game, state, winnerId, tie, reason) {
+  const creatorId = cleanUserId(game?.creator?.userId);
+  const joinerId = cleanUserId(game?.joiner?.userId);
+  const summary = id => ({
+    stage: int(state.players?.[id]?.stage, 0),
+    attempts: Array.isArray(state.players?.[id]?.attempts) ? state.players[id].attempts.length : 0
+  });
+  return {
+    mode: 'safecracker',
+    winnerRole: tie ? '' : winnerId === creatorId ? 'creator' : 'joiner',
+    tie: Boolean(tie),
+    text: reason || (tie ? 'Neither safe opened before time expired.' : 'First safe opened wins.'),
+    creator: summary(creatorId),
+    joiner: summary(joinerId)
+  };
+}
+
+// SAFE_CRACKER_DIRECT_COMPLETION_START
+function safeCrackerCompletedPlayerId(game, state) {
+  return safeCrackerPlayerIds(game)
+    .filter(id => Boolean(state?.players?.[id]?.completedAt) || int(state?.players?.[id]?.stage, 0) >= SAFE_CRACKER_STAGES)
+    .sort((a, b) => String(state?.players?.[a]?.completedAt || '').localeCompare(String(state?.players?.[b]?.completedAt || '')))[0] || '';
+}
+
+async function safeCrackerComplete(game, state, winnerId = '', reason = '') {
+  const gameId = mpCleanId(game?.gameId);
+  let latest = null;
+  try { latest = await duelGetRawStrong(gameId, 1); } catch {}
+  if (!latest) {
+    try { latest = await duelGetRaw(gameId); } catch {}
+  }
+  if (latest?.status === 'complete') return latest;
+
+  const baseGame = latest || game;
+  const incomingState = safeCrackerEnsureState({ ...baseGame, safecrackerState: state });
+  const storedState = latest?.safecrackerState ? safeCrackerEnsureState(latest) : null;
+  const finalBase = storedState && int(storedState.revision, 0) > int(incomingState.revision, 0) ? storedState : incomingState;
+  const ids = safeCrackerPlayerIds(baseGame);
+  let cleanWinner = cleanUserId(winnerId || finalBase.winnerUserId || '');
+  if (!ids.includes(cleanWinner)) cleanWinner = safeCrackerCompletedPlayerId(baseGame, finalBase);
+  const tie = !cleanWinner;
+  const completionAt = String(
+    (cleanWinner && finalBase.players?.[cleanWinner]?.completedAt) ||
+    (tie && finalBase.endAt) ||
+    baseGame.completedAt ||
+    nowIso()
+  );
+  const finalState = {
+    ...finalBase,
+    winnerUserId: cleanWinner,
+    revision: Math.max(int(finalBase.revision, 0), int(state?.revision, 0)) + 1,
+    npcActionAt: null
+  };
+  const summary = {
+    ...safeCrackerSummary(baseGame, finalState, cleanWinner, tie, reason),
+    completionAt,
+    completionMode: 'direct-v8'
+  };
+
+  // The completed object returned here is authoritative for this request. Never
+  // replace it with a briefly stale playing snapshot from a follow-up read.
+  return await duelCompleteWithResolved(
+    { ...baseGame, safecrackerState: finalState, npcActionAt: null, completedAt: completionAt },
+    summary
+  );
+}
+// SAFE_CRACKER_DIRECT_COMPLETION_END
+
+function safeCrackerCandidateMatches(candidate, attempt) {
+  return safeCrackerTier(safeCrackerCircularDistance(candidate, attempt.guess)) === String(attempt.tier || '');
+}
+
+function safeCrackerBotGuess(player) {
+  const stage = int(player?.stage, 0);
+  const attempts = (Array.isArray(player?.attempts) ? player.attempts : []).filter(attempt => int(attempt.stage, 0) === stage);
+  let candidates = Array.from({ length: 10 }, (_, value) => value).filter(candidate => attempts.every(attempt => safeCrackerCandidateMatches(candidate, attempt)));
+  if (!candidates.length) candidates = Array.from({ length: 10 }, (_, value) => value);
+  const tried = new Set(attempts.map(attempt => int(attempt.guess, 0)));
+  const guesses = Array.from({ length: 10 }, (_, value) => value).filter(value => !tried.has(value));
+  if (!guesses.length) return candidates[Math.floor(Math.random() * candidates.length)] || 0;
+  const ranked = guesses.map(guess => {
+    const buckets = new Map();
+    for (const candidate of candidates) {
+      const tier = safeCrackerTier(safeCrackerCircularDistance(candidate, guess));
+      buckets.set(tier, (buckets.get(tier) || 0) + 1);
+    }
+    return { guess, worst: Math.max(...buckets.values(), 0) };
+  }).sort((a, b) => a.worst - b.worst || Math.random() - 0.5);
+  return ranked[0]?.guess ?? guesses[0];
+}
+
+function safeCrackerBotDelay(game) {
+  const network = game?.remoteNetworkConfig && typeof game.remoteNetworkConfig === 'object' ? game.remoteNetworkConfig : null;
+  const min = network ? Math.max(100, int(network.minDelayMs, 100)) : 700;
+  const max = network ? Math.max(min, int(network.maxDelayMs, min + 500)) : 1550;
+  let delay = min + Math.floor(Math.random() * (max - min + 1)) + 420;
+  if (network && Math.random() < Number(network.stallChance || 0)) delay += 1800 + Math.floor(Math.random() * 2200);
+  return delay;
+}
+
+// SAFE_CRACKER_FEEDBACK_LATENCY_V1_START
+async function safeCrackerApplyGuess(game, actorId, guess, actionId = '', isBot = false) {
+  const id = cleanUserId(actorId);
+  const gameId = mpCleanId(game?.gameId);
+  const cleanActionId = String(actionId || '').replace(/[^A-Za-z0-9._:-]/g, '').slice(0, 120);
+  if (!id || !gameId) throw new Error('Safe Cracker could not identify that action.');
+  let fallback = game;
+  for (let writeAttempt = 0; writeAttempt < 4; writeAttempt += 1) {
+    // safeCrackerAction and the bot preflight already supplied a strong snapshot.
+    // Reusing it on the first attempt removes one complete Blob read from every
+    // guess while retries still re-read authoritative storage.
+    const latest = writeAttempt === 0 && fallback
+      ? fallback
+      : (await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId) || fallback);
+    if (!latest) throw new Error('That Safe Cracker duel was not found.');
+    if (latest.mode !== 'safecracker') throw new Error('That duel is not Safe Cracker.');
+    if (latest.status !== 'playing') return latest;
+    let state = safeCrackerEnsureState(latest);
+    if (cleanActionId && state.processedActionIds.includes(cleanActionId)) return latest;
+    const player = { ...(state.players?.[id] || {}) };
+    if (!player.code) throw new Error('Safe Cracker could not find that player safe.');
+    if (int(player.stage, 0) >= SAFE_CRACKER_STAGES) return latest;
+    const now = Date.now();
+    const nextGuessMs = Date.parse(player.nextGuessAt || '');
+    if (!isBot && Number.isFinite(nextGuessMs) && now < nextGuessMs) return latest;
+    const stage = int(player.stage, 0);
+    const target = int(String(player.code)[stage], 0);
+    const distance = safeCrackerCircularDistance(target, guess);
+    const tier = safeCrackerTier(distance);
+    const correct = tier === 'green';
+    const at = new Date(now).toISOString();
+    const result = { stage, guess, distance, tier, correct, at };
+    player.attempts = [...(Array.isArray(player.attempts) ? player.attempts : []), result].slice(-80);
+    player.lastResult = result;
+    player.stage = correct ? Math.min(SAFE_CRACKER_STAGES, stage + 1) : stage;
+    player.nextGuessAt = new Date(now + SAFE_CRACKER_VERIFY_MS).toISOString();
+    if (player.stage >= SAFE_CRACKER_STAGES) player.completedAt = at;
+    const baseStateRevision = int(state.revision, 0);
+    const processed = cleanActionId ? [...(state.processedActionIds || []), cleanActionId].slice(-80) : (state.processedActionIds || []);
+    state = {
+      ...state,
+      revision: baseStateRevision + 1,
+      players: { ...(state.players || {}), [id]: player },
+      processedActionIds: processed,
+      npcActionAt: isBot && player.stage < SAFE_CRACKER_STAGES ? new Date(now + safeCrackerBotDelay(latest)).toISOString() : state.npcActionAt
+    };
+    const candidate = { ...latest, safecrackerState: state };
+
+    // Keep the pre-save completion/revision guard. It prevents a late guess from
+    // overwriting an opponent's authoritative win, but uses only one strong
+    // attempt instead of the older duplicated read chain.
+    const beforeSave = await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId);
+    if (beforeSave) {
+      if (beforeSave.status !== 'playing') return beforeSave;
+      const beforeState = safeCrackerEnsureState(beforeSave);
+      if (cleanActionId && beforeState.processedActionIds.includes(cleanActionId)) return beforeSave;
+      if (int(beforeState.revision, 0) > baseStateRevision || int(beforeSave.revision, 0) > int(latest.revision, 0)) {
+        fallback = beforeSave;
+        continue;
+      }
+    }
+
+    // Final digits still use the protected immediate-completion path so the bot
+    // cannot write after the winning player and reopen the round.
+    if (player.stage >= SAFE_CRACKER_STAGES) {
+      return await safeCrackerComplete(candidate, state, id, ((latest.creator?.userId === id ? latest.creator?.name : latest.joiner?.name) || 'A player') + ' opened the safe first.');
+    }
+
+    const saved = await duelSaveGame(candidate);
+    const confirmed = await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId) || saved;
+    const confirmedState = safeCrackerEnsureState(confirmed);
+    const kept = cleanActionId
+      ? confirmedState.processedActionIds.includes(cleanActionId)
+      : String(confirmedState.players?.[id]?.lastResult?.at || '') === at;
+    if (kept) return confirmed;
+    fallback = confirmed;
+  }
+  return await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId) || fallback;
+}
+
+async function safeCrackerAdvanceAndSave(game) {
+  const gameId = mpCleanId(game?.gameId);
+  if (!gameId) return game;
+
+  // Polling normally only observes the bot timer. Do that read outside the
+  // mutation lock so an aborted/in-flight GET cannot queue in front of a player
+  // pressing Check Number.
+  const observed = await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId) || game;
+  if (!observed || observed.status !== 'playing' || observed.mode !== 'safecracker') return observed || game;
+  const observedState = safeCrackerEnsureState(observed);
+  const observedCompletedPlayerId = safeCrackerCompletedPlayerId(observed, observedState);
+  const observedEndMs = Date.parse(observedState.endAt || '');
+  const observedNpcPlayer = [observed.creator, observed.joiner].find(player => player?.isNpc || String(player?.userId || '').startsWith('npc-') || String(player?.userId || '').startsWith('remote-bot-'));
+  const observedNpcId = cleanUserId(observedNpcPlayer?.userId || '');
+  const observedScheduled = Date.parse(observedState.npcActionAt || '');
+  const observedNpcDone = !observedNpcId || int(observedState.players?.[observedNpcId]?.stage, 0) >= SAFE_CRACKER_STAGES;
+  const needsMutation = Boolean(observedCompletedPlayerId)
+    || (Number.isFinite(observedEndMs) && Date.now() >= observedEndMs)
+    || (observedNpcDone ? Boolean(observedState.npcActionAt) : !Number.isFinite(observedScheduled) || Date.now() >= observedScheduled);
+  if (!needsMutation) return observed;
+
+  return await withSafeCrackerLock(gameId, async () => {
+    let latest = await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId) || observed;
+    if (!latest || latest.status !== 'playing' || latest.mode !== 'safecracker') return latest || observed;
+    let state = safeCrackerEnsureState(latest);
+    const alreadyCompletedPlayerId = safeCrackerCompletedPlayerId(latest, state);
+    if (alreadyCompletedPlayerId) {
+      const playerName = latest.creator?.userId === alreadyCompletedPlayerId ? latest.creator?.name : latest.joiner?.name;
+      return await safeCrackerComplete({ ...latest, safecrackerState: state }, state, alreadyCompletedPlayerId, (playerName || 'A player') + ' opened the safe first.');
+    }
+    const endMs = Date.parse(state.endAt || '');
+    if (Number.isFinite(endMs) && Date.now() >= endMs) {
+      return await safeCrackerComplete({ ...latest, safecrackerState: state }, state, '', 'Time expired before either safe opened.');
+    }
+    const npcPlayer = [latest.creator, latest.joiner].find(player => player?.isNpc || String(player?.userId || '').startsWith('npc-') || String(player?.userId || '').startsWith('remote-bot-'));
+    const npcId = cleanUserId(npcPlayer?.userId || '');
+    if (!npcId || int(state.players?.[npcId]?.stage, 0) >= SAFE_CRACKER_STAGES) {
+      if (state.npcActionAt) {
+        state = { ...state, revision: int(state.revision, 0) + 1, npcActionAt: null };
+        return await duelSaveGame({ ...latest, safecrackerState: state });
+      }
+      return latest;
+    }
+    const scheduled = Date.parse(state.npcActionAt || '');
+    if (!Number.isFinite(scheduled)) {
+      state = { ...state, revision: int(state.revision, 0) + 1, npcActionAt: new Date(Date.now() + safeCrackerBotDelay(latest)).toISOString() };
+      return await duelSaveGame({ ...latest, safecrackerState: state });
+    }
+    if (Date.now() < scheduled) return latest;
+    const guess = safeCrackerBotGuess(state.players[npcId]);
+    return await safeCrackerApplyGuess({ ...latest, safecrackerState: state }, npcId, guess, 'bot-' + state.revision + '-' + guess, true);
+  });
+}
+
+async function safeCrackerAction(user, gameId, rawChoice, details = {}) {
+  return await withSafeCrackerLock(gameId, async () => {
+    const viewer = cleanUserId(user.id);
+    const actionStartedAt = Date.now();
+    let game = await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId);
+    if (!game) throw new Error('That Safe Cracker duel was not found.');
+    if (game.mode !== 'safecracker') throw new Error('That duel is not Safe Cracker.');
+    if (game.status !== 'playing') {
+      const response = { game: duelPublicGame(game, viewer), feedbackPath: 'fast-authoritative-v1', feedbackServerMs: Date.now() - actionStartedAt };
+      if (game.status === 'complete') response.record = await getUserRecord(viewer);
+      else response.skipBalanceLookup = true;
+      return response;
+    }
+    if (!safeCrackerPlayerIds(game).includes(viewer)) throw new Error('You are not in this Safe Cracker duel.');
+    let state = safeCrackerEnsureState(game);
+    const alreadyCompletedPlayerId = safeCrackerCompletedPlayerId(game, state);
+    if (alreadyCompletedPlayerId) {
+      const playerName = game.creator?.userId === alreadyCompletedPlayerId ? game.creator?.name : game.joiner?.name;
+      game = await safeCrackerComplete({ ...game, safecrackerState: state }, state, alreadyCompletedPlayerId, (playerName || 'A player') + ' opened the safe first.');
+      return { game: duelPublicGame(game, viewer), record: await getUserRecord(viewer), repairedCompletion: true, feedbackPath: 'fast-authoritative-v1', feedbackServerMs: Date.now() - actionStartedAt };
+    }
+    const endMs = Date.parse(state.endAt || '');
+    if (Number.isFinite(endMs) && Date.now() >= endMs) {
+      game = await safeCrackerComplete({ ...game, safecrackerState: state }, state, '', 'Time expired before either safe opened.');
+      return { game: duelPublicGame(game, viewer), record: await getUserRecord(viewer), feedbackPath: 'fast-authoritative-v1', feedbackServerMs: Date.now() - actionStartedAt };
+    }
+    const actionId = String(details.actionId || '').replace(/[^A-Za-z0-9._:-]/g, '').slice(0, 120);
+    if (actionId && state.processedActionIds.includes(actionId)) {
+      return {
+        game: duelPublicGame({ ...game, safecrackerState: state }, viewer),
+        skipBalanceLookup: true,
+        ignoredAction: true,
+        ignoreReason: 'duplicate',
+        feedbackPath: 'fast-authoritative-v1',
+        feedbackServerMs: Date.now() - actionStartedAt
+      };
+    }
+    const match = /^safecracker:guess:([0-9])$/.exec(String(rawChoice || '').toLowerCase());
+    if (!match) throw new Error('Choose one dial number from 0 to 9.');
+    const player = state.players?.[viewer] || {};
+    const nextGuessMs = Date.parse(player.nextGuessAt || '');
+    if (Number.isFinite(nextGuessMs) && Date.now() < nextGuessMs) {
+      return {
+        game: duelPublicGame({ ...game, safecrackerState: state }, viewer),
+        skipBalanceLookup: true,
+        ignoredAction: true,
+        ignoreReason: 'verification-cooldown',
+        retryAfterMs: Math.max(0, nextGuessMs - Date.now()),
+        feedbackPath: 'fast-authoritative-v1',
+        feedbackServerMs: Date.now() - actionStartedAt
+      };
+    }
+    game = await safeCrackerApplyGuess({ ...game, safecrackerState: state }, viewer, int(match[1], 0), actionId, false);
+    const response = {
+      game: duelPublicGame(game, viewer),
+      feedbackPath: 'fast-authoritative-v1',
+      feedbackServerMs: Date.now() - actionStartedAt
+    };
+    if (game.status === 'complete') response.record = await getUserRecord(viewer);
+    else response.skipBalanceLookup = true;
+    return response;
+  });
+}
+// SAFE_CRACKER_FEEDBACK_LATENCY_V1_END
+
+// SAFE_CRACKER_SERVER_END
+
+// MOUNTAIN_RACE_SERVER_START
+// MOUNTAIN_RACE_FAST_ACK_V9
+async function mountainRaceFastSaveGame(game) {
+  const clean = duelSanitizeGame({
+    ...game,
+    schemaVersion: DUEL_SCHEMA_VERSION,
+    revision: int(game?.revision, 0) + 1,
+    updatedAt: nowIso()
+  });
+  await getUsersStore().setJSON(duelGameKey(clean.gameId), clean);
+  return clean;
+}
+
+const mountainRaceIntegration = createMountainRaceIntegration({
+  cleanUserId,
+  int,
+  mpCleanId,
+  getRaw: duelGetRaw,
+  getRawStrong: gameId => duelGetRawStrong(gameId, 1),
+  saveGame: mountainRaceFastSaveGame,
+  publicGame: duelPublicGame,
+  completeResolved: duelCompleteWithResolved,
+  getUserRecord
+});
+function mountainRaceInitialState(game, startMs) { return mountainRaceIntegration.initialState(game, startMs); }
+function mountainRaceEnsureState(game) { return mountainRaceIntegration.ensureState(game); }
+function mountainRaceHasValidState(game) { return mountainRaceIntegration.hasValidState(game); }
+function mountainRacePublicState(game, viewerId) { return mountainRaceIntegration.publicState(game, viewerId); }
+async function mountainRaceAdvanceAndSave(game) { return await mountainRaceIntegration.advance(game); }
+async function mountainRaceAction(user, gameId, rawChoice, details) { return await mountainRaceIntegration.action(user, gameId, rawChoice, details); }
+// MOUNTAIN_RACE_SERVER_END
+
+// BLACKJACK_DUEL_SERVER_START
+const blackjackDuelIntegration = createBlackjackDuelIntegration({
+  cleanUserId,
+  int,
+  getRaw: duelGetRaw,
+  getRawStrong: gameId => duelGetRawStrong(gameId, 1),
+  publicGame: duelPublicGame,
+  completeResolved: duelCompleteWithResolved,
+  getUserRecord,
+  database: blackjackDuelDatabase
+});
+function blackjackDuelInitialState(game, startMs) { return blackjackDuelIntegration.initialState(game, startMs); }
+function blackjackDuelHasValidState(game) { return blackjackDuelIntegration.hasValidState(game); }
+function blackjackDuelPublicState(game, viewerId) { return blackjackDuelIntegration.publicState(game, viewerId); }
+async function blackjackDuelAdvanceAndSave(game) { return await blackjackDuelIntegration.advance(game); }
+async function blackjackDuelAction(user, gameId, rawChoice, details) { return await blackjackDuelIntegration.action(user, gameId, rawChoice, details); }
+// BLACKJACK_DUEL_SERVER_END
+
 // Shared duel ready lifecycle. This is the only code allowed to move a duel
 // from ready -> countdown -> playing. The server owns all timestamps.
 const DUEL_READY_WINDOW_MS = 10000;
@@ -5563,13 +6255,13 @@ function duelReadyFlags(game) {
 }
 
 function duelStartCountdown(game, atMs = Date.now()) {
-  const startMs = atMs + DUEL_COUNTDOWN_MS;
+  const effectiveStartMs = atMs + duelCountdownMs(game?.mode);
   let next = {
     ...game,
     status: "countdown",
     ready: duelReadyFlags(game),
     countdownStartedAt: new Date(atMs).toISOString(),
-    startAt: new Date(startMs).toISOString(),
+    startAt: new Date(effectiveStartMs).toISOString(),
     readyWindowStartedAt: null,
     readyDeadlineAt: null,
     npcReadyAt: null,
@@ -5577,9 +6269,12 @@ function duelStartCountdown(game, atMs = Date.now()) {
   };
   // Build fishing once, from the exact GO timestamp. It is then immutable for
   // this game/round and can never be recreated by a client refresh.
-  if (next.mode === "fishing") next.fishingState = fishingInitialState(next, startMs);
-  if (next.mode === "draw") next.drawState = drawInitialState(next, startMs);
-  if (next.mode === "roulette") next.rouletteState = rouletteInitialState(next, startMs);
+  if (next.mode === "fishing") next.fishingState = fishingInitialState(next, effectiveStartMs);
+  if (next.mode === "draw") next.drawState = drawInitialState(next, effectiveStartMs);
+  if (next.mode === "roulette") next.rouletteState = rouletteInitialState(next, effectiveStartMs);
+  if (next.mode === "safecracker") next.safecrackerState = safeCrackerInitialState(next, effectiveStartMs);
+  if (next.mode === "mountainrace") next.mountainraceState = mountainRaceInitialState(next, effectiveStartMs);
+  if (next.mode === "blackjackduel") next.blackjackDuelState = blackjackDuelInitialState(next, effectiveStartMs);
   return next;
 }
 
@@ -5600,6 +6295,9 @@ function duelNormalizeReadyState(game) {
       }
       if (next.mode === "draw" && !next.drawState) next.drawState = drawInitialState(next, startMs);
       if (next.mode === "roulette" && !next.rouletteState) next.rouletteState = rouletteInitialState(next, startMs);
+      if (next.mode === "safecracker" && !safeCrackerHasValidState(next)) next.safecrackerState = safeCrackerInitialState(next, startMs);
+      if (next.mode === "mountainrace" && !mountainRaceHasValidState(next)) next.mountainraceState = mountainRaceInitialState(next, startMs);
+      if (next.mode === "blackjackduel" && !blackjackDuelHasValidState(next)) next.blackjackDuelState = blackjackDuelInitialState(next, startMs);
     }
     return next;
   }
@@ -5619,7 +6317,10 @@ function duelNormalizeReadyState(game) {
       startAt: null,
       fishingState: next.mode === "fishing" ? null : next.fishingState,
       drawState: next.mode === "draw" ? null : next.drawState,
-      rouletteState: next.mode === "roulette" ? null : next.rouletteState
+      rouletteState: next.mode === "roulette" ? null : next.rouletteState,
+      safecrackerState: next.mode === "safecracker" ? null : next.safecrackerState,
+      mountainraceState: next.mode === "mountainrace" ? null : next.mountainraceState,
+      blackjackDuelState: next.mode === "blackjackduel" ? null : next.blackjackDuelState
     };
   }
 
@@ -5647,7 +6348,16 @@ function duelControlledActor(game, user, asTestPlayer = false) {
 
 async function duelReadyGame(user, gameId, options = {}) {
   return await withDuelReadyLock(gameId, async () => {
-    let game = await duelGetRaw(gameId);
+    const requestedGameId = mpCleanId(gameId);
+    let game = null;
+    for (let attempt = 0; attempt < 6 && !game; attempt += 1) {
+      game = await duelGetRawStrong(requestedGameId, 1) || await duelGetRaw(requestedGameId);
+      if (!game) {
+        const active = await duelFindActiveGameForUser(user.id);
+        if (active && active.gameId === requestedGameId) game = active;
+      }
+      if (!game && attempt < 5) await sleep(180 + attempt * 180);
+    }
     if (!game) throw new Error("That duel was not found.");
     const actor = duelControlledActor(game, user, Boolean(options.asTestPlayer));
     const viewer = actor.id;
@@ -5689,18 +6399,12 @@ async function duelReadyGame(user, gameId, options = {}) {
     const humanId = ids.find(id => id !== npcId) || "";
     const activeWindowId = String(game.readyWindowId || game.readyWindowStartedAt || "");
     if (npcId && viewer === humanId && ready[humanId] && !ready[npcId]) {
-      if (game.mode === "roulette") {
-        // Roulette is fully turn based. Confirm the NPC in the same authoritative
-        // Ready transaction so adding it cannot stall on a later polling request.
-        ready[npcId] = true;
-        game.npcReadyAt = null;
-        game.npcReadyWindowId = activeWindowId;
-      } else if (String(game.npcReadyWindowId || "") !== activeWindowId) {
-        // Preserve the existing delayed Ready behavior for the other games.
-        const delayMs = 2000 + Math.floor(Math.random() * 3001);
-        game.npcReadyAt = new Date(now + delayMs).toISOString();
-        game.npcReadyWindowId = activeWindowId;
-      }
+      // Synthetic opponents share one Ready contract in every mode. Confirming
+      // both flags under this lock prevents delayed bot timers and GET polls
+      // from competing to own the countdown transition.
+      ready[npcId] = true;
+      game.npcReadyAt = null;
+      game.npcReadyWindowId = activeWindowId;
     }
 
     game = duelNormalizeReadyState({ ...game, ready });
@@ -5711,7 +6415,7 @@ async function duelReadyGame(user, gameId, options = {}) {
 
 async function duelAddSimpleNpc(user, gameId) {
   const viewer = cleanUserId(user.id);
-  let game = await duelGetRaw(gameId);
+  let game = await duelGetRawStrong(gameId);
   // A client can briefly hold an older game id after a namespace migration or
   // an eventually-consistent lobby refresh. Resolve the creator's authoritative
   // active duel before failing the NPC request.
@@ -5719,14 +6423,14 @@ async function duelAddSimpleNpc(user, gameId) {
     const active = await duelFindActiveGameForUser(viewer);
     if (active && cleanUserId(active.creator?.userId) === viewer) game = active;
   }
-  if (!game) throw new Error("Create a Russian Roulette duel before adding the NPC.");
+  if (!game) throw new Error("Create a duel before adding the NPC.");
   if (game.creator.userId !== viewer) throw new Error("Only the creator can add the NPC.");
-  if (!["fishing", "draw", "roulette"].includes(game.mode)) throw new Error("The NPC is available for Russian Roulette testing.");
+  if (!duelSupportsSyntheticOpponent(game.mode)) throw new Error("This game does not support a synthetic opponent.");
   if (game.status !== "waiting" || game.joiner) throw new Error("The NPC can only be added to a waiting duel.");
   const npcId = `npc-${game.mode}-${crypto.randomBytes(4).toString("hex")}`;
   const npcPlayer = duelSanitizePlayer({
     userId: npcId,
-    name: game.mode === "draw" ? "Quickdraw Opponent" : game.mode === "roulette" ? "Roulette Opponent" : "Fishing Opponent",
+    name: game.mode === "draw" ? "Quickdraw Opponent" : game.mode === "roulette" ? "Roulette Opponent" : game.mode === "safecracker" ? "Vault Cracker" : game.mode === "mountainrace" ? "Mountain Bot" : game.mode === "blackjackduel" ? "Blackjack Bot" : "Fishing Opponent",
     tornId: npcId,
     avatarUrl: "",
     isNpc: true,
@@ -5749,25 +6453,24 @@ async function duelAddSimpleNpc(user, gameId) {
     npcActionAt: null,
     actions: {},
     blackjackState: null,
+    blackjackDuelState: null,
     drawState: null,
     fishingState: null,
     rouletteState: null,
+    safecrackerState: null,
+    mountainraceState: null,
     ledgerIds: { ...(game.ledgerIds || {}), npc: `duel:${game.gameId}:simple-${game.mode}-npc` }
   });
   return { game: duelPublicGame(game, viewer), record: await getUserRecord(viewer) };
 }
 
-async function duelAddRemoteNetworkBot(user, gameId, profile = "normal") {
+async function duelAttachRemoteNetworkBotToKnownGame(user, knownGame, profile = "normal") {
   const viewer = cleanUserId(user.id);
-  let game = await duelGetRaw(gameId);
-  if (!game) {
-    const active = await duelFindActiveGameForUser(viewer);
-    if (active && cleanUserId(active.creator?.userId) === viewer) game = active;
-  }
+  if (!knownGame) throw new Error("Create a duel before adding the Remote Network Bot.");
+  let game = duelSanitizeGame(knownGame);
   if (!game) throw new Error("Create a duel before adding the Remote Network Bot.");
   if (cleanUserId(game.creator?.userId) !== viewer) throw new Error("Only the creator can add the Remote Network Bot.");
-  if (!["roulette", "draw", "fishing"].includes(String(game.mode || ""))) throw new Error("Remote Network Bot supports Roulette, Draw, and Fishing.");
-  if (game.status !== "waiting" || game.joiner) throw new Error("The Remote Network Bot can only join a waiting duel.");
+  if (!duelSupportsSyntheticOpponent(game.mode)) throw new Error("This game does not support the Remote Network Bot.");
   const profiles = {
     normal:{label:"Normal",minDelayMs:100,maxDelayMs:400,stallChance:0,duplicateChance:0,reconnectChance:0},
     mobile:{label:"Mobile",minDelayMs:300,maxDelayMs:1500,stallChance:.08,duplicateChance:.02,reconnectChance:.04},
@@ -5776,59 +6479,264 @@ async function duelAddRemoteNetworkBot(user, gameId, profile = "normal") {
   };
   const key = Object.prototype.hasOwnProperty.call(profiles, String(profile)) ? String(profile) : "normal";
   const network = profiles[key];
+  const existingRemoteBot = String(game.joiner?.userId || "").startsWith("remote-bot-");
+  if (existingRemoteBot && game.npcTest) {
+    return {game:duelPublicGame(game,viewer),record:await getUserRecord(viewer),remoteNetworkProfile:key,remoteNetworkConfig:network,recoveredExistingBot:true};
+  }
+  if (game.status !== "waiting" || game.joiner) throw new Error("The Remote Network Bot can only join a waiting duel.");
   const botId = `remote-bot-${game.mode}-${crypto.randomBytes(4).toString("hex")}`;
   const bot = duelSanitizePlayer({userId:botId,name:`Remote Bot (${network.label})`,tornId:botId,avatarUrl:"",isNpc:true,isRemoteBot:true,isTestPlayer:false});
   game = await duelSaveGame({
     ...game,status:"ready",pot:game.wager,npcTest:true,remoteNetworkTest:true,remoteNetworkProfile:key,remoteNetworkConfig:network,
     testPlayerMode:false,testControllerUserId:"",joiner:bot,ready:{[game.creator.userId]:false,[bot.userId]:false},
     readyWindowStartedAt:null,readyDeadlineAt:null,countdownStartedAt:null,startAt:null,npcReadyAt:null,npcActionAt:null,actions:{},
-    blackjackState:null,drawState:null,fishingState:null,rouletteState:null,
+    blackjackState:null,blackjackDuelState:null,drawState:null,fishingState:null,rouletteState:null,safecrackerState:null,mountainraceState:null,
     ledgerIds:{...(game.ledgerIds||{}),npc:`duel:${game.gameId}:remote-${game.mode}-bot`}
   });
   return {game:duelPublicGame(game,viewer),record:await getUserRecord(viewer),remoteNetworkProfile:key,remoteNetworkConfig:network};
 }
 
+const duelKnownRemoteBotAttachGames = new Map();
+
+async function duelAddRemoteNetworkBot(user, gameId, profile = "normal") {
+  const viewer = cleanUserId(user.id);
+  const cleanGameId = mpCleanId(gameId);
+  const handedOffGame = duelKnownRemoteBotAttachGames.get(cleanGameId) || null;
+  duelKnownRemoteBotAttachGames.delete(cleanGameId);
+  let game = handedOffGame ? duelSanitizeGame(handedOffGame) : await duelGetRawStrong(gameId);
+  if (!game) {
+    const active = await duelFindActiveGameForUser(viewer);
+    if (active && cleanUserId(active.creator?.userId) === viewer) game = active;
+  }
+  if (!game) throw new Error("Create a duel before adding the Remote Network Bot.");
+  if (!duelSupportsSyntheticOpponent(game.mode)) throw new Error("This game does not support the Remote Network Bot.");
+  return await duelAttachRemoteNetworkBotToKnownGame(user, game, profile);
+}
+
+
+function duelRemoteBotProfileConfig(profile = "normal") {
+  const profiles = {
+    normal:{label:"Normal",minDelayMs:100,maxDelayMs:400,stallChance:0,duplicateChance:0,reconnectChance:0},
+    mobile:{label:"Mobile",minDelayMs:300,maxDelayMs:1500,stallChance:.08,duplicateChance:.02,reconnectChance:.04},
+    bad:{label:"Bad Connection",minDelayMs:500,maxDelayMs:3000,stallChance:.18,duplicateChance:.08,reconnectChance:.12},
+    stress:{label:"Stress Test",minDelayMs:100,maxDelayMs:3500,stallChance:.25,duplicateChance:.18,reconnectChance:.18}
+  };
+  const key = Object.prototype.hasOwnProperty.call(profiles, String(profile)) ? String(profile) : "normal";
+  return { key, network: profiles[key] };
+}
+
+function duelRebuildWaitingGameFromCreateResult(user, requestedMode, requestedWager, publicGame = {}) {
+  const mode = String(publicGame.mode || requestedMode || "").toLowerCase();
+  const wager = int(publicGame.wager, int(requestedWager, 0));
+  const gameId = mpCleanId(publicGame.gameId || "");
+  if (!gameId || !DUEL_MODES[mode]) return null;
+  const at = String(publicGame.createdAt || publicGame.updatedAt || nowIso());
+  return duelSanitizeGame({
+    schemaVersion: DUEL_SCHEMA_VERSION,
+    gameId,
+    mode,
+    modeName: DUEL_MODES[mode],
+    status: String(publicGame.status || "waiting"),
+    wager,
+    pot: int(publicGame.pot, wager),
+    createdAt: at,
+    updatedAt: String(publicGame.updatedAt || at),
+    creator: duelSanitizePlayer(publicGame.creator || { userId: user.id, name: user.name || "Unknown", tornId: user.tornId || user.id, avatarUrl: user.avatarUrl }),
+    joiner: publicGame.joiner ? duelSanitizePlayer(publicGame.joiner) : null,
+    actions: {},
+    ledgerIds: { creator: `duel:${gameId}:creator-escrow` }
+  });
+}
+
+async function duelCreateRemoteNetworkBotGame(user, details = {}) {
+  const viewer = cleanUserId(user.id);
+  const mode = String(details.mode || "roulette").toLowerCase();
+  const wager = int(details.wager, 0);
+  const clientGameId = duelClientCreateGameId(mode, details.clientGameId || details.gameId || "");
+  if (!clientGameId) throw new Error("The game request ID was invalid. Create the duel again.");
+
+  let createResult = null;
+  let game = await duelGetRawStrong(clientGameId, 1);
+  if (!game) {
+    createResult = await duelCreateGame(user, { mode, wager, clientGameId });
+    if (createResult?.activeModeConflict) {
+      // Never let the atomic testing endpoint attach a bot to a different
+      // real-player match returned by the shared active-game guard.
+      return { ...createResult, atomicCreateAndAttach: false };
+    }
+    const createdId = mpCleanId(createResult?.game?.gameId || clientGameId);
+    game = await duelGetRawStrong(createdId, 1);
+    if (!game) game = duelRebuildWaitingGameFromCreateResult(user, mode, wager, createResult?.game || {});
+  }
+  if (!game) throw new Error("The duel could not be created for the Remote Network Bot.");
+  if (String(game.mode || "") !== mode) throw new Error("The Remote Network Bot request resolved to a different game mode.");
+  if (cleanUserId(game.creator?.userId) !== viewer) throw new Error("Only the creator can add the Remote Network Bot.");
+  if (!duelSupportsSyntheticOpponent(game.mode)) throw new Error("This game does not support the Remote Network Bot.");
+
+  const { key, network } = duelRemoteBotProfileConfig(details.profile);
+  const existingRemoteBot = String(game.joiner?.userId || "").startsWith("remote-bot-");
+  if (existingRemoteBot) {
+    return {
+      game: duelPublicGame(game, viewer),
+      record: await getUserRecord(viewer),
+      remoteNetworkProfile: key,
+      remoteNetworkConfig: network,
+      recoveredExistingBot: true,
+      recoveredCreate: Boolean(createResult?.recoveredCreate)
+    };
+  }
+  if (game.status !== "waiting" || game.joiner) throw new Error("The Remote Network Bot can only join a waiting duel.");
+
+  const botId = `remote-bot-${game.mode}-${crypto.randomBytes(4).toString("hex")}`;
+  const bot = duelSanitizePlayer({
+    userId: botId,
+    name: `Remote Bot (${network.label})`,
+    tornId: botId,
+    avatarUrl: "",
+    isNpc: true,
+    isRemoteBot: true,
+    isTestPlayer: false
+  });
+  game = await duelSaveGame({
+    ...game,
+    status: "ready",
+    pot: game.wager,
+    npcTest: true,
+    remoteNetworkTest: true,
+    remoteNetworkProfile: key,
+    remoteNetworkConfig: network,
+    testPlayerMode: false,
+    testControllerUserId: "",
+    joiner: bot,
+    ready: { [game.creator.userId]: false, [bot.userId]: false },
+    readyWindowStartedAt: null,
+    readyDeadlineAt: null,
+    countdownStartedAt: null,
+    startAt: null,
+    npcReadyAt: null,
+    npcActionAt: null,
+    actions: {},
+    blackjackState: null,
+    blackjackDuelState: null,
+    drawState: null,
+    fishingState: null,
+    rouletteState: null,
+    safecrackerState: null,
+    mountainraceState: null,
+    ledgerIds: { ...(game.ledgerIds || {}), creator: game.ledgerIds?.creator || `duel:${game.gameId}:creator-escrow`, npc: `duel:${game.gameId}:remote-${game.mode}-bot` }
+  });
+  return {
+    game: duelPublicGame(game, viewer),
+    record: await getUserRecord(viewer),
+    remoteNetworkProfile: key,
+    remoteNetworkConfig: network,
+    atomicCreateAndAttach: true,
+    recoveredCreate: Boolean(createResult?.recoveredCreate)
+  };
+}
 
 async function duelActionGame(user, gameId, details = {}) {
-  let game = await duelGetRaw(gameId);
+  let game = await duelReadFocusedGame(user, gameId, 3);
   if (!game) throw new Error("That duel was not found.");
   const actor = duelControlledActor(game, user, Boolean(details.asTestPlayer));
   const viewer = actor.id;
   const actorUser = { ...user, id: viewer, name: actor.name };
   const rawChoice = String(details.choice || "");
   if (rawChoice.toLowerCase() === "ready") return await duelReadyGame(user, gameId, { asTestPlayer: Boolean(details.asTestPlayer) });
-  if (["rematch", "npc-rematch", "remote-bot-rematch"].includes(rawChoice.toLowerCase())) {
+  if (rawChoice.toLowerCase() === "blackjackduel-new-game") {
     return await withDuelReadyLock(gameId, async () => {
-      let latest = await duelGetRaw(gameId);
+      let latest = await duelGetRawStrong(gameId, 2) || await duelGetRaw(gameId);
+      if (!latest || latest.mode !== "blackjackduel" || latest.status !== "complete") throw new Error("Only a completed Blackjack Duel result can be left this way.");
+      const playerIds = [cleanUserId(latest.creator?.userId), cleanUserId(latest.joiner?.userId)].filter(Boolean);
+      if (!playerIds.includes(viewer)) throw new Error("You are not in this duel.");
+      const resultDepartures = {
+        ...(latest.resultDepartures || {}),
+        [viewer]: { kind: "new-game", at: nowIso() }
+      };
+      latest = await duelSaveGame({ ...latest, rematch: null, resultDepartures });
+      return { game: duelPublicGame(latest, viewer), record: await getUserRecord(user.id) };
+    });
+  }
+  if (["rematch", "npc-rematch", "remote-bot-rematch", "double-or-nothing", "npc-double-or-nothing", "remote-bot-double-or-nothing", "double-or-nothing-start", "push-rematch"].includes(rawChoice.toLowerCase())) {
+    return await withDuelReadyLock(gameId, async () => {
+      // A completion save can briefly lag behind the eventual read used by
+      // ordinary polling. Rematch is a lifecycle write, so start from the
+      // authoritative store before deciding whether the race is complete.
+      let latest = await duelGetRawStrong(gameId, 2) || await duelGetRaw(gameId);
       if (!latest) throw new Error("That duel was not found.");
-      if (latest.status !== "complete" || !["draw", "fishing", "roulette"].includes(String(latest.mode || ""))) throw new Error("Rematches are only available after a completed DRAW! or fishing duel.");
+      if (latest.status !== "complete" || !duelSupportsRematch(latest.mode)) throw new Error("Rematches are only available after a completed duel.");
+      const normalizedChoice = rawChoice.toLowerCase();
+      const isDoubleOrNothing = normalizedChoice.includes("double-or-nothing");
+      const isDoubleFinalize = normalizedChoice === "double-or-nothing-start";
+      const isPushAutoRematch = normalizedChoice === "push-rematch";
+      if (isDoubleOrNothing && latest.mode !== "blackjackduel") {
+        throw new Error("Double or Nothing is only available after a completed Blackjack Duel.");
+      }
+      if (isPushAutoRematch && latest.mode !== "blackjackduel") throw new Error("Automatic restart is only available after Blackjack Duel.");
+      if (isPushAutoRematch && !latest.tie) throw new Error("Automatic restart requires a Push.");
       const playerIds = [cleanUserId(latest.creator?.userId), cleanUserId(latest.joiner?.userId)].filter(Boolean);
       if (!playerIds.includes(viewer)) throw new Error("You are not in this duel.");
       if (latest.rematchGameId) return { game: duelPublicGame(latest, viewer), record: await getUserRecord(user.id) };
+      const now = Date.now();
+      const completedMs = Date.parse(latest.completedAt || latest.blackjackDuelState?.completedAt || "");
+      if (isPushAutoRematch && Number.isFinite(completedMs) && now < completedMs + 5000) {
+        throw new Error("The Push restart countdown is still running.");
+      }
       const npcId = [latest.creator, latest.joiner].find(player => player?.isNpc || String(player?.userId || "").startsWith("npc-"))?.userId || "";
-      const isNpcAcceptance = rawChoice.toLowerCase() === "npc-rematch";
-      const isRemoteBotRematch = rawChoice.toLowerCase() === "remote-bot-rematch";
+      const isNpcAcceptance = ["npc-rematch", "npc-double-or-nothing"].includes(normalizedChoice);
+      const isRemoteBotRematch = ["remote-bot-rematch", "remote-bot-double-or-nothing"].includes(normalizedChoice);
       if (isNpcAcceptance && (!latest.npcTest || !npcId)) throw new Error("This duel does not have a simple NPC opponent.");
       const remoteBotId = [latest.creator, latest.joiner].find(player => player?.isRemoteBot || String(player?.userId || "").startsWith("remote-bot-"))?.userId || "";
       if (isRemoteBotRematch && (!latest.remoteNetworkTest || !remoteBotId)) throw new Error("This duel does not have a Remote Network Bot opponent.");
-      const now = Date.now();
       let rematch = latest.rematch && typeof latest.rematch === "object" ? { ...latest.rematch } : { requestedBy: {}, firstRequestedAt: null, expiresAt: null };
-      const firstAt = Date.parse(rematch.firstRequestedAt || 0);
-      const expiresAt = Date.parse(rematch.expiresAt || 0);
-      if (!firstAt || !expiresAt || now > expiresAt) {
-        if (isNpcAcceptance) throw new Error("The rematch request expired.");
-        rematch = { requestedBy: {}, firstRequestedAt: new Date(now).toISOString(), expiresAt: new Date(now + 10000).toISOString() };
+      const requestKind = isDoubleOrNothing ? "double-or-nothing" : "rematch";
+      const isSyntheticAcceptance = isNpcAcceptance || isRemoteBotRematch;
+      if (isPushAutoRematch) {
+        rematch = {
+          kind: "rematch",
+          requestedBy: Object.fromEntries(playerIds.map(id => [id, new Date(now).toISOString()])),
+          firstRequestedAt: new Date(now).toISOString(),
+          expiresAt: new Date(now + 10000).toISOString()
+        };
+      } else if (isDoubleFinalize) {
+        const expiresAt = Date.parse(rematch.expiresAt || 0);
+        const bothAlreadyAccepted = playerIds.every(id => Boolean(rematch.requestedBy?.[id]));
+        if (String(rematch.kind || "") !== "double-or-nothing" || !Number.isFinite(expiresAt) || !bothAlreadyAccepted) {
+          throw new Error("Both players must accept Double or Nothing before it can start.");
+        }
+        if (now < expiresAt) throw new Error("The Double or Nothing timer is still running.");
+      } else {
+        const firstAt = Date.parse(rematch.firstRequestedAt || 0);
+        const expiresAt = Date.parse(rematch.expiresAt || 0);
+        if (!firstAt || !expiresAt || now > expiresAt || String(rematch.kind || "rematch") !== requestKind) {
+          if (isSyntheticAcceptance) throw new Error("The rematch request expired.");
+          const proposedDoubleExpiry = Date.parse(details.offerExpiresAt || 0);
+          const useProposedDoubleExpiry = isDoubleOrNothing && Number.isFinite(proposedDoubleExpiry) && proposedDoubleExpiry > now + 1000 && proposedDoubleExpiry <= now + 6000;
+          const windowExpiresAt = useProposedDoubleExpiry ? proposedDoubleExpiry : now + (isDoubleOrNothing ? 5000 : 10000);
+          rematch = {
+            kind: requestKind,
+            requestedBy: {},
+            firstRequestedAt: new Date(useProposedDoubleExpiry ? proposedDoubleExpiry - 5000 : now).toISOString(),
+            expiresAt: new Date(windowExpiresAt).toISOString()
+          };
+        }
       }
-      if (isNpcAcceptance) {
-        const humanRequestedAt = Object.entries(rematch.requestedBy || {}).find(([id]) => id !== npcId)?.[1];
-        if (!humanRequestedAt) throw new Error("Request the rematch before the NPC can accept.");
-        if (now - Date.parse(humanRequestedAt) < 2200) throw new Error("The NPC is still deciding.");
+      if (!isDoubleFinalize) {
+        if (isSyntheticAcceptance) {
+          const syntheticId = isRemoteBotRematch ? remoteBotId : npcId;
+          const humanRequestedAt = Object.entries(rematch.requestedBy || {}).find(([id]) => id !== syntheticId)?.[1];
+          if (!humanRequestedAt) throw new Error("Request the rematch before the synthetic opponent can accept.");
+          if (isNpcAcceptance && now - Date.parse(humanRequestedAt) < 2200) throw new Error("The NPC is still deciding.");
+        }
+        const acceptingId = isRemoteBotRematch ? cleanUserId(remoteBotId) : (isNpcAcceptance ? cleanUserId(npcId) : viewer);
+        rematch.requestedBy = { ...(rematch.requestedBy || {}), [acceptingId]: new Date(now).toISOString() };
+        latest = await duelSaveGame({ ...latest, rematch });
       }
-      const acceptingId = isRemoteBotRematch ? cleanUserId(remoteBotId) : (isNpcAcceptance ? cleanUserId(npcId) : viewer);
-      rematch.requestedBy = { ...(rematch.requestedBy || {}), [acceptingId]: new Date(now).toISOString() };
-      latest = await duelSaveGame({ ...latest, rematch });
       const bothAccepted = playerIds.every(id => Boolean(rematch.requestedBy[id]));
       if (!bothAccepted) return { game: duelPublicGame(latest, viewer), record: await getUserRecord(user.id) };
+      if (isDoubleOrNothing && !isDoubleFinalize) {
+        return { game: duelPublicGame(latest, viewer), doubleAccepted: true, record: await getUserRecord(user.id) };
+      }
 
       const firstId = Object.entries(rematch.requestedBy).sort((a,b) => Date.parse(a[1]) - Date.parse(b[1]))[0]?.[0] || playerIds[0];
       const secondId = playerIds.find(id => id !== firstId) || playerIds[1];
@@ -5837,14 +6745,45 @@ async function duelActionGame(user, gameId, details = {}) {
         return { id, name: p?.name || "Unknown", tornId: p?.tornId || id, avatarUrl: p?.avatarUrl || null };
       };
       let created;
+      let creatorForCleanup = playerFor(firstId);
+      const nextWager = isDoubleOrNothing ? int(latest.wager, 0) * 2 : int(latest.wager, 0);
       try {
-        created = await duelCreateGame(playerFor(firstId), { mode: latest.mode, wager: latest.wager });
-        const joined = await duelJoinGame(playerFor(secondId), created.game.gameId);
-        latest = await duelSaveGame({ ...latest, rematch, rematchGameId: joined.game.gameId });
-        return { game: duelPublicGame(latest, viewer), rematchGame: duelPublicGame(await duelGetRaw(joined.game.gameId), viewer), record: await getUserRecord(user.id) };
+        const syntheticPlayer = [latest.creator, latest.joiner].find(player => player?.isNpc || player?.isRemoteBot || String(player?.userId || "").startsWith("npc-") || String(player?.userId || "").startsWith("remote-bot-"));
+        let rematchGame;
+        if (syntheticPlayer) {
+          const humanId = playerIds.find(id => id !== cleanUserId(syntheticPlayer.userId));
+          const human = playerFor(humanId);
+          creatorForCleanup = human;
+          created = await duelCreateGame(human, { mode: latest.mode, wager: nextWager, [DUEL_DOUBLE_OR_NOTHING_CREATE]: isDoubleOrNothing });
+          const rebuiltWaitingGame = duelRebuildWaitingGameFromCreateResult(human, latest.mode, nextWager, created.game);
+          let attached;
+          if (syntheticPlayer.isRemoteBot || String(syntheticPlayer.userId || "").startsWith("remote-bot-")) {
+            if (!rebuiltWaitingGame) throw new Error("The Double or Nothing game could not be prepared for the Remote Network Bot.");
+            duelKnownRemoteBotAttachGames.set(mpCleanId(created.game.gameId), rebuiltWaitingGame);
+            attached = await duelAddRemoteNetworkBot(human, created.game.gameId, latest.remoteNetworkProfile || "normal");
+          } else {
+            attached = await duelAddSimpleNpc(human, created.game.gameId);
+          }
+          rematchGame = attached.game;
+        } else {
+          created = await duelCreateGame(playerFor(firstId), { mode: latest.mode, wager: nextWager, [DUEL_DOUBLE_OR_NOTHING_CREATE]: isDoubleOrNothing });
+          const joined = await duelJoinGame(playerFor(secondId), created.game.gameId);
+          rematchGame = joined.game;
+        }
+        if (isDoubleOrNothing || isPushAutoRematch) {
+          const countdownGame = duelSanitizeGame(rematchGame);
+          const countdownReady = Object.fromEntries(duelPlayerIds(countdownGame).map(id => [id, true]));
+          rematchGame = await duelSaveGame(duelStartCountdown({ ...countdownGame, ready: countdownReady }, Date.now()));
+        }
+        latest = await duelSaveGame({ ...latest, rematch, rematchGameId: rematchGame.gameId });
+        const authoritativeRematch = await duelGetRawStrong(rematchGame.gameId, 2) || await duelGetRaw(rematchGame.gameId) || rematchGame;
+        return { game: duelPublicGame(latest, viewer), rematchGame: duelPublicGame(authoritativeRematch, viewer), record: await getUserRecord(user.id) };
       } catch (error) {
         if (created?.game?.gameId) {
-          try { await duelCancelGame(playerFor(firstId), created.game.gameId); } catch (_) {}
+          try { await duelCancelGame(creatorForCleanup, created.game.gameId); } catch (_) {}
+        }
+        if (isDoubleOrNothing || isPushAutoRematch) {
+          try { latest = await duelSaveGame({ ...latest, rematch: null }); } catch (_) {}
         }
         throw error;
       }
@@ -5882,6 +6821,18 @@ async function duelActionGame(user, gameId, details = {}) {
     return await rouletteAction(actorUser, gameId, choice, details);
   }
 
+  if (game.mode === "safecracker") {
+    return await safeCrackerAction(actorUser, gameId, rawChoice, details);
+  }
+
+  if (game.mode === "mountainrace") {
+    return await mountainRaceAction(actorUser, gameId, rawChoice, details);
+  }
+
+  if (game.mode === "blackjackduel") {
+    return await blackjackDuelAction(actorUser, gameId, rawChoice, details);
+  }
+
   if (game.mode === "blackjack") {
     const applied = bjApplyTournamentAction(game, viewer, choice || "stand");
     if (applied.complete) {
@@ -5903,7 +6854,7 @@ async function duelActionGame(user, gameId, details = {}) {
 
 function duelAutoNpcGeneric(game) {
   const clean = duelSanitizeGame(game);
-  if (clean.status !== "playing" || !clean.joiner?.isNpc || ["draw","fishing","roulette","blackjack"].includes(clean.mode)) return clean;
+  if (clean.status !== "playing" || !clean.joiner?.isNpc || ["draw","fishing","roulette","blackjack","blackjackduel","safecracker","mountainrace"].includes(clean.mode)) return clean;
   const npcId = cleanUserId(clean.joiner.userId);
   if (clean.actions?.[npcId]) return clean;
   const nowMs = Date.now();
@@ -5913,8 +6864,22 @@ function duelAutoNpcGeneric(game) {
   return { ...clean, npcActionAt: new Date(actionAt).toISOString(), actions: { ...(clean.actions || {}), [npcId]: { choice: duelNpcChoice(clean.mode), at: nowIso(), npc: true } } };
 }
 
+async function duelReadFocusedGame(user, gameId, attempts = 3) {
+  const requestedGameId = mpCleanId(gameId);
+  if (!requestedGameId) return null;
+  const total = Math.max(1, Math.min(6, int(attempts, 3)));
+  for (let attempt = 0; attempt < total; attempt += 1) {
+    const game = await duelGetRawStrong(requestedGameId, 1) || await duelGetRaw(requestedGameId);
+    if (game) return game;
+    const active = await duelFindActiveGameForUser(user?.id, "", { scanFallback: false });
+    if (active?.gameId === requestedGameId) return active;
+    if (attempt + 1 < total) await sleep(120 * (attempt + 1));
+  }
+  return null;
+}
+
 async function duelGetGame(user, gameId, options = {}) {
-  let game = await duelGetRaw(gameId);
+  let game = await duelReadFocusedGame(user, gameId, 3);
   if (!game) throw new Error("That duel was not found.");
   if (duelIsActiveStatus(game.status) && (duelIsExpired(game) || !duelHasValidSchema(game))) { game = await duelInvalidateLegacyGame(game, "This saved game was outdated or expired. Your wager was returned."); }
   const controlledActor = duelControlledActor(game, user, Boolean(options.asTestPlayer));
@@ -5934,7 +6899,7 @@ async function duelGetGame(user, gameId, options = {}) {
   }
   if (["ready","countdown"].includes(game.status)) {
     game = await withDuelReadyLock(gameId, async () => {
-      const latest = await duelGetRaw(gameId);
+      const latest = await duelReadFocusedGame(user, gameId, 2);
       if (!latest) throw new Error("That duel was not found.");
       const normalized = duelNormalizeReadyState(latest);
       return JSON.stringify(normalized) !== JSON.stringify(latest) ? await duelSaveGame(normalized) : latest;
@@ -5963,12 +6928,24 @@ async function duelGetGame(user, gameId, options = {}) {
     let latest = duelNormalizeReadyState(game);
     if (latest.status === "playing") latest = await rouletteAdvanceAndSave(latest);
     game = latest;
+  } else if (game.mode === "safecracker") {
+    let latest = duelNormalizeReadyState(game);
+    if (latest.status === "playing") latest = await safeCrackerAdvanceAndSave(latest);
+    game = latest;
+  } else if (game.mode === "mountainrace") {
+    let latest = duelNormalizeReadyState(game);
+    if (latest.status === "playing") latest = await mountainRaceAdvanceAndSave(latest);
+    game = latest;
+  } else if (game.mode === "blackjackduel") {
+    let latest = duelNormalizeReadyState(game);
+    if (latest.status === "playing") latest = await blackjackDuelAdvanceAndSave(latest);
+    game = latest;
   } else {
     const auto = duelAutoNpcGeneric(game);
     if (JSON.stringify(auto) !== JSON.stringify(game)) game = await duelSaveGame(auto);
     game = await duelMaybeComplete(game, user.id);
   }
-  return { game: duelPublicGame(game, controlledActor.id), record: await getUserRecord(user.id) };
+  return { game: duelPublicGame(game, controlledActor.id), skipBalanceLookup: true, contractVersion: MULTIPLAYER_CONTRACT_VERSION };
 }
 
 
@@ -5989,15 +6966,22 @@ function rouletteChamberPosition(value){
   const n=Math.trunc(Number(value));
   return Number.isFinite(n)?Math.min(6,Math.max(1,n)):6;
 }
+function rouletteNewChamberCycle(){
+  const bulletPosition=crypto.randomInt(1,7);
+  return {bulletPosition,remaining:bulletPosition,chamberCycleId:crypto.randomBytes(8).toString("hex")};
+}
+function rouletteRemaining(state={}){
+  return rouletteChamberPosition(state.remaining??state.bulletPosition??6);
+}
 function rouletteInitialState(game,startMs=Date.now()){
   const ids=roulettePlayerIds(game); const first=ids[Math.floor(Math.random()*Math.max(1,ids.length))]||ids[0]||"";
-  const bulletPosition=1+Math.floor(Math.random()*6);
-  return {phase:"turn",turnId:first,openingSpinWinnerId:first,revolverModel:ROULETTE_REVOLVER_MODEL,remaining:bulletPosition,bulletPosition,shotsFired:0,blankStreak:0,spinUsed:Object.fromEntries(ids.map(id=>[id,false])),lastAction:"opening_spin",lastActorId:"",lastOutcome:"first_player",lastShotNumber:0,winnerId:"",loserId:"",startedAt:new Date(startMs).toISOString(),revision:1};
+  const chamber=rouletteNewChamberCycle();
+  return {phase:"turn",turnId:first,openingSpinWinnerId:first,revolverModel:ROULETTE_REVOLVER_MODEL,...chamber,shotsFired:0,blankStreak:0,spinUsed:Object.fromEntries(ids.map(id=>[id,false])),lastAction:"opening_spin",lastActorId:"",lastOutcome:"first_player",lastShotNumber:0,winnerId:"",loserId:"",startedAt:new Date(startMs).toISOString(),revision:1};
 }
 function roulettePublicState(game,viewer){
   const st=game?.rouletteState||null;if(!st)return null;
-  const {bulletPosition:_hidden,remaining:_hiddenRemaining,blankRoundsRemaining:_hiddenBlanks,processedActionIds:_hiddenActionIds,...safe}=st; const id=cleanUserId(viewer);
-  return {...safe,revolverModel:ROULETTE_REVOLVER_MODEL,chambersTotal:6,liveRounds:1,chamberModel:"fixed-six",isMyTurn:cleanUserId(st.turnId)===id,canSpin:cleanUserId(st.turnId)===id&&!Boolean(st.spinUsed?.[id])&&st.phase==="turn",canShoot:cleanUserId(st.turnId)===id&&["turn","press_luck"].includes(st.phase),canPass:cleanUserId(st.turnId)===id&&st.phase==="press_luck",mySpinUsed:Boolean(st.spinUsed?.[id]),opponentSpinUsed:Boolean(st.spinUsed?.[rouletteOther(game,id)])};
+  const {bulletPosition:_hidden,remaining:_hiddenRemaining,chamberCycleId:_hiddenCycle,blankRoundsRemaining:_hiddenBlanks,processedActionIds:_hiddenActionIds,...safe}=st; const id=cleanUserId(viewer);
+  return {...safe,revolverModel:ROULETTE_REVOLVER_MODEL,chambersTotal:6,liveRounds:1,chamberModel:"fixed-six",isMyTurn:game?.status==="playing"&&cleanUserId(st.turnId)===id,canSpin:cleanUserId(st.turnId)===id&&!Boolean(st.spinUsed?.[id])&&st.phase==="turn",canShoot:cleanUserId(st.turnId)===id&&["turn","press_luck"].includes(st.phase),canPass:cleanUserId(st.turnId)===id&&st.phase==="press_luck",mySpinUsed:Boolean(st.spinUsed?.[id]),opponentSpinUsed:Boolean(st.spinUsed?.[rouletteOther(game,id)])};
 }
 function rouletteCanAct(game,viewer){const st=game?.rouletteState||{};return game.status==="playing"&&cleanUserId(st.turnId)===cleanUserId(viewer)&&["turn","press_luck"].includes(st.phase);}
 async function roulettePayComplete(game,winnerId,loserId){
@@ -6030,20 +7014,20 @@ async function rouletteAdvance(game){
   // delay before any additional action. The NPC only uses public state.
   let nextActionAt=null;
   if(s.phase==="turn"&&!s.spinUsed?.[npcId]&&Number(s.remaining||6)<=3&&Math.random()<.7){
-    const bulletPosition=1+Math.floor(Math.random()*6);
-    s={...s,revolverModel:ROULETTE_REVOLVER_MODEL,bulletPosition,remaining:bulletPosition,blankStreak:0,spinUsed:{...(s.spinUsed||{}),[npcId]:true},lastAction:"spin",lastActorId:npcId,lastOutcome:"spun",revision:Number(s.revision||0)+1};
+    const chamber=rouletteNewChamberCycle();
+    s={...s,revolverModel:ROULETTE_REVOLVER_MODEL,...chamber,blankStreak:0,spinUsed:{...(s.spinUsed||{}),[npcId]:true},lastAction:"spin",lastActorId:npcId,lastOutcome:"spun",revision:Number(s.revision||0)+1};
     nextActionAt=new Date(now+2400+Math.floor(Math.random()*1201)).toISOString();
     return {...g,rouletteState:s,npcActionAt:nextActionAt};
   }
 
-  const remaining=rouletteChamberPosition(s.bulletPosition||s.remaining||6);
+  const remaining=rouletteRemaining(s);
   const pressAgain=s.phase==="press_luck"&&remaining>=4&&Math.random()<.55;
   if(s.phase==="press_luck"&&!pressAgain){
     s={...s,phase:"turn",turnId:rouletteOther(g,npcId),blankStreak:0,lastAction:"pass",lastActorId:npcId,lastOutcome:"passed",revision:Number(s.revision||0)+1};
     return {...g,rouletteState:s,npcActionAt:null};
   }
 
-  const live=rouletteChamberPosition(s.bulletPosition||s.remaining||6)===1;
+  const live=remaining===1;
   if(live){
     const winner=rouletteOther(g,npcId);
     if(!winner||winner===npcId) throw new Error("Russian Roulette could not identify the surviving opponent.");
@@ -6051,8 +7035,8 @@ async function rouletteAdvance(game){
     g={...g,rouletteState:s,npcActionAt:null};
     return await roulettePayComplete(g,winner,npcId);
   }
-  const nextBulletPosition=rouletteChamberPosition(remaining-1);
-  s={...s,revolverModel:ROULETTE_REVOLVER_MODEL,phase:"press_luck",remaining:nextBulletPosition,bulletPosition:nextBulletPosition,shotsFired:Number(s.shotsFired||0)+1,blankStreak:Number(s.blankStreak||0)+1,lastAction:"shoot",lastActorId:npcId,lastOutcome:"blank",lastShotNumber:Number(s.shotsFired||0)+1,revision:Number(s.revision||0)+1};
+  const nextRemaining=rouletteChamberPosition(remaining-1);
+  s={...s,revolverModel:ROULETTE_REVOLVER_MODEL,phase:"press_luck",remaining:nextRemaining,shotsFired:Number(s.shotsFired||0)+1,blankStreak:Number(s.blankStreak||0)+1,lastAction:"shoot",lastActorId:npcId,lastOutcome:"blank",lastShotNumber:Number(s.shotsFired||0)+1,revision:Number(s.revision||0)+1};
   nextActionAt=new Date(now+2600+Math.floor(Math.random()*1401)).toISOString();
   return {...g,rouletteState:s,npcActionAt:nextActionAt};
 }
@@ -6098,14 +7082,15 @@ async function rouletteAction(user,gameId,choice,details={}){return await withRo
   const markProcessed=state=>actionId?{...state,processedActionIds:[...processed,actionId].slice(-40)}:state;
   if(choice==="roulette:spin"){
     if(s.phase!=="turn")throw new Error("You can only spin before your first shot of the turn.");if(s.spinUsed?.[id])throw new Error("You already used your spin.");
-    const bulletPosition=1+Math.floor(Math.random()*6);
-    s={...s,revolverModel:ROULETTE_REVOLVER_MODEL,bulletPosition,remaining:bulletPosition,blankStreak:0,spinUsed:{...(s.spinUsed||{}),[id]:true},lastAction:"spin",lastActorId:id,lastOutcome:"spun",revision:Number(s.revision||0)+1};
+    const chamber=rouletteNewChamberCycle();
+    s={...s,revolverModel:ROULETTE_REVOLVER_MODEL,...chamber,blankStreak:0,spinUsed:{...(s.spinUsed||{}),[id]:true},lastAction:"spin",lastActorId:id,lastOutcome:"spun",revision:Number(s.revision||0)+1};
   }else if(choice==="roulette:shoot"){
     if(!["turn","press_luck"].includes(s.phase))throw new Error("You cannot pull the trigger right now.");
-    const live=rouletteChamberPosition(s.bulletPosition||s.remaining||6)===1;
+    const remaining=rouletteRemaining(s);
+    const live=remaining===1;
     if(live){const winner=rouletteOther(g,id);if(!winner||winner===id)throw new Error("Russian Roulette could not identify the surviving opponent.");s={...s,phase:"complete",lastAction:"shoot",lastActorId:id,lastOutcome:"live",lastShotNumber:Number(s.shotsFired||0)+1,shotsFired:Number(s.shotsFired||0)+1,winnerId:winner,loserId:id,revision:Number(s.revision||0)+1};s=markProcessed(s);g=await duelSaveGame({...g,rouletteState:s});g=await duelSaveGame(await roulettePayComplete(g,winner,id));return {game:duelPublicGame(g,id),record:await getUserRecord(id)};}
-    const nextBulletPosition=rouletteChamberPosition(rouletteChamberPosition(s.bulletPosition||s.remaining||6)-1);
-    s={...s,revolverModel:ROULETTE_REVOLVER_MODEL,phase:"press_luck",remaining:nextBulletPosition,bulletPosition:nextBulletPosition,shotsFired:Number(s.shotsFired||0)+1,blankStreak:Number(s.blankStreak||0)+1,lastAction:"shoot",lastActorId:id,lastOutcome:"blank",lastShotNumber:Number(s.shotsFired||0)+1,revision:Number(s.revision||0)+1};
+    const nextRemaining=rouletteChamberPosition(remaining-1);
+    s={...s,revolverModel:ROULETTE_REVOLVER_MODEL,phase:"press_luck",remaining:nextRemaining,shotsFired:Number(s.shotsFired||0)+1,blankStreak:Number(s.blankStreak||0)+1,lastAction:"shoot",lastActorId:id,lastOutcome:"blank",lastShotNumber:Number(s.shotsFired||0)+1,revision:Number(s.revision||0)+1};
   }else if(choice==="roulette:pass"){
     if(s.phase!=="press_luck")throw new Error("You can only pass after surviving a blank.");
     const nextTurnId=rouletteOther(g,id);
@@ -6131,34 +7116,22 @@ async function withFishingGameLock(gameId, task) {
 }
 function fishingRand(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
 function fishingFishIdentity(size){
-  let pool;
-  if(size>=88) pool=["Titan Sturgeon","Grand Marlin","Giant Bluefin Tuna","Broadbill Swordfish","Arapaima","Mekong Giant Catfish"];
-  else if(size>=70) pool=["King Salmon","Northern Muskie","Lake Sturgeon","Alligator Gar","Wels Catfish","Goliath Tigerfish"];
-  else if(size>=48) pool=["Largemouth Bass","Rainbow Trout","Red Snapper","Northern Pike","Striped Bass","Mahi-Mahi","Peacock Bass","Common Carp"];
-  else if(size>=28) pool=["Yellow Perch","Black Crappie","Bluegill","Brook Trout","Koi Carp","Clown Knifefish","Oscar","River Bream"];
-  else pool=["Silver Minnow","Sardine","Tiny Sunfish","Anchovy","Neon Tetra","Guppy","Smelt","Dwarf Gourami"];
-  const baseName=pool[fishingRand(0,pool.length-1)];
-  const roll=Math.random();
-  let variant="standard", rarity="regular", displayName=baseName;
-  if(roll<0.006){variant="crystal";rarity="legendary";displayName=`Crystal ${baseName}`;}
-  else if(roll<0.018){variant="golden";rarity="rare";displayName=`Golden ${baseName}`;}
-  else if(roll<0.031){variant="albino";rarity="rare";displayName=`Albino ${baseName}`;}
-  else if(roll<0.045){variant="midnight";rarity="rare";displayName=`Midnight ${baseName}`;}
-  else if(roll<0.065){variant="emerald";rarity="uncommon";displayName=`Emerald ${baseName}`;}
-  return {name:displayName,baseName,variant,rarity};
+  return fishingCatalog.pick(size);
 }
 function fishingInitialState(game, requestedStartMs){
   const requested=Number(requestedStartMs);
   const startMs=Number.isFinite(requested)?requested:Date.now();
   const endMs=startMs+60000;
   const count=fishingRand(7,9);
-  // Every fish in a round has a unique measured length, so two visibly different
-  // catches can never be resolved as a tie because of duplicate generated sizes.
-  const sizePool=Array.from({length:89},(_,i)=>i+12).sort(()=>Math.random()-.5);
-  const sizes=sizePool.slice(0,count);
-  const min=Math.min(...sizes), max=Math.max(...sizes);
-  const rippleMin=fishingRand(42,54), rippleMax=fishingRand(150,184);
-  const rumbleMin=fishingRand(10,18), rumbleMax=fishingRand(82,98);
+  // Length is freshly sampled for every bite. Tenths of a centimetre provide
+  // hundreds of subtly different ripple sizes while keeping exact ties rare.
+  const sizes=[];
+  const usedSizes=new Set();
+  while(sizes.length<count){
+    const size=Number((12+Math.random()*88).toFixed(1));
+    const key=size.toFixed(1);
+    if(!usedSizes.has(key)){usedSizes.add(key);sizes.push(size);}
+  }
   const events=[];
   const firstAt=startMs+2800;
   const lastEnd=endMs-2200;
@@ -6172,18 +7145,23 @@ function fishingInitialState(game, requestedStartMs){
   const quietGap=Math.max(minimumQuietGap,naturalGap);
   for(let i=0;i<count;i++){
     const size=sizes[i];
-    const ratio=max===min?.5:(size-min)/(max-min);
+    // Ripple dimensions use one global scale, not the smallest/largest fish in
+    // this particular round. The same measured fish always makes the same-sized
+    // signal, so players can learn to judge the water reliably.
+    const ratio=Math.max(0,Math.min(1,(size-12)/88));
+    const identity=fishingFishIdentity(size);
     const at=Math.round(firstAt+i*(duration+quietGap));
     const endAt=Math.min(at+duration,lastEnd);
     events.push({
       id:`bite-${i+1}-${crypto.randomBytes(3).toString("hex")}`,
       at:new Date(at).toISOString(), endAt:new Date(endAt).toISOString(),
-      size, ...fishingFishIdentity(size),
-      ripple:Math.round(rippleMin+(rippleMax-rippleMin)*Math.pow(ratio,.78)),
-      rippleSpeed:Number((1.34-ratio*.46+(Math.random()-.5)*.08).toFixed(2)),
-      rippleThickness:Math.round(3+ratio*4),
+      size, ...identity,
+      ripple:Number((58+ratio*138).toFixed(1)),
+      rippleSpeed:Number((1.32-ratio*.28+(Math.random()-.5)*.04).toFixed(2)),
+      rippleThickness:Number((1.7+ratio*.9).toFixed(2)),
       rippleWobble:Number((0.92+Math.random()*.18).toFixed(2)),
-      rumble:Math.round(rumbleMin+(rumbleMax-rumbleMin)*Math.pow(ratio,.72)),
+      rumble:Math.round(12+ratio*84),
+      special:identity.special,
       claimedBy:"", claimedAt:null
     });
   }
@@ -6217,7 +7195,7 @@ function fishingNormalizeClaims(game){
     const e=info.event;
     usedUsers.add(c.uid); usedEvents.add(c.eventId);
     e.claimedBy=c.uid; e.claimedAt=c.atText;
-    catches[c.uid]={eventId:e.id,size:e.size,measuredSize:Number(e.size),name:e.name,at:c.atText,ripple:e.ripple,rumble:e.rumble};
+    catches[c.uid]={eventId:e.id,size:e.size,measuredSize:Number(e.size),...fishingCatalog.identity(e),at:c.atText,ripple:e.ripple,rippleSpeed:e.rippleSpeed,rippleThickness:e.rippleThickness,rippleWobble:e.rippleWobble,rumble:e.rumble};
   }
   const changed=JSON.stringify(original.catches||{})!==JSON.stringify(catches)||JSON.stringify((original.events||[]).map(e=>({id:e.id,claimedBy:e.claimedBy||"",claimedAt:e.claimedAt||null})))!==JSON.stringify(events.map(e=>({id:e.id,claimedBy:e.claimedBy||"",claimedAt:e.claimedAt||null})));
   return {...game,fishingState:{...original,events,catches,npcPlanEventIds:Array.isArray(original.npcPlanEventIds)&&original.npcPlanEventIds.length?original.npcPlanEventIds:events.map(e=>e.id),revision:int(original.revision,0)+(changed?1:0),serverNow:nowIso()},updatedAt:changed?nowIso():game.updatedAt};
@@ -6264,7 +7242,7 @@ function fishingPublicState(game,viewer){
     startEpochMs:Number.isFinite(startEpochMs)?startEpochMs:0,
     endEpochMs:Number.isFinite(endEpochMs)?endEpochMs:0,
     remainingMs,
-    events:(state.events||[]).map(e=>({id:e.id,at:e.at,endAt:e.endAt,atMs:Date.parse(e.at||"")||0,endAtMs:Date.parse(e.endAt||"")||0,ripple:e.ripple,rumble:e.rumble,claimedBy:e.claimedBy||"",claimedAt:e.claimedAt||null,size:e.claimedBy?e.size:undefined,name:e.claimedBy?e.name:undefined})),
+    events:(state.events||[]).map(e=>({id:e.id,at:e.at,endAt:e.endAt,atMs:Date.parse(e.at||"")||0,endAtMs:Date.parse(e.endAt||"")||0,ripple:e.ripple,rippleSpeed:e.rippleSpeed,rippleThickness:e.rippleThickness,rippleWobble:e.rippleWobble,rumble:e.rumble,special:fishingCatalog.resolve(e).special,claimedBy:e.claimedBy||"",claimedAt:e.claimedAt||null,size:e.claimedBy?e.size:undefined,name:e.claimedBy?e.name:undefined,baseName:e.claimedBy?e.baseName:undefined,variant:e.claimedBy?e.variant:undefined,rarity:e.claimedBy?e.rarity:undefined})),
     myCatch:state.catches?.[viewer]||null,creatorCatch:state.catches?.[game.creator?.userId]||null,joinerCatch:state.catches?.[game.joiner?.userId]||null,
     secondsLeft:Math.max(0,Math.ceil(remainingMs/1000))};
 }
@@ -6305,7 +7283,7 @@ async function fishingTap(user,gameId,eventId,clickedAt){
     if(now<begin-graceMs||now>finish+graceMs||saneReported<begin-graceMs||saneReported>finish+graceMs) throw new Error("That fish is no longer biting.");
     if(e.claimedBy) throw new Error("Your opponent hooked that fish first.");
     e.claimedBy=viewer; e.claimedAt=new Date(Math.min(now,Math.max(begin,saneReported))).toISOString();
-    s.catches[viewer]={eventId:e.id,size:e.size,measuredSize:Number(e.size),name:e.name,at:e.claimedAt,ripple:e.ripple,rumble:e.rumble};
+    s.catches[viewer]={eventId:e.id,size:e.size,measuredSize:Number(e.size),...fishingCatalog.identity(e),at:e.claimedAt,ripple:e.ripple,rippleSpeed:e.rippleSpeed,rippleThickness:e.rippleThickness,rippleWobble:e.rippleWobble,rumble:e.rumble};
     s.revision=int(s.revision,0)+1; s.serverNow=nowIso();
     let candidate=fishingNormalizeClaims({...game,fishingState:s});
     // A stale or simultaneous request may have attempted to claim an already-used
@@ -6527,6 +7505,7 @@ module.exports = {
   duelJoinGame,
   duelAddSimpleNpc,
   duelAddRemoteNetworkBot,
+  duelCreateRemoteNetworkBotGame,
   duelActionGame,
   duelReadyGame,
   duelCompleteRealtimeDraw,

@@ -30,18 +30,20 @@ function replaceRemoteBotCompletedLoop(source) {
   return source.slice(0, start) + replacement.trimStart() + source.slice(end + endMarker.length);
 }
 
-html = replaceOnce(
-  html,
-  'the completed polling state',
-  `    let duelPollTimer = null;
+if (!html.includes('let duelCompletedActivityGameId = "";')) {
+  html = replaceOnce(
+    html,
+    'the completed polling state',
+    `    let duelPollTimer = null;
     let duelBusy = false;`,
-  `    let duelPollTimer = null;
+    `    let duelPollTimer = null;
     let duelCompletedActivityGameId = "";
     let duelCompletedActivityAt = 0;
     let duelBusy = false;`
-);
+  );
+}
 
-html = replaceOnce(
+if (!html.includes('let completedPollRate = 2000;')) html = replaceOnce(
   html,
   'the completed game polling rate',
   `      const desired = sharedLifecycleLive ? 200 : drawPlaying ? 650 : rouletteLive ? 800 : fishingLive ? 450 : completedAwaitingRematch ? 700 : noFocusedGame ? 2000 : 1800;
@@ -70,7 +72,7 @@ html = replaceOnce(
       if (window.__duelPollRate !== desired || !duelPollTimer) {`
 );
 
-html = replaceOnce(
+if (!html.includes('duelScreen.hidden || document.hidden ||')) html = replaceOnce(
   html,
   'the hidden-tab focused refresh guard',
   `    async function duelRefresh(silent = false) {
@@ -79,7 +81,7 @@ html = replaceOnce(
       if (!duelScreen || duelScreen.hidden || document.hidden) return;`
 );
 
-html = replaceOnce(
+if (!/document\.addEventListener\("visibilitychange",\s*\(\)\s*=>\s*\{\s*if\s*\(document\.hidden\)\s*\{\s*if\s*\(duelPollTimer\)/.test(html)) html = replaceOnce(
   html,
   'the multiplayer visibility handler',
   `    document.addEventListener("visibilitychange", () => {
@@ -103,9 +105,11 @@ html = replaceOnce(
     });`
 );
 
-html = replaceRemoteBotCompletedLoop(html);
+if (!/setInterval\(\(\)=>\s*\{\s*if\(document\.hidden\)return;[\s\S]{0,240}rnbScheduleRematch\(g\);\s*\},1000\);/.test(html)) {
+  html = replaceRemoteBotCompletedLoop(html);
+}
 
-html = replaceOnce(
+if (!html.includes('duelCompletedActivityGameId = String(duelCurrentGameId || "");')) html = replaceOnce(
   html,
   'the local rematch activity timestamp',
   `        if (btn) { btn.disabled = true; btn.textContent = "Requesting rematch…"; }
@@ -116,7 +120,7 @@ html = replaceOnce(
         const data = await duelRequest("act", { gameId: duelCurrentGameId, choice: "rematch" });`
 );
 
-html = replaceOnce(
+if (!html.includes('duelSetStatus("Rematch accepted. Both players must click Ready.", "good");') || !html.includes('queueMicrotask(() => duelRefresh(true));')) html = replaceOnce(
   html,
   'the accepted rematch immediate refresh',
   `          duelSetStatus("Rematch accepted. Both players must click Ready.", "good");
@@ -126,7 +130,7 @@ html = replaceOnce(
           return;`
 );
 
-html = replaceOnce(
+if (!html.includes('duelSetPollRate(data.game || duelLastActiveGame || null);')) html = replaceOnce(
   html,
   'the requested rematch immediate refresh',
   `        duelRenderActive(data.game, false);
@@ -139,15 +143,19 @@ html = replaceOnce(
 
 for (const required of [
   'let duelCompletedActivityAt = 0;',
-  'completedPollRate = Date.now() - duelCompletedActivityAt < 15000 ? 2000 : 5000;',
-  'if (!duelScreen || duelScreen.hidden || document.hidden) return;',
-  'duelPollTimer = null;\n        window.__duelPollRate = 0;',
+  'completedPollRate = Date.now() - duelCompletedActivityAt < 15000 ?',
+  'duelScreen.hidden || document.hidden ||',
   'if(document.hidden)return;',
-  'rnbScheduleRematch(g);\n  },1000);',
   'duelCompletedActivityAt = Date.now();',
   'queueMicrotask(() => duelRefresh(true));'
 ]) {
   if (!html.includes(required)) throw new Error(`Final multiplayer polling cleanup is missing ${required}`);
+}
+if (!/duelPollTimer\s*=\s*null;\s*window\.__duelPollRate\s*=\s*0;/.test(html)) {
+  throw new Error('Final multiplayer polling cleanup is missing hidden-tab timer cancellation');
+}
+if (!/rnbScheduleRematch\(g\);\s*\},1000\);/.test(html)) {
+  throw new Error('Final multiplayer polling cleanup is missing the lightweight rematch scheduler');
 }
 
 for (const forbidden of [

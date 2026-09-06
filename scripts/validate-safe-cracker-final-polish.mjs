@@ -31,7 +31,8 @@ assert(client.includes("portal.setAttribute('aria-modal', 'true');"), 'result po
 assert(client.includes("card.setAttribute('tabindex', '-1');"), 'result card cannot receive focus');
 assert(client.includes("if (event.key !== 'Escape') return;"), 'Escape-key result dismissal is missing');
 assert(client.includes('const safeCrackerResultPortalObserver = new MutationObserver'), 'stale result portal cleanup observer is missing');
-assert(client.includes("clearSafeCrackerResultPortal(); window.__safeCrackerBridge?.rematch?.();"), 'Rematch does not clean up the result portal first');
+assert(client.includes('await window.__safeCrackerBridge?.rematch?.()') && client.includes('syncSafeCrackerRematchControl'), 'Rematch must keep its result visible while awaiting the opponent');
+await import('./validate-safe-cracker-rematch-flow.mjs');
 assert(client.includes("clearSafeCrackerResultPortal(); window.__safeCrackerBridge?.newGame?.();"), 'New Game does not clean up the result portal first');
 assert(!client.includes('    playResult(won, tied);'), 'result chord still fires before the safe-opening sequence');
 assert(client.includes("choice: `safecracker:guess:${runtime.selected}`"), 'final polish changed authoritative guess submission');
