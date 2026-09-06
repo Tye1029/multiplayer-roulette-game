@@ -5517,4 +5517,13 @@ body > .sc-result-overlay.tie[data-sc-result-portal] .sc-result-card {
 
 .duel-arena[data-duel-mode="safecracker"] > .duel-ready-panel { position:sticky;bottom:8px;z-index:50;margin:6px auto;max-width:920px;padding:4px;background:#17232ef2;border:1px solid #708493;border-radius:7px; }
 .duel-arena[data-duel-mode="safecracker"] .duel-ready-btn { min-height:44px;margin:0; }
+
+
+/* Use the game instructions as the heading; keep the menu available above it. */
+.page:has(.safe-cracker-game) { padding-top:54px; }
+.page:has(.safe-cracker-game) > header,
+#duelScreen:has(.safe-cracker-game) > .duel-header,
+.duel-live-card:has(.safe-cracker-game) > .duel-top-actions { display:none; }
+#duelScreen:has(.safe-cracker-game) { padding:0;margin-bottom:12px; }
+.duel-live-card:has(.safe-cracker-game) { overflow:visible; }
 /* SAFE_CRACKER_COMPACT_LAYOUT_V16_END */
