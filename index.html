@@ -12511,7 +12511,7 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
   <script src="/assets/roulette/lamp-config.js?v=19" defer></script>
   <script src="/assets/roulette/lamp.js?v=20" defer></script>
   <script src="/assets/roulette/lamp-bootstrap.js?v=19" defer></script>
-  <script src="/assets/roulette/audio-manager.js?v=4&ambience=2&media=2&countdown=2" defer></script>
+  <script src="/assets/roulette/audio-manager.js?v=4&ambience=2&media=2&countdown=2&load=15" defer></script>
   <!-- compatibility: /assets/roulette/spin-audio-policy.js?v=3 -->
   <script src="/assets/roulette/spin-audio-policy.js?v=4&turnsound=4&reliable=1" defer></script>
   <script src="/assets/roulette/turn-animation.js?v=5" defer></script>
@@ -12520,12 +12520,12 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
   <script src="/assets/roulette/turn-facing-guard.js?v=4&lock=5&owner=3&opening=1&sound=1" defer></script>
   <script src="/assets/roulette/opening-spin-sync.js?v=6&trim=1&clamp=1" defer></script>
   <!-- compatibility: /assets/roulette/audio-bindings.js?v=5 -->
-  <script src="/assets/roulette/audio-bindings.js?v=6&turnmove=1" defer></script>
-  <script src="/assets/roulette/reaction-audio.js?v=1" defer></script>
+  <script src="/assets/roulette/audio-bindings.js?v=6&turnmove=1&load=15" defer></script>
+  <script src="/assets/roulette/reaction-audio.js?v=1&load=15" defer></script>
 <!-- MODULAR_LAMP_ASSETS_END -->
 <!-- SAFE_CRACKER_ASSETS_START -->
-  <link id="safeCrackerStyles" rel="stylesheet" href="/assets/safe-cracker/safe-cracker.css?v=8&polish=2&fit=2&result=1&final=1&refine=1&correct=1&input=1&texture=3&shadow=3&dial=7&layout=7&latch=9&screw=1&trim=1&render=1&restore=20260904-flow14">
-  <script id="safeCrackerRuntime" src="/assets/safe-cracker/safe-cracker.js?v=8&polish=2&fit=2&result=1&final=1&refine=1&correct=1&input=1&audio=1&samples=1&clicks=27&dial=7&layout=7&latch=9&screw=1&trim=1&render=1&recorded=13&restore=20260904-flow14" defer></script>
+  <link id="safeCrackerStyles" rel="stylesheet" href="/assets/safe-cracker/safe-cracker.css?v=8&polish=2&fit=2&result=1&final=1&refine=1&correct=1&input=1&texture=3&shadow=3&dial=7&layout=7&latch=9&screw=1&trim=1&render=1&restore=20260906-load15">
+  <script id="safeCrackerRuntime" src="/assets/safe-cracker/safe-cracker.js?v=8&polish=2&fit=2&result=1&final=1&refine=1&correct=1&input=1&audio=1&samples=1&clicks=27&dial=7&layout=7&latch=9&screw=1&trim=1&render=1&recorded=13&restore=20260906-load15" defer></script>
 <!-- SAFE_CRACKER_ASSETS_END -->
 
 <!-- SAFE_CRACKER_COMPACT_DOCK_START -->
@@ -12566,10 +12566,8 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
   <script id="fishingDuelRuntime" defer src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v31"></script>
 <!-- FISHING_DUEL_ASSETS_END -->
 
-<!-- MOUNTAIN_RACE_V29_PRELOADS -->
-
-
-
+<!-- Game artwork is prewarmed when its game is chosen, before the Ready screen. -->
+<template id="mountainRaceImagePreloads">
   <link rel="preload" as="image" href="/assets/mountain-race/images/summit-sprint-climber-back-sheet-v45.png" fetchpriority="high">
   <link rel="preload" as="image" href="/assets/mountain-race/images/summit-sprint-climber-back-opponent-sheet-v45.png" fetchpriority="high">
 
@@ -12585,6 +12583,47 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
   <link rel="preload" as="image" href="/assets/mountain-race/images/summit-sprint-start-climbers-v55.png" fetchpriority="high">
   <link rel="preload" as="image" href="/assets/mountain-race/images/summit-sprint-waiting-climbers-v55.png" fetchpriority="high">
   <link rel="preload" as="image" href="/assets/mountain-race/images/summit-sprint-celebration-climbers-v57.png" fetchpriority="high">
+</template>
+<script id="game-asset-loading-v1">
+(() => {
+  const warmedImages = new Set();
+  const requestedGames = new Set();
+  function warm(mode) {
+    if (typeof mode === 'string' && mode) requestedGames.add(mode);
+    if (mode === 'mountainrace' && !warmedImages.has(mode)) {
+      const template = document.getElementById('mountainRaceImagePreloads');
+      if (template) {
+        document.head.appendChild(template.content.cloneNode(true));
+        warmedImages.add(mode);
+      }
+    }
+    if (mode === 'draw' && typeof window.duelDrawWarmWesternMusic === 'function') {
+      window.duelDrawWarmWesternMusic();
+    }
+    if (mode === 'safecracker' && typeof window.safeCrackerWarmAudio === 'function') {
+      window.safeCrackerWarmAudio();
+    }
+    if (mode === 'roulette') window.RouletteAudio?.preload('roulette');
+  }
+  window.DuelAssetLoader = Object.freeze({ warm });
+  document.addEventListener('click', event => {
+    const choice = event.target?.closest?.('.sth-game[data-mode], [data-rnb-game]');
+    if (choice && !choice.disabled) warm(choice.dataset.mode || choice.dataset.rnbGame);
+  }, true);
+  document.addEventListener('change', event => {
+    if (event.target?.id === 'duelModeSelect') warm(event.target.value);
+  }, true);
+  window.addEventListener('mountainrace:state', event => warm(event?.detail?.game?.mode));
+  // A direct link starts loading its artwork while the rest of the page parses.
+  const requestedMode = new URLSearchParams(location.search).get('game');
+  warm(requestedMode);
+  document.addEventListener('DOMContentLoaded', () => {
+    // Replay genuine choices made while deferred game scripts were loading.
+    // The hidden setup dropdown's default is not a request to load that game.
+    for (const mode of requestedGames) warm(mode);
+  }, { once: true });
+})();
+</script>
 <link id="duelShellStyles" rel="stylesheet" href="/assets/duel-shell.css?v=xan-duels-v3&flow=14">
 </head>
 <body class="test-shell-loading">
@@ -17766,18 +17805,31 @@ function updateRunnerBalanceDisplay() {
     };
     const duelDrawAudioPools = new Map();
     const duelDrawActiveReactions = new Set();
-    const duelDrawWesternMusic = new Audio("assets/draw-western-theme.mp3");
+    const duelDrawWesternMusic = new Audio();
     duelDrawWesternMusic.loop = true;
-    duelDrawWesternMusic.preload = "auto";
+    duelDrawWesternMusic.preload = "none";
     duelDrawWesternMusic.playsInline = true;
+    duelDrawWesternMusic.volume = 0;
     let duelDrawWesternMusicRaf = 0;
     let duelDrawWesternMusicWanted = false;
+
+    function duelDrawWarmWesternMusic() {
+      if (duelDrawWesternMusic.getAttribute("src")) return;
+      duelDrawWesternMusic.preload = "auto";
+      duelDrawWesternMusic.src = "assets/draw-western-theme.mp3";
+      duelDrawWesternMusic.load();
+    }
 
     function duelDrawFadeWesternMusic(target, duration = 900, pauseAfter = false) {
       if (duelDrawWesternMusicRaf) cancelAnimationFrame(duelDrawWesternMusicRaf);
       const start = performance.now();
       const from = Number(duelDrawWesternMusic.volume || 0);
       const to = Math.max(0, Math.min(1, Number(target || 0)));
+      if (Math.abs(from - to) < 0.0001) {
+        duelDrawWesternMusicRaf = 0;
+        if (pauseAfter && to <= 0.001) duelDrawWesternMusic.pause();
+        return;
+      }
       const tick = now => {
         const progress = Math.min(1, (now - start) / Math.max(1, duration));
         const eased = 1 - Math.pow(1 - progress, 3);
@@ -20391,6 +20443,8 @@ function updateRunnerBalanceDisplay() {
     }
 
     function duelRenderActive(game, force = false) {
+      // Restored and joined matches also warm their assets before mounting Ready.
+      window.DuelAssetLoader?.warm(game?.mode);
       if (!duelActive) return;
       if (["draw","fishing","roulette","safecracker","mountainrace","blackjackduel"].includes(String(game?.mode||""))) {
         document.querySelectorAll('.result-pop,.duel-big-result').forEach(node=>node.remove());
@@ -22492,19 +22546,26 @@ function updateRunnerBalanceDisplay() {
   <script>
   (()=>{
     const dock=document.getElementById('rouletteDebugDock');if(!dock)return;
-    const $=id=>document.getElementById(id),logEl=$('rrdLog');let entries=[];let lastRequest='—';
+    const $=id=>document.getElementById(id),logEl=$('rrdLog');let entries=[];let lastRequest='—';let logNeedsRender=false;
     const safe=v=>{try{return typeof v==='string'?v:JSON.stringify(v)}catch(_){return String(v)}};
+    function debugPanelOpen(){return !document.hidden&&dock.dataset.collapsed==='0'&&!dock.closest('[hidden]')}
+    function appendDebugLog(item){const line=document.createElement('div');line.className='rrd-line '+item.kind;line.textContent=`${item.time}  ${item.message}${item.data==null?'':'  '+safe(item.data)}`;logEl.appendChild(line);while(logEl.children.length>200)logEl.firstChild.remove()}
+    function renderPendingDebugLog(){if(!logNeedsRender||!debugPanelOpen())return;logEl.replaceChildren();entries.slice(-200).forEach(appendDebugLog);logEl.scrollTop=logEl.scrollHeight;logNeedsRender=false}
     function add(message,data,kind=''){
       const item={time:new Date().toLocaleTimeString(),message:String(message||''),data:data??null,kind};entries.push(item);if(entries.length>800)entries.shift();
-      const line=document.createElement('div');line.className='rrd-line '+kind;line.textContent=`${item.time}  ${item.message}${data==null?'':'  '+safe(data)}`;logEl.appendChild(line);while(logEl.children.length>200)logEl.firstChild.remove();logEl.scrollTop=logEl.scrollHeight;
+      if(debugPanelOpen()){if(logNeedsRender)renderPendingDebugLog();else{appendDebugLog(item);logEl.scrollTop=logEl.scrollHeight}}else logNeedsRender=true;
       if(kind==='error'){dock.classList.add('rrd-error');setTimeout(()=>dock.classList.remove('rrd-error'),2500)}
     }
     function snapshot(){
       const game=(typeof rouletteLatestGame!=='undefined'?rouletteLatestGame:null)||null,st=game?.rouletteState||{};
+      const vr=typeof rouletteVisualRuntime!=='undefined'?rouletteVisualRuntime:null;
+      if(debugPanelOpen()){
       $('rrdGame').textContent=game?.gameId||'none';$('rrdStatus').textContent=game?`${game.status||'unknown'}${st.lastAction?' • '+st.lastAction:''}`:'idle';$('rrdRevision').textContent=st.revision??'—';
       $('rrdTurn').textContent=game?`${st.turnId||'—'} / ${st.phase||'—'}`:'—';
-      const vr=typeof rouletteVisualRuntime!=='undefined'?rouletteVisualRuntime:null;$('rrdVisual').textContent=vr?`busy=${!!vr.busy}, opening=${!!vr.openingDone}, angle=${vr.currentAngle??'—'}`:'not exposed';$('rrdRequest').textContent=lastRequest;
-      dock.classList.toggle('rrd-live',Boolean(game&&game.mode==='roulette'));
+      $('rrdVisual').textContent=vr?`busy=${!!vr.busy}, opening=${!!vr.openingDone}, angle=${vr.currentAngle??'—'}`:'not exposed';$('rrdRequest').textContent=lastRequest;
+      renderPendingDebugLog();
+      }
+      if(!document.hidden)dock.classList.toggle('rrd-live',Boolean(game&&game.mode==='roulette'));
       return {capturedAt:new Date().toISOString(),url:location.href,online:navigator.onLine,userId:localStorage.getItem('tornVisitorUserId'),game,visualRuntime:vr?{gameId:vr.gameId,busy:vr.busy,openingDone:vr.openingDone,openingPending:vr.openingPending,lastTurnId:vr.lastTurnId,currentAngle:vr.currentAngle,mountedRevision:vr.mountedRevision,mountedStatus:vr.mountedStatus,processed:[...(vr.processed||[])]}:null,lastRequest,logs:entries};
     }
     $('rouletteDebugToggle').onclick=()=>{const next=dock.dataset.collapsed!=='1';dock.dataset.collapsed=next?'1':'0';$('rouletteDebugToggle').setAttribute('aria-expanded',String(!next));$('rouletteDebugChevron').textContent=next?'▲ OPEN':'▼ CLOSE';if(!next)snapshot()};
@@ -22561,7 +22622,7 @@ function updateRunnerBalanceDisplay() {
    }
   };
     const originalFetch=window.fetch.bind(window);window.fetch=async function(input,init){const url=typeof input==='string'?input:input?.url||'';const rouletteCall=/\/.netlify\/functions\/(duel-action|multiplayer-action)/.test(url);let action='';if(rouletteCall){try{action=JSON.parse(init?.body||'{}')?.action||''}catch(_){ }lastRequest=`${action||init?.method||'GET'} pending`;add('request',{url,action},'action');snapshot()}const started=performance.now();try{const response=await originalFetch(input,init);if(rouletteCall){lastRequest=`${action||'request'} ${response.status} ${Math.round(performance.now()-started)}ms`;add('response',{status:response.status,action,ms:Math.round(performance.now()-started)},response.ok?'state':'error');snapshot()}return response}catch(error){if(rouletteCall){lastRequest=`${action||'request'} failed`;add('fetch failed',{action,message:String(error?.message||error)},'error');snapshot()}throw error}};
-    setInterval(snapshot,700);snapshot();add('temporary debug panel ready');
+    setInterval(()=>{if(debugPanelOpen())snapshot()},700);snapshot();add('temporary debug panel ready');
   })();
   </script>
 
@@ -22678,19 +22739,25 @@ function updateRunnerBalanceDisplay() {
 (()=>{
  const $=id=>document.getElementById(id), dock=$('rnbDock'), gameLog=$('rnbGameLog'), botLog=$('rnbBotLog');
  const RNB_LOG_LIMIT=800,RNB_STARTUP_LOG_LIMIT=240,RNB_PENDING_START_KEY='rnbPendingStartV1';
- const logs=[],botLogs=[],startupLogs=[]; let selectedMode='roulette',selectedModeExplicit=false,lastGameId='',lastRevision=-1;
+ const logs=[],botLogs=[],startupLogs=[]; let selectedMode='roulette',selectedModeExplicit=false,lastGameId='',lastRevisionKey='';
  function line(arr,msg,data){arr.unshift(`${new Date().toLocaleTimeString()}  ${msg}${data?' '+JSON.stringify(data):''}`);arr.splice(RNB_LOG_LIMIT);}
  function startupLine(msg,data){startupLogs.unshift(`${new Date().toLocaleTimeString()}  ${msg}${data?' '+JSON.stringify(data):''}`);startupLogs.splice(RNB_STARTUP_LOG_LIMIT);}
  function rnbLogText(arr,empty){const startup=`STARTUP / LIFECYCLE (${startupLogs.length}/${RNB_STARTUP_LOG_LIMIT})\n${startupLogs.join('\n')||'No startup events recorded.'}`;const recent=`RECENT ACTIVITY (${arr.length}/${RNB_LOG_LIMIT})\n${arr.join('\n')||empty}`;return `${startup}\n\n${recent}`;}
  function render(){
   const g=(typeof duelLastActiveGame!=='undefined'&&duelLastActiveGame)||(typeof rouletteLatestGame!=='undefined'&&rouletteLatestGame)||null, st=g?.mode==='mountainrace'?(g?.mountainraceState||{}):g?.blackjackDuelState||g?.rouletteState||g?.drawState||g?.fishingState||g?.safecrackerState||{};
-  $('rnbControlPanel').classList.toggle('rnb-live',!!g?.remoteNetworkTest);
-  $('rnbGameKv').innerHTML=`<b>Game</b><span>${g?.gameId||'—'}</span><b>Mode / status</b><span>${g?.mode||'—'} / ${g?.status||'—'}</span><b>Game revision</b><span>${g?.revision??'—'}</span><b>State revision</b><span>${st?.revision??'—'}</span><b>Players</b><span>${g?.creator?.name||'—'} vs ${g?.joiner?.name||'Waiting'}</span><b>Server time</b><span>${g?.serverNow||'—'}</span>`;
-  $('rnbBotKv').innerHTML=`<b>Attached</b><span>${g?.remoteNetworkTest?'Yes':'No'}</span><b>Profile</b><span>${g?.remoteNetworkProfile||'—'}</span><b>Bot</b><span>${g?.joiner?.isRemoteBot?g.joiner.name:'—'}</span><b>Turn</b><span>${st?.turnId||'—'}</span><b>Next action</b><span>${g?.npcActionAt||'server scheduled'}</span>`;
   if(g){const gameRevision=Number(g?.revision??-1),stateRevision=Number(st?.revision??-1),revisionKey=[gameRevision,stateRevision,String(g.status||'')].join(':');if(g.gameId!==lastGameId||revisionKey!==lastRevisionKey){line(logs,'state',{mode:g.mode,status:g.status,gameRevision,stateRevision,turnId:st?.turnId,lastAction:st?.lastAction});lastGameId=g.gameId;lastRevisionKey=revisionKey}}
-  gameLog.textContent=rnbLogText(logs,'No active game.');botLog.textContent=rnbLogText(botLogs,g?.remoteNetworkTest?'Remote bot attached. Waiting for activity.':'Remote bot not attached.');
+  if(document.hidden||dock.closest('[hidden]'))return;
+  $('rnbControlPanel').classList.toggle('rnb-live',!!g?.remoteNetworkTest);
+  if($('rnbGamePanel').dataset.collapsed==='0'){
+  $('rnbGameKv').innerHTML=`<b>Game</b><span>${g?.gameId||'—'}</span><b>Mode / status</b><span>${g?.mode||'—'} / ${g?.status||'—'}</span><b>Game revision</b><span>${g?.revision??'—'}</span><b>State revision</b><span>${st?.revision??'—'}</span><b>Players</b><span>${g?.creator?.name||'—'} vs ${g?.joiner?.name||'Waiting'}</span><b>Server time</b><span>${g?.serverNow||'—'}</span>`;
+  gameLog.textContent=rnbLogText(logs,'No active game.');
+  }
+  if($('rnbBotPanel').dataset.collapsed==='0'){
+  $('rnbBotKv').innerHTML=`<b>Attached</b><span>${g?.remoteNetworkTest?'Yes':'No'}</span><b>Profile</b><span>${g?.remoteNetworkProfile||'—'}</span><b>Bot</b><span>${g?.joiner?.isRemoteBot?g.joiner.name:'—'}</span><b>Turn</b><span>${st?.turnId||'—'}</span><b>Next action</b><span>${g?.npcActionAt||'server scheduled'}</span>`;
+  botLog.textContent=rnbLogText(botLogs,g?.remoteNetworkTest?'Remote bot attached. Waiting for activity.':'Remote bot not attached.');
+  }
  }
- document.addEventListener('click',e=>{const t=e.target.closest('[data-rnb-toggle]');if(t){const p=$(t.dataset.rnbToggle),closed=p.dataset.collapsed==='1';if(closed)document.querySelectorAll('#rnbDock .rnb-panel').forEach(panel=>{panel.dataset.collapsed='1'});p.dataset.collapsed=closed?'0':'1';const indicator=t.lastElementChild;if(indicator)indicator.textContent=closed?'▼':'▲';return}const game=e.target.closest('[data-rnb-game]');if(game){selectedMode=game.dataset.rnbGame;const sel=$('duelModeSelect');if(sel){sel.value=selectedMode;sel.dispatchEvent(new Event('change',{bubbles:true}))}selectedModeExplicit=true;line(botLogs,'selected game',{mode:selectedMode});render()}});
+ document.addEventListener('click',e=>{const t=e.target.closest('[data-rnb-toggle]');if(t){const p=$(t.dataset.rnbToggle),closed=p.dataset.collapsed==='1';if(closed)document.querySelectorAll('#rnbDock .rnb-panel').forEach(panel=>{panel.dataset.collapsed='1'});p.dataset.collapsed=closed?'0':'1';const indicator=t.lastElementChild;if(indicator)indicator.textContent=closed?'▼':'▲';if(closed)render();return}const game=e.target.closest('[data-rnb-game]');if(game){selectedMode=game.dataset.rnbGame;const sel=$('duelModeSelect');if(sel){sel.value=selectedMode;sel.dispatchEvent(new Event('change',{bubbles:true}))}selectedModeExplicit=true;line(botLogs,'selected game',{mode:selectedMode});render()}});
   function rnbReadPendingStart(mode,wager){
    try{const value=JSON.parse(sessionStorage.getItem(RNB_PENDING_START_KEY)||'null');if(value&&value.mode===mode&&Number(value.wager)===wager&&Date.now()-Number(value.createdAt||0)<180000&&/^duel-[a-z0-9_-]+-\d{10,16}-[a-f0-9]{12}$/.test(String(value.gameId||'')))return value}catch{}
    return null;

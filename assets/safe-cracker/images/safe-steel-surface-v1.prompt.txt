@@ -1,9 +1,0 @@
-Use case: photorealistic-natural
-Asset type: square 1024x1024 PNG material surface for the door of a bank safe in a browser game.
-Primary request: create a high-quality, realistically photographed brushed steel surface, viewed perfectly straight-on, filling the entire square edge to edge. This is ONLY the continuous metal material; live hardware will be overlaid in code.
-Materials: satin gunmetal steel with a subtle slate-blue undertone, fine directional brushing and scattered delicate hairline scratches from ordinary use. Mostly smooth clean metal with a few believable rubbed areas, restrained variation, crisp microtexture, no rust. Brushing must feel metallic, not wood grain or vertical stripes.
-Lighting: broad soft neutral overhead illumination, a very subtle brighter upper-left reflection, consistent exposure across the surface, no dramatic spotlight, no patchy shadows, no vignette.
-Palette: medium cool steel gray with subtle naturally colored blue-gray reflections, neutral silver grain. Not vivid blue and not grayscale black-and-white. No brown or bronze.
-Composition: flat orthographic close-up of one continuous surface. No border, frame, bevel, seams, screws, hinges, latches, knobs, dial, holes, text, numbers, logos, UI or objects. No perspective. Opaque full-bleed square PNG.
-
-Generated with the built-in imagegen tool. Used as the door material only, with live hardware above it.

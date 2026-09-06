@@ -1704,7 +1704,24 @@
     return promise;
   }
 
-  function safeCrackerPrimeSamples() {
+  // Choose or restore this game before allocating its audio context or fetching
+  // either sound bank. A launcher gesture arrives before its select value changes.
+  function safeCrackerAudioRequested(selection = '') {
+    if (document.hidden) return false;
+    if (typeof selection === 'string' && selection) return selection === 'safecracker';
+    const choice = selection?.target?.closest?.('.sth-game[data-mode], [data-rnb-game]');
+    if (choice) return !choice.disabled && (choice.dataset.mode || choice.dataset.rnbGame) === 'safecracker';
+    const home = document.getElementById('simpleTestHome');
+    if (home && !home.hidden) return false;
+    if (document.getElementById('duelScreen')?.hidden) return false;
+    const mode = String(window.__duelRequestedModeIntent || document.getElementById('duelModeSelect')?.value || '');
+    if (mode) return mode === 'safecracker';
+    const board = document.querySelector('[data-safe-cracker-mount] .safe-cracker-game');
+    return Boolean(runtime.game?.mode === 'safecracker' && board && !board.closest('[hidden]'));
+  }
+
+  function safeCrackerPrimeSamples(selection = '') {
+    if (!safeCrackerAudioRequested(selection)) return;
     for (const name of Object.keys(SAFE_CRACKER_SAMPLE_MANIFEST)) safeCrackerLoadSample(name);
   }
 
@@ -1781,10 +1798,8 @@
   };
   if (typeof playSafeCrackerResultSequence === 'function') playSafeCrackerResultSequence = safeCrackerPlayResultSequence;
 
-  document.addEventListener('pointerdown', safeCrackerPrimeSamples, { capture: true, once: true });
-  document.addEventListener('keydown', safeCrackerPrimeSamples, { capture: true, once: true });
   window.addEventListener(STATE_EVENT, event => {
-    if (event?.detail?.game?.mode === 'safecracker') safeCrackerPrimeSamples();
+    if (event?.detail?.game?.mode === 'safecracker') safeCrackerPrimeSamples('safecracker');
   });
   // SAFE_CRACKER_SAMPLE_MIX_V11_END
 
@@ -1851,11 +1866,13 @@
     return promise;
   }
 
-  function safeCrackerPrimeRecordedSounds() {
+  function safeCrackerPrimeRecordedSounds(selection = '') {
+    if (!safeCrackerAudioRequested(selection)) return;
     for (const name of Object.keys(SAFE_CRACKER_RECORDED_SOUNDS)) safeCrackerLoadRecordedSound(name);
   }
 
-  function safeCrackerUnlockRecordedAudio() {
+  function safeCrackerUnlockRecordedAudio(selection = '') {
+    if (!safeCrackerAudioRequested(selection)) return;
     const context = resumeAudio();
     if (!context) return;
     try {
@@ -1864,7 +1881,7 @@
       source.connect(context.destination);
       source.start(0);
     } catch {}
-    safeCrackerPrimeRecordedSounds();
+    safeCrackerPrimeRecordedSounds(selection);
   }
 
   function safeCrackerPlayRecordedSound(name, options = {}) {
@@ -1911,11 +1928,12 @@
 
   function safeCrackerRecordedModeActive() {
     const game = runtime.game;
+    const board = document.querySelector('[data-safe-cracker-mount] .safe-cracker-game');
     return Boolean(
-      !document.hidden &&
+      safeCrackerAudioRequested() &&
       game?.mode === 'safecracker' &&
       game?.status !== 'complete' &&
-      document.querySelector('[data-safe-cracker-mount] .safe-cracker-game')
+      board && !board.closest('[hidden]')
     );
   }
 
@@ -2057,18 +2075,23 @@
       safeCrackerStopRecordedAmbience();
       return;
     }
-    safeCrackerPrimeRecordedSounds();
+    safeCrackerPrimeRecordedSounds('safecracker');
     safeCrackerStartRecordedAmbience();
   }
 
-  document.addEventListener('pointerdown', () => {
-    safeCrackerUnlockRecordedAudio();
+  function safeCrackerAudioGesture(event) {
+    if (!safeCrackerAudioRequested(event)) return;
+    safeCrackerPrimeSamples('safecracker');
+    safeCrackerUnlockRecordedAudio('safecracker');
     safeCrackerStartRecordedAmbience();
-  }, { capture: true, passive: true });
-  document.addEventListener('keydown', () => {
-    safeCrackerUnlockRecordedAudio();
-    safeCrackerStartRecordedAmbience();
-  }, { capture: true });
+  }
+  document.addEventListener('pointerdown', safeCrackerAudioGesture, { capture: true, passive: true });
+  document.addEventListener('keydown', safeCrackerAudioGesture, { capture: true });
+  window.safeCrackerWarmAudio = function safeCrackerWarmAudio() {
+    safeCrackerPrimeSamples('safecracker');
+    safeCrackerPrimeRecordedSounds('safecracker');
+    if (navigator.userActivation?.isActive) safeCrackerUnlockRecordedAudio('safecracker');
+  };
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) safeCrackerStopRecordedAmbience();
     else {

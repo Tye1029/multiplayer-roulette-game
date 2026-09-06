@@ -1,5 +1,5 @@
 {
-  "release": "20260904-flow14",
+  "release": "20260906-load15",
   "sourcePreview": "https://deploy-preview-19--famous-piroshki-b621da.netlify.app/",
   "sourceDeploy": "6a70b46ca5416100089b828b",
   "sourceBranch": "safe-cracker-development",
@@ -28,17 +28,13 @@
     "assets/safe-cracker/audio-data/safe-unlock.b64": "aea99693d78b8fab937b9e07098f0f0cb65afdc4e70b5caba13db8166d513bf1",
     "assets/safe-cracker/audio-data/submit-latch.b64": "f946badd32b429169b00b2a1e0956aab235e224ce142bb56080aa437306cadd2",
     "assets/safe-cracker/audio-data/tumbler-lock.b64": "ab70c5fe2cc2a0b8466871418bb2f0af6274b52ba1659c5c3d4fa723aa403754",
-    "assets/safe-cracker/safe-cracker.css": "68fadc3fef745717d3d56bff882969fb5b0b49ed9cf4365c47ebfd6ed840f135",
-    "assets/safe-cracker/safe-cracker.js": "70253707cf0c080754e37145635aaa1daa2842c587896ae7bf72265214e8bd17",
+    "assets/safe-cracker/safe-cracker.css": "e50bc9d1a1fce54ba970f658444c0c85d91500538a4552078d73d532721b33da",
+    "assets/safe-cracker/safe-cracker.js": "f2502187c7ebc1ad2549724be002076e043d64ff37438ee2e2cb99d522e462b2",
     "assets/safe-cracker/textures/dial-machined.svg": "e4f73a99dccca8a9bdcb79ac8fb93d3b93c26a843c01bf6ffd65cd2e081fa361",
     "assets/safe-cracker/textures/dial-reference-face-v7.svg": "4ac122e6319ef8ae3b604f64726994af47d9a7815f58c2898f8143dd3fa339c0",
     "assets/safe-cracker/textures/metal-wear.svg": "ca22e39bd6a2d21ef5c6634a035f024e016ecbc7c908caab9ea1597bb28a1824",
     "assets/safe-cracker/textures/safe-steel-base.svg": "fdf1f549626d023361ecb60529b6fec98f9b45ec4785080ed032796bb6eeca07",
-    "assets/safe-cracker/images/bank-vault-v1.png": "88a39e7471a2e4b231ab775af013950e04580fe903ed253653ab966a66067f38",
-    "assets/safe-cracker/images/bank-vault-slate-v4.png": "9e582c540d872395161f69ab6d2d63ed587d403c9c9771bef42302dcd024a0a4",
-    "assets/safe-cracker/images/safe-steel-surface-v1.png": "4281a7ae85d13a1a1a5bfc5ca5da2fa8cbf28a3b811e5004859682157556eb0f",
     "assets/safe-cracker/images/bank-vault-wall-v5.png": "860901ba5903232346ddeaec31a8ed97f2e86b8de41d6c3cee650065e0d97d5e",
-    "assets/safe-cracker/images/safe-steel-surface-v2.png": "8a87ddaf12b470f9e8760dde213f07a78b84f962ebf18c85a8b47c4ee4c8ffa9",
     "assets/safe-cracker/images/safe-steel-surface-v3.png": "65d130d407de98d1e443e849f4100959214714a44408700bb78af509a23238a9"
   },
   "sourceNote": "Recovered from the last deployed Safe Cracker preview; one whitespace-only runtime line was cleaned. Supporting generated SVG and recordings were rebuilt from the unchanged repository sources and matched that deployment.",
@@ -53,6 +49,7 @@
     "Replace pebbled safe grain with smooth dark machined steel and fine straight scratches, preserving the slate color; shade the stationary frame as a recessed jamb.",
     "Restore warm interior light and reflected glow, use a controlled hinge perspective, and allow a 500ms open-safe hold before the win report. Validate result timing, polling continuity, and reduced motion.",
     "Open the safe outward with a weighted 1500ms swing, visible 3D steel edge planes, and localized golden cavity light reflected onto the door rim, thickness and frame.",
-    "Restore the earlier restrained 15-degree outward opening and its detent-like timing, retaining the new steel texture, physical door thickness and localized golden lighting."
+    "Restore the earlier restrained 15-degree outward opening and its detent-like timing, retaining the new steel texture, physical door thickness and localized golden lighting.",
+    "Brighten the golden cavity and reflected light at the existing opening angle; remove obsolete image/dial versions and prime both audio banks only when Safe Cracker is selected or restored."
   ]
 }

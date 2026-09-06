@@ -47,4 +47,5 @@ await import('./validate-safe-cracker-feedback-endpoint.mjs');
 await import('./validate-safe-cracker-game-layout.mjs');
 await import('./validate-safe-cracker-rapid-input.mjs');
 await import('./validate-safe-cracker-completion-storage.mjs');
+await import('./validate-safe-cracker-audio-loading.mjs');
 console.log(`Verified complete Safe Cracker restored release ${release.release}: ${Object.keys(release.sha256).length} files.`);

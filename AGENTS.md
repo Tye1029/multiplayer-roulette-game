@@ -54,6 +54,11 @@ are added later.
   for approval before integrating it into the game.
 - Favor optimized, reusable PNG assets and lightweight animation techniques that
   keep the game responsive on mobile hardware.
+- With each update, remove superseded files once direct references, dynamically
+  constructed paths, admin/API use, and build/validation dependencies confirm
+  they are unused. Keep uncertain dependencies and unrelated user work; record
+  the reason when retaining a historical asset. Load game-specific media only
+  when that game is selected or active.
 
 ## Validation and delivery
 

@@ -254,7 +254,7 @@
   }
 
   function handleSpinGesture(event) {
-    primeResultAudio();
+    if (audio.shouldWarmForInteraction(event)) primeResultAudio();
     const control = nearestInteractive(event.target);
     if (isSpinControl(control)) playSpinButtonChamber();
   }

@@ -112,7 +112,7 @@ const block = `${startMarker}\n` +
   '  <script src="/assets/roulette/lamp-config.js?v=19" defer></script>\n' +
   '  <script src="/assets/roulette/lamp.js?v=20" defer></script>\n' +
   '  <script src="/assets/roulette/lamp-bootstrap.js?v=19" defer></script>\n' +
-  '  <script src="/assets/roulette/audio-manager.js?v=4&ambience=2&media=2&countdown=2" defer></script>\n' +
+  '  <script src="/assets/roulette/audio-manager.js?v=4&ambience=2&media=2&countdown=2&load=15" defer></script>\n' +
   '  <!-- compatibility: /assets/roulette/spin-audio-policy.js?v=3 -->\n' +
   '  <script src="/assets/roulette/spin-audio-policy.js?v=4&turnsound=4&reliable=1" defer></script>\n' +
   '  <script src="/assets/roulette/turn-animation.js?v=5" defer></script>\n' +
@@ -121,8 +121,8 @@ const block = `${startMarker}\n` +
   '  <script src="/assets/roulette/turn-facing-guard.js?v=4&lock=5&owner=3&opening=1&sound=1" defer></script>\n' +
   '  <script src="/assets/roulette/opening-spin-sync.js?v=6&trim=1&clamp=1" defer></script>\n' +
   '  <!-- compatibility: /assets/roulette/audio-bindings.js?v=5 -->\n' +
-  '  <script src="/assets/roulette/audio-bindings.js?v=6&turnmove=1" defer></script>\n' +
-  '  <script src="/assets/roulette/reaction-audio.js?v=1" defer></script>\n' +
+  '  <script src="/assets/roulette/audio-bindings.js?v=6&turnmove=1&load=15" defer></script>\n' +
+  '  <script src="/assets/roulette/reaction-audio.js?v=1&load=15" defer></script>\n' +
   `${endMarker}`;
 
 let html = await readFile(indexUrl, 'utf8');
