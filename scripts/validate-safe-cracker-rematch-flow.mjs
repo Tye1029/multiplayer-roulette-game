@@ -85,3 +85,18 @@ assert.ok(html.indexOf('id="duelShellStyles"')<html.indexOf('</head>'),'Current 
 assert.ok(html.includes('id="apiKeyInput"') && html.includes('href="/admin.html"'));
 assert.ok(html.includes('requestedFocusId !== String(duelCurrentGameId)'));
 console.log('Rematch flow passed: stale reads rejected, result retained, duplicate clicks blocked, expiry/error retry, retired UI absent, account/admin retained.');
+
+// Closing a result cancels a pending lobby refresh and prevents auto-resume.
+const closed = vm.createContext({String,window:{},duelRefreshSequence:4,duelRefreshPending:true,
+ duelLastActiveGame:{gameId:'closed',mode:'safecracker'},duelModeSelect:{value:'safecracker'},
+ duelCurrentGameId:'closed',duelMarkCompletedSeen:()=>{},duelCompletedVisibleThisSession:new Set(['closed']),
+ duelRememberCurrentGame:()=>{},duelDrawLatestGame:null,duelFishingLatestGame:null,rouletteLatestGame:null,
+ duelKnownRevisionByGame:new Map(),duelAcceptedStatusByGame:new Map(),duelLastRenderKey:'old',
+ document:{body:{classList:{remove:()=>{}}}},duelFishingHideResultPortal:()=>{},duelActive:{innerHTML:''},
+ duelSetPollRate:()=>{},setTimeout:()=>{},duelRefresh:()=>{}});
+vm.runInContext(section(html,'function duelCloseCompletedScreen(', '    function duelScheduleCompletedCloseButton('),closed);
+closed.duelCloseCompletedScreen('closed');
+assert.equal(closed.duelRefreshSequence,5,'Discard responses started before Close');
+assert.equal(closed.duelRefreshPending,false);
+assert.equal(closed.window.__duelRequestedModeIntent,'safecracker','Stay in lobby after Close');
+assert.equal(closed.duelLastActiveGame,null);

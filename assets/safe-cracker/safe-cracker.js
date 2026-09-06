@@ -825,7 +825,6 @@
       }
       safeCrackerSetText(display.querySelector('.sc-display-status'), displayText);
       safeCrackerSetText(display.querySelector('.sc-display-meta small'), 'TUMBLER ' + Math.min(STAGES, stage + 1) + ' OF ' + STAGES);
-      safeCrackerSetText(display.querySelector('.sc-display-meta b'), attemptCount + ' ' + (attemptCount === 1 ? 'ATTEMPT' : 'ATTEMPTS'));
       const meter = display.querySelector('.sc-feedback-meter');
       if (meter) safeCrackerReplaceMarkup(meter, feedbackMeter(displayTier));
     }
@@ -926,7 +925,7 @@
         <div class="sc-countdown-vault" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><div class="sc-countdown-ring"></div></div>
         <div class="sc-countdown-copy"><small>VAULT SEQUENCE</small><span data-sc-countdown-value class="${startCountdownLabel === 'GO!' ? 'go' : ''}">${escapeHtml(startCountdownLabel)}</span><b data-sc-countdown-status>${startCountdownLabel === 'GO!' ? 'DIAL ACTIVE' : 'LOCKS ENGAGING'}</b></div>
       </div>` : ''}
-      <section class="sc-instructions" aria-label="How to play"><div class="sc-instruction-heading"><b>Three locks. Sixty seconds.</b><div class="sc-prize"><small>PRIZE POT</small><b>${Math.max(0, Number(game.pot || game.wager || 0)).toLocaleString()} Chips</b></div></div><ol><li><i>1</i><span><b>Turn the dial</b><small>Choose a number</small></span></li><li><i>2</i><span><b>Check the lights</b><small>Decide which direction to go!</small></span></li><li><i>3</i><span><b>Unlock all three</b><small>First safe open wins</small></span></li></ol></section>
+      <section class="sc-instructions" aria-label="How to play"><div class="sc-instruction-heading"><b>Three locks. Sixty seconds.</b><div class="sc-prize"><small>PRIZE POT</small><b>${Math.max(0, Number(game.pot || game.wager || 0)).toLocaleString()} Chips</b></div></div><ol><li><i>1</i><span><b>Turn the dial <span class="sc-input-hint">(Mouse Or Buttons)</span></b><small>Choose a number</small></span></li><li><i>2</i><span><b>Check the lights</b><small>Decide which direction to go!</small></span></li><li><i>3</i><span><b>Unlock all three</b><small>First safe open wins</small></span></li></ol></section>
       <div class="sc-topbar">
         <div class="sc-player-card me"><div class="sc-avatar">${playerAvatar(myPlayer, 'Y')}</div><div class="sc-player-copy"><small>YOU</small><b>${escapeHtml(myPlayer?.name || 'Player')}</b>${lockedCode(me)}<div class="sc-progress-lights">${progressLights(me)}</div></div></div>
         <div class="sc-timer" data-sc-timer>${formatTimer(secondsLeft(game))}</div>
@@ -946,7 +945,7 @@
             <div class="sc-display-bezel" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
             <div class="sc-display-glass">
               <span class="sc-display-status">${escapeHtml(displayText)}</span>
-              <div class="sc-display-meta"><small>TUMBLER ${Math.min(STAGES, Number(me.stage || 0) + 1)} OF ${STAGES}</small><b>${Number(me.attemptCount || 0)} ${Number(me.attemptCount || 0) === 1 ? 'ATTEMPT' : 'ATTEMPTS'}</b></div>
+              <div class="sc-display-meta"><small>TUMBLER ${Math.min(STAGES, Number(me.stage || 0) + 1)} OF ${STAGES}</small></div>
               ${feedbackMeter(displayTier)}
             </div>
           </div>
