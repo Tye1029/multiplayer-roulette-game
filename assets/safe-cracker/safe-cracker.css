@@ -5451,3 +5451,70 @@ body > .sc-result-overlay.tie[data-sc-result-portal] .sc-result-card {
   .sc-gameplay-win .sc-door-light,.sc-gameplay-win .sc-door-edge::after { animation:none !important;opacity:1; }
 }
 /* SAFE_CRACKER_RECESSED_WALL_V6_END */
+
+/* SAFE_CRACKER_COMPACT_LAYOUT_V16_START */
+.safe-cracker-game { padding:12px 18px 14px; }
+.safe-cracker-game .sc-instructions { padding:8px 12px;margin-bottom:8px; }
+.safe-cracker-game .sc-instruction-heading { display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:6px; }
+.safe-cracker-game .sc-instruction-heading > b { font-size:12px; }
+.safe-cracker-game .sc-prize { display:flex;align-items:baseline;gap:6px;white-space:nowrap; }
+.safe-cracker-game .sc-prize small { font-size:9px;color:#abc0d1; }
+.safe-cracker-game .sc-prize b { font-size:12px;color:#edf5fb; }
+.safe-cracker-game .sc-instructions ol { margin:0; }
+.safe-cracker-game .sc-instructions li small { font-size:11px; }
+.safe-cracker-game .sc-player-card { min-height:0;padding:6px 9px; }
+.safe-cracker-game .sc-topbar { margin-bottom:8px; }
+.safe-cracker-game .sc-tip-bar { margin-top:8px;padding:6px 10px;font-size:11px; }
+.safe-cracker-game .sc-safe-shell { width:min(100%,580px);padding:8px; }
+.safe-cracker-game .sc-safe-door { min-height:0; }
+/* A wider instrument layout keeps the dial full-size in short desktop windows. */
+@media(min-width:701px) {
+  .safe-cracker-game .sc-safe-door { display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto auto auto;align-items:center;gap:10px 22px;padding:46px 30px 20px; }
+  .safe-cracker-game .sc-dial-wrap { grid-column:1;grid-row:1 / 4;width:clamp(160px,28dvh,230px);height:clamp(160px,28dvh,230px);left:auto;top:auto;margin:0;justify-self:center; }
+  .safe-cracker-game .sc-display { grid-column:2;grid-row:1;width:100%;min-height:68px;height:auto;margin:0;padding:6px; }
+  .safe-cracker-game .sc-display-status { font-size:13px; }
+  .safe-cracker-game .sc-display-meta { flex-wrap:wrap;gap:2px; }
+  .safe-cracker-game .sc-step-controls { grid-column:2;grid-row:2;width:100%;margin:0;padding:5px;gap:6px; }
+  .safe-cracker-game .sc-step-controls button { height:44px; }
+  .safe-cracker-game .sc-confirm-button { grid-column:2;grid-row:3;width:100%;height:46px;min-height:46px;margin:0;font-size:13px; }
+  .safe-cracker-game .sc-dial-number { font-size:18px; }
+  .safe-cracker-game .sc-current-number { font-size:30px; }
+}
+@media(max-width:700px) {
+  .safe-cracker-game { padding:8px 10px 10px; }
+  .safe-cracker-game .sc-instructions { padding:7px 8px; }
+  .safe-cracker-game .sc-instruction-heading { gap:6px; }
+  .safe-cracker-game .sc-instruction-heading > b { font-size:10px; }
+  .safe-cracker-game .sc-prize { gap:4px; }.safe-cracker-game .sc-prize b { font-size:11px; }
+  .safe-cracker-game .sc-instructions li { gap:4px; }
+  .safe-cracker-game .sc-instructions li i { display:none; }
+  .safe-cracker-game .sc-instructions li b { font-size:10px; }
+  .safe-cracker-game .sc-instructions li small { font-size:10px;line-height:1.2; }
+  .safe-cracker-game .sc-safe-shell { padding:6px; }
+  .safe-cracker-game .sc-display { width:82%;height:62px;min-height:62px;margin:10px auto 52px;padding:5px; }
+  .safe-cracker-game .sc-display-status { font-size:12px; }
+  .safe-cracker-game .sc-dial-wrap { width:clamp(148px,calc(100dvh - 570px),230px);height:clamp(148px,calc(100dvh - 570px),230px);margin-top:0; }
+  .safe-cracker-game .sc-step-controls { padding:4px;margin:8px auto 6px; }
+  .safe-cracker-game .sc-step-controls button { height:44px; }
+  .safe-cracker-game .sc-confirm-button { height:44px;min-height:44px;margin:8px auto 10px; }
+  .safe-cracker-game .sc-dial-number { font-size:16px; }
+  .safe-cracker-game .sc-current-number { font-size:30px; }
+}
+
+.safe-cracker-game .sc-display-glass { min-height:0;padding:6px 8px; }
+.safe-cracker-game .sc-confirm-button { box-shadow:inset 0 1px 0 #dde8ef88,inset 0 -3px 5px #14202a66,0 4px 0 #202b34,0 7px 10px #0006 !important; }
+.safe-cracker-game .sc-confirm-button:not(:disabled):active { box-shadow:inset 0 3px 5px #0009,0 1px 0 #202b34 !important; }
+@media(min-width:701px) { .safe-cracker-game .sc-safe-door { padding-left:40px;padding-right:48px;grid-template-columns:minmax(0,1fr) minmax(0,1fr); } }
+.safe-cracker-game .sc-confirm-button::before { background:linear-gradient(90deg,#171e21,#566b7b 50%,#20282b) !important; }
+@media(max-width:700px) {
+  .safe-cracker-game .sc-safe-door { display:grid;grid-template-columns:1fr 1fr;gap:0 8px;align-items:center;padding:0 12px 10px; }
+  .safe-cracker-game .sc-display { grid-column:1 / 3;width:100%;margin:10px auto 46px; }
+  .safe-cracker-game .sc-dial-wrap { grid-column:1 / 3;width:clamp(148px,calc(100dvh - 650px),194px);height:clamp(148px,calc(100dvh - 650px),194px);margin:0 auto; }
+  .safe-cracker-game .sc-step-controls { grid-column:1;width:100%;margin:12px 0 0;padding:4px; }
+  .safe-cracker-game .sc-confirm-button { grid-column:2;width:100%;margin:12px 0 0;font-size:11px; }
+  .safe-cracker-game .sc-tip-bar { gap:5px;padding:5px 7px;line-height:1.2; }
+}
+
+.duel-arena[data-duel-mode="safecracker"] > .duel-ready-panel { position:sticky;bottom:8px;z-index:50;margin:6px auto;max-width:920px;padding:4px;background:#17232ef2;border:1px solid #708493;border-radius:7px; }
+.duel-arena[data-duel-mode="safecracker"] .duel-ready-btn { min-height:44px;margin:0; }
+/* SAFE_CRACKER_COMPACT_LAYOUT_V16_END */

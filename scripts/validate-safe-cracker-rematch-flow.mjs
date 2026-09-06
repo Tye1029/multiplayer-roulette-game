@@ -61,6 +61,24 @@ result.syncSafeCrackerRematchControl(portal,game);assert.equal(button.disabled,f
 const retry=handler({currentTarget:button});resolveRematch({error:'Offline'});await retry;
 assert.equal(button.disabled,false);assert.equal(button.title,'Offline');assert.equal(removed,0);
 
+// Explicit completion-lag rejections must settle from one click, without
+// replaying ambiguous network failures or carrying a retry into another game.
+let settlingCalls=0;
+result.window.setTimeout=fn=>fn();
+result.window.__safeCrackerBridge.rematch=async()=>{
+  settlingCalls++;
+  return settlingCalls<3?{error:'Rematches are only available after a completed duel.'}:{};
+};
+await handler({currentTarget:button});
+assert.equal(settlingCalls,3);
+assert.equal(button.disabled,false);
+assert.equal(button.title,'');
+result.window.__safeCrackerBridge.rematch=async()=>({error:'Rematches are only available after a completed duel.'});
+result.window.setTimeout=fn=>{runtime.game={gameId:'new',status:'ready'};fn();};
+await handler({currentTarget:button});
+assert.equal(runtime.rematchPendingGameId,'');
+runtime.game=game;
+
 for(const id of ['singlePlayerLayout','arcadeScreen','runnerScreen','horseScreen','multiplayerScreen'])
   assert.ok(!html.includes(`id="${id}"`),`Retired UI still mounted: ${id}`);
 assert.ok(html.indexOf('id="duelShellStyles"')<html.indexOf('</head>'),'Current shell must load before first paint');

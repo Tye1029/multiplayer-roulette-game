@@ -926,8 +926,7 @@
         <div class="sc-countdown-vault" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><div class="sc-countdown-ring"></div></div>
         <div class="sc-countdown-copy"><small>VAULT SEQUENCE</small><span data-sc-countdown-value class="${startCountdownLabel === 'GO!' ? 'go' : ''}">${escapeHtml(startCountdownLabel)}</span><b data-sc-countdown-status>${startCountdownLabel === 'GO!' ? 'DIAL ACTIVE' : 'LOCKS ENGAGING'}</b></div>
       </div>` : ''}
-      <header class="sc-command-bar"><div><small>XAN DUELS</small><h2>SAFE CRACKER</h2></div><div class="sc-prize"><small>PRIZE POT</small><b>${Math.max(0, Number(game.pot || game.wager || 0)).toLocaleString()} Chips</b></div></header>
-      <section class="sc-instructions" aria-label="How to play"><div><small>VAULT BREAK-IN</small><b>Three locks. Sixty seconds.</b></div><ol><li><i>1</i><span><b>Turn the dial</b><small>Choose a number</small></span></li><li><i>2</i><span><b>Check the lights</b><small>Decide which direction to go!</small></span></li><li><i>3</i><span><b>Unlock all three</b><small>First safe open wins</small></span></li></ol></section>
+      <section class="sc-instructions" aria-label="How to play"><div class="sc-instruction-heading"><b>Three locks. Sixty seconds.</b><div class="sc-prize"><small>PRIZE POT</small><b>${Math.max(0, Number(game.pot || game.wager || 0)).toLocaleString()} Chips</b></div></div><ol><li><i>1</i><span><b>Turn the dial</b><small>Choose a number</small></span></li><li><i>2</i><span><b>Check the lights</b><small>Decide which direction to go!</small></span></li><li><i>3</i><span><b>Unlock all three</b><small>First safe open wins</small></span></li></ol></section>
       <div class="sc-topbar">
         <div class="sc-player-card me"><div class="sc-avatar">${playerAvatar(myPlayer, 'Y')}</div><div class="sc-player-copy"><small>YOU</small><b>${escapeHtml(myPlayer?.name || 'Player')}</b>${lockedCode(me)}<div class="sc-progress-lights">${progressLights(me)}</div></div></div>
         <div class="sc-timer" data-sc-timer>${formatTimer(secondsLeft(game))}</div>
@@ -1160,11 +1159,24 @@
       runtime.rematchPendingGameId = gameId;
       button.disabled = true;
       button.textContent = 'REQUESTING REMATCH…';
+      button.title = '';
+      runtime.rematchErrorGameId = '';
+      runtime.rematchFinalizing = false;
       try {
-        const result = await window.__safeCrackerBridge?.rematch?.();
-        if (result?.error) throw new Error(result.error);
+        for (let attempt = 0; attempt < 10; attempt++) {
+          if (String(runtime.game?.gameId || '') !== gameId || runtime.game?.status !== 'complete') return;
+          const result = await window.__safeCrackerBridge?.rematch?.();
+          if (!result?.error) break;
+          if (result.error !== 'Rematches are only available after a completed duel.' || attempt === 9) throw new Error(result.error);
+          // Retry only the explicit rejection: no rematch was created. Other
+          // failures remain user-retryable to avoid replaying an uncertain action.
+          runtime.rematchFinalizing = true;
+          button.textContent = 'FINALIZING RESULT…';
+          await new Promise(resolve => window.setTimeout(resolve, 850));
+        }
       } catch (error) {
         button.title = String(error?.message || 'Unable to request rematch. Try again.');
+        runtime.rematchErrorGameId = gameId;
       } finally {
         if (runtime.rematchPendingGameId === gameId) runtime.rematchPendingGameId = '';
         if (button.isConnected) syncSafeCrackerRematchControl(button.closest('[data-sc-result-portal]'), runtime.game);
@@ -1182,7 +1194,7 @@
     const me = String(game?.isCreator ? game?.creator?.userId : game?.joiner?.userId);
     const requested = seconds > 0 && Boolean(offer.requestedBy?.[me]);
     button.disabled = pending || requested || Boolean(game?.rematchGameId);
-    safeCrackerSetText(button, game?.rematchGameId ? 'STARTING REMATCH…' : pending ? 'REQUESTING REMATCH…' : requested ? 'WAITING FOR OPPONENT · ' + seconds + 's' : seconds > 0 ? 'ACCEPT REMATCH · ' + seconds + 's' : 'REMATCH');
+    safeCrackerSetText(button, game?.rematchGameId ? 'STARTING REMATCH…' : pending ? (runtime.rematchFinalizing ? 'FINALIZING RESULT…' : 'REQUESTING REMATCH…') : requested ? 'WAITING FOR OPPONENT · ' + seconds + 's' : seconds > 0 ? 'ACCEPT REMATCH · ' + seconds + 's' : runtime.rematchErrorGameId === String(game?.gameId || '') ? 'RETRY REMATCH' : 'REMATCH');
   }
 
   // A single explicitly requested next check can wait for the current request.
