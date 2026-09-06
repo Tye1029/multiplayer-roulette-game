@@ -5527,3 +5527,14 @@ body > .sc-result-overlay.tie[data-sc-result-portal] .sc-result-card {
 #duelScreen:has(.safe-cracker-game) { padding:0;margin-bottom:12px; }
 .duel-live-card:has(.safe-cracker-game) { overflow:visible; }
 /* SAFE_CRACKER_COMPACT_LAYOUT_V16_END */
+
+@media(max-width:700px) and (max-height:760px) {
+ .safe-cracker-game .sc-dial-wrap { width:128px;height:128px; }
+ .safe-cracker-game .sc-player-card { padding-top:4px;padding-bottom:4px; }
+ .safe-cracker-game .sc-instructions { padding-top:5px;padding-bottom:5px; }
+ .duel-arena[data-duel-mode="safecracker"] > .duel-ready-panel { margin-top:0;margin-bottom:0; }
+}
+@media(max-height:640px) {
+ .duel-arena[data-duel-mode="safecracker"] > .duel-ready-panel { position:fixed;left:16px;right:16px;bottom:8px;max-width:none; }
+ .duel-arena[data-duel-mode="safecracker"]:has(.duel-ready-panel) { padding-bottom:70px; }
+}
