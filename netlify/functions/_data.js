@@ -4701,8 +4701,7 @@ async function duelJoinGame(user, gameId) {
   const viewer = cleanUserId(user.id);
   if (game.status !== "waiting") throw new Error("That duel is no longer joinable.");
   if (game.creator.userId === viewer) throw new Error("You cannot join your own duel.");
-  const activeGame = await duelFindActiveGameForUser(viewer, game.gameId);
-  if (activeGame) throw new Error("Finish or cancel your current multiplayer arcade game before joining another one.");
+  // Joining another game preserves the existing duel and its separate escrow.
   const wager = int(game.wager, 0);
   let record = await getUserRecord(viewer);
   record = prepareLedgerRecord(record || { userId: viewer, name: user.name || "Unknown", ledgerStartedAt: nowIso(), balanceBaseline: 0, financialLedger: [] });

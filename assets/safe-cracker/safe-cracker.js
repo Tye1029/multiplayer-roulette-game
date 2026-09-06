@@ -716,7 +716,8 @@
           '<div class="sc-result-kicker">SAFE CRACKER · ' + accessLabel + '</div>' +
           '<h2>' + title + '</h2>' +
           '<p>' + escapeHtml(message) + '</p>' +
-          '</div><div class="sc-result-summary"><div class="sc-result-summary-title">THE VAULT REPORT <span>FINAL COMBINATIONS</span></div>' +
+          (won ? '<div class="sc-result-prize"><small>YOU WON</small><strong>' + Number(game.payout || 0).toLocaleString('en-US') + '<span> Chips</span></strong></div>' : '') +
+          '</div><div class="sc-result-summary"><div class="sc-result-summary-title">THE VAULT REPORT</div>' +
           codes +
           '</div>' +
           '<div class="sc-result-actions">' +
@@ -925,7 +926,7 @@
         <div class="sc-countdown-vault" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><div class="sc-countdown-ring"></div></div>
         <div class="sc-countdown-copy"><small>VAULT SEQUENCE</small><span data-sc-countdown-value class="${startCountdownLabel === 'GO!' ? 'go' : ''}">${escapeHtml(startCountdownLabel)}</span><b data-sc-countdown-status>${startCountdownLabel === 'GO!' ? 'DIAL ACTIVE' : 'LOCKS ENGAGING'}</b></div>
       </div>` : ''}
-      <section class="sc-instructions" aria-label="How to play"><div class="sc-instruction-heading"><b>Three locks. Sixty seconds.</b><div class="sc-prize"><small>PRIZE POT</small><b>${Math.max(0, Number(game.pot || game.wager || 0)).toLocaleString()} Chips</b></div></div><ol><li><i>1</i><span><b>Turn the dial <span class="sc-input-hint">(Mouse Or Buttons)</span></b><small>Choose a number</small></span></li><li><i>2</i><span><b>Check the lights</b><small>Decide which direction to go!</small></span></li><li><i>3</i><span><b>Unlock all three</b><small>First safe open wins</small></span></li></ol></section>
+      <section class="sc-instructions" aria-label="How to play"><div class="sc-instruction-heading"><b>Three locks. Sixty seconds.</b><div class="sc-prize"><small>PRIZE POT</small><b>${Math.max(0, Number(game.pot || game.wager || 0)).toLocaleString()} Chips</b></div></div><ol><li><i>1</i><span><b>Turn the dial <span class="sc-input-hint">(Mouse, Finger, Buttons)</span></b><small>Choose a number</small></span></li><li><i>2</i><span><b>Check the lights</b><small>Decide which direction to go!</small></span></li><li><i>3</i><span><b>Unlock all three</b><small>First safe open wins</small></span></li></ol></section>
       <div class="sc-topbar">
         <div class="sc-player-card me"><div class="sc-avatar">${playerAvatar(myPlayer, 'Y')}</div><div class="sc-player-copy"><small>YOU</small><b>${escapeHtml(myPlayer?.name || 'Player')}</b>${lockedCode(me)}<div class="sc-progress-lights">${progressLights(me)}</div></div></div>
         <div class="sc-timer" data-sc-timer>${formatTimer(secondsLeft(game))}</div>

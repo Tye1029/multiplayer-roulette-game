@@ -5570,3 +5570,12 @@ body:has(.safe-cracker-game) {
 }
 .safe-cracker-game .sc-current-number { color:#f3fbff;text-shadow:0 0 8px #afdcf566,0 0 18px #83badb33 !important; }
 @media(prefers-reduced-motion:reduce) { body:has(.safe-cracker-game) { background-attachment:scroll; } }
+
+.safe-cracker-game .sc-current-number {text-shadow:0 0 5px #e0f6ff,0 0 14px #84d5ffb3,0 0 26px #54b9ed80 !important;}
+.sc-result-summary-title {justify-content:center;text-align:center;}
+.sc-result-prize {padding:12px 0;color:#ffe3a0;text-align:center;animation:scPrizeArrival .55s ease-out both;}
+.sc-result-prize small {display:block;font-size:12px;letter-spacing:.2em;}
+.sc-result-prize strong {display:block;font-size:clamp(32px,5vw,54px);line-height:1.15;text-shadow:0 2px 0 #795022,0 0 20px #ffcb6255;}
+.sc-result-prize strong span {font-size:.5em;}
+@keyframes scPrizeArrival {from {opacity:0;transform:translateY(8px) scale(.94);}to {opacity:1;transform:none;}}
+@media(prefers-reduced-motion:reduce){.sc-result-prize{animation:none;}}
