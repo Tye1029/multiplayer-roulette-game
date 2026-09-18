@@ -28,6 +28,12 @@ jobs:
         with:
           gradle-version: '9.6.0'
 
+      - name: Restore WebCast debug signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: webcast-android-debug-keystore-v1
+
       - name: Build debug APK
         run: gradle :app:assembleDebug
 
