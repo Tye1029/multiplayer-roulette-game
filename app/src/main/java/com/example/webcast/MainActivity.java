@@ -774,6 +774,19 @@ public class MainActivity extends AppCompatActivity {
         String dest = header(headers, "Sec-Fetch-Dest");
         String range = header(headers, "Range");
 
+        if (isPlayerDocumentRequest(url, method, headers)) {
+            addDiagnostic("PLAYER_DOC_REQ host=" + host(url)
+                    + " path=" + redactPath(url)
+                    + " dest=" + safeHeader(dest)
+                    + " accept=" + safeHeader(accept));
+            if (processedPlayerFrames.add(url)) {
+                String parent = prefs == null ? "" : prefs.getString(KEY_LAST_URL, "");
+                Map<String, String> requestHeaders = new LinkedHashMap<>(headers);
+                probeExecutor.execute(() ->
+                        inspectPlayerFrameFromRequest(url, parent, requestHeaders, 0));
+            }
+        }
+
         // Some streaming players hide the real progressive file behind a service worker
         // and an opaque, extensionless CDN URL. A large byte-range request is the key signal.
         if (isStrongRangedVideoRequest(url, source, accept, dest, range)) {
@@ -812,6 +825,26 @@ public class MainActivity extends AppCompatActivity {
                 rawRequests.remove(first);
             }
         }
+    }
+
+    private boolean isPlayerDocumentRequest(String url, String method,
+                                            Map<String, String> headers) {
+        if (!"GET".equalsIgnoreCase(method) || !isHttpUrl(url)) return false;
+        if (isKnownAdUrl(url) || looksLikeStaticAsset(url)) return false;
+
+        String current = prefs == null ? "" : prefs.getString(KEY_LAST_URL, "");
+        String currentHost = host(current);
+        String h = host(url);
+        if (h.isEmpty() || h.equals(currentHost) || h.endsWith(".m4uhd.to")) return false;
+
+        String dest = header(headers, "Sec-Fetch-Dest").toLowerCase(Locale.US);
+        String accept = header(headers, "Accept").toLowerCase(Locale.US);
+
+        if ("iframe".equals(dest) || "document".equals(dest)) return true;
+        if (accept.contains("text/html") || accept.contains("application/xhtml+xml")) return true;
+        if (looksLikePlayerFrame(url)) return true;
+
+        return false;
     }
 
     private boolean isStrongRangedVideoRequest(String url, String source,
@@ -1141,6 +1174,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void inspectPlayerFrame(String frameUrl, String parentUrl, int depth) {
+        inspectPlayerFrameFromRequest(frameUrl, parentUrl, new LinkedHashMap<>(), depth);
+    }
+
+    private void inspectPlayerFrameFromRequest(String frameUrl, String parentUrl,
+                                               Map<String, String> originalHeaders,
+                                               int depth) {
         if (depth > 2 || !isHttpUrl(frameUrl)) return;
 
         HttpURLConnection conn = null;
@@ -1153,6 +1192,22 @@ public class MainActivity extends AppCompatActivity {
             conn.setRequestProperty("Accept",
                     "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
             conn.setRequestProperty("Accept-Encoding", "identity");
+
+            if (originalHeaders != null) {
+                for (Map.Entry<String, String> e : originalHeaders.entrySet()) {
+                    String k = e.getKey();
+                    String v = e.getValue();
+                    if (k == null || v == null) continue;
+                    if ("Host".equalsIgnoreCase(k)
+                            || "Connection".equalsIgnoreCase(k)
+                            || "Content-Length".equalsIgnoreCase(k)
+                            || "Accept-Encoding".equalsIgnoreCase(k)
+                            || "Cookie".equalsIgnoreCase(k)
+                            || "Range".equalsIgnoreCase(k)) continue;
+                    try { conn.setRequestProperty(k, v); } catch (Exception ignored) {}
+                }
+            }
+
             if (webViewUserAgent != null && !webViewUserAgent.isEmpty()) {
                 conn.setRequestProperty("User-Agent", webViewUserAgent);
             }
@@ -1173,8 +1228,10 @@ public class MainActivity extends AppCompatActivity {
             }
 
             String finalUrl = conn.getURL().toString();
+            String contentType = conn.getContentType();
             String html = readTextLimited(conn.getInputStream(), 2_000_000);
             addDiagnostic("FRAME_FETCH code=" + code
+                    + " type=" + safeText(contentType)
                     + " bytes=" + html.length()
                     + " final=" + redactUrl(finalUrl));
 
@@ -1210,8 +1267,17 @@ public class MainActivity extends AppCompatActivity {
                     followed++;
                     addDiagnostic("FRAME_NESTED depth=" + (depth + 1)
                             + " url=" + redactUrl(nested));
-                    inspectPlayerFrame(nested, finalUrl, depth + 1);
+                    inspectPlayerFrameFromRequest(
+                            nested, finalUrl, new LinkedHashMap<>(), depth + 1);
                 }
+            }
+            if (followed == 0) {
+                boolean hasSoTrym = html.contains("SoTrym");
+                boolean hasIamCdn = html.contains("iamcdn.net");
+                boolean hasJw = html.toLowerCase(Locale.US).contains("jwplayer");
+                addDiagnostic("FRAME_NO_DATAS sotrym=" + hasSoTrym
+                        + " iamcdn=" + hasIamCdn
+                        + " jw=" + hasJw);
             }
         } catch (Exception e) {
             addDiagnostic("FRAME_FETCH_ERROR " + safeText(
@@ -1557,7 +1623,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void showDebugReport() {
         StringBuilder sb = new StringBuilder();
-        sb.append("WEBCAST_DEBUG_V0.6.1\\n");
+        sb.append("WEBCAST_DEBUG_V0.6.2\\n");
         sb.append("page=").append(redactUrl(webView == null ? "" : webView.getUrl())).append("\\n");
         sb.append("title=").append(safeText(webView == null ? "" : webView.getTitle())).append("\\n");
         sb.append("confirmedVideos=").append(getDisplayMedia().size()).append("\\n");
