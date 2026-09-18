@@ -48,8 +48,13 @@ import com.google.android.gms.cast.framework.media.RemoteMediaClient;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
 import java.net.URI;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -57,6 +62,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -75,6 +85,11 @@ public class MainActivity extends AppCompatActivity {
 
     private final Map<String, DetectedMedia> detectedMedia =
             Collections.synchronizedMap(new LinkedHashMap<>());
+    private final Map<String, RequestSnapshot> rawRequests =
+            Collections.synchronizedMap(new LinkedHashMap<>());
+    private final Set<String> probedUrls = Collections.synchronizedSet(new HashSet<>());
+    private final ExecutorService probeExecutor = Executors.newFixedThreadPool(4);
+    private final AtomicInteger activeProbes = new AtomicInteger(0);
 
     private volatile String lastExplicitUrl = "";
     private volatile long lastExplicitAt = 0L;
@@ -201,6 +216,7 @@ public class MainActivity extends AppCompatActivity {
             webView.removeJavascriptInterface("WebCastBridge");
             webView.destroy();
         }
+        probeExecutor.shutdownNow();
         super.onDestroy();
     }
 
@@ -257,6 +273,8 @@ public class MainActivity extends AppCompatActivity {
             if (!isInternalPage(url)) {
                 addressBar.setText(url);
                 detectedMedia.clear();
+                rawRequests.clear();
+                probedUrls.clear();
             }
             updateStatus();
         }
@@ -413,7 +431,14 @@ public class MainActivity extends AppCompatActivity {
             String clean = url.trim();
             if (!isHttpUrl(clean)) return;
             String mime = normalizeMime(type, clean);
-            addDetectedMedia(clean, mime, "page", scoreCandidate(clean, mime, "", "", ""));
+            int score = scoreCandidate(clean, mime, "", "", "");
+            if (score >= 90 && !isSegmentLike(clean)) {
+                addDetectedMedia(clean, mime, "page", score);
+            } else {
+                Map<String, String> emptyHeaders = new LinkedHashMap<>();
+                rememberRawRequest(clean, emptyHeaders, "page");
+                queueProbe(clean, emptyHeaders, "page", false);
+            }
         }
 
         @JavascriptInterface
@@ -424,7 +449,14 @@ public class MainActivity extends AppCompatActivity {
             detectorEvents++;
             String mime = normalizeMime(type, clean);
             int score = scoreCandidate(clean, mime, "", "", "");
-            if (score >= 55) addDetectedMedia(clean, mime, source == null ? "page" : source, score);
+            String srcName = source == null ? "page" : source;
+            if (score >= 90 && !isSegmentLike(clean)) {
+                addDetectedMedia(clean, mime, srcName, score);
+            } else {
+                Map<String, String> emptyHeaders = new LinkedHashMap<>();
+                rememberRawRequest(clean, emptyHeaders, srcName);
+                queueProbe(clean, emptyHeaders, srcName, false);
+            }
         }
 
         @JavascriptInterface
@@ -533,18 +565,210 @@ public class MainActivity extends AppCompatActivity {
     private void inspectNetworkRequest(WebResourceRequest request, String source) {
         if (request == null || request.getUrl() == null) return;
         String url = request.getUrl().toString();
-        if (!isHttpUrl(url)) return;
+        if (!isHttpUrl(url) || isKnownAdUrl(url)) return;
 
-        Map<String, String> headers = request.getRequestHeaders();
+        Map<String, String> headers = new LinkedHashMap<>();
+        if (request.getRequestHeaders() != null) headers.putAll(request.getRequestHeaders());
+        String method = request.getMethod() == null ? "GET" : request.getMethod();
+
+        if ("GET".equalsIgnoreCase(method) && !looksLikeStaticAsset(url)) {
+            rememberRawRequest(url, headers, source);
+        }
+
         String accept = header(headers, "Accept");
         String dest = header(headers, "Sec-Fetch-Dest");
         String range = header(headers, "Range");
         String mime = guessMimeFromHints(url, accept, dest);
         int score = scoreCandidate(url, mime, accept, dest, range);
 
-        if (score >= 55) {
+        // Obvious roots can be shown immediately; ambiguous/extensionless traffic gets verified.
+        if (score >= 90 && !isSegmentLike(url)) {
             detectorEvents++;
             addDetectedMedia(url, mime, source, score);
+        } else if (shouldAutoProbe(url, headers)) {
+            queueProbe(url, headers, source, false);
+        }
+    }
+
+    private void rememberRawRequest(String url, Map<String, String> headers, String source) {
+        synchronized (rawRequests) {
+            rawRequests.remove(url);
+            rawRequests.put(url, new RequestSnapshot(url, headers, source));
+            while (rawRequests.size() > 120) {
+                String first = rawRequests.keySet().iterator().next();
+                rawRequests.remove(first);
+            }
+        }
+    }
+
+    private boolean shouldAutoProbe(String url, Map<String, String> headers) {
+        if (isSegmentLike(url) || looksLikeStaticAsset(url)) return false;
+        String range = header(headers, "Range");
+        String accept = header(headers, "Accept").toLowerCase(Locale.US);
+        String dest = header(headers, "Sec-Fetch-Dest").toLowerCase(Locale.US);
+
+        if (looksLikeCastableMedia(url)) return true;
+        if (looksStreamish(url)) return true;
+        if (!range.isEmpty()) return true;
+        if ("video".equals(dest)) return true;
+        if (accept.contains("video/") || accept.contains("mpegurl") || accept.contains("dash+xml")) return true;
+        return false;
+    }
+
+    private void queueProbe(String url, Map<String, String> headers, String source, boolean force) {
+        if (!isHttpUrl(url) || isKnownAdUrl(url) || looksLikeStaticAsset(url)) return;
+        if (!force && isSegmentLike(url)) return;
+        if (!probedUrls.add(url)) return;
+
+        activeProbes.incrementAndGet();
+        runOnUiThread(this::updateStatus);
+        probeExecutor.execute(() -> {
+            try {
+                ProbeResult result = probeUrl(url, headers);
+                if (result != null && result.isPlayableRoot) {
+                    addDetectedMedia(url, result.mime, source + "+verified", result.score);
+                }
+            } finally {
+                activeProbes.decrementAndGet();
+                runOnUiThread(this::updateStatus);
+            }
+        });
+    }
+
+    private ProbeResult probeUrl(String rawUrl, Map<String, String> originalHeaders) {
+        HttpURLConnection conn = null;
+        try {
+            URL url = new URL(rawUrl);
+            conn = (HttpURLConnection) url.openConnection();
+            conn.setInstanceFollowRedirects(true);
+            conn.setConnectTimeout(7000);
+            conn.setReadTimeout(7000);
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("Range", "bytes=0-8191");
+            conn.setRequestProperty("Accept-Encoding", "identity");
+
+            if (originalHeaders != null) {
+                for (Map.Entry<String, String> e : originalHeaders.entrySet()) {
+                    String k = e.getKey();
+                    String v = e.getValue();
+                    if (k == null || v == null) continue;
+                    if ("Host".equalsIgnoreCase(k) || "Connection".equalsIgnoreCase(k)
+                            || "Content-Length".equalsIgnoreCase(k) || "Accept-Encoding".equalsIgnoreCase(k)
+                            || "Range".equalsIgnoreCase(k)) continue;
+                    try { conn.setRequestProperty(k, v); } catch (Exception ignored) {}
+                }
+            }
+
+            String cookie = CookieManager.getInstance().getCookie(rawUrl);
+            if (cookie != null && !cookie.isEmpty()) conn.setRequestProperty("Cookie", cookie);
+
+            String referer = prefs == null ? null : prefs.getString(KEY_LAST_URL, "");
+            if (referer != null && isHttpUrl(referer) && conn.getRequestProperty("Referer") == null) {
+                conn.setRequestProperty("Referer", referer);
+            }
+
+            int code = conn.getResponseCode();
+            if (code < 200 || code >= 400) return null;
+
+            String contentType = conn.getContentType();
+            String mime = normalizeContentType(contentType);
+            byte[] prefix = readPrefix(conn, 8192);
+            String textPrefix = new String(prefix, java.nio.charset.StandardCharsets.UTF_8).trim();
+
+            if (textPrefix.startsWith("#EXTM3U")) {
+                return new ProbeResult("application/x-mpegURL", true, 110);
+            }
+            String upper = textPrefix.length() > 512 ? textPrefix.substring(0, 512).toUpperCase(Locale.US)
+                    : textPrefix.toUpperCase(Locale.US);
+            if (upper.contains("<MPD") || upper.startsWith("<?XML") && upper.contains("<MPD")) {
+                return new ProbeResult("application/dash+xml", true, 109);
+            }
+
+            String lowerMime = mime.toLowerCase(Locale.US);
+            if (lowerMime.contains("mpegurl")) return new ProbeResult("application/x-mpegURL", true, 108);
+            if (lowerMime.contains("dash+xml")) return new ProbeResult("application/dash+xml", true, 107);
+
+            // Segment MIME types are media bytes, but they are not independently playable root URLs.
+            if (isSegmentMime(lowerMime) || isSegmentLike(rawUrl)) return null;
+
+            if (lowerMime.startsWith("video/")) {
+                return new ProbeResult(mime, true, 102);
+            }
+
+            if (looksLikeDirectMediaMagic(prefix)) {
+                String guessed = guessMime(rawUrl);
+                if (guessed.isEmpty()) guessed = "video/mp4";
+                return new ProbeResult(guessed, true, 100);
+            }
+
+            return null;
+        } catch (Exception ignored) {
+            return null;
+        } finally {
+            if (conn != null) conn.disconnect();
+        }
+    }
+
+    private byte[] readPrefix(HttpURLConnection conn, int max) {
+        try (InputStream in = new BufferedInputStream(conn.getInputStream());
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            byte[] buf = new byte[2048];
+            int total = 0;
+            while (total < max) {
+                int n = in.read(buf, 0, Math.min(buf.length, max - total));
+                if (n < 0) break;
+                out.write(buf, 0, n);
+                total += n;
+            }
+            return out.toByteArray();
+        } catch (Exception ignored) {
+            return new byte[0];
+        }
+    }
+
+    private String normalizeContentType(String raw) {
+        if (raw == null) return "";
+        int semi = raw.indexOf(';');
+        return (semi >= 0 ? raw.substring(0, semi) : raw).trim();
+    }
+
+    private boolean isSegmentMime(String mime) {
+        if (mime == null) return false;
+        String m = mime.toLowerCase(Locale.US);
+        return m.contains("mp2t") || m.contains("iso.segment") || m.contains("m4s")
+                || m.equals("audio/aac") || m.equals("audio/mp4");
+    }
+
+    private boolean looksLikeDirectMediaMagic(byte[] b) {
+        if (b == null || b.length < 12) return false;
+        // ISO BMFF / MP4: bytes 4..7 are usually "ftyp".
+        if (b.length >= 8 && b[4] == 'f' && b[5] == 't' && b[6] == 'y' && b[7] == 'p') return true;
+        // WebM/Matroska EBML header.
+        return (b[0] & 0xff) == 0x1A && (b[1] & 0xff) == 0x45
+                && (b[2] & 0xff) == 0xDF && (b[3] & 0xff) == 0xA3;
+    }
+
+    private void deepProbeCapturedRequests() {
+        List<RequestSnapshot> snapshots;
+        synchronized (rawRequests) {
+            snapshots = new ArrayList<>(rawRequests.values());
+        }
+        Collections.reverse(snapshots);
+
+        int queued = 0;
+        // Prefer recent requests; they are most likely to belong to the video the user just started.
+        for (RequestSnapshot s : snapshots) {
+            if (queued >= 70) break;
+            if (looksLikeStaticAsset(s.url) || isKnownAdUrl(s.url)) continue;
+            queueProbe(s.url, s.headers, s.source, true);
+            queued++;
+        }
+
+        if (queued == 0) {
+            Toast.makeText(this, "No stream-like requests were captured yet. Start the video first.", Toast.LENGTH_LONG).show();
+        } else {
+            Toast.makeText(this, "Analyzing " + queued + " recent requests… tap Videos again in a moment.",
+                    Toast.LENGTH_LONG).show();
         }
     }
 
@@ -894,10 +1118,14 @@ public class MainActivity extends AppCompatActivity {
     private void showDetectedVideos() {
         List<DetectedMedia> list = getDisplayMedia();
         if (list.isEmpty()) {
-            Toast.makeText(this,
-                    "No stream detected yet. Start the video and let it play for a few seconds, then try again. Deep detection is active.",
-                    Toast.LENGTH_LONG).show();
             injectPageHelpers(webView);
+            int rawCount = rawRequests.size();
+            new AlertDialog.Builder(this)
+                    .setTitle("No confirmed video yet")
+                    .setMessage(rawCount + " recent network requests captured. Deep Scan checks their real server responses to find the playable stream.")
+                    .setPositiveButton("Deep Scan", (dialog, which) -> deepProbeCapturedRequests())
+                    .setNegativeButton("Close", null)
+                    .show();
             return;
         }
 
@@ -1086,9 +1314,35 @@ public class MainActivity extends AppCompatActivity {
         else if (state == CastState.NOT_CONNECTED) cast = "Cast available";
         else cast = "No Cast device";
 
+        int probing = activeProbes.get();
         statusText.setText(cast + " • " + count + " video" + (count == 1 ? "" : "s")
-                + " • " + blockedAds + " blocked • deep");
+                + (probing > 0 ? " • scanning " + probing : "")
+                + " • " + blockedAds + " blocked");
         videosButton.setText("Videos (" + count + ")");
+    }
+
+    private static class RequestSnapshot {
+        final String url;
+        final Map<String, String> headers;
+        final String source;
+
+        RequestSnapshot(String url, Map<String, String> headers, String source) {
+            this.url = url;
+            this.headers = headers == null ? new LinkedHashMap<>() : new LinkedHashMap<>(headers);
+            this.source = source == null ? "network" : source;
+        }
+    }
+
+    private static class ProbeResult {
+        final String mime;
+        final boolean isPlayableRoot;
+        final int score;
+
+        ProbeResult(String mime, boolean isPlayableRoot, int score) {
+            this.mime = mime == null ? "" : mime;
+            this.isPlayableRoot = isPlayableRoot;
+            this.score = score;
+        }
     }
 
     private static class HistoryEntry {
