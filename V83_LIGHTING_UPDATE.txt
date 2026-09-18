@@ -1,8 +1,0 @@
-V83 lighting update
-- Recreated the approved reference lighting with a centered warm bulb source.
-- Corrected the prior right-side-only table lighting caused by a left-positioned pool without centering translation.
-- Added one symmetric soft cone beginning at the exposed bulb tip.
-- Expanded the landing pool to illuminate the full tabletop with gentle falloff.
-- Reduced brightness and saturation for a softer warm saloon glow.
-- Darkened the room perimeter while keeping the complete tabletop readable.
-- Made smoke visibility follow the same lamp cone and swing phase.

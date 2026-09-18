@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">WebCast</string>
+    <string name="start_page_html"><![CDATA[
+        <html><head><meta name="viewport" content="width=device-width, initial-scale=1" />
+        <style>
+        body{font-family:sans-serif;background:#101114;color:#eee;padding:28px;line-height:1.55}
+        .card{max-width:650px;margin:auto;background:#1a1c21;border-radius:18px;padding:24px}
+        h1{margin-top:0}.muted{color:#aeb4bf}
+        </style></head><body><div class="card">
+        <h1>WebCast</h1>
+        <p>Enter a website above. Start a video on the page, then tap <b>Videos</b> to see streams the app detected.</p>
+        <p>Tap the Cast icon first to connect to your Chromecast.</p>
+        <p class="muted">Best support: direct MP4, HLS (.m3u8) and MPEG-DASH (.mpd). DRM or streams that require website-only cookies/headers may not play on the Chromecast.</p>
+        </div></body></html>
+    ]]></string>
+</resources>
