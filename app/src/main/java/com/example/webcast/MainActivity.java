@@ -573,6 +573,7 @@ public class MainActivity extends AppCompatActivity {
         String a = accept == null ? "" : accept.toLowerCase(Locale.US);
         String d = dest == null ? "" : dest.toLowerCase(Locale.US);
 
+        if (isSegmentLike(url)) return 0;
         if (u.contains(".m3u8")) return 100;
         if (u.contains(".mpd")) return 99;
         if (u.matches(".*\\.(mp4|m4v|webm|mov)(?:$|[?#/]).*")) return 96;
@@ -587,6 +588,34 @@ public class MainActivity extends AppCompatActivity {
         if (streamish) return 68;
         if (range != null && !range.isEmpty() && !looksLikeStaticAsset(url)) return 58;
         return 0;
+    }
+
+    private boolean isSegmentLike(String url) {
+        if (url == null) return false;
+        String u = url.toLowerCase(Locale.US);
+        String path;
+        try {
+            path = Uri.parse(url).getPath();
+        } catch (Exception ignored) {
+            path = url;
+        }
+        String p = path == null ? u : path.toLowerCase(Locale.US);
+
+        if (p.matches(".*\\.(ts|m4s|m4a|aac|ac3|ec3|vtt|srt|ttml|key)(?:$|[?#]).*")) return true;
+
+        String file = p.substring(p.lastIndexOf('/') + 1);
+        if (file.matches("(?i)^(init|initialization|segment|seg|chunk|frag|fragment|part)[-_]?[a-z0-9._-]*\\.(mp4|m4s|m4a)$")) {
+            return true;
+        }
+
+        if (!p.contains(".m3u8") && !p.contains(".mpd")) {
+            if (p.contains("/segments/") || p.contains("/segment/")
+                    || p.contains("/chunks/") || p.contains("/chunk/")
+                    || p.contains("/fragments/") || p.contains("/fragment/")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean looksStreamish(String url) {
@@ -703,7 +732,7 @@ public class MainActivity extends AppCompatActivity {
         if (lower.contains(".mpd")) return "application/dash+xml";
         if (lower.contains(".webm")) return "video/webm";
         if (lower.contains(".mov")) return "video/quicktime";
-        return "video/mp4";
+        return "";
     }
 
     private void addDetectedMedia(String url, String mime, String source) {
@@ -733,11 +762,123 @@ public class MainActivity extends AppCompatActivity {
         synchronized (detectedMedia) {
             list = new ArrayList<>(detectedMedia.values());
         }
+        list.removeIf(m -> isSegmentLike(m.url) || isKnownAdUrl(m.url));
         list.sort(Comparator
-                .comparingInt((DetectedMedia m) -> m.score).reversed()
+                .comparingInt((DetectedMedia m) -> displayRank(m)).reversed()
                 .thenComparingInt(m -> priority(m.mime))
                 .thenComparingInt(m -> m.url.length()));
         return list;
+    }
+
+    private List<DetectedMedia> getDisplayMedia() {
+        List<DetectedMedia> all = getSortedMedia();
+        if (all.isEmpty()) return all;
+
+        // A direct URL attached to the actual media element is the strongest signal.
+        for (DetectedMedia m : all) {
+            if (isDirectMedia(m) && isDomMediaSource(m.source)) {
+                return Collections.singletonList(m);
+            }
+        }
+
+        // Adaptive players often expose dozens of fragments plus several variant playlists.
+        // Present one root HLS and one root DASH candidate rather than every rendition.
+        DetectedMedia bestHls = null;
+        DetectedMedia bestDash = null;
+        List<DetectedMedia> direct = new ArrayList<>();
+
+        for (DetectedMedia m : all) {
+            if (isHls(m)) {
+                if (bestHls == null || displayRank(m) > displayRank(bestHls)) bestHls = m;
+            } else if (isDash(m)) {
+                if (bestDash == null || displayRank(m) > displayRank(bestDash)) bestDash = m;
+            } else if (isDirectMedia(m)) {
+                direct.add(m);
+            }
+        }
+
+        List<DetectedMedia> result = new ArrayList<>();
+        if (bestHls != null) result.add(bestHls);
+        if (bestDash != null) result.add(bestDash);
+
+        // If we found an adaptive root, it is normally the one playable video.
+        if (!result.isEmpty()) return result;
+
+        // For progressive media, suppress duplicate-looking CDNs/range URLs and show only
+        // the best few genuinely distinct files.
+        Map<String, DetectedMedia> groups = new LinkedHashMap<>();
+        for (DetectedMedia m : direct) {
+            String key = mediaFamilyKey(m.url);
+            DetectedMedia old = groups.get(key);
+            if (old == null || displayRank(m) > displayRank(old)) groups.put(key, m);
+        }
+
+        result.addAll(groups.values());
+        result.sort(Comparator.comparingInt((DetectedMedia m) -> displayRank(m)).reversed());
+        if (result.size() > 4) return new ArrayList<>(result.subList(0, 4));
+        return result;
+    }
+
+    private boolean isHls(DetectedMedia m) {
+        String mime = m.mime == null ? "" : m.mime.toLowerCase(Locale.US);
+        String url = m.url.toLowerCase(Locale.US);
+        return mime.contains("mpegurl") || url.contains(".m3u8");
+    }
+
+    private boolean isDash(DetectedMedia m) {
+        String mime = m.mime == null ? "" : m.mime.toLowerCase(Locale.US);
+        String url = m.url.toLowerCase(Locale.US);
+        return mime.contains("dash") || url.contains(".mpd");
+    }
+
+    private boolean isDirectMedia(DetectedMedia m) {
+        if (isHls(m) || isDash(m) || isSegmentLike(m.url)) return false;
+        String mime = m.mime == null ? "" : m.mime.toLowerCase(Locale.US);
+        String url = m.url.toLowerCase(Locale.US);
+        return mime.startsWith("video/")
+                || url.matches(".*\\\\.(mp4|m4v|webm|mov)(?:$|[?#/]).*");
+    }
+
+    private boolean isDomMediaSource(String source) {
+        if (source == null) return false;
+        return source.contains("dom-media") || source.contains("dom-source") || source.contains("page");
+    }
+
+    private int displayRank(DetectedMedia m) {
+        int rank = m.score;
+        String u = m.url.toLowerCase(Locale.US);
+        String s = m.source == null ? "" : m.source.toLowerCase(Locale.US);
+
+        if (s.contains("dom-media")) rank += 35;
+        else if (s.contains("dom-source")) rank += 28;
+        else if (s.contains("fetch") || s.contains("xhr")) rank += 15;
+        else if (s.contains("script-config")) rank += 8;
+
+        if (u.contains("master")) rank += 30;
+        else if (u.contains("manifest")) rank += 24;
+        else if (u.contains("playlist")) rank += 18;
+        else if (u.contains("index.m3u8")) rank += 12;
+
+        // Variant playlists often advertise their resolution/bitrate in the URL.
+        if (u.matches(".*(?:^|[/_.-])(144|240|360|480|540|720|1080|1440|2160)p?(?:[/_.?&=-]|$).*")) rank -= 12;
+        if (u.matches(".*(?:^|[/_.-])(low|medium|high|mobile)(?:[/_.?&=-]|$).*")) rank -= 6;
+
+        return rank;
+    }
+
+    private String mediaFamilyKey(String rawUrl) {
+        try {
+            URI uri = new URI(rawUrl);
+            String h = uri.getHost() == null ? "" : uri.getHost().toLowerCase(Locale.US);
+            String p = uri.getPath() == null ? "" : uri.getPath().toLowerCase(Locale.US);
+            String file = p.substring(p.lastIndexOf('/') + 1);
+            // Strip common CDN/rendition tokens while keeping the actual filename family.
+            file = file.replaceAll("(?i)(?:^|[-_.])(144|240|360|480|540|720|1080|1440|2160)p?(?=[-_.]|$)", "");
+            file = file.replaceAll("(?i)(?:^|[-_.])(low|medium|high|mobile)(?=[-_.]|$)", "");
+            return h + "|" + file;
+        } catch (Exception ignored) {
+            return rawUrl;
+        }
     }
 
     private int priority(String mime) {
@@ -751,7 +892,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void showDetectedVideos() {
-        List<DetectedMedia> list = getSortedMedia();
+        List<DetectedMedia> list = getDisplayMedia();
         if (list.isEmpty()) {
             Toast.makeText(this,
                     "No stream detected yet. Start the video and let it play for a few seconds, then try again. Deep detection is active.",
@@ -766,7 +907,25 @@ public class MainActivity extends AppCompatActivity {
         new AlertDialog.Builder(this)
                 .setTitle("Detected videos")
                 .setItems(labels, (dialog, which) -> castMedia(list.get(which)))
-                .setNeutralButton("Clear list", (dialog, which) -> {
+                .setNeutralButton("All candidates (" + getSortedMedia().size() + ")", (dialog, which) ->
+                        showAllCandidates())
+                .setNegativeButton("Close", null)
+                .show();
+    }
+
+    private void showAllCandidates() {
+        List<DetectedMedia> all = getSortedMedia();
+        if (all.isEmpty()) {
+            Toast.makeText(this, "No raw candidates.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        String[] labels = new String[all.size()];
+        for (int i = 0; i < all.size(); i++) labels[i] = all.get(i).displayLabel();
+
+        new AlertDialog.Builder(this)
+                .setTitle("All media candidates")
+                .setItems(labels, (dialog, which) -> castMedia(all.get(which)))
+                .setNeutralButton("Clear", (dialog, which) -> {
                     detectedMedia.clear();
                     updateStatus();
                 })
@@ -918,7 +1077,7 @@ public class MainActivity extends AppCompatActivity {
     private void updateStatus() {
         if (statusText == null || videosButton == null) return;
 
-        int count = detectedMedia.size();
+        int count = getDisplayMedia().size();
         int state = castContext == null ? CastState.NO_DEVICES_AVAILABLE : castContext.getCastState();
 
         String cast;
@@ -950,7 +1109,7 @@ public class MainActivity extends AppCompatActivity {
 
         DetectedMedia(String url, String mime, String source, int score) {
             this.url = url;
-            this.mime = mime == null || mime.isEmpty() ? "video/mp4" : mime;
+            this.mime = mime == null ? "" : mime;
             this.source = source == null ? "unknown" : source;
             this.score = score;
         }
@@ -962,7 +1121,8 @@ public class MainActivity extends AppCompatActivity {
             else if (m.contains("dash")) kind = "DASH";
             else if (m.contains("webm")) kind = "WEBM";
             else if (m.contains("quicktime")) kind = "MOV";
-            else kind = "MP4/VIDEO";
+            else if (m.contains("mp4")) kind = "MP4";
+            else kind = "STREAM";
 
             String host;
             String path;
@@ -981,7 +1141,7 @@ public class MainActivity extends AppCompatActivity {
             if (file.isEmpty()) file = "stream";
             if (file.length() > 55) file = file.substring(0, 52) + "…";
 
-            return kind + " • " + host + " • " + score + "%\n" + file + "  [" + source + "]";
+            return kind + " • " + host + "\n" + file + "  [" + source + "]";
         }
     }
 }
