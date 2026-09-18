@@ -16,6 +16,7 @@ import android.os.Message;
 import android.os.PowerManager;
 import android.os.SystemClock;
 import android.text.InputType;
+import android.util.Base64;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.WindowInsets;
@@ -83,6 +84,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import javax.crypto.Cipher;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity {
@@ -111,6 +116,9 @@ public class MainActivity extends AppCompatActivity {
             Collections.synchronizedMap(new LinkedHashMap<>());
     private volatile String lastRangeVideoUrl = "";
     private volatile String webViewUserAgent = "";
+    private volatile boolean pauseLocalForCast = false;
+    private final Set<String> processedAbyssDatas =
+            Collections.synchronizedSet(new HashSet<>());
     private RelayServer relayServer;
     private PowerManager.WakeLock relayWakeLock;
     private final AtomicInteger blobHlsHits = new AtomicInteger(0);
@@ -309,6 +317,8 @@ public class MainActivity extends AppCompatActivity {
                 diagnosticLog.clear();
                 mediaRequestHeaders.clear();
                 lastRangeVideoUrl = "";
+                processedAbyssDatas.clear();
+                pauseLocalForCast = false;
                 blobHlsHits.set(0);
                 blobVideoHits.set(0);
                 mseHits.set(0);
@@ -497,6 +507,22 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @JavascriptInterface
+        public void abyssDatas(String encoded, String frameUrl) {
+            if (encoded == null || encoded.length() < 50) return;
+            String key = Integer.toHexString(encoded.hashCode()) + ":" + encoded.length();
+            if (!processedAbyssDatas.add(key)) return;
+
+            addDiagnostic("ABYSS_DATAS bytes=" + encoded.length()
+                    + " frame=" + redactUrl(frameUrl));
+            probeExecutor.execute(() -> extractAbyssSources(encoded, frameUrl));
+        }
+
+        @JavascriptInterface
+        public boolean shouldPauseForCast() {
+            return pauseLocalForCast;
+        }
+
+        @JavascriptInterface
         public void blobMeta(String blobUrl, String type, long size, String frameUrl) {
             String t = type == null ? "" : type.toLowerCase(Locale.US);
             if (t.contains("mpegurl") || t.contains("dash")) {
@@ -624,6 +650,15 @@ public class MainActivity extends AppCompatActivity {
                 + "function send(u,t,s){try{u=abs(u);if(!likely(u,t)||u.indexOf('blob:')===0)return;"
                 + "if(window.WebCastBridge&&WebCastBridge.candidate)WebCastBridge.candidate(String(u),String(t||''),String(s||'page'));}catch(e){}}"
                 + "function click(u){try{u=abs(u);if(window.WebCastBridge&&WebCastBridge.clicked)WebCastBridge.clicked(String(u));}catch(e){}}"
+                + "function abyssScan(){try{window.__wcAbyssSent=window.__wcAbyssSent||{};"
+                + "document.querySelectorAll('script').forEach(function(sc){var tx=sc.textContent||'';"
+                + "var m=tx.match(/(?:const|var)\\s+datas\\s*=\\s*\"([^\"]{50,})\"/);"
+                + "if(m&&!window.__wcAbyssSent[m[1].slice(0,32)]){window.__wcAbyssSent[m[1].slice(0,32)]=1;"
+                + "if(window.WebCastBridge&&WebCastBridge.abyssDatas)WebCastBridge.abyssDatas(m[1],String(location.href));}});}catch(e){}}"
+                + "function pauseIfAsked(){try{if(window.WebCastBridge&&WebCastBridge.shouldPauseForCast&&WebCastBridge.shouldPauseForCast()){"
+                + "document.querySelectorAll('video,audio').forEach(function(v){try{v.pause();}catch(e){}});"
+                + "try{if(window.jwplayer&&typeof jwplayer().pause==='function')jwplayer().pause(true);}catch(e){}"
+                + "}}catch(e){}}"
                 + "function payload(u,t,x,s){try{if(!x)return;x=String(x);if(x.length>350000)x=x.slice(0,350000);"
                 + "if(!isMediaText(x))return;if(window.WebCastBridge&&WebCastBridge.payload)"
                 + "WebCastBridge.payload(String(u||''),String(t||''),x,String(location.href),String(s||'payload'));}catch(e){}}"
@@ -669,7 +704,7 @@ public class MainActivity extends AppCompatActivity {
                 + "document.addEventListener('click',function(e){try{var n=e.target;while(n&&n!==document){"
                 + "if(n.tagName==='A'&&n.href){click(n.href);break;}n=n.parentElement;}}catch(x){}},true);"
 
-                + "window.__webCastDeepScan=function(){try{document.querySelectorAll('video,audio').forEach(function(v){"
+                + "window.__webCastDeepScan=function(){try{abyssScan();pauseIfAsked();document.querySelectorAll('video,audio').forEach(function(v){"
                 + "var u=v.currentSrc||v.src;if(u&&u.indexOf('blob:')===0){"
                 + "if(window.WebCastBridge&&WebCastBridge.blobMeta)WebCastBridge.blobMeta(String(u),String(v.type||'video/unknown'),0,String(location.href));}"
                 + "else send(u,v.type,'dom-media');v.querySelectorAll('source').forEach(function(s){send(s.src,s.type,'dom-source');});});"
@@ -681,7 +716,7 @@ public class MainActivity extends AppCompatActivity {
                 + "{subtree:true,childList:true,attributes:true,attributeFilter:['src']});}catch(e){}"
                 + "try{if(window.PerformanceObserver){new PerformanceObserver(function(l){l.getEntries().forEach(function(e){"
                 + "send(e.name,'','resource');});}).observe({entryTypes:['resource']});}}catch(e){}"
-                + "setInterval(function(){try{window.__webCastDeepScan();}catch(e){}},1800);"
+                + "setInterval(function(){try{window.__webCastDeepScan();pauseIfAsked();}catch(e){}},700);"
                 + "})();";
     }
 
@@ -1069,6 +1104,202 @@ public class MainActivity extends AppCompatActivity {
         return u.matches(".*\\.(css|js|png|jpe?g|gif|svg|webp|ico|woff2?|ttf|otf)(?:$|[?#]).*");
     }
 
+    private void extractAbyssSources(String encoded, String frameUrl) {
+        try {
+            byte[] outerBytes = Base64.decode(encoded, Base64.DEFAULT);
+            String outerJson = new String(outerBytes, StandardCharsets.UTF_8);
+            JSONObject outer = new JSONObject(outerJson);
+
+            String slug = outer.optString("slug", "");
+            String md5Id = String.valueOf(outer.opt("md5_id"));
+            String userId = String.valueOf(outer.opt("user_id"));
+            String mediaEncrypted = outer.optString("media", "");
+
+            if (slug.isEmpty() || md5Id.isEmpty() || userId.isEmpty() || mediaEncrypted.isEmpty()) {
+                addDiagnostic("ABYSS_ERROR missing metadata");
+                return;
+            }
+
+            byte[] encrypted = lowBytes(mediaEncrypted);
+            byte[] decrypted = aesCtrTransform(encrypted, userId + ":" + slug + ":" + md5Id);
+            if (decrypted == null || decrypted.length == 0) {
+                addDiagnostic("ABYSS_ERROR decrypt failed");
+                return;
+            }
+
+            String mediaJson = new String(decrypted, StandardCharsets.UTF_8);
+            JSONObject media = new JSONObject(mediaJson);
+            JSONObject mp4 = media.optJSONObject("mp4");
+            if (mp4 == null) {
+                addDiagnostic("ABYSS_ERROR no mp4 block");
+                return;
+            }
+
+            JSONArray sources = mp4.optJSONArray("sources");
+            JSONArray domains = mp4.optJSONArray("domains");
+            if (sources == null || sources.length() == 0) {
+                addDiagnostic("ABYSS_ERROR no sources");
+                return;
+            }
+
+            int added = 0;
+            for (int i = 0; i < sources.length(); i++) {
+                JSONObject source = sources.optJSONObject(i);
+                if (source == null) continue;
+                if (source.has("status") && !source.optBoolean("status", true)) continue;
+
+                String label = source.optString("label", "Quality " + (i + 1));
+                String direct = source.optString("file", "");
+                String url = source.optString("url", "");
+                String path = source.optString("path", "");
+                String resId = String.valueOf(source.opt("res_id"));
+                String size = String.valueOf(source.opt("size"));
+                String sub = source.optString("sub", "");
+
+                String sourceUrl = "";
+                if (!direct.isEmpty()) {
+                    sourceUrl = direct.replace("\\\\/", "/");
+                } else if (!url.isEmpty() && !path.isEmpty()) {
+                    sourceUrl = url.replace("\\\\/", "/").replaceAll("/+$", "")
+                            + "/" + path.replace("\\\\/", "/").replaceAll("^/+", "");
+                } else if (!resId.isEmpty() && !size.isEmpty() && !sub.isEmpty()) {
+                    String domain = findAbyssDomain(domains, sub);
+                    if (domain.isEmpty()) domain = "https://" + sub + ".sssrr.org";
+                    String pathValue = "/mp4/" + md5Id + "/" + resId + "/" + size + "?v=" + slug;
+                    String token = buildSoraToken(pathValue, size);
+                    if (!token.isEmpty()) {
+                        sourceUrl = domain.replaceAll("/+$", "")
+                                + "/sora/" + size + "/" + token;
+                    }
+                }
+
+                if (!isHttpUrl(sourceUrl)) continue;
+
+                Map<String, String> headers = new LinkedHashMap<>();
+                String referer = refererRoot(frameUrl);
+                if (!referer.isEmpty()) headers.put("Referer", referer);
+                if (webViewUserAgent != null && !webViewUserAgent.isEmpty()) {
+                    headers.put("User-Agent", webViewUserAgent);
+                }
+                synchronized (mediaRequestHeaders) {
+                    mediaRequestHeaders.put(sourceUrl, headers);
+                }
+
+                long sizeBytes = parseLongSafe(size);
+                String sourceTag = "abyss-source|" + cleanQualityLabel(label)
+                        + "|" + sizeBytes;
+                addDetectedMedia(sourceUrl, "video/mp4", sourceTag, 140 + i);
+                added++;
+            }
+
+            addDiagnostic("ABYSS_EXTRACTED sources=" + added
+                    + " frame=" + redactUrl(frameUrl));
+            runOnUiThread(this::updateStatus);
+        } catch (Exception e) {
+            addDiagnostic("ABYSS_ERROR " + safeText(e.getClass().getSimpleName()
+                    + ": " + e.getMessage()));
+        }
+    }
+
+    private byte[] lowBytes(String text) {
+        byte[] out = new byte[text.length()];
+        for (int i = 0; i < text.length(); i++) {
+            out[i] = (byte) (text.charAt(i) & 0xff);
+        }
+        return out;
+    }
+
+    private byte[] deriveAbyssKey(String seed) throws Exception {
+        byte[] input;
+        String s = String.valueOf(seed);
+        if (s.matches("[0-9.:-]+")) {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            for (int i = 0; i < s.length(); i++) {
+                char ch = s.charAt(i);
+                out.write(Character.isDigit(ch) ? (ch - '0') : (ch & 0xff));
+            }
+            input = out.toByteArray();
+        } else {
+            input = s.getBytes(StandardCharsets.UTF_8);
+        }
+
+        MessageDigest md5 = MessageDigest.getInstance("MD5");
+        byte[] digest = md5.digest(input);
+        StringBuilder hex = new StringBuilder(32);
+        for (byte b : digest) hex.append(String.format(Locale.US, "%02x", b & 0xff));
+        return hex.toString().getBytes(StandardCharsets.UTF_8);
+    }
+
+    private byte[] aesCtrTransform(byte[] input, String keySeed) {
+        try {
+            byte[] key = deriveAbyssKey(keySeed);
+            byte[] iv = new byte[16];
+            System.arraycopy(key, 0, iv, 0, 16);
+
+            Cipher cipher = Cipher.getInstance("AES/CTR/NoPadding");
+            cipher.init(Cipher.ENCRYPT_MODE,
+                    new SecretKeySpec(key, "AES"),
+                    new IvParameterSpec(iv));
+            return cipher.doFinal(input);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private String buildSoraToken(String pathValue, String sizeValue) {
+        try {
+            byte[] transformed = aesCtrTransform(
+                    pathValue.getBytes(StandardCharsets.UTF_8), sizeValue);
+            if (transformed == null) return "";
+
+            String first = Base64.encodeToString(transformed,
+                    Base64.NO_WRAP | Base64.NO_PADDING);
+            return Base64.encodeToString(first.getBytes(StandardCharsets.UTF_8),
+                    Base64.NO_WRAP | Base64.NO_PADDING);
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private String findAbyssDomain(JSONArray domains, String sub) {
+        if (domains == null) return "";
+        for (int i = 0; i < domains.length(); i++) {
+            String d = domains.optString(i, "");
+            if (d.isEmpty()) continue;
+            if (!sub.isEmpty() && !d.contains(sub)) continue;
+            if (!d.startsWith("http://") && !d.startsWith("https://")) d = "https://" + d;
+            return d;
+        }
+        return "";
+    }
+
+    private String refererRoot(String frameUrl) {
+        try {
+            URI uri = new URI(frameUrl);
+            if (uri.getScheme() == null || uri.getHost() == null) return "";
+            return uri.getScheme() + "://" + uri.getHost() + "/";
+        } catch (Exception ignored) {
+            return "";
+        }
+    }
+
+    private long parseLongSafe(String value) {
+        try {
+            if (value == null) return -1;
+            String cleaned = value.replaceAll("[^0-9]", "");
+            return cleaned.isEmpty() ? -1 : Long.parseLong(cleaned);
+        } catch (Exception ignored) {
+            return -1;
+        }
+    }
+
+    private String cleanQualityLabel(String label) {
+        if (label == null || label.trim().isEmpty()) return "Unknown";
+        String l = label.trim();
+        if (l.matches("\\d{3,4}")) return l + "p";
+        return l;
+    }
+
     private boolean containsMediaReference(String text) {
         if (text == null || text.isEmpty()) return false;
         String t = text.toLowerCase(Locale.US);
@@ -1193,7 +1424,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void showDebugReport() {
         StringBuilder sb = new StringBuilder();
-        sb.append("WEBCAST_DEBUG_V0.5.0\\n");
+        sb.append("WEBCAST_DEBUG_V0.6.0\\n");
         sb.append("page=").append(redactUrl(webView == null ? "" : webView.getUrl())).append("\\n");
         sb.append("title=").append(safeText(webView == null ? "" : webView.getTitle())).append("\\n");
         sb.append("confirmedVideos=").append(getDisplayMedia().size()).append("\\n");
@@ -1371,6 +1602,17 @@ public class MainActivity extends AppCompatActivity {
         List<DetectedMedia> all = getSortedMedia();
         if (all.isEmpty()) return all;
 
+        // Once the player metadata has been decoded, these are the real complete
+        // quality sources. Hide the service-worker chunk URLs from the normal list.
+        List<DetectedMedia> abyss = new ArrayList<>();
+        for (DetectedMedia m : all) {
+            if (m.source != null && m.source.startsWith("abyss-source|")) abyss.add(m);
+        }
+        if (!abyss.isEmpty()) {
+            abyss.sort((a, b) -> Long.compare(qualitySize(b), qualitySize(a)));
+            return abyss;
+        }
+
         // Ranged service-worker files are quality variants of the same logical movie.
         // Only show the variant most recently requested by the visible player.
         if (lastRangeVideoUrl != null && !lastRangeVideoUrl.isEmpty()) {
@@ -1425,6 +1667,15 @@ public class MainActivity extends AppCompatActivity {
         result.sort(Comparator.comparingInt((DetectedMedia m) -> displayRank(m)).reversed());
         if (result.size() > 4) return new ArrayList<>(result.subList(0, 4));
         return result;
+    }
+
+    private long qualitySize(DetectedMedia m) {
+        if (m == null || m.source == null) return -1;
+        if (m.source.startsWith("abyss-source|")) {
+            String[] parts = m.source.split("\\|");
+            if (parts.length >= 3) return parseLongSafe(parts[2]);
+        }
+        return m.estimatedSizeBytes;
     }
 
     private boolean isHls(DetectedMedia m) {
@@ -1548,7 +1799,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void castMedia(@NonNull DetectedMedia media) {
-        if (media.source != null && media.source.contains("range-video")) {
+        if (media.source != null
+                && (media.source.contains("range-video")
+                || media.source.startsWith("abyss-source|"))) {
             castMediaViaPhone(media);
             return;
         }
@@ -1585,7 +1838,24 @@ public class MainActivity extends AppCompatActivity {
         Toast.makeText(this, "Sending video to Chromecast…", Toast.LENGTH_SHORT).show();
     }
 
+    private void pausePhonePlaybackForCast() {
+        pauseLocalForCast = true;
+        runOnUiThread(() -> {
+            try {
+                webView.evaluateJavascript(
+                        "(function(){try{document.querySelectorAll('video,audio').forEach(function(v){v.pause();});"
+                                + "if(window.jwplayer&&typeof jwplayer().pause==='function')jwplayer().pause(true);"
+                                + "}catch(e){}})();",
+                        null);
+            } catch (Exception ignored) {
+            }
+        });
+        addDiagnostic("PHONE_PLAYBACK_PAUSE requested");
+    }
+
     private void castMediaViaPhone(@NonNull DetectedMedia media) {
+        pausePhonePlaybackForCast();
+
         CastSession session = castContext.getSessionManager().getCurrentCastSession();
         if (session == null || !session.isConnected()) {
             Toast.makeText(this, "Tap the Cast icon and connect to a Chromecast first.",
@@ -2295,7 +2565,16 @@ public class MainActivity extends AppCompatActivity {
             if (file.length() > 55) file = file.substring(0, 52) + "…";
 
             String quality = "";
-            if (source != null && source.contains("range-video")) {
+            if (source != null && source.startsWith("abyss-source|")) {
+                String[] parts = source.split("\\|");
+                String q = parts.length >= 2 ? parts[1] : "Unknown";
+                long sz = -1;
+                if (parts.length >= 3) {
+                    try { sz = Long.parseLong(parts[2]); } catch (Exception ignored) {}
+                }
+                quality = q + (sz > 0 ? " • " + formatBytesStatic(sz) : "");
+                kind = "VIDEO";
+            } else if (source != null && source.contains("range-video")) {
                 quality = estimatedSizeBytes > 0
                         ? "Current quality • " + formatBytesStatic(estimatedSizeBytes)
                         : "Current quality";
