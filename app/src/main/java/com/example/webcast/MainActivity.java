@@ -692,6 +692,20 @@ public class MainActivity extends AppCompatActivity {
         String accept = header(headers, "Accept");
         String dest = header(headers, "Sec-Fetch-Dest");
         String range = header(headers, "Range");
+
+        // Some streaming players hide the real progressive file behind a service worker
+        // and an opaque, extensionless CDN URL. A large byte-range request is the key signal.
+        if (isStrongRangedVideoRequest(url, source, accept, dest, range)) {
+            detectorEvents++;
+            rememberRawRequest(url, headers, source);
+            addDiagnostic("RANGE_VIDEO host=" + host(url)
+                    + " path=" + redactPath(url)
+                    + " range=" + safeHeader(range)
+                    + " source=" + source);
+            addDetectedMedia(url, "video/mp4", source + "+range-video", 118);
+            return;
+        }
+
         String mime = guessMimeFromHints(url, accept, dest);
         int score = scoreCandidate(url, mime, accept, dest, range);
 
@@ -712,6 +726,64 @@ public class MainActivity extends AppCompatActivity {
                 String first = rawRequests.keySet().iterator().next();
                 rawRequests.remove(first);
             }
+        }
+    }
+
+    private boolean isStrongRangedVideoRequest(String url, String source,
+                                               String accept, String dest, String range) {
+        if (!"service-worker".equals(source)) return false;
+        if (!isHttpUrl(url) || isKnownAdUrl(url) || looksLikeStaticAsset(url)) return false;
+        if (range == null || range.isEmpty()) return false;
+
+        long span = parseRangeSpan(range);
+        long start = parseRangeStart(range);
+        if (span < 512 * 1024L) return false;
+
+        String path;
+        try {
+            path = Uri.parse(url).getPath();
+        } catch (Exception ignored) {
+            path = "";
+        }
+        String p = path == null ? "" : path.toLowerCase(Locale.US);
+
+        // Known fragment/playlist file types should continue through the normal detector.
+        if (p.matches(".*\\.(ts|m4s|m4a|aac|vtt|srt|m3u8|mpd)(?:$|[?#]).*")) return false;
+
+        String a = accept == null ? "" : accept.toLowerCase(Locale.US);
+        String d = dest == null ? "" : dest.toLowerCase(Locale.US);
+
+        // Initial 0-based multi-megabyte range on an opaque URL is the strongest case.
+        if (start == 0 && span >= 1024 * 1024L) return true;
+
+        // Continued ranges on the same kind of stream are also valid.
+        boolean opaquePath = !p.matches(".*\\.[a-z0-9]{2,5}$");
+        return opaquePath && span >= 1024 * 1024L
+                && (a.isEmpty() || a.equals("*/*") || a.contains("video"))
+                && (d.isEmpty() || d.equals("video"));
+    }
+
+    private long parseRangeStart(String range) {
+        if (range == null) return -1;
+        Matcher m = Pattern.compile("(?i)bytes=(\\d+)-(\\d*)").matcher(range.trim());
+        if (!m.find()) return -1;
+        try {
+            return Long.parseLong(m.group(1));
+        } catch (Exception ignored) {
+            return -1;
+        }
+    }
+
+    private long parseRangeSpan(String range) {
+        if (range == null) return -1;
+        Matcher m = Pattern.compile("(?i)bytes=(\\d+)-(\\d+)").matcher(range.trim());
+        if (!m.find()) return -1;
+        try {
+            long start = Long.parseLong(m.group(1));
+            long end = Long.parseLong(m.group(2));
+            return end >= start ? (end - start + 1L) : -1;
+        } catch (Exception ignored) {
+            return -1;
         }
     }
 
@@ -1093,7 +1165,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void showDebugReport() {
         StringBuilder sb = new StringBuilder();
-        sb.append("WEBCAST_DEBUG_V0.4.0\\n");
+        sb.append("WEBCAST_DEBUG_V0.4.1\\n");
         sb.append("page=").append(redactUrl(webView == null ? "" : webView.getUrl())).append("\\n");
         sb.append("title=").append(safeText(webView == null ? "" : webView.getTitle())).append("\\n");
         sb.append("confirmedVideos=").append(getDisplayMedia().size()).append("\\n");
@@ -1346,6 +1418,7 @@ public class MainActivity extends AppCompatActivity {
         String u = m.url.toLowerCase(Locale.US);
         String s = m.source == null ? "" : m.source.toLowerCase(Locale.US);
 
+        if (s.contains("range-video")) rank += 45;
         if (s.contains("dom-media")) rank += 35;
         else if (s.contains("dom-source")) rank += 28;
         else if (s.contains("fetch") || s.contains("xhr")) rank += 15;
@@ -1651,6 +1724,7 @@ public class MainActivity extends AppCompatActivity {
             else if (m.contains("dash")) kind = "DASH";
             else if (m.contains("webm")) kind = "WEBM";
             else if (m.contains("quicktime")) kind = "MOV";
+            else if (source != null && source.contains("range-video")) kind = "DIRECT";
             else if (m.contains("mp4")) kind = "MP4";
             else kind = "STREAM";
 
