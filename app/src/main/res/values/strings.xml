@@ -4,14 +4,16 @@
     <string name="start_page_html"><![CDATA[
         <html><head><meta name="viewport" content="width=device-width, initial-scale=1" />
         <style>
-        body{font-family:sans-serif;background:#101114;color:#eee;padding:28px;line-height:1.55}
-        .card{max-width:650px;margin:auto;background:#1a1c21;border-radius:18px;padding:24px}
-        h1{margin-top:0}.muted{color:#aeb4bf}
+        body{font-family:sans-serif;background:#101114;color:#eee;margin:0;padding:18px;line-height:1.48}
+        .card{max-width:650px;margin:12px auto;background:#1a1c21;border-radius:16px;padding:20px}
+        h1{font-size:32px;margin:0 0 16px}.muted{color:#aeb4bf;font-size:14px}
+        .pill{display:inline-block;background:#252932;border-radius:999px;padding:6px 10px;margin-top:5px;font-size:13px}
         </style></head><body><div class="card">
         <h1>WebCast</h1>
-        <p>Enter a website above. Start a video on the page, then tap <b>Videos</b> to see streams the app detected.</p>
-        <p>Tap the Cast icon first to connect to your Chromecast.</p>
-        <p class="muted">Best support: direct MP4, HLS (.m3u8) and MPEG-DASH (.mpd). DRM or streams that require website-only cookies/headers may not play on the Chromecast.</p>
+        <p>Enter a website above, start a video, then tap <b>Videos</b> to cast a detected stream.</p>
+        <p>WebCast now remembers your last page and keeps recent pages under <b>History</b>.</p>
+        <div class="pill">Popup/ad blocking is on</div>
+        <p class="muted">Direct MP4, HLS (.m3u8), MPEG-DASH (.mpd), WebM and MOV work best. DRM or streams requiring special website-only authorization may still need extra handling.</p>
         </div></body></html>
     ]]></string>
 </resources>

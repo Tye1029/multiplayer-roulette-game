@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/rootContainer"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
@@ -9,76 +10,92 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:padding="8dp">
+        android:gravity="center_vertical"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
+        android:paddingTop="3dp"
+        android:paddingBottom="2dp">
 
         <Button
             android:id="@+id/backButton"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
+            android:layout_width="40dp"
+            android:layout_height="42dp"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:padding="0dp"
             android:text="‹"
-            android:textSize="24sp" />
+            android:textSize="23sp" />
 
         <Button
             android:id="@+id/forwardButton"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
+            android:layout_width="40dp"
+            android:layout_height="42dp"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:padding="0dp"
             android:text="›"
-            android:textSize="24sp" />
+            android:textSize="23sp" />
 
         <EditText
             android:id="@+id/addressBar"
             android:layout_width="0dp"
-            android:layout_height="48dp"
+            android:layout_height="42dp"
             android:layout_weight="1"
-            android:hint="Website URL"
+            android:hint="Enter website"
             android:imeOptions="actionGo"
-            android:paddingStart="12dp"
-            android:paddingEnd="12dp"
+            android:paddingStart="9dp"
+            android:paddingEnd="9dp"
             android:textColor="#FFFFFF"
-            android:textColorHint="#A8ADB7" />
+            android:textColorHint="#8E949E"
+            android:textSize="15sp" />
 
         <Button
             android:id="@+id/goButton"
-            android:layout_width="wrap_content"
-            android:layout_height="48dp"
-            android:text="Go" />
+            android:layout_width="48dp"
+            android:layout_height="42dp"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:padding="0dp"
+            android:text="Go"
+            android:textSize="13sp" />
     </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="42dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingStart="8dp"
-        android:paddingEnd="8dp"
-        android:paddingBottom="6dp">
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
+        android:paddingBottom="2dp">
 
         <Button
             android:id="@+id/reloadButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Reload" />
-
-        <Button
-            android:id="@+id/clearButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Clear" />
+            android:layout_width="58dp"
+            android:layout_height="38dp"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:padding="0dp"
+            android:text="Reload"
+            android:textSize="11sp" />
 
         <TextView
             android:id="@+id/statusText"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:layout_weight="1"
-            android:paddingStart="10dp"
-            android:paddingEnd="10dp"
+            android:gravity="center_vertical"
+            android:maxLines="2"
+            android:ellipsize="end"
+            android:paddingStart="8dp"
+            android:paddingEnd="5dp"
             android:textColor="#D8DAE0"
-            android:textSize="12sp" />
+            android:textSize="10sp" />
 
         <androidx.mediarouter.app.MediaRouteButton
             android:id="@+id/castButton"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
+            android:layout_width="42dp"
+            android:layout_height="42dp"
             android:contentDescription="Cast" />
     </LinearLayout>
 
@@ -90,28 +107,56 @@
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="50dp"
         android:gravity="center"
         android:orientation="horizontal"
-        android:padding="8dp">
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp">
 
         <Button
             android:id="@+id/videosButton"
             android:layout_width="0dp"
-            android:layout_height="52dp"
+            android:layout_height="44dp"
+            android:layout_weight="1.15"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:padding="0dp"
+            android:text="Videos (0)"
+            android:textSize="11sp" />
+
+        <Button
+            android:id="@+id/historyButton"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
             android:layout_weight="1"
-            android:text="Videos (0)" />
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:padding="0dp"
+            android:text="History"
+            android:textSize="11sp" />
 
         <Button
             android:id="@+id/playPauseButton"
-            android:layout_width="wrap_content"
-            android:layout_height="52dp"
-            android:text="Play/Pause" />
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_weight="1"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:padding="0dp"
+            android:text="Play/Pause"
+            android:textSize="10sp" />
 
         <Button
             android:id="@+id/stopButton"
-            android:layout_width="wrap_content"
-            android:layout_height="52dp"
-            android:text="Stop" />
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_weight="0.72"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:padding="0dp"
+            android:text="Stop"
+            android:textSize="11sp" />
     </LinearLayout>
 </LinearLayout>
