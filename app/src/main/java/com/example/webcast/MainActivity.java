@@ -30,6 +30,10 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.mediarouter.app.MediaRouteButton;
+import androidx.webkit.ServiceWorkerClientCompat;
+import androidx.webkit.ServiceWorkerControllerCompat;
+import androidx.webkit.WebViewCompat;
+import androidx.webkit.WebViewFeature;
 
 import com.google.android.gms.cast.MediaInfo;
 import com.google.android.gms.cast.MediaLoadRequestData;
@@ -75,6 +79,8 @@ public class MainActivity extends AppCompatActivity {
     private volatile String lastExplicitUrl = "";
     private volatile long lastExplicitAt = 0L;
     private volatile int blockedAds = 0;
+    private volatile int detectorEvents = 0;
+    private boolean deepSnifferInstalled = false;
 
     private final CastStateListener castStateListener = newState -> updateStatus();
 
@@ -124,6 +130,8 @@ public class MainActivity extends AppCompatActivity {
         cookies.setAcceptThirdPartyCookies(webView, true);
 
         webView.addJavascriptInterface(new WebCastBridge(this), "WebCastBridge");
+        installDeepSniffer();
+        installServiceWorkerSniffer();
         webView.setWebViewClient(new BrowserClient());
         webView.setWebChromeClient(new PopupBlockingChromeClient());
 
@@ -287,10 +295,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
             String url = request.getUrl().toString();
-
-            if (looksLikeCastableMedia(url)) {
-                addDetectedMedia(url, guessMime(url), "network");
-            }
+            inspectNetworkRequest(request, "network");
 
             if (isKnownAdUrl(url) && !looksLikeCastableMedia(url)) {
                 noteBlockedAd();
@@ -407,7 +412,19 @@ public class MainActivity extends AppCompatActivity {
             if (url == null) return;
             String clean = url.trim();
             if (!isHttpUrl(clean)) return;
-            addDetectedMedia(clean, normalizeMime(type, clean), "page");
+            String mime = normalizeMime(type, clean);
+            addDetectedMedia(clean, mime, "page", scoreCandidate(clean, mime, "", "", ""));
+        }
+
+        @JavascriptInterface
+        public void candidate(String url, String type, String source) {
+            if (url == null) return;
+            String clean = url.trim();
+            if (!isHttpUrl(clean)) return;
+            detectorEvents++;
+            String mime = normalizeMime(type, clean);
+            int score = scoreCandidate(clean, mime, "", "", "");
+            if (score >= 55) addDetectedMedia(clean, mime, source == null ? "page" : source, score);
         }
 
         @JavascriptInterface
@@ -419,28 +436,170 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void installDeepSniffer() {
+        if (WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
+            WebViewCompat.addDocumentStartJavaScript(
+                    webView,
+                    buildDeepSnifferScript(),
+                    Collections.singleton("*")
+            );
+            deepSnifferInstalled = true;
+        }
+    }
+
+    private void installServiceWorkerSniffer() {
+        if (!WebViewFeature.isFeatureSupported(WebViewFeature.SERVICE_WORKER_BASIC_USAGE)
+                || !WebViewFeature.isFeatureSupported(WebViewFeature.SERVICE_WORKER_SHOULD_INTERCEPT_REQUEST)) {
+            return;
+        }
+        ServiceWorkerControllerCompat.getInstance().setServiceWorkerClient(new ServiceWorkerClientCompat() {
+            @Override
+            public WebResourceResponse shouldInterceptRequest(@NonNull WebResourceRequest request) {
+                inspectNetworkRequest(request, "service-worker");
+                String url = request.getUrl().toString();
+                if (isKnownAdUrl(url) && !looksLikeCastableMedia(url)) {
+                    noteBlockedAd();
+                    return emptyResponse();
+                }
+                return null;
+            }
+        });
+    }
+
     private void injectPageHelpers(WebView view) {
-        String script =
-                "(function(){" +
-                "if(window.__webCastInstalled){if(window.__webCastScan)window.__webCastScan();return;}" +
-                "window.__webCastInstalled=true;" +
-                "function send(u,t){try{if(!u||u.indexOf('blob:')===0||u.indexOf('data:')===0)return;" +
-                "WebCastBridge.found(String(u),String(t||''));}catch(e){}}" +
-                "function click(u){try{if(u)WebCastBridge.clicked(String(u));}catch(e){}}" +
-                "document.addEventListener('click',function(e){" +
-                "var n=e.target;while(n&&n!==document){if(n.tagName==='A'&&n.href){click(n.href);break;}n=n.parentElement;}" +
-                "},true);" +
-                "window.__webCastScan=function(){" +
-                "document.querySelectorAll('video,audio').forEach(function(v){send(v.currentSrc||v.src,v.type);" +
-                "v.querySelectorAll('source').forEach(function(s){send(s.src,s.type);});});" +
-                "document.querySelectorAll('source').forEach(function(s){send(s.src,s.type);});" +
-                "};" +
-                "window.__webCastScan();" +
-                "new MutationObserver(function(){window.__webCastScan();}).observe(document.documentElement||document.body," +
-                "{subtree:true,childList:true,attributes:true,attributeFilter:['src']});" +
-                "setInterval(window.__webCastScan,2000);" +
-                "})();";
-        view.evaluateJavascript(script, null);
+        if (deepSnifferInstalled) {
+            view.evaluateJavascript(
+                    "(function(){try{if(window.__webCastDeepScan)window.__webCastDeepScan();}catch(e){}})();",
+                    null
+            );
+        } else {
+            view.evaluateJavascript(buildDeepSnifferScript(), null);
+        }
+    }
+
+    private String buildDeepSnifferScript() {
+        return "(function(){"
+                + "if(window.__webCastDeepInstalled){try{if(window.__webCastDeepScan)window.__webCastDeepScan();}catch(e){}return;}"
+                + "window.__webCastDeepInstalled=true;"
+                + "function abs(u){try{return new URL(String(u||''),document.baseURI).href;}catch(e){return String(u||'');}}"
+                + "function likely(u,t){u=String(u||'').toLowerCase();t=String(t||'').toLowerCase();"
+                + "if(!u||u.indexOf('blob:')===0||u.indexOf('data:')===0)return false;"
+                + "if(t.indexOf('video/')===0||t.indexOf('audio/')===0||t.indexOf('mpegurl')>=0||t.indexOf('dash+xml')>=0)return true;"
+                + "if(/\\.(m3u8|mpd|mp4|m4v|webm|mov)(?:$|[?#/])/.test(u))return true;"
+                + "if(/(?:manifest|playlist|master)(?:[/?#&=._-]|$)/.test(u))return true;"
+                + "return false;}"
+                + "function send(u,t,s){try{u=abs(u);if(!likely(u,t))return;"
+                + "if(window.WebCastBridge&&WebCastBridge.candidate)WebCastBridge.candidate(String(u),String(t||''),String(s||'page'));}catch(e){}}"
+                + "function click(u){try{u=abs(u);if(window.WebCastBridge&&WebCastBridge.clicked)WebCastBridge.clicked(String(u));}catch(e){}}"
+
+                // Capture fetch before page code gets a chance to hide the source URL.
+                + "try{var of=window.fetch;if(of){window.fetch=function(){"
+                + "var a=arguments;var rq=a[0];var u=(typeof rq==='string')?rq:(rq&&rq.url?rq.url:'');"
+                + "return of.apply(this,a).then(function(r){try{var ct=r.headers&&r.headers.get?r.headers.get('content-type'):'';"
+                + "send(r.url||u,ct,'fetch');}catch(e){}return r;});};}}catch(e){}"
+
+                // Capture XHR response URL + response Content-Type.
+                + "try{var xo=XMLHttpRequest.prototype.open;var xs=XMLHttpRequest.prototype.send;"
+                + "XMLHttpRequest.prototype.open=function(m,u){this.__wcUrl=abs(u);return xo.apply(this,arguments);};"
+                + "XMLHttpRequest.prototype.send=function(){var x=this;"
+                + "try{x.addEventListener('loadend',function(){try{var ct=x.getResponseHeader('content-type')||'';"
+                + "send(x.responseURL||x.__wcUrl,ct,'xhr');}catch(e){}});}catch(e){}"
+                + "return xs.apply(this,arguments);};}catch(e){}"
+
+                // Track links the user actually taps for popup/ad discrimination.
+                + "document.addEventListener('click',function(e){try{var n=e.target;"
+                + "while(n&&n!==document){if(n.tagName==='A'&&n.href){click(n.href);break;}n=n.parentElement;}}catch(x){}},true);"
+
+                // Scan media elements and page/player configuration scripts.
+                + "window.__webCastDeepScan=function(){try{"
+                + "document.querySelectorAll('video,audio').forEach(function(v){send(v.currentSrc||v.src,v.type,'dom-media');"
+                + "v.querySelectorAll('source').forEach(function(s){send(s.src,s.type,'dom-source');});});"
+                + "document.querySelectorAll('source').forEach(function(s){send(s.src,s.type,'dom-source');});"
+                + "document.querySelectorAll('script').forEach(function(sc){var tx=sc.textContent||'';"
+                + "var re=/(https?:\\\\?\\/\\\\?\\/[^\\s\\\"'<>]+?\\.(?:m3u8|mpd|mp4|m4v|webm|mov)(?:\\?[^\\s\\\"'<>]*)?)/gi;"
+                + "var m,c=0;while((m=re.exec(tx))&&c++<12){send(m[1].replace(/\\\\\\//g,'/'),'','script-config');}});"
+                + "}catch(e){}};"
+                + "try{window.__webCastDeepScan();}catch(e){}"
+                + "try{new MutationObserver(function(){window.__webCastDeepScan();}).observe(document.documentElement||document,"
+                + "{subtree:true,childList:true,attributes:true,attributeFilter:['src']});}catch(e){}"
+
+                // Resource timing catches media loaded by libraries that bypass our DOM scan.
+                + "try{if(window.PerformanceObserver){new PerformanceObserver(function(l){"
+                + "l.getEntries().forEach(function(e){send(e.name,'','resource');});}).observe({entryTypes:['resource']});}}catch(e){}"
+                + "setInterval(function(){try{window.__webCastDeepScan();}catch(e){}},1800);"
+                + "})();";
+    }
+
+    private void inspectNetworkRequest(WebResourceRequest request, String source) {
+        if (request == null || request.getUrl() == null) return;
+        String url = request.getUrl().toString();
+        if (!isHttpUrl(url)) return;
+
+        Map<String, String> headers = request.getRequestHeaders();
+        String accept = header(headers, "Accept");
+        String dest = header(headers, "Sec-Fetch-Dest");
+        String range = header(headers, "Range");
+        String mime = guessMimeFromHints(url, accept, dest);
+        int score = scoreCandidate(url, mime, accept, dest, range);
+
+        if (score >= 55) {
+            detectorEvents++;
+            addDetectedMedia(url, mime, source, score);
+        }
+    }
+
+    private String header(Map<String, String> headers, String name) {
+        if (headers == null || name == null) return "";
+        for (Map.Entry<String, String> e : headers.entrySet()) {
+            if (name.equalsIgnoreCase(e.getKey())) return e.getValue() == null ? "" : e.getValue();
+        }
+        return "";
+    }
+
+    private String guessMimeFromHints(String url, String accept, String dest) {
+        String a = accept == null ? "" : accept.toLowerCase(Locale.US);
+        String d = dest == null ? "" : dest.toLowerCase(Locale.US);
+        if (a.contains("mpegurl")) return "application/x-mpegURL";
+        if (a.contains("dash+xml")) return "application/dash+xml";
+        if (a.contains("video/webm")) return "video/webm";
+        if (a.contains("video/mp4") || "video".equals(d)) return "video/mp4";
+        return guessMime(url);
+    }
+
+    private int scoreCandidate(String url, String mime, String accept, String dest, String range) {
+        if (!isHttpUrl(url)) return 0;
+        String u = url.toLowerCase(Locale.US);
+        String m = mime == null ? "" : mime.toLowerCase(Locale.US);
+        String a = accept == null ? "" : accept.toLowerCase(Locale.US);
+        String d = dest == null ? "" : dest.toLowerCase(Locale.US);
+
+        if (u.contains(".m3u8")) return 100;
+        if (u.contains(".mpd")) return 99;
+        if (u.matches(".*\\.(mp4|m4v|webm|mov)(?:$|[?#/]).*")) return 96;
+        if (m.contains("mpegurl")) return 98;
+        if (m.contains("dash+xml")) return 97;
+        if (m.startsWith("video/")) return 94;
+        if ("video".equals(d)) return 92;
+        if (a.contains("video/") || a.contains("mpegurl") || a.contains("dash+xml")) return 90;
+
+        boolean streamish = looksStreamish(url);
+        if (streamish && range != null && !range.isEmpty()) return 82;
+        if (streamish) return 68;
+        if (range != null && !range.isEmpty() && !looksLikeStaticAsset(url)) return 58;
+        return 0;
+    }
+
+    private boolean looksStreamish(String url) {
+        if (url == null) return false;
+        String u = url.toLowerCase(Locale.US);
+        return u.contains("manifest") || u.contains("playlist") || u.contains("master")
+                || u.contains("/hls") || u.contains("hls=") || u.contains("/dash")
+                || u.contains("stream") || u.contains("video") || u.contains("media");
+    }
+
+    private boolean looksLikeStaticAsset(String url) {
+        String u = url == null ? "" : url.toLowerCase(Locale.US);
+        return u.matches(".*\\.(css|js|png|jpe?g|gif|svg|webp|ico|woff2?|ttf|otf)(?:$|[?#]).*");
     }
 
     private void recordHistory(String title, String url) {
@@ -548,8 +707,24 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void addDetectedMedia(String url, String mime, String source) {
-        if (!isHttpUrl(url)) return;
-        detectedMedia.put(url, new DetectedMedia(url, mime, source));
+        addDetectedMedia(url, mime, source, scoreCandidate(url, mime, "", "", ""));
+    }
+
+    private void addDetectedMedia(String url, String mime, String source, int score) {
+        if (!isHttpUrl(url) || score < 55) return;
+        synchronized (detectedMedia) {
+            DetectedMedia old = detectedMedia.get(url);
+            if (old == null) {
+                detectedMedia.put(url, new DetectedMedia(url, mime, source, score));
+            } else {
+                old.score = Math.max(old.score, score);
+                if ((old.mime == null || old.mime.equals("video/mp4"))
+                        && mime != null && !mime.isEmpty()) old.mime = mime;
+                if (source != null && !source.isEmpty() && !old.source.contains(source)) {
+                    old.source = old.source + "+" + source;
+                }
+            }
+        }
         runOnUiThread(this::updateStatus);
     }
 
@@ -559,7 +734,8 @@ public class MainActivity extends AppCompatActivity {
             list = new ArrayList<>(detectedMedia.values());
         }
         list.sort(Comparator
-                .comparingInt((DetectedMedia m) -> priority(m.mime))
+                .comparingInt((DetectedMedia m) -> m.score).reversed()
+                .thenComparingInt(m -> priority(m.mime))
                 .thenComparingInt(m -> m.url.length()));
         return list;
     }
@@ -578,7 +754,7 @@ public class MainActivity extends AppCompatActivity {
         List<DetectedMedia> list = getSortedMedia();
         if (list.isEmpty()) {
             Toast.makeText(this,
-                    "No direct video stream detected yet. Start the video on the page, then try again.",
+                    "No stream detected yet. Start the video and let it play for a few seconds, then try again. Deep detection is active.",
                     Toast.LENGTH_LONG).show();
             injectPageHelpers(webView);
             return;
@@ -752,7 +928,7 @@ public class MainActivity extends AppCompatActivity {
         else cast = "No Cast device";
 
         statusText.setText(cast + " • " + count + " video" + (count == 1 ? "" : "s")
-                + " • " + blockedAds + " blocked");
+                + " • " + blockedAds + " blocked • deep");
         videosButton.setText("Videos (" + count + ")");
     }
 
@@ -768,13 +944,15 @@ public class MainActivity extends AppCompatActivity {
 
     private static class DetectedMedia {
         final String url;
-        final String mime;
-        final String source;
+        String mime;
+        String source;
+        int score;
 
-        DetectedMedia(String url, String mime, String source) {
+        DetectedMedia(String url, String mime, String source, int score) {
             this.url = url;
             this.mime = mime == null || mime.isEmpty() ? "video/mp4" : mime;
-            this.source = source;
+            this.source = source == null ? "unknown" : source;
+            this.score = score;
         }
 
         String displayLabel() {
@@ -803,7 +981,7 @@ public class MainActivity extends AppCompatActivity {
             if (file.isEmpty()) file = "stream";
             if (file.length() > 55) file = file.substring(0, 52) + "…";
 
-            return kind + " • " + host + "\n" + file + "  [" + source + "]";
+            return kind + " • " + host + " • " + score + "%\n" + file + "  [" + source + "]";
         }
     }
 }
