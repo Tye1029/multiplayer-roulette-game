@@ -119,6 +119,8 @@ public class MainActivity extends AppCompatActivity {
     private volatile boolean pauseLocalForCast = false;
     private final Set<String> processedAbyssDatas =
             Collections.synchronizedSet(new HashSet<>());
+    private final Set<String> processedPlayerFrames =
+            Collections.synchronizedSet(new HashSet<>());
     private RelayServer relayServer;
     private PowerManager.WakeLock relayWakeLock;
     private final AtomicInteger blobHlsHits = new AtomicInteger(0);
@@ -318,6 +320,7 @@ public class MainActivity extends AppCompatActivity {
                 mediaRequestHeaders.clear();
                 lastRangeVideoUrl = "";
                 processedAbyssDatas.clear();
+                processedPlayerFrames.clear();
                 pauseLocalForCast = false;
                 blobHlsHits.set(0);
                 blobVideoHits.set(0);
@@ -504,6 +507,19 @@ public class MainActivity extends AppCompatActivity {
                 rememberRawRequest(clean, emptyHeaders, srcName);
                 queueProbe(clean, emptyHeaders, srcName, false);
             }
+        }
+
+        @JavascriptInterface
+        public void frameFound(String frameUrl, boolean visible, String parentUrl) {
+            if (frameUrl == null || !isHttpUrl(frameUrl)) return;
+            if (!visible && !looksLikePlayerFrame(frameUrl)) return;
+            String clean = frameUrl.trim();
+            if (!processedPlayerFrames.add(clean)) return;
+
+            addDiagnostic("FRAME visible=" + visible
+                    + " url=" + redactUrl(clean)
+                    + " parent=" + redactUrl(parentUrl));
+            probeExecutor.execute(() -> inspectPlayerFrame(clean, parentUrl, 0));
         }
 
         @JavascriptInterface
@@ -704,7 +720,13 @@ public class MainActivity extends AppCompatActivity {
                 + "document.addEventListener('click',function(e){try{var n=e.target;while(n&&n!==document){"
                 + "if(n.tagName==='A'&&n.href){click(n.href);break;}n=n.parentElement;}}catch(x){}},true);"
 
-                + "window.__webCastDeepScan=function(){try{abyssScan();pauseIfAsked();document.querySelectorAll('video,audio').forEach(function(v){"
+                + "window.__webCastDeepScan=function(){try{abyssScan();pauseIfAsked();"
+                + "document.querySelectorAll('iframe').forEach(function(f){try{var u=f.src||f.getAttribute('src')||'';"
+                + "if(!u)return;var r=f.getBoundingClientRect();var cs=getComputedStyle(f);"
+                + "var vis=r.width>80&&r.height>60&&cs.display!=='none'&&cs.visibility!=='hidden'&&parseFloat(cs.opacity||'1')>0;"
+                + "if(window.WebCastBridge&&WebCastBridge.frameFound)WebCastBridge.frameFound(abs(u),!!vis,String(location.href));"
+                + "}catch(e){}});"
+                + "document.querySelectorAll('video,audio').forEach(function(v){"
                 + "var u=v.currentSrc||v.src;if(u&&u.indexOf('blob:')===0){"
                 + "if(window.WebCastBridge&&WebCastBridge.blobMeta)WebCastBridge.blobMeta(String(u),String(v.type||'video/unknown'),0,String(location.href));}"
                 + "else send(u,v.type,'dom-media');v.querySelectorAll('source').forEach(function(s){send(s.src,s.type,'dom-source');});});"
@@ -1104,6 +1126,117 @@ public class MainActivity extends AppCompatActivity {
         return u.matches(".*\\.(css|js|png|jpe?g|gif|svg|webp|ico|woff2?|ttf|otf)(?:$|[?#]).*");
     }
 
+    private boolean looksLikePlayerFrame(String url) {
+        String h = host(url);
+        String u = url == null ? "" : url.toLowerCase(Locale.US);
+        return h.contains("short.icu")
+                || h.contains("abyss")
+                || h.contains("playm4u")
+                || h.contains("hydrax")
+                || h.contains("embed")
+                || h.contains("player")
+                || u.contains("/embed/")
+                || u.contains("/player/")
+                || u.contains("?v=");
+    }
+
+    private void inspectPlayerFrame(String frameUrl, String parentUrl, int depth) {
+        if (depth > 2 || !isHttpUrl(frameUrl)) return;
+
+        HttpURLConnection conn = null;
+        try {
+            conn = (HttpURLConnection) new URL(frameUrl).openConnection();
+            conn.setInstanceFollowRedirects(true);
+            conn.setConnectTimeout(8000);
+            conn.setReadTimeout(10000);
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("Accept",
+                    "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
+            conn.setRequestProperty("Accept-Encoding", "identity");
+            if (webViewUserAgent != null && !webViewUserAgent.isEmpty()) {
+                conn.setRequestProperty("User-Agent", webViewUserAgent);
+            }
+            if (parentUrl != null && isHttpUrl(parentUrl)) {
+                conn.setRequestProperty("Referer", parentUrl);
+            }
+
+            String cookie = CookieManager.getInstance().getCookie(frameUrl);
+            if (cookie != null && !cookie.isEmpty()) {
+                conn.setRequestProperty("Cookie", cookie);
+            }
+
+            int code = conn.getResponseCode();
+            if (code < 200 || code >= 400) {
+                addDiagnostic("FRAME_FETCH code=" + code
+                        + " url=" + redactUrl(frameUrl));
+                return;
+            }
+
+            String finalUrl = conn.getURL().toString();
+            String html = readTextLimited(conn.getInputStream(), 2_000_000);
+            addDiagnostic("FRAME_FETCH code=" + code
+                    + " bytes=" + html.length()
+                    + " final=" + redactUrl(finalUrl));
+
+            Matcher dataMatcher = Pattern.compile(
+                    "(?is)(?:const|var)\\s+datas\\s*=\\s*[\"']([^\"']{50,})[\"']")
+                    .matcher(html);
+            if (dataMatcher.find()) {
+                String encoded = dataMatcher.group(1);
+                String key = Integer.toHexString(encoded.hashCode()) + ":" + encoded.length();
+                if (processedAbyssDatas.add(key)) {
+                    addDiagnostic("ABYSS_DATAS_NATIVE bytes=" + encoded.length()
+                            + " frame=" + redactUrl(finalUrl));
+                    extractAbyssSources(encoded, finalUrl);
+                }
+                return;
+            }
+
+            // Some hosts put the real player in another iframe. Follow a few likely
+            // nested frames natively so cross-origin JS access is not required.
+            Matcher iframeMatcher = Pattern.compile(
+                    "(?is)<iframe[^>]+src\\s*=\\s*[\"']([^\"']+)[\"']")
+                    .matcher(html);
+            int followed = 0;
+            while (iframeMatcher.find() && followed < 5) {
+                String nested = resolveAgainst(
+                        iframeMatcher.group(1).replace("&amp;", "&"),
+                        finalUrl,
+                        finalUrl);
+                if (nested == null || !isHttpUrl(nested)) continue;
+                if (!looksLikePlayerFrame(nested) && depth > 0) continue;
+
+                if (processedPlayerFrames.add(nested)) {
+                    followed++;
+                    addDiagnostic("FRAME_NESTED depth=" + (depth + 1)
+                            + " url=" + redactUrl(nested));
+                    inspectPlayerFrame(nested, finalUrl, depth + 1);
+                }
+            }
+        } catch (Exception e) {
+            addDiagnostic("FRAME_FETCH_ERROR " + safeText(
+                    e.getClass().getSimpleName() + ": " + e.getMessage())
+                    + " url=" + redactUrl(frameUrl));
+        } finally {
+            if (conn != null) conn.disconnect();
+        }
+    }
+
+    private String readTextLimited(InputStream input, int maxBytes) throws Exception {
+        try (InputStream in = new BufferedInputStream(input);
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            byte[] buffer = new byte[16 * 1024];
+            int total = 0;
+            while (total < maxBytes) {
+                int n = in.read(buffer, 0, Math.min(buffer.length, maxBytes - total));
+                if (n < 0) break;
+                out.write(buffer, 0, n);
+                total += n;
+            }
+            return out.toString(StandardCharsets.UTF_8);
+        }
+    }
+
     private void extractAbyssSources(String encoded, String frameUrl) {
         try {
             byte[] outerBytes = Base64.decode(encoded, Base64.DEFAULT);
@@ -1424,7 +1557,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void showDebugReport() {
         StringBuilder sb = new StringBuilder();
-        sb.append("WEBCAST_DEBUG_V0.6.0\\n");
+        sb.append("WEBCAST_DEBUG_V0.6.1\\n");
         sb.append("page=").append(redactUrl(webView == null ? "" : webView.getUrl())).append("\\n");
         sb.append("title=").append(safeText(webView == null ? "" : webView.getTitle())).append("\\n");
         sb.append("confirmedVideos=").append(getDisplayMedia().size()).append("\\n");
