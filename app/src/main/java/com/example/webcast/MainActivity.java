@@ -1,6 +1,8 @@
 package com.example.webcast;
 
 import android.annotation.SuppressLint;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
@@ -67,6 +69,8 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -90,6 +94,10 @@ public class MainActivity extends AppCompatActivity {
     private final Set<String> probedUrls = Collections.synchronizedSet(new HashSet<>());
     private final ExecutorService probeExecutor = Executors.newFixedThreadPool(4);
     private final AtomicInteger activeProbes = new AtomicInteger(0);
+    private final AtomicInteger blobHlsHits = new AtomicInteger(0);
+    private final AtomicInteger blobVideoHits = new AtomicInteger(0);
+    private final AtomicInteger mseHits = new AtomicInteger(0);
+    private final List<String> diagnosticLog = Collections.synchronizedList(new ArrayList<>());
 
     private volatile String lastExplicitUrl = "";
     private volatile long lastExplicitAt = 0L;
@@ -169,6 +177,7 @@ public class MainActivity extends AppCompatActivity {
             if (webView.canGoForward()) webView.goForward();
         });
         findViewById(R.id.reloadButton).setOnClickListener(v -> webView.reload());
+        findViewById(R.id.debugButton).setOnClickListener(v -> showDebugReport());
         findViewById(R.id.historyButton).setOnClickListener(v -> showHistory());
 
         videosButton.setOnClickListener(v -> showDetectedVideos());
@@ -275,6 +284,10 @@ public class MainActivity extends AppCompatActivity {
                 detectedMedia.clear();
                 rawRequests.clear();
                 probedUrls.clear();
+                diagnosticLog.clear();
+                blobHlsHits.set(0);
+                blobVideoHits.set(0);
+                mseHits.set(0);
             }
             updateStatus();
         }
@@ -460,6 +473,68 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @JavascriptInterface
+        public void blobMeta(String blobUrl, String type, long size, String frameUrl) {
+            String t = type == null ? "" : type.toLowerCase(Locale.US);
+            if (t.contains("mpegurl") || t.contains("dash")) {
+                blobHlsHits.incrementAndGet();
+                addDiagnostic("BLOB_PLAYLIST type=" + safeText(type) + " size=" + size
+                        + " frame=" + redactUrl(frameUrl));
+            } else if (t.startsWith("video/")) {
+                blobVideoHits.incrementAndGet();
+                addDiagnostic("BLOB_VIDEO type=" + safeText(type) + " size=" + size
+                        + " frame=" + redactUrl(frameUrl));
+            } else {
+                addDiagnostic("BLOB type=" + safeText(type) + " size=" + size
+                        + " frame=" + redactUrl(frameUrl));
+            }
+            runOnUiThread(MainActivity.this::updateStatus);
+        }
+
+        @JavascriptInterface
+        public void mseFound(String blobUrl, String frameUrl) {
+            mseHits.incrementAndGet();
+            addDiagnostic("MEDIA_SOURCE blob frame=" + redactUrl(frameUrl));
+            runOnUiThread(MainActivity.this::updateStatus);
+        }
+
+        @JavascriptInterface
+        public void payload(String sourceUrl, String contentType, String text,
+                            String frameUrl, String source) {
+            if (text == null || text.isEmpty()) return;
+            String ct = contentType == null ? "" : contentType;
+            String srcName = source == null ? "payload" : source;
+            int len = text.length();
+
+            boolean hls = text.contains("#EXTM3U");
+            boolean dash = text.toUpperCase(Locale.US).contains("<MPD");
+            boolean mediaRefs = containsMediaReference(text);
+
+            if (hls || dash || mediaRefs) {
+                addDiagnostic("PAYLOAD source=" + srcName
+                        + " type=" + safeText(ct)
+                        + " bytes=" + len
+                        + " url=" + redactUrl(sourceUrl)
+                        + " frame=" + redactUrl(frameUrl)
+                        + (hls ? " HLS" : "")
+                        + (dash ? " DASH" : ""));
+            }
+
+            if (hls) {
+                if (sourceUrl != null && isHttpUrl(sourceUrl)) {
+                    addDetectedMedia(sourceUrl, "application/x-mpegURL", srcName + "+body", 115);
+                }
+                extractMediaUrlsFromText(text, sourceUrl, frameUrl, srcName + "+hls");
+            } else if (dash) {
+                if (sourceUrl != null && isHttpUrl(sourceUrl)) {
+                    addDetectedMedia(sourceUrl, "application/dash+xml", srcName + "+body", 114);
+                }
+                extractMediaUrlsFromText(text, sourceUrl, frameUrl, srcName + "+dash");
+            } else if (mediaRefs) {
+                extractMediaUrlsFromText(text, sourceUrl, frameUrl, srcName + "+text");
+            }
+        }
+
+        @JavascriptInterface
         public void clicked(String url) {
             if (url == null) return;
             String clean = url.trim();
@@ -514,50 +589,74 @@ public class MainActivity extends AppCompatActivity {
                 + "if(window.__webCastDeepInstalled){try{if(window.__webCastDeepScan)window.__webCastDeepScan();}catch(e){}return;}"
                 + "window.__webCastDeepInstalled=true;"
                 + "function abs(u){try{return new URL(String(u||''),document.baseURI).href;}catch(e){return String(u||'');}}"
+                + "function isMediaText(t){t=String(t||'');return t.indexOf('#EXTM3U')>=0||/<MPD[\\\\s>]/i.test(t)||"
+                + "/https?:\\\\?\\\\/\\\\?\\\\/[^\\\\s\\\"'<>]+\\\\.(m3u8|mpd|mp4|m4v|webm|mov)/i.test(t);}"
                 + "function likely(u,t){u=String(u||'').toLowerCase();t=String(t||'').toLowerCase();"
-                + "if(!u||u.indexOf('blob:')===0||u.indexOf('data:')===0)return false;"
+                + "if(!u||u.indexOf('data:')===0)return false;"
                 + "if(t.indexOf('video/')===0||t.indexOf('audio/')===0||t.indexOf('mpegurl')>=0||t.indexOf('dash+xml')>=0)return true;"
-                + "if(/\\.(m3u8|mpd|mp4|m4v|webm|mov)(?:$|[?#/])/.test(u))return true;"
+                + "if(/\\\\.(m3u8|mpd|mp4|m4v|webm|mov)(?:$|[?#/])/.test(u))return true;"
                 + "if(/(?:manifest|playlist|master)(?:[/?#&=._-]|$)/.test(u))return true;"
                 + "return false;}"
-                + "function send(u,t,s){try{u=abs(u);if(!likely(u,t))return;"
+                + "function send(u,t,s){try{u=abs(u);if(!likely(u,t)||u.indexOf('blob:')===0)return;"
                 + "if(window.WebCastBridge&&WebCastBridge.candidate)WebCastBridge.candidate(String(u),String(t||''),String(s||'page'));}catch(e){}}"
                 + "function click(u){try{u=abs(u);if(window.WebCastBridge&&WebCastBridge.clicked)WebCastBridge.clicked(String(u));}catch(e){}}"
+                + "function payload(u,t,x,s){try{if(!x)return;x=String(x);if(x.length>350000)x=x.slice(0,350000);"
+                + "if(!isMediaText(x))return;if(window.WebCastBridge&&WebCastBridge.payload)"
+                + "WebCastBridge.payload(String(u||''),String(t||''),x,String(location.href),String(s||'payload'));}catch(e){}}"
+                + "function inspectBlob(b,u,s){try{if(!b)return;var t=String(b.type||'');var z=Number(b.size||0);"
+                + "if(window.WebCastBridge&&WebCastBridge.blobMeta)WebCastBridge.blobMeta(String(u||''),t,z,String(location.href));"
+                + "if(z>0&&z<1500000&&(t.indexOf('mpegurl')>=0||t.indexOf('dash')>=0||t.indexOf('json')>=0||t.indexOf('text')>=0)){"
+                + "if(b.text)b.text().then(function(x){payload(u,t,x,s||'blob');}).catch(function(){});"
+                + "else{var fr=new FileReader();fr.onload=function(){payload(u,t,fr.result,s||'blob');};fr.readAsText(b);}}}catch(e){}}"
 
-                // Capture fetch before page code gets a chance to hide the source URL.
-                + "try{var of=window.fetch;if(of){window.fetch=function(){"
-                + "var a=arguments;var rq=a[0];var u=(typeof rq==='string')?rq:(rq&&rq.url?rq.url:'');"
-                + "return of.apply(this,a).then(function(r){try{var ct=r.headers&&r.headers.get?r.headers.get('content-type'):'';"
-                + "send(r.url||u,ct,'fetch');}catch(e){}return r;});};}}catch(e){}"
+                // Catch blob: URLs, which normal Android WebView request interception cannot see.
+                + "try{var ocu=URL.createObjectURL.bind(URL);URL.createObjectURL=function(o){var u=ocu(o);try{"
+                + "if(typeof Blob!=='undefined'&&o instanceof Blob){inspectBlob(o,u,'createObjectURL');}"
+                + "else if(typeof MediaSource!=='undefined'&&o instanceof MediaSource){"
+                + "if(window.WebCastBridge&&WebCastBridge.mseFound)WebCastBridge.mseFound(String(u),String(location.href));}"
+                + "}catch(e){}return u;};if(window.webkitURL)window.webkitURL.createObjectURL=URL.createObjectURL;}catch(e){}"
 
-                // Capture XHR response URL + response Content-Type.
+                // Capture fetch response metadata and inspect text/JSON bodies without consuming the real response.
+                + "try{var of=window.fetch;if(of){window.fetch=function(){var a=arguments;var rq=a[0];"
+                + "var u=(typeof rq==='string')?rq:(rq&&rq.url?rq.url:'');return of.apply(this,a).then(function(r){try{"
+                + "var ct=r.headers&&r.headers.get?r.headers.get('content-type'):'';send(r.url||u,ct,'fetch');"
+                + "var lc=String(ct||'').toLowerCase();if(lc.indexOf('mpegurl')>=0||lc.indexOf('dash')>=0||"
+                + "lc.indexOf('json')>=0||lc.indexOf('text/')>=0||String(r.url||u).indexOf('playm4u')>=0){"
+                + "r.clone().text().then(function(x){payload(r.url||u,ct,x,'fetch-body');}).catch(function(){});}"
+                + "}catch(e){}return r;});};}}catch(e){}"
+
+                // Capture XHR including JSON/text and blob responses.
                 + "try{var xo=XMLHttpRequest.prototype.open;var xs=XMLHttpRequest.prototype.send;"
                 + "XMLHttpRequest.prototype.open=function(m,u){this.__wcUrl=abs(u);return xo.apply(this,arguments);};"
-                + "XMLHttpRequest.prototype.send=function(){var x=this;"
-                + "try{x.addEventListener('loadend',function(){try{var ct=x.getResponseHeader('content-type')||'';"
-                + "send(x.responseURL||x.__wcUrl,ct,'xhr');}catch(e){}});}catch(e){}"
-                + "return xs.apply(this,arguments);};}catch(e){}"
+                + "XMLHttpRequest.prototype.send=function(){var x=this;try{x.addEventListener('loadend',function(){try{"
+                + "var ct=x.getResponseHeader('content-type')||'';var u=x.responseURL||x.__wcUrl;send(u,ct,'xhr');"
+                + "var rt=String(x.responseType||'');if(rt===''||rt==='text'){payload(u,ct,x.responseText,'xhr-body');}"
+                + "else if(rt==='json'){payload(u,ct,JSON.stringify(x.response),'xhr-json');}"
+                + "else if(rt==='blob'){inspectBlob(x.response,u,'xhr-blob');}"
+                + "}catch(e){}});}catch(e){}return xs.apply(this,arguments);};}catch(e){}"
 
-                // Track links the user actually taps for popup/ad discrimination.
-                + "document.addEventListener('click',function(e){try{var n=e.target;"
-                + "while(n&&n!==document){if(n.tagName==='A'&&n.href){click(n.href);break;}n=n.parentElement;}}catch(x){}},true);"
+                // Some players decode the playlist from base64 or JSON after the network request.
+                + "try{var oa=window.atob;if(oa){window.atob=function(s){var r=oa.call(this,s);"
+                + "try{if(isMediaText(r))payload('atob:','text/plain',r,'atob');}catch(e){}return r;};}}catch(e){}"
+                + "try{var oj=JSON.parse;JSON.parse=function(s){var r=oj.apply(this,arguments);"
+                + "try{if(typeof s==='string'&&s.length<350000&&isMediaText(s))payload('json:','application/json',s,'json-parse');}catch(e){}return r;};}catch(e){}"
 
-                // Scan media elements and page/player configuration scripts.
-                + "window.__webCastDeepScan=function(){try{"
-                + "document.querySelectorAll('video,audio').forEach(function(v){send(v.currentSrc||v.src,v.type,'dom-media');"
-                + "v.querySelectorAll('source').forEach(function(s){send(s.src,s.type,'dom-source');});});"
+                // Track clicked links so popup blocking does not confuse a legitimate server selection with an ad.
+                + "document.addEventListener('click',function(e){try{var n=e.target;while(n&&n!==document){"
+                + "if(n.tagName==='A'&&n.href){click(n.href);break;}n=n.parentElement;}}catch(x){}},true);"
+
+                + "window.__webCastDeepScan=function(){try{document.querySelectorAll('video,audio').forEach(function(v){"
+                + "var u=v.currentSrc||v.src;if(u&&u.indexOf('blob:')===0){"
+                + "if(window.WebCastBridge&&WebCastBridge.blobMeta)WebCastBridge.blobMeta(String(u),String(v.type||'video/unknown'),0,String(location.href));}"
+                + "else send(u,v.type,'dom-media');v.querySelectorAll('source').forEach(function(s){send(s.src,s.type,'dom-source');});});"
                 + "document.querySelectorAll('source').forEach(function(s){send(s.src,s.type,'dom-source');});"
                 + "document.querySelectorAll('script').forEach(function(sc){var tx=sc.textContent||'';"
-                + "var re=/(https?:\\\\?\\/\\\\?\\/[^\\s\\\"'<>]+?\\.(?:m3u8|mpd|mp4|m4v|webm|mov)(?:\\?[^\\s\\\"'<>]*)?)/gi;"
-                + "var m,c=0;while((m=re.exec(tx))&&c++<12){send(m[1].replace(/\\\\\\//g,'/'),'','script-config');}});"
-                + "}catch(e){}};"
-                + "try{window.__webCastDeepScan();}catch(e){}"
+                + "if(tx.length<350000&&isMediaText(tx))payload('script:', 'text/javascript', tx, 'script-config');});"
+                + "}catch(e){}};try{window.__webCastDeepScan();}catch(e){}"
                 + "try{new MutationObserver(function(){window.__webCastDeepScan();}).observe(document.documentElement||document,"
                 + "{subtree:true,childList:true,attributes:true,attributeFilter:['src']});}catch(e){}"
-
-                // Resource timing catches media loaded by libraries that bypass our DOM scan.
-                + "try{if(window.PerformanceObserver){new PerformanceObserver(function(l){"
-                + "l.getEntries().forEach(function(e){send(e.name,'','resource');});}).observe({entryTypes:['resource']});}}catch(e){}"
+                + "try{if(window.PerformanceObserver){new PerformanceObserver(function(l){l.getEntries().forEach(function(e){"
+                + "send(e.name,'','resource');});}).observe({entryTypes:['resource']});}}catch(e){}"
                 + "setInterval(function(){try{window.__webCastDeepScan();}catch(e){}},1800);"
                 + "})();";
     }
@@ -573,6 +672,21 @@ public class MainActivity extends AppCompatActivity {
 
         if ("GET".equalsIgnoreCase(method) && !looksLikeStaticAsset(url)) {
             rememberRawRequest(url, headers, source);
+        }
+
+        String h = host(url);
+        String rangeHeader = header(headers, "Range");
+        String acceptHeader = header(headers, "Accept");
+        String destHeader = header(headers, "Sec-Fetch-Dest");
+        if (looksStreamish(url) || !rangeHeader.isEmpty()
+                || acceptHeader.toLowerCase(Locale.US).contains("video")
+                || h.contains("playm4u") || h.contains("vnstream") || h.contains("playhq")) {
+            addDiagnostic("REQ " + source
+                    + " host=" + h
+                    + " path=" + redactPath(url)
+                    + " accept=" + safeHeader(acceptHeader)
+                    + " range=" + safeHeader(rangeHeader)
+                    + " dest=" + safeHeader(destHeader));
         }
 
         String accept = header(headers, "Accept");
@@ -855,6 +969,165 @@ public class MainActivity extends AppCompatActivity {
         return u.matches(".*\\.(css|js|png|jpe?g|gif|svg|webp|ico|woff2?|ttf|otf)(?:$|[?#]).*");
     }
 
+    private boolean containsMediaReference(String text) {
+        if (text == null || text.isEmpty()) return false;
+        String t = text.toLowerCase(Locale.US);
+        return t.contains("#extm3u") || t.contains("<mpd")
+                || t.contains(".m3u8") || t.contains(".mpd")
+                || t.contains(".mp4") || t.contains(".m4v")
+                || t.contains(".webm") || t.contains(".mov");
+    }
+
+    private void extractMediaUrlsFromText(String text, String sourceUrl, String frameUrl, String source) {
+        if (text == null) return;
+        String cleaned = text.replace("\\\\/", "/");
+
+        Pattern absolute = Pattern.compile("https?://[^\\\\s\\\\\\\"'<>]+", Pattern.CASE_INSENSITIVE);
+        Matcher matcher = absolute.matcher(cleaned);
+        int found = 0;
+        while (matcher.find() && found < 80) {
+            String candidate = trimUrlPunctuation(matcher.group());
+            if (isLikelyMediaReference(candidate)) {
+                found++;
+                queueOrAddExtracted(candidate, source);
+            }
+        }
+
+        Pattern keyed = Pattern.compile(
+                "(?i)(?:file|src|source|url|hls|playlist|manifest)\\\\s*[\\\\\\\"']?\\\\s*[:=]\\\\s*[\\\\\\\"']([^\\\\\\\"']+)[\\\\\\\"']");
+        Matcher km = keyed.matcher(cleaned);
+        while (km.find() && found < 100) {
+            String value = km.group(1).replace("\\\\/", "/").trim();
+            String resolved = resolveAgainst(value, sourceUrl, frameUrl);
+            if (resolved != null && isLikelyMediaReference(resolved)) {
+                found++;
+                queueOrAddExtracted(resolved, source + "+key");
+            }
+        }
+
+        if (found > 0) addDiagnostic("EXTRACTED " + found + " media URL(s) from " + source);
+    }
+
+    private void queueOrAddExtracted(String candidate, String source) {
+        if (!isHttpUrl(candidate) || isSegmentLike(candidate) || isKnownAdUrl(candidate)) return;
+        String mime = guessMime(candidate);
+        int score = scoreCandidate(candidate, mime, "", "", "");
+        if (score >= 90) addDetectedMedia(candidate, mime, source, Math.max(score, 112));
+        else queueProbe(candidate, new LinkedHashMap<>(), source, true);
+    }
+
+    private boolean isLikelyMediaReference(String url) {
+        if (url == null) return false;
+        String u = url.toLowerCase(Locale.US);
+        return u.contains(".m3u8") || u.contains(".mpd")
+                || u.matches(".*\\\\.(mp4|m4v|webm|mov)(?:$|[?#/&]).*")
+                || u.contains("/stream/") || u.contains("/playlist/")
+                || u.contains("/manifest/");
+    }
+
+    private String resolveAgainst(String value, String sourceUrl, String frameUrl) {
+        if (value == null || value.isEmpty()) return null;
+        try {
+            if (isHttpUrl(value)) return value;
+            String base = isHttpUrl(sourceUrl) ? sourceUrl : frameUrl;
+            if (!isHttpUrl(base)) return null;
+            return new URI(base).resolve(value).toString();
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private String trimUrlPunctuation(String value) {
+        if (value == null) return "";
+        String v = value;
+        while (!v.isEmpty() && ")]},;".indexOf(v.charAt(v.length() - 1)) >= 0) {
+            v = v.substring(0, v.length() - 1);
+        }
+        return v;
+    }
+
+    private void addDiagnostic(String event) {
+        if (event == null || event.isEmpty()) return;
+        synchronized (diagnosticLog) {
+            diagnosticLog.add(event);
+            while (diagnosticLog.size() > 120) diagnosticLog.remove(0);
+        }
+    }
+
+    private String safeText(String value) {
+        if (value == null) return "";
+        String v = value.replace('\n', ' ').replace('\r', ' ').trim();
+        return v.length() > 80 ? v.substring(0, 80) + "…" : v;
+    }
+
+    private String safeHeader(String value) {
+        if (value == null) return "";
+        String v = value.replace('\n', ' ').replace('\r', ' ').trim();
+        return v.length() > 64 ? v.substring(0, 64) + "…" : v;
+    }
+
+    private String redactUrl(String raw) {
+        if (raw == null || raw.isEmpty()) return "";
+        if (raw.startsWith("blob:")) return "blob:" + host(raw.substring(5));
+        try {
+            URI uri = new URI(raw);
+            String scheme = uri.getScheme() == null ? "" : uri.getScheme() + "://";
+            String h = uri.getHost() == null ? "" : uri.getHost();
+            String p = uri.getPath() == null ? "" : uri.getPath();
+            if (p.length() > 120) p = p.substring(0, 117) + "…";
+            return scheme + h + p;
+        } catch (Exception ignored) {
+            return safeText(raw);
+        }
+    }
+
+    private String redactPath(String raw) {
+        try {
+            URI uri = new URI(raw);
+            String p = uri.getPath() == null ? "/" : uri.getPath();
+            return p.length() > 100 ? p.substring(0, 97) + "…" : p;
+        } catch (Exception ignored) {
+            return "";
+        }
+    }
+
+    private void showDebugReport() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("WEBCAST_DEBUG_V0.4.0\\n");
+        sb.append("page=").append(redactUrl(webView == null ? "" : webView.getUrl())).append("\\n");
+        sb.append("title=").append(safeText(webView == null ? "" : webView.getTitle())).append("\\n");
+        sb.append("confirmedVideos=").append(getDisplayMedia().size()).append("\\n");
+        sb.append("rawRequests=").append(rawRequests.size()).append("\\n");
+        sb.append("activeProbes=").append(activeProbes.get()).append("\\n");
+        sb.append("blobHlsDash=").append(blobHlsHits.get()).append("\\n");
+        sb.append("blobVideo=").append(blobVideoHits.get()).append("\\n");
+        sb.append("mediaSource=").append(mseHits.get()).append("\\n");
+        sb.append("blockedAds=").append(blockedAds).append("\\n");
+        sb.append("detectorEvents=").append(detectorEvents).append("\\n\\n");
+
+        List<String> logs;
+        synchronized (diagnosticLog) {
+            logs = new ArrayList<>(diagnosticLog);
+        }
+        int start = Math.max(0, logs.size() - 80);
+        for (int i = start; i < logs.size(); i++) {
+            sb.append(logs.get(i)).append("\\n");
+        }
+
+        final String report = sb.toString();
+        new AlertDialog.Builder(this)
+                .setTitle("WebCast Debug")
+                .setMessage(report)
+                .setPositiveButton("Copy", (dialog, which) -> {
+                    ClipboardManager cm = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+                    if (cm != null) cm.setPrimaryClip(ClipData.newPlainText("WebCast Debug", report));
+                    Toast.makeText(this, "Debug report copied.", Toast.LENGTH_SHORT).show();
+                })
+                .setNeutralButton("Deep Scan", (dialog, which) -> deepProbeCapturedRequests())
+                .setNegativeButton("Close", null)
+                .show();
+    }
+
     private void recordHistory(String title, String url) {
         if (!isHttpUrl(url) || isInternalPage(url)) return;
 
@@ -1124,6 +1397,7 @@ public class MainActivity extends AppCompatActivity {
                     .setTitle("No confirmed video yet")
                     .setMessage(rawCount + " recent network requests captured. Deep Scan checks their real server responses to find the playable stream.")
                     .setPositiveButton("Deep Scan", (dialog, which) -> deepProbeCapturedRequests())
+                    .setNeutralButton("Debug", (dialog, which) -> showDebugReport())
                     .setNegativeButton("Close", null)
                     .show();
             return;
@@ -1315,7 +1589,9 @@ public class MainActivity extends AppCompatActivity {
         else cast = "No Cast device";
 
         int probing = activeProbes.get();
+        int blobs = blobHlsHits.get() + blobVideoHits.get() + mseHits.get();
         statusText.setText(cast + " • " + count + " video" + (count == 1 ? "" : "s")
+                + (blobs > 0 ? " • blob " + blobs : "")
                 + (probing > 0 ? " • scanning " + probing : "")
                 + " • " + blockedAds + " blocked");
         videosButton.setText("Videos (" + count + ")");
