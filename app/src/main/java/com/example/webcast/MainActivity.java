@@ -6,9 +6,14 @@ import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
+import android.net.ConnectivityManager;
+import android.net.LinkAddress;
+import android.net.LinkProperties;
+import android.net.Network;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Message;
+import android.os.PowerManager;
 import android.os.SystemClock;
 import android.text.InputType;
 import android.view.KeyEvent;
@@ -54,7 +59,12 @@ import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
+import java.net.Inet4Address;
+import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
@@ -68,9 +78,12 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.nio.charset.StandardCharsets;
+import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -94,6 +107,12 @@ public class MainActivity extends AppCompatActivity {
     private final Set<String> probedUrls = Collections.synchronizedSet(new HashSet<>());
     private final ExecutorService probeExecutor = Executors.newFixedThreadPool(4);
     private final AtomicInteger activeProbes = new AtomicInteger(0);
+    private final Map<String, Map<String, String>> mediaRequestHeaders =
+            Collections.synchronizedMap(new LinkedHashMap<>());
+    private volatile String lastRangeVideoUrl = "";
+    private volatile String webViewUserAgent = "";
+    private RelayServer relayServer;
+    private PowerManager.WakeLock relayWakeLock;
     private final AtomicInteger blobHlsHits = new AtomicInteger(0);
     private final AtomicInteger blobVideoHits = new AtomicInteger(0);
     private final AtomicInteger mseHits = new AtomicInteger(0);
@@ -147,6 +166,7 @@ public class MainActivity extends AppCompatActivity {
         settings.setAllowContentAccess(false);
         settings.setSupportMultipleWindows(true);
         settings.setJavaScriptCanOpenWindowsAutomatically(false);
+        webViewUserAgent = settings.getUserAgentString();
 
         CookieManager cookies = CookieManager.getInstance();
         cookies.setAcceptCookie(true);
@@ -226,6 +246,8 @@ public class MainActivity extends AppCompatActivity {
             webView.destroy();
         }
         probeExecutor.shutdownNow();
+        stopRelayServer();
+        releaseRelayWakeLock();
         super.onDestroy();
     }
 
@@ -285,6 +307,8 @@ public class MainActivity extends AppCompatActivity {
                 rawRequests.clear();
                 probedUrls.clear();
                 diagnosticLog.clear();
+                mediaRequestHeaders.clear();
+                lastRangeVideoUrl = "";
                 blobHlsHits.set(0);
                 blobVideoHits.set(0);
                 mseHits.set(0);
@@ -702,6 +726,10 @@ public class MainActivity extends AppCompatActivity {
                     + " path=" + redactPath(url)
                     + " range=" + safeHeader(range)
                     + " source=" + source);
+            lastRangeVideoUrl = url;
+            synchronized (mediaRequestHeaders) {
+                mediaRequestHeaders.put(url, new LinkedHashMap<>(headers));
+            }
             addDetectedMedia(url, "video/mp4", source + "+range-video", 118);
             return;
         }
@@ -1165,7 +1193,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void showDebugReport() {
         StringBuilder sb = new StringBuilder();
-        sb.append("WEBCAST_DEBUG_V0.4.1\\n");
+        sb.append("WEBCAST_DEBUG_V0.5.0\\n");
         sb.append("page=").append(redactUrl(webView == null ? "" : webView.getUrl())).append("\\n");
         sb.append("title=").append(safeText(webView == null ? "" : webView.getTitle())).append("\\n");
         sb.append("confirmedVideos=").append(getDisplayMedia().size()).append("\\n");
@@ -1343,6 +1371,17 @@ public class MainActivity extends AppCompatActivity {
         List<DetectedMedia> all = getSortedMedia();
         if (all.isEmpty()) return all;
 
+        // Ranged service-worker files are quality variants of the same logical movie.
+        // Only show the variant most recently requested by the visible player.
+        if (lastRangeVideoUrl != null && !lastRangeVideoUrl.isEmpty()) {
+            for (DetectedMedia m : all) {
+                if (lastRangeVideoUrl.equals(m.url)
+                        && m.source != null && m.source.contains("range-video")) {
+                    return Collections.singletonList(m);
+                }
+            }
+        }
+
         // A direct URL attached to the actual media element is the strongest signal.
         for (DetectedMedia m : all) {
             if (isDirectMedia(m) && isDomMediaSource(m.source)) {
@@ -1509,6 +1548,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void castMedia(@NonNull DetectedMedia media) {
+        if (media.source != null && media.source.contains("range-video")) {
+            castMediaViaPhone(media);
+            return;
+        }
+
         CastSession session = castContext.getSessionManager().getCurrentCastSession();
         if (session == null || !session.isConnected()) {
             Toast.makeText(this, "Tap the Cast icon and connect to a Chromecast first.", Toast.LENGTH_LONG).show();
@@ -1541,6 +1585,495 @@ public class MainActivity extends AppCompatActivity {
         Toast.makeText(this, "Sending video to Chromecast…", Toast.LENGTH_SHORT).show();
     }
 
+    private void castMediaViaPhone(@NonNull DetectedMedia media) {
+        CastSession session = castContext.getSessionManager().getCurrentCastSession();
+        if (session == null || !session.isConnected()) {
+            Toast.makeText(this, "Tap the Cast icon and connect to a Chromecast first.",
+                    Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        RemoteMediaClient client = session.getRemoteMediaClient();
+        if (client == null) {
+            Toast.makeText(this, "Chromecast media channel is not ready.",
+                    Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        try {
+            RelayServer server = ensureRelayServer();
+            if (server == null) {
+                Toast.makeText(this,
+                        "Could not start the phone relay. Make sure the phone is on the same Wi-Fi as the Chromecast.",
+                        Toast.LENGTH_LONG).show();
+                return;
+            }
+
+            Map<String, String> headers = new LinkedHashMap<>();
+            synchronized (mediaRequestHeaders) {
+                Map<String, String> saved = mediaRequestHeaders.get(media.url);
+                if (saved != null) headers.putAll(saved);
+            }
+
+            String pageReferer = prefs == null ? "" : prefs.getString(KEY_LAST_URL, "");
+            String token = server.register(media.url, headers, media.mime, pageReferer);
+            String relayUrl = server.urlFor(token);
+
+            acquireRelayWakeLock();
+            addDiagnostic("CAST_RELAY source=" + redactUrl(media.url)
+                    + " local=" + server.describe());
+
+            MediaMetadata metadata = new MediaMetadata(MediaMetadata.MEDIA_TYPE_MOVIE);
+            String title = webView.getTitle();
+            metadata.putString(MediaMetadata.KEY_TITLE,
+                    title == null || title.trim().isEmpty() ? "Web video" : title);
+            metadata.putString(MediaMetadata.KEY_SUBTITLE,
+                    currentQualityLabel(media) + " • via phone");
+
+            MediaInfo mediaInfo = new MediaInfo.Builder(relayUrl)
+                    .setStreamType(MediaInfo.STREAM_TYPE_BUFFERED)
+                    .setContentType(media.mime == null || media.mime.isEmpty()
+                            ? "video/mp4" : media.mime)
+                    .setMetadata(metadata)
+                    .build();
+
+            client.load(new MediaLoadRequestData.Builder()
+                    .setMediaInfo(mediaInfo)
+                    .setAutoplay(true)
+                    .build());
+
+            Toast.makeText(this,
+                    "Casting current quality through phone…",
+                    Toast.LENGTH_LONG).show();
+        } catch (Exception e) {
+            addDiagnostic("RELAY_START_ERROR " + safeText(e.getClass().getSimpleName()
+                    + ": " + e.getMessage()));
+            Toast.makeText(this, "Phone relay could not start.", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private RelayServer ensureRelayServer() {
+        try {
+            String ip = getLanIpv4Address();
+            if (ip == null || ip.isEmpty()) return null;
+
+            if (relayServer != null && relayServer.isRunning()
+                    && ip.equals(relayServer.getBindAddress())) {
+                return relayServer;
+            }
+
+            stopRelayServer();
+            relayServer = new RelayServer(ip);
+            relayServer.start();
+            addDiagnostic("RELAY_START address=" + relayServer.describe());
+            return relayServer;
+        } catch (Exception e) {
+            addDiagnostic("RELAY_START_ERROR " + safeText(e.getMessage()));
+            return null;
+        }
+    }
+
+    private void stopRelayServer() {
+        RelayServer server = relayServer;
+        relayServer = null;
+        if (server != null) server.stop();
+    }
+
+    private String getLanIpv4Address() {
+        try {
+            ConnectivityManager cm =
+                    (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+            if (cm == null) return null;
+            Network active = cm.getActiveNetwork();
+            if (active == null) return null;
+            LinkProperties props = cm.getLinkProperties(active);
+            if (props == null) return null;
+
+            for (LinkAddress link : props.getLinkAddresses()) {
+                InetAddress address = link.getAddress();
+                if (address instanceof Inet4Address
+                        && !address.isLoopbackAddress()
+                        && address.isSiteLocalAddress()) {
+                    return address.getHostAddress();
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return null;
+    }
+
+    private void acquireRelayWakeLock() {
+        try {
+            if (relayWakeLock == null) {
+                PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+                if (pm != null) {
+                    relayWakeLock = pm.newWakeLock(
+                            PowerManager.PARTIAL_WAKE_LOCK, "WebCast:PhoneRelay");
+                    relayWakeLock.setReferenceCounted(false);
+                }
+            }
+            if (relayWakeLock != null && !relayWakeLock.isHeld()) {
+                relayWakeLock.acquire(2L * 60L * 60L * 1000L);
+            }
+        } catch (Exception ignored) {
+        }
+    }
+
+    private void releaseRelayWakeLock() {
+        try {
+            if (relayWakeLock != null && relayWakeLock.isHeld()) relayWakeLock.release();
+        } catch (Exception ignored) {
+        }
+    }
+
+    private String currentQualityLabel(DetectedMedia media) {
+        long bytes = media.estimatedSizeBytes;
+        if (bytes > 0) return "Current quality • " + formatBytes(bytes);
+        return "Current quality";
+    }
+
+    private long parseEstimatedSizeFromUrl(String rawUrl) {
+        if (rawUrl == null) return -1;
+        try {
+            String path = new URI(rawUrl).getPath();
+            if (path == null) return -1;
+            Matcher m = Pattern.compile("\\.([0-9]{7,})\\.\\d+\\.fd$", Pattern.CASE_INSENSITIVE)
+                    .matcher(path);
+            if (m.find()) return Long.parseLong(m.group(1));
+        } catch (Exception ignored) {
+        }
+        return -1;
+    }
+
+    private String formatBytes(long bytes) {
+        if (bytes <= 0) return "";
+        double gb = bytes / (1024.0 * 1024.0 * 1024.0);
+        if (gb >= 0.95) return String.format(Locale.US, "%.2f GB", gb);
+        double mb = bytes / (1024.0 * 1024.0);
+        return String.format(Locale.US, "%.0f MB", mb);
+    }
+
+    private class RelayServer {
+        private final String bindAddress;
+        private final Map<String, RelayTarget> targets =
+                Collections.synchronizedMap(new LinkedHashMap<>());
+        private final ExecutorService clients = Executors.newCachedThreadPool();
+        private final AtomicBoolean running = new AtomicBoolean(false);
+        private ServerSocket serverSocket;
+        private Thread acceptThread;
+
+        RelayServer(String bindAddress) {
+            this.bindAddress = bindAddress;
+        }
+
+        void start() throws Exception {
+            InetAddress bind = InetAddress.getByName(bindAddress);
+            serverSocket = new ServerSocket(0, 24, bind);
+            running.set(true);
+            acceptThread = new Thread(() -> {
+                while (running.get()) {
+                    try {
+                        Socket socket = serverSocket.accept();
+                        clients.execute(() -> handleClient(socket));
+                    } catch (Exception e) {
+                        if (running.get()) {
+                            addDiagnostic("RELAY_ACCEPT_ERROR " + safeText(e.getMessage()));
+                        }
+                    }
+                }
+            }, "WebCast-Relay-Accept");
+            acceptThread.setDaemon(true);
+            acceptThread.start();
+        }
+
+        boolean isRunning() {
+            return running.get() && serverSocket != null && !serverSocket.isClosed();
+        }
+
+        String getBindAddress() {
+            return bindAddress;
+        }
+
+        String register(String remoteUrl, Map<String, String> headers,
+                        String mime, String referer) {
+            String token = UUID.randomUUID().toString().replace("-", "");
+            targets.put(token, new RelayTarget(remoteUrl, headers, mime, referer));
+            return token;
+        }
+
+        String urlFor(String token) {
+            return "http://" + bindAddress + ":" + serverSocket.getLocalPort()
+                    + "/media/" + token;
+        }
+
+        String describe() {
+            if (!isRunning()) return "off";
+            return bindAddress + ":" + serverSocket.getLocalPort();
+        }
+
+        void stop() {
+            running.set(false);
+            try {
+                if (serverSocket != null) serverSocket.close();
+            } catch (Exception ignored) {
+            }
+            clients.shutdownNow();
+        }
+
+        private void handleClient(Socket socket) {
+            HttpURLConnection upstream = null;
+            try (Socket s = socket) {
+                s.setSoTimeout(20000);
+                InputStream in = s.getInputStream();
+                OutputStream out = s.getOutputStream();
+
+                String requestLine = readHttpLine(in);
+                if (requestLine == null || requestLine.isEmpty()) return;
+                String[] parts = requestLine.split(" ");
+                if (parts.length < 2) {
+                    writeSimpleResponse(out, 400, "Bad Request");
+                    return;
+                }
+
+                String method = parts[0].toUpperCase(Locale.US);
+                String path = parts[1];
+
+                Map<String, String> incoming = new LinkedHashMap<>();
+                String line;
+                while ((line = readHttpLine(in)) != null && !line.isEmpty()) {
+                    int colon = line.indexOf(':');
+                    if (colon > 0) {
+                        incoming.put(line.substring(0, colon).trim(),
+                                line.substring(colon + 1).trim());
+                    }
+                }
+
+                if ("OPTIONS".equals(method)) {
+                    writeOptionsResponse(out);
+                    return;
+                }
+
+                if (!("GET".equals(method) || "HEAD".equals(method))) {
+                    writeSimpleResponse(out, 405, "Method Not Allowed");
+                    return;
+                }
+
+                String prefix = "/media/";
+                if (!path.startsWith(prefix)) {
+                    writeSimpleResponse(out, 404, "Not Found");
+                    return;
+                }
+
+                String token = path.substring(prefix.length());
+                int q = token.indexOf('?');
+                if (q >= 0) token = token.substring(0, q);
+
+                RelayTarget target = targets.get(token);
+                if (target == null) {
+                    writeSimpleResponse(out, 404, "Not Found");
+                    return;
+                }
+
+                String incomingRange = findHeader(incoming, "Range");
+                addDiagnostic("RELAY_CLIENT method=" + method
+                        + " range=" + safeHeader(incomingRange));
+
+                upstream = (HttpURLConnection) new URL(target.remoteUrl).openConnection();
+                upstream.setInstanceFollowRedirects(true);
+                upstream.setConnectTimeout(10000);
+                upstream.setReadTimeout(30000);
+                upstream.setRequestMethod(method);
+                upstream.setRequestProperty("Accept-Encoding", "identity");
+
+                for (Map.Entry<String, String> e : target.headers.entrySet()) {
+                    String k = e.getKey();
+                    String v = e.getValue();
+                    if (k == null || v == null) continue;
+                    if (isHopByHopHeader(k) || "Range".equalsIgnoreCase(k)
+                            || "Cookie".equalsIgnoreCase(k)
+                            || "Content-Length".equalsIgnoreCase(k)) continue;
+                    try {
+                        upstream.setRequestProperty(k, v);
+                    } catch (Exception ignored) {
+                    }
+                }
+
+                if (incomingRange != null && !incomingRange.isEmpty()) {
+                    upstream.setRequestProperty("Range", incomingRange);
+                }
+
+                String cookie = CookieManager.getInstance().getCookie(target.remoteUrl);
+                if (cookie != null && !cookie.isEmpty()) {
+                    upstream.setRequestProperty("Cookie", cookie);
+                }
+
+                if (upstream.getRequestProperty("Referer") == null
+                        && target.referer != null && isHttpUrl(target.referer)) {
+                    upstream.setRequestProperty("Referer", target.referer);
+                }
+
+                if (upstream.getRequestProperty("User-Agent") == null
+                        && webViewUserAgent != null && !webViewUserAgent.isEmpty()) {
+                    upstream.setRequestProperty("User-Agent", webViewUserAgent);
+                }
+
+                int code = upstream.getResponseCode();
+                String contentType = upstream.getContentType();
+                String contentRange = upstream.getHeaderField("Content-Range");
+                long contentLength = upstream.getHeaderFieldLong("Content-Length", -1L);
+                String acceptRanges = upstream.getHeaderField("Accept-Ranges");
+
+                addDiagnostic("RELAY_UPSTREAM code=" + code
+                        + " type=" + safeText(contentType)
+                        + " len=" + contentLength
+                        + " contentRange=" + safeHeader(contentRange));
+
+                writeStatusLine(out, code);
+                writeHeader(out, "Content-Type",
+                        contentType == null || contentType.isEmpty()
+                                ? (target.mime == null || target.mime.isEmpty()
+                                ? "video/mp4" : target.mime)
+                                : normalizeContentType(contentType));
+                if (contentLength >= 0) {
+                    writeHeader(out, "Content-Length", String.valueOf(contentLength));
+                }
+                if (contentRange != null && !contentRange.isEmpty()) {
+                    writeHeader(out, "Content-Range", contentRange);
+                }
+                writeHeader(out, "Accept-Ranges",
+                        acceptRanges == null || acceptRanges.isEmpty() ? "bytes" : acceptRanges);
+                writeHeader(out, "Access-Control-Allow-Origin", "*");
+                writeHeader(out, "Access-Control-Allow-Headers", "Range, Content-Type");
+                writeHeader(out, "Access-Control-Expose-Headers",
+                        "Content-Length, Content-Range, Accept-Ranges");
+                writeHeader(out, "Connection", "close");
+                out.write("\r\n".getBytes(StandardCharsets.ISO_8859_1));
+                out.flush();
+
+                if ("HEAD".equals(method)) return;
+
+                InputStream upstreamBody =
+                        code >= 400 ? upstream.getErrorStream() : upstream.getInputStream();
+                if (upstreamBody == null) return;
+
+                try (InputStream body = new BufferedInputStream(upstreamBody)) {
+                    byte[] buffer = new byte[64 * 1024];
+                    int n;
+                    while ((n = body.read(buffer)) >= 0) {
+                        out.write(buffer, 0, n);
+                    }
+                    out.flush();
+                }
+            } catch (Exception e) {
+                addDiagnostic("RELAY_ERROR " + safeText(e.getClass().getSimpleName()
+                        + ": " + e.getMessage()));
+            } finally {
+                if (upstream != null) upstream.disconnect();
+            }
+        }
+
+        private String readHttpLine(InputStream in) throws Exception {
+            ByteArrayOutputStream line = new ByteArrayOutputStream();
+            int prev = -1;
+            int b;
+            while ((b = in.read()) != -1) {
+                if (prev == '\r' && b == '\n') {
+                    byte[] bytes = line.toByteArray();
+                    int len = bytes.length;
+                    if (len > 0 && bytes[len - 1] == '\r') len--;
+                    return new String(bytes, 0, len, StandardCharsets.ISO_8859_1);
+                }
+                line.write(b);
+                prev = b;
+                if (line.size() > 16384) throw new IllegalStateException("HTTP line too long");
+            }
+            return line.size() == 0 ? null
+                    : new String(line.toByteArray(), StandardCharsets.ISO_8859_1);
+        }
+
+        private String findHeader(Map<String, String> headers, String name) {
+            for (Map.Entry<String, String> e : headers.entrySet()) {
+                if (name.equalsIgnoreCase(e.getKey())) return e.getValue();
+            }
+            return "";
+        }
+
+        private boolean isHopByHopHeader(String name) {
+            return "Host".equalsIgnoreCase(name)
+                    || "Connection".equalsIgnoreCase(name)
+                    || "Proxy-Connection".equalsIgnoreCase(name)
+                    || "Keep-Alive".equalsIgnoreCase(name)
+                    || "Transfer-Encoding".equalsIgnoreCase(name)
+                    || "TE".equalsIgnoreCase(name)
+                    || "Trailer".equalsIgnoreCase(name)
+                    || "Upgrade".equalsIgnoreCase(name)
+                    || "Accept-Encoding".equalsIgnoreCase(name);
+        }
+
+        private void writeStatusLine(OutputStream out, int code) throws Exception {
+            String reason;
+            switch (code) {
+                case 200: reason = "OK"; break;
+                case 206: reason = "Partial Content"; break;
+                case 204: reason = "No Content"; break;
+                case 400: reason = "Bad Request"; break;
+                case 403: reason = "Forbidden"; break;
+                case 404: reason = "Not Found"; break;
+                case 405: reason = "Method Not Allowed"; break;
+                case 416: reason = "Range Not Satisfiable"; break;
+                default: reason = "Response";
+            }
+            out.write(("HTTP/1.1 " + code + " " + reason + "\r\n")
+                    .getBytes(StandardCharsets.ISO_8859_1));
+        }
+
+        private void writeHeader(OutputStream out, String name, String value) throws Exception {
+            if (value == null) return;
+            out.write((name + ": " + value + "\r\n")
+                    .getBytes(StandardCharsets.ISO_8859_1));
+        }
+
+        private void writeSimpleResponse(OutputStream out, int code, String text)
+                throws Exception {
+            byte[] body = text.getBytes(StandardCharsets.UTF_8);
+            writeStatusLine(out, code);
+            writeHeader(out, "Content-Type", "text/plain; charset=utf-8");
+            writeHeader(out, "Content-Length", String.valueOf(body.length));
+            writeHeader(out, "Access-Control-Allow-Origin", "*");
+            writeHeader(out, "Connection", "close");
+            out.write("\r\n".getBytes(StandardCharsets.ISO_8859_1));
+            out.write(body);
+            out.flush();
+        }
+
+        private void writeOptionsResponse(OutputStream out) throws Exception {
+            writeStatusLine(out, 204);
+            writeHeader(out, "Access-Control-Allow-Origin", "*");
+            writeHeader(out, "Access-Control-Allow-Methods", "GET, HEAD, OPTIONS");
+            writeHeader(out, "Access-Control-Allow-Headers", "Range, Content-Type");
+            writeHeader(out, "Access-Control-Max-Age", "86400");
+            writeHeader(out, "Connection", "close");
+            out.write("\r\n".getBytes(StandardCharsets.ISO_8859_1));
+            out.flush();
+        }
+    }
+
+    private static class RelayTarget {
+        final String remoteUrl;
+        final Map<String, String> headers;
+        final String mime;
+        final String referer;
+
+        RelayTarget(String remoteUrl, Map<String, String> headers,
+                    String mime, String referer) {
+            this.remoteUrl = remoteUrl;
+            this.headers = headers == null ? new LinkedHashMap<>()
+                    : new LinkedHashMap<>(headers);
+            this.mime = mime == null ? "video/mp4" : mime;
+            this.referer = referer;
+        }
+    }
+
     private void toggleRemotePlayback() {
         RemoteMediaClient client = currentRemoteClient();
         if (client == null) {
@@ -1557,6 +2090,7 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
         client.stop();
+        releaseRelayWakeLock();
     }
 
     private RemoteMediaClient currentRemoteClient() {
@@ -1709,12 +2243,27 @@ public class MainActivity extends AppCompatActivity {
         String mime;
         String source;
         int score;
+        final long estimatedSizeBytes;
 
         DetectedMedia(String url, String mime, String source, int score) {
             this.url = url;
             this.mime = mime == null ? "" : mime;
             this.source = source == null ? "unknown" : source;
             this.score = score;
+            this.estimatedSizeBytes = parseEstimatedSizeStatic(url);
+        }
+
+        private static long parseEstimatedSizeStatic(String rawUrl) {
+            if (rawUrl == null) return -1;
+            try {
+                String path = new URI(rawUrl).getPath();
+                if (path == null) return -1;
+                Matcher m = Pattern.compile("\\.([0-9]{7,})\\.\\d+\\.fd$",
+                        Pattern.CASE_INSENSITIVE).matcher(path);
+                if (m.find()) return Long.parseLong(m.group(1));
+            } catch (Exception ignored) {
+            }
+            return -1;
         }
 
         String displayLabel() {
@@ -1745,7 +2294,22 @@ public class MainActivity extends AppCompatActivity {
             if (file.isEmpty()) file = "stream";
             if (file.length() > 55) file = file.substring(0, 52) + "…";
 
-            return kind + " • " + host + "\n" + file + "  [" + source + "]";
+            String quality = "";
+            if (source != null && source.contains("range-video")) {
+                quality = estimatedSizeBytes > 0
+                        ? "Current quality • " + formatBytesStatic(estimatedSizeBytes)
+                        : "Current quality";
+            }
+            return kind + (quality.isEmpty() ? "" : " • " + quality)
+                    + "\n" + host + " • " + file;
+        }
+
+        private static String formatBytesStatic(long bytes) {
+            if (bytes <= 0) return "";
+            double gb = bytes / (1024.0 * 1024.0 * 1024.0);
+            if (gb >= 0.95) return String.format(Locale.US, "%.2f GB", gb);
+            double mb = bytes / (1024.0 * 1024.0);
+            return String.format(Locale.US, "%.0f MB", mb);
         }
     }
 }
