@@ -133,6 +133,7 @@ public class MainActivity extends AppCompatActivity {
     private volatile long castRecoveryPulseUntilMs = 0L;
     private volatile long castLastRecoveryPulseAtMs = 0L;
     private volatile String recentLiveSssrrHost = "";
+    private volatile String activeCastLabel = "";
     private Handler castCompanionHandler;
     private final Set<String> processedAbyssDatas =
             Collections.synchronizedSet(new HashSet<>());
@@ -1428,6 +1429,7 @@ public class MainActivity extends AppCompatActivity {
                 String resId = String.valueOf(source.opt("res_id"));
                 String size = String.valueOf(source.opt("size"));
                 String sub = source.optString("sub", "");
+                String codec = source.optString("codec", "").trim();
 
                 long sizeBytes = parseLongSafe(size);
                 if (sizeBytes <= 0) continue;
@@ -1480,7 +1482,8 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 String sourceTag = "abyss-source|" + quality + "|" + sizeBytes
-                        + (virtualSegmented ? "|virtual" : "|direct");
+                        + (virtualSegmented ? "|virtual" : "|direct")
+                        + "|" + (codec.isEmpty() ? "unknown" : codec);
                 addDetectedMedia(sourceUrl, "video/mp4", sourceTag, 140 + i);
                 addDiagnostic("ABYSS_SOURCE quality=" + quality
                         + " size=" + sizeBytes
@@ -1740,9 +1743,31 @@ public class MainActivity extends AppCompatActivity {
 
     private void addDiagnostic(String event) {
         if (event == null || event.isEmpty()) return;
+
+        // Known decoy/alternate player endpoint on this family of sites. Its malformed
+        // TLS response is unrelated to the selected Abyss stream, so keep reports clean.
+        if (event.startsWith("FRAME_FETCH_ERROR")
+                && event.contains("ppzj-youtube.cfd")
+                && event.contains("TLS")) {
+            return;
+        }
+
+        // Successful segments are extremely repetitive. Keep periodic checkpoints,
+        // retries, cache hits and EOF while avoiding hundreds of identical lines.
+        if (event.startsWith("ABYSS_SEGMENT part=") && event.contains(" bytes=2097152")) {
+            Matcher m = Pattern.compile("part=(\\d+)").matcher(event);
+            if (m.find()) {
+                try {
+                    long part = Long.parseLong(m.group(1));
+                    if (part % 8L != 0L) return;
+                } catch (Exception ignored) {
+                }
+            }
+        }
+
         synchronized (diagnosticLog) {
             diagnosticLog.add(event);
-            while (diagnosticLog.size() > 120) diagnosticLog.remove(0);
+            while (diagnosticLog.size() > 160) diagnosticLog.remove(0);
         }
     }
 
@@ -1785,7 +1810,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void showDebugReport() {
         StringBuilder sb = new StringBuilder();
-        sb.append("WEBCAST_DEBUG_V0.8.2\\n");
+        sb.append("WEBCAST_DEBUG_V0.9.0\\n");
         sb.append("page=").append(redactUrl(webView == null ? "" : webView.getUrl())).append("\\n");
         sb.append("title=").append(safeText(webView == null ? "" : webView.getTitle())).append("\\n");
         sb.append("confirmedVideos=").append(getDisplayMedia().size()).append("\\n");
@@ -1795,7 +1820,11 @@ public class MainActivity extends AppCompatActivity {
         sb.append("blobVideo=").append(blobVideoHits.get()).append("\\n");
         sb.append("mediaSource=").append(mseHits.get()).append("\\n");
         sb.append("blockedAds=").append(blockedAds).append("\\n");
-        sb.append("detectorEvents=").append(detectorEvents).append("\\n\\n");
+        sb.append("detectorEvents=").append(detectorEvents).append("\\n");
+        sb.append("cast=").append(activeCastLabel.isEmpty() ? "none" : activeCastLabel).append("\\n");
+        sb.append("relay=").append(relayServer != null && relayServer.isRunning() ? relayServer.describe() : "off").append("\\n");
+        sb.append("backgroundService=").append(CastKeepAliveService.isRunning() ? "running" : "stopped").append("\\n");
+        sb.append("audio=source-passthrough").append("\\n\\n");
 
         List<String> logs;
         synchronized (diagnosticLog) {
@@ -1970,8 +1999,19 @@ public class MainActivity extends AppCompatActivity {
             if (m.source != null && m.source.startsWith("abyss-source|")) abyss.add(m);
         }
         if (!abyss.isEmpty()) {
-            abyss.sort((a, b) -> Long.compare(qualitySize(b), qualitySize(a)));
-            return abyss;
+            // The player can expose multiple files for the same resolution.
+            // Keep one clean entry per quality, preferring H.264 and then the larger file.
+            Map<String, DetectedMedia> byQuality = new LinkedHashMap<>();
+            for (DetectedMedia m : abyss) {
+                String q = abyssQuality(m);
+                DetectedMedia old = byQuality.get(q);
+                if (old == null || abyssPreference(m) > abyssPreference(old)) {
+                    byQuality.put(q, m);
+                }
+            }
+            List<DetectedMedia> clean = new ArrayList<>(byQuality.values());
+            clean.sort((a, b) -> Long.compare(qualitySize(b), qualitySize(a)));
+            return clean;
         }
 
         // Ranged service-worker files are quality variants of the same logical movie.
@@ -2037,6 +2077,32 @@ public class MainActivity extends AppCompatActivity {
             if (parts.length >= 3) return parseLongSafe(parts[2]);
         }
         return m.estimatedSizeBytes;
+    }
+
+    private String abyssQuality(DetectedMedia m) {
+        if (m == null || m.source == null || !m.source.startsWith("abyss-source|")) {
+            return "Unknown";
+        }
+        String[] parts = m.source.split("\\|");
+        return parts.length >= 2 && !parts[1].isEmpty() ? parts[1] : "Unknown";
+    }
+
+    private String abyssCodec(DetectedMedia m) {
+        if (m == null || m.source == null || !m.source.startsWith("abyss-source|")) return "";
+        String[] parts = m.source.split("\\|");
+        return parts.length >= 5 ? parts[4] : "";
+    }
+
+    private int abyssPreference(DetectedMedia m) {
+        String codec = abyssCodec(m).toLowerCase(Locale.US);
+        int score = codec.contains("h264") || codec.contains("avc") ? 1_000_000 : 0;
+        long size = qualitySize(m);
+        score += (int) Math.min(900_000L, Math.max(0L, size / (1024L * 1024L)));
+        return score;
+    }
+
+    private boolean isAbyssMedia(DetectedMedia m) {
+        return m != null && m.source != null && m.source.startsWith("abyss-source|");
     }
 
     private boolean isHls(DetectedMedia m) {
@@ -2127,14 +2193,29 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
+        boolean qualityPicker = !list.isEmpty() && list.stream().allMatch(this::isAbyssMedia);
         String[] labels = new String[list.size()];
-        for (int i = 0; i < list.size(); i++) labels[i] = list.get(i).displayLabel();
+        for (int i = 0; i < list.size(); i++) {
+            DetectedMedia media = list.get(i);
+            if (qualityPicker) {
+                String q = abyssQuality(media);
+                long bytes = qualitySize(media);
+                String codec = abyssCodec(media);
+                String compatibility = codec.toLowerCase(Locale.US).contains("h264")
+                        || codec.toLowerCase(Locale.US).contains("avc")
+                        ? " • H.264" : "";
+                labels[i] = q
+                        + (bytes > 0 ? " • " + formatBytes(bytes) : "")
+                        + compatibility;
+            } else {
+                labels[i] = media.displayLabel();
+            }
+        }
 
         new AlertDialog.Builder(this)
-                .setTitle("Detected videos")
+                .setTitle(qualityPicker ? "Choose video quality" : "Detected videos")
                 .setItems(labels, (dialog, which) -> castMedia(list.get(which)))
-                .setNeutralButton("All candidates (" + getSortedMedia().size() + ")", (dialog, which) ->
-                        showAllCandidates())
+                .setNeutralButton("Advanced", (dialog, which) -> showAllCandidates())
                 .setNegativeButton("Close", null)
                 .show();
     }
@@ -2244,6 +2325,7 @@ public class MainActivity extends AppCompatActivity {
         public void run() {
             if (!castCompanionActive) return;
             updateCastCompanionState();
+            updateStatus();
             if (castCompanionHandler != null) {
                 castCompanionHandler.postDelayed(this, 1000L);
             }
@@ -2293,6 +2375,7 @@ public class MainActivity extends AppCompatActivity {
     private void stopCastCompanion(boolean stopRelay) {
         castCompanionActive = false;
         castCompanionMode = 0;
+        activeCastLabel = "";
         pauseLocalForCast = false;
         castRecoveryPulseUntilMs = 0L;
         if (castCompanionHandler != null) {
@@ -2352,7 +2435,9 @@ public class MainActivity extends AppCompatActivity {
             String relayUrl = server.urlFor(token);
 
             acquireRelayWakeLock();
+            activeCastLabel = currentQualityLabel(media);
             addDiagnostic("CAST_RELAY source=" + redactUrl(media.url)
+                    + " quality=" + safeText(activeCastLabel)
                     + " local=" + server.describe());
 
             MediaMetadata metadata = new MediaMetadata(MediaMetadata.MEDIA_TYPE_MOVIE);
@@ -2376,8 +2461,8 @@ public class MainActivity extends AppCompatActivity {
             startCastCompanion();
 
             Toast.makeText(this,
-                    "Casting current quality through phone…",
-                    Toast.LENGTH_LONG).show();
+                    "Casting " + activeCastLabel,
+                    Toast.LENGTH_SHORT).show();
         } catch (Exception e) {
             addDiagnostic("RELAY_START_ERROR " + safeText(e.getClass().getSimpleName()
                     + ": " + e.getMessage()));
@@ -2460,6 +2545,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private String currentQualityLabel(DetectedMedia media) {
+        if (isAbyssMedia(media)) {
+            String q = abyssQuality(media);
+            long bytes = qualitySize(media);
+            return q + (bytes > 0 ? " • " + formatBytes(bytes) : "");
+        }
         long bytes = media.estimatedSizeBytes;
         if (bytes > 0) return "Current quality • " + formatBytes(bytes);
         return "Current quality";
@@ -3329,20 +3419,42 @@ public class MainActivity extends AppCompatActivity {
 
         int count = getDisplayMedia().size();
         int state = castContext == null ? CastState.NO_DEVICES_AVAILABLE : castContext.getCastState();
+        RemoteMediaClient remote = currentRemoteClient();
 
         String cast;
-        if (state == CastState.CONNECTED) cast = "Cast connected";
-        else if (state == CastState.CONNECTING) cast = "Connecting…";
-        else if (state == CastState.NOT_CONNECTED) cast = "Cast available";
-        else cast = "No Cast device";
+        if (!activeCastLabel.isEmpty() && remote != null) {
+            if (remote.isPaused()) cast = "Paused • " + activeCastLabel;
+            else if (remote.isBuffering()) cast = "Buffering • " + activeCastLabel;
+            else cast = "Casting • " + activeCastLabel;
+            if (CastKeepAliveService.isRunning()) cast += " • screen-off ready";
+        } else if (state == CastState.CONNECTED) {
+            cast = "Cast connected";
+        } else if (state == CastState.CONNECTING) {
+            cast = "Connecting…";
+        } else if (state == CastState.NOT_CONNECTED) {
+            cast = "Cast available";
+        } else {
+            cast = "No Cast device";
+        }
 
         int probing = activeProbes.get();
         int blobs = blobHlsHits.get() + blobVideoHits.get() + mseHits.get();
-        statusText.setText(cast + " • " + count + " video" + (count == 1 ? "" : "s")
+        statusText.setText(cast
+                + (activeCastLabel.isEmpty()
+                ? " • " + count + " video" + (count == 1 ? "" : "s")
+                : "")
                 + (blobs > 0 ? " • blob " + blobs : "")
-                + (probing > 0 ? " • scanning " + probing : "")
-                + " • " + blockedAds + " blocked");
-        videosButton.setText("Videos (" + count + ")");
+                + (probing > 0 ? " • scanning " + probing : ""));
+
+        videosButton.setText(count > 0 ? "Videos (" + count + ")" : "Videos");
+
+        Button playPause = findViewById(R.id.playPauseButton);
+        Button stop = findViewById(R.id.stopButton);
+        if (playPause != null) {
+            playPause.setText(remote != null && remote.isPaused() ? "Play" : "Pause");
+            playPause.setEnabled(remote != null);
+        }
+        if (stop != null) stop.setEnabled(remote != null);
     }
 
     private static class RequestSnapshot {
