@@ -12,6 +12,8 @@ import android.net.LinkProperties;
 import android.net.Network;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.Message;
 import android.os.PowerManager;
 import android.os.SystemClock;
@@ -121,6 +123,10 @@ public class MainActivity extends AppCompatActivity {
     private volatile String lastRangeVideoUrl = "";
     private volatile String webViewUserAgent = "";
     private volatile boolean pauseLocalForCast = false;
+    private volatile boolean castCompanionActive = false;
+    private volatile long castCompanionPositionMs = 0L;
+    private volatile int castCompanionMode = 0; // 0=inactive, 1=playing/buffering, 2=paused
+    private Handler castCompanionHandler;
     private final Set<String> processedAbyssDatas =
             Collections.synchronizedSet(new HashSet<>());
     private final Set<String> processedPlayerFrames =
@@ -138,7 +144,13 @@ public class MainActivity extends AppCompatActivity {
     private volatile int detectorEvents = 0;
     private boolean deepSnifferInstalled = false;
 
-    private final CastStateListener castStateListener = newState -> updateStatus();
+    private final CastStateListener castStateListener = newState -> {
+        if (newState != CastState.CONNECTED && newState != CastState.CONNECTING
+                && castCompanionActive) {
+            stopCastCompanion(true);
+        }
+        updateStatus();
+    };
 
     @SuppressLint({"SetJavaScriptEnabled", "AddJavascriptInterface"})
     @Override
@@ -147,6 +159,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+        castCompanionHandler = new Handler(Looper.getMainLooper());
 
         View root = findViewById(R.id.rootContainer);
         root.setOnApplyWindowInsetsListener((v, insets) -> {
@@ -260,6 +273,7 @@ public class MainActivity extends AppCompatActivity {
             webView.destroy();
         }
         probeExecutor.shutdownNow();
+        if (castCompanionHandler != null) castCompanionHandler.removeCallbacks(castCompanionTicker);
         stopRelayServer();
         releaseRelayWakeLock();
         super.onDestroy();
@@ -540,7 +554,22 @@ public class MainActivity extends AppCompatActivity {
 
         @JavascriptInterface
         public boolean shouldPauseForCast() {
-            return pauseLocalForCast;
+            return false;
+        }
+
+        @JavascriptInterface
+        public boolean castCompanionActive() {
+            return castCompanionActive;
+        }
+
+        @JavascriptInterface
+        public double castPositionSeconds() {
+            return Math.max(0L, castCompanionPositionMs) / 1000.0;
+        }
+
+        @JavascriptInterface
+        public int castPlaybackMode() {
+            return castCompanionMode;
         }
 
         @JavascriptInterface
@@ -676,10 +705,30 @@ public class MainActivity extends AppCompatActivity {
                 + "var m=tx.match(/(?:const|var)\\s+datas\\s*=\\s*\"([^\"]{50,})\"/);"
                 + "if(m&&!window.__wcAbyssSent[m[1].slice(0,32)]){window.__wcAbyssSent[m[1].slice(0,32)]=1;"
                 + "if(window.WebCastBridge&&WebCastBridge.abyssDatas)WebCastBridge.abyssDatas(m[1],String(location.href));}});}catch(e){}}"
-                + "function pauseIfAsked(){try{if(window.WebCastBridge&&WebCastBridge.shouldPauseForCast&&WebCastBridge.shouldPauseForCast()){"
-                + "document.querySelectorAll('video,audio').forEach(function(v){try{v.pause();}catch(e){}});"
-                + "try{if(window.jwplayer&&typeof jwplayer().pause==='function')jwplayer().pause(true);}catch(e){}"
-                + "}}catch(e){}}"
+                + "function syncCastCompanion(){try{"
+                + "if(!window.WebCastBridge||!WebCastBridge.castCompanionActive)return;"
+                + "var active=!!WebCastBridge.castCompanionActive();"
+                + "var mode=active?Number(WebCastBridge.castPlaybackMode()||0):0;"
+                + "var pos=active?Number(WebCastBridge.castPositionSeconds()||0):0;"
+                + "document.querySelectorAll('video,audio').forEach(function(v){try{"
+                + "if(active){if(!v.__wcCast){v.__wcCast={muted:v.muted,volume:v.volume};}"
+                + "v.muted=true;v.volume=0;"
+                + "if(isFinite(pos)&&pos>=0&&Math.abs((v.currentTime||0)-pos)>2.0){try{v.currentTime=pos;}catch(e){}}"
+                + "if(mode===1&&v.paused){var pr=v.play();if(pr&&pr.catch)pr.catch(function(){});}"
+                + "else if(mode===2&&!v.paused){v.pause();}"
+                + "}else if(v.__wcCast){v.muted=!!v.__wcCast.muted;v.volume=Number(v.__wcCast.volume);delete v.__wcCast;}"
+                + "}catch(e){}});"
+                + "try{if(window.jwplayer&&typeof jwplayer==='function'){var p=jwplayer();"
+                + "if(p&&typeof p.getState==='function'){"
+                + "if(active){if(window.__wcJwPrevMute===undefined&&typeof p.getMute==='function')window.__wcJwPrevMute=p.getMute();"
+                + "if(typeof p.setMute==='function')p.setMute(true);"
+                + "var jp=typeof p.getPosition==='function'?Number(p.getPosition()||0):0;"
+                + "if(isFinite(pos)&&pos>=0&&Math.abs(jp-pos)>2.0&&typeof p.seek==='function')p.seek(pos);"
+                + "if(mode===1&&p.getState()!=='playing'&&typeof p.play==='function')p.play(true);"
+                + "else if(mode===2&&p.getState()==='playing'&&typeof p.pause==='function')p.pause(true);"
+                + "}else if(window.__wcJwPrevMute!==undefined){if(typeof p.setMute==='function')p.setMute(!!window.__wcJwPrevMute);delete window.__wcJwPrevMute;}"
+                + "}}}catch(e){}"
+                + "}catch(e){}}"
                 + "function payload(u,t,x,s){try{if(!x)return;x=String(x);if(x.length>350000)x=x.slice(0,350000);"
                 + "if(!isMediaText(x))return;if(window.WebCastBridge&&WebCastBridge.payload)"
                 + "WebCastBridge.payload(String(u||''),String(t||''),x,String(location.href),String(s||'payload'));}catch(e){}}"
@@ -725,7 +774,7 @@ public class MainActivity extends AppCompatActivity {
                 + "document.addEventListener('click',function(e){try{var n=e.target;while(n&&n!==document){"
                 + "if(n.tagName==='A'&&n.href){click(n.href);break;}n=n.parentElement;}}catch(x){}},true);"
 
-                + "window.__webCastDeepScan=function(){try{abyssScan();pauseIfAsked();"
+                + "window.__webCastDeepScan=function(){try{abyssScan();syncCastCompanion();"
                 + "document.querySelectorAll('iframe').forEach(function(f){try{var u=f.src||f.getAttribute('src')||'';"
                 + "if(!u)return;var r=f.getBoundingClientRect();var cs=getComputedStyle(f);"
                 + "var vis=r.width>80&&r.height>60&&cs.display!=='none'&&cs.visibility!=='hidden'&&parseFloat(cs.opacity||'1')>0;"
@@ -743,7 +792,7 @@ public class MainActivity extends AppCompatActivity {
                 + "{subtree:true,childList:true,attributes:true,attributeFilter:['src']});}catch(e){}"
                 + "try{if(window.PerformanceObserver){new PerformanceObserver(function(l){l.getEntries().forEach(function(e){"
                 + "send(e.name,'','resource');});}).observe({entryTypes:['resource']});}}catch(e){}"
-                + "setInterval(function(){try{window.__webCastDeepScan();pauseIfAsked();}catch(e){}},700);"
+                + "setInterval(function(){try{window.__webCastDeepScan();syncCastCompanion();}catch(e){}},700);"
                 + "})();";
     }
 
@@ -1716,7 +1765,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void showDebugReport() {
         StringBuilder sb = new StringBuilder();
-        sb.append("WEBCAST_DEBUG_V0.7.2\\n");
+        sb.append("WEBCAST_DEBUG_V0.8.0\\n");
         sb.append("page=").append(redactUrl(webView == null ? "" : webView.getUrl())).append("\\n");
         sb.append("title=").append(safeText(webView == null ? "" : webView.getTitle())).append("\\n");
         sb.append("confirmedVideos=").append(getDisplayMedia().size()).append("\\n");
@@ -2130,24 +2179,64 @@ public class MainActivity extends AppCompatActivity {
         Toast.makeText(this, "Sending video to Chromecast…", Toast.LENGTH_SHORT).show();
     }
 
-    private void pausePhonePlaybackForCast() {
-        pauseLocalForCast = true;
+    private void startCastCompanion() {
+        castCompanionActive = true;
+        pauseLocalForCast = false;
+        updateCastCompanionState();
+        if (castCompanionHandler != null) {
+            castCompanionHandler.removeCallbacks(castCompanionTicker);
+            castCompanionHandler.post(castCompanionTicker);
+        }
+        addDiagnostic("CAST_COMPANION start");
+    }
+
+    private final Runnable castCompanionTicker = new Runnable() {
+        @Override
+        public void run() {
+            if (!castCompanionActive) return;
+            updateCastCompanionState();
+            if (castCompanionHandler != null) {
+                castCompanionHandler.postDelayed(this, 750L);
+            }
+        }
+    };
+
+    private void updateCastCompanionState() {
+        try {
+            RemoteMediaClient client = currentRemoteClient();
+            if (client == null) {
+                castCompanionMode = 0;
+                return;
+            }
+            castCompanionPositionMs = Math.max(0L, client.getApproximateStreamPosition());
+            if (client.isPaused()) castCompanionMode = 2;
+            else if (client.isPlaying() || client.isBuffering()) castCompanionMode = 1;
+            else castCompanionMode = 1;
+        } catch (Exception ignored) {
+        }
+    }
+
+    private void stopCastCompanion(boolean stopRelay) {
+        castCompanionActive = false;
+        castCompanionMode = 0;
+        pauseLocalForCast = false;
+        if (castCompanionHandler != null) {
+            castCompanionHandler.removeCallbacks(castCompanionTicker);
+        }
         runOnUiThread(() -> {
             try {
                 webView.evaluateJavascript(
-                        "(function(){try{document.querySelectorAll('video,audio').forEach(function(v){v.pause();});"
-                                + "if(window.jwplayer&&typeof jwplayer().pause==='function')jwplayer().pause(true);"
-                                + "}catch(e){}})();",
+                        "(function(){try{if(window.__webCastDeepScan)window.__webCastDeepScan();}catch(e){}})();",
                         null);
             } catch (Exception ignored) {
             }
         });
-        addDiagnostic("PHONE_PLAYBACK_PAUSE requested");
+        if (stopRelay) stopRelayServer();
+        releaseRelayWakeLock();
+        addDiagnostic("CAST_COMPANION stop");
     }
 
     private void castMediaViaPhone(@NonNull DetectedMedia media) {
-        pausePhonePlaybackForCast();
-
         CastSession session = castContext.getSessionManager().getCurrentCastSession();
         if (session == null || !session.isConnected()) {
             Toast.makeText(this, "Tap the Cast icon and connect to a Chromecast first.",
@@ -2206,6 +2295,7 @@ public class MainActivity extends AppCompatActivity {
                     .setMediaInfo(mediaInfo)
                     .setAutoplay(true)
                     .build());
+            startCastCompanion();
 
             Toast.makeText(this,
                     "Casting current quality through phone…",
@@ -2576,6 +2666,7 @@ public class MainActivity extends AppCompatActivity {
             long start = 0;
             long end = total - 1;
             boolean ranged = rangeHeader != null && !rangeHeader.isEmpty();
+            boolean openEndedRange = false;
 
             if (ranged) {
                 Matcher m = Pattern.compile("(?i)bytes=(\\d+)-(\\d*)")
@@ -2587,6 +2678,12 @@ public class MainActivity extends AppCompatActivity {
                 start = Long.parseLong(m.group(1));
                 if (m.group(2) != null && !m.group(2).isEmpty()) {
                     end = Math.min(total - 1, Long.parseLong(m.group(2)));
+                } else {
+                    openEndedRange = true;
+                    // Give Chromecast a finite block so it completes requests normally
+                    // instead of holding a multi-gigabyte HTTP response open indefinitely.
+                    final long maxWindow = 32L * 1024L * 1024L;
+                    end = Math.min(total - 1, start + maxWindow - 1);
                 }
                 if (start >= total || end < start) {
                     writeStatusLine(out, 416);
@@ -2617,7 +2714,8 @@ public class MainActivity extends AppCompatActivity {
             out.flush();
 
             addDiagnostic("ABYSS_RELAY range=" + start + "-" + end + "/" + total
-                    + " quality=" + source.quality);
+                    + " quality=" + source.quality
+                    + (openEndedRange ? " window=32MiB" : ""));
 
             if ("HEAD".equals(method)) return;
 
@@ -2984,8 +3082,7 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
         client.stop();
-        pauseLocalForCast = false;
-        releaseRelayWakeLock();
+        stopCastCompanion(true);
     }
 
     private RemoteMediaClient currentRemoteClient() {
