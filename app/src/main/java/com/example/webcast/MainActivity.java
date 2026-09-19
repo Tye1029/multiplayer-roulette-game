@@ -114,6 +114,8 @@ public class MainActivity extends AppCompatActivity {
     private final AtomicInteger activeProbes = new AtomicInteger(0);
     private final Map<String, Map<String, String>> mediaRequestHeaders =
             Collections.synchronizedMap(new LinkedHashMap<>());
+    private final Map<String, AbyssVirtualSource> abyssVirtualSources =
+            Collections.synchronizedMap(new LinkedHashMap<>());
     private volatile String lastRangeVideoUrl = "";
     private volatile String webViewUserAgent = "";
     private volatile boolean pauseLocalForCast = false;
@@ -318,6 +320,7 @@ public class MainActivity extends AppCompatActivity {
                 probedUrls.clear();
                 diagnosticLog.clear();
                 mediaRequestHeaders.clear();
+                abyssVirtualSources.clear();
                 lastRangeVideoUrl = "";
                 processedAbyssDatas.clear();
                 processedPlayerFrames.clear();
@@ -1306,7 +1309,7 @@ public class MainActivity extends AppCompatActivity {
     private void extractAbyssSources(String encoded, String frameUrl) {
         try {
             byte[] outerBytes = Base64.decode(encoded, Base64.DEFAULT);
-            String outerJson = new String(outerBytes, StandardCharsets.UTF_8);
+            String outerJson = new String(outerBytes, StandardCharsets.ISO_8859_1);
             JSONObject outer = new JSONObject(outerJson);
 
             String slug = outer.optString("slug", "");
@@ -1355,28 +1358,35 @@ public class MainActivity extends AppCompatActivity {
                 String size = String.valueOf(source.opt("size"));
                 String sub = source.optString("sub", "");
 
+                long sizeBytes = parseLongSafe(size);
+                if (sizeBytes <= 0) continue;
+
+                String domain = findAbyssDomain(domains, sub);
+                if (domain.isEmpty() && !sub.isEmpty()) {
+                    domain = "https://" + sub + ".sssrr.org";
+                }
+
                 String sourceUrl = "";
+                boolean virtualSegmented = false;
+
                 if (!direct.isEmpty()) {
-                    sourceUrl = direct.replace("\\\\/", "/");
+                    sourceUrl = direct.replace("\\/", "/");
                 } else if (!url.isEmpty() && !path.isEmpty()) {
-                    sourceUrl = url.replace("\\\\/", "/").replaceAll("/+$", "")
-                            + "/" + path.replace("\\\\/", "/").replaceAll("^/+", "");
-                } else if (!resId.isEmpty() && !size.isEmpty() && !sub.isEmpty()) {
-                    String domain = findAbyssDomain(domains, sub);
-                    if (domain.isEmpty()) domain = "https://" + sub + ".sssrr.org";
-                    String pathValue = "/mp4/" + md5Id + "/" + resId + "/" + size + "?v=" + slug;
-                    String token = buildSoraToken(pathValue, size);
-                    if (!token.isEmpty()) {
-                        sourceUrl = domain.replaceAll("/+$", "")
-                                + "/sora/" + size + "/" + token;
-                    }
+                    sourceUrl = url.replace("\\/", "/").replaceAll("/+$", "")
+                            + "/" + path.replace("\\/", "/").replaceAll("^/+", "");
+                } else if (!domain.isEmpty() && !resId.isEmpty()) {
+                    String id = Integer.toHexString(
+                            (slug + "|" + md5Id + "|" + resId + "|" + size + "|" + domain).hashCode());
+                    sourceUrl = "https://webcast.local/abyss-media/" + id;
+                    virtualSegmented = true;
                 }
 
                 if (!isHttpUrl(sourceUrl)) continue;
 
                 Map<String, String> headers = new LinkedHashMap<>();
                 String referer = refererRoot(frameUrl);
-                if (!referer.isEmpty()) headers.put("Referer", referer);
+                if (referer.isEmpty()) referer = "https://abysscdn.com/";
+                headers.put("Referer", referer);
                 if (webViewUserAgent != null && !webViewUserAgent.isEmpty()) {
                     headers.put("User-Agent", webViewUserAgent);
                 }
@@ -1384,10 +1394,25 @@ public class MainActivity extends AppCompatActivity {
                     mediaRequestHeaders.put(sourceUrl, headers);
                 }
 
-                long sizeBytes = parseLongSafe(size);
-                String sourceTag = "abyss-source|" + cleanQualityLabel(label)
-                        + "|" + sizeBytes;
+                String quality = cleanQualityLabel(label);
+                if (virtualSegmented) {
+                    headers.put("Referer", "https://abysscdn.com/");
+                    synchronized (mediaRequestHeaders) {
+                        mediaRequestHeaders.put(sourceUrl, new LinkedHashMap<>(headers));
+                    }
+                    abyssVirtualSources.put(
+                            sourceUrl,
+                            new AbyssVirtualSource(
+                                    slug, md5Id, resId, sizeBytes, domain, quality, headers));
+                }
+
+                String sourceTag = "abyss-source|" + quality + "|" + sizeBytes
+                        + (virtualSegmented ? "|virtual" : "|direct");
                 addDetectedMedia(sourceUrl, "video/mp4", sourceTag, 140 + i);
+                addDiagnostic("ABYSS_SOURCE quality=" + quality
+                        + " size=" + sizeBytes
+                        + " mode=" + (virtualSegmented ? "segmented" : "direct")
+                        + " host=" + (virtualSegmented ? host(domain) : host(sourceUrl)));
                 added++;
             }
 
@@ -1409,23 +1434,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private byte[] deriveAbyssKey(String seed) throws Exception {
-        byte[] input;
         String s = String.valueOf(seed);
-        if (s.matches("[0-9.:-]+")) {
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            for (int i = 0; i < s.length(); i++) {
-                char ch = s.charAt(i);
-                out.write(Character.isDigit(ch) ? (ch - '0') : (ch & 0xff));
-            }
-            input = out.toByteArray();
-        } else {
-            input = s.getBytes(StandardCharsets.UTF_8);
-        }
-
         MessageDigest md5 = MessageDigest.getInstance("MD5");
-        byte[] digest = md5.digest(input);
+        byte[] digest = md5.digest(s.getBytes(StandardCharsets.UTF_8));
         StringBuilder hex = new StringBuilder(32);
-        for (byte b : digest) hex.append(String.format(Locale.US, "%02x", b & 0xff));
+        for (byte b : digest) {
+            hex.append(String.format(Locale.US, "%02x", b & 0xff));
+        }
         return hex.toString().getBytes(StandardCharsets.UTF_8);
     }
 
@@ -1623,7 +1638,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void showDebugReport() {
         StringBuilder sb = new StringBuilder();
-        sb.append("WEBCAST_DEBUG_V0.6.2\\n");
+        sb.append("WEBCAST_DEBUG_V0.7.0\\n");
         sb.append("page=").append(redactUrl(webView == null ? "" : webView.getUrl())).append("\\n");
         sb.append("title=").append(safeText(webView == null ? "" : webView.getTitle())).append("\\n");
         sb.append("confirmedVideos=").append(getDisplayMedia().size()).append("\\n");
@@ -2085,7 +2100,10 @@ public class MainActivity extends AppCompatActivity {
             }
 
             String pageReferer = prefs == null ? "" : prefs.getString(KEY_LAST_URL, "");
-            String token = server.register(media.url, headers, media.mime, pageReferer);
+            AbyssVirtualSource virtual = abyssVirtualSources.get(media.url);
+            String token = virtual != null
+                    ? server.registerAbyss(virtual, media.mime, pageReferer)
+                    : server.register(media.url, headers, media.mime, pageReferer);
             String relayUrl = server.urlFor(token);
 
             acquireRelayWakeLock();
@@ -2270,6 +2288,17 @@ public class MainActivity extends AppCompatActivity {
             return token;
         }
 
+        String registerAbyss(AbyssVirtualSource source, String mime, String referer) {
+            String token = UUID.randomUUID().toString().replace("-", "");
+            targets.put(token, new RelayTarget(
+                    "abyss-virtual://" + source.quality,
+                    source.headers,
+                    mime,
+                    referer,
+                    source));
+            return token;
+        }
+
         String urlFor(String token) {
             return "http://" + bindAddress + ":" + serverSocket.getLocalPort()
                     + "/media/" + token;
@@ -2345,7 +2374,13 @@ public class MainActivity extends AppCompatActivity {
 
                 String incomingRange = findHeader(incoming, "Range");
                 addDiagnostic("RELAY_CLIENT method=" + method
-                        + " range=" + safeHeader(incomingRange));
+                        + " range=" + safeHeader(incomingRange)
+                        + (target.abyss != null ? " abyss=" + target.abyss.quality : ""));
+
+                if (target.abyss != null) {
+                    handleAbyssVirtual(out, method, incomingRange, target);
+                    return;
+                }
 
                 upstream = (HttpURLConnection) new URL(target.remoteUrl).openConnection();
                 upstream.setInstanceFollowRedirects(true);
@@ -2441,6 +2476,180 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
+        private void handleAbyssVirtual(OutputStream out, String method,
+                                        String rangeHeader, RelayTarget target) throws Exception {
+            AbyssVirtualSource source = target.abyss;
+            long total = source.totalSize;
+            if (total <= 0) {
+                writeSimpleResponse(out, 502, "Invalid media size");
+                return;
+            }
+
+            long start = 0;
+            long end = total - 1;
+            boolean ranged = rangeHeader != null && !rangeHeader.isEmpty();
+
+            if (ranged) {
+                Matcher m = Pattern.compile("(?i)bytes=(\\d+)-(\\d*)")
+                        .matcher(rangeHeader.trim());
+                if (!m.find()) {
+                    writeSimpleResponse(out, 416, "Range Not Satisfiable");
+                    return;
+                }
+                start = Long.parseLong(m.group(1));
+                if (m.group(2) != null && !m.group(2).isEmpty()) {
+                    end = Math.min(total - 1, Long.parseLong(m.group(2)));
+                }
+                if (start >= total || end < start) {
+                    writeStatusLine(out, 416);
+                    writeHeader(out, "Content-Range", "bytes */" + total);
+                    writeHeader(out, "Content-Length", "0");
+                    writeHeader(out, "Connection", "close");
+                    out.write("\r\n".getBytes(StandardCharsets.ISO_8859_1));
+                    out.flush();
+                    return;
+                }
+            }
+
+            long length = end - start + 1;
+            writeStatusLine(out, ranged ? 206 : 200);
+            writeHeader(out, "Content-Type", "video/mp4");
+            writeHeader(out, "Content-Length", String.valueOf(length));
+            writeHeader(out, "Accept-Ranges", "bytes");
+            if (ranged) {
+                writeHeader(out, "Content-Range",
+                        "bytes " + start + "-" + end + "/" + total);
+            }
+            writeHeader(out, "Access-Control-Allow-Origin", "*");
+            writeHeader(out, "Access-Control-Allow-Headers", "Range, Content-Type");
+            writeHeader(out, "Access-Control-Expose-Headers",
+                    "Content-Length, Content-Range, Accept-Ranges");
+            writeHeader(out, "Connection", "close");
+            out.write("\r\n".getBytes(StandardCharsets.ISO_8859_1));
+            out.flush();
+
+            addDiagnostic("ABYSS_RELAY range=" + start + "-" + end + "/" + total
+                    + " quality=" + source.quality);
+
+            if ("HEAD".equals(method)) return;
+
+            long segmentSize = AbyssVirtualSource.SEGMENT_SIZE;
+            long firstSegment = start / segmentSize;
+            long lastSegment = end / segmentSize;
+
+            for (long part = firstSegment; part <= lastSegment; part++) {
+                long segmentGlobalStart = part * segmentSize;
+                long from = Math.max(start, segmentGlobalStart) - segmentGlobalStart;
+                long segmentGlobalEnd = Math.min(total - 1,
+                        segmentGlobalStart + segmentSize - 1);
+                long to = Math.min(end, segmentGlobalEnd) - segmentGlobalStart;
+                if (to < from) continue;
+
+                String segmentUrl = buildAbyssSegmentUrl(source, part);
+                if (segmentUrl.isEmpty()) {
+                    throw new IllegalStateException("segment token failed");
+                }
+                streamAbyssSegment(segmentUrl, source, from, to, out, part);
+            }
+            out.flush();
+        }
+
+        private String buildAbyssSegmentUrl(AbyssVirtualSource source, long part) {
+            try {
+                String domain = source.domain;
+                if (!domain.startsWith("http://") && !domain.startsWith("https://")) {
+                    domain = "https://" + domain;
+                }
+                domain = domain.replaceAll("/+$", "");
+
+                URI domainUri = new URI(domain);
+                String pathname = "/mp4/" + source.md5Id + "/" + source.resId
+                        + "/" + source.totalSize + "/" + AbyssVirtualSource.SEGMENT_SIZE;
+                String plain = pathname + "/" + part;
+                String token = buildSoraToken(plain, String.valueOf(source.totalSize));
+                if (token.isEmpty()) return "";
+
+                return domainUri.getScheme() + "://" + domainUri.getHost()
+                        + "/sora/" + source.totalSize + "/" + token;
+            } catch (Exception e) {
+                addDiagnostic("ABYSS_SEGMENT_URL_ERROR " + safeText(e.getMessage()));
+                return "";
+            }
+        }
+
+        private void streamAbyssSegment(String segmentUrl, AbyssVirtualSource source,
+                                        long from, long to, OutputStream out, long part)
+                throws Exception {
+            HttpURLConnection conn = null;
+            try {
+                conn = (HttpURLConnection) new URL(segmentUrl).openConnection();
+                conn.setInstanceFollowRedirects(true);
+                conn.setConnectTimeout(10000);
+                conn.setReadTimeout(30000);
+                conn.setRequestMethod("GET");
+                conn.setRequestProperty("Accept-Encoding", "identity");
+
+                for (Map.Entry<String, String> e : source.headers.entrySet()) {
+                    String k = e.getKey();
+                    String v = e.getValue();
+                    if (k == null || v == null) continue;
+                    if ("Host".equalsIgnoreCase(k)
+                            || "Connection".equalsIgnoreCase(k)
+                            || "Content-Length".equalsIgnoreCase(k)
+                            || "Accept-Encoding".equalsIgnoreCase(k)
+                            || "Range".equalsIgnoreCase(k)) continue;
+                    try { conn.setRequestProperty(k, v); } catch (Exception ignored) {}
+                }
+
+                if (conn.getRequestProperty("Referer") == null) {
+                    conn.setRequestProperty("Referer", "https://abysscdn.com/");
+                }
+                if (conn.getRequestProperty("User-Agent") == null
+                        && webViewUserAgent != null && !webViewUserAgent.isEmpty()) {
+                    conn.setRequestProperty("User-Agent", webViewUserAgent);
+                }
+
+                int code = conn.getResponseCode();
+                if (code < 200 || code >= 400) {
+                    throw new IllegalStateException(
+                            "segment " + part + " HTTP " + code);
+                }
+
+                long expected = to - from + 1;
+                long skipped = 0;
+                long sent = 0;
+
+                try (InputStream body = new BufferedInputStream(conn.getInputStream())) {
+                    while (skipped < from) {
+                        long n = body.skip(from - skipped);
+                        if (n <= 0) {
+                            if (body.read() < 0) break;
+                            n = 1;
+                        }
+                        skipped += n;
+                    }
+
+                    byte[] buffer = new byte[64 * 1024];
+                    while (sent < expected) {
+                        int want = (int) Math.min(buffer.length, expected - sent);
+                        int n = body.read(buffer, 0, want);
+                        if (n < 0) break;
+                        out.write(buffer, 0, n);
+                        sent += n;
+                    }
+                }
+
+                if (sent != expected) {
+                    throw new IllegalStateException(
+                            "segment " + part + " short read " + sent + "/" + expected);
+                }
+
+                addDiagnostic("ABYSS_SEGMENT part=" + part + " bytes=" + sent);
+            } finally {
+                if (conn != null) conn.disconnect();
+            }
+        }
+
         private String readHttpLine(InputStream in) throws Exception {
             ByteArrayOutputStream line = new ByteArrayOutputStream();
             int prev = -1;
@@ -2527,19 +2736,51 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private static class AbyssVirtualSource {
+        static final long SEGMENT_SIZE = 2L * 1024L * 1024L;
+
+        final String slug;
+        final String md5Id;
+        final String resId;
+        final long totalSize;
+        final String domain;
+        final String quality;
+        final Map<String, String> headers;
+
+        AbyssVirtualSource(String slug, String md5Id, String resId,
+                           long totalSize, String domain, String quality,
+                           Map<String, String> headers) {
+            this.slug = slug;
+            this.md5Id = md5Id;
+            this.resId = resId;
+            this.totalSize = totalSize;
+            this.domain = domain;
+            this.quality = quality;
+            this.headers = headers == null ? new LinkedHashMap<>()
+                    : new LinkedHashMap<>(headers);
+        }
+    }
+
     private static class RelayTarget {
         final String remoteUrl;
         final Map<String, String> headers;
         final String mime;
         final String referer;
+        final AbyssVirtualSource abyss;
 
         RelayTarget(String remoteUrl, Map<String, String> headers,
                     String mime, String referer) {
+            this(remoteUrl, headers, mime, referer, null);
+        }
+
+        RelayTarget(String remoteUrl, Map<String, String> headers,
+                    String mime, String referer, AbyssVirtualSource abyss) {
             this.remoteUrl = remoteUrl;
             this.headers = headers == null ? new LinkedHashMap<>()
                     : new LinkedHashMap<>(headers);
             this.mime = mime == null ? "video/mp4" : mime;
             this.referer = referer;
+            this.abyss = abyss;
         }
     }
 
