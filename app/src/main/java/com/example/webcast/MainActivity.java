@@ -126,6 +126,11 @@ public class MainActivity extends AppCompatActivity {
     private volatile boolean castCompanionActive = false;
     private volatile long castCompanionPositionMs = 0L;
     private volatile int castCompanionMode = 0; // 0=inactive, 1=playing/buffering, 2=paused
+    private volatile long castLastProgressPositionMs = 0L;
+    private volatile long castLastProgressAtMs = 0L;
+    private volatile long castRecoveryPulseUntilMs = 0L;
+    private volatile long castLastRecoveryPulseAtMs = 0L;
+    private volatile String recentLiveSssrrHost = "";
     private Handler castCompanionHandler;
     private final Set<String> processedAbyssDatas =
             Collections.synchronizedSet(new HashSet<>());
@@ -338,6 +343,7 @@ public class MainActivity extends AppCompatActivity {
                 mediaRequestHeaders.clear();
                 abyssVirtualSources.clear();
                 lastRangeVideoUrl = "";
+                recentLiveSssrrHost = "";
                 processedAbyssDatas.clear();
                 processedPlayerFrames.clear();
                 pauseLocalForCast = false;
@@ -573,6 +579,12 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @JavascriptInterface
+        public boolean castRecoveryPulseActive() {
+            return castCompanionActive
+                    && SystemClock.elapsedRealtime() < castRecoveryPulseUntilMs;
+        }
+
+        @JavascriptInterface
         public void blobMeta(String blobUrl, String type, long size, String frameUrl) {
             String t = type == null ? "" : type.toLowerCase(Locale.US);
             if (t.contains("mpegurl") || t.contains("dash")) {
@@ -708,14 +720,14 @@ public class MainActivity extends AppCompatActivity {
                 + "function syncCastCompanion(){try{"
                 + "if(!window.WebCastBridge||!WebCastBridge.castCompanionActive)return;"
                 + "var active=!!WebCastBridge.castCompanionActive();"
-                + "var mode=active?Number(WebCastBridge.castPlaybackMode()||0):0;"
+                + "var pulse=active&&WebCastBridge.castRecoveryPulseActive&&!!WebCastBridge.castRecoveryPulseActive();"
                 + "var pos=active?Number(WebCastBridge.castPositionSeconds()||0):0;"
                 + "document.querySelectorAll('video,audio').forEach(function(v){try{"
                 + "if(active){if(!v.__wcCast){v.__wcCast={muted:v.muted,volume:v.volume};}"
                 + "v.muted=true;v.volume=0;"
-                + "if(isFinite(pos)&&pos>=0&&Math.abs((v.currentTime||0)-pos)>2.0){try{v.currentTime=pos;}catch(e){}}"
-                + "if(mode===1&&v.paused){var pr=v.play();if(pr&&pr.catch)pr.catch(function(){});}"
-                + "else if(mode===2&&!v.paused){v.pause();}"
+                + "if(isFinite(pos)&&pos>=0&&Math.abs((v.currentTime||0)-pos)>6.0){try{v.currentTime=pos;}catch(e){}}"
+                + "if(pulse&&v.paused){var pr=v.play();if(pr&&pr.catch)pr.catch(function(){});}"
+                + "else if(!pulse&&!v.paused){v.pause();}"
                 + "}else if(v.__wcCast){v.muted=!!v.__wcCast.muted;v.volume=Number(v.__wcCast.volume);delete v.__wcCast;}"
                 + "}catch(e){}});"
                 + "try{if(window.jwplayer&&typeof jwplayer==='function'){var p=jwplayer();"
@@ -723,9 +735,9 @@ public class MainActivity extends AppCompatActivity {
                 + "if(active){if(window.__wcJwPrevMute===undefined&&typeof p.getMute==='function')window.__wcJwPrevMute=p.getMute();"
                 + "if(typeof p.setMute==='function')p.setMute(true);"
                 + "var jp=typeof p.getPosition==='function'?Number(p.getPosition()||0):0;"
-                + "if(isFinite(pos)&&pos>=0&&Math.abs(jp-pos)>2.0&&typeof p.seek==='function')p.seek(pos);"
-                + "if(mode===1&&p.getState()!=='playing'&&typeof p.play==='function')p.play(true);"
-                + "else if(mode===2&&p.getState()==='playing'&&typeof p.pause==='function')p.pause(true);"
+                + "if(isFinite(pos)&&pos>=0&&Math.abs(jp-pos)>6.0&&typeof p.seek==='function')p.seek(pos);"
+                + "if(pulse&&p.getState()!=='playing'&&typeof p.play==='function')p.play(true);"
+                + "else if(!pulse&&p.getState()==='playing'&&typeof p.pause==='function')p.pause(true);"
                 + "}else if(window.__wcJwPrevMute!==undefined){if(typeof p.setMute==='function')p.setMute(!!window.__wcJwPrevMute);delete window.__wcJwPrevMute;}"
                 + "}}}catch(e){}"
                 + "}catch(e){}}"
@@ -800,6 +812,12 @@ public class MainActivity extends AppCompatActivity {
         if (request == null || request.getUrl() == null) return;
         String url = request.getUrl().toString();
         if (!isHttpUrl(url) || isKnownAdUrl(url)) return;
+
+        String observedHost = host(url);
+        if ("service-worker".equals(source)
+                && observedHost.endsWith(".sssrr.org")) {
+            recentLiveSssrrHost = observedHost;
+        }
 
         Map<String, String> headers = new LinkedHashMap<>();
         if (request.getRequestHeaders() != null) headers.putAll(request.getRequestHeaders());
@@ -1765,7 +1783,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void showDebugReport() {
         StringBuilder sb = new StringBuilder();
-        sb.append("WEBCAST_DEBUG_V0.8.0\\n");
+        sb.append("WEBCAST_DEBUG_V0.8.1\\n");
         sb.append("page=").append(redactUrl(webView == null ? "" : webView.getUrl())).append("\\n");
         sb.append("title=").append(safeText(webView == null ? "" : webView.getTitle())).append("\\n");
         sb.append("confirmedVideos=").append(getDisplayMedia().size()).append("\\n");
@@ -2182,12 +2200,17 @@ public class MainActivity extends AppCompatActivity {
     private void startCastCompanion() {
         castCompanionActive = true;
         pauseLocalForCast = false;
+        long now = SystemClock.elapsedRealtime();
+        castLastProgressAtMs = now;
+        castLastProgressPositionMs = 0L;
+        castRecoveryPulseUntilMs = 0L;
+        castLastRecoveryPulseAtMs = 0L;
         updateCastCompanionState();
         if (castCompanionHandler != null) {
             castCompanionHandler.removeCallbacks(castCompanionTicker);
             castCompanionHandler.post(castCompanionTicker);
         }
-        addDiagnostic("CAST_COMPANION start");
+        addDiagnostic("CAST_COMPANION start mode=paused-until-stall");
     }
 
     private final Runnable castCompanionTicker = new Runnable() {
@@ -2196,7 +2219,7 @@ public class MainActivity extends AppCompatActivity {
             if (!castCompanionActive) return;
             updateCastCompanionState();
             if (castCompanionHandler != null) {
-                castCompanionHandler.postDelayed(this, 750L);
+                castCompanionHandler.postDelayed(this, 1000L);
             }
         }
     };
@@ -2208,10 +2231,35 @@ public class MainActivity extends AppCompatActivity {
                 castCompanionMode = 0;
                 return;
             }
-            castCompanionPositionMs = Math.max(0L, client.getApproximateStreamPosition());
-            if (client.isPaused()) castCompanionMode = 2;
-            else if (client.isPlaying() || client.isBuffering()) castCompanionMode = 1;
+
+            long now = SystemClock.elapsedRealtime();
+            long pos = Math.max(0L, client.getApproximateStreamPosition());
+            castCompanionPositionMs = pos;
+
+            boolean paused = client.isPaused();
+            boolean playing = client.isPlaying();
+            boolean buffering = client.isBuffering();
+
+            if (paused) castCompanionMode = 2;
+            else if (playing || buffering) castCompanionMode = 1;
             else castCompanionMode = 1;
+
+            if (pos > castLastProgressPositionMs + 500L) {
+                castLastProgressPositionMs = pos;
+                castLastProgressAtMs = now;
+            }
+
+            boolean stalled = !paused && (
+                    buffering
+                            || (playing && now - castLastProgressAtMs >= 5000L)
+            );
+
+            if (stalled && now - castLastRecoveryPulseAtMs >= 15000L) {
+                castRecoveryPulseUntilMs = now + 2500L;
+                castLastRecoveryPulseAtMs = now;
+                addDiagnostic("CAST_RECOVERY_PULSE posMs=" + pos
+                        + " buffering=" + buffering);
+            }
         } catch (Exception ignored) {
         }
     }
@@ -2220,6 +2268,7 @@ public class MainActivity extends AppCompatActivity {
         castCompanionActive = false;
         castCompanionMode = 0;
         pauseLocalForCast = false;
+        castRecoveryPulseUntilMs = 0L;
         if (castCompanionHandler != null) {
             castCompanionHandler.removeCallbacks(castCompanionTicker);
         }
@@ -2415,12 +2464,16 @@ public class MainActivity extends AppCompatActivity {
         private final ExecutorService clients = Executors.newCachedThreadPool();
         private final ExecutorService segmentPool = Executors.newFixedThreadPool(4);
         private final Map<String, byte[]> segmentCache =
-                Collections.synchronizedMap(new LinkedHashMap<String, byte[]>(20, 0.75f, true) {
+                Collections.synchronizedMap(new LinkedHashMap<String, byte[]>(28, 0.75f, true) {
                     @Override
                     protected boolean removeEldestEntry(Map.Entry<String, byte[]> eldest) {
-                        return size() > 16;
+                        return size() > 24;
                     }
                 });
+        private final Map<String, Future<byte[]>> inFlightSegments =
+                Collections.synchronizedMap(new LinkedHashMap<>());
+        private final Map<String, Long> hostBackoffUntil =
+                Collections.synchronizedMap(new LinkedHashMap<>());
         private final AtomicBoolean running = new AtomicBoolean(false);
         private ServerSocket serverSocket;
         private Thread acceptThread;
@@ -2494,6 +2547,8 @@ public class MainActivity extends AppCompatActivity {
             clients.shutdownNow();
             segmentPool.shutdownNow();
             segmentCache.clear();
+            inFlightSegments.clear();
+            hostBackoffUntil.clear();
         }
 
         private void handleClient(Socket socket) {
@@ -2647,8 +2702,16 @@ public class MainActivity extends AppCompatActivity {
                     out.flush();
                 }
             } catch (Exception e) {
-                addDiagnostic("RELAY_ERROR " + safeText(e.getClass().getSimpleName()
-                        + ": " + e.getMessage()));
+                String msg = e.getMessage() == null ? "" : e.getMessage();
+                String lower = msg.toLowerCase(Locale.US);
+                if (lower.contains("broken pipe")
+                        || lower.contains("connection reset")
+                        || lower.contains("software caused connection abort")) {
+                    addDiagnostic("RELAY_CLIENT_CLOSED " + safeText(msg));
+                } else {
+                    addDiagnostic("RELAY_ERROR " + safeText(e.getClass().getSimpleName()
+                            + ": " + msg));
+                }
             } finally {
                 if (upstream != null) upstream.disconnect();
             }
@@ -2682,7 +2745,7 @@ public class MainActivity extends AppCompatActivity {
                     openEndedRange = true;
                     // Give Chromecast a finite block so it completes requests normally
                     // instead of holding a multi-gigabyte HTTP response open indefinitely.
-                    final long maxWindow = 32L * 1024L * 1024L;
+                    final long maxWindow = 16L * 1024L * 1024L;
                     end = Math.min(total - 1, start + maxWindow - 1);
                 }
                 if (start >= total || end < start) {
@@ -2715,7 +2778,7 @@ public class MainActivity extends AppCompatActivity {
 
             addDiagnostic("ABYSS_RELAY range=" + start + "-" + end + "/" + total
                     + " quality=" + source.quality
-                    + (openEndedRange ? " window=32MiB" : ""));
+                    + (openEndedRange ? " window=16MiB" : ""));
 
             if ("HEAD".equals(method)) return;
 
@@ -2727,57 +2790,65 @@ public class MainActivity extends AppCompatActivity {
             Map<Long, Future<byte[]>> pending = new LinkedHashMap<>();
             for (long p = firstSegment;
                  p <= lastSegment && p < firstSegment + prefetchWindow; p++) {
-                final long partNumber = p;
-                pending.put(partNumber,
-                        segmentPool.submit(() -> fetchAbyssSegmentBytes(source, partNumber)));
+                pending.put(p, getSegmentFuture(source, p));
             }
 
-            try {
-                for (long part = firstSegment; part <= lastSegment; part++) {
-                    Future<byte[]> future = pending.remove(part);
-                    if (future == null) {
-                        final long partNumber = part;
-                        future = segmentPool.submit(
-                                () -> fetchAbyssSegmentBytes(source, partNumber));
-                    }
-
-                    byte[] segment;
-                    try {
-                        segment = future.get();
-                    } catch (ExecutionException e) {
-                        Throwable cause = e.getCause();
-                        if (cause instanceof Exception) throw (Exception) cause;
-                        throw new IllegalStateException(cause);
-                    }
-
-                    long next = part + prefetchWindow;
-                    if (next <= lastSegment && !pending.containsKey(next)) {
-                        final long nextPart = next;
-                        pending.put(nextPart,
-                                segmentPool.submit(() -> fetchAbyssSegmentBytes(source, nextPart)));
-                    }
-
-                    long segmentGlobalStart = part * segmentSize;
-                    int from = (int) (Math.max(start, segmentGlobalStart) - segmentGlobalStart);
-                    long segmentGlobalEnd = Math.min(total - 1,
-                            segmentGlobalStart + segment.length - 1);
-                    int to = (int) (Math.min(end, segmentGlobalEnd) - segmentGlobalStart);
-                    if (to < from) continue;
-
-                    try {
-                        out.write(segment, from, to - from + 1);
-                        if ((part - firstSegment) % 4 == 0) out.flush();
-                    } catch (java.io.IOException e) {
-                        addDiagnostic("RELAY_CLIENT_CLOSED atPart=" + part
-                                + " message=" + safeText(e.getMessage()));
-                        break;
-                    }
+            for (long part = firstSegment; part <= lastSegment; part++) {
+                Future<byte[]> future = pending.remove(part);
+                if (future == null) {
+                    future = getSegmentFuture(source, part);
                 }
-                try { out.flush(); } catch (java.io.IOException ignored) {}
-            } finally {
-                for (Future<byte[]> future : pending.values()) {
-                    future.cancel(true);
+
+                byte[] segment;
+                try {
+                    segment = future.get();
+                } catch (ExecutionException e) {
+                    Throwable cause = e.getCause();
+                    if (cause instanceof Exception) throw (Exception) cause;
+                    throw new IllegalStateException(cause);
                 }
+
+                long next = part + prefetchWindow;
+                if (next <= lastSegment && !pending.containsKey(next)) {
+                    pending.put(next, getSegmentFuture(source, next));
+                }
+
+                long segmentGlobalStart = part * segmentSize;
+                int from = (int) (Math.max(start, segmentGlobalStart) - segmentGlobalStart);
+                long segmentGlobalEnd = Math.min(total - 1,
+                        segmentGlobalStart + segment.length - 1);
+                int to = (int) (Math.min(end, segmentGlobalEnd) - segmentGlobalStart);
+                if (to < from) continue;
+
+                try {
+                    out.write(segment, from, to - from + 1);
+                    if ((part - firstSegment) % 4 == 0) out.flush();
+                } catch (java.io.IOException e) {
+                    addDiagnostic("RELAY_CLIENT_CLOSED atPart=" + part
+                            + " message=" + safeText(e.getMessage()));
+                    break;
+                }
+            }
+            try { out.flush(); } catch (java.io.IOException ignored) {}
+        }
+
+        private Future<byte[]> getSegmentFuture(AbyssVirtualSource source, long part) {
+            String key = abyssSegmentCacheKey(source, part);
+            synchronized (inFlightSegments) {
+                Future<byte[]> existing = inFlightSegments.get(key);
+                if (existing != null) return existing;
+
+                Future<byte[]> created = segmentPool.submit(() -> {
+                    try {
+                        return fetchAbyssSegmentBytes(source, part);
+                    } finally {
+                        synchronized (inFlightSegments) {
+                            inFlightSegments.remove(key);
+                        }
+                    }
+                });
+                inFlightSegments.put(key, created);
+                return created;
             }
         }
 
@@ -2833,13 +2904,31 @@ public class MainActivity extends AppCompatActivity {
             }
             int expected = (int) expectedLong;
 
-            List<String> hosts = source.hosts == null
-                    ? Collections.emptyList() : source.hosts;
+            List<String> hosts = new ArrayList<>();
+            String liveHost = recentLiveSssrrHost;
+            if (liveHost != null && !liveHost.isEmpty()) hosts.add(liveHost);
+
+            if (source.hosts != null) {
+                for (String h : source.hosts) {
+                    if (h != null && !h.isEmpty() && !hosts.contains(h)) hosts.add(h);
+                }
+            }
+
             if (hosts.isEmpty()) {
                 String fallback = host(source.domain);
                 if (fallback.isEmpty()) fallback = source.domain;
-                hosts = Collections.singletonList(fallback);
+                hosts.add(fallback);
             }
+
+            long now = SystemClock.elapsedRealtime();
+            List<String> availableHosts = new ArrayList<>();
+            for (String h : hosts) {
+                Long until = hostBackoffUntil.get(h);
+                if (until == null || until <= now || h.equals(liveHost)) {
+                    availableHosts.add(h);
+                }
+            }
+            if (!availableHosts.isEmpty()) hosts = availableHosts;
 
             Exception lastError = null;
             int attempts = Math.min(hosts.size() + 2, 7);
@@ -2917,10 +3006,18 @@ public class MainActivity extends AppCompatActivity {
                     return result;
                 } catch (Exception e) {
                     lastError = e;
+                    String reason = e.getMessage() == null ? "" : e.getMessage();
+                    String lowerReason = reason.toLowerCase(Locale.US);
+                    if (lowerReason.contains("unable to resolve host")
+                            || lowerReason.contains("no address associated")
+                            || lowerReason.contains("unknownhost")) {
+                        hostBackoffUntil.put(candidateHost,
+                                SystemClock.elapsedRealtime() + 60000L);
+                    }
                     addDiagnostic("ABYSS_SEGMENT_RETRY part=" + part
                             + " attempt=" + (attempt + 1)
                             + " host=" + candidateHost
-                            + " reason=" + safeText(e.getMessage()));
+                            + " reason=" + safeText(reason));
                 } finally {
                     if (conn != null) conn.disconnect();
                 }
