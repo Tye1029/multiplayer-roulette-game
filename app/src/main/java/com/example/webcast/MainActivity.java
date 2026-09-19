@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.net.ConnectivityManager;
@@ -11,6 +12,7 @@ import android.net.LinkAddress;
 import android.net.LinkProperties;
 import android.net.Network;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -1783,7 +1785,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void showDebugReport() {
         StringBuilder sb = new StringBuilder();
-        sb.append("WEBCAST_DEBUG_V0.8.1\\n");
+        sb.append("WEBCAST_DEBUG_V0.8.2\\n");
         sb.append("page=").append(redactUrl(webView == null ? "" : webView.getUrl())).append("\\n");
         sb.append("title=").append(safeText(webView == null ? "" : webView.getTitle())).append("\\n");
         sb.append("confirmedVideos=").append(getDisplayMedia().size()).append("\\n");
@@ -2197,7 +2199,31 @@ public class MainActivity extends AppCompatActivity {
         Toast.makeText(this, "Sending video to Chromecast…", Toast.LENGTH_SHORT).show();
     }
 
+    private void startCastKeepAliveService() {
+        try {
+            Intent intent = new Intent(this, CastKeepAliveService.class);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(intent);
+            } else {
+                startService(intent);
+            }
+            addDiagnostic("BACKGROUND_SERVICE start requested");
+        } catch (Exception e) {
+            addDiagnostic("BACKGROUND_SERVICE_ERROR "
+                    + safeText(e.getClass().getSimpleName() + ": " + e.getMessage()));
+        }
+    }
+
+    private void stopCastKeepAliveService() {
+        try {
+            stopService(new Intent(this, CastKeepAliveService.class));
+            addDiagnostic("BACKGROUND_SERVICE stop requested");
+        } catch (Exception ignored) {
+        }
+    }
+
     private void startCastCompanion() {
+        startCastKeepAliveService();
         castCompanionActive = true;
         pauseLocalForCast = false;
         long now = SystemClock.elapsedRealtime();
@@ -2280,7 +2306,10 @@ public class MainActivity extends AppCompatActivity {
             } catch (Exception ignored) {
             }
         });
-        if (stopRelay) stopRelayServer();
+        if (stopRelay) {
+            stopRelayServer();
+            stopCastKeepAliveService();
+        }
         releaseRelayWakeLock();
         addDiagnostic("CAST_COMPANION stop");
     }
@@ -2991,6 +3020,7 @@ public class MainActivity extends AppCompatActivity {
                     }
 
                     byte[] result = bytes.toByteArray();
+                    logMp4CodecsOnce(source, part, result);
                     synchronized (segmentCache) {
                         segmentCache.put(cacheKey, result);
                     }
@@ -3025,6 +3055,27 @@ public class MainActivity extends AppCompatActivity {
 
             if (lastError != null) throw lastError;
             throw new IllegalStateException("segment " + part + " failed");
+        }
+
+        private void logMp4CodecsOnce(AbyssVirtualSource source, long part, byte[] data) {
+            if (part != 0 || data == null || data.length == 0 || source.codecLogged) return;
+            synchronized (source) {
+                if (source.codecLogged) return;
+                source.codecLogged = true;
+            }
+
+            String ascii = new String(data, StandardCharsets.ISO_8859_1);
+            String video = ascii.contains("avc1") ? "avc1"
+                    : ascii.contains("hvc1") ? "hvc1"
+                    : ascii.contains("hev1") ? "hev1"
+                    : ascii.contains("av01") ? "av01" : "unknown";
+            String audio = ascii.contains("mp4a") ? "mp4a"
+                    : ascii.contains("ec-3") ? "ec-3"
+                    : ascii.contains("ac-3") ? "ac-3"
+                    : ascii.contains("Opus") ? "Opus" : "unknown";
+            addDiagnostic("MP4_CODECS quality=" + source.quality
+                    + " video=" + video + " audio=" + audio
+                    + " passthrough=true");
         }
 
         private String readHttpLine(InputStream in) throws Exception {
@@ -3124,6 +3175,7 @@ public class MainActivity extends AppCompatActivity {
         final String quality;
         final Map<String, String> headers;
         final List<String> hosts;
+        volatile boolean codecLogged = false;
 
         AbyssVirtualSource(String slug, String md5Id, String resId,
                            long totalSize, String domain, String quality,
