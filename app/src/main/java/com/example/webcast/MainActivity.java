@@ -1460,9 +1460,47 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private byte[] deriveSegmentKey(String sizeValue) throws Exception {
+        String s = String.valueOf(sizeValue);
+        ByteArrayOutputStream numeric = new ByteArrayOutputStream();
+        for (int i = 0; i < s.length(); i++) {
+            char ch = s.charAt(i);
+            if (Character.isDigit(ch)) {
+                // Abyss' browser code hashes numeric digit VALUES, not ASCII "0".."9".
+                numeric.write(ch - '0');
+            } else {
+                numeric.write(ch & 0xff);
+            }
+        }
+
+        MessageDigest md5 = MessageDigest.getInstance("MD5");
+        byte[] digest = md5.digest(numeric.toByteArray());
+        StringBuilder hex = new StringBuilder(32);
+        for (byte b : digest) {
+            hex.append(String.format(Locale.US, "%02x", b & 0xff));
+        }
+        return hex.toString().getBytes(StandardCharsets.UTF_8);
+    }
+
+    private byte[] aesCtrTransformSegment(byte[] input, String sizeValue) {
+        try {
+            byte[] key = deriveSegmentKey(sizeValue);
+            byte[] iv = new byte[16];
+            System.arraycopy(key, 0, iv, 0, 16);
+
+            Cipher cipher = Cipher.getInstance("AES/CTR/NoPadding");
+            cipher.init(Cipher.ENCRYPT_MODE,
+                    new SecretKeySpec(key, "AES"),
+                    new IvParameterSpec(iv));
+            return cipher.doFinal(input);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     private String buildSoraToken(String pathValue, String sizeValue) {
         try {
-            byte[] transformed = aesCtrTransform(
+            byte[] transformed = aesCtrTransformSegment(
                     pathValue.getBytes(StandardCharsets.UTF_8), sizeValue);
             if (transformed == null) return "";
 
@@ -1638,7 +1676,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void showDebugReport() {
         StringBuilder sb = new StringBuilder();
-        sb.append("WEBCAST_DEBUG_V0.7.0\\n");
+        sb.append("WEBCAST_DEBUG_V0.7.1\\n");
         sb.append("page=").append(redactUrl(webView == null ? "" : webView.getUrl())).append("\\n");
         sb.append("title=").append(safeText(webView == null ? "" : webView.getTitle())).append("\\n");
         sb.append("confirmedVideos=").append(getDisplayMedia().size()).append("\\n");
@@ -2569,8 +2607,15 @@ public class MainActivity extends AppCompatActivity {
                 String token = buildSoraToken(plain, String.valueOf(source.totalSize));
                 if (token.isEmpty()) return "";
 
-                return domainUri.getScheme() + "://" + domainUri.getHost()
+                String result = domainUri.getScheme() + "://" + domainUri.getHost()
                         + "/sora/" + source.totalSize + "/" + token;
+                if (part == 0) {
+                    addDiagnostic("ABYSS_SEGMENT_ROUTE host=" + domainUri.getHost()
+                            + " res=" + source.resId
+                            + " size=" + source.totalSize
+                            + " partSize=" + AbyssVirtualSource.SEGMENT_SIZE);
+                }
+                return result;
             } catch (Exception e) {
                 addDiagnostic("ABYSS_SEGMENT_URL_ERROR " + safeText(e.getMessage()));
                 return "";
