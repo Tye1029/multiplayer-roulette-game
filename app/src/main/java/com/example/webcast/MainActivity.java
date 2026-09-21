@@ -84,6 +84,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -828,6 +829,14 @@ public class MainActivity extends AppCompatActivity {
 
         if ("GET".equalsIgnoreCase(method) && !looksLikeStaticAsset(url)) {
             rememberRawRequest(url, headers, source);
+            synchronized (mediaRequestHeaders) {
+                mediaRequestHeaders.remove(url);
+                mediaRequestHeaders.put(url, new LinkedHashMap<>(headers));
+                while (mediaRequestHeaders.size() > 160) {
+                    String first = mediaRequestHeaders.keySet().iterator().next();
+                    mediaRequestHeaders.remove(first);
+                }
+            }
         }
 
         String h = host(url);
@@ -837,6 +846,9 @@ public class MainActivity extends AppCompatActivity {
         if (looksStreamish(url) || !rangeHeader.isEmpty()
                 || acceptHeader.toLowerCase(Locale.US).contains("video")
                 || h.contains("playm4u") || h.contains("vnstream") || h.contains("playhq")) {
+            synchronized (mediaRequestHeaders) {
+                mediaRequestHeaders.put(url, new LinkedHashMap<>(headers));
+            }
             addDiagnostic("REQ " + source
                     + " host=" + h
                     + " path=" + redactPath(url)
@@ -1816,7 +1828,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void showDebugReport() {
         StringBuilder sb = new StringBuilder();
-        sb.append("WEBCAST_DEBUG_V0.9.0\\n");
+        sb.append("WEBCAST_DEBUG_V0.10.1\\n");
         sb.append("page=").append(redactUrl(webView == null ? "" : webView.getUrl())).append("\\n");
         sb.append("title=").append(safeText(webView == null ? "" : webView.getTitle())).append("\\n");
         sb.append("confirmedVideos=").append(getDisplayMedia().size()).append("\\n");
@@ -2404,6 +2416,23 @@ public class MainActivity extends AppCompatActivity {
         addDiagnostic("CAST_COMPANION stop");
     }
 
+    private void pauseLocalMediaForHlsCast() {
+        runOnUiThread(() -> {
+            try {
+                webView.evaluateJavascript(
+                        "(function(){try{"
+                                + "document.querySelectorAll('video,audio').forEach(function(v){try{v.pause();v.muted=true;}catch(e){}});"
+                                + "try{if(window.jwplayer&&typeof jwplayer==='function'){var p=jwplayer();"
+                                + "if(p&&typeof p.pause==='function')p.pause(true);"
+                                + "if(p&&typeof p.setMute==='function')p.setMute(true);}}catch(e){}"
+                                + "}catch(e){}})();",
+                        null);
+            } catch (Exception ignored) {
+            }
+        });
+        addDiagnostic("HLS_LOCAL_PLAYER paused");
+    }
+
     private void castMediaViaPhone(@NonNull DetectedMedia media) {
         CastSession session = castContext.getSessionManager().getCurrentCastSession();
         if (session == null || !session.isConnected()) {
@@ -2470,7 +2499,19 @@ public class MainActivity extends AppCompatActivity {
                     .setMediaInfo(mediaInfo)
                     .setAutoplay(true)
                     .build());
-            startCastCompanion();
+
+            if (isHls(media)) {
+                startCastKeepAliveService();
+                castCompanionActive = false;
+                castRecoveryPulseUntilMs = 0L;
+                if (castCompanionHandler != null) {
+                    castCompanionHandler.removeCallbacks(castCompanionTicker);
+                }
+                pauseLocalMediaForHlsCast();
+                addDiagnostic("HLS_COMPANION disabled");
+            } else {
+                startCastCompanion();
+            }
 
             Toast.makeText(this,
                     "Casting " + activeCastLabel,
@@ -2608,6 +2649,14 @@ public class MainActivity extends AppCompatActivity {
                 Collections.synchronizedMap(new LinkedHashMap<>());
         private final Map<String, String> hlsRelayTokens =
                 Collections.synchronizedMap(new LinkedHashMap<>());
+        private final Map<String, byte[]> hlsResourceCache =
+                Collections.synchronizedMap(new LinkedHashMap<String, byte[]>(32, 0.75f, true) {
+                    @Override
+                    protected boolean removeEldestEntry(Map.Entry<String, byte[]> eldest) {
+                        return size() > 24;
+                    }
+                });
+        private final Semaphore hlsFetchSlots = new Semaphore(3, true);
         private final AtomicBoolean running = new AtomicBoolean(false);
         private ServerSocket serverSocket;
         private Thread acceptThread;
@@ -2666,9 +2715,16 @@ public class MainActivity extends AppCompatActivity {
                 String existing = hlsRelayTokens.get(key);
                 if (existing != null && targets.containsKey(existing)) return existing;
 
+                Map<String, String> merged = new LinkedHashMap<>();
+                if (headers != null) merged.putAll(headers);
+                synchronized (mediaRequestHeaders) {
+                    Map<String, String> exact = mediaRequestHeaders.get(remoteUrl);
+                    if (exact != null) merged.putAll(exact);
+                }
+
                 String token = UUID.randomUUID().toString().replace("-", "");
                 targets.put(token, new RelayTarget(
-                        remoteUrl, headers, mime, referer, null, playlist));
+                        remoteUrl, merged, mime, referer, null, playlist, true));
                 hlsRelayTokens.put(key, token);
                 return token;
             }
@@ -2707,6 +2763,7 @@ public class MainActivity extends AppCompatActivity {
             inFlightSegments.clear();
             hostBackoffUntil.clear();
             hlsRelayTokens.clear();
+            hlsResourceCache.clear();
         }
 
         private void handleClient(Socket socket) {
@@ -2775,6 +2832,12 @@ public class MainActivity extends AppCompatActivity {
 
                 if (target.hlsPlaylist && "GET".equals(method)) {
                     handleHlsPlaylist(out, target);
+                    return;
+                }
+
+                if (target.hlsResource && !target.hlsPlaylist
+                        && ("GET".equals(method) || "HEAD".equals(method))) {
+                    handleHlsResource(out, method, incomingRange, target);
                     return;
                 }
 
@@ -2880,96 +2943,449 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        private void handleHlsPlaylist(OutputStream out, RelayTarget target)
+        private void handleHlsResource(OutputStream out, String method,
+                                       String incomingRange, RelayTarget target)
                 throws Exception {
-            HttpURLConnection conn = null;
-            try {
-                conn = (HttpURLConnection) new URL(target.remoteUrl).openConnection();
-                conn.setInstanceFollowRedirects(true);
-                conn.setConnectTimeout(10000);
-                conn.setReadTimeout(20000);
-                conn.setRequestMethod("GET");
-                conn.setRequestProperty("Accept-Encoding", "identity");
-                conn.setRequestProperty("Accept",
-                        "application/vnd.apple.mpegurl,application/x-mpegURL,*/*");
+            String cacheKey = target.remoteUrl + "|"
+                    + (incomingRange == null ? "" : incomingRange);
+            boolean cacheable = "GET".equals(method)
+                    && (incomingRange == null || incomingRange.isEmpty());
 
-                for (Map.Entry<String, String> e : target.headers.entrySet()) {
-                    String k = e.getKey();
-                    String v = e.getValue();
-                    if (k == null || v == null) continue;
-                    if (isHopByHopHeader(k)
-                            || "Cookie".equalsIgnoreCase(k)
-                            || "Content-Length".equalsIgnoreCase(k)
-                            || "Range".equalsIgnoreCase(k)
-                            || "Accept-Encoding".equalsIgnoreCase(k)) continue;
-                    try { conn.setRequestProperty(k, v); } catch (Exception ignored) {}
+            if (cacheable) {
+                byte[] cached;
+                synchronized (hlsResourceCache) {
+                    cached = hlsResourceCache.get(cacheKey);
                 }
-
-                String cookie = CookieManager.getInstance().getCookie(target.remoteUrl);
-                if (cookie != null && !cookie.isEmpty()) {
-                    conn.setRequestProperty("Cookie", cookie);
-                }
-
-                if (conn.getRequestProperty("Referer") == null
-                        && target.referer != null && isHttpUrl(target.referer)) {
-                    conn.setRequestProperty("Referer", target.referer);
-                }
-                if (conn.getRequestProperty("User-Agent") == null
-                        && webViewUserAgent != null && !webViewUserAgent.isEmpty()) {
-                    conn.setRequestProperty("User-Agent", webViewUserAgent);
-                }
-
-                int code = conn.getResponseCode();
-                String finalUrl = conn.getURL().toString();
-                String type = normalizeContentType(conn.getContentType());
-
-                InputStream raw = code >= 400 ? conn.getErrorStream() : conn.getInputStream();
-                byte[] body = readRelayBody(raw, 4 * 1024 * 1024);
-                String text = new String(body, StandardCharsets.UTF_8);
-
-                addDiagnostic("HLS_PLAYLIST code=" + code
-                        + " host=" + host(finalUrl)
-                        + " bytes=" + body.length
-                        + " type=" + safeText(type));
-
-                if (code < 200 || code >= 400) {
-                    writeStatusLine(out, code);
+                if (cached != null) {
+                    addDiagnostic("HLS_CACHE_HIT host=" + host(target.remoteUrl)
+                            + " bytes=" + cached.length);
+                    writeStatusLine(out, 200);
                     writeHeader(out, "Content-Type",
-                            type.isEmpty() ? "text/plain" : type);
-                    writeHeader(out, "Content-Length", String.valueOf(body.length));
+                            target.mime == null || target.mime.isEmpty()
+                                    ? "application/octet-stream" : target.mime);
+                    writeHeader(out, "Content-Length", String.valueOf(cached.length));
                     writeHeader(out, "Access-Control-Allow-Origin", "*");
                     writeHeader(out, "Connection", "close");
                     out.write("\r\n".getBytes(StandardCharsets.ISO_8859_1));
-                    out.write(body);
+                    if (!"HEAD".equals(method)) out.write(cached);
                     out.flush();
                     return;
                 }
+            }
 
-                if (!text.trim().startsWith("#EXTM3U")) {
-                    addDiagnostic("HLS_PLAYLIST_INVALID host=" + host(finalUrl)
-                            + " prefix=" + safeText(text));
-                    writeSimpleResponse(out, 502, "Upstream did not return an HLS playlist");
-                    return;
+            boolean acquired = false;
+            try {
+                hlsFetchSlots.acquire();
+                acquired = true;
+
+                Exception lastError = null;
+                int lastCode = -1;
+                String lastType = target.mime == null ? "" : target.mime;
+                byte[] lastErrorBody = new byte[0];
+
+                for (int attempt = 1; attempt <= 5; attempt++) {
+                    HttpURLConnection conn = null;
+                    try {
+                        conn = (HttpURLConnection) new URL(target.remoteUrl).openConnection();
+                        conn.setInstanceFollowRedirects(true);
+                        conn.setConnectTimeout(10000);
+                        conn.setReadTimeout(20000);
+                        conn.setRequestMethod(method);
+                        conn.setRequestProperty("Accept-Encoding", "identity");
+
+                        for (Map.Entry<String, String> e : target.headers.entrySet()) {
+                            String k = e.getKey();
+                            String v = e.getValue();
+                            if (k == null || v == null) continue;
+                            if (isHopByHopHeader(k)
+                                    || "Cookie".equalsIgnoreCase(k)
+                                    || "Content-Length".equalsIgnoreCase(k)
+                                    || "Range".equalsIgnoreCase(k)
+                                    || "Accept-Encoding".equalsIgnoreCase(k)) continue;
+                            try { conn.setRequestProperty(k, v); } catch (Exception ignored) {}
+                        }
+
+                        if (incomingRange != null && !incomingRange.isEmpty()) {
+                            conn.setRequestProperty("Range", incomingRange);
+                        }
+
+                        String cookie = CookieManager.getInstance().getCookie(target.remoteUrl);
+                        if (cookie != null && !cookie.isEmpty()) {
+                            conn.setRequestProperty("Cookie", cookie);
+                        }
+
+                        if (conn.getRequestProperty("Referer") == null
+                                && target.referer != null && isHttpUrl(target.referer)) {
+                            conn.setRequestProperty("Referer", target.referer);
+                        }
+
+                        if (conn.getRequestProperty("User-Agent") == null
+                                && webViewUserAgent != null && !webViewUserAgent.isEmpty()) {
+                            conn.setRequestProperty("User-Agent", webViewUserAgent);
+                        }
+
+                        int code = conn.getResponseCode();
+                        String contentType = normalizeContentType(conn.getContentType());
+                        long contentLength = conn.getHeaderFieldLong("Content-Length", -1L);
+                        String contentRange = conn.getHeaderField("Content-Range");
+
+                        lastCode = code;
+                        lastType = contentType;
+
+                        boolean transientFailure = code == 408 || code == 425
+                                || code == 429 || code == 500 || code == 502
+                                || code == 503 || code == 504;
+
+                        if (transientFailure) {
+                            InputStream err = conn.getErrorStream();
+                            lastErrorBody = readRelayBody(err, 64 * 1024);
+                            addDiagnostic("HLS_RETRY code=" + code
+                                    + " attempt=" + attempt + "/5"
+                                    + " host=" + host(target.remoteUrl));
+
+                            if (attempt < 5) {
+                                long delay = attempt == 1 ? 150L
+                                        : attempt == 2 ? 350L
+                                        : attempt == 3 ? 700L : 1200L;
+                                try { Thread.sleep(delay); }
+                                catch (InterruptedException ie) {
+                                    Thread.currentThread().interrupt();
+                                    throw ie;
+                                }
+                                continue;
+                            }
+                        }
+
+                        if (code < 200 || code >= 400) {
+                            InputStream err = conn.getErrorStream();
+                            byte[] body = lastErrorBody.length > 0
+                                    ? lastErrorBody : readRelayBody(err, 256 * 1024);
+                            addDiagnostic("HLS_UPSTREAM_FAIL code=" + code
+                                    + " host=" + host(target.remoteUrl));
+                            writeStatusLine(out, code);
+                            writeHeader(out, "Content-Type",
+                                    contentType.isEmpty() ? "text/plain" : contentType);
+                            writeHeader(out, "Content-Length", String.valueOf(body.length));
+                            writeHeader(out, "Access-Control-Allow-Origin", "*");
+                            writeHeader(out, "Connection", "close");
+                            out.write("\r\n".getBytes(StandardCharsets.ISO_8859_1));
+                            if (!"HEAD".equals(method)) out.write(body);
+                            out.flush();
+                            return;
+                        }
+
+                        if ("HEAD".equals(method)) {
+                            writeStatusLine(out, code);
+                            writeHeader(out, "Content-Type",
+                                    contentType.isEmpty() ? target.mime : contentType);
+                            if (contentLength >= 0) {
+                                writeHeader(out, "Content-Length", String.valueOf(contentLength));
+                            }
+                            if (contentRange != null && !contentRange.isEmpty()) {
+                                writeHeader(out, "Content-Range", contentRange);
+                            }
+                            writeHeader(out, "Accept-Ranges", "bytes");
+                            writeHeader(out, "Access-Control-Allow-Origin", "*");
+                            writeHeader(out, "Connection", "close");
+                            out.write("\r\n".getBytes(StandardCharsets.ISO_8859_1));
+                            out.flush();
+                            return;
+                        }
+
+                        // Buffer complete HLS pieces before giving them to Chromecast.
+                        // This prevents an intermittent CDN failure from becoming a half-written
+                        // media segment on the receiver.
+                        final int maxBufferedPiece = 16 * 1024 * 1024;
+                        boolean shouldBuffer = contentLength < 0
+                                || contentLength <= maxBufferedPiece;
+
+                        if (shouldBuffer) {
+                            byte[] body = readRelayBody(conn.getInputStream(), maxBufferedPiece + 1);
+                            if (body.length > maxBufferedPiece) {
+                                // Rare oversized piece: reconnect once and stream it directly.
+                                conn.disconnect();
+                                conn = (HttpURLConnection) new URL(target.remoteUrl).openConnection();
+                                conn.setInstanceFollowRedirects(true);
+                                conn.setConnectTimeout(10000);
+                                conn.setReadTimeout(30000);
+                                conn.setRequestMethod("GET");
+                                conn.setRequestProperty("Accept-Encoding", "identity");
+                                for (Map.Entry<String, String> e : target.headers.entrySet()) {
+                                    String k = e.getKey();
+                                    String v = e.getValue();
+                                    if (k == null || v == null) continue;
+                                    if (isHopByHopHeader(k)
+                                            || "Cookie".equalsIgnoreCase(k)
+                                            || "Content-Length".equalsIgnoreCase(k)
+                                            || "Range".equalsIgnoreCase(k)
+                                            || "Accept-Encoding".equalsIgnoreCase(k)) continue;
+                                    try { conn.setRequestProperty(k, v); } catch (Exception ignored) {}
+                                }
+                                String cookie2 = CookieManager.getInstance()
+                                        .getCookie(target.remoteUrl);
+                                if (cookie2 != null && !cookie2.isEmpty()) {
+                                    conn.setRequestProperty("Cookie", cookie2);
+                                }
+                                if (conn.getRequestProperty("Referer") == null
+                                        && target.referer != null
+                                        && isHttpUrl(target.referer)) {
+                                    conn.setRequestProperty("Referer", target.referer);
+                                }
+                                if (conn.getRequestProperty("User-Agent") == null
+                                        && webViewUserAgent != null
+                                        && !webViewUserAgent.isEmpty()) {
+                                    conn.setRequestProperty("User-Agent", webViewUserAgent);
+                                }
+                                int retryCode = conn.getResponseCode();
+                                if (retryCode < 200 || retryCode >= 400) {
+                                    throw new IllegalStateException(
+                                            "oversized HLS piece HTTP " + retryCode);
+                                }
+                                contentType = normalizeContentType(conn.getContentType());
+                                contentLength = conn.getHeaderFieldLong("Content-Length", -1L);
+                                writeStatusLine(out, retryCode);
+                                writeHeader(out, "Content-Type",
+                                        contentType.isEmpty() ? target.mime : contentType);
+                                if (contentLength >= 0) {
+                                    writeHeader(out, "Content-Length",
+                                            String.valueOf(contentLength));
+                                }
+                                writeHeader(out, "Access-Control-Allow-Origin", "*");
+                                writeHeader(out, "Connection", "close");
+                                out.write("\r\n".getBytes(StandardCharsets.ISO_8859_1));
+                                try (InputStream bodyIn =
+                                             new BufferedInputStream(conn.getInputStream())) {
+                                    byte[] buffer = new byte[64 * 1024];
+                                    int n;
+                                    while ((n = bodyIn.read(buffer)) >= 0) {
+                                        out.write(buffer, 0, n);
+                                    }
+                                }
+                                out.flush();
+                                addDiagnostic("HLS_RESOURCE code=" + retryCode
+                                        + " host=" + host(target.remoteUrl)
+                                        + " mode=stream");
+                                return;
+                            }
+
+                            if (contentLength >= 0 && body.length != contentLength) {
+                                throw new IllegalStateException(
+                                        "short HLS piece " + body.length + "/"
+                                                + contentLength);
+                            }
+
+                            if (cacheable && body.length <= 4 * 1024 * 1024) {
+                                synchronized (hlsResourceCache) {
+                                    hlsResourceCache.put(cacheKey, body);
+                                }
+                            }
+
+                            writeStatusLine(out, code);
+                            writeHeader(out, "Content-Type",
+                                    contentType.isEmpty() ? target.mime : contentType);
+                            writeHeader(out, "Content-Length", String.valueOf(body.length));
+                            if (contentRange != null && !contentRange.isEmpty()) {
+                                writeHeader(out, "Content-Range", contentRange);
+                            }
+                            writeHeader(out, "Accept-Ranges", "bytes");
+                            writeHeader(out, "Access-Control-Allow-Origin", "*");
+                            writeHeader(out, "Connection", "close");
+                            out.write("\r\n".getBytes(StandardCharsets.ISO_8859_1));
+                            out.write(body);
+                            out.flush();
+
+                            addDiagnostic("HLS_RESOURCE code=" + code
+                                    + " host=" + host(target.remoteUrl)
+                                    + " bytes=" + body.length
+                                    + (attempt > 1 ? " recoveredAttempt=" + attempt : ""));
+                            return;
+                        }
+
+                        // Large HLS object: stream directly after a successful response.
+                        writeStatusLine(out, code);
+                        writeHeader(out, "Content-Type",
+                                contentType.isEmpty() ? target.mime : contentType);
+                        if (contentLength >= 0) {
+                            writeHeader(out, "Content-Length", String.valueOf(contentLength));
+                        }
+                        if (contentRange != null && !contentRange.isEmpty()) {
+                            writeHeader(out, "Content-Range", contentRange);
+                        }
+                        writeHeader(out, "Accept-Ranges", "bytes");
+                        writeHeader(out, "Access-Control-Allow-Origin", "*");
+                        writeHeader(out, "Connection", "close");
+                        out.write("\r\n".getBytes(StandardCharsets.ISO_8859_1));
+
+                        try (InputStream body =
+                                     new BufferedInputStream(conn.getInputStream())) {
+                            byte[] buffer = new byte[64 * 1024];
+                            int n;
+                            while ((n = body.read(buffer)) >= 0) {
+                                out.write(buffer, 0, n);
+                            }
+                        }
+                        out.flush();
+                        addDiagnostic("HLS_RESOURCE code=" + code
+                                + " host=" + host(target.remoteUrl)
+                                + " mode=stream");
+                        return;
+                    } catch (Exception e) {
+                        lastError = e;
+                        if (attempt >= 5) throw e;
+                        addDiagnostic("HLS_RETRY error=" + safeText(e.getMessage())
+                                + " attempt=" + attempt + "/5"
+                                + " host=" + host(target.remoteUrl));
+                        try { Thread.sleep(Math.min(1200L, 150L * attempt * attempt)); }
+                        catch (InterruptedException ie) {
+                            Thread.currentThread().interrupt();
+                            throw ie;
+                        }
+                    } finally {
+                        if (conn != null) conn.disconnect();
+                    }
                 }
 
-                String rewritten = rewriteHlsPlaylist(text, finalUrl, target);
-                byte[] bytes = rewritten.getBytes(StandardCharsets.UTF_8);
-
-                writeStatusLine(out, 200);
-                writeHeader(out, "Content-Type", "application/vnd.apple.mpegurl");
-                writeHeader(out, "Content-Length", String.valueOf(bytes.length));
-                writeHeader(out, "Cache-Control", "no-cache");
-                writeHeader(out, "Access-Control-Allow-Origin", "*");
-                writeHeader(out, "Access-Control-Allow-Headers", "Range, Content-Type");
-                writeHeader(out, "Access-Control-Expose-Headers",
-                        "Content-Length, Content-Range, Accept-Ranges");
-                writeHeader(out, "Connection", "close");
-                out.write("\r\n".getBytes(StandardCharsets.ISO_8859_1));
-                out.write(bytes);
-                out.flush();
+                if (lastError != null) throw lastError;
+                writeSimpleResponse(out,
+                        lastCode >= 400 ? lastCode : 502,
+                        "HLS resource unavailable");
             } finally {
-                if (conn != null) conn.disconnect();
+                if (acquired) hlsFetchSlots.release();
             }
+        }
+
+        private void handleHlsPlaylist(OutputStream out, RelayTarget target)
+                throws Exception {
+            Exception lastError = null;
+
+            for (int attempt = 1; attempt <= 4; attempt++) {
+                HttpURLConnection conn = null;
+                try {
+                    conn = (HttpURLConnection) new URL(target.remoteUrl).openConnection();
+                    conn.setInstanceFollowRedirects(true);
+                    conn.setConnectTimeout(10000);
+                    conn.setReadTimeout(20000);
+                    conn.setRequestMethod("GET");
+                    conn.setRequestProperty("Accept-Encoding", "identity");
+                    conn.setRequestProperty("Accept",
+                            "application/vnd.apple.mpegurl,application/x-mpegURL,*/*");
+
+                    for (Map.Entry<String, String> e : target.headers.entrySet()) {
+                        String k = e.getKey();
+                        String v = e.getValue();
+                        if (k == null || v == null) continue;
+                        if (isHopByHopHeader(k)
+                                || "Cookie".equalsIgnoreCase(k)
+                                || "Content-Length".equalsIgnoreCase(k)
+                                || "Range".equalsIgnoreCase(k)
+                                || "Accept-Encoding".equalsIgnoreCase(k)) continue;
+                        try { conn.setRequestProperty(k, v); } catch (Exception ignored) {}
+                    }
+
+                    String cookie = CookieManager.getInstance().getCookie(target.remoteUrl);
+                    if (cookie != null && !cookie.isEmpty()) {
+                        conn.setRequestProperty("Cookie", cookie);
+                    }
+
+                    if (conn.getRequestProperty("Referer") == null
+                            && target.referer != null && isHttpUrl(target.referer)) {
+                        conn.setRequestProperty("Referer", target.referer);
+                    }
+                    if (conn.getRequestProperty("User-Agent") == null
+                            && webViewUserAgent != null && !webViewUserAgent.isEmpty()) {
+                        conn.setRequestProperty("User-Agent", webViewUserAgent);
+                    }
+
+                    int code = conn.getResponseCode();
+                    String finalUrl = conn.getURL().toString();
+                    String type = normalizeContentType(conn.getContentType());
+
+                    InputStream raw = code >= 400
+                            ? conn.getErrorStream() : conn.getInputStream();
+                    byte[] body = readRelayBody(raw, 4 * 1024 * 1024);
+                    String text = new String(body, StandardCharsets.UTF_8);
+
+                    boolean transientFailure = code == 408 || code == 425
+                            || code == 429 || code == 500 || code == 502
+                            || code == 503 || code == 504;
+
+                    if (transientFailure && attempt < 4) {
+                        addDiagnostic("HLS_PLAYLIST_RETRY code=" + code
+                                + " attempt=" + attempt + "/4"
+                                + " host=" + host(finalUrl));
+                        try { Thread.sleep(attempt == 1 ? 150L
+                                : attempt == 2 ? 400L : 900L); }
+                        catch (InterruptedException ie) {
+                            Thread.currentThread().interrupt();
+                            throw ie;
+                        }
+                        continue;
+                    }
+
+                    addDiagnostic("HLS_PLAYLIST code=" + code
+                            + " host=" + host(finalUrl)
+                            + " bytes=" + body.length
+                            + " type=" + safeText(type)
+                            + (attempt > 1 ? " recoveredAttempt=" + attempt : ""));
+
+                    if (code < 200 || code >= 400) {
+                        writeStatusLine(out, code);
+                        writeHeader(out, "Content-Type",
+                                type.isEmpty() ? "text/plain" : type);
+                        writeHeader(out, "Content-Length", String.valueOf(body.length));
+                        writeHeader(out, "Access-Control-Allow-Origin", "*");
+                        writeHeader(out, "Connection", "close");
+                        out.write("\r\n".getBytes(StandardCharsets.ISO_8859_1));
+                        out.write(body);
+                        out.flush();
+                        return;
+                    }
+
+                    if (!text.trim().startsWith("#EXTM3U")) {
+                        addDiagnostic("HLS_PLAYLIST_INVALID host=" + host(finalUrl)
+                                + " prefix=" + safeText(text));
+                        writeSimpleResponse(out, 502,
+                                "Upstream did not return an HLS playlist");
+                        return;
+                    }
+
+                    String rewritten = rewriteHlsPlaylist(text, finalUrl, target);
+                    byte[] bytes = rewritten.getBytes(StandardCharsets.UTF_8);
+
+                    writeStatusLine(out, 200);
+                    writeHeader(out, "Content-Type",
+                            "application/vnd.apple.mpegurl");
+                    writeHeader(out, "Content-Length", String.valueOf(bytes.length));
+                    writeHeader(out, "Cache-Control", "no-cache");
+                    writeHeader(out, "Access-Control-Allow-Origin", "*");
+                    writeHeader(out, "Access-Control-Allow-Headers",
+                            "Range, Content-Type");
+                    writeHeader(out, "Access-Control-Expose-Headers",
+                            "Content-Length, Content-Range, Accept-Ranges");
+                    writeHeader(out, "Connection", "close");
+                    out.write("\r\n".getBytes(StandardCharsets.ISO_8859_1));
+                    out.write(bytes);
+                    out.flush();
+                    return;
+                } catch (Exception e) {
+                    lastError = e;
+                    if (attempt >= 4) throw e;
+                    addDiagnostic("HLS_PLAYLIST_RETRY error="
+                            + safeText(e.getMessage())
+                            + " attempt=" + attempt + "/4"
+                            + " host=" + host(target.remoteUrl));
+                    try { Thread.sleep(Math.min(1000L, 200L * attempt * attempt)); }
+                    catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        throw ie;
+                    }
+                } finally {
+                    if (conn != null) conn.disconnect();
+                }
+            }
+
+            if (lastError != null) throw lastError;
+            writeSimpleResponse(out, 502, "HLS playlist unavailable");
         }
 
         private byte[] readRelayBody(InputStream input, int maxBytes) throws Exception {
@@ -3556,20 +3972,27 @@ public class MainActivity extends AppCompatActivity {
         final String referer;
         final AbyssVirtualSource abyss;
         final boolean hlsPlaylist;
+        final boolean hlsResource;
 
         RelayTarget(String remoteUrl, Map<String, String> headers,
                     String mime, String referer) {
-            this(remoteUrl, headers, mime, referer, null, false);
+            this(remoteUrl, headers, mime, referer, null, false, false);
         }
 
         RelayTarget(String remoteUrl, Map<String, String> headers,
                     String mime, String referer, AbyssVirtualSource abyss) {
-            this(remoteUrl, headers, mime, referer, abyss, false);
+            this(remoteUrl, headers, mime, referer, abyss, false, false);
         }
 
         RelayTarget(String remoteUrl, Map<String, String> headers,
                     String mime, String referer, AbyssVirtualSource abyss,
                     boolean hlsPlaylist) {
+            this(remoteUrl, headers, mime, referer, abyss, hlsPlaylist, hlsPlaylist);
+        }
+
+        RelayTarget(String remoteUrl, Map<String, String> headers,
+                    String mime, String referer, AbyssVirtualSource abyss,
+                    boolean hlsPlaylist, boolean hlsResource) {
             this.remoteUrl = remoteUrl;
             this.headers = headers == null ? new LinkedHashMap<>()
                     : new LinkedHashMap<>(headers);
@@ -3577,6 +4000,7 @@ public class MainActivity extends AppCompatActivity {
             this.referer = referer;
             this.abyss = abyss;
             this.hlsPlaylist = hlsPlaylist;
+            this.hlsResource = hlsResource;
         }
     }
 
