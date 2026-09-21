@@ -31,6 +31,7 @@ import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
+import android.webkit.URLUtil;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
@@ -737,7 +738,21 @@ public class MainActivity extends AppCompatActivity {
                 + "window.__webCastDeepInstalled=true;"
                 + "function abs(u){try{return new URL(String(u||''),document.baseURI).href;}catch(e){return String(u||'');}}"
                 + "function isMediaText(t){t=String(t||'');return t.indexOf('#EXTM3U')>=0||/<MPD[\\\\s>]/i.test(t)||"
-                + "/https?:\\\\?\\\\/\\\\?\\\\/[^\\\\s\\\"'<>]+\\\\.(m3u8|mpd|mp4|m4v|webm|mov)/i.test(t);}"
+                + "/https?:\\\\?\\\\/\\\\?\\\\/[^\\\\s\\\"'<>]+\\\\.(m3u8|mpd|mp4|m4v|webm|mov|vtt|srt|ass|ssa)/i.test(t)||"
+                + "/(?:subtitle|caption|texttrack|tracks?)/i.test(t);}"
+                + "function scanSubtitleText(base,x){try{x=String(x||'').replace(/\\\\\\\\\\//g,'/');"
+                + "var seen={};function emit(raw,label){try{raw=String(raw||'').replace(/\\\\u0026/g,'&');"
+                + "var u=new URL(raw,String(base||location.href)).href;"
+                + "if(!/^https?:/i.test(u)||seen[u])return;seen[u]=1;"
+                + "if(window.WebCastBridge&&WebCastBridge.subtitleFound)"
+                + "WebCastBridge.subtitleFound(u,String(label||'Site subtitles'),'','subtitles');}catch(e){}}"
+                + "var a=/https?:\\\\/\\\\/[^\\\\s\\\"'<>\\\\\\\\]+?\\\\.(?:vtt|srt|ass|ssa)(?:\\\\?[^\\\\s\\\"'<>\\\\\\\\]*)?/ig,m;"
+                + "while((m=a.exec(x)))emit(m[0],'Site subtitles');"
+                + "var b=/\\\"[^\\\"]*(?:subtitle|caption)[^\\\"]*\\\"\\\\s*:\\s*\\\"([^\\\"]+)\\\"/ig;"
+                + "while((m=b.exec(x)))emit(m[1],'Site subtitles');"
+                + "var c=/\\\"(?:url|src|file)\\\"\\\\s*:\\s*\\\"([^\\\"]+\\\\.(?:vtt|srt|ass|ssa)(?:\\\\?[^\\\"]*)?)\\\"/ig;"
+                + "while((m=c.exec(x)))emit(m[1],'Site subtitles');"
+                + "}catch(e){}}"
                 + "function likely(u,t){u=String(u||'').toLowerCase();t=String(t||'').toLowerCase();"
                 + "if(!u||u.indexOf('data:')===0)return false;"
                 + "if(t.indexOf('video/')===0||t.indexOf('audio/')===0||t.indexOf('mpegurl')>=0||t.indexOf('dash+xml')>=0)return true;"
@@ -777,6 +792,7 @@ public class MainActivity extends AppCompatActivity {
                 + "}}}catch(e){}"
                 + "}catch(e){}}"
                 + "function payload(u,t,x,s){try{if(!x)return;x=String(x);if(x.length>350000)x=x.slice(0,350000);"
+                + "scanSubtitleText(u,x);"
                 + "if(!isMediaText(x))return;if(window.WebCastBridge&&WebCastBridge.payload)"
                 + "WebCastBridge.payload(String(u||''),String(t||''),x,String(location.href),String(s||'payload'));}catch(e){}}"
                 + "function inspectBlob(b,u,s){try{if(!b)return;var t=String(b.type||'');var z=Number(b.size||0);"
@@ -1871,7 +1887,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void showDebugReport() {
         StringBuilder sb = new StringBuilder();
-        sb.append("WEBCAST_DEBUG_V0.11.0\\n");
+        sb.append("WEBCAST_DEBUG_V0.12.0\\n");
         sb.append("page=").append(redactUrl(webView == null ? "" : webView.getUrl())).append("\\n");
         sb.append("title=").append(safeText(webView == null ? "" : webView.getTitle())).append("\\n");
         sb.append("confirmedVideos=").append(getDisplayMedia().size()).append("\\n");
@@ -1885,7 +1901,11 @@ public class MainActivity extends AppCompatActivity {
         sb.append("cast=").append(activeCastLabel.isEmpty() ? "none" : activeCastLabel).append("\\n");
         sb.append("relay=").append(relayServer != null && relayServer.isRunning() ? relayServer.describe() : "off").append("\\n");
         sb.append("backgroundService=").append(CastKeepAliveService.isRunning() ? "running" : "stopped").append("\\n");
-        sb.append("audio=source-passthrough").append("\\n\\n");
+        sb.append("audio=source-passthrough").append("\\n");
+        sb.append("subtitlesFound=").append(subtitleCandidates.size()).append("\\n");
+        sb.append("subtitle=").append(activeSubtitle == null
+                ? "off" : safeText(activeSubtitle.name)).append("\\n");
+        sb.append("subtitleOffset=").append(formatSubtitleOffset()).append("\\n\\n");
 
         List<String> logs;
         synchronized (diagnosticLog) {
@@ -1972,10 +1992,9 @@ public class MainActivity extends AppCompatActivity {
         String[] items = new String[]{
                 "Current: " + current,
                 "Site subtitles (" + site.size() + ")",
-                "Search & download subtitles",
+                "Find & download subtitles",
                 "Timing: " + formatSubtitleOffset(),
-                "Turn subtitles off",
-                "SubDL API key"
+                "Turn subtitles off"
         };
 
         new AlertDialog.Builder(this)
@@ -1991,8 +2010,6 @@ public class MainActivity extends AppCompatActivity {
                         showSubtitleTimingDialog();
                     } else if (which == 4) {
                         disableSubtitles();
-                    } else if (which == 5) {
-                        showSubDlKeyDialog(null);
                     }
                 })
                 .setNegativeButton("Close", null)
@@ -2118,50 +2135,165 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void showSubtitleSearchDialog() {
-        String key = prefs.getString(KEY_SUBDL_API_KEY, "");
-        if (key == null || key.trim().isEmpty()) {
-            showSubDlKeyDialog(this::showSubtitleSearchDialog);
-            return;
-        }
-
         float d = getResources().getDisplayMetrics().density;
         int pad = (int) (16 * d);
 
-        LinearLayout box = new LinearLayout(this);
-        box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(pad, 0, pad, 0);
-
-        EditText query = new EditText(this);
-        query.setHint("Movie or show title");
+        final EditText query = new EditText(this);
+        query.setHint("Movie or show name");
         query.setSingleLine(true);
         query.setText(suggestedSubtitleSearchTitle());
+
+        LinearLayout box = new LinearLayout(this);
+        box.setPadding(pad, 0, pad, 0);
         box.addView(query, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT));
 
-        EditText language = new EditText(this);
-        language.setHint("Language code, e.g. EN");
-        language.setSingleLine(true);
-        language.setText("EN");
-        box.addView(language, new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT));
-
         new AlertDialog.Builder(this)
-                .setTitle("Search web subtitles")
-                .setMessage("Searches SubDL and downloads the subtitle you choose.")
+                .setTitle("Find subtitles")
+                .setMessage("Search SubDL's normal website — no account or API key required.")
                 .setView(box)
                 .setPositiveButton("Search", (dialog, which) -> {
                     String q = query.getText().toString().trim();
-                    String lang = language.getText().toString().trim().toUpperCase(Locale.US);
                     if (q.isEmpty()) {
-                        Toast.makeText(this, "Enter a title.", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, "Enter a movie or show name.",
+                                Toast.LENGTH_SHORT).show();
                         return;
                     }
-                    searchSubDl(q, lang.isEmpty() ? "EN" : lang);
+                    openSubtitleBrowser(q);
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
+    }
+
+    @SuppressLint("SetJavaScriptEnabled")
+    private void openSubtitleBrowser(String query) {
+        final WebView subtitleWeb = new WebView(this);
+        WebSettings settings = subtitleWeb.getSettings();
+        settings.setJavaScriptEnabled(true);
+        settings.setDomStorageEnabled(true);
+        settings.setSupportZoom(true);
+        settings.setBuiltInZoomControls(true);
+        settings.setDisplayZoomControls(false);
+        if (webViewUserAgent != null && !webViewUserAgent.isEmpty()) {
+            settings.setUserAgentString(webViewUserAgent);
+        }
+
+        CookieManager.getInstance().setAcceptCookie(true);
+        CookieManager.getInstance().setAcceptThirdPartyCookies(subtitleWeb, true);
+
+        int minHeight = (int) (520 * getResources().getDisplayMetrics().density);
+        subtitleWeb.setMinimumHeight(minHeight);
+
+        AlertDialog browserDialog = new AlertDialog.Builder(this)
+                .setTitle("Choose subtitle release")
+                .setMessage("Choose the title and language, then tap Quick Download. WebCast will add it to the current stream.")
+                .setView(subtitleWeb)
+                .setNeutralButton("Back", null)
+                .setNegativeButton("Close", null)
+                .create();
+
+        final boolean[] searchInjected = {false};
+
+        subtitleWeb.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                super.onPageFinished(view, url);
+                if (!searchInjected[0] && host(url).endsWith("subdl.com")) {
+                    searchInjected[0] = true;
+                    String quoted = JSONObject.quote(query);
+                    String js =
+                            "(function(){try{"
+                                    + "var q=" + quoted + ";"
+                                    + "var els=[].slice.call(document.querySelectorAll('input'));"
+                                    + "var e=els.find(function(x){var p=String(x.placeholder||'').toLowerCase();"
+                                    + "return x.type==='search'||p.indexOf('search movies')>=0||p.indexOf('search')>=0;});"
+                                    + "if(!e)return 'no-search-field';"
+                                    + "var d=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value');"
+                                    + "if(d&&d.set)d.set.call(e,q);else e.value=q;"
+                                    + "e.dispatchEvent(new Event('input',{bubbles:true}));"
+                                    + "e.dispatchEvent(new Event('change',{bubbles:true}));"
+                                    + "e.focus();"
+                                    + "return 'filled';"
+                                    + "}catch(ex){return String(ex);}})();";
+                    view.evaluateJavascript(js, result -> Toast.makeText(
+                            MainActivity.this,
+                            "Tap the matching title, then choose a release.",
+                            Toast.LENGTH_LONG).show());
+                }
+            }
+
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view,
+                                                    WebResourceRequest request) {
+                String url = request.getUrl().toString();
+                if (isSubDlDownloadUrl(url)) {
+                    importSubtitleDownload(url, "", browserDialog);
+                    return true;
+                }
+                return false;
+            }
+
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, String url) {
+                if (isSubDlDownloadUrl(url)) {
+                    importSubtitleDownload(url, "", browserDialog);
+                    return true;
+                }
+                return false;
+            }
+        });
+
+        subtitleWeb.setDownloadListener((url, userAgent, contentDisposition,
+                                         mimeType, contentLength) -> {
+            String name = URLUtil.guessFileName(url, contentDisposition, mimeType);
+            importSubtitleDownload(url, name, browserDialog);
+        });
+
+        browserDialog.setOnShowListener(d -> {
+            Button back = browserDialog.getButton(AlertDialog.BUTTON_NEUTRAL);
+            if (back != null) {
+                back.setOnClickListener(v -> {
+                    if (subtitleWeb.canGoBack()) subtitleWeb.goBack();
+                });
+            }
+        });
+        browserDialog.setOnDismissListener(d -> {
+            try { subtitleWeb.stopLoading(); } catch (Exception ignored) {}
+            try { subtitleWeb.destroy(); } catch (Exception ignored) {}
+        });
+        browserDialog.show();
+        subtitleWeb.loadUrl("https://subdl.com/");
+    }
+
+    private boolean isSubDlDownloadUrl(String rawUrl) {
+        if (!isHttpUrl(rawUrl)) return false;
+        String h = host(rawUrl);
+        if (!h.equals("dl.subdl.com") && !h.endsWith(".dl.subdl.com")) return false;
+        String p = "";
+        try {
+            p = new URL(rawUrl).getPath();
+        } catch (Exception ignored) {
+        }
+        return p != null && p.contains("/subtitle/");
+    }
+
+    private void importSubtitleDownload(String url, String suggestedName,
+                                        AlertDialog browserDialog) {
+        if (!isHttpUrl(url)) return;
+        if (browserDialog != null) {
+            try { browserDialog.dismiss(); } catch (Exception ignored) {}
+        }
+
+        String name = suggestedName == null ? "" : suggestedName.trim();
+        if (name.isEmpty()) name = "Downloaded subtitle";
+        boolean zip = url.toLowerCase(Locale.US).contains(".zip")
+                || host(url).equals("dl.subdl.com");
+
+        addDiagnostic("SUBTITLE_WEB_DOWNLOAD host=" + host(url)
+                + " zip=" + zip);
+        prepareSubtitleCandidate(new SubtitleCandidate(
+                url, name, "", "SubDL website", zip));
     }
 
     private void searchSubDl(String query, String language) {
@@ -2632,6 +2764,27 @@ public class MainActivity extends AppCompatActivity {
         return convertToWebVtt(sub.baseVtt, subtitleOffsetMs);
     }
 
+    private void activateSubtitleTrackSoon() {
+        if (activeSubtitle == null) return;
+        Handler h = new Handler(Looper.getMainLooper());
+
+        Runnable activate = () -> {
+            try {
+                RemoteMediaClient c = currentRemoteClient();
+                if (c != null && activeSubtitle != null) {
+                    c.setActiveMediaTracks(new long[]{SUBTITLE_TRACK_ID});
+                    addDiagnostic("SUBTITLE_TRACK_ACTIVATE id=" + SUBTITLE_TRACK_ID);
+                }
+            } catch (Exception e) {
+                addDiagnostic("SUBTITLE_TRACK_ACTIVATE_ERROR "
+                        + safeText(e.getMessage()));
+            }
+        };
+
+        h.postDelayed(activate, 1200L);
+        h.postDelayed(activate, 3000L);
+    }
+
     private void reloadCastWithCurrentSubtitle() {
         RemoteMediaClient client = currentRemoteClient();
         if (client == null || activeCastRelayUrl.isEmpty() || activeCastMedia == null) return;
@@ -2683,6 +2836,8 @@ public class MainActivity extends AppCompatActivity {
                     .setCurrentTime(position)
                     .setActiveTrackIds(activeTracks)
                     .build());
+
+            if (activeSubtitle != null) activateSubtitleTrackSoon();
 
             addDiagnostic("SUBTITLE_RELOAD posMs=" + position
                     + " offsetMs=" + subtitleOffsetMs
@@ -3352,6 +3507,8 @@ public class MainActivity extends AppCompatActivity {
                     .setAutoplay(true)
                     .setActiveTrackIds(activeTrackIds)
                     .build());
+
+            if (activeSubtitle != null) activateSubtitleTrackSoon();
 
             if (isHls(media)) {
                 startCastKeepAliveService();
