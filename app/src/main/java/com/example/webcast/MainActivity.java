@@ -35,6 +35,7 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -50,6 +51,7 @@ import androidx.webkit.WebViewFeature;
 import com.google.android.gms.cast.MediaInfo;
 import com.google.android.gms.cast.MediaLoadRequestData;
 import com.google.android.gms.cast.MediaMetadata;
+import com.google.android.gms.cast.MediaTrack;
 import com.google.android.gms.cast.framework.CastButtonFactory;
 import com.google.android.gms.cast.framework.CastContext;
 import com.google.android.gms.cast.framework.CastSession;
@@ -72,6 +74,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URI;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -96,12 +99,15 @@ import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.util.UUID;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final String PREFS = "webcast_prefs";
     private static final String KEY_LAST_URL = "last_url";
     private static final String KEY_HISTORY = "history_v1";
+    private static final String KEY_SUBDL_API_KEY = "subdl_api_key_v1";
     private static final int MAX_HISTORY = 40;
     private static final long EXPLICIT_NAV_WINDOW_MS = 5000L;
 
@@ -123,6 +129,14 @@ public class MainActivity extends AppCompatActivity {
             Collections.synchronizedMap(new LinkedHashMap<>());
     private final Map<String, AbyssVirtualSource> abyssVirtualSources =
             Collections.synchronizedMap(new LinkedHashMap<>());
+    private final Map<String, SubtitleCandidate> subtitleCandidates =
+            Collections.synchronizedMap(new LinkedHashMap<>());
+    private volatile PreparedSubtitle activeSubtitle = null;
+    private volatile long subtitleOffsetMs = 0L;
+    private volatile DetectedMedia activeCastMedia = null;
+    private volatile String activeCastRelayUrl = "";
+    private volatile String activeCastMime = "";
+    private static final long SUBTITLE_TRACK_ID = 9001L;
     private volatile String lastRangeVideoUrl = "";
     private volatile String webViewUserAgent = "";
     private volatile boolean pauseLocalForCast = false;
@@ -155,7 +169,7 @@ public class MainActivity extends AppCompatActivity {
 
     private final CastStateListener castStateListener = newState -> {
         if (newState != CastState.CONNECTED && newState != CastState.CONNECTING
-                && castCompanionActive) {
+                && (castCompanionActive || !activeCastRelayUrl.isEmpty())) {
             stopCastCompanion(true);
         }
         updateStatus();
@@ -235,6 +249,7 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.reloadButton).setOnClickListener(v -> webView.reload());
         findViewById(R.id.debugButton).setOnClickListener(v -> showDebugReport());
         findViewById(R.id.historyButton).setOnClickListener(v -> showHistory());
+        findViewById(R.id.subtitlesButton).setOnClickListener(v -> showSubtitlesMenu());
 
         videosButton.setOnClickListener(v -> showDetectedVideos());
         findViewById(R.id.playPauseButton).setOnClickListener(v -> toggleRemotePlayback());
@@ -346,6 +361,9 @@ public class MainActivity extends AppCompatActivity {
                 diagnosticLog.clear();
                 mediaRequestHeaders.clear();
                 abyssVirtualSources.clear();
+                subtitleCandidates.clear();
+                activeSubtitle = null;
+                subtitleOffsetMs = 0L;
                 lastRangeVideoUrl = "";
                 recentLiveSssrrHost = "";
                 processedAbyssDatas.clear();
@@ -549,6 +567,19 @@ public class MainActivity extends AppCompatActivity {
                     + " url=" + redactUrl(clean)
                     + " parent=" + redactUrl(parentUrl));
             probeExecutor.execute(() -> inspectPlayerFrame(clean, parentUrl, 0));
+        }
+
+        @JavascriptInterface
+        public void subtitleFound(String url, String label, String lang, String kind) {
+            if (url == null) return;
+            String clean = url.trim();
+            if (!isHttpUrl(clean)) return;
+            String k = kind == null ? "" : kind.toLowerCase(Locale.US);
+            if (!(k.isEmpty() || k.contains("subtitle") || k.contains("caption"))) return;
+            addSubtitleCandidate(clean,
+                    label == null || label.trim().isEmpty() ? "Site subtitles" : label.trim(),
+                    lang == null ? "" : lang.trim(),
+                    "site");
         }
 
         @JavascriptInterface
@@ -801,6 +832,14 @@ public class MainActivity extends AppCompatActivity {
                 + "if(window.WebCastBridge&&WebCastBridge.blobMeta)WebCastBridge.blobMeta(String(u),String(v.type||'video/unknown'),0,String(location.href));}"
                 + "else send(u,v.type,'dom-media');v.querySelectorAll('source').forEach(function(s){send(s.src,s.type,'dom-source');});});"
                 + "document.querySelectorAll('source').forEach(function(s){send(s.src,s.type,'dom-source');});"
+                + "document.querySelectorAll('track[src]').forEach(function(t){try{"
+                + "var u=abs(t.src||t.getAttribute('src')||'');if(!u)return;"
+                + "var kind=String(t.kind||t.getAttribute('kind')||'subtitles');"
+                + "var lang=String(t.srclang||t.getAttribute('srclang')||'');"
+                + "var label=String(t.label||t.getAttribute('label')||lang||'Site subtitles');"
+                + "if(window.WebCastBridge&&WebCastBridge.subtitleFound)"
+                + "WebCastBridge.subtitleFound(u,label,lang,kind);"
+                + "}catch(e){}});"
                 + "document.querySelectorAll('script').forEach(function(sc){var tx=sc.textContent||'';"
                 + "if(tx.length<350000&&isMediaText(tx))payload('script:', 'text/javascript', tx, 'script-config');});"
                 + "}catch(e){}};try{window.__webCastDeepScan();}catch(e){}"
@@ -860,6 +899,10 @@ public class MainActivity extends AppCompatActivity {
         String accept = header(headers, "Accept");
         String dest = header(headers, "Sec-Fetch-Dest");
         String range = header(headers, "Range");
+
+        if (looksLikeSubtitleUrl(url, accept)) {
+            addSubtitleCandidate(url, subtitleLabelFromUrl(url), "", "site-network");
+        }
 
         if (isPlayerDocumentRequest(url, method, headers)) {
             addDiagnostic("PLAYER_DOC_REQ host=" + host(url)
@@ -1828,7 +1871,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void showDebugReport() {
         StringBuilder sb = new StringBuilder();
-        sb.append("WEBCAST_DEBUG_V0.10.1\\n");
+        sb.append("WEBCAST_DEBUG_V0.11.0\\n");
         sb.append("page=").append(redactUrl(webView == null ? "" : webView.getUrl())).append("\\n");
         sb.append("title=").append(safeText(webView == null ? "" : webView.getTitle())).append("\\n");
         sb.append("confirmedVideos=").append(getDisplayMedia().size()).append("\\n");
@@ -1865,6 +1908,788 @@ public class MainActivity extends AppCompatActivity {
                 .setNeutralButton("Deep Scan", (dialog, which) -> deepProbeCapturedRequests())
                 .setNegativeButton("Close", null)
                 .show();
+    }
+
+    private boolean looksLikeSubtitleUrl(String rawUrl, String accept) {
+        if (rawUrl == null) return false;
+        String u = rawUrl.toLowerCase(Locale.US);
+        String a = accept == null ? "" : accept.toLowerCase(Locale.US);
+        String path = u;
+        try {
+            String p = new URL(rawUrl).getPath();
+            if (p != null) path = p.toLowerCase(Locale.US);
+        } catch (Exception ignored) {
+        }
+        return path.matches(".*\\.(vtt|srt|ass|ssa)(?:$|[?#]).*")
+                || a.contains("text/vtt")
+                || a.contains("application/x-subrip")
+                || (u.contains("subtitle") && !looksLikeStaticAsset(rawUrl));
+    }
+
+    private String subtitleLabelFromUrl(String rawUrl) {
+        try {
+            String path = new URL(rawUrl).getPath();
+            if (path != null && !path.isEmpty()) {
+                String file = path.substring(path.lastIndexOf('/') + 1);
+                if (!file.isEmpty() && file.length() <= 60) return file;
+            }
+        } catch (Exception ignored) {
+        }
+        return "Site subtitles";
+    }
+
+    private void addSubtitleCandidate(String url, String label, String language, String source) {
+        if (!isHttpUrl(url)) return;
+        String key = url.trim();
+        synchronized (subtitleCandidates) {
+            SubtitleCandidate old = subtitleCandidates.get(key);
+            if (old == null) {
+                subtitleCandidates.put(key, new SubtitleCandidate(
+                        key,
+                        label == null || label.isEmpty() ? "Subtitles" : label,
+                        language == null ? "" : language,
+                        source == null ? "site" : source,
+                        false));
+            }
+        }
+        addDiagnostic("SUBTITLE_FOUND source=" + safeText(source)
+                + " lang=" + safeText(language)
+                + " host=" + host(url));
+        runOnUiThread(this::updateStatus);
+    }
+
+    private List<SubtitleCandidate> getSubtitleCandidates() {
+        synchronized (subtitleCandidates) {
+            return new ArrayList<>(subtitleCandidates.values());
+        }
+    }
+
+    private void showSubtitlesMenu() {
+        List<SubtitleCandidate> site = getSubtitleCandidates();
+        String current = activeSubtitle == null
+                ? "Off"
+                : activeSubtitle.name + " • " + formatSubtitleOffset();
+        String[] items = new String[]{
+                "Current: " + current,
+                "Site subtitles (" + site.size() + ")",
+                "Search & download subtitles",
+                "Timing: " + formatSubtitleOffset(),
+                "Turn subtitles off",
+                "SubDL API key"
+        };
+
+        new AlertDialog.Builder(this)
+                .setTitle("Subtitles")
+                .setItems(items, (dialog, which) -> {
+                    if (which == 0) {
+                        Toast.makeText(this, current, Toast.LENGTH_SHORT).show();
+                    } else if (which == 1) {
+                        showSiteSubtitles();
+                    } else if (which == 2) {
+                        showSubtitleSearchDialog();
+                    } else if (which == 3) {
+                        showSubtitleTimingDialog();
+                    } else if (which == 4) {
+                        disableSubtitles();
+                    } else if (which == 5) {
+                        showSubDlKeyDialog(null);
+                    }
+                })
+                .setNegativeButton("Close", null)
+                .show();
+    }
+
+    private void showSiteSubtitles() {
+        List<SubtitleCandidate> list = getSubtitleCandidates();
+        if (list.isEmpty()) {
+            Toast.makeText(this,
+                    "No site subtitle tracks detected yet. Start the video first.",
+                    Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        String[] labels = new String[list.size()];
+        for (int i = 0; i < list.size(); i++) {
+            SubtitleCandidate c = list.get(i);
+            labels[i] = c.name
+                    + (c.language.isEmpty() ? "" : " • " + c.language)
+                    + "\n" + safeHost(c.url);
+        }
+
+        new AlertDialog.Builder(this)
+                .setTitle("Site subtitles")
+                .setItems(labels, (dialog, which) -> prepareSubtitleCandidate(list.get(which)))
+                .setNegativeButton("Back", (dialog, which) -> showSubtitlesMenu())
+                .show();
+    }
+
+    private String formatSubtitleOffset() {
+        double seconds = subtitleOffsetMs / 1000.0;
+        if (Math.abs(seconds) < 0.0001) return "0.00s";
+        return String.format(Locale.US, "%+.2fs", seconds);
+    }
+
+    private void showSubtitleTimingDialog() {
+        if (activeSubtitle == null) {
+            Toast.makeText(this, "Choose a subtitle track first.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String[] options = {
+                "Earlier −1.00s",
+                "Earlier −0.50s",
+                "Earlier −0.25s",
+                "Reset to 0.00s",
+                "Later +0.25s",
+                "Later +0.50s",
+                "Later +1.00s"
+        };
+        long[] deltas = {-1000L, -500L, -250L, Long.MIN_VALUE, 250L, 500L, 1000L};
+
+        new AlertDialog.Builder(this)
+                .setTitle("Subtitle timing • " + formatSubtitleOffset())
+                .setItems(options, (dialog, which) -> {
+                    if (deltas[which] == Long.MIN_VALUE) subtitleOffsetMs = 0L;
+                    else subtitleOffsetMs += deltas[which];
+
+                    addDiagnostic("SUBTITLE_OFFSET ms=" + subtitleOffsetMs);
+                    if (currentRemoteClient() != null && !activeCastRelayUrl.isEmpty()) {
+                        reloadCastWithCurrentSubtitle();
+                    }
+                    Toast.makeText(this,
+                            "Subtitle timing " + formatSubtitleOffset(),
+                            Toast.LENGTH_SHORT).show();
+                })
+                .setNegativeButton("Close", null)
+                .show();
+    }
+
+    private void disableSubtitles() {
+        activeSubtitle = null;
+        subtitleOffsetMs = 0L;
+        RemoteMediaClient client = currentRemoteClient();
+        if (client != null) {
+            try {
+                client.setActiveMediaTracks(new long[]{});
+            } catch (Exception ignored) {
+            }
+        }
+        addDiagnostic("SUBTITLE_OFF");
+        updateStatus();
+        Toast.makeText(this, "Subtitles off", Toast.LENGTH_SHORT).show();
+    }
+
+    private void showSubDlKeyDialog(Runnable afterSave) {
+        final EditText input = new EditText(this);
+        input.setSingleLine(true);
+        input.setHint("SubDL API key");
+        input.setInputType(InputType.TYPE_CLASS_TEXT
+                | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        input.setText(prefs.getString(KEY_SUBDL_API_KEY, ""));
+
+        int pad = (int) (16 * getResources().getDisplayMetrics().density);
+        LinearLayout wrap = new LinearLayout(this);
+        wrap.setPadding(pad, 0, pad, 0);
+        wrap.addView(input, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT));
+
+        new AlertDialog.Builder(this)
+                .setTitle("SubDL API key")
+                .setMessage("A free SubDL API key is used only for subtitle search.")
+                .setView(wrap)
+                .setPositiveButton("Save", (dialog, which) -> {
+                    String key = input.getText().toString().trim();
+                    prefs.edit().putString(KEY_SUBDL_API_KEY, key).apply();
+                    Toast.makeText(this, "Subtitle API key saved.", Toast.LENGTH_SHORT).show();
+                    if (afterSave != null) afterSave.run();
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private String suggestedSubtitleSearchTitle() {
+        String t = webView == null ? "" : webView.getTitle();
+        if (t == null) t = "";
+        t = t.replaceAll("(?i)\\s*[-|:]\\s*(cineby|m4uhd|watch.*|stream.*)$", "");
+        t = t.replaceAll("(?i)\\b(online|free)\\b", " ");
+        t = t.replaceAll("\\s+", " ").trim();
+        return t;
+    }
+
+    private void showSubtitleSearchDialog() {
+        String key = prefs.getString(KEY_SUBDL_API_KEY, "");
+        if (key == null || key.trim().isEmpty()) {
+            showSubDlKeyDialog(this::showSubtitleSearchDialog);
+            return;
+        }
+
+        float d = getResources().getDisplayMetrics().density;
+        int pad = (int) (16 * d);
+
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setPadding(pad, 0, pad, 0);
+
+        EditText query = new EditText(this);
+        query.setHint("Movie or show title");
+        query.setSingleLine(true);
+        query.setText(suggestedSubtitleSearchTitle());
+        box.addView(query, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT));
+
+        EditText language = new EditText(this);
+        language.setHint("Language code, e.g. EN");
+        language.setSingleLine(true);
+        language.setText("EN");
+        box.addView(language, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT));
+
+        new AlertDialog.Builder(this)
+                .setTitle("Search web subtitles")
+                .setMessage("Searches SubDL and downloads the subtitle you choose.")
+                .setView(box)
+                .setPositiveButton("Search", (dialog, which) -> {
+                    String q = query.getText().toString().trim();
+                    String lang = language.getText().toString().trim().toUpperCase(Locale.US);
+                    if (q.isEmpty()) {
+                        Toast.makeText(this, "Enter a title.", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    searchSubDl(q, lang.isEmpty() ? "EN" : lang);
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void searchSubDl(String query, String language) {
+        Toast.makeText(this, "Searching subtitles…", Toast.LENGTH_SHORT).show();
+        probeExecutor.execute(() -> {
+            HttpURLConnection conn = null;
+            try {
+                String apiKey = prefs.getString(KEY_SUBDL_API_KEY, "");
+                String url = "https://api.subdl.com/api/v1/subtitles?api_key="
+                        + URLEncoder.encode(apiKey, "UTF-8")
+                        + "&film_name=" + URLEncoder.encode(query, "UTF-8")
+                        + "&languages=" + URLEncoder.encode(language, "UTF-8")
+                        + "&unpack=1&subs_per_page=20&releases=1&client=custom_integration";
+
+                conn = (HttpURLConnection) new URL(url).openConnection();
+                conn.setConnectTimeout(10000);
+                conn.setReadTimeout(15000);
+                conn.setRequestProperty("Accept", "application/json");
+                conn.setRequestProperty("User-Agent", "WebCast v0.11.0");
+
+                int code = conn.getResponseCode();
+                if (code < 200 || code >= 300) {
+                    throw new IllegalStateException("SubDL HTTP " + code);
+                }
+
+                byte[] bytes = readAllLimited(conn.getInputStream(), 2 * 1024 * 1024);
+                JSONObject root = new JSONObject(new String(bytes, StandardCharsets.UTF_8));
+                if (!root.optBoolean("status", true)) {
+                    throw new IllegalStateException(root.optString("error", "Search failed"));
+                }
+
+                List<SubtitleCandidate> results = new ArrayList<>();
+                JSONArray subs = root.optJSONArray("subtitles");
+                if (subs != null) {
+                    for (int i = 0; i < subs.length() && results.size() < 30; i++) {
+                        JSONObject sub = subs.optJSONObject(i);
+                        if (sub == null) continue;
+
+                        String release = sub.optString("release_name",
+                                sub.optString("name", "Subtitle"));
+                        String lang = sub.optString("language", language);
+                        boolean hi = sub.optBoolean("hi", false);
+                        JSONArray unpack = sub.optJSONArray("unpack_files");
+
+                        if (unpack != null && unpack.length() > 0) {
+                            for (int j = 0; j < unpack.length() && results.size() < 30; j++) {
+                                JSONObject file = unpack.optJSONObject(j);
+                                if (file == null) continue;
+                                String u = absoluteSubDlUrl(file.optString("url", ""));
+                                if (u.isEmpty()) continue;
+                                String name = file.optString("release_name",
+                                        file.optString("name", release));
+                                String flang = file.optString("language", lang);
+                                results.add(new SubtitleCandidate(
+                                        u,
+                                        name + (file.optBoolean("hi", hi) ? " • HI" : ""),
+                                        flang,
+                                        "SubDL",
+                                        false));
+                            }
+                        } else {
+                            String u = absoluteSubDlUrl(sub.optString("url", ""));
+                            if (!u.isEmpty()) {
+                                boolean zip = u.toLowerCase(Locale.US).contains(".zip")
+                                        || sub.optString("name", "").toLowerCase(Locale.US).endsWith(".zip");
+                                results.add(new SubtitleCandidate(
+                                        u,
+                                        release + (hi ? " • HI" : ""),
+                                        lang,
+                                        "SubDL",
+                                        zip));
+                            }
+                        }
+                    }
+                }
+
+                runOnUiThread(() -> showSubDlResults(query, results));
+            } catch (Exception e) {
+                runOnUiThread(() -> Toast.makeText(this,
+                        "Subtitle search failed: " + safeText(e.getMessage()),
+                        Toast.LENGTH_LONG).show());
+            } finally {
+                if (conn != null) conn.disconnect();
+            }
+        });
+    }
+
+    private String absoluteSubDlUrl(String raw) {
+        if (raw == null || raw.trim().isEmpty()) return "";
+        String u = raw.trim();
+        if (u.startsWith("http://") || u.startsWith("https://")) return u;
+        if (!u.startsWith("/")) u = "/" + u;
+        return "https://dl.subdl.com" + u;
+    }
+
+    private void showSubDlResults(String query, List<SubtitleCandidate> results) {
+        if (results == null || results.isEmpty()) {
+            Toast.makeText(this,
+                    "No subtitles found for " + query,
+                    Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        String[] labels = new String[results.size()];
+        for (int i = 0; i < results.size(); i++) {
+            SubtitleCandidate c = results.get(i);
+            labels[i] = c.name
+                    + (c.language.isEmpty() ? "" : "\n" + c.language);
+        }
+
+        new AlertDialog.Builder(this)
+                .setTitle("Subtitles • " + query)
+                .setItems(labels, (dialog, which) ->
+                        prepareSubtitleCandidate(results.get(which)))
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void prepareSubtitleCandidate(SubtitleCandidate candidate) {
+        if (candidate == null) return;
+        Toast.makeText(this, "Loading subtitles…", Toast.LENGTH_SHORT).show();
+
+        probeExecutor.execute(() -> {
+            try {
+                byte[] bytes = fetchSubtitleBytes(candidate);
+                if (candidate.zip) bytes = extractSubtitleFromZip(bytes);
+                if (bytes == null || bytes.length == 0) {
+                    throw new IllegalStateException("Subtitle file is empty");
+                }
+
+                String raw = decodeSubtitleText(bytes);
+                String vtt = convertToWebVtt(raw, 0L);
+                if (vtt == null || vtt.trim().isEmpty()) {
+                    throw new IllegalStateException("Unsupported subtitle format");
+                }
+
+                activeSubtitle = new PreparedSubtitle(
+                        candidate.name,
+                        candidate.language,
+                        candidate.source,
+                        vtt);
+                subtitleOffsetMs = 0L;
+                addDiagnostic("SUBTITLE_READY name=" + safeText(candidate.name)
+                        + " lang=" + safeText(candidate.language)
+                        + " bytes=" + bytes.length);
+
+                runOnUiThread(() -> {
+                    if (currentRemoteClient() != null && !activeCastRelayUrl.isEmpty()) {
+                        reloadCastWithCurrentSubtitle();
+                    }
+                    updateStatus();
+                    Toast.makeText(this,
+                            "Subtitles: " + candidate.name,
+                            Toast.LENGTH_LONG).show();
+                });
+            } catch (Exception e) {
+                runOnUiThread(() -> Toast.makeText(this,
+                        "Couldn't load subtitles: " + safeText(e.getMessage()),
+                        Toast.LENGTH_LONG).show());
+            }
+        });
+    }
+
+    private byte[] fetchSubtitleBytes(SubtitleCandidate candidate) throws Exception {
+        byte[] bytes = fetchSubtitleUrlRaw(
+                candidate.url,
+                prefs.getString(KEY_LAST_URL, ""),
+                12 * 1024 * 1024);
+        String text = decodeSubtitleText(bytes);
+        if (text.trim().startsWith("#EXTM3U")) {
+            String merged = flattenHlsSubtitlePlaylist(candidate.url, text, 0);
+            return merged.getBytes(StandardCharsets.UTF_8);
+        }
+        return bytes;
+    }
+
+    private byte[] fetchSubtitleUrlRaw(String rawUrl, String referer, int maxBytes)
+            throws Exception {
+        HttpURLConnection conn = null;
+        try {
+            conn = (HttpURLConnection) new URL(rawUrl).openConnection();
+            conn.setInstanceFollowRedirects(true);
+            conn.setConnectTimeout(10000);
+            conn.setReadTimeout(20000);
+            conn.setRequestProperty("Accept-Encoding", "identity");
+            conn.setRequestProperty("Accept",
+                    "text/vtt,application/x-subrip,text/plain,application/zip,"
+                            + "application/vnd.apple.mpegurl,application/x-mpegURL,*/*");
+
+            Map<String, String> headers = null;
+            synchronized (mediaRequestHeaders) {
+                headers = mediaRequestHeaders.get(rawUrl);
+                if (headers != null) headers = new LinkedHashMap<>(headers);
+            }
+            if (headers != null) {
+                for (Map.Entry<String, String> e : headers.entrySet()) {
+                    String k = e.getKey();
+                    String v = e.getValue();
+                    if (k == null || v == null) continue;
+                    if ("Host".equalsIgnoreCase(k)
+                            || "Connection".equalsIgnoreCase(k)
+                            || "Content-Length".equalsIgnoreCase(k)
+                            || "Accept-Encoding".equalsIgnoreCase(k)
+                            || "Range".equalsIgnoreCase(k)
+                            || "Cookie".equalsIgnoreCase(k)) continue;
+                    try { conn.setRequestProperty(k, v); } catch (Exception ignored) {}
+                }
+            }
+
+            String cookie = CookieManager.getInstance().getCookie(rawUrl);
+            if (cookie != null && !cookie.isEmpty()) conn.setRequestProperty("Cookie", cookie);
+
+            if (conn.getRequestProperty("User-Agent") == null
+                    && webViewUserAgent != null && !webViewUserAgent.isEmpty()) {
+                conn.setRequestProperty("User-Agent", webViewUserAgent);
+            }
+            if (conn.getRequestProperty("Referer") == null
+                    && referer != null && isHttpUrl(referer)) {
+                conn.setRequestProperty("Referer", referer);
+            }
+
+            int code = conn.getResponseCode();
+            if (code < 200 || code >= 400) {
+                throw new IllegalStateException("Subtitle HTTP " + code);
+            }
+            return readAllLimited(conn.getInputStream(), maxBytes);
+        } finally {
+            if (conn != null) conn.disconnect();
+        }
+    }
+
+    private String flattenHlsSubtitlePlaylist(String playlistUrl, String playlist, int depth)
+            throws Exception {
+        if (depth > 2) throw new IllegalStateException("Subtitle playlist nesting too deep");
+        String[] lines = playlist.replace("\r\n", "\n").replace('\r', '\n').split("\n");
+        boolean mediaPlaylist = playlist.contains("#EXTINF:");
+        StringBuilder merged = new StringBuilder("WEBVTT\n\n");
+        long cumulativeMs = 0L;
+        long pendingDurationMs = 0L;
+        int cues = 0;
+
+        for (String rawLine : lines) {
+            String line = rawLine.trim();
+            if (line.isEmpty()) continue;
+
+            if (line.startsWith("#EXTINF:")) {
+                try {
+                    String value = line.substring(8);
+                    int comma = value.indexOf(',');
+                    if (comma >= 0) value = value.substring(0, comma);
+                    pendingDurationMs = Math.max(0L,
+                            Math.round(Double.parseDouble(value.trim()) * 1000.0));
+                } catch (Exception ignored) {
+                    pendingDurationMs = 0L;
+                }
+                continue;
+            }
+
+            if (line.startsWith("#")) continue;
+
+            String childUrl;
+            try {
+                childUrl = new URL(new URL(playlistUrl), line).toString();
+            } catch (Exception e) {
+                continue;
+            }
+
+            byte[] childBytes = fetchSubtitleUrlRaw(childUrl, playlistUrl, 5 * 1024 * 1024);
+            String child = decodeSubtitleText(childBytes).trim();
+
+            if (child.startsWith("#EXTM3U")) {
+                String nested = flattenHlsSubtitlePlaylist(childUrl, child, depth + 1);
+                if (nested.startsWith("WEBVTT")) {
+                    nested = nested.substring("WEBVTT".length()).trim();
+                }
+                if (!nested.isEmpty()) {
+                    merged.append(nested).append("\n\n");
+                    cues++;
+                }
+                continue;
+            }
+
+            if (!mediaPlaylist) continue;
+
+            String cleaned = child
+                    .replaceAll("(?m)^WEBVTT\\s*$", "")
+                    .replaceAll("(?m)^X-TIMESTAMP-MAP:.*$", "")
+                    .trim();
+            if (cleaned.isEmpty()) {
+                cumulativeMs += pendingDurationMs;
+                pendingDurationMs = 0L;
+                continue;
+            }
+
+            long firstCue = firstSubtitleCueTime(cleaned);
+            long shift = 0L;
+            // Most HLS WebVTT segments use timestamps local to that segment. If the
+            // first cue is already around the movie's running time, leave it absolute.
+            if (firstCue >= 0
+                    && firstCue < Math.max(30_000L, pendingDurationMs + 10_000L)) {
+                shift = cumulativeMs;
+            }
+
+            String vtt = convertToWebVtt(cleaned, shift);
+            if (vtt.startsWith("WEBVTT")) {
+                vtt = vtt.substring("WEBVTT".length()).trim();
+            }
+            if (!vtt.isEmpty()) {
+                merged.append(vtt).append("\n\n");
+                cues++;
+            }
+
+            cumulativeMs += pendingDurationMs;
+            pendingDurationMs = 0L;
+        }
+
+        if (cues == 0) {
+            throw new IllegalStateException("No subtitle cues found in HLS track");
+        }
+        addDiagnostic("SUBTITLE_HLS_FLATTEN cues=" + cues
+                + " durationMs=" + cumulativeMs);
+        return merged.toString();
+    }
+
+    private long firstSubtitleCueTime(String text) {
+        if (text == null) return -1L;
+        Matcher m = Pattern.compile(
+                "(?m)^\\s*((?:\\d{1,2}:)?\\d{2}:\\d{2}[\\.,]\\d{3})\\s*-->")
+                .matcher(text);
+        if (!m.find()) return -1L;
+        return parseSubtitleTimestamp(m.group(1));
+    }
+
+    private byte[] readAllLimited(InputStream input, int max) throws Exception {
+        if (input == null) return new byte[0];
+        try (InputStream in = new BufferedInputStream(input);
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            byte[] buf = new byte[16 * 1024];
+            int total = 0;
+            while (total < max) {
+                int n = in.read(buf, 0, Math.min(buf.length, max - total));
+                if (n < 0) break;
+                out.write(buf, 0, n);
+                total += n;
+            }
+            return out.toByteArray();
+        }
+    }
+
+    private byte[] extractSubtitleFromZip(byte[] zipBytes) throws Exception {
+        try (ZipInputStream zin = new ZipInputStream(new ByteArrayInputStream(zipBytes))) {
+            ZipEntry entry;
+            byte[] fallback = null;
+            while ((entry = zin.getNextEntry()) != null) {
+                if (entry.isDirectory()) continue;
+                String name = entry.getName() == null
+                        ? "" : entry.getName().toLowerCase(Locale.US);
+
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                byte[] buf = new byte[8192];
+                int total = 0;
+                int n;
+                while (total < 5 * 1024 * 1024
+                        && (n = zin.read(buf, 0,
+                        Math.min(buf.length, 5 * 1024 * 1024 - total))) >= 0) {
+                    out.write(buf, 0, n);
+                    total += n;
+                }
+                byte[] bytes = out.toByteArray();
+
+                if (name.endsWith(".srt") || name.endsWith(".vtt")) return bytes;
+                if (fallback == null
+                        && (name.endsWith(".ass") || name.endsWith(".ssa"))) {
+                    fallback = bytes;
+                }
+            }
+            if (fallback != null) return fallback;
+        }
+        throw new IllegalStateException("No subtitle file found in ZIP");
+    }
+
+    private String decodeSubtitleText(byte[] bytes) {
+        if (bytes == null) return "";
+        String text = new String(bytes, StandardCharsets.UTF_8);
+        if (!text.isEmpty() && text.charAt(0) == '\uFEFF') text = text.substring(1);
+        return text.replace("\r\n", "\n").replace('\r', '\n');
+    }
+
+    private String convertToWebVtt(String raw, long offsetMs) {
+        if (raw == null) return "";
+        String text = raw.replace("\r\n", "\n").replace('\r', '\n').trim();
+        if (text.isEmpty()) return "";
+
+        // ASS/SSA is not safe to convert without a full style/parser implementation.
+        if (text.startsWith("[Script Info]") || text.contains("\nDialogue:")) {
+            return "";
+        }
+
+        StringBuilder out = new StringBuilder(text.length() + 64);
+        if (!text.startsWith("WEBVTT")) out.append("WEBVTT\n\n");
+
+        String[] lines = text.split("\n", -1);
+        Pattern timing = Pattern.compile(
+                "^\\s*((?:\\d{1,2}:)?\\d{2}:\\d{2}[\\.,]\\d{3})\\s*-->\\s*((?:\\d{1,2}:)?\\d{2}:\\d{2}[\\.,]\\d{3})(.*)$");
+
+        for (String line : lines) {
+            if (line.trim().matches("^\\d+$") && !text.startsWith("WEBVTT")) {
+                continue;
+            }
+
+            Matcher m = timing.matcher(line);
+            if (m.find()) {
+                long start = parseSubtitleTimestamp(m.group(1));
+                long end = parseSubtitleTimestamp(m.group(2));
+                if (start >= 0 && end >= 0) {
+                    start = Math.max(0L, start + offsetMs);
+                    end = Math.max(start + 1L, end + offsetMs);
+                    out.append(formatVttTimestamp(start))
+                            .append(" --> ")
+                            .append(formatVttTimestamp(end))
+                            .append(m.group(3) == null ? "" : m.group(3))
+                            .append('\n');
+                    continue;
+                }
+            }
+
+            if (text.startsWith("WEBVTT") && line.trim().equals("WEBVTT")) {
+                if (out.length() == 0) out.append("WEBVTT\n");
+                continue;
+            }
+            out.append(line).append('\n');
+        }
+        return out.toString();
+    }
+
+    private long parseSubtitleTimestamp(String value) {
+        try {
+            String v = value.replace(',', '.').trim();
+            String[] parts = v.split(":");
+            double seconds;
+            if (parts.length == 3) {
+                seconds = Integer.parseInt(parts[0]) * 3600.0
+                        + Integer.parseInt(parts[1]) * 60.0
+                        + Double.parseDouble(parts[2]);
+            } else if (parts.length == 2) {
+                seconds = Integer.parseInt(parts[0]) * 60.0
+                        + Double.parseDouble(parts[1]);
+            } else return -1L;
+            return Math.round(seconds * 1000.0);
+        } catch (Exception e) {
+            return -1L;
+        }
+    }
+
+    private String formatVttTimestamp(long millis) {
+        long totalSeconds = millis / 1000L;
+        long ms = millis % 1000L;
+        long hours = totalSeconds / 3600L;
+        long minutes = (totalSeconds % 3600L) / 60L;
+        long seconds = totalSeconds % 60L;
+        return String.format(Locale.US, "%02d:%02d:%02d.%03d",
+                hours, minutes, seconds, ms);
+    }
+
+    private String shiftedSubtitleVtt() {
+        PreparedSubtitle sub = activeSubtitle;
+        if (sub == null) return "";
+        return convertToWebVtt(sub.baseVtt, subtitleOffsetMs);
+    }
+
+    private void reloadCastWithCurrentSubtitle() {
+        RemoteMediaClient client = currentRemoteClient();
+        if (client == null || activeCastRelayUrl.isEmpty() || activeCastMedia == null) return;
+        RelayServer server = relayServer;
+        if (server == null || !server.isRunning()) return;
+
+        long position = Math.max(0L, client.getApproximateStreamPosition());
+        boolean autoplay = !client.isPaused();
+
+        try {
+            MediaMetadata metadata = new MediaMetadata(MediaMetadata.MEDIA_TYPE_MOVIE);
+            String title = webView == null ? "" : webView.getTitle();
+            metadata.putString(MediaMetadata.KEY_TITLE,
+                    title == null || title.trim().isEmpty() ? "Web video" : title);
+            metadata.putString(MediaMetadata.KEY_SUBTITLE,
+                    currentQualityLabel(activeCastMedia)
+                            + (activeSubtitle == null ? "" : " • " + activeSubtitle.name));
+
+            MediaInfo.Builder info = new MediaInfo.Builder(activeCastRelayUrl)
+                    .setStreamType(MediaInfo.STREAM_TYPE_BUFFERED)
+                    .setContentType(activeCastMime == null || activeCastMime.isEmpty()
+                            ? "video/mp4" : activeCastMime)
+                    .setMetadata(metadata);
+
+            long[] activeTracks = new long[]{};
+            if (activeSubtitle != null) {
+                String vtt = shiftedSubtitleVtt();
+                byte[] bytes = vtt.getBytes(StandardCharsets.UTF_8);
+                String subtitleToken = server.registerLocalSubtitle(bytes);
+                String subtitleUrl = server.urlFor(subtitleToken);
+
+                MediaTrack track = new MediaTrack.Builder(
+                        SUBTITLE_TRACK_ID, MediaTrack.TYPE_TEXT)
+                        .setName(activeSubtitle.name)
+                        .setSubtype(MediaTrack.SUBTYPE_SUBTITLES)
+                        .setContentId(subtitleUrl)
+                        .setContentType("text/vtt")
+                        .setLanguage(activeSubtitle.language == null
+                                || activeSubtitle.language.isEmpty()
+                                ? "und" : activeSubtitle.language)
+                        .build();
+                info.setMediaTracks(Collections.singletonList(track));
+                activeTracks = new long[]{SUBTITLE_TRACK_ID};
+            }
+
+            client.load(new MediaLoadRequestData.Builder()
+                    .setMediaInfo(info.build())
+                    .setAutoplay(autoplay)
+                    .setCurrentTime(position)
+                    .setActiveTrackIds(activeTracks)
+                    .build());
+
+            addDiagnostic("SUBTITLE_RELOAD posMs=" + position
+                    + " offsetMs=" + subtitleOffsetMs
+                    + " active=" + (activeSubtitle != null));
+        } catch (Exception e) {
+            addDiagnostic("SUBTITLE_RELOAD_ERROR " + safeText(e.getMessage()));
+        }
     }
 
     private void recordHistory(String title, String url) {
@@ -2259,7 +3084,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void castMedia(@NonNull DetectedMedia media) {
-        if (isHls(media)
+        if (activeSubtitle != null
+                || isHls(media)
                 || (media.source != null
                 && (media.source.contains("range-video")
                 || media.source.startsWith("abyss-source|")))) {
@@ -2395,6 +3221,9 @@ public class MainActivity extends AppCompatActivity {
         castCompanionActive = false;
         castCompanionMode = 0;
         activeCastLabel = "";
+        activeCastMedia = null;
+        activeCastRelayUrl = "";
+        activeCastMime = "";
         pauseLocalForCast = false;
         castRecoveryPulseUntilMs = 0L;
         if (castCompanionHandler != null) {
@@ -2488,16 +3317,40 @@ public class MainActivity extends AppCompatActivity {
             metadata.putString(MediaMetadata.KEY_SUBTITLE,
                     currentQualityLabel(media) + " • via phone");
 
-            MediaInfo mediaInfo = new MediaInfo.Builder(relayUrl)
+            activeCastMedia = media;
+            activeCastRelayUrl = relayUrl;
+            activeCastMime = media.mime == null || media.mime.isEmpty()
+                    ? "video/mp4" : media.mime;
+
+            MediaInfo.Builder mediaInfoBuilder = new MediaInfo.Builder(relayUrl)
                     .setStreamType(MediaInfo.STREAM_TYPE_BUFFERED)
-                    .setContentType(media.mime == null || media.mime.isEmpty()
-                            ? "video/mp4" : media.mime)
-                    .setMetadata(metadata)
-                    .build();
+                    .setContentType(activeCastMime)
+                    .setMetadata(metadata);
+
+            long[] activeTrackIds = new long[]{};
+            if (activeSubtitle != null) {
+                String vtt = shiftedSubtitleVtt();
+                String subtitleToken = server.registerLocalSubtitle(
+                        vtt.getBytes(StandardCharsets.UTF_8));
+                String subtitleUrl = server.urlFor(subtitleToken);
+                MediaTrack track = new MediaTrack.Builder(
+                        SUBTITLE_TRACK_ID, MediaTrack.TYPE_TEXT)
+                        .setName(activeSubtitle.name)
+                        .setSubtype(MediaTrack.SUBTYPE_SUBTITLES)
+                        .setContentId(subtitleUrl)
+                        .setContentType("text/vtt")
+                        .setLanguage(activeSubtitle.language == null
+                                || activeSubtitle.language.isEmpty()
+                                ? "und" : activeSubtitle.language)
+                        .build();
+                mediaInfoBuilder.setMediaTracks(Collections.singletonList(track));
+                activeTrackIds = new long[]{SUBTITLE_TRACK_ID};
+            }
 
             client.load(new MediaLoadRequestData.Builder()
-                    .setMediaInfo(mediaInfo)
+                    .setMediaInfo(mediaInfoBuilder.build())
                     .setAutoplay(true)
+                    .setActiveTrackIds(activeTrackIds)
                     .build());
 
             if (isHls(media)) {
@@ -2649,6 +3502,8 @@ public class MainActivity extends AppCompatActivity {
                 Collections.synchronizedMap(new LinkedHashMap<>());
         private final Map<String, String> hlsRelayTokens =
                 Collections.synchronizedMap(new LinkedHashMap<>());
+        private final Map<String, LocalRelayResource> localResources =
+                Collections.synchronizedMap(new LinkedHashMap<>());
         private final Map<String, byte[]> hlsResourceCache =
                 Collections.synchronizedMap(new LinkedHashMap<String, byte[]>(32, 0.75f, true) {
                     @Override
@@ -2730,6 +3585,14 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
+        String registerLocalSubtitle(byte[] body) {
+            String token = UUID.randomUUID().toString().replace("-", "");
+            localResources.put(token, new LocalRelayResource(
+                    body == null ? new byte[0] : body,
+                    "text/vtt; charset=utf-8"));
+            return token;
+        }
+
         String registerAbyss(AbyssVirtualSource source, String mime, String referer) {
             String token = UUID.randomUUID().toString().replace("-", "");
             targets.put(token, new RelayTarget(
@@ -2764,6 +3627,7 @@ public class MainActivity extends AppCompatActivity {
             hostBackoffUntil.clear();
             hlsRelayTokens.clear();
             hlsResourceCache.clear();
+            localResources.clear();
         }
 
         private void handleClient(Socket socket) {
@@ -2813,6 +3677,25 @@ public class MainActivity extends AppCompatActivity {
                 String token = path.substring(prefix.length());
                 int q = token.indexOf('?');
                 if (q >= 0) token = token.substring(0, q);
+
+                LocalRelayResource local = localResources.get(token);
+                if (local != null) {
+                    writeStatusLine(out, 200);
+                    writeHeader(out, "Content-Type", local.mime);
+                    writeHeader(out, "Content-Length", String.valueOf(local.body.length));
+                    writeHeader(out, "Cache-Control", "no-cache");
+                    writeHeader(out, "Access-Control-Allow-Origin", "*");
+                    writeHeader(out, "Access-Control-Allow-Headers",
+                            "Range, Content-Type, Accept-Encoding");
+                    writeHeader(out, "Access-Control-Expose-Headers",
+                            "Content-Length, Content-Type");
+                    writeHeader(out, "Connection", "close");
+                    out.write("\r\n".getBytes(StandardCharsets.ISO_8859_1));
+                    if (!"HEAD".equals(method)) out.write(local.body);
+                    out.flush();
+                    addDiagnostic("SUBTITLE_SERVE bytes=" + local.body.length);
+                    return;
+                }
 
                 RelayTarget target = targets.get(token);
                 if (target == null) {
@@ -3417,6 +4300,23 @@ public class MainActivity extends AppCompatActivity {
                 String trimmed = line.trim();
 
                 if (trimmed.startsWith("#")) {
+                    if (trimmed.toUpperCase(Locale.US).startsWith("#EXT-X-MEDIA:")
+                            && trimmed.toUpperCase(Locale.US).contains("TYPE=SUBTITLES")) {
+                        String rawSubUri = hlsAttribute(trimmed, "URI");
+                        if (!rawSubUri.isEmpty()) {
+                            String absoluteSub = resolveHlsUri(baseUrl, rawSubUri);
+                            if (!absoluteSub.isEmpty()) {
+                                String subName = hlsAttribute(trimmed, "NAME");
+                                String subLang = hlsAttribute(trimmed, "LANGUAGE");
+                                addSubtitleCandidate(
+                                        absoluteSub,
+                                        subName.isEmpty() ? "Site subtitles" : subName,
+                                        subLang,
+                                        "hls");
+                            }
+                        }
+                    }
+
                     boolean attributePlaylist =
                             trimmed.startsWith("#EXT-X-MEDIA:")
                                     || trimmed.startsWith("#EXT-X-I-FRAME-STREAM-INF:")
@@ -3475,6 +4375,17 @@ public class MainActivity extends AppCompatActivity {
             addDiagnostic("HLS_REWRITE host=" + host(baseUrl)
                     + " uris=" + rewrittenUris);
             return rewritten.toString();
+        }
+
+        private String hlsAttribute(String line, String name) {
+            if (line == null || name == null) return "";
+            Matcher m = Pattern.compile(
+                    "(?i)(?:^|,)" + Pattern.quote(name)
+                            + "=(?:\"([^\"]*)\"|([^,]*))")
+                    .matcher(line);
+            if (!m.find()) return "";
+            String value = m.group(1) != null ? m.group(1) : m.group(2);
+            return value == null ? "" : value.trim();
         }
 
         private String resolveHlsUri(String baseUrl, String rawUri) {
@@ -3937,6 +4848,16 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private static class LocalRelayResource {
+        final byte[] body;
+        final String mime;
+
+        LocalRelayResource(byte[] body, String mime) {
+            this.body = body == null ? new byte[0] : body;
+            this.mime = mime == null ? "application/octet-stream" : mime;
+        }
+    }
+
     private static class AbyssVirtualSource {
         static final long SEGMENT_SIZE = 2L * 1024L * 1024L;
 
@@ -4154,6 +5075,16 @@ public class MainActivity extends AppCompatActivity {
             playPause.setEnabled(remote != null);
         }
         if (stop != null) stop.setEnabled(remote != null);
+
+        Button subs = findViewById(R.id.subtitlesButton);
+        if (subs != null) {
+            if (activeSubtitle != null) subs.setText("Subs • " + formatSubtitleOffset());
+            else {
+                int subCount;
+                synchronized (subtitleCandidates) { subCount = subtitleCandidates.size(); }
+                subs.setText(subCount > 0 ? "Subs (" + subCount + ")" : "Subs");
+            }
+        }
     }
 
     private static class RequestSnapshot {
@@ -4177,6 +5108,40 @@ public class MainActivity extends AppCompatActivity {
             this.mime = mime == null ? "" : mime;
             this.isPlayableRoot = isPlayableRoot;
             this.score = score;
+        }
+    }
+
+    private static class SubtitleCandidate {
+        final String url;
+        final String name;
+        final String language;
+        final String source;
+        final boolean zip;
+
+        SubtitleCandidate(String url, String name, String language,
+                          String source, boolean zip) {
+            this.url = url == null ? "" : url;
+            this.name = name == null || name.trim().isEmpty()
+                    ? "Subtitles" : name.trim();
+            this.language = language == null ? "" : language.trim();
+            this.source = source == null ? "site" : source;
+            this.zip = zip;
+        }
+    }
+
+    private static class PreparedSubtitle {
+        final String name;
+        final String language;
+        final String source;
+        final String baseVtt;
+
+        PreparedSubtitle(String name, String language,
+                         String source, String baseVtt) {
+            this.name = name == null || name.trim().isEmpty()
+                    ? "Subtitles" : name.trim();
+            this.language = language == null ? "" : language.trim();
+            this.source = source == null ? "site" : source;
+            this.baseVtt = baseVtt == null ? "" : baseVtt;
         }
     }
 

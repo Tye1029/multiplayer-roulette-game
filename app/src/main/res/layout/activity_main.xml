@@ -129,12 +129,23 @@
             android:id="@+id/videosButton"
             android:layout_width="0dp"
             android:layout_height="44dp"
-            android:layout_weight="1.15"
+            android:layout_weight="1.0"
             android:minWidth="0dp"
             android:minHeight="0dp"
             android:padding="0dp"
             android:text="Videos (0)"
             android:textSize="11sp" />
+
+        <Button
+            android:id="@+id/subtitlesButton"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_weight="0.82"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:padding="0dp"
+            android:text="Subs"
+            android:textSize="10sp" />
 
         <Button
             android:id="@+id/historyButton"
