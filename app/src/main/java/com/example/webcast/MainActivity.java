@@ -885,6 +885,9 @@ public class MainActivity extends AppCompatActivity {
         // Obvious roots can be shown immediately; ambiguous/extensionless traffic gets verified.
         if (score >= 90 && !isSegmentLike(url)) {
             detectorEvents++;
+            synchronized (mediaRequestHeaders) {
+                mediaRequestHeaders.put(url, new LinkedHashMap<>(headers));
+            }
             addDetectedMedia(url, mime, source, score);
         } else if (shouldAutoProbe(url, headers)) {
             queueProbe(url, headers, source, false);
@@ -1005,6 +1008,9 @@ public class MainActivity extends AppCompatActivity {
             try {
                 ProbeResult result = probeUrl(url, headers);
                 if (result != null && result.isPlayableRoot) {
+                    synchronized (mediaRequestHeaders) {
+                        mediaRequestHeaders.put(url, new LinkedHashMap<>(headers));
+                    }
                     addDetectedMedia(url, result.mime, source + "+verified", result.score);
                 }
             } finally {
@@ -2241,9 +2247,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void castMedia(@NonNull DetectedMedia media) {
-        if (media.source != null
+        if (isHls(media)
+                || (media.source != null
                 && (media.source.contains("range-video")
-                || media.source.startsWith("abyss-source|"))) {
+                || media.source.startsWith("abyss-source|")))) {
             castMediaViaPhone(media);
             return;
         }
@@ -2429,9 +2436,14 @@ public class MainActivity extends AppCompatActivity {
 
             String pageReferer = prefs == null ? "" : prefs.getString(KEY_LAST_URL, "");
             AbyssVirtualSource virtual = abyssVirtualSources.get(media.url);
-            String token = virtual != null
-                    ? server.registerAbyss(virtual, media.mime, pageReferer)
-                    : server.register(media.url, headers, media.mime, pageReferer);
+            String token;
+            if (virtual != null) {
+                token = server.registerAbyss(virtual, media.mime, pageReferer);
+            } else if (isHls(media)) {
+                token = server.registerHls(media.url, headers, media.mime, pageReferer);
+            } else {
+                token = server.register(media.url, headers, media.mime, pageReferer);
+            }
             String relayUrl = server.urlFor(token);
 
             acquireRelayWakeLock();
@@ -2545,6 +2557,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private String currentQualityLabel(DetectedMedia media) {
+        if (isHls(media)) return "HLS stream";
         if (isAbyssMedia(media)) {
             String q = abyssQuality(media);
             long bytes = qualitySize(media);
@@ -2593,6 +2606,8 @@ public class MainActivity extends AppCompatActivity {
                 Collections.synchronizedMap(new LinkedHashMap<>());
         private final Map<String, Long> hostBackoffUntil =
                 Collections.synchronizedMap(new LinkedHashMap<>());
+        private final Map<String, String> hlsRelayTokens =
+                Collections.synchronizedMap(new LinkedHashMap<>());
         private final AtomicBoolean running = new AtomicBoolean(false);
         private ServerSocket serverSocket;
         private Thread acceptThread;
@@ -2636,6 +2651,29 @@ public class MainActivity extends AppCompatActivity {
             return token;
         }
 
+        String registerHls(String remoteUrl, Map<String, String> headers,
+                           String mime, String referer) {
+            return registerHlsTarget(remoteUrl, headers,
+                    mime == null || mime.isEmpty() ? "application/x-mpegURL" : mime,
+                    referer, true);
+        }
+
+        private String registerHlsTarget(String remoteUrl, Map<String, String> headers,
+                                         String mime, String referer,
+                                         boolean playlist) {
+            String key = (playlist ? "P|" : "R|") + remoteUrl;
+            synchronized (hlsRelayTokens) {
+                String existing = hlsRelayTokens.get(key);
+                if (existing != null && targets.containsKey(existing)) return existing;
+
+                String token = UUID.randomUUID().toString().replace("-", "");
+                targets.put(token, new RelayTarget(
+                        remoteUrl, headers, mime, referer, null, playlist));
+                hlsRelayTokens.put(key, token);
+                return token;
+            }
+        }
+
         String registerAbyss(AbyssVirtualSource source, String mime, String referer) {
             String token = UUID.randomUUID().toString().replace("-", "");
             targets.put(token, new RelayTarget(
@@ -2668,6 +2706,7 @@ public class MainActivity extends AppCompatActivity {
             segmentCache.clear();
             inFlightSegments.clear();
             hostBackoffUntil.clear();
+            hlsRelayTokens.clear();
         }
 
         private void handleClient(Socket socket) {
@@ -2731,6 +2770,11 @@ public class MainActivity extends AppCompatActivity {
 
                 if (target.abyss != null) {
                     handleAbyssVirtual(out, method, incomingRange, target);
+                    return;
+                }
+
+                if (target.hlsPlaylist && "GET".equals(method)) {
+                    handleHlsPlaylist(out, target);
                     return;
                 }
 
@@ -2834,6 +2878,229 @@ public class MainActivity extends AppCompatActivity {
             } finally {
                 if (upstream != null) upstream.disconnect();
             }
+        }
+
+        private void handleHlsPlaylist(OutputStream out, RelayTarget target)
+                throws Exception {
+            HttpURLConnection conn = null;
+            try {
+                conn = (HttpURLConnection) new URL(target.remoteUrl).openConnection();
+                conn.setInstanceFollowRedirects(true);
+                conn.setConnectTimeout(10000);
+                conn.setReadTimeout(20000);
+                conn.setRequestMethod("GET");
+                conn.setRequestProperty("Accept-Encoding", "identity");
+                conn.setRequestProperty("Accept",
+                        "application/vnd.apple.mpegurl,application/x-mpegURL,*/*");
+
+                for (Map.Entry<String, String> e : target.headers.entrySet()) {
+                    String k = e.getKey();
+                    String v = e.getValue();
+                    if (k == null || v == null) continue;
+                    if (isHopByHopHeader(k)
+                            || "Cookie".equalsIgnoreCase(k)
+                            || "Content-Length".equalsIgnoreCase(k)
+                            || "Range".equalsIgnoreCase(k)
+                            || "Accept-Encoding".equalsIgnoreCase(k)) continue;
+                    try { conn.setRequestProperty(k, v); } catch (Exception ignored) {}
+                }
+
+                String cookie = CookieManager.getInstance().getCookie(target.remoteUrl);
+                if (cookie != null && !cookie.isEmpty()) {
+                    conn.setRequestProperty("Cookie", cookie);
+                }
+
+                if (conn.getRequestProperty("Referer") == null
+                        && target.referer != null && isHttpUrl(target.referer)) {
+                    conn.setRequestProperty("Referer", target.referer);
+                }
+                if (conn.getRequestProperty("User-Agent") == null
+                        && webViewUserAgent != null && !webViewUserAgent.isEmpty()) {
+                    conn.setRequestProperty("User-Agent", webViewUserAgent);
+                }
+
+                int code = conn.getResponseCode();
+                String finalUrl = conn.getURL().toString();
+                String type = normalizeContentType(conn.getContentType());
+
+                InputStream raw = code >= 400 ? conn.getErrorStream() : conn.getInputStream();
+                byte[] body = readRelayBody(raw, 4 * 1024 * 1024);
+                String text = new String(body, StandardCharsets.UTF_8);
+
+                addDiagnostic("HLS_PLAYLIST code=" + code
+                        + " host=" + host(finalUrl)
+                        + " bytes=" + body.length
+                        + " type=" + safeText(type));
+
+                if (code < 200 || code >= 400) {
+                    writeStatusLine(out, code);
+                    writeHeader(out, "Content-Type",
+                            type.isEmpty() ? "text/plain" : type);
+                    writeHeader(out, "Content-Length", String.valueOf(body.length));
+                    writeHeader(out, "Access-Control-Allow-Origin", "*");
+                    writeHeader(out, "Connection", "close");
+                    out.write("\r\n".getBytes(StandardCharsets.ISO_8859_1));
+                    out.write(body);
+                    out.flush();
+                    return;
+                }
+
+                if (!text.trim().startsWith("#EXTM3U")) {
+                    addDiagnostic("HLS_PLAYLIST_INVALID host=" + host(finalUrl)
+                            + " prefix=" + safeText(text));
+                    writeSimpleResponse(out, 502, "Upstream did not return an HLS playlist");
+                    return;
+                }
+
+                String rewritten = rewriteHlsPlaylist(text, finalUrl, target);
+                byte[] bytes = rewritten.getBytes(StandardCharsets.UTF_8);
+
+                writeStatusLine(out, 200);
+                writeHeader(out, "Content-Type", "application/vnd.apple.mpegurl");
+                writeHeader(out, "Content-Length", String.valueOf(bytes.length));
+                writeHeader(out, "Cache-Control", "no-cache");
+                writeHeader(out, "Access-Control-Allow-Origin", "*");
+                writeHeader(out, "Access-Control-Allow-Headers", "Range, Content-Type");
+                writeHeader(out, "Access-Control-Expose-Headers",
+                        "Content-Length, Content-Range, Accept-Ranges");
+                writeHeader(out, "Connection", "close");
+                out.write("\r\n".getBytes(StandardCharsets.ISO_8859_1));
+                out.write(bytes);
+                out.flush();
+            } finally {
+                if (conn != null) conn.disconnect();
+            }
+        }
+
+        private byte[] readRelayBody(InputStream input, int maxBytes) throws Exception {
+            if (input == null) return new byte[0];
+            try (InputStream in = new BufferedInputStream(input);
+                 ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+                byte[] buffer = new byte[16 * 1024];
+                int total = 0;
+                while (total < maxBytes) {
+                    int n = in.read(buffer, 0, Math.min(buffer.length, maxBytes - total));
+                    if (n < 0) break;
+                    out.write(buffer, 0, n);
+                    total += n;
+                }
+                return out.toByteArray();
+            }
+        }
+
+        private String rewriteHlsPlaylist(String playlist, String baseUrl,
+                                          RelayTarget parent) {
+            String[] lines = playlist.replace("\r\n", "\n").replace('\r', '\n')
+                    .split("\n", -1);
+            StringBuilder rewritten = new StringBuilder(playlist.length() + 1024);
+            boolean nextUriIsPlaylist = false;
+            int rewrittenUris = 0;
+
+            for (String originalLine : lines) {
+                String line = originalLine;
+                String trimmed = line.trim();
+
+                if (trimmed.startsWith("#")) {
+                    boolean attributePlaylist =
+                            trimmed.startsWith("#EXT-X-MEDIA:")
+                                    || trimmed.startsWith("#EXT-X-I-FRAME-STREAM-INF:")
+                                    || trimmed.startsWith("#EXT-X-RENDITION-REPORT:");
+
+                    Matcher uriMatcher = Pattern.compile(
+                            "URI=(?:\"([^\"]+)\"|([^,\\s]+))",
+                            Pattern.CASE_INSENSITIVE).matcher(line);
+                    StringBuffer sb = new StringBuffer();
+                    while (uriMatcher.find()) {
+                        String rawUri = uriMatcher.group(1) != null
+                                ? uriMatcher.group(1) : uriMatcher.group(2);
+                        String absolute = resolveHlsUri(baseUrl, rawUri);
+                        if (absolute.isEmpty()) continue;
+
+                        boolean playlistChild = attributePlaylist
+                                || looksLikeHlsPlaylistUrl(absolute);
+                        String token = registerHlsTarget(
+                                absolute,
+                                parent.headers,
+                                playlistChild ? "application/x-mpegURL"
+                                        : hlsResourceMime(absolute),
+                                parent.referer,
+                                playlistChild);
+                        String local = urlFor(token);
+                        String replacement = "URI=\"" + local + "\"";
+                        uriMatcher.appendReplacement(sb,
+                                Matcher.quoteReplacement(replacement));
+                        rewrittenUris++;
+                    }
+                    uriMatcher.appendTail(sb);
+                    line = sb.toString();
+
+                    nextUriIsPlaylist = trimmed.startsWith("#EXT-X-STREAM-INF:");
+                } else if (!trimmed.isEmpty()) {
+                    String absolute = resolveHlsUri(baseUrl, trimmed);
+                    if (!absolute.isEmpty()) {
+                        boolean playlistChild = nextUriIsPlaylist
+                                || looksLikeHlsPlaylistUrl(absolute);
+                        String token = registerHlsTarget(
+                                absolute,
+                                parent.headers,
+                                playlistChild ? "application/x-mpegURL"
+                                        : hlsResourceMime(absolute),
+                                parent.referer,
+                                playlistChild);
+                        line = urlFor(token);
+                        rewrittenUris++;
+                    }
+                    nextUriIsPlaylist = false;
+                }
+
+                rewritten.append(line).append('\n');
+            }
+
+            addDiagnostic("HLS_REWRITE host=" + host(baseUrl)
+                    + " uris=" + rewrittenUris);
+            return rewritten.toString();
+        }
+
+        private String resolveHlsUri(String baseUrl, String rawUri) {
+            try {
+                if (rawUri == null || rawUri.trim().isEmpty()) return "";
+                return new URL(new URL(baseUrl), rawUri.trim()).toString();
+            } catch (Exception ignored) {
+                return "";
+            }
+        }
+
+        private boolean looksLikeHlsPlaylistUrl(String rawUrl) {
+            if (rawUrl == null) return false;
+            String lower = rawUrl.toLowerCase(Locale.US);
+            try {
+                String path = new URL(rawUrl).getPath();
+                if (path != null) lower = path.toLowerCase(Locale.US);
+            } catch (Exception ignored) {
+            }
+            return lower.contains(".m3u8")
+                    || lower.endsWith("/master")
+                    || lower.contains("playlist");
+        }
+
+        private String hlsResourceMime(String rawUrl) {
+            String lower = rawUrl == null ? "" : rawUrl.toLowerCase(Locale.US);
+            String path = lower;
+            try {
+                String p = new URL(rawUrl).getPath();
+                if (p != null) path = p.toLowerCase(Locale.US);
+            } catch (Exception ignored) {
+            }
+
+            if (path.contains(".m3u8")) return "application/x-mpegURL";
+            if (path.endsWith(".ts") || path.contains(".ts?")) return "video/mp2t";
+            if (path.endsWith(".m4s") || path.contains(".m4s?")) return "video/iso.segment";
+            if (path.endsWith(".mp4") || path.contains(".mp4?")) return "video/mp4";
+            if (path.endsWith(".aac") || path.contains(".aac?")) return "audio/aac";
+            if (path.endsWith(".m4a") || path.contains(".m4a?")) return "audio/mp4";
+            if (path.endsWith(".vtt") || path.contains(".vtt?")) return "text/vtt";
+            if (path.endsWith(".key") || path.contains(".key?")) return "application/octet-stream";
+            return "application/octet-stream";
         }
 
         private void handleAbyssVirtual(OutputStream out, String method,
@@ -3288,20 +3555,28 @@ public class MainActivity extends AppCompatActivity {
         final String mime;
         final String referer;
         final AbyssVirtualSource abyss;
+        final boolean hlsPlaylist;
 
         RelayTarget(String remoteUrl, Map<String, String> headers,
                     String mime, String referer) {
-            this(remoteUrl, headers, mime, referer, null);
+            this(remoteUrl, headers, mime, referer, null, false);
         }
 
         RelayTarget(String remoteUrl, Map<String, String> headers,
                     String mime, String referer, AbyssVirtualSource abyss) {
+            this(remoteUrl, headers, mime, referer, abyss, false);
+        }
+
+        RelayTarget(String remoteUrl, Map<String, String> headers,
+                    String mime, String referer, AbyssVirtualSource abyss,
+                    boolean hlsPlaylist) {
             this.remoteUrl = remoteUrl;
             this.headers = headers == null ? new LinkedHashMap<>()
                     : new LinkedHashMap<>(headers);
             this.mime = mime == null ? "video/mp4" : mime;
             this.referer = referer;
             this.abyss = abyss;
+            this.hlsPlaylist = hlsPlaylist;
         }
     }
 
