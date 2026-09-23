@@ -10,8 +10,8 @@ android {
         applicationId 'com.example.webcast'
         minSdk 24
         targetSdk 36
-        versionCode 24
-        versionName '0.12.2'
+        versionCode 25
+        versionName '0.12.3'
     }
 
     buildTypes {
@@ -32,4 +32,5 @@ dependencies {
     implementation 'androidx.mediarouter:mediarouter:1.8.1'
     implementation 'androidx.webkit:webkit:1.17.0'
     implementation 'com.google.android.gms:play-services-cast-framework:22.3.1'
+    implementation 'org.jsoup:jsoup:1.18.3'
 }

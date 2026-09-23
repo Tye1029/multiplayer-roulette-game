@@ -64,6 +64,10 @@ import com.google.android.gms.cast.framework.media.RemoteMediaClient;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
@@ -1885,7 +1889,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void showDebugReport() {
         StringBuilder sb = new StringBuilder();
-        sb.append("WEBCAST_DEBUG_V0.12.2\\n");
+        sb.append("WEBCAST_DEBUG_V0.12.3\\n");
         sb.append("page=").append(redactUrl(webView == null ? "" : webView.getUrl())).append("\\n");
         sb.append("title=").append(safeText(webView == null ? "" : webView.getTitle())).append("\\n");
         sb.append("confirmedVideos=").append(getDisplayMedia().size()).append("\\n");
@@ -1938,6 +1942,17 @@ public class MainActivity extends AppCompatActivity {
             if (p != null) path = p.toLowerCase(Locale.US);
         } catch (Exception ignored) {
         }
+
+        // Web players commonly use WebVTT for seek-preview thumbnails. Those are
+        // metadata, not captions, and must never appear in the subtitle picker.
+        if (path.contains("thumbnail")
+                || path.contains("thumbs")
+                || path.contains("sprite")
+                || path.contains("preview")
+                || path.contains("storyboard")) {
+            return false;
+        }
+
         return path.matches(".*\\.(vtt|srt|ass|ssa)(?:$|[?#]).*")
                 || a.contains("text/vtt")
                 || a.contains("application/x-subrip")
@@ -1958,6 +1973,15 @@ public class MainActivity extends AppCompatActivity {
 
     private void addSubtitleCandidate(String url, String label, String language, String source) {
         if (!isHttpUrl(url)) return;
+        String lower = url.toLowerCase(Locale.US);
+        if (lower.contains("thumbnail")
+                || lower.contains("thumbs")
+                || lower.contains("sprite")
+                || lower.contains("preview")
+                || lower.contains("storyboard")) {
+            addDiagnostic("SUBTITLE_SKIP_PREVIEW path=" + redactPath(url));
+            return;
+        }
         String key = url.trim();
         synchronized (subtitleCandidates) {
             SubtitleCandidate old = subtitleCandidates.get(key);
@@ -1972,7 +1996,8 @@ public class MainActivity extends AppCompatActivity {
         }
         addDiagnostic("SUBTITLE_FOUND source=" + safeText(source)
                 + " lang=" + safeText(language)
-                + " host=" + host(url));
+                + " host=" + host(url)
+                + " path=" + redactPath(url));
         runOnUiThread(this::updateStatus);
     }
 
@@ -2139,53 +2164,331 @@ public class MainActivity extends AppCompatActivity {
         float d = getResources().getDisplayMetrics().density;
         int pad = (int) (16 * d);
 
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setPadding(pad, 0, pad, 0);
+
         final EditText query = new EditText(this);
         query.setHint("Movie or show name");
         query.setSingleLine(true);
         query.setText(suggestedSubtitleSearchTitle());
-
-        LinearLayout box = new LinearLayout(this);
-        box.setPadding(pad, 0, pad, 0);
         box.addView(query, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT));
 
+        final EditText language = new EditText(this);
+        language.setHint("Language, e.g. English or eng");
+        language.setSingleLine(true);
+        language.setText("English");
+        box.addView(language, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT));
+
         new AlertDialog.Builder(this)
-                .setTitle("Search subtitles")
-                .setMessage("WebCast opens your normal browser. Download the exact release you want, then return and choose Import downloaded subtitle.")
+                .setTitle("Find subtitles")
+                .setMessage("Search OpenSubtitles inside WebCast, then choose the exact release.")
                 .setView(box)
-                .setPositiveButton("Search web", (dialog, which) -> {
+                .setPositiveButton("Search", (dialog, which) -> {
                     String q = query.getText().toString().trim();
+                    String lang = normalizeOpenSubtitleLanguage(
+                            language.getText().toString().trim());
                     if (q.isEmpty()) {
                         Toast.makeText(this, "Enter a movie or show name.",
                                 Toast.LENGTH_SHORT).show();
                         return;
                     }
-                    openSubtitleWebSearch(q);
+                    searchOpenSubtitlesWebsite(q, lang);
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
     }
 
-    private void openSubtitleWebSearch(String query) {
+    private String normalizeOpenSubtitleLanguage(String raw) {
+        String v = raw == null ? "" : raw.trim().toLowerCase(Locale.US);
+        if (v.isEmpty() || v.equals("english") || v.equals("en")) return "eng";
+        if (v.equals("spanish") || v.equals("es")) return "spa";
+        if (v.equals("french") || v.equals("fr")) return "fre";
+        if (v.equals("german") || v.equals("de")) return "ger";
+        if (v.equals("italian") || v.equals("it")) return "ita";
+        if (v.equals("portuguese") || v.equals("pt")) return "por";
+        if (v.equals("brazilian portuguese") || v.equals("pt-br")) return "pob";
+        if (v.equals("dutch") || v.equals("nl")) return "dut";
+        if (v.equals("polish") || v.equals("pl")) return "pol";
+        if (v.equals("romanian") || v.equals("ro")) return "rum";
+        if (v.equals("russian") || v.equals("ru")) return "rus";
+        if (v.equals("turkish") || v.equals("tr")) return "tur";
+        if (v.equals("arabic") || v.equals("ar")) return "ara";
+        if (v.equals("japanese") || v.equals("ja")) return "jpn";
+        if (v.equals("korean") || v.equals("ko")) return "kor";
+        if (v.equals("chinese") || v.equals("zh")) return "chi";
+        if (v.matches("[a-z]{3}")) return v;
+        return "eng";
+    }
+
+    private String stripYearFromSubtitleQuery(String query) {
+        if (query == null) return "";
+        return query.replaceAll("\\s*[\\(\\[]?(?:19|20)\\d{2}[\\)\\]]?\\s*$", "")
+                .replaceAll("\\s+", " ")
+                .trim();
+    }
+
+    private void searchOpenSubtitlesWebsite(String query, String language) {
+        Toast.makeText(this, "Searching OpenSubtitles…", Toast.LENGTH_SHORT).show();
+        probeExecutor.execute(() -> {
+            try {
+                String cleanQuery = stripYearFromSubtitleQuery(query);
+                if (cleanQuery.isEmpty()) cleanQuery = query;
+
+                String encoded = URLEncoder.encode(cleanQuery, "UTF-8")
+                        .replace("+", "%20");
+                String searchUrl =
+                        "https://www.opensubtitles.org/en/search2/sublanguageid-"
+                                + language
+                                + "/searchonlymovies-on/moviename-"
+                                + encoded;
+
+                String html = fetchOpenSubtitlesHtml(searchUrl);
+                Document doc = Jsoup.parse(html, searchUrl);
+
+                List<SubtitleCandidate> direct =
+                        parseOpenSubtitleReleaseRows(doc, language);
+                if (!direct.isEmpty()) {
+                    List<SubtitleCandidate> finalDirect = direct;
+                    runOnUiThread(() ->
+                            showOpenSubtitleReleases(query, finalDirect));
+                    return;
+                }
+
+                List<OpenSubtitleMovie> movies =
+                        parseOpenSubtitleMovieRows(doc, language);
+
+                runOnUiThread(() -> {
+                    if (movies.isEmpty()) {
+                        Toast.makeText(this,
+                                "No OpenSubtitles matches found for " + query,
+                                Toast.LENGTH_LONG).show();
+                    } else {
+                        showOpenSubtitleMovies(query, language, movies);
+                    }
+                });
+            } catch (Exception e) {
+                addDiagnostic("OPENSUB_SEARCH_ERROR " + safeText(e.getMessage()));
+                runOnUiThread(() -> Toast.makeText(this,
+                        "Subtitle search failed: " + safeText(e.getMessage()),
+                        Toast.LENGTH_LONG).show());
+            }
+        });
+    }
+
+    private String fetchOpenSubtitlesHtml(String rawUrl) throws Exception {
+        HttpURLConnection conn = null;
         try {
-            String search = query + " subtitles SRT download";
-            String url = "https://www.google.com/search?q="
-                    + URLEncoder.encode(search, "UTF-8");
+            conn = (HttpURLConnection) new URL(rawUrl).openConnection();
+            conn.setInstanceFollowRedirects(true);
+            conn.setConnectTimeout(12000);
+            conn.setReadTimeout(18000);
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("Accept-Encoding", "identity");
+            conn.setRequestProperty("Accept",
+                    "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
+            conn.setRequestProperty("Accept-Language", "en-US,en;q=0.9");
+            conn.setRequestProperty("User-Agent",
+                    webViewUserAgent == null || webViewUserAgent.isEmpty()
+                            ? "Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36 Chrome/145 Mobile Safari/537.36"
+                            : webViewUserAgent);
 
-            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
-            intent.addCategory(Intent.CATEGORY_BROWSABLE);
-            startActivity(intent);
+            int code = conn.getResponseCode();
+            if (code < 200 || code >= 400) {
+                throw new IllegalStateException("OpenSubtitles HTTP " + code);
+            }
 
-            addDiagnostic("SUBTITLE_WEB_SEARCH query=" + safeText(query));
-            Toast.makeText(this,
-                    "Download the matching subtitle, then return to WebCast → Subs → Import downloaded subtitle.",
-                    Toast.LENGTH_LONG).show();
-        } catch (Exception e) {
-            Toast.makeText(this,
-                    "Couldn't open web search: " + safeText(e.getMessage()),
-                    Toast.LENGTH_LONG).show();
+            byte[] bytes = readAllLimited(conn.getInputStream(), 4 * 1024 * 1024);
+            String html = new String(bytes, StandardCharsets.UTF_8);
+            String lower = html.toLowerCase(Locale.US);
+            if (lower.contains("captcha")
+                    && (lower.contains("verify") || lower.contains("robot"))) {
+                throw new IllegalStateException(
+                        "OpenSubtitles requested a verification page");
+            }
+            return html;
+        } finally {
+            if (conn != null) conn.disconnect();
         }
+    }
+
+    private List<OpenSubtitleMovie> parseOpenSubtitleMovieRows(
+            Document doc, String language) {
+        List<OpenSubtitleMovie> result = new ArrayList<>();
+        Set<String> seen = new HashSet<>();
+
+        for (Element row : doc.select("tr.change")) {
+            Element link = row.selectFirst(
+                    "a[href*=/search/][href*=/idmovie-],"
+                            + "a[href*=/ssearch/][href*=/idmovie-]");
+            if (link == null) continue;
+
+            String href = link.absUrl("href");
+            if (href == null || href.isEmpty()) {
+                href = resolveOpenSubtitleUrl(doc.baseUri(), link.attr("href"));
+            }
+            if (href == null || href.isEmpty()) continue;
+
+            href = href.replaceFirst(
+                    "(?i)sublanguageid-[^/]+",
+                    "sublanguageid-" + language);
+
+            if (!seen.add(href)) continue;
+
+            Elements cells = row.select("td");
+            String title = "";
+            if (cells.size() > 1) title = cells.get(1).text();
+            if (title.isEmpty()) title = link.text();
+            title = cleanOpenSubtitleText(title);
+            if (title.isEmpty()) title = "OpenSubtitles match";
+
+            result.add(new OpenSubtitleMovie(title, href));
+            if (result.size() >= 30) break;
+        }
+        return result;
+    }
+
+    private List<SubtitleCandidate> parseOpenSubtitleReleaseRows(
+            Document doc, String languageCode) {
+        List<SubtitleCandidate> result = new ArrayList<>();
+        Set<String> seen = new HashSet<>();
+
+        for (Element row : doc.select("tr.change")) {
+            Element download = row.selectFirst(
+                    "a[href*=/subtitleserve/sub/],a[href*=/download/sub/]");
+            if (download == null) continue;
+
+            String href = download.absUrl("href");
+            if (href == null || href.isEmpty()) {
+                href = resolveOpenSubtitleUrl(doc.baseUri(), download.attr("href"));
+            }
+            if (href == null || href.isEmpty() || !seen.add(href)) continue;
+
+            Elements cells = row.select("td");
+            String release = cells.isEmpty() ? "" : cells.get(0).text();
+            release = cleanOpenSubtitleText(release);
+
+            if (release.isEmpty()) {
+                Element titleLink = row.selectFirst(
+                        "a[href*=/subtitles/]:not([href*=/subtitleserve/])");
+                if (titleLink != null) release = cleanOpenSubtitleText(titleLink.text());
+            }
+            if (release.isEmpty()) release = "Subtitle release";
+
+            String language = "";
+            Element languageLink = row.selectFirst(
+                    "a[title][href*=sublanguageid]");
+            if (languageLink != null) {
+                language = languageLink.attr("title").trim();
+                if (language.isEmpty()) language = languageLink.text().trim();
+            }
+            if (language.isEmpty()) language = languageCode;
+
+            result.add(new SubtitleCandidate(
+                    href,
+                    release,
+                    language,
+                    "OpenSubtitles",
+                    true));
+            if (result.size() >= 60) break;
+        }
+        return result;
+    }
+
+    private String cleanOpenSubtitleText(String value) {
+        if (value == null) return "";
+        String s = value
+                .replaceAll("(?i)Watch online", " ")
+                .replaceAll("(?i)Download Subtitles(?: Player| Searcher)?", " ")
+                .replaceAll("(?i)Download", " ")
+                .replaceAll("\\s+", " ")
+                .trim();
+        if (s.length() > 130) s = s.substring(0, 127) + "…";
+        return s;
+    }
+
+    private String resolveOpenSubtitleUrl(String base, String href) {
+        try {
+            return new URL(new URL(base), href).toString();
+        } catch (Exception ignored) {
+            return "";
+        }
+    }
+
+    private void showOpenSubtitleMovies(String query, String language,
+                                        List<OpenSubtitleMovie> movies) {
+        String[] labels = new String[movies.size()];
+        for (int i = 0; i < movies.size(); i++) labels[i] = movies.get(i).title;
+
+        new AlertDialog.Builder(this)
+                .setTitle("OpenSubtitles • choose title")
+                .setItems(labels, (dialog, which) ->
+                        loadOpenSubtitleReleases(
+                                query, language, movies.get(which)))
+                .setNeutralButton("Search again",
+                        (dialog, which) -> showSubtitleSearchDialog())
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void loadOpenSubtitleReleases(String query, String language,
+                                          OpenSubtitleMovie movie) {
+        Toast.makeText(this, "Loading subtitle releases…",
+                Toast.LENGTH_SHORT).show();
+
+        probeExecutor.execute(() -> {
+            try {
+                String html = fetchOpenSubtitlesHtml(movie.url);
+                Document doc = Jsoup.parse(html, movie.url);
+                List<SubtitleCandidate> releases =
+                        parseOpenSubtitleReleaseRows(doc, language);
+
+                runOnUiThread(() -> {
+                    if (releases.isEmpty()) {
+                        Toast.makeText(this,
+                                "No downloadable releases were found for "
+                                        + movie.title,
+                                Toast.LENGTH_LONG).show();
+                    } else {
+                        showOpenSubtitleReleases(query, releases);
+                    }
+                });
+            } catch (Exception e) {
+                addDiagnostic("OPENSUB_RELEASE_ERROR " + safeText(e.getMessage()));
+                runOnUiThread(() -> Toast.makeText(this,
+                        "Couldn't load releases: " + safeText(e.getMessage()),
+                        Toast.LENGTH_LONG).show());
+            }
+        });
+    }
+
+    private void showOpenSubtitleReleases(String query,
+                                          List<SubtitleCandidate> releases) {
+        String[] labels = new String[releases.size()];
+        for (int i = 0; i < releases.size(); i++) {
+            SubtitleCandidate c = releases.get(i);
+            labels[i] = c.name
+                    + (c.language.isEmpty() ? "" : "\n" + c.language);
+        }
+
+        new AlertDialog.Builder(this)
+                .setTitle("Choose subtitle release")
+                .setMessage("Pick the release closest to the video version you are watching.")
+                .setItems(labels, (dialog, which) -> {
+                    SubtitleCandidate selected = releases.get(which);
+                    addDiagnostic("OPENSUB_SELECTED name="
+                            + safeText(selected.name)
+                            + " lang=" + safeText(selected.language));
+                    prepareSubtitleCandidate(selected);
+                })
+                .setNeutralButton("Search again",
+                        (dialog, which) -> showSubtitleSearchDialog())
+                .setNegativeButton("Cancel", null)
+                .show();
     }
 
     private void openSubtitleFilePicker() {
@@ -5338,6 +5641,16 @@ public class MainActivity extends AppCompatActivity {
             this.mime = mime == null ? "" : mime;
             this.isPlayableRoot = isPlayableRoot;
             this.score = score;
+        }
+    }
+
+    private static class OpenSubtitleMovie {
+        final String title;
+        final String url;
+
+        OpenSubtitleMovie(String title, String url) {
+            this.title = title == null ? "OpenSubtitles match" : title;
+            this.url = url == null ? "" : url;
         }
     }
 
