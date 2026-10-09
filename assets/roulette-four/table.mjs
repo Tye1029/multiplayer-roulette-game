@@ -1,11 +1,11 @@
-import { Round, VERSION, ENTRY, DIRECTIONS, relativeSeat, random, shuffle, createPersonality, botDecision, botDelay } from './model.mjs?v=four-player-roulette-turns-v4';
-import { installDebug } from './debug.mjs?v=four-player-roulette-turns-v4';
+import { Round, VERSION, ENTRY, DIRECTIONS, relativeSeat, random, shuffle, createPersonality, botDecision, botDelay } from './model.mjs?v=four-player-roulette-lamplight-v5';
+import { installDebug } from './debug.mjs?v=four-player-roulette-lamplight-v5';
 
-import { loadProfile } from './profile.mjs?v=four-player-roulette-turns-v4';
-import { createTableAudio } from './audio.mjs?v=four-player-roulette-turns-v4';
-import { createGun } from './gun.mjs?v=four-player-roulette-turns-v4';
+import { loadProfile } from './profile.mjs?v=four-player-roulette-lamplight-v5';
+import { createTableAudio } from './audio.mjs?v=four-player-roulette-lamplight-v5';
+import { createGun } from './gun.mjs?v=four-player-roulette-lamplight-v5';
 
-import { animateRoom } from './room.mjs?v=four-player-roulette-turns-v4';
+import { animateRoom } from './room.mjs?v=four-player-roulette-lamplight-v5';
 
 const $ = id => document.getElementById(id);
 const money = cents => new Intl.NumberFormat('en-US', { maximumFractionDigits: cents % 100 ? 2 : 0 }).format(cents / 100) + ' Chips';
@@ -64,7 +64,7 @@ function buildRoster() {
     ...botNames.map((name, i) => ({ id: `bot-${i + 1}`, name, avatar: asset(botProfiles[i]), gender: i === 1 ? 'female' : 'male', pose: i, isBot: true }))];
 }
 function mountSeats(s) {
-  $('seats').innerHTML = s.players.filter(p => p.id !== 'you').map(p => `<div class="seat" data-player="${p.id}" data-gender="${p.gender}" data-pose="${p.pose}" data-direction="${DIRECTIONS[relativeSeat(s.order, p.id, 'you')]}" style="--pose:${p.pose};--model:${p.gender === 'female' ? 1 : 0};--idle-delay:-${p.pose * 2.3}s"><div class="seat-figure"><div class="mannequin" role="img" aria-label="${esc(p.name)} seated at the table"></div><div class="tv-glow"></div><div class="tv-screen">${avatar(p, '')}${crack()}</div></div><span class="seat-name">${esc(p.name)}</span></div>`).join('');
+  $('seats').innerHTML = s.players.filter(p => p.id !== 'you').map(p => `<div class="seat" data-player="${p.id}" data-gender="${p.gender}" data-pose="${p.pose}" data-direction="${DIRECTIONS[relativeSeat(s.order, p.id, 'you')]}" style="--pose:${p.pose};--model:${p.gender === 'female' ? 1 : 0};--idle-delay:-${p.pose * 2.3}s"><div class="seat-figure"><div class="mannequin" role="img" aria-label="${esc(p.name)} seated at the table"></div><div class="head-motion"><div class="mannequin mannequin-head" aria-hidden="true"></div><div class="tv-glow"></div><div class="tv-screen">${avatar(p, '')}${crack()}</div></div></div><span class="seat-name">${esc(p.name)}</span></div>`).join('');
   const me = s.players.find(p => p.id === 'you');
   $('self-seat').innerHTML = `<span class="self-picture">${avatar(me)}${crack()}</span><span>${esc(me.name)} </span>`;
 }

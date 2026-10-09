@@ -46,3 +46,9 @@ Current rules: 4.18 shots per round, 16.74% end on the first shot, 8.74% empty t
 A simulated one-shot-per-turn first lap reduces fourth-seat nonparticipation to 48.88%, but its mean net drops to -$3.86; this is an engagement tradeoff, not an established balance fix. Randomized order equalizes seat exposure over many rounds. A four-round rotation could guarantee each seat once, but would change the current random-rematch rule.
 
 The two supplied October 9 debug exports describe the same session, retaining five completed results. All five distribute exactly $400, and neither export records errors. In two rounds, two zero-shot survivors finish at $116.11 each. One round empties the pot after ten safe shots. That small overlapping sample is not suitable for estimating player-order advantage.
+
+## Lamplight and character polish V5
+
+The V4 layout is retained with the earlier muted brown/gold controls and green banks. Native gun menu options explicitly pair a dark background with light text. The lamp sits slightly higher and farther right; its bulb and orange light pool move together across darker room edges, with shifting cast shadows and occasional brief flickers. TV light fades smoothly at its edges and goes out on elimination. A highlight masked to the selected gun is driven by its rendered angle relative to the lamp, including during turn transitions.
+
+Characters now pause between randomized glances, nods and small posture adjustments rather than looping a sway. The TV housing and profile move together independently of the torso; the existing atlas is reused. Motion stops for eliminated players and reduced-motion preferences, and lifecycle cleanup prevents stale animations on new tables or navigation. Visual randomness remains separate from gameplay draws. Superseded idle keyframes were removed; shared sprites, gun images and lamp assets remain directly referenced.

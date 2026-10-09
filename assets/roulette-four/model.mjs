@@ -1,5 +1,5 @@
 // FOUR_PLAYER_ROULETTE_V1 — isolated practice rules; amounts are integer cents.
-export const VERSION = 'four-player-roulette-turns-v4';
+export const VERSION = 'four-player-roulette-lamplight-v5';
 export const ENTRY = 10000;
 export const BASE = 2000;
 export const REMATCH_MS = 15000;

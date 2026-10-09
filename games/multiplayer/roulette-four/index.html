@@ -4,13 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#15120f">
-  <meta name="roulette-four-version" content="four-player-roulette-turns-v4">
+  <meta name="roulette-four-version" content="four-player-roulette-lamplight-v5">
   <title>Four Player Roulette</title>
-  <link rel="stylesheet" href="/assets/roulette-four/table.css?v=four-player-roulette-turns-v4">
-  <script type="module" src="/assets/roulette-four/table.mjs?v=four-player-roulette-turns-v4"></script>
+  <link rel="stylesheet" href="/assets/roulette-four/table.css?v=four-player-roulette-lamplight-v5">
+  <script type="module" src="/assets/roulette-four/table.mjs?v=four-player-roulette-lamplight-v5"></script>
 </head>
 <body>
-  <main id="roulette-four" data-version="four-player-roulette-turns-v4">
+  <main id="roulette-four" data-version="four-player-roulette-lamplight-v5">
     <header class="page-header"><div><h1>Four Player Roulette</h1></div><nav aria-label="Table options"><button id="sound" type="button" aria-pressed="true">Sound on</button><button id="debug" type="button" aria-expanded="false" aria-controls="debug-panel">Debug</button><button id="rules" type="button">Rules</button><a href="/?game=roulette">Leave table</a></nav></header>
     <div class="table-meta"><span><i class="live-dot"></i> BOT TABLE <span class="practice">· Practice Chips</span></span></div>
     <div class="gun-picker"><label for="gun-options">Your sidearm</label><select id="gun-options" aria-label="Choose your gun"></select></div>
@@ -22,7 +22,7 @@
       <div id="seats"></div>
       <div class="table-art" aria-hidden="true"><img src="/assets/roulette/decor/oval-table-v2.png" alt=""></div>
       <div class="pot-display"><span>REMAINING POT</span><strong id="pot">400 Chips</strong></div>
-      <div id="gun" class="gun-rotor" aria-hidden="true"><div id="recoil" class="gun-body"><img id="gun-photo" src="/assets/roulette/revolver-steel-walnut.png" alt=""><img id="gun-hammer" class="gun-hammer" src="/assets/roulette/revolver-steel-walnut-hammer.png" alt=""><span id="gun-charge" class="gun-charge"></span><i id="muzzle-flash" class="muzzle-flash"></i></div></div>
+      <div id="gun" class="gun-rotor" aria-hidden="true"><div id="recoil" class="gun-body"><img id="gun-photo" src="/assets/roulette/revolver-steel-walnut.png" alt=""><span id="gun-glint" class="gun-glint"></span><img id="gun-hammer" class="gun-hammer" src="/assets/roulette/revolver-steel-walnut-hammer.png" alt=""><span id="gun-charge" class="gun-charge"></span><i id="muzzle-flash" class="muzzle-flash"></i></div></div>
       <div id="opening" class="opening" hidden><span>DRAWING THE FIRST PLAYER</span><strong id="opening-name">Four seats. One chamber.</strong></div>
       <div id="self-seat" class="self-seat"></div>
       <div id="scene-message" class="scene-message" aria-live="polite"></div>

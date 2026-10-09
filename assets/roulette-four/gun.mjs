@@ -16,6 +16,7 @@ export function createGun(trace) {
     try { await Promise.all([photo.decode(), part.decode()]); } catch { trace('gun-load-failed', { id }); return; }
     if (token !== request) return;
     stop(); choice = next; picture.src = photo.src; hammer.src = part.src;
+    document.getElementById('gun-glint').style.maskImage = 'url("' + photo.src + '")';
     root.dataset.finish = id; root.dataset.laser = String(!!choice.laser);
     hammer.style.filter = choice.hammerFilter;
     document.getElementById('gun-options').value = id;
