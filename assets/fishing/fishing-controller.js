@@ -1,7 +1,7 @@
 (function fishingControllerBootstrap(global){
   "use strict";
 
-  const VERSION="fishing-controller-v20";
+  const VERSION="fishing-controller-v21";
   const SIDES=["left","right"];
   const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
   const round=value=>Math.round(Number(value||0)*10)/10;
@@ -36,6 +36,18 @@
       this.destroyed=false;
       this.castPlayed=false;
       this.lastWaterFrame=0;
+      // Decorative only: these never create bites, reveal a fish identity,
+      // change rarity rolls, or accept input. At most three lightweight paths.
+      this.ambientEpoch=performance.now();
+      this.ambientFish=Array.from({length:3},(_,i)=>({
+        delay:2400+i*4900+Math.random()*1600,
+        period:21000+i*3700+Math.random()*4000,
+        duration:8500+i*1100,
+        y:.75+i*.062,
+        size:.032+i*.007,
+        direction:i%2?-1:1,
+        bend:Math.random()*Math.PI*2
+      }));
       this.reducedMotion=Boolean(global.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches);
       this.rigs={
         left:{side:"left",x:.42,y:.665,baseY:.665,caught:false,catchId:"",anim:null,phaseOffset:0},
@@ -250,6 +262,7 @@
       const lake=[[0,.44],[1,.44],[1,.65],[.85,.535],[.65,.50],[.65,.725],[.73,.725],[.73,.88],[.95,1],[.05,1],[.27,.88],[.27,.725],[.35,.725],[.35,.50],[.15,.535],[0,.65]];
       lake.forEach(([x,y],i)=>i?ctx.lineTo(x*w,y*h):ctx.moveTo(x*w,y*h));
       ctx.closePath();ctx.clip();
+      this.drawFishShadows(now,w,h);
       const phase=this.reducedMotion?0:now*.00115;
       const gradient=ctx.createLinearGradient(0,horizon,0,h);gradient.addColorStop(0,"rgba(86,238,244,.035)");gradient.addColorStop(.55,"rgba(18,171,205,.075)");gradient.addColorStop(1,"rgba(0,83,128,.105)");ctx.fillStyle=gradient;ctx.fillRect(0,horizon,w,h-horizon);
       ctx.globalCompositeOperation="screen";
@@ -268,6 +281,27 @@
       }
       ctx.globalCompositeOperation="source-over";
       ctx.restore();
+    }
+
+    drawFishShadows(now,w,h){
+      if(this.reducedMotion||!this.ambientFish||this.phase==='complete')return;
+      const ctx=this.ctx,time=now-this.ambientEpoch;
+      for(const fish of this.ambientFish){
+        const elapsed=time-fish.delay;if(elapsed<0)continue;
+        const age=elapsed%fish.period;if(age>=fish.duration)continue;
+        const t=age/fish.duration,envelope=Math.sin(Math.PI*t)**2;
+        const x=(fish.direction>0?.24+t*.52:.76-t*.52)*w;
+        const y=(fish.y+Math.sin(t*Math.PI*2+fish.bend)*.022)*h;
+        const length=Math.max(12,w*fish.size),tail=Math.sin(now*.005+fish.bend)*2;
+        ctx.save();ctx.globalCompositeOperation='source-over';
+        ctx.translate(x,y);ctx.rotate(Math.cos(t*Math.PI*2+fish.bend)*.12);ctx.scale(fish.direction,1);
+        ctx.fillStyle=`rgba(3,46,57,${(.19*envelope).toFixed(3)})`;
+        // Soft, top-down body and fins, with a gently sweeping tail.
+        ctx.beginPath();ctx.ellipse(0,0,length*.48,length*.15,0,0,Math.PI*2);ctx.fill();
+        ctx.beginPath();ctx.moveTo(-length*.36,0);ctx.lineTo(-length*.72,-length*.19+tail);ctx.quadraticCurveTo(-length*.56,tail,-length*.72,length*.19+tail);ctx.closePath();ctx.fill();
+        ctx.beginPath();ctx.moveTo(-length*.06,-length*.08);ctx.lineTo(-length*.2,-length*.27);ctx.lineTo(length*.15,-length*.09);ctx.moveTo(-length*.06,length*.08);ctx.lineTo(-length*.2,length*.27);ctx.lineTo(length*.15,length*.09);ctx.fill();
+        ctx.restore();
+      }
     }
 
     frame(now){

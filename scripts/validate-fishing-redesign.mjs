@@ -10,14 +10,19 @@ function assert(condition, message) {
 }
 
 const html = fs.readFileSync(new URL("../index.html", import.meta.url), "utf8");
-const css = fs.readFileSync(new URL("../assets/fishing/fishing.css", import.meta.url), "utf8");
+const css = fs.readFileSync(new URL("../assets/fishing/fishing.css", import.meta.url), "utf8").replace(/\r\n/g,"\n");
 const controller = fs.readFileSync(new URL("../assets/fishing/fishing-controller.js", import.meta.url), "utf8");
 const preview = fs.readFileSync(new URL("../games/multiplayer/fishing/preview.html", import.meta.url), "utf8");
 const serverData = fs.readFileSync(new URL("../netlify/functions/_data.js", import.meta.url), "utf8");
 
-assert(html.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v33'), "versioned Fishing stylesheet is not loaded");
-assert(html.includes('id="fishingDuelRuntime" defer src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v33"'), "deferred shared Fishing controller is not loaded");
-assert(preview.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v33'), "preview is not using the current Fishing stylesheet");
+assert(html.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v34'), "versioned Fishing stylesheet is not loaded");
+assert(html.includes('id="fishingDuelRuntime" defer src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v34"'), "deferred shared Fishing controller is not loaded");
+assert(preview.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v34'), "preview is not using the current Fishing stylesheet");
+for(const cloud of ['cloud-wisps-v1.png','cloud-puff-v1.png']){
+  assert(html.includes(cloud)&&preview.includes(cloud),`both Fishing scenes must use ${cloud}`);
+  const bytes=fs.readFileSync(new URL(`../assets/fishing/images/v2/${cloud}`,import.meta.url));
+  assert(bytes.subarray(1,4).toString()==='PNG'&&bytes.length<60000,`cloud sprite must be an optimized PNG: ${cloud}`);
+}
 assert(html.includes('function duelFishingEnsureController(root)'), "Fishing controller recovery loader is missing");
 assert(html.includes('class="fishing-command-bar"'), "game-owned Fishing header is missing");
 assert(html.includes('class="fishing-instructions" aria-label="How to play"'), "visible game instructions are missing");
@@ -144,7 +149,7 @@ assert(preview.includes('data-debug-copy'), "copyable preview debug report is mi
 assert(preview.includes('data-debug-cast'), "live preview debug controls are missing");
 
 assert(controller.includes('class FishingSceneController'), "Fishing scene controller class is missing");
-assert(controller.includes('const VERSION="fishing-controller-v20"'), "Fishing diagnostics do not identify the synchronized-pull controller");
+assert(controller.includes('const VERSION="fishing-controller-v21"'), "Fishing diagnostics do not identify the synchronized-pull controller");
 assert(controller.includes('playCast(options={})'), "shared casting lifecycle is missing");
 assert(controller.includes('syncCatch(side,catchId,animate=false)'), "authoritative catch synchronization is missing");
 assert(controller.includes('drawWater(now)'), "moving water renderer is missing");

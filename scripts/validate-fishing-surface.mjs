@@ -45,4 +45,25 @@ assert(Math.abs(firstWave-nextWave)<.1,'Water must not jump at the former 5.5-se
 assert(!css.includes('@keyframes fishingWaterDrift'),'Superseded reset animation must be removed');
 assert.match(css,/\.fishing-water::before,\s*\.fishing-water::after,\s*\.fishing-water-glint\s*\{[^}]*display: none !important/s);
 assert(css.includes('@keyframes fishingBiteSplash'));
+
+// Deterministic decorative path: fade at both ends, swim both directions,
+// disappear between passes, and never render in reduced-motion mode.
+controller.ambientEpoch=0;controller.phase='waiting';
+controller.ambientFish=[{delay:2000,period:21000,duration:8500,y:.79,size:.03,direction:1,bend:0}];
+calls.length=0;controller.drawFishShadows(1000,1000,545);
+assert.equal(calls.length,0,'Fish should only appear occasionally');
+controller.drawFishShadows(6250,1000,545);
+assert(calls.some(c=>c[0]==='ellipse'),'Shadow body must be drawn');
+assert(calls.some(c=>c[0]==='translate'&&c[1]===500),'Fish should pass through the central lake');
+const forward=calls.find(c=>c[0]==='translate');calls.length=0;
+controller.drawFishShadows(7250,1000,545);
+assert(calls.find(c=>c[0]==='translate')[1]>forward[1],'Fish should swim along a smooth path');
+calls.length=0;controller.drawFishShadows(16000,1000,545);
+assert.equal(calls.length,0,'Rest period must be clear water');
+controller.reducedMotion=true;controller.drawFishShadows(6250,1000,545);
+assert.equal(calls.length,0,'Reduced motion must disable ambient swimmers');
+controller.reducedMotion=false;controller.phase='complete';controller.drawFishShadows(6250,1000,545);
+assert.equal(calls.length,0,'Completed rounds should not run decorative swimmers');
+const shadowSource=source.slice(source.indexOf('    drawFishShadows('),source.indexOf('    frame('));
+assert(!/setRipple|syncCatch|FISHING_CATALOG|random/.test(shadowSource),'Ambient shadows must never affect fish identities or bites');
 console.log('Fishing surface passed: transformed rod anchors, bobber-top connection, submersion, dock clipping, continuous waves and splash animation.');

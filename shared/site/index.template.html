@@ -6655,9 +6655,9 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
   <script id="blackjackDuelRuntime" src="/assets/blackjack-duel/blackjack-duel.js?v=blackjack-duel-v17" defer></script>
 <!-- BLACKJACK_DUEL_ASSETS_END -->
 <!-- FISHING_DUEL_ASSETS_START -->
-  <script src="/shared/games/fishing-catalog.js?v=fishing-mechanics-v33"></script>
-  <link id="fishingDuelStyles" rel="stylesheet" href="/assets/fishing/fishing.css?v=fishing-mechanics-v33">
-  <script id="fishingDuelRuntime" defer src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v33"></script>
+  <script src="/shared/games/fishing-catalog.js?v=fishing-mechanics-v34"></script>
+  <link id="fishingDuelStyles" rel="stylesheet" href="/assets/fishing/fishing.css?v=fishing-mechanics-v34">
+  <script id="fishingDuelRuntime" defer src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v34"></script>
 <!-- FISHING_DUEL_ASSETS_END -->
 
 <!-- Game artwork is prewarmed when its game is chosen, before the Ready screen. -->
@@ -11097,6 +11097,9 @@ function createSparkle(x, y) {
       const startMs=Date.parse(String(game.startAt||''));
       const remaining=Number.isFinite(startMs)?startMs-duelCountdownNow(game):Math.max(0,Number(game.countdownSeconds||4)*1000);
       if(game.mode==='draw')return remaining>2000?'READY':remaining>900?'SET':'DRAW!';
+      // Fishing's five-second network window includes cast preparation. Do not
+      // label the first two seconds as 3 or play a numeric cue for preparation.
+      if(game.mode==='fishing'&&remaining>3000)return 'CASTING';
       const seconds=Math.max(0,Math.ceil(remaining/1000));
       return seconds>=3?'3':seconds===2?'2':seconds===1?'1':'GO!';
     }
@@ -11153,7 +11156,8 @@ function createSparkle(x, y) {
       duelPositionCountdownPortal();
       const text=portal.querySelector('.duel-countdown-number');
       const heading=portal.querySelector('.duel-countdown-label');
-      if(heading)heading.textContent=game.mode==='fishing'?'LINES IN':game.mode==='draw'?'DRAW SIGNAL':'DUEL START';
+      if(heading)heading.textContent=game.mode==='fishing'?(label==='CASTING'?'PREPARING CAST':'LINES IN'):game.mode==='draw'?'DRAW SIGNAL':'DUEL START';
+      portal.classList.toggle('is-preparing',game.mode==='fishing'&&label==='CASTING');
       if(label&&label!==duelCountdownPortalLabel){
         duelCountdownPortalLabel=label;
         text.textContent=label;
@@ -11161,7 +11165,7 @@ function createSparkle(x, y) {
         text.style.animation='none';void text.offsetWidth;text.style.animation='';
       }
       portal.classList.add('show');
-      if(label&&duelSharedCountdownSoundKey!==`${String(game.gameId||'')}:${label}`)duelPlayCountdownSoundOnPaint(game,label,portal);
+      if(label&&label!=='CASTING'&&duelSharedCountdownSoundKey!==`${String(game.gameId||'')}:${label}`)duelPlayCountdownSoundOnPaint(game,label,portal);
       if(game.mode==='fishing'&&label==='GO!'){
         const startMs=Date.parse(String(game.startAt||'')),goKey=`${String(game.gameId||'')}:${startMs}`;
         if(!duelSharedFishingGoTimer&&duelSharedFishingGoKey!==goKey){
@@ -12795,14 +12799,7 @@ function createSparkle(x, y) {
     duelFishingRemainingMs=fishingV3Remaining; duelFishingServerNowMs=()=>Date.now(); duelFishingActiveEvent=fishingV3Active;
     duelFishingStartLocalClock=fishingV3Start; duelFishingStopLocalClock=fishingV3Stop;
     function fishingCountdownLabel(game){
-      if(game?.status!=="countdown")return "";
-      const start=Date.parse(game.startAt||"");
-      if(!Number.isFinite(start))return "3";
-      const ms=Math.max(0,start-Date.now());
-      if(ms>3000)return "3";
-      if(ms>2000)return "2";
-      if(ms>1000)return "1";
-      return "GO!";
+      return duelSharedCountdownLabel(game);
     }
     function fishingCountdownOverlay(game){
       // The shared arcade overlay is the only countdown shown for every mode.

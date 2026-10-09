@@ -33,6 +33,19 @@ const epoch=now;
 const context=vm.createContext({FISHING_CATALOG:fishingCatalog,console,Date:class extends Date{static now(){return now;}},performance:{now:()=>now-epoch},navigator:{},setInterval:()=>1,clearInterval:()=>{},setTimeout:()=>1});
 vm.runInContext(declarations+stubs+art+projection+clocks+log,context);
 const run=code=>vm.runInContext(code,context);
+// Five server-owned seconds = two preparation seconds + three numeric cues.
+run(`var buffered={gameId:'buffer-test',mode:'fishing',status:'countdown',serverNow:new Date(Date.now()).toISOString(),startAt:new Date(Date.now()+5000).toISOString()}`);
+const cueStarts=[];
+let prior='';
+for(let i=0;i<=100;i++){
+  const cue=run('duelSharedCountdownLabel(buffered)');
+  if(cue!==prior){cueStarts.push([cue,i*50]);prior=cue;}
+  if(i<100)now+=50;
+}
+assert.deepEqual(cueStarts,[['CASTING',0],['3',2000],['2',3000],['1',4000],['GO!',5000]],'3 must not absorb the network preparation window');
+assert(html.includes("label!=='CASTING'&&duelSharedCountdownSoundKey"),'Preparation must not beep');
+run(`buffered.serverNow=new Date(Date.now()-3500).toISOString()`);
+assert.equal(run('duelSharedCountdownLabel(buffered)'),'GO!','Slow polls cannot restart preparation or numeric cues');
 run(`var sample={gameId:'clock-test',mode:'fishing',status:'countdown',serverNow:new Date(Date.now()).toISOString(),startAt:new Date(Date.now()+3000).toISOString(),isCreator:true,fishingState:{roundId:'round-1'}}`);
 assert.equal(run('duelSharedCountdownLabel(sample)'),'3');
 const labels=[];
@@ -153,11 +166,12 @@ async function duelRequest(action,details){
 }
 function start(){
  clearInterval(phaseTimer);clearInterval(pollTimer);duelActive.querySelector('[data-fishing-game]')?._fishingController?.destroy();fishingV3Reset();
- const start=Date.now()+3000;
+ const start=Date.now()+5000;
  game={gameId:'offline-'+start,mode:'fishing',status:'countdown',isCreator:true,isPlayer:true,serverNow:new Date().toISOString(),startAt:new Date(start).toISOString(),creator:{name:'Angler One'},joiner:{name:'Angler Two'},fishingState:{roundId:'round-'+start,startAt:new Date(start).toISOString(),endAt:new Date(start+60000).toISOString(),serverEpochMs:Date.now(),events:Array.from({length:8},(_,i)=>({id:'bite-'+i,atMs:start+1200+i*7000,endAtMs:start+7200+i*7000,ripple:158,special:i%2===0}))}};
  duelCurrentGameId=game.gameId;duelActive.innerHTML='<div class="duel-arena fishing-clean">'+duelFishingHtml(game)+'</div>';duelBindFishing(duelActive);
- let portal=document.getElementById('duelCountdownPortal');if(!portal){portal=document.createElement('div');portal.id='duelCountdownPortal';portal.dataset.duelMode='fishing';portal.innerHTML='<div class="duel-countdown-frame"><span class="duel-countdown-label">LINES IN</span><div class="duel-countdown-number">3</div></div>';document.body.append(portal);}portal.classList.add('show');
- phaseTimer=setInterval(()=>{const label=duelSharedCountdownLabel(game);portal.querySelector('.duel-countdown-number').textContent=label;if(label==='GO!'){clearInterval(phaseTimer);setTimeout(()=>portal.classList.remove('show'),250);game={...game,status:'playing',serverNow:new Date().toISOString(),fishingState:{...game.fishingState,serverEpochMs:Date.now()}};duelFishingPatchDom(game);}},50);
+ let portal=document.getElementById('duelCountdownPortal');if(!portal){portal=document.createElement('div');portal.id='duelCountdownPortal';portal.dataset.duelMode='fishing';portal.innerHTML='<div class="duel-countdown-frame"><span class="duel-countdown-label">PREPARING CAST</span><div class="duel-countdown-number">CASTING</div></div>';document.body.append(portal);}portal.classList.add('show','is-preparing');
+ const cueHistory=[{cue:'CASTING',at:0}];portal.dataset.cues=JSON.stringify(cueHistory);
+ phaseTimer=setInterval(()=>{const label=duelSharedCountdownLabel(game);if(cueHistory.at(-1).cue!==label){cueHistory.push({cue:label,at:Date.now()-(start-5000)});portal.dataset.cues=JSON.stringify(cueHistory);}portal.classList.toggle('is-preparing',label==='CASTING');portal.querySelector('.duel-countdown-label').textContent=label==='CASTING'?'PREPARING CAST':'LINES IN';portal.querySelector('.duel-countdown-number').textContent=label;if(label==='GO!'){clearInterval(phaseTimer);setTimeout(()=>portal.classList.remove('show'),250);game={...game,status:'playing',serverNow:new Date().toISOString(),fishingState:{...game.fishingState,serverEpochMs:Date.now()}};duelFishingPatchDom(game);}},50);
  pollTimer=setInterval(()=>{if(paused||game.status!=='playing')return;game={...game,serverNow:new Date().toISOString(),fishingState:{...game.fishingState,serverEpochMs:Date.now()}};duelFishingPatchDom(game);},650);
 }
 document.getElementById('restart').onclick=start;
