@@ -90,3 +90,4 @@ const app = await read('assets/roulette-four/table.mjs');
 assert(!app.includes('/.netlify/functions/'), 'Practice cannot mutate account or duel state');
 assert(app.includes('createPersonality()')); assert(app.includes('stopTimers()'));
 console.log('Four-player Roulette validated: six chambers, $20 ladder, cent-exact weighted/tied splits, all 24 orders, all viewer perspectives, 1,000 randomized bot rounds and rematch lifecycle.');
+await import('./validate-roulette-four-profile.mjs');

@@ -1,5 +1,9 @@
-import { Round, VERSION, ENTRY, DIRECTIONS, relativeSeat, random, shuffle, createPersonality, botDecision, botDelay } from './model.mjs?v=four-player-roulette-debug-v2';
-import { installDebug } from './debug.mjs?v=four-player-roulette-debug-v2';
+import { Round, VERSION, ENTRY, DIRECTIONS, relativeSeat, random, shuffle, createPersonality, botDecision, botDelay } from './model.mjs?v=four-player-roulette-atmosphere-v3';
+import { installDebug } from './debug.mjs?v=four-player-roulette-atmosphere-v3';
+
+import { loadProfile } from './profile.mjs?v=four-player-roulette-atmosphere-v3';
+import { createTableAudio } from './audio.mjs?v=four-player-roulette-atmosphere-v3';
+import { createGun } from './gun.mjs?v=four-player-roulette-atmosphere-v3';
 
 const $ = id => document.getElementById(id);
 const money = cents => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: cents % 100 ? 2 : 0 }).format(cents / 100);
@@ -8,20 +12,14 @@ const asset = name => `/assets/roulette-four/images/${name}`;
 const names = ['Marlow', 'Vega', 'Rook', 'Jules', 'Ash', 'Knox', 'Indigo', 'Remy', 'Sage', 'Kit'];
 const profiles = ['amber.svg', 'mint.svg', 'rose.svg', 'violet.svg'];
 let roster = [], personalities = {}, game = null, roundNumber = 0, generation = 0, busy = false, muted = false;
-let angle = 270, phase = 'lobby', uploadUrl = '', messageTimer, tick, resumeResults = false;
+let angle = 270, phase = 'lobby', connectedProfile = null, messageTimer, tick, resumeResults = false;
 let tableNumber = 0;
-const timers = new Set(), audio = new Map();
-const sounds = {
-  opening: '/assets/roulette/audio/revolver-spinning-on-wood-v4.mp3',
-  spin: '/assets/roulette/audio/freesound_community-revolver-chamber-spin-ratchet-sound-90521.mp3',
-  dry: '/assets/roulette/audio/freesound_community-gun-dry-firing-3-39820.mp3',
-  live: '/assets/roulette/audio/freesound_community-single-pistol-gunshot-33-37187.mp3'
-};
+const timers = new Set(), completedRounds = [];
 const diagnostics = installDebug(() => {
   const state = game?.snapshot() || null;
   if (state) state.players = state.players.map(({ avatar, ...p }) => ({ ...p,
     direction: DIRECTIONS[relativeSeat(state.order, p.id, 'you')] }));
-  return { version: VERSION, table: tableNumber, state, bots: personalities,
+  return { version: VERSION, table: tableNumber, state, bots: personalities, completedRounds, audio: tableAudio.status(), gun: gun.selected().id, profile: { status: connectedProfile ? 'connected' : 'guest' },
     ui: { phase: $('roulette-four').dataset.phase, busy, muted, gunAngle: angle,
       pendingTimers: timers.size, resultOpen: $('result-dialog').open,
       controls: Object.fromEntries(['shoot', 'spin', 'pass'].map(id => [id, { disabled: $(id).disabled, text: $(id).textContent.trim() }])) },
@@ -30,15 +28,12 @@ const diagnostics = installDebug(() => {
 function trace(type, details = {}) {
   diagnostics.record(type, { table: tableNumber, round: roundNumber, ...details });
 }
-function sound(key) {
-  if (muted) return;
-  if (!audio.has(key)) { const clip = new Audio(sounds[key]); clip.volume = key === 'live' ? 0.3 : 0.45; audio.set(key, clip); }
-  const clip = audio.get(key); clip.currentTime = 0; clip.play().catch(error => trace('audio-unavailable', { sound: key, message: error.message }));
-}
+const tableAudio = createTableAudio(trace);
+const gun = createGun(trace);
 function stopTimers() {
   generation++; for (const timer of timers) clearTimeout(timer); timers.clear();
   clearInterval(tick); clearTimeout(messageTimer);
-  for (const clip of audio.values()) { clip.pause(); clip.currentTime = 0; }
+  tableAudio.stop(); gun.stop();
 }
 function later(fn, ms) {
   const token = generation;
@@ -58,15 +53,16 @@ function rotateTo(id, opening = false) {
   angle += difference + (opening ? 1080 : 0);
   $('gun').style.transitionDuration = opening ? '3.7s' : '0.65s';
   $('gun').style.transform = `rotate(${angle}deg)`;
+  tableAudio.play('wood', { duration: opening ? 3700 : 650, loop: true, volume: opening ? .26 : .2 });
   trace('gun-target', { player: id, direction: DIRECTIONS[relativeSeat(s.order, id, 'you')], angle, opening });
 }
 function buildRoster() {
-  const botNames = shuffle(names).slice(0, 3), botProfiles = shuffle(profiles.filter(name => uploadUrl || name !== 'amber.svg')).slice(0, 3);
-  roster = [{ id: 'you', name: $('player-name').value.trim().slice(0, 24) || 'You', avatar: uploadUrl || asset('amber.svg'), isBot: false },
-    ...botNames.map((name, i) => ({ id: `bot-${i + 1}`, name, avatar: asset(botProfiles[i]), isBot: true }))];
+  const botNames = shuffle(names).slice(0, 3), botProfiles = shuffle(profiles.filter(name => connectedProfile?.avatar || name !== 'amber.svg')).slice(0, 3);
+  roster = [{ id: 'you', name: $('player-name').value.trim().slice(0, 24) || 'You', avatar: connectedProfile?.avatar || asset('amber.svg'), gender: connectedProfile?.gender || 'unknown', isBot: false },
+    ...botNames.map((name, i) => ({ id: `bot-${i + 1}`, name, avatar: asset(botProfiles[i]), gender: i === 1 ? 'female' : 'male', pose: i, isBot: true }))];
 }
 function mountSeats(s) {
-  $('seats').innerHTML = s.players.filter(p => p.id !== 'you').map(p => `<div class="seat" data-player="${p.id}" data-direction="${DIRECTIONS[relativeSeat(s.order, p.id, 'you')]}"><img class="mannequin" src="${asset('tv-mannequin-v1.png')}" alt="Seated mannequin with ${esc(p.name)}'s profile on its TV head"><div class="tv-screen">${avatar(p, '')}${crack()}</div><span class="seat-name">${esc(p.name)}</span></div>`).join('');
+  $('seats').innerHTML = s.players.filter(p => p.id !== 'you').map(p => `<div class="seat" data-player="${p.id}" data-gender="${p.gender}" data-pose="${p.pose}" data-direction="${DIRECTIONS[relativeSeat(s.order, p.id, 'you')]}" style="--pose:${p.pose};--model:${p.gender === 'female' ? 1 : 0};--idle-delay:-${p.pose * 2.3}s"><div class="seat-figure"><div class="mannequin" role="img" aria-label="${esc(p.name)} seated at the table"></div><div class="tv-glow"></div><div class="tv-screen">${avatar(p, '')}${crack()}</div></div><span class="seat-name">${esc(p.name)}</span></div>`).join('');
   const me = s.players.find(p => p.id === 'you');
   $('self-seat').innerHTML = `<span class="self-picture">${avatar(me)}${crack()}</span><span>${esc(me.name)} <small>You sit here · ↓</small></span>`;
 }
@@ -90,6 +86,7 @@ function render() {
   $('pot').textContent = money(s.pot);
   $('round-label').textContent = `Round ${s.round} · $100 each`;
   const canAct = phase === 'playing' && s.activeId === 'you' && !busy;
+  $('gun-options').disabled = busy;
   $('shoot').disabled = !canAct; $('pass').disabled = !canAct || !s.canPass;
   $('spin').disabled = !canAct || me.spinUsed;
   $('spin').innerHTML = `Spin chamber <small>${me.spinUsed ? 'Used this round' : '1 left · resets to $20'}</small>`;
@@ -125,7 +122,6 @@ function startRound() {
   $('scene-message').textContent = ''; $('turn-hint').classList.remove('result-reopen');
   $('opening').hidden = false; $('opening-name').textContent = 'Four seats. One chamber.';
   mountSeats(game.snapshot()); render();
-  sound('opening');
   requestAnimationFrame(() => { if (phase === 'opening') rotateTo(game.snapshot().activeId, true); });
   later(() => {
     const s = game.snapshot(); $('opening-name').textContent = `${player(s.activeId).name} goes first`;
@@ -149,29 +145,41 @@ function scheduleBot() {
 }
 function act(id, action) {
   if (busy) { trace('action-rejected', { player: id, action, reason: 'UI busy' }); return; }
-  const event = game.act(id, action);
-  if (!event.ok) { trace('action-rejected', event); toast(event.reason); return; }
-  const after = game.snapshot();
-  trace('action', { ...event, phase: after.phase, activePlayer: after.activeId,
-    potCents: after.pot, nextAwardCents: after.award,
-    banks: after.players.map(p => ({ id: p.id, bankCents: p.bank, shots: p.shots, spinUsed: p.spinUsed })) });
-  busy = true;
-  if (action === 'pass') { rotateTo(game.snapshot().activeId); }
-  if (action === 'spin') { sound('spin'); toast(`${player(id).name} spun · next shot $20`); }
+  const execute = () => {
+    const event = game.act(id, action);
+    if (!event.ok) { busy = false; trace('action-rejected', event); toast(event.reason); render(); return; }
+    const after = game.snapshot();
+    trace('action', { ...event, phase: after.phase, activePlayer: after.activeId, potCents: after.pot, nextAwardCents: after.award,
+      banks: after.players.map(p => ({ id: p.id, bankCents: p.bank, shots: p.shots, spinUsed: p.spinUsed })) });
+    busy = true;
+    if (action === 'pass') rotateTo(after.activeId);
+    if (action === 'spin') {
+      gun.roll(); tableAudio.play('spin', { duration: 1350, volume: .24 });
+      toast(`${player(id).name} spun · next shot $20`);
+    }
+    if (action === 'shoot') {
+      gun.strike(event.fatal);
+      if (gun.selected().laser) tableAudio.tone(event.fatal, 0);
+      else tableAudio.play(event.fatal ? 'live' : 'dry', { duration: event.fatal ? 900 : 350, volume: event.fatal ? .3 : .38 });
+      trace('shot-strike', { player: id, fatal: !!event.fatal, hammerDelayMs: 320 });
+      if (event.fatal) $('scene').classList.add('is-fatal');
+      toast(event.fatal ? `${player(id).name} is out` : `${player(id).name} · safe · +${money(event.award)}`);
+    }
+    render();
+    if (after.phase === 'complete') { later(showResults, 1500); return; }
+    later(() => { busy = false; render(); scheduleBot(); }, action === 'spin' ? 1400 : action === 'pass' ? 700 : 550);
+  };
   if (action === 'shoot') {
-    sound(event.fatal ? 'live' : 'dry');
-    const recoil = $('recoil'); recoil.classList.remove('kick', 'live');
-    void recoil.offsetWidth; recoil.classList.add('kick');
-    if (event.fatal) { recoil.classList.add('live'); $('scene').classList.add('is-fatal'); }
-    toast(event.fatal ? `${player(id).name} is out` : `${player(id).name} · safe · +${money(event.award)}`);
-  }
-  render();
-  if (game.snapshot().phase === 'complete') { later(showResults, 1500); return; }
-  later(() => { busy = false; render(); scheduleBot(); }, action === 'spin' ? 900 : action === 'pass' ? 700 : 650);
+    busy = true; render(); gun.cock();
+    if (!gun.selected().laser) tableAudio.play('hammer', { duration: 230, volume: .2 });
+    later(execute, 320);
+  } else execute();
 }
 function showResults() {
   busy = false; game.openRematch();
   const s = game.snapshot(), me = s.players.find(p => p.id === 'you');
+  completedRounds.push({ table: tableNumber, round: roundNumber, at: new Date().toISOString(), order: s.order, result: s.result, players: s.players.map(({ avatar, ...p }) => p) });
+  if (completedRounds.length > 50) completedRounds.shift();
   trace('results', { result: s.result, players: s.players.map(({ avatar, ...p }) => p), deadline: s.rematchDeadline });
   $('result-kicker').textContent = `ROUND ${s.round} COMPLETE`;
   $('result-title').textContent = s.result.reason === 'empty' ? 'The pot is empty.' : `${player(s.result.eliminatedId).name} is out.`;
@@ -216,7 +224,8 @@ function vote(id) {
 }
 function newTable() { stopTimers(); buildRoster(); roundNumber = 0; tableNumber++; startRound(); }
 
-$('join-form').addEventListener('submit', event => { event.preventDefault(); newTable(); });
+$('join-form').addEventListener('submit', async event => { event.preventDefault(); const button = $('join-form').querySelector('button'); button.disabled = true; button.textContent = 'Preparing the table…'; await Promise.all([tableAudio.unlock(), gun.ready()]); newTable(); button.disabled = false; button.textContent = 'Take a seat · $100'; });
+$('gun-options').addEventListener('change', async event => { if (busy) return; const token = generation; busy = true; render(); await gun.select(event.target.value); if (generation !== token) return; busy = false; render(); scheduleBot(); });
 $('shoot').addEventListener('click', () => act('you', 'shoot'));
 $('spin').addEventListener('click', () => act('you', 'spin'));
 $('pass').addEventListener('click', () => act('you', 'pass'));
@@ -227,20 +236,11 @@ $('view-table').addEventListener('click', () => $('result-dialog').close());
 $('reopen-results').addEventListener('click', () => { if (game && ['rematch', 'expired'].includes(game.snapshot().phase) && !$('result-dialog').open) $('result-dialog').showModal(); });
 $('sound').addEventListener('click', () => {
   muted = !muted; $('sound').textContent = muted ? 'Sound off' : 'Sound on'; $('sound').setAttribute('aria-pressed', String(!muted));
-  if (muted) for (const clip of audio.values()) clip.pause();
+  tableAudio.mute(muted); if (!muted) tableAudio.unlock();
 });
 $('rules').addEventListener('click', () => $('rules-dialog').showModal());
 $('close-rules').addEventListener('click', () => $('rules-dialog').close());
 $('welcome').addEventListener('cancel', event => event.preventDefault());
-$('player-photo').addEventListener('change', () => {
-  const file = $('player-photo').files[0];
-  if (!file) return;
-  if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
-    $('player-photo').value = ''; alert('Choose a PNG, JPEG or WebP smaller than 5 MB.'); return;
-  }
-  if (uploadUrl) URL.revokeObjectURL(uploadUrl);
-  uploadUrl = URL.createObjectURL(file);
-});
 try { $('player-name').value = localStorage.getItem('tornKeyConfirmedName') || 'You'; } catch {}
 window.addEventListener('pagehide', () => { stopTimers(); resumeResults = true; });
 window.addEventListener('pageshow', event => {
@@ -258,4 +258,20 @@ mountSeats(game.snapshot()); render();
 $('turn-label').textContent = 'Take a seat'; $('turn-hint').textContent = 'One bullet. Six chambers. One shared pot.';
 $('roulette-four').dataset.phase = 'lobby';
 $('welcome').showModal();
+async function connectProfile() {
+  const join = $('join-form').querySelector('button'); join.disabled = true;
+  $('profile-status').textContent = 'Loading your Torn profile…';
+  const loaded = await loadProfile(); connectedProfile = loaded.profile || null;
+  if (connectedProfile) {
+    $('player-name').value = connectedProfile.name; $('player-name').readOnly = true;
+    $('profile-status').textContent = 'Connected to Torn · your profile picture and character are automatic.';
+    $('profile-preview').src = connectedProfile.avatar || asset('amber.svg'); $('profile-preview').hidden = false;
+  } else $('profile-status').textContent = loaded.message;
+  trace('profile-loaded', { status: loaded.status }); join.disabled = false;
+}
+document.addEventListener('error', event => {
+  if (event.target instanceof HTMLImageElement && !event.target.src.endsWith('/amber.svg') && (event.target.matches('.avatar,.tv-screen img,.ready-bubble img,#profile-preview'))) event.target.src = asset('amber.svg');
+}, true);
+document.addEventListener('visibilitychange', () => { if (document.hidden) tableAudio.stop(); });
+connectProfile();
 console.info(`${VERSION}: four-player bot practice ready`);
