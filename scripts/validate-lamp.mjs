@@ -197,7 +197,7 @@ for (const forbidden of ['audio.hammer()', 'audio.blank()', 'audio.gunshot()']) 
 }
 
 for (const required of [
-  '/assets/roulette/decor/lamp-1.png',
+  '/assets/roulette/decor/workshop-lamp-image2.png',
   'const phaseEpoch = Number(global.__rrLampPhaseEpoch) || Date.now()',
   'function phaseMilliseconds(durationSeconds)',
   'function ensureElementTimeline(element, stateKey, signature, frames, timing, phase)',
@@ -245,7 +245,7 @@ for (const path of [
 ]) await requireMissing(path);
 
 for (const path of [
-  'assets/roulette/decor/lamp-1.png',
+  'assets/roulette/decor/workshop-lamp-image2.png',
   'assets/roulette/decor/workshop-lamp-chain.png',
   'assets/roulette/audio/soundsforyou-the-ambience-room-tone-139064.mp3',
   'assets/roulette/audio/freesound_community-lamp-electricity-buzzingwav-14609.mp3',

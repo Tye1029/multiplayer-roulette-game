@@ -4,8 +4,8 @@
   const configApi = global.RouletteLampConfig;
   if (!configApi) throw new Error('lamp-config.js must load before lamp.js');
 
-  const lampAsset = '/assets/roulette/decor/lamp-1.png';
-  const styleAsset = '/assets/roulette/lamp.css?v=18';
+  const lampAsset = '/assets/roulette/decor/workshop-lamp-image2.png';
+  const styleAsset = '/assets/roulette/lamp.css?v=18&scene=2';
   const styleMarker = 'rrLampExternalStyles';
   const imageId = 'rrLampPng';
   const staleOverlayIds = [
@@ -25,7 +25,7 @@
       link.rel = 'stylesheet';
       doc.head.append(link);
     }
-    if (!link.href.includes('lamp.css?v=18')) link.href = styleAsset;
+    if (!link.href.includes('lamp.css?v=18&scene=2')) link.href = styleAsset;
     return link;
   }
 
@@ -49,7 +49,7 @@
       image.draggable = false;
       image.src = lampAsset;
       swing.append(image);
-    } else if (!image.src.includes('/lamp-1.png')) {
+    } else if (!image.src.includes('/workshop-lamp-image2.png')) {
       image.src = lampAsset;
     }
     return image;

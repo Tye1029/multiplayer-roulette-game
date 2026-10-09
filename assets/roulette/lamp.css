@@ -127,12 +127,12 @@
   opacity: 1 !important;
   position: absolute !important;
   left: calc(50% + var(--rr-lamp-art-x, -0.75%)) !important;
-  top: var(--rr-lamp-art-y, 90.5%) !important;
+  top: var(--rr-lamp-art-y, 50%) !important;
   width: var(--rr-lamp-width, 94%) !important;
   height: auto !important;
   max-width: none !important;
   object-fit: contain !important;
-  transform: translate(-50%, -50%) scale(var(--rr-lamp-scale, 1.1)) !important;
+  transform: translate(-50%, -50%) scale(var(--rr-lamp-scale, 1)) !important;
   transform-origin: 50% 0 !important;
   pointer-events: none !important;
   z-index: 6 !important;
@@ -202,7 +202,7 @@
 
 @media (min-width: 701px) {
   [data-roulette-game] .rr126-lamp-rig { height: 51% !important; }
-  [data-roulette-game] .rr126-swing { width: 31% !important; max-width: 230px !important; }
+  [data-roulette-game] .rr126-swing { width: 31% !important; max-width: 200px !important; }
 }
 
 @media (max-width: 700px), (hover: none) and (pointer: coarse) {

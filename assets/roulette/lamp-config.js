@@ -1,15 +1,15 @@
 (function (global) {
   'use strict';
 
-  const storageKey = 'rrLampCalibrationV9';
+  const storageKey = 'rrLampCalibrationV10';
   const legacyStorageKey = 'rrLampCalibration';
 
   const groups = [
     ['Lamp PNG', [
       ['lampArtX', 'PNG horizontal', [-0.75, -35, 35, 0.25]],
       ['lampWidth', 'PNG width', [94, 25, 100, 0.5]],
-      ['lampArtY', 'PNG vertical', [90.5, 55, 115, 0.25]],
-      ['lampScale', 'PNG scale', [1.1, 0.55, 1.8, 0.01]],
+      ['lampArtY', 'PNG vertical', [50, 0, 115, 0.25]],
+      ['lampScale', 'PNG scale', [1, 0.55, 1.8, 0.01]],
       ['lampGlow', 'PNG glow', [0.8, 0, 1.5, 0.01]]
     ]],
     ['Rig and chains', [

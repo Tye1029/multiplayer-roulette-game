@@ -383,7 +383,7 @@ function rouletteHtml(game){
       const shootLabel=press&&myTurn&&openingAlreadyCompleted?'SHOOT AGAIN':'SHOOT';
       const controls=complete?'<div class="rr-wait">DUEL COMPLETE</div>':`<div class="rr-controls ${press&&myTurn&&openingAlreadyCompleted?'rr-controls-three':'rr-controls-two'} ${controlsLocked?'rr-controls-disabled':''}">
         ${controlNote?`<div class="rr-control-note">${controlNote}</div>`:''}
-        <button class="rr-btn rr-spin" data-roulette-spin type="button" ${(controlsLocked||!st.canSpin||mySpinUsed)?'disabled':''}><b>SPIN ×${spinCount}</b><small>${spinCount?'AVAILABLE':'USED'}</small></button>
+        <button class="rr-btn rr-spin" data-roulette-spin type="button" ${(controlsLocked||!st.canSpin||mySpinUsed)?'disabled':''}><b>SPIN ×${spinCount}</b><small>${mySpinUsed?'USED':st.myFirstShotTaken?'AVAILABLE':'AFTER FIRST SHOT'}</small></button>
         <button class="rr-btn rr-shoot" data-roulette-shoot type="button" ${(controlsLocked||!st.canShoot)?'disabled':''}><b>${shootLabel}</b>${press&&myTurn&&openingAlreadyCompleted?'<small>KEEP YOUR TURN AND RISK IT</small>':''}</button>
         ${press&&myTurn&&openingAlreadyCompleted?`<button class="rr-btn rr-pass" data-roulette-pass type="button" ${(controlsLocked||!st.canPass)?'disabled':''}><b>PASS TO ${escapeHtml(String(opponent.name||'OPPONENT').toUpperCase())}</b><small>END YOUR TURN</small></button>`:''}
       </div>`;
@@ -408,7 +408,7 @@ function rouletteHtml(game){
       const runtimeOwnsAngle=rouletteVisualRuntime.gameId===rouletteGameId&&rouletteVisualRuntime.angleHydrated&&Number.isFinite(rouletteVisualRuntime.currentAngle);
       const neutralAngle=!openingAlreadyCompleted?-4:(runtimeOwnsAngle?rouletteVisualRuntime.currentAngle:rouletteTurnAngle(game,st));
       return `<div class="rr-game ${!hasOpponent?'rr-waiting-player ':''}${openingConcealed?'rr-opening-active ':''}${st.lastOutcome==='live'?'rr-fired':''}" data-roulette-opening="${openingConcealed?'1':'0'}" data-roulette-game data-game-id="${escapeHtml(String(game.gameId||''))}" data-revision="${Number(st.revision||0)}" data-status="${escapeHtml(String(game.status||''))}" data-turn-id="${escapeHtml(String(st.turnId||''))}" data-my-turn="${myTurn?'1':'0'}" data-phase="${escapeHtml(String(st.phase||''))}" data-controls-locked="${controlsLocked?'1':'0'}" data-opening-ready="${openingCanStart?'1':'0'}">
-        <div class="rr-backwall"></div><div class="rr-smoke"></div><div class="rr126-lamp-rig" aria-hidden="true"><div class="rr126-chain"></div><div class="rr126-swing"><div class="rr126-beam"></div><div class="rr126-room-glow"></div><img class="rr126-lamp-body" src="assets/roulette/decor/workshop-lamp-body.png" alt="" draggable="false"><div class="rr126-bulb-glow"></div></div></div><div class="rr-lamp"></div><div class="rr-rain"></div><div class="rr-turn-pulse"></div>
+        <div class="rr-backwall"></div><div class="rr-smoke"></div><div class="rr126-lamp-rig" aria-hidden="true"><div class="rr126-chain"></div><div class="rr126-swing"><div class="rr126-beam"></div><div class="rr126-room-glow"></div><div class="rr126-bulb-glow"></div></div></div><div class="rr-lamp"></div><div class="rr-rain"></div><div class="rr-turn-pulse"></div>
         <div class="rr-top"><div class="rr-player ${openingAlreadyCompleted&&String(st.turnId||'')===String(creator.userId||'')?'active':''}">${roulettePlayerAvatar(creator)}<b>${escapeHtml(creator.name||'Player 1')}</b><span>${rouletteSpinWasUsed(game,creator.userId)?'SPIN USED':'SPIN READY'}</span></div><div class="rr-pot"><span>Pot</span><b>${rouletteCompactPot(game.pot||game.wager||0)}</b><small>Tickets</small></div><div class="rr-player ${openingAlreadyCompleted&&String(st.turnId||'')===String(joiner.userId||'')?'active':''}">${roulettePlayerAvatar(joiner)}<b>${escapeHtml(joiner.name||'Waiting for Player')}</b><span>${!hasOpponent?'OPEN SEAT':(rouletteSpinWasUsed(game,joiner.userId)?'SPIN USED':'SPIN READY')}</span></div></div>
         <div class="rr-status"><strong>${status}</strong><small>${sub}</small></div>
         ${clientCountdownActive?`<div class="rr-scene-countdown" data-roulette-countdown><div class="duel-countdown-number cue">${escapeHtml(rouletteClientCountdownLabel()||'3')}</div></div>`:''}
@@ -436,7 +436,7 @@ function roulettePatchLiveDom(){return false}
 // SITE_FRAGMENT_START: rouletteBind_260543
 function rouletteBind(root=duelActive){
       const gameRoot=root?.querySelector('[data-roulette-game]');if(!gameRoot)return;
-      gameRoot.querySelector('[data-roulette-spin]')?.addEventListener('click',(event)=>{rouletteMarkSpinUsedLocally(rouletteLatestGame);roulettePatchMountedRuntime(rouletteLatestGame);rouletteAct('roulette:spin',event);});
+      gameRoot.querySelector('[data-roulette-spin]')?.addEventListener('click',(event)=>rouletteAct('roulette:spin',event));
       gameRoot.querySelector('[data-roulette-shoot]')?.addEventListener('click',(event)=>rouletteAct('roulette:shoot',event));
       gameRoot.querySelector('[data-roulette-pass]')?.addEventListener('click',(event)=>rouletteAct('roulette:pass',event));
       duelBindResultButtons(rouletteLatestGame);

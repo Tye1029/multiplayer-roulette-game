@@ -418,6 +418,7 @@
 
     try {
       await api.rotateToLockedTurn(game, transition.gameId, transition.turnId, 1020);
+      if (state.activeTransition?.token !== transition.token) return;
       const newest = currentGame();
       const newestTurnId = authoritativeTurnId(newest);
       if (
@@ -436,7 +437,7 @@
       recordDiagnostic('blocked', { reason: 'rotation-error', token: transition.token, message: String(error?.message || error) });
     } finally {
       if (state.activeTransition?.token === transition.token) state.activeTransition = null;
-      state.soundToken = '';
+      if (!state.activeTransition) state.soundToken = '';
     }
   }
 
@@ -460,13 +461,22 @@
       if (state.pendingTransition || state.activeTransition || lock.pendingTurnId) {
         cancelTransition(`status-${String(game.status || 'unknown')}`, game, turnId);
       }
-      snapFacing(game, turnId, 'non-playing-final-lock', !lockMatches(gameId, turnId, angleForTurn(game, turnId)));
+      if (game.status === 'complete') {
+        snapFacing(game, turnId, 'non-playing-final-lock', !lockMatches(gameId, turnId, angleForTurn(game, turnId)));
+        return;
+      }
+      if (openingIsActive(root, lock)) return;
+      const defaultTurnId = String(game?.creator?.userId || turnId);
+      snapFacing(game, defaultTurnId, 'pre-opening-default-left', !lockMatches(gameId, defaultTurnId, angleForTurn(game, defaultTurnId)));
       return;
     }
 
     if (openingIsActive(root, lock)) return;
 
     if (transition) {
+      if (state.activeTransition && state.activeTransition.turnId !== transition.turnId) {
+        cancelTransition('superseded-active-transition', game, turnId);
+      }
       if (state.pendingTransition && state.pendingTransition.token !== transition.token) {
         recordDiagnostic('cancelled', { reason: 'superseded-before-start', ...state.pendingTransition });
         state.cancelledRotations += 1;
@@ -477,6 +487,20 @@
 
     if (state.pendingTransition) {
       await runPendingTransition();
+      return;
+    }
+
+    if (state.activeTransition) {
+      const active = state.activeTransition;
+      if (active.gameId !== gameId || active.turnId !== turnId) {
+        cancelTransition('active-transition-no-longer-authoritative', game, turnId);
+        return;
+      }
+      // Pending facing is intentional while an approved rotation is running.
+      // Repeated polls and control rerenders must not cancel that animation.
+      api.enforceLockedFacing(gameId);
+      root.dataset.rouletteAuthoritativeTurnId = turnId;
+      root.dataset.rouletteAuthoritativeAngle = String(angleForTurn(game, turnId));
       return;
     }
 

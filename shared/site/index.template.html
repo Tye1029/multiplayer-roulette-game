@@ -6678,14 +6678,31 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
   <link rel="preload" as="image" href="/assets/mountain-race/images/summit-sprint-waiting-climbers-v55.png" fetchpriority="high">
   <link rel="preload" as="image" href="/assets/mountain-race/images/summit-sprint-celebration-climbers-v57.png" fetchpriority="high">
 </template>
+<template id="rouletteImagePreloads">
+  <link rel="preload" as="image" href="/assets/roulette/revolver-steel-walnut.png" fetchpriority="high">
+  <link rel="preload" as="image" href="/assets/roulette/revolver-steel-walnut-hammer.png" fetchpriority="high">
+  <link rel="preload" as="image" href="/assets/roulette/decor/workshop-lamp-image2.png" fetchpriority="high">
+  <link rel="preload" as="image" href="/assets/roulette/decor/workshop-lamp-chain.png">
+  <link rel="preload" as="image" href="/assets/roulette/decor/table-wood-texture.png" fetchpriority="high">
+  <link rel="preload" as="image" href="/assets/roulette/decor/one-round-one-life-poster.png">
+  <link rel="preload" as="image" href="/assets/roulette/decor/western-town-frame.png">
+  <link rel="preload" as="image" href="/assets/roulette/decor/wanted-poster.png">
+  <link rel="preload" as="image" href="/assets/roulette/decor/bull-skull-wall.png">
+  <link rel="preload" as="image" href="/assets/roulette/decor/dead-men-plaque.png">
+  <link rel="preload" as="image" href="/assets/roulette/decor/saloon-shelf-bottles.png">
+  <link rel="preload" as="image" href="/assets/roulette/decor/saloon-haze-wide.png">
+  <link rel="preload" as="image" href="/assets/roulette/decor/saloon-smoke-haze.png">
+  <link rel="preload" as="image" href="/assets/roulette/decor/chair-left.png">
+  <link rel="preload" as="image" href="/assets/roulette/decor/chair-right.png">
+</template>
 <script id="game-asset-loading-v1">
 (() => {
   const warmedImages = new Set();
   const requestedGames = new Set();
   function warm(mode) {
     if (typeof mode === 'string' && mode) requestedGames.add(mode);
-    if (mode === 'mountainrace' && !warmedImages.has(mode)) {
-      const template = document.getElementById('mountainRaceImagePreloads');
+    if (['mountainrace', 'roulette'].includes(mode) && !warmedImages.has(mode)) {
+      const template = document.getElementById(mode === 'roulette' ? 'rouletteImagePreloads' : 'mountainRaceImagePreloads');
       if (template) {
         document.head.appendChild(template.content.cloneNode(true));
         warmedImages.add(mode);

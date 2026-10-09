@@ -1,0 +1,18 @@
+/* Keep the full rotation sweep inside the physical tabletop. */
+html body [data-roulette-game] .rr-gun-motion {
+  width: min(68%, 310px) !important;
+  top: 52% !important;
+}
+
+html body [data-roulette-game] .rr-btn:disabled,
+html body [data-roulette-game] .rr-controls-disabled .rr-btn {
+  cursor: default !important;
+  opacity: .42 !important;
+  filter: grayscale(1) !important;
+}
+
+@media (max-width: 560px) {
+  html body [data-roulette-game] .rr-gun-motion {
+    width: min(68%, 245px) !important;
+  }
+}

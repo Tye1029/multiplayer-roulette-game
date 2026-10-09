@@ -6976,12 +6976,28 @@ function rouletteRemaining(state={}){
 function rouletteInitialState(game,startMs=Date.now()){
   const ids=roulettePlayerIds(game); const first=ids[Math.floor(Math.random()*Math.max(1,ids.length))]||ids[0]||"";
   const chamber=rouletteNewChamberCycle();
-  return {phase:"turn",turnId:first,openingSpinWinnerId:first,revolverModel:ROULETTE_REVOLVER_MODEL,...chamber,shotsFired:0,blankStreak:0,spinUsed:Object.fromEntries(ids.map(id=>[id,false])),lastAction:"opening_spin",lastActorId:"",lastOutcome:"first_player",lastShotNumber:0,winnerId:"",loserId:"",startedAt:new Date(startMs).toISOString(),revision:1};
+  return {phase:"turn",turnId:first,openingSpinWinnerId:first,revolverModel:ROULETTE_REVOLVER_MODEL,...chamber,shotsFired:0,shotsByPlayer:Object.fromEntries(ids.map(id=>[id,0])),blankStreak:0,spinUsed:Object.fromEntries(ids.map(id=>[id,false])),lastAction:"opening_spin",lastActorId:"",lastOutcome:"first_player",lastShotNumber:0,winnerId:"",loserId:"",startedAt:new Date(startMs).toISOString(),revision:1};
+}
+function rouletteHasShot(state,id){
+  if(state.shotsByPlayer)return Number(state.shotsByPlayer[cleanUserId(id)]||0)>0;
+  // Compatibility with matches started before per-player shot tracking.
+  return cleanUserId(state.lastActorId)===cleanUserId(id)&&Number(state.lastShotNumber||0)>0;
+}
+function rouletteRecordShot(state,id){
+  const playerId=cleanUserId(id);
+  const shots={...(state.shotsByPlayer||{})};
+  if(!state.shotsByPlayer&&state.lastActorId&&Number(state.lastShotNumber||0)>0)shots[cleanUserId(state.lastActorId)]=1;
+  shots[playerId]=Number(shots[playerId]||0)+1;
+  return shots;
+}
+function rouletteSpinAllowed(game,id){
+  const state=game?.rouletteState||{};
+  return game?.status==="playing"&&cleanUserId(state.turnId)===cleanUserId(id)&&["turn","press_luck"].includes(state.phase)&&rouletteHasShot(state,id)&&!Boolean(state.spinUsed?.[cleanUserId(id)]);
 }
 function roulettePublicState(game,viewer){
   const st=game?.rouletteState||null;if(!st)return null;
   const {bulletPosition:_hidden,remaining:_hiddenRemaining,chamberCycleId:_hiddenCycle,blankRoundsRemaining:_hiddenBlanks,processedActionIds:_hiddenActionIds,...safe}=st; const id=cleanUserId(viewer);
-  return {...safe,revolverModel:ROULETTE_REVOLVER_MODEL,chambersTotal:6,liveRounds:1,chamberModel:"fixed-six",isMyTurn:game?.status==="playing"&&cleanUserId(st.turnId)===id,canSpin:cleanUserId(st.turnId)===id&&!Boolean(st.spinUsed?.[id])&&st.phase==="turn",canShoot:cleanUserId(st.turnId)===id&&["turn","press_luck"].includes(st.phase),canPass:cleanUserId(st.turnId)===id&&st.phase==="press_luck",mySpinUsed:Boolean(st.spinUsed?.[id]),opponentSpinUsed:Boolean(st.spinUsed?.[rouletteOther(game,id)])};
+  return {...safe,revolverModel:ROULETTE_REVOLVER_MODEL,chambersTotal:6,liveRounds:1,chamberModel:"fixed-six",isMyTurn:game?.status==="playing"&&cleanUserId(st.turnId)===id,canSpin:rouletteSpinAllowed(game,id),myFirstShotTaken:rouletteHasShot(st,id),canShoot:cleanUserId(st.turnId)===id&&["turn","press_luck"].includes(st.phase),canPass:cleanUserId(st.turnId)===id&&st.phase==="press_luck",mySpinUsed:Boolean(st.spinUsed?.[id]),opponentSpinUsed:Boolean(st.spinUsed?.[rouletteOther(game,id)])};
 }
 function rouletteCanAct(game,viewer){const st=game?.rouletteState||{};return game.status==="playing"&&cleanUserId(st.turnId)===cleanUserId(viewer)&&["turn","press_luck"].includes(st.phase);}
 async function roulettePayComplete(game,winnerId,loserId){
@@ -7013,7 +7029,7 @@ async function rouletteAdvance(game){
   // Execute exactly one NPC decision, then require a fresh server-scheduled
   // delay before any additional action. The NPC only uses public state.
   let nextActionAt=null;
-  if(s.phase==="turn"&&!s.spinUsed?.[npcId]&&Number(s.remaining||6)<=3&&Math.random()<.7){
+  if(rouletteSpinAllowed({...g,rouletteState:s},npcId)&&Number(s.remaining||6)<=3&&Math.random()<.7){
     const chamber=rouletteNewChamberCycle();
     s={...s,revolverModel:ROULETTE_REVOLVER_MODEL,...chamber,blankStreak:0,spinUsed:{...(s.spinUsed||{}),[npcId]:true},lastAction:"spin",lastActorId:npcId,lastOutcome:"spun",revision:Number(s.revision||0)+1};
     nextActionAt=new Date(now+2400+Math.floor(Math.random()*1201)).toISOString();
@@ -7031,12 +7047,12 @@ async function rouletteAdvance(game){
   if(live){
     const winner=rouletteOther(g,npcId);
     if(!winner||winner===npcId) throw new Error("Russian Roulette could not identify the surviving opponent.");
-    s={...s,phase:"complete",lastAction:"shoot",lastActorId:npcId,lastOutcome:"live",lastShotNumber:Number(s.shotsFired||0)+1,shotsFired:Number(s.shotsFired||0)+1,winnerId:winner,loserId:npcId,revision:Number(s.revision||0)+1};
+    s={...s,phase:"complete",lastAction:"shoot",lastActorId:npcId,lastOutcome:"live",lastShotNumber:Number(s.shotsFired||0)+1,shotsFired:Number(s.shotsFired||0)+1,shotsByPlayer:rouletteRecordShot(s,npcId),winnerId:winner,loserId:npcId,revision:Number(s.revision||0)+1};
     g={...g,rouletteState:s,npcActionAt:null};
     return await roulettePayComplete(g,winner,npcId);
   }
   const nextRemaining=rouletteChamberPosition(remaining-1);
-  s={...s,revolverModel:ROULETTE_REVOLVER_MODEL,phase:"press_luck",remaining:nextRemaining,shotsFired:Number(s.shotsFired||0)+1,blankStreak:Number(s.blankStreak||0)+1,lastAction:"shoot",lastActorId:npcId,lastOutcome:"blank",lastShotNumber:Number(s.shotsFired||0)+1,revision:Number(s.revision||0)+1};
+  s={...s,revolverModel:ROULETTE_REVOLVER_MODEL,phase:"press_luck",remaining:nextRemaining,shotsFired:Number(s.shotsFired||0)+1,shotsByPlayer:rouletteRecordShot(s,npcId),blankStreak:Number(s.blankStreak||0)+1,lastAction:"shoot",lastActorId:npcId,lastOutcome:"blank",lastShotNumber:Number(s.shotsFired||0)+1,revision:Number(s.revision||0)+1};
   nextActionAt=new Date(now+2600+Math.floor(Math.random()*1401)).toISOString();
   return {...g,rouletteState:s,npcActionAt:nextActionAt};
 }
@@ -7081,16 +7097,17 @@ async function rouletteAction(user,gameId,choice,details={}){return await withRo
   }
   const markProcessed=state=>actionId?{...state,processedActionIds:[...processed,actionId].slice(-40)}:state;
   if(choice==="roulette:spin"){
-    if(s.phase!=="turn")throw new Error("You can only spin before your first shot of the turn.");if(s.spinUsed?.[id])throw new Error("You already used your spin.");
+    if(s.spinUsed?.[id])throw new Error("You already used your spin.");
+    if(!rouletteSpinAllowed({...g,rouletteState:s},id))throw new Error("Spin unlocks after your first shot, on your turn.");
     const chamber=rouletteNewChamberCycle();
     s={...s,revolverModel:ROULETTE_REVOLVER_MODEL,...chamber,blankStreak:0,spinUsed:{...(s.spinUsed||{}),[id]:true},lastAction:"spin",lastActorId:id,lastOutcome:"spun",revision:Number(s.revision||0)+1};
   }else if(choice==="roulette:shoot"){
     if(!["turn","press_luck"].includes(s.phase))throw new Error("You cannot pull the trigger right now.");
     const remaining=rouletteRemaining(s);
     const live=remaining===1;
-    if(live){const winner=rouletteOther(g,id);if(!winner||winner===id)throw new Error("Russian Roulette could not identify the surviving opponent.");s={...s,phase:"complete",lastAction:"shoot",lastActorId:id,lastOutcome:"live",lastShotNumber:Number(s.shotsFired||0)+1,shotsFired:Number(s.shotsFired||0)+1,winnerId:winner,loserId:id,revision:Number(s.revision||0)+1};s=markProcessed(s);g=await duelSaveGame({...g,rouletteState:s});g=await duelSaveGame(await roulettePayComplete(g,winner,id));return {game:duelPublicGame(g,id),record:await getUserRecord(id)};}
+    if(live){const winner=rouletteOther(g,id);if(!winner||winner===id)throw new Error("Russian Roulette could not identify the surviving opponent.");s={...s,phase:"complete",lastAction:"shoot",lastActorId:id,lastOutcome:"live",lastShotNumber:Number(s.shotsFired||0)+1,shotsFired:Number(s.shotsFired||0)+1,shotsByPlayer:rouletteRecordShot(s,id),winnerId:winner,loserId:id,revision:Number(s.revision||0)+1};s=markProcessed(s);g=await duelSaveGame({...g,rouletteState:s});g=await duelSaveGame(await roulettePayComplete(g,winner,id));return {game:duelPublicGame(g,id),record:await getUserRecord(id)};}
     const nextRemaining=rouletteChamberPosition(remaining-1);
-    s={...s,revolverModel:ROULETTE_REVOLVER_MODEL,phase:"press_luck",remaining:nextRemaining,shotsFired:Number(s.shotsFired||0)+1,blankStreak:Number(s.blankStreak||0)+1,lastAction:"shoot",lastActorId:id,lastOutcome:"blank",lastShotNumber:Number(s.shotsFired||0)+1,revision:Number(s.revision||0)+1};
+    s={...s,revolverModel:ROULETTE_REVOLVER_MODEL,phase:"press_luck",remaining:nextRemaining,shotsFired:Number(s.shotsFired||0)+1,shotsByPlayer:rouletteRecordShot(s,id),blankStreak:Number(s.blankStreak||0)+1,lastAction:"shoot",lastActorId:id,lastOutcome:"blank",lastShotNumber:Number(s.shotsFired||0)+1,revision:Number(s.revision||0)+1};
   }else if(choice==="roulette:pass"){
     if(s.phase!=="press_luck")throw new Error("You can only pass after surviving a blank.");
     const nextTurnId=rouletteOther(g,id);

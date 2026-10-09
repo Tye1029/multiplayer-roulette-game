@@ -9,5 +9,7 @@ Authoritative six-chamber Russian Roulette rules
 - Passing the turn never rerolls or replaces the chamber cycle.
 - Only an accepted Spin action creates a new random 1-through-6 chamber cycle.
 - Spin remains limited to one accepted use per player per game.
+- Each player unlocks Spin after taking their own first shot. It is available on their subsequent turns and immediately after a surviving shot, until used.
+- Opponent shots do not unlock a player's Spin. The server persists shotsByPlayer across passes and rejects early or repeated spins.
 - Hidden chamber fields are never returned to either player.
 - Independent random games may legitimately repeat the same position, including position 1.
