@@ -111,6 +111,8 @@ function roulettePatchMountedRuntime(game){
       if(oldProps&&freshProps)freshProps.replaceWith(oldProps);
       const oldTable=oldRoot.querySelector('.rr-table'),freshTable=freshRoot.querySelector('.rr-table');
       if(oldTable&&freshTable)freshTable.replaceWith(oldTable);
+      const oldShotLight=oldRoot.querySelector('.rr-muzzle-room-light'),freshShotLight=freshRoot.querySelector('.rr-muzzle-room-light');
+      if(oldShotLight&&freshShotLight)freshShotLight.replaceWith(oldShotLight);
       oldRoot.replaceWith(freshRoot);rouletteBind(duelActive);
       rouletteVisualRuntime.mountedRevision=incomingRevision;
       rouletteVisualRuntime.mountedStatus=incomingStatus;
@@ -423,7 +425,7 @@ function rouletteHtml(game){
         <div class="rr-status"><strong>${status}</strong><small>${sub}</small></div>
         ${clientCountdownActive?`<div class="rr-scene-countdown" data-roulette-countdown><div class="duel-countdown-number cue">${escapeHtml(rouletteClientCountdownLabel()||'3')}</div></div>`:''}
         ${openingCanStart&&openingConcealed?'<div class="rr-opening-banner">Choosing First Player</div>':''}
-        <div class="rr-room-shade" aria-hidden="true"></div><div class="rr-muzzle-room-light" aria-hidden="true"></div><div class="rr-table"><div class="rr-table-pedestal" aria-hidden="true"><i></i><i></i></div><img class="rr-table-art" src="/assets/roulette/decor/oval-table-v2.png" alt="" draggable="false"><div class="rr130-table-illumination" aria-hidden="true"><img src="/assets/roulette/decor/oval-table-v2.png" alt="" draggable="false"></div><div class="rr-table-shadow"></div>
+        <div class="rr-room-shade" aria-hidden="true"></div><div class="rr-muzzle-room-light" aria-hidden="true"></div><div class="rr-table"><img class="rr-table-pedestal" src="/assets/roulette/decor/oval-table-support-v3.webp" alt="" draggable="false"><img class="rr-table-art" src="/assets/roulette/decor/oval-table-v2.png" alt="" draggable="false"><div class="rr130-table-illumination" aria-hidden="true"><img src="/assets/roulette/decor/oval-table-v2.png" alt="" draggable="false"></div><div class="rr-table-shadow"></div>
         <div class="rr-gun-motion" data-roulette-motion style="visibility:hidden;transform:${rouletteMotionTransform(neutralAngle)}">
           <div class="rr-turn-facing" data-roulette-facing="1" style="transform:rotate(${neutralAngle}deg)"><div class="rr-gun-recoil" data-roulette-recoil="1">
           <div class="rr-revolver rr-photo-revolver" aria-label="Long-barrel side-view revolver" data-revolver-model="${escapeHtml(revolverModel)}">

@@ -44,10 +44,10 @@ for (const required of [
 ]) if (!safeCracker.includes(required)) throw new Error(`Safe Cracker runtime is missing ${required}`);
 
 const protectedHashes = new Map([
-  // User-authorized arsenal update: decoded reveal and laser firing effects.
+  // User-authorized energy update: preserve live flash through room remounts.
   // Keep the opening/facing ownership and pin both LF and CRLF contents.
   ['assets/roulette/turn-animation.js', new Set(['c4af45a224a072a17bcd02b9c99ed03af868a2e5', 'e6064f455e14bde374216c07d6a1fcb57e6de1bd'])],
-  ['assets/roulette/turn-fire.js', new Set(['1f882db4341bc8187046cdab55031432f8eb7acd', '5204f7fc19444999af7b4098c28896dc57528762'])]
+  ['assets/roulette/turn-fire.js', new Set(['83478f0635f623618b39ebc474179549cd7a95bf', 'd5975ae1703b2a040ef7932779d51dcfba16b309'])]
 ]);
 for (const [path, expected] of protectedHashes) {
   const actual = gitBlobHash(await read(path));
@@ -60,6 +60,7 @@ await import('./validate-roulette-repair.mjs');
 await import('./validate-roulette-scene.mjs');
 await import('./validate-roulette-motion.mjs');
 await import('./validate-roulette-frontier.mjs');
+await import('./validate-roulette-energy.mjs');
 await import('./validate-duel-native-blobs.mjs');
 await import('./validate-idle-debug-rendering.mjs');
 console.log('Protected Roulette, Safe Cracker, and shared multiplayer current baseline validated.');

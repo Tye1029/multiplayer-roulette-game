@@ -88,20 +88,20 @@ const criticalStyle = `  <link id="rrLampExternalStyles" rel="stylesheet" href="
 const block = `${startMarker}\n` +
   `${criticalStyle}\n` +
   '  <script src="/assets/roulette/lamp-config.js?v=19&scene=rustic-v2&warm=4" defer></script>\n' +
-  '  <script src="/assets/roulette/lamp.js?v=20&scene=rustic-v2&warm=4&arsenal=5" defer></script>\n' +
+  '  <script src="/assets/roulette/lamp.js?v=20&scene=rustic-v2&warm=4&arsenal=5&energy=6" defer></script>\n' +
   '  <script src="/assets/roulette/lamp-bootstrap.js?v=19&scene=rustic-v2" defer></script>\n' +
-  '  <link rel="stylesheet" href="/assets/roulette/scene.css?v=arsenal-v5">\n' +
-  '  <script src="/assets/roulette/audio-manager.js?v=4&ambience=2&media=2&countdown=2&load=15&smooth=4&arsenal=5" defer></script>\n' +
+  '  <link rel="stylesheet" href="/assets/roulette/scene.css?v=energy-v6">\n' +
+  '  <script src="/assets/roulette/audio-manager.js?v=4&ambience=2&media=2&countdown=2&load=15&smooth=4&arsenal=5&energy=6" defer></script>\n' +
   '  <!-- compatibility: /assets/roulette/spin-audio-policy.js?v=3 -->\n' +
   '  <script src="/assets/roulette/spin-audio-policy.js?v=4&turnsound=4&reliable=1&smooth=4" defer></script>\n' +
-  '  <script src="/assets/roulette/arsenal.js?v=4&arsenal=5" defer></script>\n  <script src="/assets/roulette/turn-clock.js?v=4" defer></script>\n  <script src="/assets/roulette/motion-profile.js?v=3" defer></script>\n' +
-  '  <script src="/assets/roulette/turn-animation.js?v=5&smooth=4&arsenal=5" defer></script>\n' +
-  '  <script src="/assets/roulette/turn-fire.js?v=2&owner=3&arsenal=5" defer></script>\n' +
+  '  <script src="/assets/roulette/arsenal.js?v=4&arsenal=5&energy=6" defer></script>\n  <script src="/assets/roulette/turn-clock.js?v=4" defer></script>\n  <script src="/assets/roulette/motion-profile.js?v=3" defer></script>\n' +
+  '  <script src="/assets/roulette/turn-animation.js?v=5&smooth=4&arsenal=5&energy=6" defer></script>\n' +
+  '  <script src="/assets/roulette/turn-fire.js?v=2&owner=3&arsenal=5&energy=6" defer></script>\n' +
   '  <!-- compatibility: /assets/roulette/turn-facing-guard.js?v=1 -->\n' +
   '  <script src="/assets/roulette/turn-facing-guard.js?v=4&lock=5&owner=3&opening=1&sound=1&repair=1&smooth=4" defer></script>\n' +
   '  <script src="/assets/roulette/opening-spin-sync.js?v=6&trim=1&clamp=1&smooth=4" defer></script>\n' +
-  '  <!-- compatibility: /assets/roulette/audio-bindings.js?v=5&arsenal=5 -->\n' +
-  '  <script src="/assets/roulette/audio-bindings.js?v=6&turnmove=1&load=15&smooth=4&arsenal=5" defer></script>\n' +
+  '  <!-- compatibility: /assets/roulette/audio-bindings.js?v=5&arsenal=5&energy=6 -->\n' +
+  '  <script src="/assets/roulette/audio-bindings.js?v=6&turnmove=1&load=15&smooth=4&arsenal=5&energy=6" defer></script>\n' +
   '  <script src="/assets/roulette/reaction-audio.js?v=1&load=15" defer></script>\n' +
   `${endMarker}`;
 

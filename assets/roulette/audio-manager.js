@@ -548,6 +548,7 @@
 
   function setEnabled(value) {
     enabled = Boolean(value);
+    refreshLaserVolume();
     if (!enabled) {
       clearRoomDetail();
       for (const name of [...loops.keys()]) stopLoop(name, 250);
@@ -559,6 +560,7 @@
 
   function setMasterVolume(value) {
     master = Math.max(0, Math.min(1, Number(value) || 0));
+    refreshLaserVolume();
     for (const [name, audio] of loops) fade(audio, loopTarget(name), 300);
   }
 
@@ -707,22 +709,75 @@
   }
 
 
+  const laserBuffers = new Map(), laserOutputs = new Set();
+  function refreshLaserVolume() {
+    for (const output of laserOutputs) output.gain.value = enabled ? master * .72 : 0;
+  }
+  // Cached, layered PCM: coil resonance, electrical arc, relay transient and
+  // short room reflections. No downloads or sample generation on every frame.
+  function laserBuffer(context, cue) {
+    if (laserBuffers.has(cue)) return laserBuffers.get(cue);
+    const duration={fire:.82,error:1,charge:1.5,cycle:.9}[cue];
+    const rate=context.sampleRate, count=Math.ceil(rate*duration);
+    const buffer=context.createBuffer(1,count,rate),wave=buffer.getChannelData(0);
+    let seed=1977,low=0,phase=0,mod=0;
+    const tau=Math.PI*2;
+    for(let i=0;i<count;i++){
+      const t=i/rate,p=t/duration;
+      seed=(Math.imul(seed,1664525)+1013904223)>>>0;
+      const noise=seed/2147483648-1;low+=.075*(noise-low);
+      const hiss=noise-low;
+      let sample=0;
+      if(cue==='fire'){
+        const freq=95+1900*Math.exp(-t*22);
+        phase+=tau*freq/rate;mod+=tau*(freq*1.47)/rate;
+        const arc=Math.sin(phase+3*Math.exp(-t*12)*Math.sin(mod));
+        sample=.48*arc*Math.exp(-t*11)+.28*hiss*Math.exp(-t*48)
+          +.36*Math.sin(tau*(53*t+1.8*(1-Math.exp(-t*25))))*Math.exp(-t*12)
+          +.16*low*Math.exp(-t*4);
+      }else if(cue==='error'){
+        // A relay engages, power stutters twice, then the coil winds down.
+        const pulse=Math.exp(-t*22)+.7*Math.exp(-Math.max(0,t-.43)*26)*(t>=.43);
+        phase+=tau*(78+360*Math.exp(-t*6))/rate;mod+=tau*631/rate;
+        sample=.35*Math.sin(phase+1.4*Math.sin(mod))*pulse
+          +.38*hiss*(Math.exp(-t*110)+.55*Math.exp(-Math.max(0,t-.43)*90)*(t>=.43))
+          +.2*low*Math.sin(tau*29*t)**2*Math.exp(-t*4);
+      }else{
+        // Accelerating capacitor/transformer whine under a rising air texture.
+        const rise=Math.min(1,p/.84),tail=Math.max(0,1-(p-.84)/.16);
+        const freq=70+920*rise*rise;phase+=tau*freq/rate;mod+=tau*(freq*2.013)/rate;
+        const envelope=Math.min(1,t*18)*tail;
+        sample=envelope*((.1+.13*rise)*Math.sin(phase+.6*Math.sin(mod))
+          +.12*Math.sin(phase*.499)*(.6+.4*Math.sin(tau*(7*t+8*t*t)))
+          +(.12+.16*rise)*low+.035*hiss*rise);
+        if(p>.84)sample+=.11*Math.sin(tau*1420*t)*Math.exp(-(p-.84)*32);
+      }
+      const edge=Math.min(1,t/.002,(duration-t)/.015);
+      wave[i]=Math.tanh(sample*1.5)*edge;
+    }
+    // Sparse early reflections give a physical room without a long muddy tail.
+    const dry=wave.slice();
+    for(const [delay,level] of [[.023,.16],[.047,.11],[.079,.065]]){
+      const offset=Math.round(delay*rate);
+      for(let i=offset;i<count;i++)wave[i]+=dry[i-offset]*level*Math.min(1,(count-i)/(rate*.03));
+    }
+    let peak=0;for(const value of wave)peak=Math.max(peak,Math.abs(value));
+    if(peak>.88)for(let i=0;i<count;i++)wave[i]*=.88/peak;
+    laserBuffers.set(cue,buffer);return buffer;
+  }
   function laserCue(cue) {
     if (!enabled || master<=0 || document.hidden || !unlocked) return false;
+    if(!['fire','error','charge','cycle'].includes(cue))return false;
     const context=countdownSynthAudioContext();if(!context)return false;
     try {
       context.resume?.().catch(()=>{});
-      const now=context.currentTime+.008,output=context.createGain();
-      output.gain.setValueAtTime(Math.min(1,master)*.7,now);output.connect(context.destination);
-      const tone=(delay,duration,frequency,endFrequency,level,type='sine')=>countdownSynthTone(context,output,{start:now+delay,duration,frequency,endFrequency,level,type,attack:.006});
-      if(cue==='fire'){
-        duckForShot();tone(0,.34,1900,90,.16,'sawtooth');tone(.01,.26,3200,180,.07);tone(.025,.42,140,45,.15);
-      }else if(cue==='error'){
-        tone(0,.12,330,260,.11,'square');tone(.17,.18,220,145,.09,'triangle');
-      }else{
-        tone(0,.42,180,900,.06,'triangle');tone(.45,.18,1100,1400,.035);
-      }
-      global.setTimeout(()=>{try{output.disconnect();}catch{}},950);
+      const source=context.createBufferSource(),output=context.createGain();
+      source.buffer=laserBuffer(context,cue);
+      laserOutputs.add(output);refreshLaserVolume();
+      source.connect(output);output.connect(context.destination);
+      if(cue==='fire')duckForShot();
+      source.onended=()=>{source.disconnect();output.disconnect();laserOutputs.delete(output);};
+      source.start(context.currentTime+.008);
       return true;
     }catch{return false;}
   }

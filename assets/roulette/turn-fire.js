@@ -56,20 +56,23 @@
     }
 
     const live = state?.lastOutcome === 'live';
-    if (laser) layers.root._rrLaserMotion = window.RouletteArsenal?.laserFeedback(layers.root,live);
+    const effectRoot = layers.recoil.closest('[data-roulette-game]') || layers.root;
+    if (laser) layers.root._rrLaserMotion = window.RouletteArsenal?.laserFeedback(effectRoot,live);
     if (live) {
       rouletteGunshotSound();
-      const roomLight=layers.root.querySelector('.rr-muzzle-room-light');
-      const muzzle=layers.root.querySelector('.rr-muzzle-point');
+      const roomLight=effectRoot.querySelector('.rr-muzzle-room-light');
+      const muzzle=effectRoot.querySelector('.rr-muzzle-point');
       if(roomLight&&muzzle){
         const started=performance.now();
         const illuminate=now=>{
-          const age=(now-started)/190;
-          if(age>=1||!layers.root.isConnected){roomLight.style.opacity='0';return;}
-          const room=layers.root.getBoundingClientRect(),tip=muzzle.getBoundingClientRect();
+          const age=(now-started)/(laser?360:190);
+          // Polling replaces the outer root while retaining the table and flash.
+          const activeRoot=muzzle.closest('[data-roulette-game]');
+          if(age>=1||!activeRoot?.isConnected){roomLight.style.opacity='0';return;}
+          const room=activeRoot.getBoundingClientRect(),tip=muzzle.getBoundingClientRect();
           roomLight.style.setProperty('--rr-shot-x',(tip.left-room.left)+'px');
           roomLight.style.setProperty('--rr-shot-y',(tip.top-room.top)+'px');
-          roomLight.style.opacity=String(.34*Math.pow(1-Math.max(0,age),2));
+          roomLight.style.opacity=String(laser?.85*Math.pow(1-Math.max(0,age),1.25):.34*Math.pow(1-Math.max(0,age),2));
           requestAnimationFrame(illuminate);
         };
         requestAnimationFrame(illuminate);

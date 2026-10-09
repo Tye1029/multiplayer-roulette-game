@@ -80,6 +80,11 @@ const instrumentation = String.raw`
 const proof={gameId:'',assetBase:document.body.dataset.assetBase,events:[],transforms:[],clippedFrames:0,lampOverlaps:0,
   lightSamples:[],lightVariables:[],seatSamples:[],seatAnimations:[],seatRemounts:[],fallStats:{},wrongSideFallFrames:0,errors:[],polls:0};
 const nodeIds=new WeakMap();let nextNodeId=1;const nodeId=node=>{if(!node)return null;if(!nodeIds.has(node))nodeIds.set(node,nextNodeId++);return nodeIds.get(node);};
+const nativeBufferStart=AudioBufferSourceNode.prototype.start;
+AudioBufferSourceNode.prototype.start=function(...args){
+  (proof.energySounds||(proof.energySounds=[])).push({duration:this.buffer?.duration,at:performance.now()});
+  return nativeBufferStart.apply(this,args);
+};
 const seatNodes=new Map();
 const motionRuns=new Map();let priorFrame=0;
 function sampleMotion(now){
@@ -105,7 +110,7 @@ function sampleMotion(now){
   const partRuns=proof.partRuns||(proof.partRuns=[]);
   for(const part of root?.querySelectorAll('.rr-hammer-photo,.rr-charge,.rr-charge i,.rr-shot-flash')||[]){for(const animation of part.getAnimations()){if(animation.playState==='running'&&!partRuns.some(r=>r.id===nodeId(animation)))partRuns.push({id:nodeId(animation),part:part.className,finish:root.querySelector('.rr-revolver')?.dataset.finish,duration:animation.effect.getTiming().duration,background:getComputedStyle(part).backgroundImage,frames:animation.effect.getKeyframes().map(f=>({offset:f.offset,transform:f.transform,opacity:f.opacity}))});}}
   const roomLight=root?.querySelector('.rr-muzzle-room-light');
-  if(roomLight&&Number(roomLight.style.opacity)>0){const room=root.getBoundingClientRect(),tip=root.querySelector('.rr-muzzle-point').getBoundingClientRect();const x=parseFloat(roomLight.style.getPropertyValue('--rr-shot-x')),y=parseFloat(roomLight.style.getPropertyValue('--rr-shot-y'));const shots=proof.shotLights||(proof.shotLights=[]);shots.push({finish:root.querySelector('.rr-revolver')?.dataset.finish,opacity:Number(roomLight.style.opacity),distance:Math.hypot(x-(tip.left-room.left),y-(tip.top-room.top))});}
+  if(roomLight&&Number(roomLight.style.opacity)>0){const room=root.getBoundingClientRect(),tip=root.querySelector('.rr-muzzle-point').getBoundingClientRect();const x=parseFloat(roomLight.style.getPropertyValue('--rr-shot-x')),y=parseFloat(roomLight.style.getPropertyValue('--rr-shot-y'));const shots=proof.shotLights||(proof.shotLights=[]);shots.push({at:now,root:nodeId(root),light:nodeId(roomLight),color:getComputedStyle(roomLight).backgroundImage,finish:root.querySelector('.rr-revolver')?.dataset.finish,opacity:Number(roomLight.style.opacity),distance:Math.hypot(x-(tip.left-room.left),y-(tip.top-room.top))});}
   priorFrame=now;requestAnimationFrame(sampleMotion);
 }
 requestAnimationFrame(sampleMotion);

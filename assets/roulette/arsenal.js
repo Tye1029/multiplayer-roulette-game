@@ -33,7 +33,10 @@
     gun.dataset.chargeGame=root.dataset.gameId;
     const fill=bar.firstElementChild,empty=root.dataset.status==='complete';
     fill.style.transform=empty?'scaleX(0)':'scaleX(1)';
-    if(!empty)rouletteAnimate(fill,[{transform:'scaleX(0)'},{transform:'scaleX(1)'}],{duration:1500,easing:'cubic-bezier(.2,.7,.2,1)'});
+    if(!empty){
+      global.RouletteAudio?.laserCue?.('charge');
+      rouletteAnimate(fill,[{transform:'scaleX(0)'},{transform:'scaleX(1)'}],{duration:1500,easing:'cubic-bezier(.2,.7,.2,1)'});
+    }
   }
   async function laserFeedback(root,live){
     const bar=root.querySelector('.rr-charge'),fill=bar?.firstElementChild;
@@ -41,7 +44,14 @@
     if(!fill)return;
     fill.getAnimations?.().forEach(a=>a.cancel());
     if(live){fill.style.transform='scaleX(0)';await rouletteAnimate(fill,[{transform:'scaleX(1)'},{transform:'scaleX(0)'}],{duration:180,easing:'ease-out'});}
-    else await rouletteAnimate(bar,[{filter:'brightness(1)'},{filter:'brightness(.15)',offset:.25},{filter:'brightness(1)',offset:.45},{filter:'brightness(.15)',offset:.65},{filter:'brightness(1)'}],{duration:380});
+    else await rouletteAnimate(bar,[
+      {filter:'brightness(1)',boxShadow:'0 0 0 #ff123800'},
+      {filter:'brightness(3)',boxShadow:'0 0 12px 5px #ff1238dd',offset:.08},
+      {filter:'brightness(.12)',boxShadow:'0 0 0 #ff123800',offset:.3},
+      {filter:'brightness(2.5)',boxShadow:'0 0 10px 4px #ff1238cc',offset:.48},
+      {filter:'brightness(.2)',boxShadow:'0 0 0 #ff123800',offset:.72},
+      {filter:'brightness(1)',boxShadow:'0 0 0 #ff123800'}
+    ],{duration:1000,easing:'ease-in-out'});
   }
   async function choose(root,id){
     const choice=choices.find(c=>c.id===id);if(!choice)return;

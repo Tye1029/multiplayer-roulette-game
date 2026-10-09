@@ -79,21 +79,31 @@ for(let y=0;y<=1;y+=.01){assert(Math.abs(ui.RouletteArsenal.cylinderRow(y,Math.P
 assert.equal(new Set(ui.RouletteArsenal.choices.map(c=>ui.RouletteArsenal.asset(c))).size,7,'Each finish needs its own art');
 const cues=[],fill={style:{},getAnimations:()=>[]},bar={firstElementChild:fill};ui.RouletteAudio={laserCue:cue=>cues.push(cue)};
 await ui.RouletteArsenal.laserFeedback({querySelector:()=>bar},false);assert.equal(fill.style.transform,undefined,'A malfunction must not spend the charge');
+assert.equal(rolls.at(-1).options.duration,1000,'Blank indicator should visibly blink for a second');
 await ui.RouletteArsenal.laserFeedback({querySelector:()=>bar},true);assert.equal(fill.style.transform,'scaleX(0)');assert.deepEqual(cues,['error','fire']);
 const audio=await readFile(new URL('../assets/roulette/audio-manager.js',import.meta.url),'utf8');
 const synth=audio.slice(audio.indexOf('  let countdownSynthContext'),audio.indexOf('  function diagnostics()'));
 const tones=[];let clicks=0;
 const param={setValueAtTime(){},exponentialRampToValueAtTime(){}};
 const node=()=>({connect(){},disconnect(){},start(){},stop(){},gain:param,frequency:param,Q:param});
-class Context {state='running';currentTime=0;sampleRate=44100;destination={};createGain(){return node();}createOscillator(){const n=node();n.frequency={...param,setValueAtTime:f=>tones.push(f)};return n;}createBuffer(_channels,n){return {getChannelData:()=>new Float32Array(n)};}createBufferSource(){clicks++;return node();}createBiquadFilter(){return node();}}
+class Context {state='running';currentTime=0;sampleRate=44100;destination={};createGain(){return node();}createOscillator(){const n=node();n.frequency={...param,setValueAtTime:f=>tones.push(f)};return n;}createBuffer(_channels,n){const samples=new Float32Array(n);return {getChannelData:()=>samples};}createBufferSource(){clicks++;return node();}createBiquadFilter(){return node();}}
 const sound=vm.createContext({global:{AudioContext:Context,setTimeout:()=>{}},enabled:true,unlocked:true,master:1,document:{hidden:false}});
 vm.runInContext(synth,sound);for(const label of ['3','2','1','GO!'])assert.equal(sound.countdownCue(label),true);
 assert.equal(clicks,4);assert(tones.includes(174.61)&&tones.includes(207.65)&&tones.includes(246.94)&&tones.includes(880));
 sound.master=0;assert.equal(sound.countdownCue('3'),true);assert.equal(clicks,4,'Muted countdown must not play or fall back to another sound');
 sound.master=1;sound.duckForShot=()=>{};
-assert.equal(sound.laserCue('fire'),true);assert(tones.includes(1900)&&tones.includes(3200));
-assert.equal(sound.laserCue('error'),true);assert(tones.includes(330)&&tones.includes(220));
-const audibleTones=tones.length;sound.master=0;assert.equal(sound.laserCue('fire'),false);assert.equal(tones.length,audibleTones,'Laser audio must respect mute');
+for(const [cue,duration] of [['fire',.82],['error',1],['charge',1.5],['cycle',.9]]){
+  assert.equal(sound.laserCue(cue),true);
+  const buffer=sound.laserBuffer(new Context(),cue),samples=buffer.getChannelData(0);
+  assert.equal(samples.length,Math.ceil(duration*44100));
+  assert.equal(sound.laserBuffer(new Context(),cue),buffer,'Reuse cached audio buffers');
+  let energy=0,peak=0;for(const sample of samples){assert(Number.isFinite(sample));energy+=sample*sample;peak=Math.max(peak,Math.abs(sample));}
+  assert(peak<=.881&&peak>.2,'Energy samples must be audible without clipping');
+  assert(energy/samples.length>.001,'Energy sample must not be empty');
+  assert(Math.abs(samples[0])<.001&&Math.abs(samples.at(-1))<.001,'Clip edges must avoid clicks');
+}
+const audibleBuffers=clicks;sound.master=0;assert.equal(sound.laserCue('fire'),false);assert.equal(clicks,audibleBuffers,'Laser audio must respect mute');
+sound.master=1;sound.unlocked=false;assert.equal(sound.laserCue('charge'),false);assert.equal(clicks,audibleBuffers,'Charging must respect the gesture gate');
 // Mounting during the post-spin announcement must preserve the chosen angle.
 const motion=await readFile(new URL('../assets/roulette/turn-animation.js',import.meta.url),'utf8');
 const mount=motion.slice(motion.indexOf('  function mountCurrentScene()'),motion.indexOf('  installStyles();'));
