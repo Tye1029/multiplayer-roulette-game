@@ -1,5 +1,5 @@
 {
-  "release": "20260906-lobby20",
+  "release": "20261009-start21",
   "sourcePreview": "https://deploy-preview-19--famous-piroshki-b621da.netlify.app/",
   "sourceDeploy": "6a70b46ca5416100089b828b",
   "sourceBranch": "safe-cracker-development",
@@ -28,8 +28,8 @@
     "assets/safe-cracker/audio-data/safe-unlock.b64": "aea99693d78b8fab937b9e07098f0f0cb65afdc4e70b5caba13db8166d513bf1",
     "assets/safe-cracker/audio-data/submit-latch.b64": "f946badd32b429169b00b2a1e0956aab235e224ce142bb56080aa437306cadd2",
     "assets/safe-cracker/audio-data/tumbler-lock.b64": "ab70c5fe2cc2a0b8466871418bb2f0af6274b52ba1659c5c3d4fa723aa403754",
-    "assets/safe-cracker/safe-cracker.css": "1549d94f87933a8a904be8f4bcfbef1c66a2b84ba5db815d0a3d23aaf287014f",
-    "assets/safe-cracker/safe-cracker.js": "687cddd9835feec8b9518c8a16a84ec669fc4c76fdfabc03ee73a639bc70d997",
+    "assets/safe-cracker/safe-cracker.css": "af84a52afc517fc164fd0b66226f2aa2cb676667f955a1ac954442805e0236ce",
+    "assets/safe-cracker/safe-cracker.js": "d5bc553837fa569b97cbc63ed5be338d249748a1182df6895a7289a2945e73b2",
     "assets/safe-cracker/textures/dial-machined.svg": "e4f73a99dccca8a9bdcb79ac8fb93d3b93c26a843c01bf6ffd65cd2e081fa361",
     "assets/safe-cracker/textures/dial-reference-face-v7.svg": "4ac122e6319ef8ae3b604f64726994af47d9a7815f58c2898f8143dd3fa339c0",
     "assets/safe-cracker/textures/metal-wear.svg": "ca22e39bd6a2d21ef5c6634a035f024e016ecbc7c908caab9ea1597bb28a1824",
@@ -50,6 +50,8 @@
     "Restore warm interior light and reflected glow, use a controlled hinge perspective, and allow a 500ms open-safe hold before the win report. Validate result timing, polling continuity, and reduced motion.",
     "Open the safe outward with a weighted 1500ms swing, visible 3D steel edge planes, and localized golden cavity light reflected onto the door rim, thickness and frame.",
     "Restore the earlier restrained 15-degree outward opening and its detent-like timing, retaining the new steel texture, physical door thickness and localized golden lighting.",
-    "Brighten the golden cavity and reflected light at the existing opening angle; remove obsolete image/dial versions and prime both audio banks only when Safe Cracker is selected or restored."
+    "Brighten the golden cavity and reflected light at the existing opening angle; remove obsolete image/dial versions and prime both audio banks only when Safe Cracker is selected or restored.",
+    "Decode current wall, door, and dial before reveal; retain all authoritative guards with a 500 ms verification interval and stop expired bot rematch retries.",
+    "Removed ten unreferenced recording-fragment experiments. Original source chunks remain because the audio rebuild script uses them; current SVG hardware textures remain referenced by CSS."
   ]
 }

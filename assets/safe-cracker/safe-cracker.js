@@ -15,6 +15,47 @@
     'The vault thanks you for testing its security.'
   ];
 
+  // SAFE_CRACKER_VISUAL_PREFLIGHT_V1_START
+  const visualAssets = [
+    '/assets/safe-cracker/images/bank-vault-wall-v5.png',
+    '/assets/safe-cracker/images/safe-steel-surface-v3.png',
+    '/assets/safe-cracker/textures/dial-reference-face-v7.svg?dial=7&layout=7'
+  ];
+  let visualsReady = false;
+  let visualPreparation = null;
+  function safeCrackerWarmVisuals() {
+    if (visualsReady) return Promise.resolve(true);
+    if (visualPreparation) return visualPreparation;
+    visualPreparation = Promise.all(visualAssets.map(src => new Promise((resolve, reject) => {
+      const picture = new Image();
+      picture.onload = async () => {
+        try { if (picture.decode) await picture.decode(); resolve(picture); }
+        catch (error) { reject(error); }
+      };
+      picture.onerror = () => reject(new Error('Vault artwork could not be loaded.'));
+      picture.src = src;
+    }))).then(() => { visualsReady = true; return true; }).catch(() => { visualPreparation = null; return false; });
+    return visualPreparation;
+  }
+  window.safeCrackerWarmVisuals = safeCrackerWarmVisuals;
+  function revealPreparedVault(mount, game) {
+    const board = mount.querySelector('.safe-cracker-game');
+    if (!board) return;
+    board.classList.toggle('sc-art-loading', !visualsReady);
+    board.setAttribute('aria-busy', String(!visualsReady));
+    if (visualsReady) return;
+    const id = String(game.gameId);
+    safeCrackerWarmVisuals().then(ready => {
+      if (!mount.isConnected || String(runtime.game?.gameId) !== id) return;
+      const current = mount.querySelector('.safe-cracker-game');
+      if (current?.dataset.scGameId !== id) return;
+      current.classList.toggle('sc-art-loading', !ready);
+      current.setAttribute('aria-busy', String(!ready));
+      current.classList.toggle('sc-art-error', !ready);
+    });
+  }
+  // SAFE_CRACKER_VISUAL_PREFLIGHT_V1_END
+
   const runtime = {
     game: null,
     selected: 0,
@@ -663,7 +704,7 @@
     if (runtime.cooldownReleaseTimer) window.clearTimeout(runtime.cooldownReleaseTimer);
     const remaining = Math.max(0, Number(cooldownMs || 0));
     runtime.cooldownGameId = gameId;
-    runtime.cooldownUntilMs = Date.now() + remaining + 90;
+    runtime.cooldownUntilMs = Date.now() + remaining + 35;
     runtime.cooldownReleaseTimer = window.setTimeout(() => {
       runtime.cooldownReleaseTimer = 0;
       if (runtime.cooldownGameId !== gameId) return;
@@ -672,7 +713,7 @@
       // Refresh in the background for opponent progress, but local input no longer
       // waits for this request to finish before becoming usable again.
       window.__safeCrackerBridge?.refresh?.();
-    }, remaining + 95);
+    }, remaining + 40);
   }
   // SAFE_CRACKER_INPUT_CONTINUITY_V9_END
 
@@ -969,6 +1010,7 @@
     if (reusedMountedBoard && game.status === 'complete' && !document.querySelector('body > [data-sc-result-portal]') && !mount.querySelector('[data-sc-result-sequence]')) {
       mount.firstElementChild.insertAdjacentHTML('beforeend', resultOverlay(game));
     }
+    revealPreparedVault(mount, game);
     runtime.feedbackFresh = false;
     mountCountdownPortal(game, mount);
     if (!reusedMountedBoard) bindControls(mount, game);

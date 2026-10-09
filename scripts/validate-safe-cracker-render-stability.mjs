@@ -61,7 +61,7 @@ const latencyStart = '// SAFE_CRACKER_FEEDBACK_LATENCY_V1_START';
 const latencyEnd = '// SAFE_CRACKER_FEEDBACK_LATENCY_V1_END';
 assert(occurrences(data, latencyStart) === 1, 'feedback-latency start marker must appear exactly once');
 assert(occurrences(data, latencyEnd) === 1, 'feedback-latency end marker must appear exactly once');
-assert(data.includes('const SAFE_CRACKER_VERIFY_MS = 650;'), 'the accepted server-confirmed verification window changed');
+assert(data.includes('const SAFE_CRACKER_VERIFY_MS = 500;'), 'the accepted server-confirmed verification window changed');
 
 const apply = section(
   data,

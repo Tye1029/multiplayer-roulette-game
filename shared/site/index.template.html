@@ -6618,8 +6618,8 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
   <script src="/assets/roulette/reaction-audio.js?v=1&load=15" defer></script>
 <!-- MODULAR_LAMP_ASSETS_END -->
 <!-- SAFE_CRACKER_ASSETS_START -->
-  <link id="safeCrackerStyles" rel="stylesheet" href="/assets/safe-cracker/safe-cracker.css?v=8&polish=2&fit=2&result=1&final=1&refine=1&correct=1&input=1&texture=3&shadow=3&dial=7&layout=7&latch=9&screw=1&trim=1&render=1&restore=20260906-lobby20">
-  <script id="safeCrackerRuntime" src="/assets/safe-cracker/safe-cracker.js?v=8&polish=2&fit=2&result=1&final=1&refine=1&correct=1&input=1&audio=1&samples=1&clicks=27&dial=7&layout=7&latch=9&screw=1&trim=1&render=1&recorded=13&restore=20260906-lobby20" defer></script>
+  <link id="safeCrackerStyles" rel="stylesheet" href="/assets/safe-cracker/safe-cracker.css?v=8&polish=2&fit=2&result=1&final=1&refine=1&correct=1&input=1&texture=3&shadow=3&dial=7&layout=7&latch=9&screw=1&trim=1&render=1&restore=20261009-start21">
+  <script id="safeCrackerRuntime" src="/assets/safe-cracker/safe-cracker.js?v=8&polish=2&fit=2&result=1&final=1&refine=1&correct=1&input=1&audio=1&samples=1&clicks=27&dial=7&layout=7&latch=9&screw=1&trim=1&render=1&recorded=13&restore=20261009-start21" defer></script>
 <!-- SAFE_CRACKER_ASSETS_END -->
 
 <!-- SAFE_CRACKER_COMPACT_DOCK_START -->
@@ -6696,6 +6696,7 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
     }
     if (mode === 'safecracker' && typeof window.safeCrackerWarmAudio === 'function') {
       window.safeCrackerWarmAudio();
+      window.safeCrackerWarmVisuals?.();
     }
     if (mode === 'roulette') window.RouletteAudio?.preload('roulette');
   }
@@ -13279,6 +13280,8 @@ async function rnbFetchAuthoritativeGame(gameId){
   const isDoubleOrNothing=game.mode==='blackjackduel'&&(!active||String(rem.kind||'')==='double-or-nothing');
   if(game.rematchGameId){rnbClearRematchTimer();return}
   if(req[botId]&&active){rnbClearRematchTimer();return}
+  // An expired offer is terminal. A fresh human offer has a new deadline/key.
+  if(expires && !active && game.mode !== 'blackjackduel'){rnbClearRematchTimer();return}
   const humanRequested=Boolean(active&&req[humanId]);
   // Fishing's server only permits a bot to ACCEPT an active human offer.
   // A bot-first attempt is rejected and used to repeat every few seconds.
@@ -13314,7 +13317,7 @@ async function rnbFetchAuthoritativeGame(gameId){
       if(String(duelCurrentGameId||"")!==gameId)return;
       if(nextGame){duelKnownRevisionByGame.delete(String(nextGame.gameId));duelAcceptedStatusByGame.clear();rnbAdoptGame(nextGame,true);duelSetStatus(isDoubleOrNothing?'Remote Bot accepted Double or Nothing. The doubled round countdown has started.':'Remote Bot accepted the rematch. Both players must click Ready.','good')}
     }else if(data?.game){if(String(duelCurrentGameId||"")!==gameId)return;rnbAdoptGame(data.game,true);if(isDoubleOrNothing)duelSetStatus('Remote Bot accepted Double or Nothing. Both accepted portraits remain visible until the timer ends.','good')}
-  }catch(err){line(botLogs,'rematch bot failed',{error:String(err?.message||err)})}finally{rnbRematchRuntime.requesting=false;render()}},delay);
+  }catch(err){if(/rematch request expired/i.test(String(err?.message||err)))rnbRematchRuntime.handledKey=key;line(botLogs,'rematch bot failed',{error:String(err?.message||err)})}finally{rnbRematchRuntime.requesting=false;render()}},delay);
  }
  setInterval(()=>{
    if(document.hidden)return;

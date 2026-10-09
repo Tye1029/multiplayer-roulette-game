@@ -28,7 +28,7 @@ for (const marker of ['SAFE_CRACKER_RENDER_STABILITY_V1_START', 'SAFE_CRACKER_OR
 const data = await read('netlify/functions/_data.js');
 for (const fragment of [
   '// SAFE_CRACKER_FEEDBACK_LATENCY_V1_START',
-  'const SAFE_CRACKER_VERIFY_MS = 650;',
+  'const SAFE_CRACKER_VERIFY_MS = 500;',
   'if (!needsMutation) return observed;',
   'const beforeSave = await duelGetRawStrong(gameId, 1) || await duelGetRaw(gameId);',
   'return await safeCrackerComplete(candidate, state, id,',
@@ -49,3 +49,5 @@ await import('./validate-safe-cracker-rapid-input.mjs');
 await import('./validate-safe-cracker-completion-storage.mjs');
 await import('./validate-safe-cracker-audio-loading.mjs');
 console.log(`Verified complete Safe Cracker restored release ${release.release}: ${Object.keys(release.sha256).length} files.`);
+
+await import('./validate-safe-cracker-start-feedback.mjs');

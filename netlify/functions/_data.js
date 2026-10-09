@@ -5695,7 +5695,7 @@ function duelNpcChoice(mode) {
 
 // SAFE_CRACKER_SERVER_START
 const SAFE_CRACKER_ROUND_MS = 60 * 1000;
-const SAFE_CRACKER_VERIFY_MS = 650;
+const SAFE_CRACKER_VERIFY_MS = 500;
 const SAFE_CRACKER_STAGES = 3;
 const SAFE_CRACKER_LOCKS = globalThis.__SAFE_CRACKER_LOCKS || (globalThis.__SAFE_CRACKER_LOCKS = new Map());
 

@@ -5579,3 +5579,10 @@ body:has(.safe-cracker-game) {
 .sc-result-prize strong span {font-size:.5em;}
 @keyframes scPrizeArrival {from {opacity:0;transform:translateY(8px) scale(.94);}to {opacity:1;transform:none;}}
 @media(prefers-reduced-motion:reduce){.sc-result-prize{animation:none;}}
+
+/* Reveal only the decoded current artwork, never the previous metal fallback. */
+.safe-cracker-game.sc-art-loading {background-image:none;}
+.safe-cracker-game.sc-art-loading .sc-safe-shell {visibility:hidden;}
+.safe-cracker-game.sc-art-loading::after {content:'Preparing vault…';position:absolute;inset:40% 0 auto;text-align:center;color:#d9edf8;font-weight:600;pointer-events:none;}
+.safe-cracker-game.sc-art-error::after {content:'Vault artwork could not load. Refresh to retry.';}
+.safe-cracker-game .sc-display {transition:background 80ms ease,box-shadow 80ms ease,border-color 80ms ease;}
