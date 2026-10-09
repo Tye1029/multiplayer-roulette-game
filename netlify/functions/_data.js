@@ -5708,7 +5708,8 @@ function duelNpcChoice(mode) {
 
 
 // SAFE_CRACKER_SERVER_START
-const SAFE_CRACKER_ROUND_MS = 60 * 1000;
+const SAFE_CRACKER_ROUND_MS = 180 * 1000;
+const SAFE_CRACKER_HEIST = require("./safe-cracker/heist");
 const SAFE_CRACKER_VERIFY_MS = 500;
 const SAFE_CRACKER_STAGES = 3;
 const SAFE_CRACKER_LOCKS = globalThis.__SAFE_CRACKER_LOCKS || (globalThis.__SAFE_CRACKER_LOCKS = new Map());
@@ -5744,6 +5745,7 @@ function safeCrackerGenerateCode() {
 function safeCrackerInitialPlayer(code) {
   return {
     code,
+    heist: SAFE_CRACKER_HEIST.create(),
     stage: 0,
     attempts: [],
     lastResult: null,
@@ -5763,6 +5765,7 @@ function safeCrackerInitialState(game, startMs = Date.now()) {
     players[id] = safeCrackerInitialPlayer(code);
   }
   return {
+    version: 2,
     roundId: 'safe-' + crypto.randomBytes(7).toString('hex'),
     startAt: new Date(startMs).toISOString(),
     endAt: new Date(startMs + SAFE_CRACKER_ROUND_MS).toISOString(),
@@ -5785,6 +5788,7 @@ function safeCrackerEnsureState(game) {
     const code = rawCode.length === SAFE_CRACKER_STAGES ? rawCode : safeCrackerGenerateCode();
     players[id] = {
       code,
+      heist: current.heist || undefined,
       stage: Math.max(0, Math.min(SAFE_CRACKER_STAGES, int(current.stage, 0))),
       attempts: Array.isArray(current.attempts) ? current.attempts.slice(-80) : [],
       lastResult: current.lastResult && typeof current.lastResult === 'object' ? current.lastResult : null,
@@ -5793,6 +5797,7 @@ function safeCrackerEnsureState(game) {
     };
   }
   return {
+    version: existing.version || 1,
     roundId: String(existing.roundId || ('safe-' + crypto.randomBytes(7).toString('hex'))),
     startAt: existing.startAt || new Date(startMs).toISOString(),
     endAt: existing.endAt || new Date(startMs + SAFE_CRACKER_ROUND_MS).toISOString(),
@@ -5809,7 +5814,7 @@ function safeCrackerHasValidState(game) {
   if (!state || typeof state !== 'object' || !state.players || typeof state.players !== 'object') return false;
   const start = Date.parse(state.startAt || '');
   const end = Date.parse(state.endAt || '');
-  if (!state.roundId || !Number.isFinite(start) || !Number.isFinite(end) || end - start !== SAFE_CRACKER_ROUND_MS) return false;
+  if (!state.roundId || !Number.isFinite(start) || !Number.isFinite(end) || end - start !== (state.version === 2 ? SAFE_CRACKER_ROUND_MS : 60000)) return false;
   return safeCrackerPlayerIds(game).every(id => /^[0-9]{3}$/.test(String(state.players?.[id]?.code || '')));
 }
 
@@ -5830,7 +5835,7 @@ function safeCrackerPublicPlayer(player, includeAttempts) {
   const lastResult = player?.lastResult && typeof player.lastResult === 'object' ? {
     stage: int(player.lastResult.stage, 0),
     guess: int(player.lastResult.guess, 0),
-    tier: String(player.lastResult.tier || ''),
+    tier: player.heist ? SAFE_CRACKER_HEIST.tier(String(player.lastResult.tier || ''), player.heist) : String(player.lastResult.tier || ''),
     correct: Boolean(player.lastResult.correct),
     at: player.lastResult.at || null
   } : null;
@@ -5839,13 +5844,14 @@ function safeCrackerPublicPlayer(player, includeAttempts) {
     attempts: includeAttempts ? attempts.map(attempt => ({
       stage: int(attempt.stage, 0),
       guess: int(attempt.guess, 0),
-      tier: String(attempt.tier || ''),
+      tier: player.heist ? SAFE_CRACKER_HEIST.tier(String(attempt.tier || ''), player.heist) : String(attempt.tier || ''),
       correct: Boolean(attempt.correct),
       at: attempt.at || null
     })) : undefined,
+    heist: player?.heist ? SAFE_CRACKER_HEIST.publicView(player.heist, includeAttempts) : undefined,
     attemptCount: attempts.length,
     lastResult: includeAttempts ? lastResult : undefined,
-    lastTier: lastResult?.tier || '',
+    lastTier: includeAttempts ? lastResult?.tier || '' : '',
     completed: Boolean(player?.completedAt) || int(player?.stage, 0) >= SAFE_CRACKER_STAGES,
     completedAt: player?.completedAt || null
   };
@@ -5858,7 +5864,7 @@ function safeCrackerPublicState(game, viewerUserId) {
   const opponentId = ids.find(id => id !== viewer) || '';
   if (!state) {
     return {
-      roundId: '', startAt: game?.startAt || null, endAt: null, revision: 0,
+      version: 2, roundId: '', startAt: game?.startAt || null, endAt: null, revision: 0,
       secondsLeft: SAFE_CRACKER_ROUND_MS / 1000, canSubmit: false, cooldownMs: 0,
       me: safeCrackerPublicPlayer({}, true), opponent: safeCrackerPublicPlayer({}, false)
     };
@@ -5871,12 +5877,13 @@ function safeCrackerPublicState(game, viewerUserId) {
   const cooldownMs = Number.isFinite(nextGuessMs) ? Math.max(0, nextGuessMs - now) : 0;
   const complete = String(game?.status || '') === 'complete';
   return {
+    version: state.version,
     roundId: state.roundId,
     startAt: state.startAt,
     endAt: state.endAt,
     revision: int(state.revision, 0),
     secondsLeft: complete ? 0 : Number.isFinite(endMs) ? Math.max(0, Math.ceil((endMs - now) / 1000)) : SAFE_CRACKER_ROUND_MS / 1000,
-    canSubmit: String(game?.status || '') === 'playing' && ids.includes(viewer) && cooldownMs <= 0 && int(me.stage, 0) < SAFE_CRACKER_STAGES,
+    canSubmit: String(game?.status || '') === 'playing' && ids.includes(viewer) && cooldownMs <= 0 && (!me.heist || me.heist.phase === 2) && int(me.stage, 0) < SAFE_CRACKER_STAGES,
     cooldownMs,
     stagesTotal: SAFE_CRACKER_STAGES,
     me: safeCrackerPublicPlayer(me, true),
@@ -6010,18 +6017,29 @@ async function safeCrackerApplyGuess(game, actorId, guess, actionId = '', isBot 
     const now = Date.now();
     const nextGuessMs = Date.parse(player.nextGuessAt || '');
     if (!isBot && Number.isFinite(nextGuessMs) && now < nextGuessMs) return latest;
-    const stage = int(player.stage, 0);
-    const target = int(String(player.code)[stage], 0);
-    const distance = safeCrackerCircularDistance(target, guess);
-    const tier = safeCrackerTier(distance);
-    const correct = tier === 'green';
+    const deadline = Date.parse(state.endAt || '');
+    if (Number.isFinite(deadline) && now >= deadline) return latest;
     const at = new Date(now).toISOString();
-    const result = { stage, guess, distance, tier, correct, at };
-    player.attempts = [...(Array.isArray(player.attempts) ? player.attempts : []), result].slice(-80);
-    player.lastResult = result;
-    player.stage = correct ? Math.min(SAFE_CRACKER_STAGES, stage + 1) : stage;
-    player.nextGuessAt = new Date(now + SAFE_CRACKER_VERIFY_MS).toISOString();
-    if (player.stage >= SAFE_CRACKER_STAGES) player.completedAt = at;
+    const toolCommand = typeof guess === 'string' ? guess : null;
+    if (toolCommand) {
+      if (!cleanActionId) throw new Error('Tool actions require a request ID.');
+      const nextHeist = SAFE_CRACKER_HEIST.apply(player.heist, toolCommand, now);
+      if (nextHeist === player.heist) return latest;
+      player.heist = nextHeist;
+    } else {
+      if (player.heist && player.heist.phase !== 2) throw new Error('Finish the panel and wiring before checking the dial.');
+      const stage = int(player.stage, 0);
+      const target = int(String(player.code)[stage], 0);
+      const distance = safeCrackerCircularDistance(target, guess);
+      const tier = safeCrackerTier(distance);
+      const correct = tier === 'green';
+      const result = { stage, guess, distance, tier, correct, at };
+      player.attempts = [...(Array.isArray(player.attempts) ? player.attempts : []), result].slice(-80);
+      player.lastResult = result;
+      player.stage = correct ? Math.min(SAFE_CRACKER_STAGES, stage + 1) : stage;
+      player.nextGuessAt = new Date(now + SAFE_CRACKER_VERIFY_MS).toISOString();
+      if (player.stage >= SAFE_CRACKER_STAGES) player.completedAt = at;
+    }
     const baseStateRevision = int(state.revision, 0);
     const processed = cleanActionId ? [...(state.processedActionIds || []), cleanActionId].slice(-80) : (state.processedActionIds || []);
     state = {
@@ -6029,7 +6047,7 @@ async function safeCrackerApplyGuess(game, actorId, guess, actionId = '', isBot 
       revision: baseStateRevision + 1,
       players: { ...(state.players || {}), [id]: player },
       processedActionIds: processed,
-      npcActionAt: isBot && player.stage < SAFE_CRACKER_STAGES ? new Date(now + safeCrackerBotDelay(latest)).toISOString() : state.npcActionAt
+      npcActionAt: isBot && player.stage < SAFE_CRACKER_STAGES ? new Date(now + safeCrackerBotDelay(latest) + (player.heist?.phase < 2 ? 1200 : 0)).toISOString() : state.npcActionAt
     };
     const candidate = { ...latest, safecrackerState: state };
 
@@ -6114,7 +6132,8 @@ async function safeCrackerAdvanceAndSave(game) {
       return await duelSaveGame({ ...latest, safecrackerState: state });
     }
     if (Date.now() < scheduled) return latest;
-    const guess = safeCrackerBotGuess(state.players[npcId]);
+    const botHeist = state.players[npcId]?.heist;
+    const guess = botHeist && botHeist.phase < 2 ? SAFE_CRACKER_HEIST.botCommand(botHeist) : safeCrackerBotGuess(state.players[npcId]);
     return await safeCrackerApplyGuess({ ...latest, safecrackerState: state }, npcId, guess, 'bot-' + state.revision + '-' + guess, true);
   });
 }
@@ -6155,6 +6174,10 @@ async function safeCrackerAction(user, gameId, rawChoice, details = {}) {
         feedbackPath: 'fast-authoritative-v1',
         feedbackServerMs: Date.now() - actionStartedAt
       };
+    }
+    if (/^safecracker:(screw:[0-7]:(slot|cross|pozidriv|hex|star|triwing)|card:(open|close)|cut:(red|blue|green|yellow|orange|purple|pink|cyan|white|brown|lime|gray))$/.test(String(rawChoice))) {
+      game = await safeCrackerApplyGuess({ ...game, safecrackerState: state }, viewer, String(rawChoice).slice(12), actionId, false);
+      return { game: duelPublicGame(game, viewer), skipBalanceLookup: true, feedbackPath: 'heist-authoritative-v2', feedbackServerMs: Date.now() - actionStartedAt };
     }
     const match = /^safecracker:guess:([0-9])$/.exec(String(rawChoice || '').toLowerCase());
     if (!match) throw new Error('Choose one dial number from 0 to 9.');

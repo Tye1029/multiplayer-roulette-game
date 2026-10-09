@@ -20,7 +20,8 @@
     '/assets/safe-cracker/images/bank-vault-wall-v5.png',
     '/assets/safe-cracker/images/safe-steel-surface-v3.png',
     '/assets/safe-cracker/images/dial-reference-face.png?dial=24',
-    '/assets/safe-cracker/textures/dial-index-steel.svg'
+    '/assets/safe-cracker/textures/dial-index-steel.svg',
+    '/assets/safe-cracker/images/safe-interior-v1.png'
   ];
   let visualsReady = false;
   let visualPreparation = null;
@@ -161,7 +162,7 @@
 
   function secondsLeft(game = runtime.game) {
     if (game?.status === 'complete') return 0;
-    if (['waiting', 'ready'].includes(String(game?.status || ''))) return 60;
+    if (['waiting', 'ready'].includes(String(game?.status || ''))) return stateFor(game)?.version === 2 ? 180 : 60;
     const endAt = Date.parse(String(stateFor(game)?.endAt || ''));
     if (!Number.isFinite(endAt)) return 60;
     return Math.max(0, Math.ceil((endAt - serverNowMs()) / 1000));
@@ -684,6 +685,7 @@
       game?.status === 'playing' &&
       !runtime.busy &&
       Number(me?.stage || 0) < STAGES &&
+      (!me?.heist || me.heist.phase === 2) &&
       (serverReady || locallyReleased)
     );
   }
@@ -829,6 +831,7 @@
     const root = mount?.firstElementChild?.matches?.('.safe-cracker-game')
       ? mount.firstElementChild
       : mount?.querySelector?.('.safe-cracker-game');
+    if (root?.hasAttribute?.('data-sc-heist')) return false;
     const gameId = String(game?.gameId || '');
     const mountedGameId = String(root?.dataset?.scGameId || '');
     const status = String(game?.status || '');
@@ -999,6 +1002,17 @@
     updateClock(game);
     const mount = document.querySelector('[data-safe-cracker-mount]');
     if (!mount) return;
+    if (window.SafeCrackerHeist?.renderTools(game, mount, {
+      accept: render, time: () => formatTimer(secondsLeft(game)), countdown: () => safeCrackerMonotonicCountdownLabel(game),
+      result: resultOverlay, wakeAudio: () => audioContext(), sound: safeCrackerToolSound
+    })) {
+      revealPreparedVault(mount, game);
+      mountCountdownPortal(game, mount);
+      bindResultControls(mount);
+      mountSafeCrackerResultPortal(game, mount);
+      updateTimerOnly();
+      return;
+    }
 
     const state = stateFor(game);
     const me = myState(game);
@@ -1092,6 +1106,7 @@
     if (reusedMountedBoard && game.status === 'complete' && !document.querySelector('body > [data-sc-result-portal]') && !mount.querySelector('[data-sc-result-sequence]')) {
       mount.firstElementChild.insertAdjacentHTML('beforeend', resultOverlay(game));
     }
+    window.SafeCrackerHeist?.decorateDial(game, mount);
     revealPreparedVault(mount, game);
     runtime.feedbackFresh = false;
     mountCountdownPortal(game, mount);
@@ -1100,6 +1115,14 @@
     bindResultControls(mount);
     mountSafeCrackerResultPortal(game, mount);
     updateTimerOnly();
+  }
+
+  function safeCrackerToolSound(effect) {
+    const rate = .96 + Math.random() * .08;
+    if (effect === 'zap') { playTone(95 * rate, .16, .055, 'sawtooth'); playTone(750 * rate, .07, .025, 'square'); }
+    else if (effect === 'strip') { playTone(160 * rate, .11, .035, 'sawtooth'); }
+    else if (effect === 'remove' || effect === 'turn') { playDetent(0); playTone(430 * rate, .035, .015, 'triangle', .055); }
+    else if (effect === 'cut') { playTone(1700 * rate, .018, .035, 'triangle'); playTone(230 * rate, .055, .025, 'triangle', .02); }
   }
 
   // SAFE_CRACKER_FRAME_TIMING_V24_START
@@ -1455,7 +1478,7 @@
       const nextGame = data?.game || runtime.game || activeGame;
       const resultChanged = adoptSubmittedFeedback(nextGame);
       const result = runtime.feedbackResult;
-      if (resultChanged && result?.tier) playFeedback(result.tier);
+      if (resultChanged && result?.tier) playFeedback(result.correct ? 'green' : result.tier === 'off' ? 'red' : result.tier);
       runtime.busy = false;
       safeCrackerArmLocalCooldown(nextGame, Number(nextGame?.safecrackerState?.cooldownMs || 0));
       render(nextGame);

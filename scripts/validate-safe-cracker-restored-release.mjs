@@ -19,7 +19,9 @@ for (const extension of ['js', 'css']) {
 }
 const client = await read('assets/safe-cracker/safe-cracker.js');
 const styles = await read('assets/safe-cracker/safe-cracker.css');
-for (const match of (client + styles).matchAll(/\/assets\/safe-cracker\/[^'"\s?<>\\)]+/g)) {
+const heistAssets = await read('assets/safe-cracker/heist.js') + await read('assets/safe-cracker/heist.css');
+assert.ok(html.includes('/assets/safe-cracker/heist.js?v=25') && html.includes('/assets/safe-cracker/heist.css?v=25'), 'Three-stage tools must load with the game runtime');
+for (const match of (client + styles + heistAssets).matchAll(/\/assets\/safe-cracker\/[^'"\s?<>\\)]+/g)) {
   assert.ok(release.sha256[match[0].slice(1)], `Unverified Safe Cracker dependency: ${match[0]}`);
 }
 for (const marker of ['SAFE_CRACKER_RENDER_STABILITY_V1_START', 'SAFE_CRACKER_ORIGINAL_PCM_V27_START', 'SAFE_CRACKER_INPUT_CONTINUITY_V9_START']) {
@@ -54,3 +56,5 @@ await import('./validate-safe-cracker-start-feedback.mjs');
 await import('./validate-safe-cracker-dial-continuity.mjs');
 await import('./validate-safe-cracker-finish-continuity.mjs');
 await import('./validate-safe-cracker-frame-timing.mjs');
+
+await import('./validate-safe-cracker-heist.mjs');
