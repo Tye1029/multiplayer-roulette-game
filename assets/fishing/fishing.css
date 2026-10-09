@@ -1394,7 +1394,7 @@
   transform: none;
 }
 
-.fishing-hook-catch .fishing-catch-unit.is-pulling { animation: fishingHookReveal .44s .24s ease-out both !important; }
+.fishing-hook-catch .fishing-catch-unit.is-pulling { animation: fishingHookReveal .16s ease-out both !important; }
 
 .fishing-hook-catch .fishing-fish-png {
   position: relative !important;
@@ -2139,6 +2139,7 @@
     repeating-linear-gradient(90deg, rgba(255,255,255,.022) 0 1px, transparent 1px 19px),
     linear-gradient(180deg, #123a42, #092731);
   box-shadow: 0 26px 80px rgba(0,0,0,.48), inset 0 1px rgba(255,255,255,.08);
+  transform: translateY(clamp(-36px, -4vh, -18px));
 }
 
 #duelCountdownPortal[data-duel-mode="fishing"] .duel-countdown-frame::after {

@@ -77,7 +77,7 @@ assert.ok(action.includes('const DUEL_FUNCTION_BUILD = "multiplayer_cohesion_v6"
 for (const token of [
   "MULTIPLAYER_COHESION_V6",
   'game.status === "complete" && DUEL_MODES_UI[String(game.mode || "")]',
-  'game.status === "countdown" ? 250 : 350',
+  'game.status === "countdown" ? (game.mode === "fishing" ? 750 : 250) : 350',
   "requestError.retryable = response.status >= 500",
   '/shared/games/catalog.js?v=1',
   'window.GAMBLING_SITE_CATALOG?.multiplayerTestModes',

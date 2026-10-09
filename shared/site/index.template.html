@@ -6655,9 +6655,9 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
   <script id="blackjackDuelRuntime" src="/assets/blackjack-duel/blackjack-duel.js?v=blackjack-duel-v17" defer></script>
 <!-- BLACKJACK_DUEL_ASSETS_END -->
 <!-- FISHING_DUEL_ASSETS_START -->
-  <script src="/shared/games/fishing-catalog.js?v=fishing-mechanics-v31"></script>
-  <link id="fishingDuelStyles" rel="stylesheet" href="/assets/fishing/fishing.css?v=fishing-mechanics-v31">
-  <script id="fishingDuelRuntime" defer src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v31"></script>
+  <script src="/shared/games/fishing-catalog.js?v=fishing-mechanics-v32"></script>
+  <link id="fishingDuelStyles" rel="stylesheet" href="/assets/fishing/fishing.css?v=fishing-mechanics-v32">
+  <script id="fishingDuelRuntime" defer src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v32"></script>
 <!-- FISHING_DUEL_ASSETS_END -->
 
 <!-- Game artwork is prewarmed when its game is chosen, before the Ready screen. -->
@@ -10570,7 +10570,7 @@ function createSparkle(x, y) {
         duelCompletedActivityGameId = "";
         duelCompletedActivityAt = 0;
       }
-      const desired = safeCrackerLive ? (game.status === "playing" ? 2200 : 650) : sharedLifecycleLive ? (game.status === "countdown" ? 250 : 350) : drawPlaying ? 650 : blackjackDuelLive ? 650 : rouletteLive ? 800 : fishingLive ? 450 : game?.mode === "mountainrace" && game?.status === "playing" ? 700 : completedAwaitingRematch ? completedPollRate : noFocusedGame ? 2000 : 1800;
+      const desired = safeCrackerLive ? (game.status === "playing" ? 2200 : 650) : sharedLifecycleLive ? (game.status === "countdown" ? (game.mode === "fishing" ? 750 : 250) : 350) : drawPlaying ? 650 : blackjackDuelLive ? 650 : rouletteLive ? 800 : fishingLive ? 750 : game?.mode === "mountainrace" && game?.status === "playing" ? 700 : completedAwaitingRematch ? completedPollRate : noFocusedGame ? 2000 : 1800;
       if (document.hidden) {
         if (duelPollTimer) clearInterval(duelPollTimer);
         duelPollTimer = null;
@@ -10738,6 +10738,10 @@ function createSparkle(x, y) {
           const confirmedCatch=data.game?.isCreator?confirmedState.creatorCatch:confirmedState.joinerCatch;
           const confirmedId=String(confirmedCatch?.eventId||"");
           if(confirmedId){
+            const confirmationMs=Math.max(0,Math.round(performance.now()-Number(pending?.requestedAt||performance.now())));
+            duelFishingPlayFlop(pending?.side||((data.game?.isCreator)?"left":"right"));
+            controller?.recordInput?.("confirmed",`Catch confirmed in ${confirmationMs}ms`,confirmedId);
+            controller?.log?.("catch-confirmed",{eventId:confirmedId,side:pending?.side||"",networkMs:confirmationMs});
             if(data.game?.isCreator)duelFishingAudioState.creatorCatchId=confirmedId;
             else duelFishingAudioState.joinerCatchId=confirmedId;
           }
@@ -10997,6 +11001,8 @@ function createSparkle(x, y) {
     let duelSharedStartRefreshTimer = null;
     let duelSharedCountdownSoundKey = "";
     let duelCountdownPortalLabel = "";
+    let duelSharedFishingGoTimer = null;
+    let duelSharedFishingGoKey = "";
     let duelCountdownClock = { gameId:"", startMs:0, offsetMs:0, acceptedAt:0 };
 
     function duelCountdownPortal(){
@@ -11045,6 +11051,14 @@ function createSparkle(x, y) {
         else if(label==='GO!'){scheduleTone(523.25,now,.18,'triangle',sfxGain,.050,{attack:.008,release:.08});scheduleTone(783.99,now+.03,.24,'triangle',sfxGain,.038,{attack:.008,release:.12});}
         else{const f=(label==='READY'||label==='3')?330:(label==='SET'||label==='2')?415.30:493.88;scheduleTone(f,now,.16,'triangle',sfxGain,.080,{attack:.004,release:.07});scheduleTone(f/2,now,.13,'sine',sfxGain,.040,{attack:.003,release:.06});}
       }catch(_){}
+    }
+    function duelPlayCountdownSoundOnPaint(game,label,portal){
+      const gameId=String(game?.gameId||'');
+      requestAnimationFrame(()=>{
+        if(!gameId||String(duelSharedCountdownGame?.gameId||'')!==gameId)return;
+        if(duelCountdownPortalLabel!==label||!portal?.classList.contains('show'))return;
+        duelPlayCountdownSound(game,label);
+      });
     }
     function duelCountdownNow(game){
       if(game?.mode==='fishing')return duelFishingCountdownNow(game);
@@ -11127,10 +11141,22 @@ function createSparkle(x, y) {
         text.textContent=label;
         text.className=`duel-countdown-number cue ${label===(game.mode==='draw'?'DRAW!':'GO!')?'go':''}`;
         text.style.animation='none';void text.offsetWidth;text.style.animation='';
-        duelPlayCountdownSound(game,label);
       }
       portal.classList.add('show');
-      duelStartLocallyAtAuthoritativeTime(game);
+      if(label&&duelSharedCountdownSoundKey!==`${String(game.gameId||'')}:${label}`)duelPlayCountdownSoundOnPaint(game,label,portal);
+      if(game.mode==='fishing'&&label==='GO!'){
+        const startMs=Date.parse(String(game.startAt||'')),goKey=`${String(game.gameId||'')}:${startMs}`;
+        if(!duelSharedFishingGoTimer&&duelSharedFishingGoKey!==goKey){
+          duelSharedFishingGoKey=goKey;
+          requestAnimationFrame(()=>{
+            if(String(duelSharedCountdownGame?.gameId||'')!==String(game.gameId||''))return;
+            duelSharedFishingGoTimer=setTimeout(()=>{
+              duelSharedFishingGoTimer=null;
+              if(String(duelSharedCountdownGame?.gameId||'')===String(game.gameId||''))duelStartLocallyAtAuthoritativeTime(game);
+            },220);
+          });
+        }
+      }else duelStartLocallyAtAuthoritativeTime(game);
       return true;
     }
     function duelSetSharedCountdown(game){
@@ -11142,10 +11168,12 @@ function createSparkle(x, y) {
       }else{
         duelSharedCountdownGame=null;
         if(duelSharedCountdownTimer){clearInterval(duelSharedCountdownTimer);duelSharedCountdownTimer=null;}
+        if(duelSharedFishingGoTimer){clearTimeout(duelSharedFishingGoTimer);duelSharedFishingGoTimer=null;}
         duelHideCountdownPortal();
         if(!game||['waiting','ready','complete','cancelled'].includes(status)){
           duelCountdownClock={gameId:'',startMs:0,offsetMs:0,acceptedAt:0};
           duelSharedCountdownSoundKey='';
+          duelSharedFishingGoKey='';
           if(status!=='playing')duelSharedStartTransitionKey='';
         }
       }

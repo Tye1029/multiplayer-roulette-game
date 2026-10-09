@@ -49,6 +49,13 @@ const random=()=>((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296);
 const named={Nemo:0,'Aurora Koi':0,'Celestial Anglerfish':0};
 for(let i=0;i<300000;i++){const fish=catalog.pick(12+random()*88,random);if(fish.rarity==='mythical')named[fish.name]++;}
 for(const count of Object.values(named))assert(count>800&&count<1200,'Mythical shares must be evenly distributed');
+const exactMythicalNames={Nemo:0,'Aurora Koi':0,'Celestial Anglerfish':0};
+for(let i=0;i<300;i++){
+  let call=0;
+  const fish=catalog.pick(50,()=>call++===0?(i+.5)/300:((i%3)+.5)/3);
+  if(fish.rarity==='mythical')exactMythicalNames[fish.name]++;
+}
+assert.deepEqual(exactMythicalNames,{Nemo:1,'Aurora Koi':1,'Celestial Anglerfish':1},'Each named Mythical must occupy exactly 1/300 of the full roll space');
 const legacy={species:{bass:{name:'Largemouth Bass',bestVariant:'golden',bestSize:68,count:1,rareCount:1},nemo:{name:'Nemo',bestVariant:'nemo',bestSize:20,count:1}}};
 const original=JSON.stringify(legacy),mapped=catalog.records(legacy);
 assert(mapped.has('Gilded Sovereign')&&mapped.has('Nemo'));

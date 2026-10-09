@@ -1,7 +1,7 @@
 (function fishingControllerBootstrap(global){
   "use strict";
 
-  const VERSION="fishing-controller-v18";
+  const VERSION="fishing-controller-v19";
   const SIDES=["left","right"];
   const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
   const round=value=>Math.round(Number(value||0)*10)/10;
@@ -62,7 +62,9 @@
     }
 
     setTimer(seconds){
-      this.seconds=clamp(Math.ceil(Number(seconds)||0),0,60);
+      const next=clamp(Math.ceil(Number(seconds)||0),0,60);
+      if(next===this.seconds)return;
+      this.seconds=next;
       this.updateDebug();
     }
 
@@ -137,16 +139,20 @@
       const nextId=String(catchId||"");
       if(!nextId){this.resetRig(side,false);return;}
       const changed=rig.catchId!==nextId;
+      // Polling can return the same confirmed catch several times while the
+      // reel is still moving. Never let a duplicate snapshot snap that motion
+      // straight to its resting position.
+      if(!changed){this.updateDebug();return;}
       rig.catchId=nextId;rig.caught=true;
       this.hook(side)?.classList.add("has-catch");
-      if(changed&&animate)this.reel(side,nextId);
+      if(animate)this.reel(side,nextId);
       else{rig.y=this.catchRestY(side);rig.baseY=rig.y;rig.anim=null;}
       this.updateDebug();
     }
 
     reel(side,catchId=""){
       const rig=this.rigs[side];if(!rig)return Promise.resolve();
-      const duration=this.reducedMotion?80:1250;
+      const duration=this.reducedMotion?80:1150;
       const hook=this.hook(side);hook?.classList.add("has-catch","is-reeling");
       this.water?.classList.add(side==="left"?"pull-left":"pull-right");
       this.setPhase("reeling",{side});
@@ -157,7 +163,7 @@
       this.log("reel-started",{side,catchId:rig.catchId,duration});
       return new Promise(resolve=>setTimeout(()=>{
         hook?.classList.remove("is-reeling");
-        this.water?.classList.remove("pull-left","pull-right");
+        this.water?.classList.remove(side==="left"?"pull-left":"pull-right");
         this.setPhase("caught",{side});
         this.log("catch-secured",{side,catchId:rig.catchId});
         resolve();
@@ -184,7 +190,7 @@
 
     resize(){
       if(!this.water||!this.canvas)return;
-      const rect=this.water.getBoundingClientRect(),dpr=Math.min(1.5,global.devicePixelRatio||1);
+      const rect=this.water.getBoundingClientRect(),dpr=Math.min(1.25,global.devicePixelRatio||1);
       this.geometry.water={width:round(rect.width),height:round(rect.height)};
       const width=Math.max(1,Math.round(rect.width*dpr)),height=Math.max(1,Math.round(rect.height*dpr));
       if(this.canvas.width!==width||this.canvas.height!==height){this.canvas.width=width;this.canvas.height=height;this.canvas.style.width=`${rect.width}px`;this.canvas.style.height=`${rect.height}px`;}
@@ -226,10 +232,11 @@
       const phase=this.reducedMotion?0:now*.00115;
       const gradient=ctx.createLinearGradient(0,horizon,0,h);gradient.addColorStop(0,"rgba(86,238,244,.035)");gradient.addColorStop(.55,"rgba(18,171,205,.075)");gradient.addColorStop(1,"rgba(0,83,128,.105)");ctx.fillStyle=gradient;ctx.fillRect(0,horizon,w,h-horizon);
       ctx.globalCompositeOperation="screen";
-      for(let row=0;row<18;row++){
-        const y=horizon+14+row*((h-horizon-20)/18),amp=1.8+row*.16,freq=.0112+row*.00032;
+      const rows=w<680?9:12;
+      for(let row=0;row<rows;row++){
+        const y=horizon+14+row*((h-horizon-20)/rows),amp=1.8+row*.2,freq=.0112+row*.0004;
         ctx.beginPath();
-        for(let x=-8;x<=w+8;x+=8){const wave=Math.sin(x*freq+phase*(1.6+row*.034)+row*.73)*amp+Math.sin(x*.0041-phase*.9)*1.05; if(x===-8)ctx.moveTo(x,y+wave);else ctx.lineTo(x,y+wave);}
+        for(let x=-12;x<=w+12;x+=12){const wave=Math.sin(x*freq+phase*(1.6+row*.034)+row*.73)*amp+Math.sin(x*.0041-phase*.9)*1.05; if(x===-12)ctx.moveTo(x,y+wave);else ctx.lineTo(x,y+wave);}
         ctx.strokeStyle=`rgba(${row%3===0?"221,254,255":"92,231,235"},${.09+(row%4)*.018})`;ctx.lineWidth=row%4===0?1.25:.75;ctx.stroke();
       }
       for(let band=0;band<3;band++){
@@ -245,7 +252,7 @@
       if(this.destroyed)return;
       if(!this.root.isConnected){this.destroy();return;}
       for(const side of SIDES)this.updateRig(this.rigs[side],now);
-      if(now-this.lastWaterFrame>32){this.lastWaterFrame=now;this.drawWater(now);}
+      if(!document.hidden&&now-this.lastWaterFrame>50){this.lastWaterFrame=now;this.drawWater(now);}
       this.frameHandle=requestAnimationFrame(this.boundFrame);
     }
 

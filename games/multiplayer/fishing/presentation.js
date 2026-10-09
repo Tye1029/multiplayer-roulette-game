@@ -336,6 +336,9 @@ function duelFishingUpdateClock(root,seconds,status="playing"){
       const clock=root?.querySelector?.('[data-fishing-clock]');if(!clock)return;
       const safe=Math.max(0,Math.min(60,Math.ceil(Number(seconds)||0)));
       const waiting=!['countdown','playing'].includes(String(status||''));
+      const renderKey=`${String(status||'waiting')}:${safe}`;
+      if(clock.dataset.clockRenderKey===renderKey)return;
+      clock.dataset.clockRenderKey=renderKey;
       clock.dataset.clockState=String(status||'waiting');
       clock.classList.toggle('is-low',safe<=10&&!waiting);
       const value=clock.querySelector('[data-fishing-clock-value]');if(value)value.textContent=waiting?'—:—':duelFishingFormatClock(safe);
@@ -386,10 +389,9 @@ function duelFishingTick(){
       const seconds=g.status==="playing"?Math.min(60,Math.max(0,Math.ceil(duelFishingRemainingMs(s)/1000))):60;
       const fishingRoot=duelActive?.querySelector("[data-fishing-game]");
       duelFishingUpdateClock(fishingRoot,seconds,g.status);
-      const debugTimer=duelActive?.querySelector("[data-fishing-debug-timer]");if(debugTimer)debugTimer.textContent=`${seconds}s`;
+      const debugTimer=duelActive?.querySelector("[data-fishing-debug-timer]");if(debugTimer&&debugTimer.textContent!==`${seconds}s`)debugTimer.textContent=`${seconds}s`;
       fishingRoot?._fishingController?.setTimer?.(seconds);
       fishingRoot?._fishingController?.setRipple?.(active?.id||"");
-      if(g.status==="countdown")duelFishingPatchDom(g);
       const id=duelActive?.querySelector("[data-fishing-water]")?.dataset.fishId||"";if((active?.id||"")!==id)duelFishingPatchDom(g);
       // Presentation audio must never prevent the clock or bite window updating.
       try{
@@ -420,20 +422,15 @@ function duelFishingBeginOptimisticPull(water, game, active){
       water.appendChild(marker);
       // Let the water ring finish even if the server acknowledges the catch early.
       setTimeout(()=>marker.remove(),720);
-      water.classList.add(side==="left"?"pull-left":"pull-right");
-      const pullStarted=performance.now(),root=water.closest("[data-fishing-game]");
-      const trackPull=()=>{duelFishingAlignLines(root);if(performance.now()-pullStarted<1180)requestAnimationFrame(trackPull);};
-      requestAnimationFrame(trackPull);
       duelFishingPlaySplash(side);
-      duelFishingScheduleAudio(()=>duelFishingPlayFlop(side),300);
-      return {side,eventId:String(active.id||""),marker};
+      return {side,eventId:String(active.id||""),marker,requestedAt:performance.now()};
     }
 // SITE_FRAGMENT_END: duelFishingBeginOptimisticPull_223598
 
 // SITE_FRAGMENT_START: duelFishingClearOptimisticPull_224753
 function duelFishingClearOptimisticPull(water, pending){
       if(!water||!pending)return;
-      water.classList.remove("pull-left","pull-right");
+      water.classList.remove(pending.side==="left"?"pull-left":"pull-right");
     }
 // SITE_FRAGMENT_END: duelFishingClearOptimisticPull_224753
 
@@ -442,7 +439,7 @@ function duelFishingEnsureController(root){
       if(window.FishingSceneController||window.__fishingControllerLoading)return;
       window.__fishingControllerLoading=true;
       const script=document.createElement("script");
-      script.src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v31&runtime=1";
+      script.src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v32&runtime=1";
       script.onload=()=>{window.__fishingControllerLoading=false;if(root?.isConnected)duelBindFishing(root);};
       script.onerror=()=>{window.__fishingControllerLoading=false;console.error("Fishing controller failed to load");};
       document.head.appendChild(script);
