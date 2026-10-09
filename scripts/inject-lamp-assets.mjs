@@ -76,44 +76,21 @@ function removeObsoleteLampBlocks(source) {
   return html;
 }
 
-const criticalStyle = `  <link id="rrLampExternalStyles" rel="stylesheet" href="/assets/roulette/lamp.css?v=18&scene=2">
+const criticalStyle = `  <link id="rrLampExternalStyles" rel="stylesheet" href="/assets/roulette/lamp.css?v=18&scene=rustic-v2">
   <style id="rrLampCriticalHide">
-    [data-roulette-game] > .rr-lamp,
-    [data-roulette-game] .rr-lamp-fixture,
-    [data-roulette-game] .rr-v106-lamp-art,
-    [data-roulette-game] .rr-v114-lamp-art,
-    [data-roulette-game] .rr-v120-lamp-rig,
-    [data-roulette-game] .rr-v122-lamp-rig,
-    [data-roulette-game] .rr-v123-lamp-layer,
-    [data-roulette-game] .rr-v124-lamp-fixture,
-    [data-roulette-game] .rr126-swing::before,
-    [data-roulette-game] .rr126-swing::after,
-    [data-roulette-game] .rr126-bulb-glow,
-    [data-roulette-game] .rr126-room-glow,
-    [data-roulette-game] .rr126-beam,
-    [data-roulette-game] .rr126-swing > img:not(#rrLampPng),
-    [data-roulette-game] .rr126-swing > [class*="lamp-body"],
-    [data-roulette-game] .rr126-swing > [class*="lamp-shade"],
-    [data-roulette-game] .rr126-swing > [class*="shade-art"],
-    [data-roulette-game] .rr126-swing > [class*="underside"] {
-      display:none!important;visibility:hidden!important;opacity:0!important;
-    }
-    [data-roulette-game] .rr126-lamp-rig{position:absolute!important;inset:0 0 auto 0!important;width:100%!important;height:58%!important;z-index:4!important;pointer-events:none!important;overflow:visible!important}
-    [data-roulette-game] .rr126-chain{position:absolute!important;top:0!important;left:49.75%;width:12.5px;height:5%;transform:translateX(-50%) scaleX(.56);background:url('/assets/roulette/decor/workshop-lamp-chain.png') center top/12.5px auto repeat-y!important;z-index:2!important}
-    [data-roulette-game] .rr126-swing{position:absolute!important;top:calc(20% - 26px);left:49.75%;width:44%!important;aspect-ratio:325/273!important;transform:translateX(-50%);transform-origin:50% 0!important;overflow:visible!important;visibility:visible!important;opacity:1!important;z-index:3!important}
-    [data-roulette-game] #rrLampPng{position:absolute!important;left:calc(50% - .75%)!important;top:50%!important;width:94%!important;height:auto!important;transform:translate(-50%,-50%)!important;visibility:visible!important;opacity:1!important}
-    [data-roulette-game] .rr130-table-illumination{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;pointer-events:none!important}
-    [data-roulette-game] .rr-smoke{display:none!important;visibility:hidden!important;opacity:0!important}
-    @media(min-width:701px){[data-roulette-game] .rr126-lamp-rig{height:51%!important}[data-roulette-game] .rr126-swing{width:31%!important;max-width:200px!important}}
-    @media(max-width:700px),(hover:none) and (pointer:coarse){[data-roulette-game] .rr126-lamp-rig{height:57%!important}[data-roulette-game] .rr126-swing{width:43%!important;max-width:none!important}}
+    [data-roulette-game] > .rr-lamp,[data-roulette-game] .rr-lamp-fixture,
+    [data-roulette-game] .rr-v106-lamp-art,[data-roulette-game] .rr-v114-lamp-art,
+    [data-roulette-game] .rr-v120-lamp-rig,[data-roulette-game] .rr-v122-lamp-rig,
+    [data-roulette-game] .rr-v123-lamp-layer,[data-roulette-game] .rr-v124-lamp-fixture {display:none!important}
   </style>`;
+
 
 const block = `${startMarker}\n` +
   `${criticalStyle}\n` +
-  '  <script src="/assets/roulette/lamp-config.js?v=19&scene=2" defer></script>\n' +
-  '  <script src="/assets/roulette/lamp.js?v=20&scene=2" defer></script>\n' +
-  '  <script src="/assets/roulette/lamp-bootstrap.js?v=19&scene=2" defer></script>\n' +
-  '  <link rel="stylesheet" href="/assets/roulette/scene.css?v=roulette-repair-1">\n' +
+  '  <script src="/assets/roulette/lamp-config.js?v=19&scene=rustic-v2" defer></script>\n' +
+  '  <script src="/assets/roulette/lamp.js?v=20&scene=rustic-v2" defer></script>\n' +
+  '  <script src="/assets/roulette/lamp-bootstrap.js?v=19&scene=rustic-v2" defer></script>\n' +
+  '  <link rel="stylesheet" href="/assets/roulette/scene.css?v=rustic-v2">\n' +
   '  <script src="/assets/roulette/audio-manager.js?v=4&ambience=2&media=2&countdown=2&load=15" defer></script>\n' +
   '  <!-- compatibility: /assets/roulette/spin-audio-policy.js?v=3 -->\n' +
   '  <script src="/assets/roulette/spin-audio-policy.js?v=4&turnsound=4&reliable=1" defer></script>\n' +

@@ -97,5 +97,5 @@ env.window.DuelAssetLoader.warm('safecracker'); assert.equal(requests.length, 0)
 env.window.DuelAssetLoader.warm('roulette'); env.window.DuelAssetLoader.warm('roulette');
 assert.deepEqual(requests, paths, 'Roulette selection must load each scene image once');
 for (const path of paths) await stat(new URL(`..${path}`, import.meta.url));
-assert((await stat(new URL('../assets/roulette/decor/workshop-lamp-image2.png', import.meta.url))).size < 120000);
+assert((await stat(new URL('../assets/roulette/decor/rustic-pendant-v2.png', import.meta.url))).size < 300000);
 console.log('Roulette repair passed: first-shot unlock, one-use spin across passes, duplicates, six chamber outcomes, bot eligibility, private fields, live animation hold, and scoped image preloads.');

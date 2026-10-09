@@ -1,18 +1,107 @@
-/* Keep the full rotation sweep inside the physical tabletop. */
-html body [data-roulette-game] .rr-gun-motion {
-  width: min(68%, 310px) !important;
-  top: 52% !important;
+/* rustic-v2: a single layout owns the table, seats and responsive composition. */
+html body [data-roulette-game][data-roulette-scene="rustic-v2"] {
+  height:650px!important;min-height:650px!important;max-width:820px!important;
+  padding:0!important;overflow:hidden!important;isolation:isolate;
+  background:radial-gradient(ellipse at 50% 40%,#30261b,#15120f 54%,#080807 100%)!important;
 }
-
+html body [data-roulette-game][data-roulette-scene="rustic-v2"]::before,
+html body [data-roulette-game][data-roulette-scene="rustic-v2"]::after,
+html body [data-roulette-game][data-roulette-scene="rustic-v2"] .rr-table::before,
+html body [data-roulette-game][data-roulette-scene="rustic-v2"] .rr-table::after {content:none!important;display:none!important}
+html body [data-roulette-scene="rustic-v2"] .rr-table {
+  inset:230px 5% auto!important;width:90%!important;height:auto!important;
+  aspect-ratio:1200/632!important;border:0!important;border-radius:0!important;
+  background:none!important;box-shadow:none!important;filter:none!important;
+  overflow:visible!important;isolation:isolate;z-index:4!important;
+}
+html body [data-roulette-scene="rustic-v2"] .rr-table-art,
+html body [data-roulette-scene="rustic-v2"] .rr130-table-illumination img {
+  display:block;width:100%!important;height:auto!important;max-width:none!important;
+  position:absolute;inset:0;object-fit:contain;pointer-events:none;
+}
+html body [data-roulette-scene="rustic-v2"] .rr-table-art {filter:brightness(.48) saturate(.85) drop-shadow(0 15px 12px #0009)}
+html body [data-roulette-scene="rustic-v2"] .rr130-table-illumination {
+  position:absolute!important;inset:0!important;width:100%!important;height:100%!important;
+  z-index:1!important;filter:none!important;background:none!important;
+  animation:none!important;mix-blend-mode:normal!important;opacity:1!important;
+  pointer-events:none;-webkit-mask-image:var(--rr-surface-light);mask-image:var(--rr-surface-light);
+}
+html body [data-roulette-scene="rustic-v2"] .rr130-table-illumination img {filter:brightness(1.5) saturate(.92) sepia(.12)}
+html body [data-roulette-scene="rustic-v2"] .rr-table-shadow {display:none!important}
+html body [data-roulette-scene="rustic-v2"] .rr-gun-motion {
+  width:min(62%,400px)!important;height:auto!important;aspect-ratio:1307/522!important;
+  left:50%!important;top:48%!important;z-index:3!important;
+}
+html body [data-roulette-scene="rustic-v2"] .rr-photo-revolver {filter:drop-shadow(var(--rr-shadow-x,3px) 8px 4px #000a)!important}
+html body [data-roulette-scene="rustic-v2"] .rr-gun-photo,
+html body [data-roulette-scene="rustic-v2"] .rr-hammer-photo {filter:brightness(.82) saturate(.88)!important}
+html body [data-roulette-scene="rustic-v2"] .rr-metal-glint {
+  display:block!important;opacity:1!important;inset:0!important;
+  animation:none!important;background:none!important;clip-path:none!important;
+  mix-blend-mode:screen!important;overflow:hidden;pointer-events:none;
+}
+html body [data-roulette-scene="rustic-v2"] .rr-gun-light-field {
+  position:absolute;width:100px;height:100px;left:0;top:0;transform-origin:0 0;
+  background:radial-gradient(circle,rgba(255,237,202,.52),rgba(236,191,123,.24) 35%,rgba(236,191,123,.08) 62%,transparent 100%);
+  opacity:var(--rr-gun-light-strength,1);pointer-events:none;
+}
+.rr-light-probe {position:absolute;width:0;height:0;pointer-events:none}
+.rr-light-probe-a {left:0;top:0}.rr-light-probe-b {left:100%;top:0}.rr-light-probe-c {left:0;top:100%}
+html body [data-roulette-scene="rustic-v2"] .rr-scene-props {position:absolute;inset:0;z-index:2;pointer-events:none}
+html body [data-roulette-scene="rustic-v2"] .rr-seat {
+  position:absolute;width:26%;aspect-ratio:2/3;top:285px;z-index:1;
+  filter:brightness(.67) saturate(.8) drop-shadow(0 9px 8px #000a);
+}
+html body [data-roulette-scene="rustic-v2"] .rr-seat-left {left:0}
+html body [data-roulette-scene="rustic-v2"] .rr-seat-right {right:0;transform:scaleX(-1)}
+html body [data-roulette-scene="rustic-v2"] .rr-seat-chair {position:absolute;inset:0;width:100%;height:auto}
+html body [data-roulette-scene="rustic-v2"] .rr-seated-body {
+  position:absolute;width:65%;left:36.75%;top:33.2%;aspect-ratio:2/3;
+  transform-origin:38% 28%;will-change:transform;
+}
+html body [data-roulette-scene="rustic-v2"] .rr-seated-body img {width:100%;height:auto;display:block}
+html body [data-roulette-scene="rustic-v2"] .rr-seat-falling .rr-seated-body {animation:rrSeatedFall 1150ms cubic-bezier(.32,.02,.65,.95) both}
+html body [data-roulette-scene="rustic-v2"] .rr-seat-fallen .rr-seated-body {visibility:hidden}
+@keyframes rrSeatedFall {
+  0%{transform:translate(0,0) rotate(0deg);opacity:1}
+  25%{transform:translate(-12%,-8%) rotate(-18deg);opacity:1}
+  60%{transform:translate(-72%,16%) rotate(-68deg);opacity:1}
+  100%{transform:translate(-240%,90%) rotate(-112deg);opacity:0}
+}
+html body [data-roulette-scene="rustic-v2"] .rr-top {position:absolute!important;inset:8px 0 auto!important;padding:6px 14px!important;z-index:8!important}
+html body [data-roulette-scene="rustic-v2"] .rr-player:first-child {grid-column:1}
+html body [data-roulette-scene="rustic-v2"] .rr-player:last-child {grid-column:3}
+html body [data-roulette-scene="rustic-v2"] .rr-pot {
+  position:absolute;left:14px;top:80px;display:flex!important;align-items:center;gap:7px;
+  margin:0;padding:7px 10px!important;border-radius:7px!important;background:#110e0ad9!important;
+}
+html body [data-roulette-scene="rustic-v2"] .rr-pot b {font-size:1rem!important}
+html body [data-roulette-scene="rustic-v2"] .rr-status {
+  position:absolute!important;left:50%!important;top:192px!important;transform:translateX(-50%)!important;
+  margin:0!important;min-height:0!important;padding:0!important;z-index:8!important;
+}
+html body [data-roulette-scene="rustic-v2"] .rr-status strong {font-size:clamp(1rem,3vw,1.35rem)!important}
+html body [data-roulette-scene="rustic-v2"] .rr-opening-banner {top:197px!important;z-index:8!important}
+html body [data-roulette-scene="rustic-v2"] .rr-controls {
+  position:absolute!important;bottom:14px!important;left:50%!important;transform:translateX(-50%)!important;
+  width:calc(100% - 30px)!important;max-width:660px!important;z-index:9!important;
+}
+html body [data-roulette-scene="rustic-v2"] .rr-btn {min-height:52px!important}
 html body [data-roulette-game] .rr-btn:disabled,
-html body [data-roulette-game] .rr-controls-disabled .rr-btn {
-  cursor: default !important;
-  opacity: .42 !important;
-  filter: grayscale(1) !important;
+html body [data-roulette-game] .rr-controls-disabled .rr-btn {cursor:default!important;opacity:.42!important;filter:grayscale(1)!important}
+html body [data-roulette-scene="rustic-v2"] :is(.rr-table-light,.rr-lamp,.rr-lamp-fixture,.rr-smoke,.rr-rain,.rr-turn-pulse,.rr-dust,.rr-embers,.rr-light-haze,.rr-chair-png,.rr-chair-back,.rr-chair-left,.rr-chair-right,[class*="rr-v100"],[class*="rr-v106"]) {display:none!important}
+@media(max-width:560px) {
+  html body [data-roulette-game][data-roulette-scene="rustic-v2"] {height:490px!important;min-height:490px!important}
+  html body [data-roulette-scene="rustic-v2"] .rr-table {inset:205px 3% auto!important;width:94%!important}
+  html body [data-roulette-scene="rustic-v2"] .rr-gun-motion {width:58%!important}
+  html body [data-roulette-scene="rustic-v2"] .rr-seat {width:34%;top:222px}
+  html body [data-roulette-scene="rustic-v2"] .rr-top {inset:5px 0 auto!important;padding:3px 5px!important}
+  html body [data-roulette-scene="rustic-v2"] .rr-player {padding:5px!important}
+  html body [data-roulette-scene="rustic-v2"] .rr-pot {left:8px;top:70px;gap:4px;padding:5px 6px!important}
+  html body [data-roulette-scene="rustic-v2"] .rr-status {top:173px!important}
+  html body [data-roulette-scene="rustic-v2"] .rr-status strong {font-size:.95rem!important}
+  html body [data-roulette-scene="rustic-v2"] .rr-opening-banner {top:179px!important}
+  html body [data-roulette-scene="rustic-v2"] .rr-controls {width:calc(100% - 16px)!important;bottom:10px!important;gap:6px!important}
+  html body [data-roulette-scene="rustic-v2"] .rr-btn {min-height:48px!important}
 }
-
-@media (max-width: 560px) {
-  html body [data-roulette-game] .rr-gun-motion {
-    width: min(68%, 245px) !important;
-  }
-}
+@media(prefers-reduced-motion:reduce) {html body [data-roulette-scene="rustic-v2"] .rr-seat-falling .rr-seated-body {animation-duration:1ms}}

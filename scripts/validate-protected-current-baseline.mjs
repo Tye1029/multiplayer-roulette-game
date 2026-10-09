@@ -55,5 +55,6 @@ for (const [path, expected] of protectedHashes) {
 await import('./validate-safe-cracker-restored-release.mjs');
 await import('./validate-site-asset-loading.mjs');
 await import('./validate-roulette-repair.mjs');
+await import('./validate-roulette-scene.mjs');
 await import('./validate-idle-debug-rendering.mjs');
 console.log('Protected Roulette, Safe Cracker, and shared multiplayer current baseline validated.');

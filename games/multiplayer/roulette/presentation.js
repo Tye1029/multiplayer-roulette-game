@@ -104,6 +104,8 @@ function roulettePatchMountedRuntime(game){
         return true;
       }
       const holder=document.createElement('div');holder.innerHTML=rouletteHtml(game);const freshRoot=holder.firstElementChild;if(!freshRoot)return false;
+      const oldProps=oldRoot.querySelector('.rr-scene-props'),freshProps=freshRoot.querySelector('.rr-scene-props');
+      if(oldProps&&freshProps)freshProps.replaceWith(oldProps);
       const oldTable=oldRoot.querySelector('.rr-table'),freshTable=freshRoot.querySelector('.rr-table');
       if(oldTable&&freshTable)freshTable.replaceWith(oldTable);
       oldRoot.replaceWith(freshRoot);rouletteBind(duelActive);
@@ -144,7 +146,9 @@ function rouletteHoldLiveResult(game){
       rouletteVisualRuntime.processed.add(effectKey);
       rouletteQueueVisual(async()=>{
         try{
-          await rouletteShotSequence(game,st,gameId);
+          const shot=rouletteShotSequence(game,st,gameId);
+          await rouletteWait(270);
+          await Promise.all([shot,globalThis.RouletteScene?.fall?.(game,st)]);
           // Keep the table visible after the live shot so muzzle flash, smoke,
           // recoil, and the final settling motion can be seen before results.
           await rouletteWait(1500);
@@ -407,13 +411,15 @@ function rouletteHtml(game){
       // remounts from snapping the gun to either side mid-animation.
       const runtimeOwnsAngle=rouletteVisualRuntime.gameId===rouletteGameId&&rouletteVisualRuntime.angleHydrated&&Number.isFinite(rouletteVisualRuntime.currentAngle);
       const neutralAngle=!openingAlreadyCompleted?-4:(runtimeOwnsAngle?rouletteVisualRuntime.currentAngle:rouletteTurnAngle(game,st));
-      return `<div class="rr-game ${!hasOpponent?'rr-waiting-player ':''}${openingConcealed?'rr-opening-active ':''}${st.lastOutcome==='live'?'rr-fired':''}" data-roulette-opening="${openingConcealed?'1':'0'}" data-roulette-game data-game-id="${escapeHtml(String(game.gameId||''))}" data-revision="${Number(st.revision||0)}" data-status="${escapeHtml(String(game.status||''))}" data-turn-id="${escapeHtml(String(st.turnId||''))}" data-my-turn="${myTurn?'1':'0'}" data-phase="${escapeHtml(String(st.phase||''))}" data-controls-locked="${controlsLocked?'1':'0'}" data-opening-ready="${openingCanStart?'1':'0'}">
-        <div class="rr-backwall"></div><div class="rr-smoke"></div><div class="rr126-lamp-rig" aria-hidden="true"><div class="rr126-chain"></div><div class="rr126-swing"><div class="rr126-beam"></div><div class="rr126-room-glow"></div><div class="rr126-bulb-glow"></div></div></div><div class="rr-lamp"></div><div class="rr-rain"></div><div class="rr-turn-pulse"></div>
+      const loserId=String(st.loserId||game.loserUserId||'');
+      const seats=[creator,joiner].map((player,index)=>`<div class="rr-seat rr-seat-${index?'right':'left'} ${complete&&String(player.userId||'')===loserId?'rr-seat-fallen':''}" data-seat-player="${escapeHtml(String(player.userId||''))}" data-seat-side="${index?'right':'left'}" aria-hidden="true"><img class="rr-seat-chair" src="/assets/roulette/decor/saloon-chair-v2.png" alt="" draggable="false">${player.userId?'<div class="rr-seated-body"><img src="/assets/roulette/decor/seated-player-v2.png" alt="" draggable="false"></div>':''}</div>`).join('');
+      return `<div class="rr-game ${!hasOpponent?'rr-waiting-player ':''}${openingConcealed?'rr-opening-active ':''}${st.lastOutcome==='live'?'rr-fired':''}" data-roulette-scene="rustic-v2" data-roulette-opening="${openingConcealed?'1':'0'}" data-roulette-game data-game-id="${escapeHtml(String(game.gameId||''))}" data-revision="${Number(st.revision||0)}" data-status="${escapeHtml(String(game.status||''))}" data-turn-id="${escapeHtml(String(st.turnId||''))}" data-my-turn="${myTurn?'1':'0'}" data-phase="${escapeHtml(String(st.phase||''))}" data-controls-locked="${controlsLocked?'1':'0'}" data-opening-ready="${openingCanStart?'1':'0'}">
+        <div class="rr-backwall"></div><div class="rr-scene-props" aria-hidden="true">${seats}<div class="rr-light-volume"></div><div class="rr126-lamp-rig"><div class="rr126-swing"><div class="rr126-chain"></div><img id="rrLampPng" src="/assets/roulette/decor/rustic-pendant-v2.png" alt="" draggable="false"></div></div></div>
         <div class="rr-top"><div class="rr-player ${openingAlreadyCompleted&&String(st.turnId||'')===String(creator.userId||'')?'active':''}">${roulettePlayerAvatar(creator)}<b>${escapeHtml(creator.name||'Player 1')}</b><span>${rouletteSpinWasUsed(game,creator.userId)?'SPIN USED':'SPIN READY'}</span></div><div class="rr-pot"><span>Pot</span><b>${rouletteCompactPot(game.pot||game.wager||0)}</b><small>Tickets</small></div><div class="rr-player ${openingAlreadyCompleted&&String(st.turnId||'')===String(joiner.userId||'')?'active':''}">${roulettePlayerAvatar(joiner)}<b>${escapeHtml(joiner.name||'Waiting for Player')}</b><span>${!hasOpponent?'OPEN SEAT':(rouletteSpinWasUsed(game,joiner.userId)?'SPIN USED':'SPIN READY')}</span></div></div>
         <div class="rr-status"><strong>${status}</strong><small>${sub}</small></div>
         ${clientCountdownActive?`<div class="rr-scene-countdown" data-roulette-countdown><div class="duel-countdown-number cue">${escapeHtml(rouletteClientCountdownLabel()||'3')}</div></div>`:''}
         ${openingCanStart&&openingConcealed?'<div class="rr-opening-banner">Choosing First Player</div>':''}
-        <div class="rr-table"><div class="rr130-table-illumination" aria-hidden="true"></div><div class="rr-table-shadow"></div>
+        <div class="rr-table"><img class="rr-table-art" src="/assets/roulette/decor/oval-table-v2.png" alt="" draggable="false"><div class="rr130-table-illumination" aria-hidden="true"><img src="/assets/roulette/decor/oval-table-v2.png" alt="" draggable="false"></div><div class="rr-table-shadow"></div>
         <div class="rr-gun-motion" data-roulette-motion style="transform:${rouletteMotionTransform(neutralAngle)}">
           <div class="rr-revolver rr-photo-revolver" aria-label="Long-barrel side-view revolver" data-revolver-model="${escapeHtml(revolverModel)}">
             <img class="rr-gun-photo" src="assets/roulette/revolver-${escapeHtml(revolverModel)}.png" alt="" draggable="false">
