@@ -1,5 +1,5 @@
 {
-  "release": "20261009-heist25",
+  "release": "20261009-heist26",
   "sourcePreview": "https://deploy-preview-19--famous-piroshki-b621da.netlify.app/",
   "sourceDeploy": "6a70b46ca5416100089b828b",
   "sourceBranch": "safe-cracker-development",
@@ -38,8 +38,8 @@
     "assets/safe-cracker/images/safe-steel-surface-v3.png": "65d130d407de98d1e443e849f4100959214714a44408700bb78af509a23238a9",
     "assets/safe-cracker/textures/dial-index-steel.svg": "f4f21a18bf6b8f7924a0ceb45ddc2c0a10e02622cac858b29cea0e79187a17ca",
     "assets/safe-cracker/images/dial-reference-face.png": "a8d184102637890154216a3e35740fc5141365cce920d20564eb6ed866e0dd88",
-    "assets/safe-cracker/heist.js": "3f7a3908dc6e8ca864f8254d7f05e2e215948149d49a08e39d65603ea82a124c",
-    "assets/safe-cracker/heist.css": "c92fc754f28ca139118d61e5ec53a64818a04b70026797a1dec50043c23bdf51",
+    "assets/safe-cracker/heist.js": "3e51986b5628d1998b6a8110c4dab14256474cbc7ebd053f05cbbed38560376d",
+    "assets/safe-cracker/heist.css": "1b1386308adcdba1554b6f84f26b4d575a09e4f2ada3219393a034f12338d422",
     "assets/safe-cracker/images/safe-interior-v1.png": "454f43649dce5ca3beb5d8794a42818e03231a7d45467280852da5d13f26b900"
   },
   "sourceNote": "Recovered from the last deployed Safe Cracker preview; one whitespace-only runtime line was cleaned. Supporting generated SVG and recordings were rebuilt from the unchanged repository sources and matched that deployment.",

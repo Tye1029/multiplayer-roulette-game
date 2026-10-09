@@ -20,7 +20,7 @@ for (const extension of ['js', 'css']) {
 const client = await read('assets/safe-cracker/safe-cracker.js');
 const styles = await read('assets/safe-cracker/safe-cracker.css');
 const heistAssets = await read('assets/safe-cracker/heist.js') + await read('assets/safe-cracker/heist.css');
-assert.ok(html.includes('/assets/safe-cracker/heist.js?v=25') && html.includes('/assets/safe-cracker/heist.css?v=25'), 'Three-stage tools must load with the game runtime');
+assert.ok(html.includes('/assets/safe-cracker/heist.js?v=26') && html.includes('/assets/safe-cracker/heist.css?v=26'), 'Three-stage tools must load with the game runtime');
 for (const match of (client + styles + heistAssets).matchAll(/\/assets\/safe-cracker\/[^'"\s?<>\\)]+/g)) {
   assert.ok(release.sha256[match[0].slice(1)], `Unverified Safe Cracker dependency: ${match[0]}`);
 }
