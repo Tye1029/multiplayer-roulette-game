@@ -28,6 +28,7 @@ const context = vm.createContext({runtime,Math,Date,Number,String,DETENT_DEGREES
   playDetent:()=>{detents++;},resumeAudio(){},render(){},safeCrackerRequestGuess(){}
 });
 vm.runInContext(section('function modulo(value, size)', 'function stateFor(game'), context);
+vm.runInContext(section('function safeCrackerSetMarkup(element, markup)', '// SAFE_CRACKER_PRESENTATION_ORDER_V23_END'), context);
 vm.runInContext(section('function visibleDialRotation()', 'function bindResultControls(mount)'), context);
 context.bindControls({querySelector:s=>s==='[data-sc-dial]'?dial:null,querySelectorAll:()=>[]},runtime.game);
 const point = degrees=>({pointerId:1,clientX:100+100*Math.cos(degrees*Math.PI/180),clientY:100+100*Math.sin(degrees*Math.PI/180),preventDefault(){}});

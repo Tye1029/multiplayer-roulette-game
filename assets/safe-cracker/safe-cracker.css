@@ -5622,3 +5622,25 @@ body:has(.safe-cracker-game) {
   .safe-cracker-game .sc-dial-pointer { top:-18px;width:40px;height:29px; }
 }
 /* SAFE_CRACKER_DIAL_CONTINUITY_V22_END */
+
+/* SAFE_CRACKER_SMOOTH_FINISH_V23_START */
+/* Keep the full steel door cached while it swings. Local opacity layers already
+   provide the reflected golden light, without re-filtering the entire safe. */
+@keyframes scGameplaySafeFocus {
+  0%,16% { transform:scale(1); }
+  100% { transform:scale(1.012); }
+}
+.safe-cracker-game .sc-safe-shell.sc-gameplay-win .sc-display,
+.safe-cracker-game .sc-safe-shell.sc-gameplay-win .sc-dial-wrap,
+.safe-cracker-game .sc-safe-shell.sc-gameplay-win .sc-confirm-button,
+.safe-cracker-game .sc-safe-shell.sc-gameplay-win .sc-safe-door::after {
+  animation:none;
+  filter:none;
+}
+body > .sc-result-overlay[data-sc-result-portal].sc-result-portal-pending {
+  visibility:hidden;
+}
+body > .sc-result-overlay[data-sc-result-portal].sc-result-portal-ready {
+  visibility:visible;
+}
+/* SAFE_CRACKER_SMOOTH_FINISH_V23_END */

@@ -504,6 +504,8 @@
     portal.classList.add('sc-result-portal-ready');
     portal.setAttribute('role', 'dialog');
     portal.setAttribute('aria-modal', 'true');
+    portal.removeAttribute('aria-hidden');
+    portal.removeAttribute('inert');
     portal.setAttribute('aria-label', won ? 'Safe Cracker win result' : 'Safe Cracker result');
     document.body.classList.add('sc-result-portal-open');
     document.body.classList.toggle('sc-result-win-open', Boolean(won));
@@ -568,13 +570,18 @@
     if (!sameSequence) {
       runtime.resultPortalGameId = gameId;
       runtime.resultSequenceStartedAt = performance.now();
-      playSafeCrackerResultSequence(game, won, tied);
+      const openingGameId = gameId;
+      const confirmationDelay = won && !window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ? 240 : 0;
+      window.setTimeout(() => {
+        if (runtime.resultPortalGameId === openingGameId && runtime.game?.status === 'complete') playSafeCrackerResultSequence(game, won, tied);
+      }, confirmationDelay);
     }
     const elapsed = Math.max(0, performance.now() - runtime.resultSequenceStartedAt);
     const shell = mount?.querySelector('.sc-safe-shell');
     if (shell && !shell.classList.contains(won ? 'sc-gameplay-win' : tied ? 'sc-gameplay-tie' : 'sc-gameplay-lose')) {
       shell.classList.add(won ? 'sc-gameplay-win' : tied ? 'sc-gameplay-tie' : 'sc-gameplay-lose');
-      shell.style.setProperty('--sc-result-animation-delay', '-' + Math.min(elapsed, 1200) + 'ms');
+      const confirmationDelay = won && !window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ? 240 : 0;
+      shell.style.setProperty('--sc-result-animation-delay', (confirmationDelay - Math.min(elapsed, 1200)) + 'ms');
     }
     if (existing) {
       fresh.remove();
@@ -583,12 +590,15 @@
     }
     fresh.setAttribute('data-sc-result-portal', '');
     fresh.setAttribute('data-sc-result-game-id', gameId);
+    fresh.setAttribute('aria-hidden', 'true');
+    fresh.setAttribute('inert', '');
     fresh.setAttribute('aria-live', 'polite');
     fresh.classList.add('sc-result-portal-pending');
     document.body.appendChild(fresh);
     const reducedMotion = Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches);
-    // Restore the earlier 1080ms small opening, with 520ms to see the lit seam.
-    const revealDelay = reducedMotion ? 0 : won ? 1600 : tied ? 420 : 520;
+    // Confirm the checked digit for 240ms, then preserve the earlier 1080ms
+    // small opening and 520ms viewing time for the glowing seam.
+    const revealDelay = reducedMotion ? 0 : won ? 1840 : tied ? 420 : 520;
     const remaining = Math.max(0, revealDelay - elapsed);
     if (runtime.resultPortalTimer) window.clearTimeout(runtime.resultPortalTimer);
     runtime.resultPortalTimer = window.setTimeout(() => {
@@ -848,30 +858,44 @@
     mountedDial?.setAttribute('tabindex', status === 'playing' ? '0' : '-1');
 
     const meLights = root.querySelector('.sc-player-card.me .sc-progress-lights');
-    if (meLights) meLights.innerHTML = progressLights(me);
+    if (meLights) safeCrackerSetMarkup(meLights, progressLights(me));
     const opponentLights = root.querySelector('.sc-player-card.opponent .sc-progress-lights');
-    if (opponentLights) opponentLights.innerHTML = progressLights(opponent);
+    if (opponentLights) safeCrackerSetMarkup(opponentLights, progressLights(opponent));
 
     const playerCopy = root.querySelector('.sc-player-card.me .sc-player-copy');
     const existingCode = playerCopy?.querySelector('.sc-known-code');
     if (existingCode) {
-      safeCrackerReplaceMarkup(existingCode, lockedCode(me));
+      if (existingCode.dataset.scMarkup !== lockedCode(me)) {
+        const code = safeCrackerReplaceMarkup(existingCode, lockedCode(me));
+        if (code) code.dataset.scMarkup = lockedCode(me);
+      }
     } else {
       playerCopy?.querySelector('.sc-progress-lights')?.insertAdjacentHTML('beforebegin', lockedCode(me));
     }
 
     const display = root.querySelector('[data-sc-display]');
     if (display) {
-      for (const tier of ['idle', 'red', 'orange', 'yellow', 'green', 'fresh']) display.classList.remove(tier);
-      display.classList.add(displayTier);
+      const tierChanged = !display.classList.contains(displayTier);
+      if (tierChanged) {
+        for (const tier of ['idle', 'red', 'orange', 'yellow', 'green', 'fresh']) display.classList.remove(tier);
+        display.classList.add(displayTier);
+      }
       if (runtime.feedbackFresh) {
-        void display.offsetWidth;
+        display.classList.remove('fresh');
+        // Restart only the small confirmation light, never the safe layout.
+        display.getAnimations?.().forEach(animation => animation.cancel());
         display.classList.add('fresh');
+        if (!window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) {
+          display.animate?.([{opacity:.82},{opacity:1}], {duration:160,easing:'ease-out'});
+        }
       }
       safeCrackerSetText(display.querySelector('.sc-display-status'), displayText);
-      safeCrackerSetText(display.querySelector('.sc-display-meta small'), 'TUMBLER ' + Math.min(STAGES, stage + 1) + ' OF ' + STAGES);
+      safeCrackerSetText(display.querySelector('.sc-display-meta small'), safeCrackerFeedbackCaption(stage, latest));
       const meter = display.querySelector('.sc-feedback-meter');
-      if (meter) safeCrackerReplaceMarkup(meter, feedbackMeter(displayTier));
+      if (meter && (tierChanged || !meter.dataset.scMarkup)) {
+        const replacement = safeCrackerReplaceMarkup(meter, feedbackMeter(displayTier));
+        if (replacement) replacement.dataset.scMarkup = feedbackMeter(displayTier);
+      }
     }
 
     const previousLatchStage = runtime.latchGameId === gameId
@@ -882,8 +906,6 @@
       const latchNumber = index + 1;
       latch.classList.toggle('sc-latch-released', stage >= latchNumber);
       if (releasingLatch === latchNumber) {
-        latch.classList.remove('sc-latch-releasing');
-        void latch.offsetWidth;
         latch.classList.add('sc-latch-releasing');
       }
     });
@@ -906,8 +928,50 @@
   }
   // SAFE_CRACKER_RENDER_STABILITY_V1_END
 
+  // SAFE_CRACKER_PRESENTATION_ORDER_V23_START
+  function safeCrackerFeedbackCaption(stage, result) {
+    return 'TUMBLER ' + Math.min(STAGES, stage + 1) + ' OF ' + STAGES + (result ? ' · CHECKED ' + result.guess : '');
+  }
+
+  function safeCrackerSetMarkup(element, markup) {
+    if (element.dataset.scMarkup === markup) return;
+    element.innerHTML = markup;
+    element.dataset.scMarkup = markup;
+  }
+
+  function safeCrackerAcceptLocalView(game) {
+    const current = runtime.game;
+    if (!current || String(current.gameId) !== String(game?.gameId)) return true;
+    if (current.status === 'complete' && game?.status !== 'complete') return false;
+    if (Number(game?.revision || 0) < Number(current.revision || 0)) return false;
+    if (Number(game?.safecrackerState?.revision || 0) < Number(current.safecrackerState?.revision || 0)) return false;
+    return true;
+  }
+
+  function safeCrackerStopDialInteraction() {
+    const pointerId = runtime.pointerId;
+    runtime.dragging = false;
+    runtime.pointerId = null;
+    runtime.pendingDragGame = null;
+    runtime.dialDragRect = null;
+    cancelDialPaint();
+    cancelDialSettle();
+    const dial = document.querySelector('[data-sc-dial]');
+    dial?.classList.remove('dragging');
+    if (pointerId !== null) { try { dial?.releasePointerCapture?.(pointerId); } catch {} }
+    if (window.__safeCrackerDialInteractionV16) {
+      window.__safeCrackerDialInteractionV16.active = false;
+      window.__safeCrackerDialInteractionV16.pointerDown = false;
+    }
+  }
+  // SAFE_CRACKER_PRESENTATION_ORDER_V23_END
+
   function render(game) {
+    if (!safeCrackerAcceptLocalView(game)) return;
     const incomingGameId = String(game?.gameId || '');
+    const newlyComplete = game?.status === 'complete' && (runtime.game?.status !== 'complete' || incomingGameId !== String(runtime.game?.gameId || ''));
+    const finalPaintedRotation = newlyComplete ? visibleDialRotation() : null;
+    if (newlyComplete || incomingGameId !== String(runtime.game?.gameId || '')) safeCrackerStopDialInteraction();
     if (incomingGameId !== String(runtime.game?.gameId || '')) {
       runtime.requestToken = null;
       runtime.busy = false;
@@ -915,8 +979,22 @@
     }
     if (runtime.cooldownGameId && runtime.cooldownGameId !== incomingGameId) safeCrackerResetLocalCooldown();
     if (game?.status === 'complete') safeCrackerResetLocalCooldown();
+    if (game?.status === 'complete') {
+      runtime.busy = false;
+      runtime.queuedGuess = null;
+      runtime.requestToken = null;
+    }
     runtime.game = game;
     adoptSubmittedFeedback(game);
+    // A late winning answer still belongs to the checked digit, even if the
+    // player already turned ahead while waiting for that answer.
+    if (newlyComplete && String(game.winnerUserId || '') === String(game.isCreator ? game.creator?.userId : game.joiner?.userId)) {
+      const checkedDigit = runtime.feedbackResult?.guess;
+      if (checkedDigit !== undefined && checkedDigit !== null && Number.isFinite(Number(checkedDigit))) {
+        runtime.selected = modulo(Number(checkedDigit), 10);
+        runtime.rotation = nearestRotationForDigit(runtime.selected, runtime.rotation);
+      }
+    }
     updateClock(game);
     const mount = document.querySelector('[data-safe-cracker-mount]');
     if (!mount) return;
@@ -990,7 +1068,7 @@
             <div class="sc-display-bezel" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
             <div class="sc-display-glass">
               <span class="sc-display-status">${escapeHtml(displayText)}</span>
-              <div class="sc-display-meta"><small>TUMBLER ${Math.min(STAGES, Number(me.stage || 0) + 1)} OF ${STAGES}</small></div>
+              <div class="sc-display-meta"><small>${safeCrackerFeedbackCaption(Number(me.stage || 0), latest)}</small></div>
               ${feedbackMeter(displayTier)}
             </div>
           </div>
@@ -1017,6 +1095,7 @@
     runtime.feedbackFresh = false;
     mountCountdownPortal(game, mount);
     if (!reusedMountedBoard) bindControls(mount, game);
+    if (finalPaintedRotation !== null) animateDialSettle(finalPaintedRotation, runtime.rotation);
     bindResultControls(mount);
     mountSafeCrackerResultPortal(game, mount);
     updateTimerOnly();
@@ -1205,7 +1284,7 @@
         runtime.lastDragDirection = 0;
         const pendingGame = runtime.pendingDragGame;
         runtime.pendingDragGame = null;
-        if (pendingGame) render(pendingGame);
+        if (pendingGame && safeCrackerAcceptLocalView(pendingGame)) render(pendingGame);
         event.preventDefault();
       };
       dial.addEventListener('pointerup', finishDrag);
@@ -1395,7 +1474,8 @@
   window.addEventListener(STATE_EVENT, event => {
     const game = event?.detail?.game;
     if (!game || game.mode !== 'safecracker') return;
-    if (runtime.dragging) {
+    if (!safeCrackerAcceptLocalView(game)) return;
+    if (runtime.dragging && game.status === 'playing') {
       runtime.pendingDragGame = game;
       runtime.game = game;
       updateClock(game);
