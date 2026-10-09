@@ -133,3 +133,12 @@ html body [data-roulette-game] [data-revolver-model=neon-frontier] .rr-hammer-ph
 html body [data-roulette-game] .rr-table-pedestal{z-index:4;background:repeating-linear-gradient(91deg,#0000 0 7px,#10080155 8px 10px),linear-gradient(90deg,#160e08,#503727 35%,#322013 70%,#0d0905);}
 html body [data-roulette-game] .rr-execute{width:max-content!important;max-width:calc(100% - 24px)!important;min-width:180px;}
 .rr-drum-roll{overflow:hidden}.rr-drum-strip{position:absolute;inset:0}.rr-drum-strip svg{position:absolute;left:0;width:100%;height:100%;display:block}.rr-drum-roll:after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(0deg,#0009,#fff1 45%,#0008);box-shadow:inset 4px 0 5px #0008,inset -4px 0 5px #0008}
+/* Apply the room surround to the actual arcade shell, including its blue panel. */
+html body:has([data-roulette-game]) #duelScreen{background:transparent!important;border-color:#89634533!important;display:block!important;}
+html body:has([data-roulette-game]) .duel-grid{grid-template-columns:minmax(0,1fr)!important;}
+html body:has([data-roulette-game]) .duel-side-stack{display:none!important;}
+html body:has([data-roulette-game]) .duel-live-card{background:transparent!important;border:0!important;box-shadow:none!important;padding:8px!important;}
+html body:has([data-roulette-game]) .rr-game{margin-inline:auto!important;}
+html body [data-roulette-scene="rustic-v2"] .rr-pot{gap:6px!important;}
+@media(max-width:560px){html body:has([data-roulette-game]) .duel-live-card{padding:0!important;}html body [data-roulette-scene="rustic-v2"] .rr-pot{gap:4px!important;}}
+@media(max-width:560px){html body:has([data-roulette-game]) .page{padding-inline:0!important;}html body:has([data-roulette-game]) #duelScreen{padding-inline:4px!important;border:0!important;}}

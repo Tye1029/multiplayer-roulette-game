@@ -290,6 +290,7 @@ function roulettePatchClientCountdown(){
 function rouletteEnsureClientCountdown(game){
       if(!game||game.mode!=='roulette'||!game.gameId)return false;
       const gameId=String(game.gameId);
+      try{if(localStorage.getItem(`rouletteOpeningDone:${gameId}`)==='1')rouletteOpeningCompletedGames.add(gameId);}catch(_){}
       if(rouletteClientCountdown.gameId!==gameId){
         if(rouletteClientCountdown.timer)clearInterval(rouletteClientCountdown.timer);
         rouletteClientCountdown.gameId=gameId;rouletteClientCountdown.startedAt=0;rouletteClientCountdown.done=rouletteOpeningCompletedGames.has(gameId);rouletteClientCountdown.timer=null;rouletteClientCountdown.lastLabel='';
