@@ -56,20 +56,30 @@ await assert.rejects(env.duelSaveGame({gameId:'cas',mode:'roulette',revision:1})
 
 const arsenal=await readFile(new URL('../assets/roulette/arsenal.js',import.meta.url),'utf8');
 const storage=new Map();const ui={localStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v)}};ui.window=ui;
-vm.runInNewContext(arsenal,ui);assert.equal(ui.RouletteArsenal.choices.length,6);
+vm.runInNewContext(arsenal,ui);assert.equal(ui.RouletteArsenal.choices.length,7);
 for(const option of ui.RouletteArsenal.choices){storage.set('rouletteGunPreferenceV1',option.id);assert.equal(ui.RouletteArsenal.selected().id,option.id);}
 storage.set('rouletteGunPreferenceV1','invalid');assert.equal(ui.RouletteArsenal.selected().id,'classic');
 assert(!arsenal.includes('duelRequest('),'Gun selection must never send player preferences to other players');
 const rolls=[];ui.matchMedia=()=>({matches:false});ui.rouletteAnimate=async(target,frames,options)=>rolls.push({frames,options});
+let clock=0,draws=0,canvas,sounds=0;
+ui.requestAnimationFrame=fn=>queueMicrotask(()=>fn(clock+=30));
+ui.RouletteAudioBindings={playSpinButtonChamber:async duration=>{assert.equal(duration,1350);sounds++;}};
+ui.document={createElement:()=>canvas={style:{},setAttribute(){},isConnected:true,getContext:()=>({drawImage(){draws++;}}),remove(){this.isConnected=false;}}};
 for(const choice of ui.RouletteArsenal.choices){
   storage.set('rouletteGunPreferenceV1',choice.id);
-  const drum={innerHTML:'',firstElementChild:{},replaceChildren(){this.cleared=true;}};
-  await ui.RouletteArsenal.spin({querySelector:()=>drum});
-  assert.equal((drum.innerHTML.match(/<svg /g)||[]).length,8);
-  assert(drum.innerHTML.includes(ui.RouletteArsenal.asset(choice)));
-  assert.equal(rolls.at(-1).frames[1].transform,'translateY(-700%)');
-  assert.equal(rolls.at(-1).options.duration,1350);assert(drum.cleared);
+  const picture={naturalWidth:1306,naturalHeight:522,decode:async()=>{}};
+  const gun={dataset:{finish:choice.id},querySelector:()=>picture,append(){}};
+  await ui.RouletteArsenal.spin({querySelector:selector=>selector==='.rr-revolver'?gun:{}});
+  if(choice.laser){assert.equal(rolls.at(-1).options.duration,900);continue;}
+  assert(!canvas.isConnected,'Cylinder canvas must be removed after returning to its original texture');
+  assert(draws>2000,'Cylinder must render continuous intermediate frames');draws=0;
 }
+assert.equal(sounds,6,'All six mechanical guns retain synchronized cylinder sound');
+for(let y=0;y<=1;y+=.01){assert(Math.abs(ui.RouletteArsenal.cylinderRow(y,Math.PI*8)-y)<1e-10);for(const phase of [0,.2,1,3,8])assert(ui.RouletteArsenal.cylinderRow(y,phase)>=0&&ui.RouletteArsenal.cylinderRow(y,phase)<=1);}
+assert.equal(new Set(ui.RouletteArsenal.choices.map(c=>ui.RouletteArsenal.asset(c))).size,7,'Each finish needs its own art');
+const cues=[],fill={style:{},getAnimations:()=>[]},bar={firstElementChild:fill};ui.RouletteAudio={laserCue:cue=>cues.push(cue)};
+await ui.RouletteArsenal.laserFeedback({querySelector:()=>bar},false);assert.equal(fill.style.transform,undefined,'A malfunction must not spend the charge');
+await ui.RouletteArsenal.laserFeedback({querySelector:()=>bar},true);assert.equal(fill.style.transform,'scaleX(0)');assert.deepEqual(cues,['error','fire']);
 const audio=await readFile(new URL('../assets/roulette/audio-manager.js',import.meta.url),'utf8');
 const synth=audio.slice(audio.indexOf('  let countdownSynthContext'),audio.indexOf('  function diagnostics()'));
 const tones=[];let clicks=0;
@@ -80,10 +90,14 @@ const sound=vm.createContext({global:{AudioContext:Context,setTimeout:()=>{}},en
 vm.runInContext(synth,sound);for(const label of ['3','2','1','GO!'])assert.equal(sound.countdownCue(label),true);
 assert.equal(clicks,4);assert(tones.includes(174.61)&&tones.includes(207.65)&&tones.includes(246.94)&&tones.includes(880));
 sound.master=0;assert.equal(sound.countdownCue('3'),true);assert.equal(clicks,4,'Muted countdown must not play or fall back to another sound');
+sound.master=1;sound.duckForShot=()=>{};
+assert.equal(sound.laserCue('fire'),true);assert(tones.includes(1900)&&tones.includes(3200));
+assert.equal(sound.laserCue('error'),true);assert(tones.includes(330)&&tones.includes(220));
+const audibleTones=tones.length;sound.master=0;assert.equal(sound.laserCue('fire'),false);assert.equal(tones.length,audibleTones,'Laser audio must respect mute');
 // Mounting during the post-spin announcement must preserve the chosen angle.
 const motion=await readFile(new URL('../assets/roulette/turn-animation.js',import.meta.url),'utf8');
 const mount=motion.slice(motion.indexOf('  function mountCurrentScene()'),motion.indexOf('  installStyles();'));
 let resets=0;const facing={};const scene={facing,root:{classList:{contains:()=>true}}};
 const hold=vm.createContext({rouletteLatestGame:{gameId:'opponent-first',rouletteState:{turnId:'bob'}},lock:{gameId:'opponent-first',opening:true,animatingFacing:facing,pendingTurnId:''},ensureLayers:()=>scene,currentRoot:()=>scene.root,openingIsDone:()=>false,applyFacing:()=>resets++});
 vm.runInContext(mount,hold);for(let i=0;i<20;i++)hold.mountCurrentScene();assert.equal(resets,0,'Polls reset the chooser during the announcement');
-console.log('Roulette Frontier passed: six real chamber paths, same-position respin, deadlines, timeout authorization/idempotency, opponent opening delay, cross-request CAS, six local gun choices.');
+console.log('Roulette Frontier passed: six chamber paths, same-position respin, deadlines, timeout idempotency, opening delay, CAS, seven unique guns, continuous cylinders and laser charge outcomes.');

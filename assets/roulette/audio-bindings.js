@@ -671,7 +671,7 @@
   const originalShotSequence = rouletteShotSequence;
   if (!originalShotSequence.__rrUploadedAudioBound) {
     const boundShotSequence = async function (game, state, gameId) {
-      audio.shotSequence(game, state, gameId);
+      if (!global.RouletteArsenal?.selected()?.laser) audio.shotSequence(game, state, gameId);
       silenceLegacy();
       return originalShotSequence.apply(this, arguments);
     };

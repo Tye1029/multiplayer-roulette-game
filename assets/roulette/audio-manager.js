@@ -707,6 +707,26 @@
   }
 
 
+  function laserCue(cue) {
+    if (!enabled || master<=0 || document.hidden || !unlocked) return false;
+    const context=countdownSynthAudioContext();if(!context)return false;
+    try {
+      context.resume?.().catch(()=>{});
+      const now=context.currentTime+.008,output=context.createGain();
+      output.gain.setValueAtTime(Math.min(1,master)*.7,now);output.connect(context.destination);
+      const tone=(delay,duration,frequency,endFrequency,level,type='sine')=>countdownSynthTone(context,output,{start:now+delay,duration,frequency,endFrequency,level,type,attack:.006});
+      if(cue==='fire'){
+        duckForShot();tone(0,.34,1900,90,.16,'sawtooth');tone(.01,.26,3200,180,.07);tone(.025,.42,140,45,.15);
+      }else if(cue==='error'){
+        tone(0,.12,330,260,.11,'square');tone(.17,.18,220,145,.09,'triangle');
+      }else{
+        tone(0,.42,180,900,.06,'triangle');tone(.45,.18,1100,1400,.035);
+      }
+      global.setTimeout(()=>{try{output.disconnect();}catch{}},950);
+      return true;
+    }catch{return false;}
+  }
+
   function diagnostics() {
     const game = currentGame();
     return {
@@ -738,6 +758,7 @@
     setEnabled,
     setMasterVolume,
     countdownCue,
+    laserCue,
     diagnostics
   });
 

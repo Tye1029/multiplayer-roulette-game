@@ -18,6 +18,7 @@
     lock.firing = true;
     const lockedTurnId = lock.turnId;
     const lockedAngle = lock.angle;
+    const laser = window.RouletteArsenal?.current(layers.root)?.laser === true;
     const hammer = layers.root.querySelector('.rr-hammer-photo');
     const cover = layers.root.querySelector('.rr-hammer-cover');
     const glint = layers.root.querySelector('.rr-metal-glint');
@@ -31,7 +32,7 @@
     layers.recoil.style.transform = 'none';
     if (cover) cover.style.opacity = '0';
 
-    if (hammer) {
+    if (hammer && !laser) {
       hammer.style.opacity = '1';
       rouletteShotIndexSound();
       layers.root._rrHammerMotion = rouletteAnimate(
@@ -55,6 +56,7 @@
     }
 
     const live = state?.lastOutcome === 'live';
+    if (laser) layers.root._rrLaserMotion = window.RouletteArsenal?.laserFeedback(layers.root,live);
     if (live) {
       rouletteGunshotSound();
       const roomLight=layers.root.querySelector('.rr-muzzle-room-light');
@@ -82,7 +84,7 @@
           { opacity: 0, transform: 'translate(-100%,-50%) scale(1.4,.35)' }
         ], { duration: 160, easing: 'ease-out' }));
       }
-      smoke.forEach((particle, index) => {
+      (laser ? [] : smoke).forEach((particle, index) => {
         effects.push(rouletteAnimate(particle, [
           { opacity: 0, transform: 'translate(0,0) scale(.25)' },
           {
@@ -108,6 +110,7 @@
       ], { duration: 560, easing: 'cubic-bezier(.16,.85,.2,1)' });
       await Promise.all([
         layers.root._rrHammerMotion || Promise.resolve(),
+        layers.root._rrLaserMotion || Promise.resolve(),
         recoilMotion,
         ...effects
       ]);
@@ -116,6 +119,7 @@
       navigator.vibrate?.(30);
       await Promise.all([
         layers.root._rrHammerMotion || Promise.resolve(),
+        layers.root._rrLaserMotion || Promise.resolve(),
         rouletteAnimate(layers.recoil, [
           { transform: 'translateX(0)' },
           { transform: 'translateX(-3px)', offset: 0.42 },
@@ -125,6 +129,7 @@
     }
 
     delete layers.root._rrHammerMotion;
+    delete layers.root._rrLaserMotion;
     const mounted = ensureLayers(currentRoot(gameId));
     for (const element of new Set([layers.recoil, mounted?.recoil].filter(Boolean))) {
       element.getAnimations?.().forEach(animation => animation.cancel());

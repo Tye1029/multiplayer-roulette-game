@@ -365,7 +365,8 @@ function rouletteHtml(game){
       const openingCanStart=rouletteOpeningCanStart(game);
       const openingConcealed=!complete&&!openingAlreadyCompleted;
       const preOpening=openingConcealed&&!openingCanStart;
-      const revolverModel='steel-walnut';
+      const chosenGun=window.RouletteArsenal?.selected();
+      const revolverModel=chosenGun?.laser?'redshift-ranger':chosenGun?.cyber?'neon-frontier':'steel-walnut';
       const gunAsset=window.RouletteArsenal?.asset()||'assets/roulette/revolver-steel-walnut.png';
       const actor=String(st.turnId||'')===String(creator.userId||'')?creator:joiner;
       let status,sub,controlNote;
@@ -422,14 +423,14 @@ function rouletteHtml(game){
         <div class="rr-status"><strong>${status}</strong><small>${sub}</small></div>
         ${clientCountdownActive?`<div class="rr-scene-countdown" data-roulette-countdown><div class="duel-countdown-number cue">${escapeHtml(rouletteClientCountdownLabel()||'3')}</div></div>`:''}
         ${openingCanStart&&openingConcealed?'<div class="rr-opening-banner">Choosing First Player</div>':''}
-        <div class="rr-table-pedestal" aria-hidden="true"></div><div class="rr-room-shade" aria-hidden="true"></div><div class="rr-muzzle-room-light" aria-hidden="true"></div><div class="rr-table"><img class="rr-table-art" src="/assets/roulette/decor/oval-table-v2.png" alt="" draggable="false"><div class="rr130-table-illumination" aria-hidden="true"><img src="/assets/roulette/decor/oval-table-v2.png" alt="" draggable="false"></div><div class="rr-table-shadow"></div>
-        <div class="rr-gun-motion" data-roulette-motion style="transform:${rouletteMotionTransform(neutralAngle)}">
+        <div class="rr-room-shade" aria-hidden="true"></div><div class="rr-muzzle-room-light" aria-hidden="true"></div><div class="rr-table"><div class="rr-table-pedestal" aria-hidden="true"><i></i><i></i></div><img class="rr-table-art" src="/assets/roulette/decor/oval-table-v2.png" alt="" draggable="false"><div class="rr130-table-illumination" aria-hidden="true"><img src="/assets/roulette/decor/oval-table-v2.png" alt="" draggable="false"></div><div class="rr-table-shadow"></div>
+        <div class="rr-gun-motion" data-roulette-motion style="visibility:hidden;transform:${rouletteMotionTransform(neutralAngle)}">
           <div class="rr-turn-facing" data-roulette-facing="1" style="transform:rotate(${neutralAngle}deg)"><div class="rr-gun-recoil" data-roulette-recoil="1">
           <div class="rr-revolver rr-photo-revolver" aria-label="Long-barrel side-view revolver" data-revolver-model="${escapeHtml(revolverModel)}">
             <img class="rr-gun-photo" src="${gunAsset}" alt="" draggable="false">
             <span class="rr-hammer-cover" aria-hidden="true"></span>
             <img class="rr-hammer-photo" src="${window.RouletteArsenal?.hammerAsset()||'assets/roulette/revolver-steel-walnut-hammer.png'}" alt="" draggable="false">
-            <span class="rr-metal-glint" aria-hidden="true" style="--rr-gun-mask:url(&quot;assets/roulette/revolver-${escapeHtml(revolverModel)}.png&quot;)"></span>
+            <span class="rr-metal-glint" aria-hidden="true" style="--rr-gun-mask:url(&quot;${gunAsset}&quot;)"></span>
           </div>
           <i class="rr-muzzle-point" aria-hidden="true"></i><div class="rr-shot-flash" aria-hidden="true"></div>
           <div class="rr-shot-smoke" aria-hidden="true"><i></i><i></i><i></i><i></i></div>

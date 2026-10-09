@@ -100,7 +100,8 @@
     if (projected) {
       const a=projected.a*light.radiusX/50,b=projected.b*light.radiusX/50;
       const c=projected.c*light.radiusY/50,d=projected.d*light.radiusY/50;
-      field.style.setProperty('transform','matrix('+[a,b,c,d,projected.x-50*a-50*c,projected.y-50*b-50*d].join(',')+')');
+        field.style.setProperty('transform','matrix('+[a,b,c,d,projected.x-50*a-50*c,projected.y-50*b-50*d].join(',')+')');
+        field.dataset.projected='1';
       scene.game.style.setProperty('--rr-shadow-x',((box.width*.5-light.poolX)*.035)+'px');
     }
     if(scene.volume) {

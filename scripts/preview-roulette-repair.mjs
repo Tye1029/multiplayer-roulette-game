@@ -84,6 +84,13 @@ const seatNodes=new Map();
 const motionRuns=new Map();let priorFrame=0;
 function sampleMotion(now){
   const root=duelActive.querySelector('[data-roulette-game]'),facing=root?.querySelector('[data-roulette-facing]');
+  const gun=root?.querySelector('.rr-revolver'),motion=root?.querySelector('[data-roulette-motion]');
+  const image=gun?.querySelector('.rr-gun-photo');
+  if(motion&&getComputedStyle(motion).visibility==='visible'&&(!image.complete||!image.naturalWidth||!motion.classList.contains('rr-media-ready')))proof.earlyGunFrames=(proof.earlyGunFrames||0)+1;
+  const cylinder=gun?.querySelector('canvas.rr-drum-roll');
+  if(cylinder){const samples=proof.cylinders||(proof.cylinders=[]);if(samples.length<800){const pixels=cylinder.getContext('2d').getImageData(112,20,1,100).data;samples.push({finish:gun.dataset.finish,opacity:getComputedStyle(cylinder).opacity,pixels:Array.from(pixels).reduce((sum,n,i)=>sum+n*(i+1),0)});}}
+  const charge=gun?.querySelector('.rr-charge i');
+  if(charge){const samples=proof.charges||(proof.charges=[]);if(samples.length<1800)samples.push({gameId:root.dataset.gameId,value:new DOMMatrixReadOnly(getComputedStyle(charge).transform).a});}
   for(const animation of facing?.getAnimations()||[]){
     if(animation.playState!=='running')continue;
     const id=nodeId(animation),timing=animation.effect.getTiming();
@@ -96,7 +103,7 @@ function sampleMotion(now){
     motionRuns.set(id,run);
   }
   const partRuns=proof.partRuns||(proof.partRuns=[]);
-  for(const part of root?.querySelectorAll('.rr-hammer-photo,.rr-drum-roll,.rr-shot-flash')||[]){for(const animation of part.getAnimations()){if(animation.playState==='running'&&!partRuns.some(r=>r.id===nodeId(animation)))partRuns.push({id:nodeId(animation),part:part.className,finish:root.querySelector('.rr-revolver')?.dataset.finish,duration:animation.effect.getTiming().duration,frames:animation.effect.getKeyframes().map(f=>({offset:f.offset,transform:f.transform,opacity:f.opacity}))});}}
+  for(const part of root?.querySelectorAll('.rr-hammer-photo,.rr-charge,.rr-charge i,.rr-shot-flash')||[]){for(const animation of part.getAnimations()){if(animation.playState==='running'&&!partRuns.some(r=>r.id===nodeId(animation)))partRuns.push({id:nodeId(animation),part:part.className,finish:root.querySelector('.rr-revolver')?.dataset.finish,duration:animation.effect.getTiming().duration,background:getComputedStyle(part).backgroundImage,frames:animation.effect.getKeyframes().map(f=>({offset:f.offset,transform:f.transform,opacity:f.opacity}))});}}
   const roomLight=root?.querySelector('.rr-muzzle-room-light');
   if(roomLight&&Number(roomLight.style.opacity)>0){const room=root.getBoundingClientRect(),tip=root.querySelector('.rr-muzzle-point').getBoundingClientRect();const x=parseFloat(roomLight.style.getPropertyValue('--rr-shot-x')),y=parseFloat(roomLight.style.getPropertyValue('--rr-shot-y'));const shots=proof.shotLights||(proof.shotLights=[]);shots.push({finish:root.querySelector('.rr-revolver')?.dataset.finish,opacity:Number(roomLight.style.opacity),distance:Math.hypot(x-(tip.left-room.left),y-(tip.top-room.top))});}
   priorFrame=now;requestAnimationFrame(sampleMotion);

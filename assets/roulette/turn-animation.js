@@ -141,8 +141,10 @@
 
     if (!motion._rrMediaReady) {
       motion._rrMediaReady = Promise.all(Array.from(motion.querySelectorAll('img')).map(image =>
-        typeof image.decode === 'function' ? image.decode().catch(() => {}) : Promise.resolve()
-      )).then(() => { motion.classList.add('rr-media-ready'); });
+        typeof image.decode === 'function' ? image.decode() : Promise.resolve()
+      )).then(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+        .then(() => { motion.classList.add('rr-media-ready'); motion.style.visibility='visible'; })
+        .catch(() => { delete motion._rrMediaReady; });
     }
     return { root, motion, facing, recoil };
   }

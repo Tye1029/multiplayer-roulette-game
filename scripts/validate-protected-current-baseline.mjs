@@ -44,10 +44,10 @@ for (const required of [
 ]) if (!safeCracker.includes(required)) throw new Error(`Safe Cracker runtime is missing ${required}`);
 
 const protectedHashes = new Map([
-  // User-authorized Frontier update: opening ownership through the settle pause,
-  // registered muzzle flash and moving room illumination. Pin LF and CRLF.
-  ['assets/roulette/turn-animation.js', new Set(['e794d3c9308bc6844179510879be5786e036ffce', 'd7232deb917574e1e4be12a0b6e894f75b4ae034'])],
-  ['assets/roulette/turn-fire.js', new Set(['8a3a376191c282f7ff0516fff9b3f17098e449ec', '5e582820997c7e9fcc6405f249eb0db5d0223960'])]
+  // User-authorized arsenal update: decoded reveal and laser firing effects.
+  // Keep the opening/facing ownership and pin both LF and CRLF contents.
+  ['assets/roulette/turn-animation.js', new Set(['c4af45a224a072a17bcd02b9c99ed03af868a2e5', 'e6064f455e14bde374216c07d6a1fcb57e6de1bd'])],
+  ['assets/roulette/turn-fire.js', new Set(['1f882db4341bc8187046cdab55031432f8eb7acd', '5204f7fc19444999af7b4098c28896dc57528762'])]
 ]);
 for (const [path, expected] of protectedHashes) {
   const actual = gitBlobHash(await read(path));

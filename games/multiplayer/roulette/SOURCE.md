@@ -88,3 +88,46 @@ Generated originals:
 Historical patch scripts/audio aliases are retained because assembly compatibility paths and diagnostic validators still reference them. Existing classic sprites remain in use for the five material finishes. No new assets are preloaded before Roulette is selected; Neon Frontier loads only when selected or restored as the saved choice.
 
 Validation: validate-roulette-frontier executes production chamber/deadline rules, all six positions, identical-position respins, timeout authorization and duplicate claims, competing ETag writes, opponent opening delay, countdown synth/muting, local preference fallback, and repeated mounts during the announcement. The protected baseline includes this test plus existing Roulette motion/scene and other-game regressions.
+
+
+## Arsenal refinement — 9 October 2026
+
+Four whole-image tints are replaced by separately generated Pearl Marshal, Crimson Viper, Desert Relic and Cobalt Ranger artwork. The original preference IDs are retained so saved choices migrate. Midnight Gold and Neon Frontier remain. Redshift Ranger is a cosmetic laser sidearm with a 1.5-second charge bar, blank/error cue and live red discharge; all server chamber, spin and payout rules remain unchanged.
+
+Cylinder rotation now samples the actual model texture onto a fixed cylinder silhouette with a sinusoidal cylindrical projection. Four full rotations return to the original texture without opacity fades or changing the gun's facing. The stationary frame and rear ratchet remain outside the crop. Classic-pattern models reuse the registered, animated original hammer with material treatment on the hammer only; Neon Frontier keeps its own hammer. Laser Spin is shown as an electronic recalibration using the same one-use gameplay action.
+
+Startup stays hidden until both images decode and two layout frames pass. The lamp gleam stays hidden until its first world-space projection; initial markup uses the selected art mask. The outer blur/grid are removed, the floor no longer repeats the room image, and an attached two-leg wooden trestle scales with the table.
+
+Built-in imagegen mode used for all five new assets. Originals retained under the Codex generated_images directory. Production WebP files proportionally downsampled to 1306×522 with generated alpha preserved; only the selected model loads.
+
+Final prompts and project asset paths:
+
+### pearl-marshal
+
+`assets/roulette/revolver-pearl-marshal.webp`
+
+> Game sprite asset. Use attached original only as a strict registration reference. Keep EXACT silhouette, left-facing orthographic side-view, muzzle at left x0.5% y10%, cylinder x54-70% y4-35%, grip at right, same 2.504:1 transparent canvas. NO hammer (separate animated part), no extra gun, background, shadow, text or watermark. Preserve all outside contours and mechanical joint locations, but replace material treatment, engraving patterns and grip with the following new bespoke design. Photorealistic detailed worn metal, neutral diffuse lighting, restrained highlights, no baked shine flare. Genuine transparent alpha. Pearl Marshal: satin silver frame and cylinder with deep charcoal engraving of flowing feathers and a small silver marshal star. Blued-black barrel, tasteful narrow warm brass seams, carved aged ivory grip with dark inset medallion. Clearly separate realistic materials, not a global color tint.
+
+### crimson-viper
+
+`assets/roulette/revolver-crimson-viper.webp`
+
+> Game sprite asset. Use attached original only as a strict registration reference. Keep EXACT silhouette, left-facing orthographic side-view, muzzle at left x0.5% y10%, cylinder x54-70% y4-35%, grip at right, same 2.504:1 transparent canvas. NO hammer (separate animated part), no extra gun, background, shadow, text or watermark. Preserve all outside contours and mechanical joint locations, but replace material treatment, engraving patterns and grip with the following new bespoke design. Photorealistic detailed worn metal, neutral diffuse lighting, restrained highlights, no baked shine flare. Genuine transparent alpha. Crimson Viper: dark gunmetal barrel and frame, rose-copper cylinder with engraved serpent and geometric scale bands. Deep oxblood burgundy leather grip with stitching and small copper snake medallion. Fine copper details on charcoal frame; no red tint over metal.
+
+### desert-relic
+
+`assets/roulette/revolver-desert-relic.webp`
+
+> Game sprite asset. Use attached original only as a strict registration reference. Keep EXACT silhouette, left-facing orthographic side-view, muzzle at left x0.5% y10%, cylinder x54-70% y4-35%, grip at right, same 2.504:1 transparent canvas. NO hammer (separate animated part), no extra gun, background, shadow, text or watermark. Preserve all outside contours and mechanical joint locations, but replace material treatment, engraving patterns and grip with the following new bespoke design. Photorealistic detailed worn metal, neutral diffuse lighting, restrained highlights, no baked shine flare. Genuine transparent alpha. Desert Relic: weathered bronze frame with sand-colored ceramic inlay panels, dark steel barrel, aged brass cylinder with sunburst and desert mesa engraving. Carved dark walnut grip with small pale bone sun medallion. Layered archaeology-meets-western design, no global sepia wash.
+
+### cobalt-ranger
+
+`assets/roulette/revolver-cobalt-ranger.webp`
+
+> Game sprite asset. Use attached original only as a strict registration reference. Keep EXACT silhouette, left-facing orthographic side-view, muzzle at left x0.5% y10%, cylinder x54-70% y4-35%, grip at right, same 2.504:1 transparent canvas. NO hammer (separate animated part), no extra gun, background, shadow, text or watermark. Preserve all outside contours and mechanical joint locations, but replace material treatment, engraving patterns and grip with the following new bespoke design. Photorealistic detailed worn metal, neutral diffuse lighting, restrained highlights, no baked shine flare. Genuine transparent alpha. Cobalt Ranger: brushed titanium frame, blackened steel barrel, fine silver constellation engraving on midnight blue enamel cylinder panels. Warm walnut grip with cobalt ceramic inset and thin silver border. Selective blue details only, silver/black structural metal, richly detailed distinct design.
+
+### redshift-ranger
+
+`assets/roulette/revolver-redshift-ranger.webp`
+
+> Create one photorealistic game sprite of a futuristic high-tech cowboy laser pistol named internally Redshift Ranger. Reference attached gun only for strict left-facing side-on orthographic registration and 2.504:1 canvas: entire gun fills same canvas with barrel muzzle at x0.5% y12%, grip far right downward, fixed camera. Entirely NEW silhouette and futuristic construction. Long angular dark graphite barrel shroud with silver titanium rails, restrained copper western scroll inlays, black leather grip with small star badge, red lens at left muzzle. NO revolving cylinder and NO hammer. In the upper middle receiver where the cylinder would be (roughly x48-70%, y12-25%), create a single horizontal recessed dark glass LED strip socket, unlit empty, for an animated red charge bar to be overlaid. Finely machined parts, small cooling fins, sophisticated functional sci-fi design blended with rugged western craftsmanship. Keep all parts inside canvas; no external light beam or blast, no floor or shadows or text or labels, genuine transparent alpha. Neutral dim diffuse studio illumination without blown highlights.
