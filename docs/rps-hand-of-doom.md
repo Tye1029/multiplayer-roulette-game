@@ -21,8 +21,9 @@ a client-supplied visitor alias or display name. Existing site keys can be reuse
 by the page. Sessions and active game IDs are kept in sessionStorage.
 
 `rps/database.js` uses the existing `NETLIFY_DB_URL` PostgreSQL pool, lazy schema
-initialization, row locks and transactions. Migrations and cold starts share a
-transaction-scoped schema advisory lock to prevent concurrent table/type creation.
+initialization, row locks and transactions. Cold starts share a transaction-scoped
+schema advisory lock to prevent concurrent table/type creation. Migration 004 is
+retained byte-for-byte after Netlify applied it; applied migrations are immutable.
 Completed human matches insert one result per match ID in the same transaction
 as the decisive pick, with visibility delayed until the finale ends. Rivalries aggregate
 these immutable results, sorted by completed matches, then latest match, then
