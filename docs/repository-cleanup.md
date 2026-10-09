@@ -16,7 +16,7 @@ Game media remains in the existing matching `assets/<game>/` folders because pro
 
 The account/admin backend still needs historical bet records, Scratch/Runner odds schemas, and settlement logic. `complete-ticket` remains available for previously issued tickets, while new Scratch purchasing is removed. The registered multiplayer modes, including older multiplayer Scratch/duel implementations, remain required by the multiplayer contract and regression checks.
 
-Root `index.html` remains a generated compatibility artifact for existing diagnostics. The template and game source are authoritative. Older patch scripts remain because workflows and validators depend on them; their presence is not a browser download. Existing public visual preview/calibration pages remain available.
+Root `index.html` remains a generated compatibility artifact for existing diagnostics and is ignored by Git to avoid a duplicate source copy. The template and game source are authoritative. Build before running validators; diagnostic workflows already build first. Older patch scripts remain because workflows and validators depend on them; their presence is not a browser download. Existing public visual preview/calibration pages remain available.
 
 ## Verification notes
 

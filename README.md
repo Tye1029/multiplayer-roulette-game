@@ -39,6 +39,6 @@ npm run validate:mountain-race
 
 The build assembles the root `index.html`, applies the established runtime packaging, and writes **`dist/`**. Netlify publishes `dist/`, with functions bundled separately from `netlify/functions/`. Source templates, patch scripts, documentation, workflows, and dependencies are excluded from the public site. Existing public preview pages remain available.
 
-The generated root entry remains committed for existing source-based validators and diagnostic workflows. After edits, rebuild it before committing. Historical patch/reconstruction scripts that write `index.html` must have their resulting changes reconciled into the template or game fragments before the next build.
+The generated root entry is ignored by Git to avoid keeping a second copy of the source. Build before running source-based validators or starting a local preview; existing diagnostic workflows already do this. Historical patch/reconstruction scripts that write `index.html` must have their resulting changes reconciled into the template or game fragments before the next build.
 
 Single-player Scratch purchasing, Street Runner, Horse Track, and Arcade player UI have been retired. Their standalone creation/play endpoints have been removed. Historical records, admin odds controls, and the old ticket-completion endpoint remain for account support and settlement of previously issued tickets. Shared multiplayer Scratch/legacy duel implementations remain because they are still registered and covered by multiplayer checks.
