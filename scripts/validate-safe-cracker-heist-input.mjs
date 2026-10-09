@@ -8,7 +8,7 @@ for (let run=0; run<30; run++) {
   let h=rules.create(), projected=rules.publicView(h,true), n=0;
   while(h.phase<2 && !h.failed) {
     let cmd=rules.botCommand(h);
-    if(h.phase===0 && n%4===0) {const i=h.screws.findIndex(s=>!s.removed);cmd=`screw:${i}:${rules.shapes.find(t=>t!==h.screws[i].type)}`;}
+    if(h.phase===0 && n%4===0) {const i=h.screws.findIndex(s=>!s.removed);cmd=`screw:${i}:${h.kit.find(t=>t!==h.screws[i].type)}`;}
     if(h.phase===1 && !h.cardOpen && n%3===0) cmd='cut:'+h.order.find(c=>!h.cut.includes(c)&&c!==rules.nextWire(h));
     if(cmd==='cut:undefined') cmd=rules.botCommand(h);
     const id='action-'+(++n);

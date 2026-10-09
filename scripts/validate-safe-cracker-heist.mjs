@@ -10,7 +10,7 @@ assert.ok(new Set(plans.map(h=>h.screws.map(s=>s.type).join())).size > 30);
 for(const h of plans) {assert.equal(h.screws.length,8);assert.equal(new Set(h.screws.map(s=>s.type)).size,6);assert.equal(new Set(h.order).size,10);}
 let h = rules.create();
 assert.throws(()=>rules.apply(h,'cut:red'),/panel/);
-const type=h.screws[0].type, wrong=rules.shapes.find(s=>s!==type);
+const type=h.screws[0].type, wrong=h.kit.find(s=>s!==type);
 h=rules.apply(h,`screw:0:${wrong}`);
 assert.equal(h.screws[0].stripped,true);
 for(let i=1;i<=3;i++) {h=rules.apply(h,`screw:0:${type}`);assert.equal(h.screws[0].turns,i);assert.equal(h.screws[0].removed,i===3);}
@@ -87,7 +87,7 @@ assert.equal(rules.publicView(h,false).notePlan,undefined);
 assert.equal(rules.publicView(h,true).notePlan.length,10);
 assert.deepEqual(rules.publicView(h,true).wireColors,rules.colors.slice(0,10));
 // Preserve already-started twelve-wire rounds across this deployment.
-let old=rules.create();old.order=[...rules.colors];
+let old=rules.create();old.order=[...rules.colors];delete old.wireLayout;delete old.kit;
 while(old.phase<2)old=rules.apply(old,rules.botCommand(old));
 assert.equal(old.cut.length,12);
 now=100000; stored={gameId:'failure',mode:'safecracker',status:'playing',creator:{userId:'me'},joiner:{userId:'other'},revision:1};

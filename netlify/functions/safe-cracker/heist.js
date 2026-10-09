@@ -1,7 +1,8 @@
 'use strict';
 
 // Puzzle state is private. Only publicView is sent to a player.
-const shapes = ['slot', 'cross', 'pozidriv', 'hex', 'star', 'triwing'];
+const {heads} = require('../../../assets/safe-cracker/heist-catalog');
+const shapes = Object.keys(heads);
 const colors = ['red', 'blue', 'green', 'yellow', 'orange', 'purple', 'pink', 'cyan', 'white', 'brown', 'lime', 'gray'];
 const shuffle = (values, random = Math.random) => {
   const result = [...values];
@@ -12,9 +13,11 @@ const shuffle = (values, random = Math.random) => {
   return result;
 };
 function create(random = Math.random) {
+  const kit = shuffle(shapes, random).slice(0, 6);
   return {
-    phase: 0,
-    screws: shuffle([...shapes, shapes[Math.floor(random() * 6)], shapes[Math.floor(random() * 6)]], random)
+    phase: 0, kit,
+    wireLayout: {variant:Math.floor(random()*5),order:shuffle(colors.slice(0,10),random),jitter:colors.slice(0,10).map(()=>Math.floor(random()*5)-2)},
+    screws: shuffle([...kit, kit[Math.floor(random() * 6)], kit[Math.floor(random() * 6)]], random)
       .map(type => ({ type, stripped: false, turns: 0, removed: false })),
     order: shuffle(colors.slice(0, 10), random),
     ink: shuffle(colors, random),
@@ -33,6 +36,7 @@ function apply(current, command, now = Date.now()) {
   if (kind === 'screw') {
     if (h.phase !== 0) throw new Error('The access panel is already open.');
     if (!/^[0-7]$/.test(target) || !shapes.includes(tool)) throw new Error('Choose a screw and a screwdriver.');
+    if (!(h.kit || h.screws.map(s=>s.type)).includes(tool)) throw new Error('That screwdriver is not in your kit.');
     const screw = h.screws[Number(target)];
     if (screw.removed) return current;
     if (screw.type !== tool) { screw.stripped = true; effect = 'strip'; }
@@ -71,7 +75,8 @@ function publicView(h, own) {
   if (!h) return undefined;
   const progress = { phase: h.phase, removed: h.screws.filter(s => s.removed).length, cutCount: h.cut.length, wireCount: h.order.length };
   if (!own) return progress;
-  return { ...progress, screws: h.screws.map(s => ({ ...s })), cut: [...h.cut], mistakes: h.mistakes,
+  return { ...progress, kit: [...(h.kit || new Set(h.screws.map(s=>s.type)))],
+    wireLayout: h.wireLayout ? JSON.parse(JSON.stringify(h.wireLayout)) : undefined, screws: h.screws.map(s => ({ ...s })), cut: [...h.cut], mistakes: h.mistakes,
     cardOpen: h.cardOpen, lastAction: h.lastAction, failed: Boolean(h.failed),
     // Preload only the viewer's own card for instant pickup. The UI keeps it
     // covered while closed; the server still prohibits cuts while it is open.

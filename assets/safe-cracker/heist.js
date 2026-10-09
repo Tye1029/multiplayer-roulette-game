@@ -1,17 +1,12 @@
 (() => {
   'use strict';
-  const shapes = ['slot', 'cross', 'pozidriv', 'hex', 'star', 'triwing'];
-  const names = ['Flat', 'Cross', 'Pozi', 'Hex', 'Star', 'Tri-wing'];
-  const colors = {red:'#fa5959',blue:'#548aff',green:'#2fac77',yellow:'#f2d64f',orange:'#ef9346',purple:'#a580ef',pink:'#f397cd',cyan:'#64d9e1',white:'#e7e9ec',brown:'#ad7652',lime:'#b9e35d',gray:'#8b929e'};
+  const {heads,colors,palettes,wireGeometry} = window.SafeCrackerHeistCatalog;
+  const shapes = Object.keys(heads), names = shapes.map(type=>heads[type][0]);
   const slots = [[15,20],[50,18],[85,20],[15,50],[85,50],[15,80],[50,82],[85,80]];
-  const paths = {
-    slot:'M5 13h18v4H5z', cross:'M12 5h4v7h7v4h-7v7h-4v-7H5v-4h7z',
-    pozidriv:'M12 5h4v7h7v4h-7v7h-4v-7H5v-4h7z M7 6l3 3-1 1-3-3z M21 6l1 1-3 3-1-1z M7 22l-1-1 3-3 1 1z M22 21l-1 1-3-3 1-1z',
-    hex:'M8 5h12l6 9-6 9H8l-6-9z',
-    star:'M14 3l4 6 7 1-3 6 1 7-7-1-5 4-3-7-6-3 5-5 1-7z',
-    triwing:'M12 4h4v8l7 5-2 4-7-5-7 5-2-4 7-5z'
-  };
-  const icon = type => `<svg viewBox="0 0 28 28" aria-hidden="true"><path d="${paths[type] || paths.slot}"/></svg>`;
+  const icon = type => `<svg viewBox="0 0 28 28" aria-hidden="true"><path fill-rule="evenodd" d="${(heads[type] || heads.slot)[1]}"/></svg>`;
+  let colorMode = 'off';
+  try { const saved=localStorage.getItem('safecracker-color-assist-v1'); if(palettes[saved])colorMode=saved; } catch {}
+  const wireColor = color => palettes[colorMode].values[Object.keys(colors).indexOf(color)] || colors[color];
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   let game = null, api = null, selected = '', drag = null, lastEffect = '', transition = null;
   const queue = window.SafeCrackerHeistInput.createQueue({
@@ -35,21 +30,35 @@
     const state = g.safecrackerState || {}, mine = g === game ? heist() : state.me?.heist, other = state.opponent?.heist;
     return `<div class="sh-journey" aria-label="Break-in progress">${['Access panel','Wiring','Vault dial'].map((label,i) => `<span class="${i === (mine?.phase || 0) ? 'active' : i < (mine?.phase || 0) ? 'done' : ''}"><i>${i+1}</i>${label}</span>`).join('')}</div><div class="sh-rival"><span>YOU <b>${progress(mine,state.me?.stage)}</b></span><span>RIVAL <b>${progress(other,state.opponent?.stage)}</b></span></div>`;
   }
+  const kit = () => heist()?.kit || shapes.slice(0,6);
+  function colorSamples() {
+    return Object.keys(colors).slice(0,10).map(color=>`<span><i style="background:${colors[color]}" aria-label="Original ${color}"></i><i style="background:${wireColor(color)}" aria-label="Adjusted ${color}"></i><b>${color}</b></span>`).join('');
+  }
+  function colorMenu() {
+    return `<details class="sh-color-menu"><summary aria-label="Color blind options">◉ <span>Color assist</span></summary><div class="sh-color-panel"><label>Color vision preset<select data-sh-palette aria-label="Wire color vision mode">${Object.entries(palettes).map(([key,p])=>`<option value="${key}" ${key===colorMode?'selected':''}>${p.label}</option>`).join('')}</select></label><p>Choose the easiest colors to tell apart. Wire names and the cutting order stay the same.</p><small>ORIGINAL → ADJUSTED</small><div class="sh-color-samples" data-sh-samples>${colorSamples()}</div></div></details>`;
+  }
+  function applyPalette() {
+    const samples=root()?.querySelector('[data-sh-samples]');
+    if(samples?.dataset.mode === colorMode)return;
+    root()?.querySelectorAll('[data-sh-wire]').forEach(node=>node.style.setProperty('--wire',wireColor(node.dataset.shWire)));
+    if(samples){samples.innerHTML=colorSamples();samples.dataset.mode=colorMode;}
+    const menu=root()?.querySelector('.sh-color-menu');if(menu)menu.dataset.enabled=String(colorMode!=='off');
+  }
   function toolBag() {
-    return `<aside class="sh-bag" aria-label="Tool bag"><div class="sh-bag-label"><b>FIELD KIT</b><span>Drag tools onto matching targets</span></div><div class="sh-tools">${shapes.map((type,i) => `<button type="button" class="sh-tool sh-driver" data-sh-tool="${type}" aria-label="${names[i]} screwdriver" draggable="false"><span class="sh-shaft"></span><span class="sh-handle">${icon(type)}</span><small>${names[i]}</small></button>`).join('')}<button type="button" class="sh-tool sh-cutters" data-sh-tool="cutters" aria-label="Wire cutters" draggable="false"><svg viewBox="0 0 60 80" aria-hidden="true"><path class="sh-jaws" d="M15 4l14 15-5 14-8-9z M45 4L31 19l5 14 8-9z"/><path class="sh-bevel" d="M16 5l13 15-5 7 M44 5L31 20l5 7"/><path class="sh-grip-core" d="M26 28C25 42 12 48 14 69 M34 28C35 42 48 48 46 69"/><path class="sh-grips" d="M21 43C16 52 13 58 14 69 M39 43C44 52 47 58 46 69"/><path class="sh-grip-light" d="M19 45Q12 60 14 67 M40 45Q47 60 46 67"/><circle class="sh-pivot" cx="30" cy="29" r="7"/><path class="sh-pivot-slot" d="M27 32l6-6"/></svg><small>Wire cutters</small></button><button type="button" class="sh-tool sh-note" data-sh-card aria-label="Wire Cutting Instructions"><span class="sh-paper"><i></i><i></i><i></i><b>WIRES</b></span><small>Wire Cutting<br>Instructions</small></button></div></aside>`;
+    return `<aside class="sh-bag" data-sh-kit="${kit().join(',')}" aria-label="Tool roll"><span class="sh-kit-strap sh-strap-left" aria-hidden="true"></span><span class="sh-kit-strap sh-strap-right" aria-hidden="true"></span><div class="sh-bag-label"><b>VAULT SERVICE KIT</b><span class="sh-drag-hint">Drag tools to use</span>${colorMenu()}</div><div class="sh-tools">${kit().map(type => `<button type="button" class="sh-tool sh-driver" data-sh-tool="${type}" aria-label="${heads[type][0]} screwdriver" draggable="false"><span class="sh-shaft"></span><span class="sh-handle">${icon(type)}</span><small>${heads[type][0]}</small></button>`).join('')}<button type="button" class="sh-tool sh-cutters" data-sh-tool="cutters" aria-label="Wire cutters" draggable="false"><svg viewBox="0 0 60 80" aria-hidden="true"><path class="sh-jaws" d="M15 4l14 15-5 14-8-9z M45 4L31 19l5 14 8-9z"/><path class="sh-bevel" d="M16 5l13 15-5 7 M44 5L31 20l5 7"/><path class="sh-grip-core" d="M26 28C25 42 12 48 14 69 M34 28C35 42 48 48 46 69"/><path class="sh-grips" d="M21 43C16 52 13 58 14 69 M39 43C44 52 47 58 46 69"/><path class="sh-grip-light" d="M19 45Q12 60 14 67 M40 45Q47 60 46 67"/><circle class="sh-pivot" cx="30" cy="29" r="7"/><path class="sh-pivot-slot" d="M27 32l6-6"/></svg><small>Wire cutters</small></button><button type="button" class="sh-tool sh-note" data-sh-card aria-label="Wire Cutting Instructions"><span class="sh-paper"><b>WIRE GUIDE</b><i style="--strip:#e66b62"></i><i style="--strip:#75b3d3"></i><i style="--strip:#d5b95d"></i><i style="--strip:#78ad89"></i></span><small>Wire Cutting<br>Instructions</small></button></div></aside>`;
   }
   function screws(h) {
-    const list = h?.screws || shapes.concat(['slot','star']).map(type => ({type}));
+    const list = h?.screws || shapes.slice(0,6).concat(['slot','star']).map(type => ({type}));
     return `<div class="sh-backplate"><div class="sh-panel" data-sh-panel><div class="sh-plate-mark"><small>AUTHORIZED ACCESS ONLY</small><b>SECURITY BACKPLATE</b><span>08 FASTENERS · SERIES IV</span></div><div class="sh-vent"></div></div>${list.map((s,i)=> `<button type="button" class="sh-screw" data-sh-screw="${i}" style="--x:${slots[i][0]}%;--y:${slots[i][1]}%" aria-label="Screw ${i+1}, ${names[shapes.indexOf(s.type)]}"><span class="sh-thread"></span><span class="sh-screw-head">${icon(s.type)}</span></button>`).join('')}</div>`;
   }
-  const wireColors = () => heist()?.wireColors || Object.keys(colors).slice(0,10);
-  const wireY = index => 28 + index * (264 / Math.max(1,wireColors().length - 1));
-  function wirePath(index, side) {
-    const y = wireY(index), bow = index % 2 ? 7 : -7;
-    return side === 0 ? `M34 ${y} C135 ${y+bow},195 ${y-bow},290 ${y}` : `M310 ${y} C405 ${y+bow},465 ${y-bow},566 ${y}`;
-  }
+  const wireColors = () => heist()?.wireLayout?.order || heist()?.wireColors || Object.keys(colors).slice(0,10);
+  const wireRoute = index => wireGeometry(heist()?.wireLayout,index,wireColors().length);
+  const wireY = index => wireRoute(index).y;
   function wires() {
-    return `<div class="sh-wiring"><img src="/assets/safe-cracker/images/safe-interior-v1.png" alt="Exposed metal safe mechanism" draggable="false"><svg class="sh-wire-board" viewBox="0 0 600 320" preserveAspectRatio="none" aria-label="${wireColors().length} live wires">${wireColors().map((color,i) => `<g data-sh-wire="${color}" aria-label="${color} wire" style="--wire:${colors[color]}"><title>${color} wire</title><path class="sh-wire-shadow" d="${wirePath(i,0)} ${wirePath(i,1)}"/><path class="sh-cable sh-left" d="${wirePath(i,0)}"/><path class="sh-cable sh-right" d="${wirePath(i,1)}"/><path class="sh-wire-bridge" d="M288 ${wireY(i)}h24"/><path class="sh-wire-gloss" d="${wirePath(i,0)} ${wirePath(i,1)}"/><path class="sh-wire-hit" d="${wirePath(i,0)} L310 ${wireY(i)} ${wirePath(i,1)}"/><circle cx="34" cy="${wireY(i)}" r="6"/><circle cx="566" cy="${wireY(i)}" r="6"/><text x="43" y="${wireY(i)-7}">${color.toUpperCase()}</text></g>`).join('')}</svg></div>`;
+    return `<div class="sh-wiring"><img src="/assets/safe-cracker/images/safe-interior-v1.png" alt="Exposed metal safe mechanism" draggable="false"><svg class="sh-wire-board" viewBox="0 0 600 320" preserveAspectRatio="none" aria-label="${wireColors().length} live wires">${wireColors().map((color,i) => {
+      const r=wireRoute(i);
+      return `<g data-sh-wire="${color}" aria-label="${color} wire" style="--wire:${wireColor(color)}"><title>${color} wire</title><path class="sh-wire-shadow" d="${r.before} ${r.after}"/><path class="sh-cable sh-left" d="${r.before}"/><path class="sh-cable sh-right" d="${r.after}"/><path class="sh-wire-bridge" d="M288 ${r.y}h24"/><path class="sh-wire-gloss" d="${r.before} ${r.after}"/><path class="sh-wire-hit" d="${r.before} L310 ${r.y} ${r.after}"/><circle cx="32" cy="${r.left}" r="6"/><circle cx="568" cy="${r.right}" r="6"/><text class="sh-wire-label" x="268" y="${r.y-7}">${color.toUpperCase()}</text></g>`;
+    }).join('')}</svg></div>`;
   }
   function note(h) {
     if (!h?.cardOpen) return '';
@@ -82,11 +91,18 @@
     document.querySelectorAll('.sh-drop-target').forEach(n=>n.classList.remove('sh-drop-target'));
   }
   function bind(board) {
+    board.addEventListener('change',event=>{
+      if(!event.target.matches('[data-sh-palette]') || !palettes[event.target.value])return;
+      colorMode=event.target.value;
+      try {localStorage.setItem('safecracker-color-assist-v1',colorMode);} catch {}
+      applyPalette();
+    });
     board.addEventListener('click', event => {
       if (event.target.closest('[data-sh-card]')) { send('card:open'); return; }
       if (event.target.closest('[data-sh-close]')) { send('card:close'); return; }
     });
     board.addEventListener('keydown', event => {
+      if(event.key === 'Escape' && board.querySelector('.sh-color-menu[open]')) {board.querySelector('.sh-color-menu').open=false;board.querySelector('.sh-color-menu summary').focus();event.preventDefault();return;}
       if (event.key === 'Escape' && heist()?.cardOpen) { event.preventDefault(); send('card:close'); }
       if (event.key === 'Tab' && heist()?.cardOpen) {
         const controls = [...board.querySelectorAll('.sh-note-card button')];
@@ -140,6 +156,9 @@
     const board = root();
     if (!board) return;
     const h = heist(), phase = h?.phase || 0;
+    const bagMount=board.querySelector('[data-sh-bag-mount]');
+    if(bagMount && bagMount.querySelector('[data-sh-kit]')?.dataset.shKit !== kit().join(',')) bagMount.innerHTML=toolBag();
+    applyPalette();
     board.dataset.scStatus = game.status;
     if (!h?.failed) board.classList.remove('sh-overload');
 
@@ -227,7 +246,7 @@
     if (root()?.dataset.shKey !== key) {
       stopDrag();
       selected = phase === 1 ? 'cutters' : '';
-      mount.innerHTML = `<section class="safe-cracker-game sh-game" data-sc-heist data-sh-key="${esc(key)}" data-sc-game-id="${esc(g.gameId)}" data-sc-status="${esc(g.status)}"><div class="sh-header"><div><small>VAULT BREAK-IN · STAGE ${phase+1}/3</small><h2 data-sh-stage-label></h2><p data-sh-description></p></div><div class="sh-clock"><span data-sc-timer>${helpers.time()}</span><small>${Number(g.pot||g.wager||0).toLocaleString()} CHIP POT</small></div></div><div data-sh-tracker></div><div class="sh-workbench">${phase === 0 ? screws(heist()) : wires()}<div class="sh-sparks" aria-hidden="true">${Array.from({length:24},(_,i)=>`<i style="--angle:${i*137.5}deg;--reach:${90+(i%5)*38}px;--delay:${(i%4)*.08}s"></i>`).join('')}</div></div><div data-sh-note-mount></div>${toolBag()}<footer class="sh-footer"><span data-sh-message role="status">${g.status === 'playing' ? 'Your tools are ready.' : 'Ready up below to begin the break-in.'}</span><small data-sh-damage></small></footer></section>`;
+      mount.innerHTML = `<section class="safe-cracker-game sh-game" data-sc-heist data-sh-key="${esc(key)}" data-sc-game-id="${esc(g.gameId)}" data-sc-status="${esc(g.status)}"><div class="sh-header"><div><small>VAULT BREAK-IN · STAGE ${phase+1}/3</small><h2 data-sh-stage-label></h2><p data-sh-description></p></div><div class="sh-clock"><span data-sc-timer>${helpers.time()}</span><small>${Number(g.pot||g.wager||0).toLocaleString()} CHIP POT</small></div></div><div data-sh-tracker></div><div class="sh-workbench">${phase === 0 ? screws(heist()) : wires()}<div class="sh-sparks" aria-hidden="true">${Array.from({length:24},(_,i)=>`<i style="--angle:${i*137.5}deg;--reach:${90+(i%5)*38}px;--delay:${(i%4)*.08}s"></i>`).join('')}</div></div><div data-sh-note-mount></div><div data-sh-bag-mount>${toolBag()}</div><footer class="sh-footer"><span data-sh-message role="status">${g.status === 'playing' ? 'Your tools are ready.' : 'Ready up below to begin the break-in.'}</span><small data-sh-damage></small></footer></section>`;
       bind(root());
     }
     patch();

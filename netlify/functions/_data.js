@@ -6183,7 +6183,7 @@ async function safeCrackerAction(user, gameId, rawChoice, details = {}) {
         feedbackServerMs: Date.now() - actionStartedAt
       };
     }
-    if (/^safecracker:(screw:[0-7]:(slot|cross|pozidriv|hex|star|triwing)|card:(open|close)|cut:(red|blue|green|yellow|orange|purple|pink|cyan|white|brown|lime|gray))$/.test(String(rawChoice))) {
+    if (/^safecracker:(screw:[0-7]:[a-z]{1,16}|card:(open|close)|cut:(red|blue|green|yellow|orange|purple|pink|cyan|white|brown|lime|gray))$/.test(String(rawChoice))) {
       game = await safeCrackerApplyGuess({ ...game, safecrackerState: state }, viewer, String(rawChoice).slice(12), actionId, false);
       const response = { game: duelPublicGame(game, viewer), feedbackPath: 'heist-authoritative-v3', feedbackServerMs: Date.now() - actionStartedAt };
       if (game.status === 'complete') response.record = await getUserRecord(viewer);

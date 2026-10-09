@@ -7,6 +7,7 @@
     const [kind, target, tool] = command.split(':');
     let effect;
     if (kind === 'screw' && h.phase === 0) {
+      if (!h.kit?.includes(tool)) return current;
       const s = h.screws[Number(target)];
       if (!s || s.removed) return current;
       if (s.type !== tool) { s.stripped = true; effect = 'strip'; }

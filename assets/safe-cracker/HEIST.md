@@ -1,4 +1,4 @@
-# Three-stage Safe Cracker — heist27
+# Three-stage Safe Cracker — heist28
 
 New rounds are a 180-second race through eight fasteners, ten wires, and the
 existing three tumblers. Existing persisted version-one rounds retain their
@@ -12,8 +12,13 @@ The opponent receives only phase and progress counts. The viewer’s own note is
 only while open. Opponents receive no note or screw layout. The server-owned
 card-open flag still rejects cuts until the preceding close action is committed.
 
-The six head symbols are flat, cross, Pozi, hex, star and tri-wing. Every panel
-contains all six and two random duplicates, shuffled across eight sockets.
+The shared `heist-catalog.js` defines 24 distinct head symbols and their matching
+printed driver marks. Each new panel selects six types, includes all six plus two
+random duplicates across eight sockets, and supplies exactly those six drivers.
+The server rejects drivers outside that player’s kit. Legacy rounds derive their
+kit from their existing screws. Five routing families independently randomize
+the wire arrangement, terminal crossings, and bends; every wire retains a clear
+center cutting span. Physical wire order is independent of randomized note order.
 A mismatched driver strips a screw. Three subsequent correct uses remove it;
 another incorrect use does not erase earned turns. Removed screws stay removed.
 
@@ -73,3 +78,19 @@ Validation: `node scripts/validate-safe-cracker-heist.mjs`,
 The behavioral test covers randomized plans, stripping, private cards, cut
 penalties, bot progression, actor/phase/deadline guards, duplicate requests,
 legacy compatibility and fresh rematch state.
+
+## Color assistance and kit presentation
+
+The compact Color assist menu provides Off, Protan, Deutan, and Tritan display
+palettes, with labeled original/adjusted samples. The choice is stored locally.
+These are alternative palettes, not medical simulations; users can compare them
+to choose what they can distinguish. Wire-name labels remain visible in all
+modes, following https://www.w3.org/WAI/WCAG22/Understanding/use-of-color.html .
+The option never changes wire identities, order, penalties, or note ink.
+
+The canvas roll, stitching, straps, pockets, head marks, and colored wire-guide
+strips are lightweight live CSS/SVG. No new bitmap media is required. Replaced
+six-head artwork, rigid parallel-wire generator, and old kit styles were removed;
+existing texture/audio files remain referenced runtime or validation inputs.
+
+Additional validation: `node scripts/validate-safe-cracker-kit.mjs`.
