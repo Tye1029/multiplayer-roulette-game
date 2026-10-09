@@ -60,5 +60,6 @@ await import('./validate-roulette-repair.mjs');
 await import('./validate-roulette-scene.mjs');
 await import('./validate-roulette-motion.mjs');
 await import('./validate-roulette-frontier.mjs');
+await import('./validate-duel-native-blobs.mjs');
 await import('./validate-idle-debug-rendering.mjs');
 console.log('Protected Roulette, Safe Cracker, and shared multiplayer current baseline validated.');

@@ -7,6 +7,7 @@ const store={get:async (key,options)=>{if(key.startsWith('safecracker-result:'))
   if(lambdaCompatibility && options?.consistency==='strong')throw Object.assign(new Error('Missing uncachedEdgeURL'),{name:'BlobsConsistencyError'});
   return structuredClone(records.get(key)||null);},
   getWithMetadata:async key=>records.has(key)?{data:structuredClone(records.get(key)),etag:String(records.get(key).revision)}:null,
+  set:async(key,value,options)=>store.setJSON(key,JSON.parse(value),options),
   setJSON:async(key,value,options={})=>{
     if(options.onlyIfNew&&records.has(key))return {modified:false};
     if(options.onlyIfMatch&&String(records.get(key)?.revision)!==options.onlyIfMatch)return {modified:false};

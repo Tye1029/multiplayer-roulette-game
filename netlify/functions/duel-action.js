@@ -1,8 +1,8 @@
 const crypto = require("crypto");
+const { getStore } = require("@netlify/blobs");
 const DUEL_FUNCTION_BUILD = "multiplayer_cohesion_v6";
 const SUMMIT_INPUT_ROUTE_BUILD = "batch-v7";
 const {
-  initBlobs,
   resolveSiteUser,
   getUserRecord,
   getRecordBalance,
@@ -22,8 +22,23 @@ const TORN_API_BASE = "https://api.torn.com";
 const DUEL_PROFILE_CACHE = globalThis.__DUEL_PROFILE_CACHE || (globalThis.__DUEL_PROFILE_CACHE = new Map());
 const DUEL_PROFILE_CACHE_MS = 2 * 60 * 1000;
 
-exports.handler = async (event) => {
-  initBlobs(event);
+// Native Functions supply the uncached Blobs endpoint. connectLambda would
+// replace that context with the legacy cached-only configuration.
+exports.default = async (request) => {
+  if (request.method === "HEAD") {
+    // Read-only readiness check: no account, game, balance, or blob is changed.
+    try {
+      await getStore("torn-xan-users").get("health/duel-storage-readiness", { consistency: "strong" });
+      return new Response(null, { status: 204, headers: { "Cache-Control": "no-store", "X-Duel-Storage": "strong-v1" } });
+    } catch {
+      return new Response(null, { status: 503, headers: { "Cache-Control": "no-store" } });
+    }
+  }
+  const result = await duelActionHandler({ httpMethod: request.method, body: request.method === "POST" ? await request.text() : "" });
+  return new Response(result.statusCode === 204 ? null : result.body, { status: result.statusCode, headers: { ...result.headers, "X-Duel-Storage": "native-v1" } });
+};
+
+const duelActionHandler = async (event) => {
   const headers = {
     "Content-Type": "application/json",
     "Cache-Control": "no-store",

@@ -43,7 +43,8 @@ await assert.rejects(test.act('roulette:shoot','bob'),/opening spin/);
 const source=await readFile(new URL('../netlify/functions/_data.js',import.meta.url),'utf8');
 const save=source.slice(source.indexOf('async function duelSaveGame('),source.indexOf('async function duelInvalidateLegacyGame('));
 let stored={gameId:'cas',mode:'roulette',status:'playing',revision:1},etag=1,writes=0;
-const store={getWithMetadata:async()=>({data:structuredClone(stored),etag:String(etag)}),setJSON:async(_key,next,options)=>{
+const store={getWithMetadata:async()=>({data:structuredClone(stored),etag:String(etag)}),set:async(_key,payload,options)=>{
+  const next=JSON.parse(payload);
   await Promise.resolve();if(options.onlyIfMatch!==String(etag))return {modified:false};
   stored=next;etag++;writes++;return {modified:true,etag:String(etag)};
 }};

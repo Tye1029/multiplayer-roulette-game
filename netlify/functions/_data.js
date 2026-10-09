@@ -4413,7 +4413,8 @@ async function duelSaveGame(game) {
     if (stored && Number(stored.data?.revision || 0) !== Number(game?.revision || 0)) {
       throw new Error('Roulette state changed. Refresh and try again.');
     }
-    const write = await store.setJSON(key, clean, stored ? { onlyIfMatch: stored.etag } : { onlyIfNew: true });
+    // SDK 10.7.10 setJSON drops conditional headers; set preserves them.
+    const write = await store.set(key, JSON.stringify(clean), stored ? { onlyIfMatch: stored.etag } : { onlyIfNew: true });
     if (!write.modified) throw new Error('Roulette state changed. Refresh and try again.');
   } else await getUsersStore().setJSON(duelGameKey(clean.gameId), clean);
   if (duelIsActiveStatus(clean.status)) await Promise.all([clean.creator?.userId,clean.joiner?.userId].filter(Boolean).map(id=>duelSetActivePointer(id,clean)));

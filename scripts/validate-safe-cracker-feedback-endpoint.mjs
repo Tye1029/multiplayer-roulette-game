@@ -17,10 +17,11 @@ const mocks = {
   getRecordBalance: record => record.balance
 };
 const context = vm.createContext({
-  exports: {}, Buffer, console,
+  exports: {}, Buffer, console, Request, Response,
   process: {env: {DUEL_SESSION_SECRET: secret}},
   require: name => {
     if (name === 'crypto') return crypto;
+    if (name === '@netlify/blobs') return { getStore() { throw new Error('Ordinary requests must use the existing authenticated storage path'); } };
     if (name === './_data') return mocks;
     throw new Error(`Unexpected test dependency ${name}`);
   }
@@ -30,10 +31,10 @@ const event = {httpMethod: 'POST', body: JSON.stringify({visitorKey:'TestOnly123
 async function run(result) {
   actionResult = result;
   balanceReads = 0;
-  const response = await context.exports.handler(event);
-  assert.equal(response.statusCode, 200);
-  assert.equal(response.headers['X-Safe-Cracker-Feedback'], 'fast-authoritative-v1');
-  return JSON.parse(response.body);
+  const response = await context.exports.default(new Request('https://test.invalid/.netlify/functions/duel-action', {method:event.httpMethod,body:event.body}));
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('X-Safe-Cracker-Feedback'), 'fast-authoritative-v1');
+  return response.json();
 }
 const active = await run({game:{mode:'safecracker',status:'playing'},skipBalanceLookup:true});
 assert.equal(balanceReads, 0, 'Active guesses must not wait for an unchanged balance');
