@@ -9857,13 +9857,7 @@ function createSparkle(x, y) {
     let duelControlTestPlayer = false;
     let duelPollTimer = null;
 
-    function mountainRacePauseCompletedPolling(game) {
-      if (String(game?.mode || '') !== 'mountainrace' || String(game?.status || '') !== 'complete' || !game?.remoteNetworkTest) return false;
-      if (duelPollTimer) clearInterval(duelPollTimer);
-      duelPollTimer = null;
-      window.__duelPollRate = 0;
-      return true;
-    }
+    /* SITE_INCLUDE: games/multiplayer/mountain-race/presentation.js#mountainRacePauseCompletedPolling_132547 */
     window.__mountainRacePauseCompletedPolling = mountainRacePauseCompletedPolling;
     let duelCompletedActivityGameId = "";
     let duelCompletedActivityAt = 0;
@@ -9944,67 +9938,15 @@ function createSparkle(x, y) {
     }
 // SAFE_CRACKER_SNAPSHOT_GUARD_START
     const safeCrackerAcceptedSnapshotByGame = new Map();
-    function safeCrackerSnapshotVersion(game) {
-      return {
-        statusRank: Number(DUEL_STATUS_RANK[String(game?.status || "waiting")] || 0),
-        gameRevision: Math.max(0, Number(game?.revision || 0)),
-        stateRevision: Math.max(0, Number(game?.safecrackerState?.revision || 0))
-      };
-    }
-    function safeCrackerAcceptSnapshot(game) {
-      if (String(game?.mode || "") !== "safecracker" || !game?.gameId) return true;
-      const id = String(game.gameId);
-      const incoming = safeCrackerSnapshotVersion(game);
-      const accepted = safeCrackerAcceptedSnapshotByGame.get(id);
-      if (accepted && (
-        incoming.statusRank < accepted.statusRank ||
-        incoming.gameRevision < accepted.gameRevision ||
-        incoming.stateRevision < accepted.stateRevision
-      )) {
-        window.__safeCrackerRejectedSnapshots = Number(window.__safeCrackerRejectedSnapshots || 0) + 1;
-        return false;
-      }
-      safeCrackerAcceptedSnapshotByGame.set(id, incoming);
-      return true;
-    }
+    /* SITE_INCLUDE: games/multiplayer/safe-cracker/presentation.js#safeCrackerSnapshotVersion_136492 */
+    /* SITE_INCLUDE: games/multiplayer/safe-cracker/presentation.js#safeCrackerAcceptSnapshot_136802 */
     window.__safeCrackerAcceptSnapshot = safeCrackerAcceptSnapshot;
 // SAFE_CRACKER_SNAPSHOT_GUARD_END
 // MOUNTAIN_RACE_SHARED_SNAPSHOT_GUARD_START
     const mountainRaceAcceptedSnapshotByGame = new Map();
-    function mountainRaceSnapshotVersion(game) {
-      return {
-        statusRank: Number(DUEL_STATUS_RANK[String(game?.status || 'waiting')] || 0),
-        gameRevision: Math.max(-1, Number(game?.revision ?? -1)),
-        stateRevision: Math.max(-1, Number(game?.mountainraceState?.revision ?? -1)),
-        roundId: String(game?.mountainraceState?.roundId || '')
-      };
-    }
-    function mountainRaceCompareVersions(accepted, incoming) {
-      const sameRound = !accepted?.roundId || !incoming?.roundId || accepted.roundId === incoming.roundId;
-      if (!sameRound) return -1;
-      if (incoming.stateRevision !== accepted.stateRevision) return incoming.stateRevision - accepted.stateRevision;
-      if (incoming.statusRank !== accepted.statusRank) return incoming.statusRank - accepted.statusRank;
-      if (incoming.gameRevision !== accepted.gameRevision) return incoming.gameRevision - accepted.gameRevision;
-      return 0;
-    }
-  function mountainRaceAcceptSnapshot(game) {
-    if (String(game?.mode || '') !== 'mountainrace' || !game?.gameId) return true;
-    const id = String(game.gameId);
-    const incoming = mountainRaceSnapshotVersion(game);
-    const accepted = mountainRaceAcceptedSnapshotByGame.get(id);
-    const differentRound = Boolean(accepted?.roundId && incoming.roundId && accepted.roundId !== incoming.roundId);
-    if (accepted && differentRound && incoming.statusRank <= accepted.statusRank) {
-      window.__mountainRaceSharedRejectedSnapshots = Number(window.__mountainRaceSharedRejectedSnapshots || 0) + 1;
-      return false;
-    }
-    mountainRaceAcceptedSnapshotByGame.set(id, accepted ? {
-      statusRank: Math.max(accepted.statusRank, incoming.statusRank),
-      gameRevision: Math.max(accepted.gameRevision, incoming.gameRevision),
-      stateRevision: Math.max(accepted.stateRevision, incoming.stateRevision),
-      roundId: incoming.roundId || accepted.roundId
-    } : incoming);
-    return true;
-  }
+    /* SITE_INCLUDE: games/multiplayer/mountain-race/presentation.js#mountainRaceSnapshotVersion_137719 */
+    /* SITE_INCLUDE: games/multiplayer/mountain-race/presentation.js#mountainRaceCompareVersions_138100 */
+  /* SITE_INCLUDE: games/multiplayer/mountain-race/presentation.js#mountainRaceAcceptSnapshot_138658 */
     window.__mountainRaceAcceptSnapshot = mountainRaceAcceptSnapshot;
     window.__mountainRaceCompareVersions = mountainRaceCompareVersions;
 // MOUNTAIN_RACE_SHARED_SNAPSHOT_GUARD_END
@@ -10318,11 +10260,7 @@ function createSparkle(x, y) {
     }
 
     // MOUNTAIN_RACE_FINISH_STABILITY_V47
-    function mountainRaceCompletionLabel(game, player) {
-      if (game?.mode !== "mountainrace" || String(game?.status || "") !== "complete") return "";
-      if (game?.tie) return "TIED";
-      return String(game?.winnerUserId || "") === String(player?.userId || "") ? "WINNER" : "RACE OVER";
-    }
+    /* SITE_INCLUDE: games/multiplayer/mountain-race/presentation.js#mountainRaceCompletionLabel_155332 */
 
     function duelPlayerHtml(player, label, ready = false, statusLabel = "") {
       const avatar = player?.avatarUrl ? `<img class="duel-avatar" src="${escapeHtml(player.avatarUrl)}" alt="">` : `<div class="duel-avatar" style="display:grid;place-items:center;">👤</div>`;
@@ -10476,116 +10414,19 @@ function createSparkle(x, y) {
     }
 
 
-    function duelDrawSyncClock(state = {}) {
-      const key = `${state.startAt || ""}|${state.endAt || ""}`;
-      if (!key || key === "|") return;
-      if (key !== duelDrawClockAnchor.key) {
-        const serverNowMs = Date.parse(state.serverNow || "");
-        duelDrawClockAnchor = {
-          key,
-          serverNowMs: Number.isFinite(serverNowMs) ? serverNowMs : Date.now(),
-          perfAt: performance.now()
-        };
-      }
-    }
+    /* SITE_INCLUDE: games/multiplayer/draw/presentation.js#duelDrawSyncClock_164839 */
 
-    function duelDrawNowMs(state = {}) {
-      duelDrawSyncClock(state);
-      if (duelDrawClockAnchor.key) {
-        return duelDrawClockAnchor.serverNowMs + Math.max(0, performance.now() - duelDrawClockAnchor.perfAt);
-      }
-      return Date.now();
-    }
+    /* SITE_INCLUDE: games/multiplayer/draw/presentation.js#duelDrawNowMs_165285 */
 
-    function duelDrawSecondsLeft(state = {}) {
-      const end = Date.parse(state.endAt || 0);
-      const now = duelDrawNowMs(state);
-      return Math.max(0, Math.ceil((end - now) / 1000));
-    }
+    /* SITE_INCLUDE: games/multiplayer/draw/presentation.js#duelDrawSecondsLeft_165545 */
 
-    function duelDrawActiveEvents(state = {}) {
-      const startAt = Date.parse(state.startAt || 0);
-      const endAt = Date.parse(state.endAt || 0);
-      const now = duelDrawNowMs(state);
-      const events = Array.isArray(state.events) ? state.events : [];
-      const bySlot = new Map();
-      if (now >= endAt) return bySlot;
-      events.forEach(event => {
-        const start = Date.parse(event.startsAt || "") || (startAt + Number(event.startMs || 0));
-        const end = Date.parse(event.endsAt || "") || (start + Math.max(500, Number(event.durationMs || (event.kind === "boss" ? 5500 : 2000))));
-        const isBoss = event.kind === "boss";
-        const pending = !isBoss && duelDrawPendingTargets.has(String(event.id || ""));
-        const meId = duelDrawMyUserId();
-        // Bosses are shared targets. Hide immediately on this player's third
-        // optimistic hit, then let the database-confirmed claimedBy state decide
-        // which player actually receives the boss and removes it for everyone.
-        const localBoss = isBoss ? duelDrawBossOptimistic.get(String(event.id || "")) : null;
-        const locallyDefeated = Boolean(isBoss && Number(localBoss?.localTotalHits || 0) >= 3);
-        if (now < start || event.claimedBy || locallyDefeated || (pending && event.kind !== "boss")) return;
-        if (now >= end) return;
-        const slot = Number(event.slot);
-        const current = bySlot.get(slot);
-        if (!current || Number(event.startMs || 0) < Number(current.startMs || 0)) bySlot.set(slot, event);
-      });
-      return bySlot;
-    }
+    /* SITE_INCLUDE: games/multiplayer/draw/presentation.js#duelDrawActiveEvents_165744 */
 
-    function duelDrawPlayerCard(player = {}, score = 0, me = false) {
-      const avatar = player?.avatarUrl ? `<img src="${escapeHtml(player.avatarUrl)}" alt="${escapeHtml(player.name || "Player")}">` : `<div class="duel-draw-avatar-fallback">🤠</div>`;
-      return `<div class="duel-draw-score ${me ? "me" : ""}">
-        <div class="duel-draw-score-main">
-          ${avatar}
-          <div class="duel-draw-text">
-            <div class="duel-draw-name">${escapeHtml(player?.name || "Player")}</div>
-            <div class="duel-draw-role">${me ? "You" : "Opponent"}</div>
-          </div>
-        </div>
-        <div class="duel-draw-score-value">${Number(score || 0)}</div>
-      </div>`;
-    }
+    /* SITE_INCLUDE: games/multiplayer/draw/presentation.js#duelDrawPlayerCard_167327 */
 
-    function duelDrawTargetHtml(event, meId) {
-      if (!event) return `<div class="duel-draw-empty">…</div>`;
-      const type = event.type === "civilian" ? "civilian" : "robber";
-      const kind = String(event.kind || "standard");
-      const variant = String(event.variant || (type === "robber" ? "bandit" : "townsperson"));
-      const claimedBy = String(event.claimedBy || "");
-      const isClaimed = Boolean(claimedBy);
-      const pending = duelDrawPendingTargets.has(String(event.id || ""));
-      const isBoss = kind === "boss";
-      const isUniqueCivilian = false;
-      const myHits = Number(event.hitsBy?.[meId] || 0);
-      const totalBossHits = Math.min(3, Number(event.hitsBy?.[meId] || 0));
-      const bossCompleted = Boolean(isBoss && claimedBy);
-      const crackStage = totalBossHits;
-      const claimedCls = isClaimed ? (claimedBy === meId ? "claimed-me" : "claimed-other") : "";
-      const label = isBoss ? "BOSS" : type === "robber" ? "CRIMINAL" : "CIVILIAN";
-      const marker = isBoss ? "★" : type === "robber" ? "!" : "✓";
-      const name = "";
-      const scoreTag = isBoss ? "+3 • 3 HITS" : type === "robber" ? "+1" : "−1";
-      const inner = `<div class="duel-cutout ${type} ${variant} ${isBoss ? `boss-card crack-${crackStage}` : ""} ${isUniqueCivilian ? "unique-civilian-card" : ""}">
-          <div class="hat-top"></div>
-          <div class="hat-brim"></div>
-          <div class="head"></div>
-          ${type === "robber" ? '<div class="face-bandana"></div><div class="robber-gun"></div>' : '<div class="civ-hands"></div>'}
-          <div class="arms"></div>
-          <div class="body"></div>
-          <div class="badge">${escapeHtml(label)}</div>
-          ${name ? `<div class="draw-character-name">${escapeHtml(name)}</div>` : ""}
-          <div class="draw-score-tag">${escapeHtml(scoreTag)}</div>
-          ${isBoss ? `<div class="boss-hit-row"><span>Your hits ${myHits}/3</span></div><div class="boss-cracks" aria-hidden="true"></div>` : ""}
-          <div class="mark">${marker}</div>
-        </div>`;
-      const claimBadge = isClaimed ? `<div class="duel-draw-claimed">${claimedBy === meId ? "Claimed by you" : `Claimed by ${escapeHtml(event.claimedName || "opponent")}`}</div>` : pending ? `<div class="duel-draw-claimed">${isBoss ? "Hit registering..." : "Shot..."}</div>` : "";
-      if (isClaimed) return `<div class="duel-draw-target is-claimed ${claimedCls}" data-draw-event="${escapeHtml(event.id)}">${inner}${claimBadge}</div>`;
-      return `<button class="duel-draw-target ${pending || bossCompleted ? "is-pending" : ""}" data-draw-target="${escapeHtml(event.id)}" data-draw-event="${escapeHtml(event.id)}" type="button" ${pending || bossCompleted ? "disabled" : ""}>${inner}${bossCompleted ? `<div class="duel-draw-claimed">Boss defeated</div>` : claimBadge}</button>`;
-    }
+    /* SITE_INCLUDE: games/multiplayer/draw/presentation.js#duelDrawTargetHtml_168030 */
 
-    function duelDrawEventById(targetId) {
-      const id = String(targetId || "");
-      const events = duelDrawLatestGame?.drawState?.events || [];
-      return events.find(event => String(event.id || "") === id) || null;
-    }
+    /* SITE_INCLUDE: games/multiplayer/draw/presentation.js#duelDrawEventById_170874 */
 
     const duelDrawAudioFiles = {
       gunshots: [
@@ -10613,200 +10454,27 @@ function createSparkle(x, y) {
     let duelDrawWesternMusicRaf = 0;
     let duelDrawWesternMusicWanted = false;
 
-    function duelDrawWarmWesternMusic() {
-      if (duelDrawWesternMusic.getAttribute("src")) return;
-      duelDrawWesternMusic.preload = "auto";
-      duelDrawWesternMusic.src = "assets/draw-western-theme.mp3";
-      duelDrawWesternMusic.load();
-    }
+    /* SITE_INCLUDE: games/multiplayer/draw/presentation.js#duelDrawWarmWesternMusic_171969 */
 
-    function duelDrawFadeWesternMusic(target, duration = 900, pauseAfter = false) {
-      if (duelDrawWesternMusicRaf) cancelAnimationFrame(duelDrawWesternMusicRaf);
-      const start = performance.now();
-      const from = Number(duelDrawWesternMusic.volume || 0);
-      const to = Math.max(0, Math.min(1, Number(target || 0)));
-      if (Math.abs(from - to) < 0.0001) {
-        duelDrawWesternMusicRaf = 0;
-        if (pauseAfter && to <= 0.001) duelDrawWesternMusic.pause();
-        return;
-      }
-      const tick = now => {
-        const progress = Math.min(1, (now - start) / Math.max(1, duration));
-        const eased = 1 - Math.pow(1 - progress, 3);
-        duelDrawWesternMusic.volume = from + (to - from) * eased;
-        if (progress < 1) duelDrawWesternMusicRaf = requestAnimationFrame(tick);
-        else {
-          duelDrawWesternMusicRaf = 0;
-          if (pauseAfter && to <= 0.001) duelDrawWesternMusic.pause();
-        }
-      };
-      duelDrawWesternMusicRaf = requestAnimationFrame(tick);
-    }
+    /* SITE_INCLUDE: games/multiplayer/draw/presentation.js#duelDrawFadeWesternMusic_172224 */
 
-    function duelDrawSyncWesternMusic(game = duelDrawLatestGame) {
-      if (document.hidden) {
-        if (duelDrawWesternMusicRaf) cancelAnimationFrame(duelDrawWesternMusicRaf);
-        duelDrawWesternMusicRaf = 0;
-        duelDrawWesternMusic.pause();
-        duelDrawWesternMusic.volume = 0;
-        duelDrawWesternMusicWanted = false;
-        return;
-      }
-      const drawVisible = Boolean(duelScreen && !duelScreen.hidden && game?.mode === "draw");
-      const shouldPlay = Boolean(drawVisible && musicEnabled && userAudioStarted && !document.hidden);
-      const resultDucked = String(game?.status || "") === "complete";
-      duelDrawWesternMusicWanted = shouldPlay;
-      if (!shouldPlay) {
-        duelDrawFadeWesternMusic(0, 420, true);
-        return;
-      }
-      pauseBackgroundJazz();
-      const target = resultDucked ? 0.050 : 0.090;
-      if (duelDrawWesternMusic.paused) {
-        duelDrawWesternMusic.volume = 0;
-        const playPromise = duelDrawWesternMusic.play();
-        if (playPromise?.catch) playPromise.catch(() => {});
-      }
-      duelDrawFadeWesternMusic(target, resultDucked ? 650 : 1200, false);
-    }
+    /* SITE_INCLUDE: games/multiplayer/draw/presentation.js#duelDrawSyncWesternMusic_173243 */
 
     let duelDrawLastCivilianAt = 0;
     let duelDrawLastCriminalAt = 0;
     let duelDrawLastGruntIndex = -1;
 
-    function duelDrawGetAudioPool(src, size = 3) {
-      if (duelDrawAudioPools.has(src)) return duelDrawAudioPools.get(src);
-      const pool = Array.from({ length: size }, () => {
-        const audio = new Audio(src);
-        audio.preload = "auto";
-        audio.playsInline = true;
-        return audio;
-      });
-      pool.cursor = 0;
-      duelDrawAudioPools.set(src, pool);
-      return pool;
-    }
+    /* SITE_INCLUDE: games/multiplayer/draw/presentation.js#duelDrawGetAudioPool_174497 */
 
-    function duelDrawFadeReaction(audio, targetVolume) {
-      const startedAt = performance.now();
-      const fadeInMs = 42;
-      let raf = 0;
-      const tick = () => {
-        if (audio.paused || audio.ended) return;
-        const elapsed = performance.now() - startedAt;
-        let level = Math.min(1, elapsed / fadeInMs);
-        if (Number.isFinite(audio.duration) && audio.duration > 0) {
-          const remaining = audio.duration - audio.currentTime;
-          if (remaining < 0.09) level *= Math.max(0, remaining / 0.09);
-        }
-        audio.volume = Math.max(0, Math.min(1, targetVolume * level));
-        raf = requestAnimationFrame(tick);
-      };
-      const stop = () => { if (raf) cancelAnimationFrame(raf); };
-      audio.addEventListener("ended", stop, { once: true });
-      audio.addEventListener("error", stop, { once: true });
-      raf = requestAnimationFrame(tick);
-    }
+    /* SITE_INCLUDE: games/multiplayer/draw/presentation.js#duelDrawFadeReaction_174905 */
 
-    function duelDrawPlaySample(src, { volume = 0.5, poolSize = 3, reactionType = "" } = {}) {
-      if (!src || !sfxEnabled || document.hidden) return false;
-      try {
-        const isReaction = Boolean(reactionType);
-        if (isReaction) {
-          for (const item of [...duelDrawActiveReactions]) {
-            if (!item.audio || item.audio.ended || item.audio.paused) duelDrawActiveReactions.delete(item);
-          }
-          if (duelDrawActiveReactions.size >= 2) return false;
-          if (reactionType === "civilian" && [...duelDrawActiveReactions].some(item => item.type === "civilian")) return false;
-        }
+    /* SITE_INCLUDE: games/multiplayer/draw/presentation.js#duelDrawPlaySample_175809 */
 
-        const pool = duelDrawGetAudioPool(src, poolSize);
-        let audio = null;
-        for (let i = 0; i < pool.length; i += 1) {
-          const candidate = pool[(pool.cursor + i) % pool.length];
-          if (candidate.paused || candidate.ended) {
-            audio = candidate;
-            pool.cursor = (pool.cursor + i + 1) % pool.length;
-            break;
-          }
-        }
-        if (!audio) {
-          if (isReaction) return false;
-          audio = pool[pool.cursor % pool.length];
-          pool.cursor = (pool.cursor + 1) % pool.length;
-          audio.pause();
-        }
+    /* SITE_INCLUDE: games/multiplayer/draw/presentation.js#duelDrawPlayShotEffects_177837 */
 
-        audio.currentTime = 0;
-        audio.volume = isReaction ? 0 : Math.max(0, Math.min(1, volume));
-        let reactionRecord = null;
-        if (isReaction) {
-          reactionRecord = { audio, type: reactionType };
-          duelDrawActiveReactions.add(reactionRecord);
-          const clear = () => duelDrawActiveReactions.delete(reactionRecord);
-          audio.addEventListener("ended", clear, { once: true });
-          audio.addEventListener("error", clear, { once: true });
-        }
-        const promise = audio.play();
-        if (promise?.catch) promise.catch(() => {
-          if (reactionRecord) duelDrawActiveReactions.delete(reactionRecord);
-        });
-        if (isReaction) duelDrawFadeReaction(audio, volume);
-        return true;
-      } catch (_) { return false; }
-    }
+    /* SITE_INCLUDE: games/multiplayer/draw/presentation.js#duelDrawPlayBossDefeat_178949 */
 
-    function duelDrawPlayShotEffects(event) {
-      if (!event || !sfxEnabled || document.hidden) return;
-      const guns = duelDrawAudioFiles.gunshots;
-      duelDrawPlaySample(guns[Math.floor(Math.random() * guns.length)], { volume: 0.50, poolSize: 5 });
-
-      const now = performance.now();
-      if (event.type === "civilian") {
-        if (now - duelDrawLastCivilianAt < 300) return;
-        if (duelDrawPlaySample(duelDrawAudioFiles.civilian, { volume: 0.48, poolSize: 2, reactionType: "civilian" })) {
-          duelDrawLastCivilianAt = now;
-        }
-      } else {
-        if (now - duelDrawLastCriminalAt < 140) return;
-        const grunts = duelDrawAudioFiles.grunts;
-        let index = Math.floor(Math.random() * grunts.length);
-        if (grunts.length > 1 && index === duelDrawLastGruntIndex) index = (index + 1 + Math.floor(Math.random() * (grunts.length - 1))) % grunts.length;
-        if (duelDrawPlaySample(grunts[index], { volume: 0.60, poolSize: 2, reactionType: "criminal" })) {
-          duelDrawLastGruntIndex = index;
-          duelDrawLastCriminalAt = now;
-        }
-      }
-    }
-
-    function duelDrawPlayBossDefeat() {}
-
-    function duelDrawAddBulletHole(targetId, pointerEvent) {
-      const target = pointerEvent?.currentTarget || duelActive?.querySelector(`[data-draw-target="${CSS.escape(String(targetId || ""))}"]`);
-      const slot = target?.closest?.(".duel-draw-slot");
-      if (!slot) return;
-      const rect = slot.getBoundingClientRect();
-      let x = Number(pointerEvent?.clientX) - rect.left;
-      let y = Number(pointerEvent?.clientY) - rect.top;
-      if (!Number.isFinite(x) || !Number.isFinite(y)) {
-        x = rect.width / 2;
-        y = rect.height / 2;
-      }
-      x = Math.max(8, Math.min(rect.width - 8, x));
-      y = Math.max(8, Math.min(rect.height - 8, y));
-      const flash = document.createElement("span");
-      flash.className = "duel-draw-muzzle-flash";
-      flash.style.left = `${x}px`;
-      flash.style.top = `${y}px`;
-      slot.appendChild(flash);
-      setTimeout(() => flash.remove(), 150);
-      const hole = document.createElement("span");
-      hole.className = "duel-draw-bullet-hole";
-      hole.style.left = `${x}px`;
-      hole.style.top = `${y}px`;
-      slot.appendChild(hole);
-      setTimeout(() => hole.remove(), 360);
-    }
+    /* SITE_INCLUDE: games/multiplayer/draw/presentation.js#duelDrawAddBulletHole_178991 */
 
     function playDrawGoodHitSound() {
       const ctx = getAudioContext();
@@ -10832,271 +10500,33 @@ function createSparkle(x, y) {
       else playDrawBadHitSound();
     }
 
-    function duelDrawShowFeedback(targetId, delta, bossProgress = null) {
-      const id = String(targetId || "");
-      const numericDelta = Number(delta || 0);
-      playDrawHitFeedback(numericDelta > 0 || Boolean(bossProgress && !bossProgress.won) ? 1 : -1);
-      const good = numericDelta > 0 || Boolean(bossProgress && !bossProgress.won);
-      const feedback = bossProgress
-        ? (bossProgress.won ? { cls: "boss", text: "+3" } : { cls: "good", text: `HIT ${bossProgress.totalHits}/${bossProgress.hitGoal}` })
-        : numericDelta > 0 ? { cls: "good", text: "+1" }
-        : { cls: "bad", text: "-1" };
-      const target = [...(duelActive?.querySelectorAll("[data-draw-event]") || [])].find(el => String(el.dataset.drawEvent || "") === id);
-      const slot = target?.closest(".duel-draw-slot");
-      const host = slot || target || duelActive?.querySelector(".duel-draw-board");
-      if (slot) {
-        slot.classList.add(good ? "feedback-good" : "feedback-bad");
-        setTimeout(() => slot.classList.remove("feedback-good", "feedback-bad"), 520);
-      }
-      const board = duelActive?.querySelector(".duel-draw-board");
-      if (board) {
-        board.classList.remove("impact-good", "impact-bad");
-        void board.offsetWidth;
-        board.classList.add(good ? "impact-good" : "impact-bad");
-        setTimeout(() => board.classList.remove("impact-good", "impact-bad"), 240);
-      }
-      if (target) {
-        target.classList.add(good ? "feedback-good" : "feedback-bad");
-        setTimeout(() => target.classList.remove("feedback-good", "feedback-bad"), 520);
-      }
-      if (host) {
-        const float = document.createElement("div");
-        float.className = `duel-draw-float ${feedback.cls}`;
-        float.textContent = feedback.text;
-        host.appendChild(float);
-        setTimeout(() => float.remove(), 1250);
-      }
-      const scoreCard = duelActive?.querySelector(gameIsCreatorView() ? ".duel-draw-score.me" : ".duel-draw-score.me");
-      if (scoreCard) {
-        scoreCard.classList.add(good ? "bump-good" : "bump-bad");
-        setTimeout(() => scoreCard.classList.remove("bump-good", "bump-bad"), 520);
-      }
-    }
+    /* SITE_INCLUDE: games/multiplayer/draw/presentation.js#duelDrawShowFeedback_181443 */
 
     function gameIsCreatorView() {
       return Boolean(duelDrawLatestGame?.isCreator);
     }
 
-    function duelDrawHtml(game) {
-      const state = game?.drawState || {};
-      duelDrawSyncClock(state);
-      const scores = state.scores || {};
-      const meId = String(localStorage.getItem("tornVisitorUserId") || "");
-      const creatorId = String(game?.creator?.userId || "");
-      const joinerId = String(game?.joiner?.userId || "");
-      const isPlaying = String(game?.status || "") === "playing";
-      const seconds = isPlaying ? duelDrawSecondsLeft(state) : 30;
-      const activeBySlot = isPlaying ? duelDrawActiveEvents(state) : new Map();
-      const slots = [];
-      for (let i = 0; i < 9; i += 1) {
-        slots.push(`<div class="duel-draw-slot">${duelDrawTargetHtml(activeBySlot.get(i), meId)}</div>`);
-      }
-      const headerText = "Shoot criminals and spare civilians!";
-      const complete = String(game?.status || "") === "complete";
-      const winnerId = String(game?.winnerUserId || "");
-      const meWon = Boolean(winnerId && winnerId === meId);
-      const isTie = Boolean(game?.tie);
-      const finalCreatorScore = Number(game?.result?.creator?.score ?? scores[creatorId] ?? 0);
-      const finalJoinerScore = Number(game?.result?.joiner?.score ?? scores[joinerId] ?? 0);
-      const completedAtMs = Date.parse(String(game?.completedAt || "")) || Date.now();
-      const newGameDelayMs = Math.max(0, completedAtMs + 3000 - Date.now());
-      const ticketsWon = meWon ? Math.max(0, Math.floor(Number(game?.payout || 0))) : 0;
-      const resultTitle = isTie ? "DRAW AT HIGH NOON" : meWon ? "VICTORY, PARTNER!" : "YOU’VE BEEN OUTDRAWN";
-      const resultKicker = isTie ? "No Winner This Time" : meWon ? "Fastest Hand in the West" : "Better Luck Next Round";
-      const rematch = game?.rematch || {};
-      const rematchRequests = rematch.requestedBy || {};
-      const rematchExpiresMs = Date.parse(rematch.expiresAt || 0);
-      const rematchActive = Boolean(rematchExpiresMs && rematchExpiresMs > Date.now());
-      const myRematch = Boolean(rematchActive && rematchRequests[meId]);
-      const opponentId = creatorId === meId ? joinerId : creatorId;
-      const opponentPlayer = creatorId === opponentId ? game.creator : game.joiner;
-      const opponentRematch = Boolean(rematchActive && rematchRequests[opponentId]);
-      const rematchSeconds = rematchActive ? Math.max(0, Math.ceil((rematchExpiresMs - Date.now()) / 1000)) : 10;
-      const firstRequesterId = rematchActive ? (Object.entries(rematchRequests).sort((a,b) => Date.parse(a[1] || 0) - Date.parse(b[1] || 0))[0]?.[0] || "") : "";
-      const requesterPlayer = firstRequesterId === creatorId ? game.creator : firstRequesterId === joinerId ? game.joiner : null;
-      const requesterAvatar = requesterPlayer?.avatarUrl
-        ? `<img src="${escapeHtml(requesterPlayer.avatarUrl)}" alt="" class="duel-rematch-avatar">`
-        : firstRequesterId ? `<span class="duel-rematch-avatar duel-rematch-avatar-fallback">${escapeHtml(String(requesterPlayer?.profileInitial || requesterPlayer?.name || "?").trim().slice(0,1).toUpperCase())}</span>` : "";
-      const requesterName = escapeHtml(requesterPlayer?.name || "Player");
-      const rematchLabel = rematchActive
-        ? `${requesterAvatar}<span>${firstRequesterId === meId ? "Rematch requested" : `${requesterName} wants a rematch`} • ${rematchSeconds}s</span>`
-        : `<span>Rematch</span>`;
-      const resultOverlay = complete ? `<div class="duel-draw-result-overlay ${isTie ? "tie" : meWon ? "win" : "lose"}"><div class="duel-draw-result-card"><div class="duel-draw-result-kicker">${resultKicker}</div><div class="duel-draw-result-title">${resultTitle}</div><div class="duel-draw-result-score">Final score: ${finalCreatorScore} – ${finalJoinerScore}</div>${meWon ? `<div class="duel-draw-result-tickets">You won ${money(ticketsWon)}</div>` : `<div class="duel-draw-result-payout">${isTie ? "Both wagers were returned." : "The trail continues, partner."}</div>`}<div class="duel-draw-result-action"><button class="gold duel-rematch-btn ${myRematch ? "requested" : ""}" id="duelRematchBtn" type="button" ${myRematch ? "disabled" : ""}>${rematchLabel}</button><button class="secondary" id="duelNewGameBtn" type="button" ${newGameDelayMs > 0 ? "disabled" : ""}>${newGameDelayMs > 0 ? `New Game in ${Math.max(1, Math.ceil(newGameDelayMs / 1000))}…` : "Create a New Game"}</button></div></div></div>` : "";
-      return `<div class="duel-draw-wrap">
-        <div class="duel-draw-header">
-          <div class="duel-draw-title">DRAW! Western Duel</div>
-          <div class="duel-draw-timer">${seconds > 0 ? `${seconds}s` : "DONE"}</div>
-        </div>
-        <div class="duel-draw-scores">
-          ${duelDrawPlayerCard(game.creator, Number(scores[creatorId] || 0), game.isCreator)}
-          ${duelDrawPlayerCard(game.joiner || { name: "Waiting..." }, Number(scores[joinerId] || 0), game.isJoiner)}
-        </div>
-        <div class="duel-draw-board">${slots.join("")}</div>
-        <div class="duel-draw-tip">${escapeHtml(headerText)}</div>
-        ${resultOverlay}
-      </div>`;
-    }
+    /* SITE_INCLUDE: games/multiplayer/draw/presentation.js#duelDrawHtml_183711 */
 
-    function duelDrawArtKey(game = {}) {
-      const state = game.drawState || {};
-      const activeBySlot = duelDrawActiveEvents(state);
-      const active = [];
-      for (let i = 0; i < 9; i += 1) {
-        const event = activeBySlot.get(i);
-        active.push(event ? `${i}:${event.id}:${event.type}:${event.kind || ""}:${event.variant || ""}:${event.name || ""}:${JSON.stringify(event.hitsBy || {})}:${event.globalHits || 0}:${event.defeatedAt || ""}:${event.claimedBy || ""}:${duelDrawPendingTargets.has(String(event.id || "")) ? "p" : ""}` : `${i}:empty`);
-      }
-      return JSON.stringify({
-        id: game.gameId,
-        status: game.status,
-        active,
-        revision: state.revision || 0,
-        scores: state.scores || {},
-        message: state.message || ""
-      });
-    }
+    /* SITE_INCLUDE: games/multiplayer/draw/presentation.js#duelDrawArtKey_188763 */
 
-    function duelDrawMyUserId(game = duelDrawLatestGame) {
-      if (game?.isCreator) return String(game.creator?.userId || "");
-      if (game?.isJoiner) return String(game.joiner?.userId || "");
-      return String(localStorage.getItem("tornVisitorUserId") || "");
-    }
+    /* SITE_INCLUDE: games/multiplayer/draw/presentation.js#duelDrawMyUserId_189566 */
 
-    function duelDrawVisualScoreKey(game = duelDrawLatestGame) {
-      return `${String(game?.gameId || "")}:${duelDrawMyUserId(game)}`;
-    }
+    /* SITE_INCLUDE: games/multiplayer/draw/presentation.js#duelDrawVisualScoreKey_189840 */
 
-    function duelDrawGetVisualScore(game = duelDrawLatestGame) {
-      const key = duelDrawVisualScoreKey(game);
-      if (duelDrawVisualScores.has(key)) return Number(duelDrawVisualScores.get(key) || 0);
-      const meId = duelDrawMyUserId(game);
-      return Number(game?.drawState?.scores?.[meId] || 0);
-    }
+    /* SITE_INCLUDE: games/multiplayer/draw/presentation.js#duelDrawGetVisualScore_189984 */
 
-    function duelDrawSetVisualScore(value, game = duelDrawLatestGame) {
-      const key = duelDrawVisualScoreKey(game);
-      const score = Number(value || 0);
-      duelDrawVisualScores.set(key, score);
-      const el = duelActive?.querySelector(".duel-draw-score.me .duel-draw-score-value");
-      if (el && el.textContent !== String(score)) el.textContent = String(score);
-      return score;
-    }
+    /* SITE_INCLUDE: games/multiplayer/draw/presentation.js#duelDrawSetVisualScore_190298 */
 
-    function duelDrawAdjustVisualScore(delta, game = duelDrawLatestGame) {
-      return duelDrawSetVisualScore(duelDrawGetVisualScore(game) + Number(delta || 0), game);
-    }
+    /* SITE_INCLUDE: games/multiplayer/draw/presentation.js#duelDrawAdjustVisualScore_190701 */
 
-    function duelDrawApplyBossOptimistic(game) {
-      if (!game?.drawState?.events) return game;
-      const meId = duelDrawMyUserId(game);
-      for (const event of game.drawState.events) {
-        const id = String(event?.id || "");
-        const local = duelDrawBossOptimistic.get(id);
-        if (!local || event.kind !== "boss") continue;
-        event.hitsBy = { ...(event.hitsBy || {}) };
-        const serverMyHits = Number(event.hitsBy[meId] || 0);
-        if (local.pending > 0) event.hitsBy[meId] = Math.max(serverMyHits, Number(local.localMyHits || serverMyHits));
-        // Keep global completion authoritative. Local hit feedback is shown immediately,
-        // but the card disappears for this player when the server confirms their own third hit.
-      }
-      return game;
-    }
+    /* SITE_INCLUDE: games/multiplayer/draw/presentation.js#duelDrawApplyBossOptimistic_190877 */
 
-    function duelDrawPendingBossAward() { return 0; }
+    /* SITE_INCLUDE: games/multiplayer/draw/presentation.js#duelDrawPendingBossAward_191676 */
 
-    function duelDrawReconcileOptimistic(game) {
-      const meId = duelDrawMyUserId(game);
-      const events = game?.drawState?.events || [];
-      const confirmedActionIds = new Set((game?.drawState?.actionLedger || []).filter(row => String(row?.userId || "") === meId).map(row => String(row?.actionId || "")));
-      for (const [actionId, claim] of duelDrawOptimisticClaims.entries()) {
-        if (confirmedActionIds.has(actionId)) {
-          duelDrawOptimisticClaims.delete(actionId);
-          duelDrawPendingTargets.delete(String(claim?.targetId || ""));
-        }
-      }
-      for (const [id, local] of duelDrawBossOptimistic.entries()) {
-        const event = events.find(item => String(item?.id || "") === id);
-        if (!event) continue;
-        local.confirmedActionIds = local.confirmedActionIds || new Set();
-        for (const actionId of [...(local.pendingActionIds || [])]) {
-          if (confirmedActionIds.has(actionId)) {
-            local.pendingActionIds.delete(actionId);
-            local.pending = Math.max(0, Number(local.pending || 0) - 1);
-          }
-        }
-        if (local.pending <= 0) {
-          local.localMyHits = Number(event.hitsBy?.[meId] || 0);
-          local.localTotalHits = Number(event.hitsBy?.[meId] || 0);
-          duelDrawBossOptimistic.delete(id);
-        }
-      }
-    }
+    /* SITE_INCLUDE: games/multiplayer/draw/presentation.js#duelDrawReconcileOptimistic_191731 */
 
-    function duelDrawPatchDom(game) {
-      const art = duelActive?.querySelector("[data-duel-draw-art]");
-      if (!art || !game) return false;
-      const state = game.drawState || {};
-      const revisionKey = String(game.gameId || "");
-      const incomingRevision = Number(state.revision || 0);
-      const latestRevision = Number(duelDrawLatestRevision.get(revisionKey) || 0);
-      if (game.status === "playing" && incomingRevision < latestRevision) return true;
-      duelDrawLatestRevision.set(revisionKey, Math.max(latestRevision, incomingRevision));
-      duelDrawLatestGame = duelDrawApplyBossOptimistic(game);
-      game = duelDrawLatestGame;
-      duelDrawReconcileOptimistic(game);
-      duelDrawSyncClock(state);
-      const meId = duelDrawMyUserId(game);
-      const creatorId = String(game.creator?.userId || "");
-      const joinerId = String(game.joiner?.userId || "");
-      const scores = state.scores || {};
-      const scoreCards = art.querySelectorAll(".duel-draw-score");
-      // Both live scoreboards use the exact same server-confirmed claim ledger as
-      // the final result. Stale responses are rejected by revision above.
-      const pendingDelta = Array.from(duelDrawOptimisticClaims.values()).reduce((sum, claim) => sum + Number(claim?.delta || 0), 0) + duelDrawPendingBossAward();
-      const values = [Number(scores[creatorId] || 0), Number(scores[joinerId] || 0)];
-      if (meId === creatorId) values[0] += pendingDelta;
-      if (meId === joinerId) values[1] += pendingDelta;
-      scoreCards.forEach((card, index) => {
-        const value = card.querySelector(".duel-draw-score-value");
-        if (value && value.textContent !== String(values[index])) value.textContent = String(values[index]);
-      });
-      const myValue = meId === creatorId ? values[0] : values[1];
-      duelDrawSetVisualScore(Number(myValue || 0), game);
-
-      const activeBySlot = duelDrawActiveEvents(state);
-      const slots = art.querySelectorAll(".duel-draw-slot");
-      slots.forEach((slot, index) => {
-        const event = activeBySlot.get(index);
-        const wantedId = event ? String(event.id || "") : "";
-        const current = slot.querySelector("[data-draw-event]");
-        const currentId = current ? String(current.dataset.drawEvent || "") : "";
-        if (wantedId === currentId) {
-          // A boss remains in the same slot across hits, so rebuild that one
-          // card to display the new hit count/cracks. Standard cards do not need
-          // this because they disappear after one claim.
-          if (event?.kind === "boss") {
-            slot.innerHTML = duelDrawTargetHtml(event, meId);
-            duelBindDrawTargets(slot);
-          }
-          return;
-        }
-        if (!wantedId) {
-          slot.innerHTML = `<div class="duel-draw-empty">…</div>`;
-          return;
-        }
-        slot.innerHTML = duelDrawTargetHtml(event, meId);
-        duelBindDrawTargets(slot);
-      });
-
-      const seconds = duelDrawSecondsLeft(state);
-      const now = duelDrawNowMs(state);
-      const timer = art.querySelector(".duel-draw-timer");
-      if (timer) timer.textContent = seconds > 0 ? `${seconds}s` : "DONE";
-      const tip = art.querySelector(".duel-draw-tip");
-      const tipText = "Shoot criminals and spare civilians!";
-      if (tip && tip.textContent !== tipText) tip.textContent = tipText;
-      duelDrawLocalRenderKey = duelDrawArtKey(game);
-      return true;
-    }
+    /* SITE_INCLUDE: games/multiplayer/draw/presentation.js#duelDrawPatchDom_193064 */
 
     function duelBindDrawTargets(root = duelActive) {
       root?.querySelectorAll("[data-draw-target]").forEach(btn => {
@@ -11106,48 +10536,11 @@ function createSparkle(x, y) {
       });
     }
 
-    function duelDrawLocalTick() {
-      if (!duelDrawLatestGame || !duelActive || duelDrawLatestGame.mode !== "draw" || duelDrawLatestGame.status !== "playing" || duelScreen?.hidden) return;
-      const art = duelActive.querySelector("[data-duel-draw-art]");
-      if (!art) return;
-
-      const state = duelDrawLatestGame.drawState || {};
-      const seconds = duelDrawSecondsLeft(state);
-      const now = duelDrawNowMs(state);
-      const timer = art.querySelector(".duel-draw-timer");
-      if (timer) timer.textContent = seconds > 0 ? `${seconds}s` : "DONE";
-      const tip = art.querySelector(".duel-draw-tip");
-      if (tip) {
-        tip.textContent = "Shoot criminals and spare civilians!";
-      }
-
-      const key = duelDrawArtKey(duelDrawLatestGame);
-      if (key !== duelDrawLocalRenderKey) duelDrawPatchDom(duelDrawLatestGame);
-
-      if (seconds <= 0 && !window.__duelDrawFinalRefreshQueued) {
-        window.__duelDrawFinalRefreshQueued = true;
-        setTimeout(() => {
-          window.__duelDrawFinalRefreshQueued = false;
-          duelRefresh(true);
-        }, 900);
-      }
-    }
+    /* SITE_INCLUDE: games/multiplayer/draw/presentation.js#duelDrawLocalTick_196844 */
 
 
-    function duelFishingClearAudioTimeouts(){
-      for(const id of duelFishingAudioTimeouts) clearTimeout(id);
-      duelFishingAudioTimeouts.clear();
-    }
-    function duelFishingScheduleAudio(fn, delay){
-      const epoch=duelFishingAudioEpoch;
-      const id=setTimeout(()=>{
-        duelFishingAudioTimeouts.delete(id);
-        if(epoch!==duelFishingAudioEpoch)return;
-        fn();
-      },delay);
-      duelFishingAudioTimeouts.add(id);
-      return id;
-    }
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingClearAudioTimeouts_197953 */
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingScheduleAudio_198111 */
 
 
 
@@ -11216,247 +10609,49 @@ function createSparkle(x, y) {
       }
     }
 
-    function duelFishingNoiseBuffer(duration = 0.5) {
-      const ctx = getAudioContext();
-      if (!ctx) return null;
-      const length = Math.max(1, Math.floor(ctx.sampleRate * duration));
-      const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
-      const data = buffer.getChannelData(0);
-      let smooth = 0;
-      for (let i = 0; i < length; i += 1) {
-        smooth = smooth * 0.58 + (Math.random() * 2 - 1) * 0.42;
-        data[i] = smooth;
-      }
-      return buffer;
-    }
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingNoiseBuffer_202171 */
 
-    function duelFishingStartOcean() {
-      const ctx = getAudioContext();
-      if (!ctx || !musicGain || !musicEnabled || document.hidden || duelFishingOceanNodes) return;
-      const source = ctx.createBufferSource();
-      const buffer = duelFishingNoiseBuffer(4.8);
-      if (!buffer) return;
-      source.buffer = buffer;
-      source.loop = true;
-      const low = ctx.createBiquadFilter();
-      low.type = "lowpass";
-      low.frequency.value = 2400;
-      low.Q.value = 0.18;
-      const high = ctx.createBiquadFilter();
-      high.type = "highpass";
-      high.frequency.value = 45;
-      const gain = ctx.createGain();
-      const lfo = ctx.createOscillator();
-      const lfoGain = ctx.createGain();
-      lfo.type = "sine";
-      lfo.frequency.value = 0.13;
-      lfoGain.gain.value = 0.010;
-      gain.gain.value = 0.030;
-      lfo.connect(lfoGain);
-      lfoGain.connect(gain.gain);
-      source.connect(low);
-      low.connect(high);
-      high.connect(gain);
-      gain.connect(musicGain);
-      source.start();
-      lfo.start();
-      duelFishingOceanNodes = { source, lfo, gain };
-    }
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingStartOcean_202668 */
 
-    function duelFishingStopOcean(immediate=false) {
-      const nodes = duelFishingOceanNodes;
-      duelFishingOceanNodes = null;
-      if (!nodes) return;
-      const ctx=getAudioContext();
-      const finish=()=>{
-        try { nodes.source.stop(); } catch {}
-        try { nodes.lfo.stop(); } catch {}
-        try { nodes.source.disconnect(); nodes.lfo.disconnect(); nodes.gain.disconnect(); } catch {}
-      };
-      if(!immediate&&ctx&&nodes.gain){
-        try{
-          const now=ctx.currentTime;
-          nodes.gain.gain.cancelScheduledValues(now);
-          nodes.gain.gain.setValueAtTime(Math.max(.0001,nodes.gain.gain.value||.03),now);
-          nodes.gain.gain.exponentialRampToValueAtTime(.0001,now+.32);
-          setTimeout(finish,380);
-          return;
-        }catch{}
-      }
-      finish();
-    }
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingStopOcean_203778 */
 
-    function duelFishingPlayNoise(duration, volume, lowpass, highpass = 40, pan = 0) {
-      const ctx = getAudioContext();
-      if (!ctx || !sfxGain || !sfxEnabled || document.hidden) return;
-      const source = ctx.createBufferSource();
-      const buffer = duelFishingNoiseBuffer(duration);
-      if (!buffer) return;
-      source.buffer = buffer;
-      const hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = highpass;
-      const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = lowpass;
-      const gain = ctx.createGain();
-      const start = ctx.currentTime + 0.003;
-      gain.gain.setValueAtTime(0.0001, start);
-      gain.gain.linearRampToValueAtTime(volume, start + Math.min(0.025, duration * 0.15));
-      gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
-      source.connect(hp); hp.connect(lp); lp.connect(gain);
-      if (ctx.createStereoPanner) { const panner = ctx.createStereoPanner(); panner.pan.value = Math.max(-1, Math.min(1, pan)); gain.connect(panner); panner.connect(sfxGain); }
-      else gain.connect(sfxGain);
-      source.start(start); source.stop(start + duration + 0.03);
-    }
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingPlayNoise_204599 */
 
 
-    function duelFishingRippleRumble(active) {
-      if(!active||!navigator.vibrate)return;
-      const ripple=Math.max(28,Math.min(92,Number(active.ripple||48)));
-      const strength=(ripple-28)/64;
-      const first=Math.round(16+strength*42);
-      const second=Math.round(22+strength*70);
-      const gap=Math.round(55-strength*18);
-      navigator.vibrate(strength>.72?[first,gap,second]:strength>.38?[first,46,Math.round(second*.62)]:[first]);
-    }
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingRippleRumble_205778 */
 
-    function duelFishingPlayRipple() {
-      const ctx=getAudioContext(); if(!ctx||!sfxGain||document.hidden)return;
-      const t=ctx.currentTime+0.004;
-      scheduleTone(185,t,.11,"sine",sfxGain,.025,{attack:.004,release:.09,sustain:.22,filterFrequency:650});
-      scheduleTone(305,t+.025,.09,"sine",sfxGain,.014,{attack:.003,release:.07,sustain:.18,filterFrequency:950});
-      duelFishingPlayNoise(.13,.025,1300,180,0);
-    }
-    function duelFishingPlayBite() {
-      const ctx=getAudioContext(); if(!ctx||!sfxGain||document.hidden)return;
-      const t=ctx.currentTime+0.003;
-      scheduleTone(520,t,.055,"triangle",sfxGain,.035,{attack:.002,release:.045,sustain:.12,filterFrequency:2400});
-      scheduleTone(285,t+.035,.10,"sine",sfxGain,.026,{attack:.003,release:.08,sustain:.14,filterFrequency:1100});
-    }
-    function duelFishingPlaySplash(side="center") {
-      const pan=side==="left"?-.48:side==="right"?.48:0;
-      duelFishingPlayNoise(.48,.12,4200,110,pan);
-      const ctx=getAudioContext(); if(!ctx||!sfxGain||document.hidden)return;
-      const t=ctx.currentTime+.005;
-      scheduleTone(118,t,.24,"sine",sfxGain,.040,{attack:.008,release:.20,sustain:.20,filterFrequency:520});
-      setTimeout(()=>duelFishingPlayNoise(.18,.055,2500,230,pan),105);
-    }
-    function duelFishingPlayFlop(side="center") {
-      const pan=side==="left"?-.38:side==="right"?.38:0;
-      duelFishingPlayNoise(.11,.052,1250,85,pan);
-      const ctx=getAudioContext(); if(!ctx||!sfxGain||document.hidden)return;
-      const t=ctx.currentTime+.003;
-      scheduleTone(105,t,.09,"triangle",sfxGain,.030,{attack:.002,release:.075,sustain:.12,filterFrequency:480});
-      setTimeout(()=>duelFishingPlayNoise(.08,.035,950,75,pan),145);
-    }
-    function duelFishingPlayTick() {
-      const ctx=getAudioContext(); if(!ctx||!sfxGain||document.hidden)return;
-      scheduleTone(1120,ctx.currentTime+.003,.045,"square",sfxGain,.020,{attack:.001,release:.038,sustain:.08,filterFrequency:3300});
-    }
-    function duelFishingPlayTimeout() {
-      const ctx=getAudioContext(); if(!ctx||!sfxGain||document.hidden)return;
-      const t=ctx.currentTime+.004;
-      scheduleTone(210,t,.34,"sawtooth",sfxGain,.046,{attack:.006,release:.26,sustain:.28,filterFrequency:900});
-      scheduleTone(145,t+.22,.42,"triangle",sfxGain,.040,{attack:.006,release:.34,sustain:.22,filterFrequency:620});
-    }
-    function duelFishingPlayResult(game) {
-      const ctx=getAudioContext(); if(!ctx||!sfxGain||document.hidden)return;
-      const meId=String(localStorage.getItem("tornVisitorUserId")||"");
-      const won=Boolean(game?.winnerUserId&&String(game.winnerUserId)===meId);
-      const t=ctx.currentTime+.006;
-      if(game?.tie){[392,466,392].forEach((f,i)=>scheduleTone(f,t+i*.13,.16,"triangle",sfxGain,.030,{attack:.005,release:.12,sustain:.25,filterFrequency:2200}));return;}
-      if(won){[523,659,784,1047].forEach((f,i)=>scheduleTone(f,t+i*.105,.26,"triangle",sfxGain,.034,{attack:.004,release:.18,sustain:.24,filterFrequency:4300}));}
-      else{[330,277,220].forEach((f,i)=>scheduleTone(f,t+i*.15,.24,"sine",sfxGain,.030,{attack:.006,release:.18,sustain:.24,filterFrequency:1500}));}
-    }
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingPlayRipple_206236 */
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingPlayBite_206668 */
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingPlaySplash_207057 */
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingPlayFlop_207516 */
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingPlayTick_207976 */
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingPlayTimeout_208231 */
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingPlayResult_208621 */
 
-    function duelFishingPlayAmbientDetail() {
-      const ctx=getAudioContext();
-      if(!ctx||!sfxGain||!sfxEnabled||document.hidden)return;
-      const t=ctx.currentTime+.01;
-      if(Math.random()<.58){
-        scheduleTone(1450+Math.random()*420,t,.11,"sine",sfxGain,.006,{attack:.015,release:.09,sustain:.12,filterFrequency:3000});
-        scheduleTone(1780+Math.random()*380,t+.10,.10,"sine",sfxGain,.0045,{attack:.012,release:.08,sustain:.1,filterFrequency:3400});
-      }else{
-        duelFishingPlayNoise(.55,.009,1800,120,Math.random()*.8-.4);
-      }
-    }
-    function duelFishingMaybeAmbient() {
-      if(Date.now()<duelFishingAmbientNextAt)return;
-      duelFishingAmbientNextAt=Date.now()+6500+Math.random()*8500;
-      duelFishingPlayAmbientDetail();
-    }
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingPlayAmbientDetail_209419 */
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingMaybeAmbient_209988 */
 
-    function duelFishingHandleAudio(game, state, active) {
-      const gameId=String(game?.gameId||"");
-      if(duelFishingAudioState.gameId!==gameId){
-        duelFishingAudioState={gameId,seenRippleIds:new Set(),creatorCatchId:"",joinerCatchId:"",resultKey:"",lastSecond:null,timedOut:false};
-      }
-      if(game?.status==="playing") { duelFishingStartOcean(); duelFishingMaybeAmbient(); }
-      const activeId=String(active?.id||"");
-      if(activeId&&!duelFishingAudioState.seenRippleIds.has(activeId)){
-        duelFishingAudioState.seenRippleIds.add(activeId);
-        duelFishingPlayRipple();
-        duelFishingRippleRumble(active);
-        duelFishingScheduleAudio(duelFishingPlayBite,140);
-      }
-      for(const [role,c,side] of [["creator",state?.creatorCatch,"left"],["joiner",state?.joinerCatch,"right"]]){
-        const key=String(c?.eventId||"");
-        const field=role+"CatchId";
-        if(key&&key!==duelFishingAudioState[field]){
-          duelFishingPlaySplash(side);
-          const ctx=getAudioContext();
-          if(ctx&&sfxGain&&!document.hidden){
-            const t=ctx.currentTime+.08;
-            [410,470,535,610].forEach((f,i)=>scheduleTone(f,t+i*.07,.085,"triangle",sfxGain,.012,{attack:.003,release:.065,sustain:.12,filterFrequency:1900}));
-          }
-          duelFishingScheduleAudio(()=>duelFishingPlayFlop(side),360);
-        }
-        if(key) duelFishingAudioState[field]=key;
-      }
-      if(game?.status==="complete"){
-        const resultKey=`${gameId}:${game?.winnerUserId||"tie"}:${game?.tie?1:0}`;
-        if(resultKey!==duelFishingAudioState.resultKey){duelFishingAudioState.resultKey=resultKey;duelFishingScheduleAudio(()=>duelFishingPlayResult(game),480);}
-      }
-    }
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingHandleAudio_210194 */
     const FISHING_SPECIES=FISHING_CATALOG.entries.map(fish=>fish.name);
-    function duelFishingBaseName(name){return FISHING_CATALOG.resolve(name).name;}
-    function duelFishingAssetSlug(name){return duelFishingBaseName(name).toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");}
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingBaseName_211995 */
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingAssetSlug_212078 */
     function duelFishVariantClass(cOrName){
       const fish=FISHING_CATALOG.resolve(cOrName);
       return fish.variant==="standard"?"":`variant-${fish.variant}`;
     }
-    function duelFishingRarityBadge(value,stamp=false){
-      const fish=FISHING_CATALOG.resolve(value),tier=FISHING_CATALOG.tiers.find(t=>t.id===fish.rarity);
-      const seal=stamp?'<svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><circle cx="16" cy="16" r="14"/><circle class="stamp-ring" cx="16" cy="16" r="11.5"/><path d="m16 7 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9Z"/></svg>':"";
-      return `<span class="${stamp?'fishing-log-rare-badge':'fishing-rarity-tag'} ${fish.rarity}" aria-label="${tier.label} fish">${seal}<span>${tier.label}</span></span>`;
-    }
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingRarityBadge_212385 */
     function duelFishSvg(size,name,catchData=null){
       const cm=Math.max(12,Math.min(100,Number(size||12)));
       const fish=FISHING_CATALOG.resolve({...catchData,name});
       return `<div class="fishing-fish fishing-fish-png ${duelFishVariantClass(fish)} rarity-${fish.rarity}" style="--fish-cm:${cm};${FISHING_CATALOG.hookStyle(fish)}" aria-hidden="true"><img src="${fish.asset}" alt="" draggable="false"><span class="fishing-fish-eye-blink"></span><span class="fishing-fish-shimmer"></span></div>`;
     }
-    function duelFishingPerson(name,side){return "";}
-    function duelFishingSceneSvg(state){
-      return `<img class="fishing-lake-art" src="/assets/fishing/images/v2/approved-preview-clean-v1.png" alt="" aria-hidden="true"><canvas class="fishing-water-canvas" aria-hidden="true"></canvas><div class="fishing-cloud-bank" aria-hidden="true"><img class="cloud-a" src="/assets/fishing/images/v2/clouds-v2.png" alt=""><img class="cloud-b" src="/assets/fishing/images/v2/clouds-v2.png" alt=""><img class="cloud-c" src="/assets/fishing/images/v2/clouds-v2.png" alt=""></div><div class="fishing-scene-art" aria-hidden="true"><div class="fishing-shore-rig left"><div class="fishing-dock left"></div><div class="fishing-angler left"><img src="/assets/fishing/images/v2/fisherman-v2.png" alt=""></div></div><div class="fishing-shore-rig right"><div class="fishing-dock right"></div><div class="fishing-angler right"><img src="/assets/fishing/images/v2/fisherman-blue-transparent-v3.png" alt=""></div></div><svg class="fishing-line-art" viewBox="0 0 1000 430" preserveAspectRatio="none"><path class="fishing-line-svg left" data-line-side="left" d="M270 68 Q380 92 420 286"/><path class="fishing-line-svg right" data-line-side="right" d="M730 68 Q620 92 580 286"/></svg><div class="fishing-hook-node left"><span class="fishing-hook-bobber" aria-hidden="true"></span>${duelFishingCatchSlot(state?.creatorCatch,"left",false,true)}</div><div class="fishing-hook-node right"><span class="fishing-hook-bobber" aria-hidden="true"></span>${duelFishingCatchSlot(state?.joinerCatch,"right",false,true)}</div></div>`;
-    }
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingPerson_213503 */
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingSceneSvg_213557 */
 
-    function duelFishingAlignLines(root){
-      root?._fishingController?.resize?.();
-    }
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingAlignLines_215109 */
 
-    function duelFishingCatchSlot(c,side,animate=false,showCaption=true){
-      if(!c)return `<div class="fishing-hook-catch ${side}" data-catch-id=""></div>`;
-      // Keep the exact measurement secret throughout live gameplay. Players
-      // can judge only the illustrated fish and the ripple that produced it.
-      const fish=FISHING_CATALOG.resolve(c); const caption=showCaption?`<div class="fishing-catch-caption"><b>${escapeHtml(fish.name)}</b>${duelFishingRarityBadge(fish)}</div>`:"";
-      return `<div class="fishing-hook-catch ${side}" data-catch-id="${escapeHtml(c.eventId||"")}"><div class="fishing-catch-unit${animate?" is-pulling":""}">${duelFishSvg(c.size,c.name,c)}${caption}</div></div>`;
-    }
-    function duelFishingStatus(game,state,active){
-      const both=Boolean(state.creatorCatch&&state.joinerCatch),myRole=game.isCreator?"creator":"joiner",winner=game.result?.winnerRole||game.resolved?.winnerRole||"";
-      if(game.status==="waiting")return"Waiting for an opponent — add a Remote Bot or another player to start";
-      if(game.status==="ready")return"Both players are here — press Ready to begin";
-      if(game.status==="countdown")return"Get ready...";
-      if(both)return winner?(winner===myRole?"YOU WIN!":"YOU LOST"):"TIE GAME";
-      if(state.myCatch)return"Fish secured — opponent is still fishing";
-      return"";
-    }
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingCatchSlot_215202 */
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingStatus_215918 */
     const FISHING_TIPS=[
       "Sometimes being patient can give you an opportunity for a bigger fish!",
       "If your opponent has already caught a fish, you can wait for a bigger ripple—but don't wait too long!",
@@ -11466,116 +10661,19 @@ function createSparkle(x, y) {
       "Rare fish can shimmer differently from ordinary catches, so watch the water closely.",
       "Watch the timer as closely as the water—patience only works while there is time left."
     ];
-    function duelFishingTipsHtml(){
-      return `<div class="fishing-tip-rotator" aria-label="Fishing tips">${FISHING_TIPS.map((tip,index)=>`<span class="fishing-tip" style="animation-delay:${index*8}s" ${index?'aria-hidden="true"':''}><b>Tip:</b> ${escapeHtml(tip)}</span>`).join("")}</div>`;
-    }
-    function duelFishingFormatClock(seconds){
-      const safe=Math.max(0,Math.min(60,Math.ceil(Number(seconds)||0)));
-      return `${Math.floor(safe/60)}:${String(safe%60).padStart(2,"0")}`;
-    }
-    function duelFishingClockHtml(seconds,status="waiting"){
-      const safe=Math.max(0,Math.min(60,Math.ceil(Number(seconds)||0)));
-      const waiting=!['countdown','playing'].includes(String(status||''));
-      const value=waiting?'—:—':duelFishingFormatClock(safe);
-      const progress=waiting?100:(safe/60)*100;
-      return `<div class="fishing-clock${safe<=10&&!waiting?' is-low':''}" data-fishing-clock data-clock-state="${escapeHtml(String(status||'waiting'))}" role="timer" aria-label="Round time remaining"><span class="fishing-clock-label">ROUND TIME</span><strong class="fishing-clock-value" data-fishing-clock-value>${value}</strong><span class="fishing-clock-track" aria-hidden="true"><i data-fishing-clock-progress style="--clock-progress:${progress}%"></i></span></div>`;
-    }
-    function duelFishingUpdateClock(root,seconds,status="playing"){
-      const clock=root?.querySelector?.('[data-fishing-clock]');if(!clock)return;
-      const safe=Math.max(0,Math.min(60,Math.ceil(Number(seconds)||0)));
-      const waiting=!['countdown','playing'].includes(String(status||''));
-      clock.dataset.clockState=String(status||'waiting');
-      clock.classList.toggle('is-low',safe<=10&&!waiting);
-      const value=clock.querySelector('[data-fishing-clock-value]');if(value)value.textContent=waiting?'—:—':duelFishingFormatClock(safe);
-      const progress=clock.querySelector('[data-fishing-clock-progress]');if(progress)progress.style.setProperty('--clock-progress',`${waiting?100:(safe/60)*100}%`);
-      clock.setAttribute('aria-label',waiting?'Round timer waiting to start':`${safe} seconds remaining`);
-    }
-    function duelFishingDebugPanel(game,state,active,seconds){
-      const role=game?.isCreator?"creator":"joiner";
-      const bot=game?.creator?.isBot||game?.joiner?.isBot;
-      return `<details class="fishing-debug-panel"><summary><span>Fishing Debug</span><b data-fishing-debug-health>${game?.status==="playing"?"LIVE":"READY"}</b></summary><div class="fishing-debug-grid"><span>Phase</span><strong data-fishing-debug-status>${escapeHtml(String(game?.status||"idle"))}</strong><span>Timer</span><strong data-fishing-debug-timer>${Number(seconds||0)}s</strong><span>Role</span><strong>${role}</strong><span>Bot</span><strong data-fishing-debug-bot>${bot?"connected":"none"}</strong><span>Ripple</span><strong data-fishing-debug-ripple>${active?escapeHtml(String(active.id||"active")):"waiting"}</strong><span>Your catch</span><strong data-fishing-debug-player>${state?.myCatch?"secured":"available"}</strong><span>Opponent</span><strong data-fishing-debug-catch>${state?.creatorCatch&&state?.joinerCatch?"secured":"waiting"}</strong><span>Last input</span><strong data-fishing-debug-input>none: No input yet</strong><div class="fishing-debug-actions"><button type="button" data-fishing-debug-copy>Copy Debug Report</button></div><p class="fishing-debug-copy-status" data-fishing-debug-copy-status>Copies mechanics, timing, bot, line-anchor, and recent event details.</p></div></details>`;
-    }
-    function duelFishingCatchRumble(catchData){
-      if(!catchData||!navigator.vibrate)return;
-      const size=Math.max(12,Math.min(100,Number(catchData.measuredSize||catchData.size||12)));
-      const strength=(size-12)/88;
-      const shortPulse=Math.round(24+strength*66);
-      const longPulse=Math.round(45+strength*125);
-      const gap=Math.round(58-strength*20);
-      const pattern=strength>=.78?[shortPulse,gap,longPulse,gap,longPulse]:strength>=.48?[shortPulse,gap,longPulse]:[shortPulse];
-      navigator.vibrate(pattern);
-    }
-    function duelFishingRumbleNewCatch(game,state){
-      const gameId=String(game?.gameId||"");
-      if(!gameId)return;
-      if(duelFishingLastCatchRumble.gameId!==gameId)duelFishingLastCatchRumble={gameId,creator:"",joiner:""};
-      for(const [role,c] of [["creator",state?.creatorCatch],["joiner",state?.joinerCatch]]){
-        const id=String(c?.eventId||c?.id||"");
-        if(!id||duelFishingLastCatchRumble[role]===id)continue;
-        duelFishingLastCatchRumble[role]=id;
-        duelFishingCatchRumble(c);
-      }
-    }
-    function duelFishingTick(){
-      const g=duelFishingLatestGame;if(!g||g.mode!=="fishing")return;
-      const s=duelFishingStableState(g),active=g.status==="playing"?duelFishingActiveEvent(s):null;
-      const seconds=g.status==="playing"?Math.min(60,Math.max(0,Math.ceil(duelFishingRemainingMs(s)/1000))):60;
-      const fishingRoot=duelActive?.querySelector("[data-fishing-game]");
-      duelFishingUpdateClock(fishingRoot,seconds,g.status);
-      const debugTimer=duelActive?.querySelector("[data-fishing-debug-timer]");if(debugTimer)debugTimer.textContent=`${seconds}s`;
-      fishingRoot?._fishingController?.setTimer?.(seconds);
-      fishingRoot?._fishingController?.setRipple?.(active?.id||"");
-      if(g.status==="countdown")duelFishingPatchDom(g);
-      const id=duelActive?.querySelector("[data-fishing-water]")?.dataset.fishId||"";if((active?.id||"")!==id)duelFishingPatchDom(g);
-      // Presentation audio must never prevent the clock or bite window updating.
-      try{
-        if(g.status==="playing"){
-          const ctx=getAudioContext();
-          if(ctx&&ctx.state==="suspended"&&!document.hidden)ctx.resume().catch(()=>{});
-          duelFishingStartOcean();
-        }
-        if(g.status==="playing"&&seconds<=10&&seconds>0&&seconds!==duelFishingAudioState.lastSecond)duelFishingPlayTick();
-        if(g.status==="playing"&&seconds===0&&!duelFishingAudioState.timedOut){duelFishingAudioState.timedOut=true;duelFishingPlayTimeout();}
-        duelFishingAudioState.lastSecond=seconds;
-        duelFishingHandleAudio(g,s,active);
-        duelFishingRumbleNewCatch(g,s);
-      }catch(error){if(fishingRoot&&!fishingRoot.dataset.audioError){fishingRoot.dataset.audioError="1";console.warn("Fishing audio unavailable; gameplay continues",error);}}
-    }
-    function duelFishingBeginOptimisticPull(water, game, active){
-      if(!water||!game||!active)return null;
-      const side=game.isCreator?"left":"right";
-      const marker=document.createElement("div");
-      marker.className=`fishing-pull-preview ${side}`;
-      marker.dataset.pendingEvent=String(active.id||"");
-      marker.setAttribute('aria-hidden','true');
-      marker.style.setProperty('--ripple',`${Number(active.ripple||58)}px`);
-      marker.innerHTML='<span class="pull-splash"></span>';
-      water.appendChild(marker);
-      // Let the water ring finish even if the server acknowledges the catch early.
-      setTimeout(()=>marker.remove(),720);
-      water.classList.add(side==="left"?"pull-left":"pull-right");
-      const pullStarted=performance.now(),root=water.closest("[data-fishing-game]");
-      const trackPull=()=>{duelFishingAlignLines(root);if(performance.now()-pullStarted<1180)requestAnimationFrame(trackPull);};
-      requestAnimationFrame(trackPull);
-      duelFishingPlaySplash(side);
-      duelFishingScheduleAudio(()=>duelFishingPlayFlop(side),300);
-      return {side,eventId:String(active.id||""),marker};
-    }
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingTipsHtml_217218 */
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingFormatClock_217519 */
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingClockHtml_217718 */
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingUpdateClock_218515 */
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingDebugPanel_219348 */
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingCatchRumble_220747 */
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingRumbleNewCatch_221290 */
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingTick_221822 */
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingBeginOptimisticPull_223598 */
 
-    function duelFishingClearOptimisticPull(water, pending){
-      if(!water||!pending)return;
-      water.classList.remove("pull-left","pull-right");
-    }
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingClearOptimisticPull_224753 */
 
-    function duelFishingEnsureController(root){
-      if(window.FishingSceneController||window.__fishingControllerLoading)return;
-      window.__fishingControllerLoading=true;
-      const script=document.createElement("script");
-      script.src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v31&runtime=1";
-      script.onload=()=>{window.__fishingControllerLoading=false;if(root?.isConnected)duelBindFishing(root);};
-      script.onerror=()=>{window.__fishingControllerLoading=false;console.error("Fishing controller failed to load");};
-      document.head.appendChild(script);
-    }
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingEnsureController_224911 */
     function duelBindFishing(root){
       if(!root)return;
       root=root.matches?.("[data-fishing-game]")?root:root.querySelector?.("[data-fishing-game]");
@@ -11672,262 +10770,34 @@ function createSparkle(x, y) {
     const rouletteStickySpinUsedByGame=new Map();
     const rouletteClientCountdown={gameId:"",startedAt:0,done:false,timer:null,lastLabel:""};
     const rouletteCompletionHold={pending:new Set(),released:new Set()};
-    function rouletteResetVisualRuntime(gameId){
-      const id=String(gameId||"");
-      rouletteVisualRuntime.gameId=id;rouletteVisualRuntime.queue=Promise.resolve();rouletteVisualRuntime.openingDone=rouletteOpeningCompletedGames.has(id);rouletteVisualRuntime.openingPending=false;
-      rouletteVisualRuntime.processed.clear();rouletteVisualRuntime.busy=false;rouletteVisualRuntime.lastTurnId="";rouletteVisualRuntime.displayTurnId="";rouletteVisualRuntime.rotationTargetId="";rouletteVisualRuntime.rotationEpoch=0;rouletteVisualRuntime.currentAngle=-4;rouletteVisualRuntime.angleHydrated=false;rouletteVisualRuntime.mountedRevision=-1;rouletteVisualRuntime.mountedStatus="";
-      if(rouletteClientCountdown.timer){clearInterval(rouletteClientCountdown.timer);rouletteClientCountdown.timer=null;}
-      rouletteClientCountdown.gameId=id;rouletteClientCountdown.startedAt=0;rouletteClientCountdown.done=rouletteOpeningCompletedGames.has(id);rouletteClientCountdown.lastLabel="";
-    }
-    function rouletteQueueVisual(task){
-      rouletteVisualRuntime.queue=rouletteVisualRuntime.queue.then(async()=>{rouletteVisualRuntime.busy=true;try{await task()}finally{rouletteVisualRuntime.busy=false}}).catch(e=>rouletteDebug('visual queue error',{message:String(e?.message||e)}));
-      return rouletteVisualRuntime.queue;
-    }
-    function rouletteWait(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
-    function rouletteAnimate(el,frames,options){return new Promise(resolve=>{if(!el||typeof el.animate!=="function"){resolve();return}let a;try{a=el.animate(frames,options);a.addEventListener('finish',resolve,{once:true});a.addEventListener('cancel',resolve,{once:true})}catch(_){resolve()}})}
+    /* SITE_INCLUDE: games/multiplayer/roulette/presentation.js#rouletteResetVisualRuntime_232194 */
+    /* SITE_INCLUDE: games/multiplayer/roulette/presentation.js#rouletteQueueVisual_233182 */
+    /* SITE_INCLUDE: games/multiplayer/roulette/presentation.js#rouletteWait_233519 */
+    /* SITE_INCLUDE: games/multiplayer/roulette/presentation.js#rouletteAnimate_233602 */
     const rouletteDebugLines=[];
-    function rouletteDebug(message,data){
-      const entry={time:new Date().toISOString(),message:String(message||''),data:data??null};
-      rouletteDebugLines.push(entry);
-      if(rouletteDebugLines.length>800)rouletteDebugLines.splice(0,rouletteDebugLines.length-800);
-      console.info('[rr-debug]',message,data??'');
-      window.dispatchEvent(new CustomEvent('roulette-debug',{detail:entry}));
-    }
+    /* SITE_INCLUDE: games/multiplayer/roulette/presentation.js#rouletteDebug_233929 */
     window.addEventListener('error',e=>rouletteDebug('window.error',{message:e.message,line:e.lineno,col:e.colno}));
     window.addEventListener('unhandledrejection',e=>rouletteDebug('promise.reject',{message:String(e.reason?.message||e.reason||'unknown')}));
-    function rouletteNormalizeSnapshot(game){
-      if(!game||game.mode!=="roulette") return game;
-      const raw=game.rouletteState&&typeof game.rouletteState==="object"?game.rouletteState:{};
-      const phase=["turn","press_luck","complete"].includes(String(raw.phase||""))?String(raw.phase):"turn";
-      const {remaining:_privateRemaining,blankRoundsRemaining:_privateBlanks,...publicState}=raw;
-      const incomingSpinUsed=raw.spinUsed&&typeof raw.spinUsed==="object"?raw.spinUsed:{};
-      const gameId=String(game.gameId||'');
-      const sticky=rouletteStickySpinUsedByGame.get(gameId)||{};
-      const spinUsed={...incomingSpinUsed};
-      for(const [playerId,used] of Object.entries(sticky))if(used)spinUsed[playerId]=true;
-      for(const [playerId,used] of Object.entries(spinUsed))if(used)sticky[playerId]=true;
-      if(gameId)rouletteStickySpinUsedByGame.set(gameId,sticky);
-      const normalized={...game,rouletteState:{...publicState,phase,revision:Math.max(0,Number(raw.revision||0)),spinUsed}};
-      const me=rouletteMyUserId(normalized);
-      const creatorId=String(game?.creator?.userId||''),joinerId=String(game?.joiner?.userId||'');
-      const opponentId=me===creatorId?joinerId:creatorId;
-      normalized.rouletteState.mySpinUsed=Boolean(me&&spinUsed[me]===true);
-      normalized.rouletteState.opponentSpinUsed=Boolean(opponentId&&spinUsed[opponentId]===true);
-      normalized.rouletteState.canSpin=Boolean(normalized.rouletteState.canSpin&&!normalized.rouletteState.mySpinUsed);
-      return normalized;
-    }
-    function roulettePatchMountedRuntime(game){
-      const oldRoot=duelActive?.querySelector?.('[data-roulette-game]');
-      if(!oldRoot||String(oldRoot.dataset.gameId||'')!==String(game?.gameId||''))return false;
-      const incomingStatus=String(game?.status||'');
-      const oldStatus=String(oldRoot.dataset.status||'');
-      // Waiting/Ready/Countdown use outer controls that live outside the roulette art.
-      // Never patch only the gun scene across those lifecycle changes or the Ready
-      // button can remain missing until a full-page refresh.
-      if(!['playing','complete'].includes(incomingStatus)||!['playing','complete'].includes(oldStatus))return false;
-      if(rouletteVisualRuntime.gameId!==String(game.gameId||''))rouletteResetVisualRuntime(game.gameId);
-      rouletteLatestGame=game;
-      const incomingRevision=Number(game?.rouletteState?.revision||0);
-      const oldRevision=Number(oldRoot.dataset.revision||-1);
-      const incomingTurnId=String(game?.rouletteState?.turnId||'');
-      const oldTurnId=String(oldRoot.dataset.turnId||'');
-      const incomingPhase=String(game?.rouletteState?.phase||'');
-      const oldPhase=String(oldRoot.dataset.phase||'');
-      const incomingMyTurn=incomingTurnId!==''&&incomingTurnId===rouletteMyUserId(game);
-      const oldMyTurn=String(oldRoot.dataset.myTurn||'0')==='1';
-      const incomingOpeningDone=rouletteOpeningCompletedGames.has(String(game?.gameId||''))||rouletteVisualRuntime.openingDone;
-      const incomingControlsLocked=!incomingOpeningDone||!incomingMyTurn||incomingStatus==='complete';
-      const oldControlsLocked=String(oldRoot.dataset.controlsLocked||'1')==='1';
-      const incomingOpeningReady=rouletteOpeningCanStart(game);
-      const oldOpeningReady=String(oldRoot.dataset.openingReady||'0')==='1';
-      const openingFinished=rouletteOpeningCompletedGames.has(String(game?.gameId||''))||rouletteVisualRuntime.openingDone;
-      const expectsControls=incomingStatus==='playing';
-      const expectsWait=incomingStatus==='playing'&&openingFinished&&!incomingMyTurn;
-      const hasControls=!!oldRoot.querySelector('.rr-controls');
-      const hasShoot=!!oldRoot.querySelector('[data-roulette-shoot]');
-      const hasSpin=!!oldRoot.querySelector('[data-roulette-spin]');
-      const hasPass=!!oldRoot.querySelector('[data-roulette-pass]');
-      const hasWait=!!oldRoot.querySelector('.rr-control-note');
-      const controlsMatch=!expectsControls||(hasControls&&hasShoot&&hasSpin&&
-        (incomingPhase!=='press_luck'||!incomingMyTurn||hasPass));
-      const waitMatches=!expectsWait||hasWait;
-      // Only preserve the mounted controls when both the server state and the
-      // actual DOM structure agree. The opening animation temporarily removes
-      // .rr-controls; without this structural guard, an unchanged poll could
-      // incorrectly keep that control-less scene mounted forever.
-      if(incomingRevision===oldRevision&&incomingStatus===oldStatus&&incomingTurnId===oldTurnId&&incomingPhase===oldPhase&&incomingMyTurn===oldMyTurn&&incomingControlsLocked===oldControlsLocked&&incomingOpeningReady===oldOpeningReady&&controlsMatch&&waitMatches){
-        rouletteVisualRuntime.mountedRevision=incomingRevision;
-        rouletteVisualRuntime.mountedStatus=incomingStatus;
-        requestAnimationFrame(()=>rouletteHandleEffects(game));
-        return true;
-      }
-      const holder=document.createElement('div');holder.innerHTML=rouletteHtml(game);const freshRoot=holder.firstElementChild;if(!freshRoot)return false;
-      const oldTable=oldRoot.querySelector('.rr-table'),freshTable=freshRoot.querySelector('.rr-table');
-      if(oldTable&&freshTable)freshTable.replaceWith(oldTable);
-      oldRoot.replaceWith(freshRoot);rouletteBind(duelActive);
-      rouletteVisualRuntime.mountedRevision=incomingRevision;
-      rouletteVisualRuntime.mountedStatus=incomingStatus;
-      requestAnimationFrame(()=>rouletteHandleEffects(game));
-      return true;
-    }
-    function rouletteCompletionKey(game){
-      const st=game?.rouletteState||{};
-      return `${String(game?.gameId||'')}:${Number(st.revision||0)}:${String(st.lastAction||'')}:${String(st.lastOutcome||'')}`;
-    }
-    function rouletteHoldLiveResult(game){
-      const st=game?.rouletteState||{};
-      if(game?.mode!=="roulette"||game?.status!=="complete"||st.lastAction!=="shoot"||st.lastOutcome!=="live")return false;
-      const gameId=String(game?.gameId||'');
-      const root=duelActive?.querySelector?.(`[data-roulette-game][data-game-id="${CSS.escape(gameId)}"]`);
-      if(!gameId||!root)return false;
-      const key=rouletteCompletionKey(game);
-      if(rouletteCompletionHold.released.has(key))return false;
-      rouletteLatestGame=game;duelLastActiveGame=game;
-      if(rouletteCompletionHold.pending.has(key))return true;
-      rouletteCompletionHold.pending.add(key);
-      root.classList.add('rr-animation-lock','rr-live-result-hold');
-      root.querySelectorAll('button').forEach(button=>button.disabled=true);
-      const title=root.querySelector('.rr-status strong');
-      const sub=root.querySelector('.rr-status small');
-      const localPlayerWasHit=String(st.loserId||game.loserUserId||'')===rouletteMyUserId(game);
-      if(title)title.textContent=localPlayerWasHit?"YOU'VE BEEN SHOT":'LIVE ROUND';
-      if(sub)sub.textContent=localPlayerWasHit?'':'The shot was fired…';
-      const effectKey=`${gameId}:${st.revision}:${st.lastAction}:${st.lastOutcome}`;
-      rouletteVisualRuntime.processed.add(effectKey);
-      rouletteQueueVisual(async()=>{
-        try{
-          await rouletteShotSequence(game,st,gameId);
-          // Keep the table visible after the live shot so muzzle flash, smoke,
-          // recoil, and the final settling motion can be seen before results.
-          await rouletteWait(1500);
-        }finally{
-          rouletteCompletionHold.pending.delete(key);
-          rouletteCompletionHold.released.add(key);
-          duelLastRenderKey='';
-          duelRenderActive(game,true);
-        }
-      });
-      return true;
-    }
-    function rouletteRevision(game){return Number(game?.rouletteState?.revision??-1)}
+    /* SITE_INCLUDE: games/multiplayer/roulette/presentation.js#rouletteNormalizeSnapshot_234598 */
+    /* SITE_INCLUDE: games/multiplayer/roulette/presentation.js#roulettePatchMountedRuntime_236143 */
+    /* SITE_INCLUDE: games/multiplayer/roulette/presentation.js#rouletteCompletionKey_240119 */
+    /* SITE_INCLUDE: games/multiplayer/roulette/presentation.js#rouletteHoldLiveResult_240336 */
+    /* SITE_INCLUDE: games/multiplayer/roulette/presentation.js#rouletteRevision_242200 */
     const rouletteAcceptedRevisionByGame=new Map();
-    function rouletteSnapshotStamp(game){
-      return {
-        statusRank:Number(DUEL_STATUS_RANK[String(game?.status||"waiting")]||0),
-        gameRevision:Number(game?.revision??-1),
-        rouletteRevision:rouletteRevision(game),
-        updatedAt:Date.parse(String(game?.updatedAt||''))||0
-      };
-    }
-    function rouletteAcceptSnapshot(game){
-      if(!game||game.mode!=="roulette"||!game.gameId)return true;
-      const id=String(game.gameId),incoming=rouletteSnapshotStamp(game),accepted=rouletteAcceptedSnapshotByGame.get(id);
-      if(accepted){
-        const acceptedStatusRank=Number(accepted.statusRank??0);
-        // Lifecycle changes are authoritative even when adding a player leaves the
-        // game and Roulette sub-revisions unchanged. Never let an older lifecycle
-        // state replace a newer one; within the same state, retain strict revision
-        // and timestamp ordering for active-turn protection.
-        if(incoming.statusRank<acceptedStatusRank)return false;
-        if(incoming.statusRank===acceptedStatusRank){
-          if(incoming.gameRevision<accepted.gameRevision)return false;
-          if(incoming.gameRevision===accepted.gameRevision&&incoming.rouletteRevision<accepted.rouletteRevision)return false;
-          if(incoming.gameRevision===accepted.gameRevision&&incoming.rouletteRevision===accepted.rouletteRevision&&incoming.updatedAt<accepted.updatedAt)return false;
-        }
-      }
-      rouletteAcceptedSnapshotByGame.set(id,incoming);
-      rouletteAcceptedRevisionByGame.set(id,incoming.rouletteRevision);
-      return true;
-    }
-    function roulettePlayerAvatar(p){return p?.avatarUrl?`<img class="rr-avatar" src="${escapeHtml(p.avatarUrl)}" alt="">`:`<div class="rr-avatar rr-avatar-fallback">👤</div>`}
-    function rouletteServerTime(game){return Date.parse(String(game?.serverNow||''))||Date.now()}
-    function rouletteStartTime(game){return Date.parse(String(game?.startAt||''))||0}
-    function rouletteCountdownFinished(game){const start=rouletteStartTime(game);return Boolean(start)&&rouletteServerTime(game)>=start}
-    function rouletteBothReady(game){
-      const creatorId=String(game?.creator?.userId||''),joinerId=String(game?.joiner?.userId||'');
-      return Boolean(creatorId&&joinerId&&game?.ready?.[creatorId]&&game?.ready?.[joinerId]);
-    }
-    function rouletteOpeningCanStart(game){
-      const st=game?.rouletteState||{};
-      return game?.status==='playing'&&rouletteBothReady(game)&&rouletteCountdownFinished(game)&&String(st.lastAction||'')==='opening_spin'&&Boolean(st.turnId);
-    }
-    function rouletteMyUserId(game){
-      if(game?.isCreator)return String(game?.creator?.userId||'');
-      if(game?.isJoiner)return String(game?.joiner?.userId||'');
-      return String(localStorage.getItem('tornVisitorUserId')||'');
-    }
-    function rouletteClientCountdownLabel(){
-      if(!rouletteClientCountdown.startedAt||rouletteClientCountdown.done)return "";
-      const elapsed=Date.now()-rouletteClientCountdown.startedAt;
-      if(elapsed<900)return "3";
-      if(elapsed<1800)return "2";
-      if(elapsed<2700)return "1";
-      if(elapsed<3150)return "GO!";
-      return "";
-    }
-    function roulettePatchClientCountdown(){
-      const gameId=rouletteClientCountdown.gameId;
-      if(!gameId||rouletteClientCountdown.done)return false;
-      const label=rouletteClientCountdownLabel();
-      const root=duelActive?.querySelector?.(`[data-roulette-game][data-game-id="${CSS.escape(gameId)}"]`);
-      let holder=root?.querySelector?.('[data-roulette-countdown]');
-      if(root&&!holder){
-        holder=document.createElement('div');holder.className='rr-scene-countdown';holder.dataset.rouletteCountdown='1';
-        holder.innerHTML='<div class="duel-countdown-number cue">3</div>';root.appendChild(holder);
-      }
-      const text=holder?.querySelector?.('.duel-countdown-number');
-      if(label&&holder&&text){
-        holder.hidden=false;
-        if(rouletteClientCountdown.lastLabel!==label){
-          rouletteClientCountdown.lastLabel=label;text.textContent=label;
-          text.className=`duel-countdown-number cue ${label==='GO!'?'go':''}`;
-          text.style.animation='none';void text.offsetWidth;text.style.animation='';
-          duelPlayCountdownSound(rouletteLatestGame||duelLastActiveGame,label);
-        }
-        return true;
-      }
-      if(Date.now()-rouletteClientCountdown.startedAt>=3150){
-        rouletteClientCountdown.done=true;
-        holder?.remove();
-        if(rouletteClientCountdown.timer){clearInterval(rouletteClientCountdown.timer);rouletteClientCountdown.timer=null;}
-        requestAnimationFrame(()=>rouletteHandleEffects(rouletteLatestGame||duelLastActiveGame));
-      }
-      return false;
-    }
-    function rouletteEnsureClientCountdown(game){
-      if(!game||game.mode!=='roulette'||!game.gameId)return false;
-      const gameId=String(game.gameId);
-      if(rouletteClientCountdown.gameId!==gameId){
-        if(rouletteClientCountdown.timer)clearInterval(rouletteClientCountdown.timer);
-        rouletteClientCountdown.gameId=gameId;rouletteClientCountdown.startedAt=0;rouletteClientCountdown.done=rouletteOpeningCompletedGames.has(gameId);rouletteClientCountdown.timer=null;rouletteClientCountdown.lastLabel='';
-      }
-      const hasBothPlayers=Boolean(game.creator?.userId&&game.joiner?.userId);
-      const lifecycleEligible=hasBothPlayers&&['countdown','playing'].includes(String(game.status||''))&&!rouletteOpeningCompletedGames.has(gameId);
-      if(lifecycleEligible&&!rouletteClientCountdown.startedAt&&!rouletteClientCountdown.done){
-        // Start from the first authoritative snapshot seen by this browser. This
-        // intentionally guarantees a visible 3-2-1 even if network latency made
-        // the server's countdown response arrive after it had already advanced.
-        rouletteClientCountdown.startedAt=Date.now();rouletteClientCountdown.lastLabel='';
-        rouletteClientCountdown.timer=setInterval(roulettePatchClientCountdown,50);
-        requestAnimationFrame(roulettePatchClientCountdown);
-      }
-      return lifecycleEligible&&!rouletteClientCountdown.done;
-    }
-    function rouletteMarkSpinUsedLocally(game,userId=rouletteMyUserId(game)){
-      const gameId=String(game?.gameId||''),id=String(userId||'');if(!gameId||!id)return;
-      const sticky=rouletteStickySpinUsedByGame.get(gameId)||{};sticky[id]=true;rouletteStickySpinUsedByGame.set(gameId,sticky);
-      if(game?.rouletteState?.spinUsed&&typeof game.rouletteState.spinUsed==='object')game.rouletteState.spinUsed[id]=true;
-      if(game?.rouletteState)game.rouletteState.mySpinUsed=true;
-      const root=duelActive?.querySelector?.(`[data-roulette-game][data-game-id="${CSS.escape(gameId)}"]`);
-      const button=root?.querySelector?.('[data-roulette-spin]');
-      if(button){button.disabled=true;const title=button.querySelector('b');const note=button.querySelector('small');if(title)title.textContent='SPIN ×0';if(note)note.textContent='USED';}
-      root?.querySelectorAll?.('.rr-player')?.forEach(card=>{const name=card.querySelector('b')?.textContent||'';const player=[game?.creator,game?.joiner].find(p=>String(p?.name||'')===name);if(String(player?.userId||'')===id){const badge=card.querySelector('span');if(badge)badge.textContent='SPIN USED';}});
-    }
-    function rouletteSpinWasUsed(game,userId=rouletteMyUserId(game)){
-      const id=String(userId||'');
-      const map=game?.rouletteState?.spinUsed;
-      return Boolean(id&&map&&typeof map==='object'&&map[id]===true);
-    }
+    /* SITE_INCLUDE: games/multiplayer/roulette/presentation.js#rouletteSnapshotStamp_242338 */
+    /* SITE_INCLUDE: games/multiplayer/roulette/presentation.js#rouletteAcceptSnapshot_242650 */
+    /* SITE_INCLUDE: games/multiplayer/roulette/presentation.js#roulettePlayerAvatar_243930 */
+    /* SITE_INCLUDE: games/multiplayer/roulette/presentation.js#rouletteServerTime_244107 */
+    /* SITE_INCLUDE: games/multiplayer/roulette/presentation.js#rouletteStartTime_244205 */
+    /* SITE_INCLUDE: games/multiplayer/roulette/presentation.js#rouletteCountdownFinished_244291 */
+    /* SITE_INCLUDE: games/multiplayer/roulette/presentation.js#rouletteBothReady_244428 */
+    /* SITE_INCLUDE: games/multiplayer/roulette/presentation.js#rouletteOpeningCanStart_244665 */
+    /* SITE_INCLUDE: games/multiplayer/roulette/presentation.js#rouletteMyUserId_244916 */
+    /* SITE_INCLUDE: games/multiplayer/roulette/presentation.js#rouletteClientCountdownLabel_245159 */
+    /* SITE_INCLUDE: games/multiplayer/roulette/presentation.js#roulettePatchClientCountdown_245515 */
+    /* SITE_INCLUDE: games/multiplayer/roulette/presentation.js#rouletteEnsureClientCountdown_247080 */
+    /* SITE_INCLUDE: games/multiplayer/roulette/presentation.js#rouletteMarkSpinUsedLocally_248490 */
+    /* SITE_INCLUDE: games/multiplayer/roulette/presentation.js#rouletteSpinWasUsed_249654 */
     const rouletteHitMessages=[
       "Looks like you've got a brand new hole.",
       "Are you gonna pierce that?",
@@ -11938,565 +10808,33 @@ function createSparkle(x, y) {
       "The revolver has made its decision.",
       "Bad news: it was not a blank."
     ];
-    function rouletteStableMessage(game, messages=rouletteHitMessages){
-      const key=String(game?.gameId||'roulette');let hash=0;
-      for(let i=0;i<key.length;i++)hash=((hash*31)+key.charCodeAt(i))>>>0;
-      return messages[hash%messages.length];
-    }
-    function rouletteCompactPot(value){
-      const amount=Math.max(0,Number(value)||0);
-      if(amount<10000)return new Intl.NumberFormat("en-US").format(Math.round(amount));
-      const units=[[1e9,"B"],[1e6,"M"],[1e3,"K"]];
-      for(const [size,suffix] of units){
-        if(amount>=size){
-          const scaled=amount/size;
-          const digits=scaled>=100?0:(scaled>=10?1:2);
-          return scaled.toFixed(digits).replace(/\.0+$|(?<=\.[0-9])0+$/g,"")+suffix;
-        }
-      }
-      return String(Math.round(amount));
-    }
-    function rouletteHtml(game){
-      rouletteLatestGame=game;const clientCountdownActive=rouletteEnsureClientCountdown(game);const st=game.rouletteState||{},me=rouletteMyUserId(game),creator=game.creator||{},joiner=game.joiner||{};
-      const waiting=game.status==='waiting',hasOpponent=Boolean(joiner&&joiner.userId),bothReady=rouletteBothReady(game),countdownFinished=rouletteCountdownFinished(game);
-      const myTurn=String(st.turnId||'')===me,press=st.phase==='press_luck',complete=game.status==='complete',meWon=String(game.winnerUserId||'')===me;
-      const rouletteGameId=String(game.gameId||'');
-      const openingAlreadyCompleted=rouletteOpeningCompletedGames.has(rouletteGameId)||
-        (rouletteVisualRuntime.gameId===rouletteGameId&&rouletteVisualRuntime.openingDone);
-      const openingCanStart=rouletteOpeningCanStart(game);
-      const openingConcealed=!complete&&!openingAlreadyCompleted;
-      const preOpening=openingConcealed&&!openingCanStart;
-      const revolverModel='steel-walnut';
-      const actor=String(st.turnId||'')===String(creator.userId||'')?creator:joiner;
-      let status,sub,controlNote;
-      if(!hasOpponent){status='WAITING FOR A PLAYER TO JOIN';sub='';controlNote='Waiting for other player';}
-      else if(!bothReady){status='WAITING FOR BOTH PLAYERS';sub='Both players must press Ready before the countdown begins.';controlNote='Waiting for both players to ready up';}
-      else if(!countdownFinished){status='GET READY';sub='';controlNote='Game starts after countdown';}
-      else if(openingConcealed){status='';sub='';controlNote='';}
-      else if(complete){
-        status=meWon?'YOU SURVIVED':'YOU\'VE BEEN SHOT';
-        sub=meWon?`You won ${money(game.payout||0)}.`:'';
-        controlNote='';
+    /* SITE_INCLUDE: games/multiplayer/roulette/presentation.js#rouletteStableMessage_250265 */
+    /* SITE_INCLUDE: games/multiplayer/roulette/presentation.js#rouletteCompactPot_250524 */
+    /* SITE_INCLUDE: games/multiplayer/roulette/presentation.js#rouletteHtml_251060 */
+    /* SITE_INCLUDE: games/multiplayer/roulette/presentation.js#roulettePatchLiveDom_260493 */
+    /* SITE_INCLUDE: games/multiplayer/roulette/presentation.js#rouletteBind_260543 */
+    /* SITE_INCLUDE: games/multiplayer/roulette/presentation.js#rouletteMotionBase_261844 */
+    /* SITE_INCLUDE: games/multiplayer/roulette/presentation.js#rouletteMotionScale_262055 */
+    /* SITE_INCLUDE: games/multiplayer/roulette/presentation.js#rouletteMotionTransform_262146 */
+    /* SITE_INCLUDE: games/multiplayer/roulette/presentation.js#rouletteRotationGlint_262546 */
+    /* SITE_INCLUDE: games/multiplayer/roulette/presentation.js#rouletteRotateToTurn_263429 */
+    /* SITE_INCLUDE: games/multiplayer/roulette/presentation.js#rouletteAngleForPlayer_267585 */
+    /* SITE_INCLUDE: games/multiplayer/roulette/presentation.js#rouletteOpeningFinalAngle_267856 */
+    /* SITE_INCLUDE: games/multiplayer/roulette/presentation.js#rouletteTurnAngle_267977 */
+    /* SITE_INCLUDE: games/multiplayer/roulette/presentation.js#rouletteOpeningSequence_268065 */
+    /* SITE_INCLUDE: games/multiplayer/roulette/presentation.js#rouletteOrientToShotActor_270772 */
+    /* SITE_INCLUDE: games/multiplayer/roulette/presentation.js#rouletteShotSequence_272172 */
+    /* SITE_INCLUDE: games/multiplayer/roulette/presentation.js#rouletteHandleEffects_276161 */
+    /* SITE_INCLUDE: games/multiplayer/roulette/presentation.js#rouletteAct_282441 */
 
-        globalThis.RouletteAudioBindings?.playResult?.(
-          meWon?'victory':'defeat',
-          `${game.gameId}:${st.revision||game.revision||''}:${st.winnerId||game.winnerUserId||''}`
-        );
-      }
-      else if(myTurn){status='YOUR TURN';sub='';controlNote='';}
-      else{status=`${escapeHtml(actor.name||'Opponent')} HAS THE REVOLVER`;sub='';controlNote='Waiting for other player';}
-      const opponent=String(me)===String(creator.userId||'')?joiner:creator;
-      const controlsLocked=!openingAlreadyCompleted||!myTurn||complete;
-      const mySpinUsed=rouletteSpinWasUsed(game,me);
-      const spinCount=mySpinUsed?0:1;
-      const shootLabel=press&&myTurn&&openingAlreadyCompleted?'SHOOT AGAIN':'SHOOT';
-      const controls=complete?'<div class="rr-wait">DUEL COMPLETE</div>':`<div class="rr-controls ${press&&myTurn&&openingAlreadyCompleted?'rr-controls-three':'rr-controls-two'} ${controlsLocked?'rr-controls-disabled':''}">
-        ${controlNote?`<div class="rr-control-note">${controlNote}</div>`:''}
-        <button class="rr-btn rr-spin" data-roulette-spin type="button" ${(controlsLocked||!st.canSpin||mySpinUsed)?'disabled':''}><b>SPIN ×${spinCount}</b><small>${spinCount?'AVAILABLE':'USED'}</small></button>
-        <button class="rr-btn rr-shoot" data-roulette-shoot type="button" ${(controlsLocked||!st.canShoot)?'disabled':''}><b>${shootLabel}</b>${press&&myTurn&&openingAlreadyCompleted?'<small>KEEP YOUR TURN AND RISK IT</small>':''}</button>
-        ${press&&myTurn&&openingAlreadyCompleted?`<button class="rr-btn rr-pass" data-roulette-pass type="button" ${(controlsLocked||!st.canPass)?'disabled':''}><b>PASS TO ${escapeHtml(String(opponent.name||'OPPONENT').toUpperCase())}</b><small>END YOUR TURN</small></button>`:''}
-      </div>`;
-      const rem=game.rematch&&typeof game.rematch==='object'?game.rematch:{};
-      const rematchRequests=rem.requestedBy&&typeof rem.requestedBy==='object'?rem.requestedBy:{};
-      const rematchExpiresAt=Date.parse(rem.expiresAt||0);
-      const rematchActive=Boolean(rematchExpiresAt&&rematchExpiresAt>Date.now());
-      const rematchSeconds=rematchActive?Math.max(0,Math.ceil((rematchExpiresAt-Date.now())/1000)):10;
-      const myRem=Boolean(rematchActive&&rematchRequests[me]);
-      const rematchPlayers=[creator,joiner].filter(player=>player?.userId&&rematchRequests[player.userId]);
-      const rematchAvatars=rematchPlayers.map(player=>player.avatarUrl
-        ?`<img src="${escapeHtml(player.avatarUrl)}" alt="${escapeHtml(player.name||'Player')} accepted" class="duel-rematch-avatar">`
-        :`<span class="duel-rematch-avatar rr-rematch-initial">${escapeHtml(String(player.profileInitial||player.name||'?').charAt(0).toUpperCase())}</span>`).join('');
-      const rematchButtonLabel=rematchActive
-        ?`${rematchAvatars}<span>${rematchPlayers.length>=2?'Starting rematch…':myRem?'Waiting for opponent':'Accept Rematch'} · ${rematchSeconds}s</span>`
-        :'<span>Rematch</span>';
-      const final=complete?`<div class="rr-final ${meWon?'win':'lose'}"><div class="rr-final-card"><div class="rr-final-kicker">PRIVATE TABLE · FINAL ROUND</div><div class="rr-final-emblem" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="rr-final-title">${meWon?'YOU WALK AWAY':'YOU\'VE BEEN SHOT'}</div><p>${meWon?`The pot is yours — ${money(game.payout||0)}.`:escapeHtml(rouletteStableMessage(game))}</p><div class="rr-final-actions"><button class="gold duel-rematch-btn ${myRem?'requested':''}" id="duelRematchBtn" type="button" ${myRem?'disabled':''}>${rematchButtonLabel}</button><button class="secondary" id="duelNewGameBtn" type="button">Create a New Game</button></div></div></div>`:'';
-      // A render is never allowed to choose a new gun direction. Once the
-      // opening spin has settled, only rouletteRotateToTurn may change the
-      // authoritative angle. This prevents action responses and polling
-      // remounts from snapping the gun to either side mid-animation.
-      const runtimeOwnsAngle=rouletteVisualRuntime.gameId===rouletteGameId&&rouletteVisualRuntime.angleHydrated&&Number.isFinite(rouletteVisualRuntime.currentAngle);
-      const neutralAngle=!openingAlreadyCompleted?-4:(runtimeOwnsAngle?rouletteVisualRuntime.currentAngle:rouletteTurnAngle(game,st));
-      return `<div class="rr-game ${!hasOpponent?'rr-waiting-player ':''}${openingConcealed?'rr-opening-active ':''}${st.lastOutcome==='live'?'rr-fired':''}" data-roulette-opening="${openingConcealed?'1':'0'}" data-roulette-game data-game-id="${escapeHtml(String(game.gameId||''))}" data-revision="${Number(st.revision||0)}" data-status="${escapeHtml(String(game.status||''))}" data-turn-id="${escapeHtml(String(st.turnId||''))}" data-my-turn="${myTurn?'1':'0'}" data-phase="${escapeHtml(String(st.phase||''))}" data-controls-locked="${controlsLocked?'1':'0'}" data-opening-ready="${openingCanStart?'1':'0'}">
-        <div class="rr-backwall"></div><div class="rr-smoke"></div><div class="rr126-lamp-rig" aria-hidden="true"><div class="rr126-chain"></div><div class="rr126-swing"><div class="rr126-beam"></div><div class="rr126-room-glow"></div><img class="rr126-lamp-body" src="assets/roulette/decor/workshop-lamp-body.png" alt="" draggable="false"><div class="rr126-bulb-glow"></div></div></div><div class="rr-lamp"></div><div class="rr-rain"></div><div class="rr-turn-pulse"></div>
-        <div class="rr-top"><div class="rr-player ${openingAlreadyCompleted&&String(st.turnId||'')===String(creator.userId||'')?'active':''}">${roulettePlayerAvatar(creator)}<b>${escapeHtml(creator.name||'Player 1')}</b><span>${rouletteSpinWasUsed(game,creator.userId)?'SPIN USED':'SPIN READY'}</span></div><div class="rr-pot"><span>Pot</span><b>${rouletteCompactPot(game.pot||game.wager||0)}</b><small>Tickets</small></div><div class="rr-player ${openingAlreadyCompleted&&String(st.turnId||'')===String(joiner.userId||'')?'active':''}">${roulettePlayerAvatar(joiner)}<b>${escapeHtml(joiner.name||'Waiting for Player')}</b><span>${!hasOpponent?'OPEN SEAT':(rouletteSpinWasUsed(game,joiner.userId)?'SPIN USED':'SPIN READY')}</span></div></div>
-        <div class="rr-status"><strong>${status}</strong><small>${sub}</small></div>
-        ${clientCountdownActive?`<div class="rr-scene-countdown" data-roulette-countdown><div class="duel-countdown-number cue">${escapeHtml(rouletteClientCountdownLabel()||'3')}</div></div>`:''}
-        ${openingCanStart&&openingConcealed?'<div class="rr-opening-banner">Choosing First Player</div>':''}
-        <div class="rr-table"><div class="rr130-table-illumination" aria-hidden="true"></div><div class="rr-table-shadow"></div>
-        <div class="rr-gun-motion" data-roulette-motion style="transform:${rouletteMotionTransform(neutralAngle)}">
-          <div class="rr-revolver rr-photo-revolver" aria-label="Long-barrel side-view revolver" data-revolver-model="${escapeHtml(revolverModel)}">
-            <img class="rr-gun-photo" src="assets/roulette/revolver-${escapeHtml(revolverModel)}.png" alt="" draggable="false">
-            <span class="rr-hammer-cover" aria-hidden="true"></span>
-            <img class="rr-hammer-photo" src="assets/roulette/revolver-${escapeHtml(revolverModel)}-hammer.png" alt="" draggable="false">
-            <span class="rr-metal-glint" aria-hidden="true" style="--rr-gun-mask:url(&quot;assets/roulette/revolver-${escapeHtml(revolverModel)}.png&quot;)"></span>
-          </div>
-          <div class="rr-shot-flash" aria-hidden="true"></div>
-          <div class="rr-shot-smoke" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
-        </div><div class="rr-shell"></div></div>
-        ${controls}${final}
-      </div>`;
-    }
-    function roulettePatchLiveDom(){return false}
-    function rouletteBind(root=duelActive){
-      const gameRoot=root?.querySelector('[data-roulette-game]');if(!gameRoot)return;
-      gameRoot.querySelector('[data-roulette-spin]')?.addEventListener('click',(event)=>{rouletteMarkSpinUsedLocally(rouletteLatestGame);roulettePatchMountedRuntime(rouletteLatestGame);rouletteAct('roulette:spin',event);});
-      gameRoot.querySelector('[data-roulette-shoot]')?.addEventListener('click',(event)=>rouletteAct('roulette:shoot',event));
-      gameRoot.querySelector('[data-roulette-pass]')?.addEventListener('click',(event)=>rouletteAct('roulette:pass',event));
-      duelBindResultButtons(rouletteLatestGame);
-      gameRoot.querySelector('#duelNewGameBtn')?.addEventListener('click',duelStartNewGame);
-      const boundGameId=String(gameRoot.dataset.gameId||'');
-      if(rouletteVisualRuntime.gameId!==boundGameId)rouletteResetVisualRuntime(boundGameId);
-      rouletteVisualRuntime.mountedRevision=Number(gameRoot.dataset.revision||-1);
-      rouletteVisualRuntime.mountedStatus=String(gameRoot.dataset.status||'');
-      rouletteDebug('bind',{gameId:boundGameId,revision:gameRoot.dataset.revision,revolver:!!gameRoot.querySelector('.rr-revolver'),cylinder:!!gameRoot.querySelector('.rr-cylinder'),openingDone:rouletteVisualRuntime.openingDone});
-    }
-    function rouletteMotionBase(){
-      return matchMedia('(max-width:560px)').matches
-        ? 'translate(-50%,-50%) rotate(-4deg) scale(.78)'
-        : 'translate(-50%,-50%) rotate(-4deg) scale(.74)';
-    }
-    function rouletteMotionScale(){return matchMedia('(max-width:560px)').matches?.78:.74}
-    function rouletteMotionTransform(angle,scale=rouletteMotionScale(),x='-50%',y='-50%'){
-      const normalized=((Number(angle)||0)%360+360)%360;
-      if(normalized>=145&&normalized<=215){
-        const local=normalized-180;
-        return `translate(${x},${y}) rotate(${local}deg) scale(${-scale},${scale})`;
-      }
-      return `translate(${x},${y}) rotate(${angle}deg) scale(${scale})`;
-    }
-    function rouletteRotationGlint(glint,duration=700,intensity=.34){
-      if(!glint||matchMedia('(prefers-reduced-motion:reduce)').matches)return Promise.resolve();
-      const sweeps=duration>2500?3:1,frames=[];
-      for(let i=0;i<sweeps;i++){
-        const start=i/sweeps,end=(i+1)/sweeps,span=end-start;
-        frames.push({opacity:0,backgroundPosition:'116% 0',offset:start});
-        frames.push({opacity:intensity,backgroundPosition:'76% 0',offset:start+span*.34});
-        frames.push({opacity:intensity*.62,backgroundPosition:'38% 0',offset:start+span*.7});
-        frames.push({opacity:0,backgroundPosition:'5% 0',offset:end});
-      }
-      return rouletteAnimate(glint,frames,{duration,easing:'cubic-bezier(.2,.55,.2,1)',fill:'none'}).finally(()=>{glint.getAnimations?.().forEach(a=>a.cancel());glint.style.opacity='0';glint.style.backgroundPosition='116% 0'});
-    }
-    async function rouletteRotateToTurn(game,st,gameId,{duration=1050,targetTurnId}={}){
-      const requestedTurnId=String(targetTurnId||st?.turnId||'');
-      if(!requestedTurnId)return;
-      // A queued visual can become stale while a shot animation is finishing.
-      // Only rotate when the newest authoritative snapshot still says this
-      // exact player owns the turn.
-      const latestAtStart=rouletteLatestGame;
-      if(String(latestAtStart?.gameId||'')!==String(gameId)||
-        latestAtStart?.status!=='playing'||
-        String(latestAtStart?.rouletteState?.turnId||'')!==requestedTurnId){
-        rouletteDebug('discarded stale turn rotation',{requestedTurnId,authoritativeTurnId:String(latestAtStart?.rouletteState?.turnId||'')});
-        return;
-      }
-      // Direction is keyed only to the displayed turn. Polls and non-turn
-      // actions cannot schedule another movement to the same player.
-      if(rouletteVisualRuntime.displayTurnId===requestedTurnId||rouletteVisualRuntime.rotationTargetId===requestedTurnId)return;
-      const liveRoot=duelActive?.querySelector(`[data-roulette-game][data-game-id="${CSS.escape(gameId)}"]`);
-      const motion=liveRoot?.querySelector('[data-roulette-motion]');
-      const glint=liveRoot?.querySelector('.rr-metal-glint');
-      if(!liveRoot||!motion)return;
-      const epoch=++rouletteVisualRuntime.rotationEpoch;
-      rouletteVisualRuntime.rotationTargetId=requestedTurnId;
-      const target=rouletteAngleForPlayer(game,requestedTurnId),scale=rouletteMotionScale();
-      const from=Number.isFinite(rouletteVisualRuntime.currentAngle)?rouletteVisualRuntime.currentAngle:target;
-      let delta=((((target-from)%360)+540)%360)-180;
-      if(delta===-180)delta=180;
-      if(Math.abs(delta)<.5){
-        motion.getAnimations?.().forEach(a=>a.cancel());
-        motion.style.transform=rouletteMotionTransform(target,scale);
-        rouletteVisualRuntime.currentAngle=target;
-        rouletteVisualRuntime.angleHydrated=true;
-        rouletteVisualRuntime.lastTurnId=requestedTurnId;
-        rouletteVisualRuntime.displayTurnId=requestedTurnId;
-        rouletteVisualRuntime.rotationTargetId='';
-        return;
-      }
-      liveRoot.classList.add('rr-animation-lock');
-      try{
-        motion.getAnimations?.().forEach(a=>a.cancel());
-        await rouletteAnimate(motion,[{opacity:1},{opacity:.12}],{duration:120,easing:'ease-out',fill:'forwards'});
-        motion.getAnimations?.().forEach(a=>a.cancel());
-        motion.style.transform=rouletteMotionTransform(target,scale);
-        await Promise.all([
-          rouletteAnimate(motion,[{opacity:.12},{opacity:1}],{duration:180,easing:'ease-in',fill:'forwards'}),
-          rouletteRotationGlint(glint,300,.18)
-        ]);
-      }finally{
-        const latestAtFinish=rouletteLatestGame;
-        const stillAuthoritative=String(latestAtFinish?.gameId||'')===String(gameId)&&
-          latestAtFinish?.status==='playing'&&
-          String(latestAtFinish?.rouletteState?.turnId||'')===requestedTurnId;
-        if(epoch===rouletteVisualRuntime.rotationEpoch&&stillAuthoritative){
-          motion.getAnimations?.().forEach(a=>a.cancel());
-          motion.style.transform=rouletteMotionTransform(target,scale);
-          rouletteVisualRuntime.currentAngle=target;
-          rouletteVisualRuntime.angleHydrated=true;
-          rouletteVisualRuntime.lastTurnId=requestedTurnId;
-          rouletteVisualRuntime.displayTurnId=requestedTurnId;
-          rouletteVisualRuntime.rotationTargetId='';
-        }else if(epoch===rouletteVisualRuntime.rotationEpoch){
-          motion.getAnimations?.().forEach(a=>a.cancel());
-          motion.style.transform=rouletteMotionTransform(rouletteVisualRuntime.currentAngle,scale);
-          rouletteVisualRuntime.rotationTargetId='';
-          rouletteDebug('cancelled stale turn rotation finish',{requestedTurnId,authoritativeTurnId:String(latestAtFinish?.rouletteState?.turnId||'')});
-        }
-        if(glint){glint.getAnimations?.().forEach(a=>a.cancel());glint.style.opacity='0';glint.style.backgroundPosition='116% 0'}
-        liveRoot.classList.remove('rr-animation-lock');
-      }
-    }
-    function rouletteAngleForPlayer(game,userId){
-      // The creator is seated on the left and the joiner on the right. The
-      // revolver artwork's upright left-facing pose is -4deg.
-      return String(userId||'')===String(game?.creator?.userId||'')?-4:176;
-    }
-    function rouletteOpeningFinalAngle(game,st){return rouletteAngleForPlayer(game,st?.openingSpinWinnerId||st?.turnId)}
-    function rouletteTurnAngle(game,st){return rouletteAngleForPlayer(game,st?.turnId)}
-    async function rouletteOpeningSequence(game,st,gameId){
-      const liveRoot=duelActive?.querySelector(`[data-roulette-game][data-game-id="${CSS.escape(gameId)}"]`);
-      const motion=liveRoot?.querySelector('[data-roulette-motion]');
-      if(!liveRoot||!motion)throw new Error('Opening spin scene was not mounted.');
-      liveRoot.classList.add('rr-animation-lock','rr-opening-active');
-      liveRoot.dataset.rouletteOpening='1';
-      liveRoot.querySelectorAll('.rr-btn').forEach(button=>button.disabled=true);
-      motion.getAnimations().forEach(a=>a.cancel());
-      motion.style.transform=rouletteMotionTransform(-4,rouletteMotionScale());
-      rouletteVisualRuntime.currentAngle=-4;
-      let banner=liveRoot.querySelector('.rr-opening-banner');
-      if(!banner){banner=document.createElement('div');banner.className='rr-opening-banner';liveRoot.appendChild(banner)}
-      banner.textContent='Choosing First Player';
-      const finalAngle=rouletteOpeningFinalAngle(game,st);
-      const scale=rouletteMotionScale();
-      const glint=liveRoot.querySelector('.rr-metal-glint');
-      const duration=4700;
-      rouletteSpinSound(1.35);
-      await Promise.all([
-        rouletteAnimate(motion,[
-          {transform:rouletteMotionTransform(-4,scale),offset:0},
-          {transform:rouletteMotionTransform(116,scale*1.012),offset:.24},
-          {transform:rouletteMotionTransform(386,scale*1.025),offset:.55},
-          {transform:rouletteMotionTransform(finalAngle+720,scale*1.008),offset:.88},
-          {transform:rouletteMotionTransform(finalAngle+711,scale),offset:.955},
-          {transform:rouletteMotionTransform(finalAngle+720,scale),offset:1}
-        ],{duration,easing:'cubic-bezier(.22,.58,.12,1)',fill:'forwards'}),
-        rouletteRotationGlint(glint,duration,.28)
-      ]);
-      motion.style.transform=rouletteMotionTransform(finalAngle,scale);
-      rouletteVisualRuntime.currentAngle=finalAngle;
-      rouletteVisualRuntime.angleHydrated=true;
-      rouletteVisualRuntime.lastTurnId=String(st?.turnId||'');rouletteVisualRuntime.displayTurnId=rouletteVisualRuntime.lastTurnId;rouletteVisualRuntime.rotationTargetId='';
-      banner.textContent=String(st?.turnId||'')===String(game?.creator?.userId||'')
-        ? `${String(game?.creator?.name||'PLAYER 1').toUpperCase()} GOES FIRST`
-        : `${String(game?.joiner?.name||'PLAYER 2').toUpperCase()} GOES FIRST`;
-      await rouletteWait(850);
-      banner.remove();
-      liveRoot.classList.remove('rr-animation-lock','rr-opening-active');
-      liveRoot.dataset.rouletteOpening='0';
-      // The queue owner marks opening complete and performs one authoritative
-      // render from the newest accepted snapshot.
-    }
-    async function rouletteOrientToShotActor(game,st,gameId){
-      const actorId=String(st?.lastActorId||st?.turnId||'');
-      if(!actorId)return;
-      const target=rouletteAngleForPlayer(game,actorId);
-      const root=duelActive?.querySelector(`[data-roulette-game][data-game-id="${CSS.escape(gameId)}"]`);
-      const motion=root?.querySelector('[data-roulette-motion]');
-      if(!motion)return;
-      const from=Number.isFinite(rouletteVisualRuntime.currentAngle)?rouletteVisualRuntime.currentAngle:target;
-      const delta=Math.abs((((target-from)+540)%360)-180);
-      motion.getAnimations?.().forEach(a=>a.cancel());
-      if(delta>.75){
-        await rouletteAnimate(motion,[
-          {transform:rouletteMotionTransform(from,rouletteMotionScale())},
-          {transform:rouletteMotionTransform(target,rouletteMotionScale())}
-        ],{duration:Math.min(720,Math.max(260,delta*4)),easing:'cubic-bezier(.22,.7,.18,1)',fill:'forwards'});
-      }
-      motion.style.transform=rouletteMotionTransform(target,rouletteMotionScale());
-      rouletteVisualRuntime.currentAngle=target;
-      rouletteVisualRuntime.angleHydrated=true;
-      rouletteVisualRuntime.lastTurnId=actorId;
-      rouletteVisualRuntime.displayTurnId=actorId;
-      rouletteVisualRuntime.rotationTargetId='';
-      rouletteDebug('shot actor orientation locked',{gameId,actorId,target,lastOutcome:st?.lastOutcome});
-    }
-    async function rouletteShotSequence(game,st,gameId){
-      await rouletteOrientToShotActor(game,st,gameId);
-      const liveRoot=duelActive?.querySelector(`[data-roulette-game][data-game-id="${CSS.escape(gameId)}"]`);
-      const motion=liveRoot?.querySelector('[data-roulette-motion]');
-      const hammer=liveRoot?.querySelector('.rr-hammer-photo');
-      const cover=liveRoot?.querySelector('.rr-hammer-cover');
-      const glint=liveRoot?.querySelector('.rr-metal-glint');
-      const flash=liveRoot?.querySelector('.rr-shot-flash');
-      const smoke=[...(liveRoot?.querySelectorAll('.rr-shot-smoke i')||[])];
-      if(!liveRoot||!motion)return;
-      liveRoot.classList.add('rr-animation-lock');
-      [motion,hammer,cover,glint,flash,...smoke].filter(Boolean).forEach(el=>el.getAnimations?.().forEach(a=>a.cancel()));
-      if(cover)cover.style.opacity='0';
-      if(hammer){
-        hammer.style.opacity='1';
-        rouletteShotIndexSound();
-        const hammerMotion=rouletteAnimate(hammer,[
-          {transform:'rotate(0deg)',offset:0},
-          {transform:'rotate(23deg)',offset:.46},
-          {transform:'rotate(23deg)',offset:.60},
-          {transform:'rotate(-2.5deg)',offset:.76},
-          {transform:'rotate(0deg)',offset:1}
-        ],{duration:420,easing:'cubic-bezier(.22,.03,.16,1)',fill:'none'});
-        // Begin the gun response at the hammer strike instead of waiting for
-        // the hammer to finish returning to rest.
-        await rouletteWait(255);
-        liveRoot._rrHammerMotion=hammerMotion;
-      }else await rouletteWait(255);
-      const live=st.lastOutcome==='live';
-      if(live){
-        rouletteGunshotSound();navigator.vibrate?.([90,35,220]);
-        const shotFx=[];
-        if(flash)shotFx.push(rouletteAnimate(flash,[
-          {opacity:0,transform:'translate(-50%,-50%) scale(.1)'},
-          {opacity:1,transform:'translate(-50%,-50%) scale(1.7)',offset:.16},
-          {opacity:.75,transform:'translate(-50%,-50%) scale(2.7)',offset:.42},
-          {opacity:0,transform:'translate(-50%,-50%) scale(4.2)'}
-        ],{duration:380,easing:'ease-out'}));
-        smoke.forEach((p,i)=>shotFx.push(rouletteAnimate(p,[
-          {opacity:0,transform:'translate(0,0) scale(.25)'},
-          {opacity:.62,transform:`translate(${-18-i*7}px,${-8-i*5}px) scale(${.85+i*.14})`,offset:.24},
-          {opacity:0,transform:`translate(${-55-i*18}px,${-32-i*13}px) scale(${1.7+i*.26})`}
-        ],{duration:1050+i*170,delay:i*55,easing:'cubic-bezier(.2,.55,.2,1)'})));
-        const base=Number.isFinite(rouletteVisualRuntime.currentAngle)?rouletteVisualRuntime.currentAngle:rouletteOpeningFinalAngle(game,st);
-        const scale=rouletteMotionScale();
-        const recoilMotion=rouletteAnimate(motion,[
-          {transform:rouletteMotionTransform(base,scale)},
-          {transform:rouletteMotionTransform(base+10,scale*1.035,'calc(-50% + 20px)','calc(-50% + 7px)'),offset:.2},
-          {transform:rouletteMotionTransform(base-2,scale,'calc(-50% - 5px)','calc(-50% - 2px)'),offset:.55},
-          {transform:rouletteMotionTransform(base,scale)}
-        ],{duration:560,easing:'cubic-bezier(.16,.85,.2,1)'});
-        await Promise.all([liveRoot._rrHammerMotion||Promise.resolve(),recoilMotion,...shotFx]);
-      }else{
-        rouletteBlankSound();navigator.vibrate?.(30);
-        const current=getComputedStyle(motion).transform==='none'?rouletteMotionBase():motion.style.transform||rouletteMotionBase();
-        await Promise.all([liveRoot._rrHammerMotion||Promise.resolve(),rouletteAnimate(motion,[
-          {transform:current},
-          {transform:`${current} translateX(-3px)`,offset:.42},
-          {transform:current}
-        ],{duration:165,easing:'ease-out'})]);
-      }
-      delete liveRoot._rrHammerMotion;
-      if(hammer){hammer.style.opacity='1';hammer.style.transform='rotate(0deg)'}
-      if(cover)cover.style.opacity='0';
-      await rouletteWait(live?420:120);
-      liveRoot.classList.remove('rr-animation-lock');
-    }
-    function rouletteHandleEffects(game){
-      const st=game?.rouletteState||{},gameId=String(game?.gameId||'');
-      const acceptedStamp=rouletteAcceptedSnapshotByGame.get(gameId);
-      const incomingStamp=rouletteSnapshotStamp(game);
-      if(acceptedStamp&&(incomingStamp.gameRevision<acceptedStamp.gameRevision||
-        (incomingStamp.gameRevision===acceptedStamp.gameRevision&&incomingStamp.rouletteRevision<acceptedStamp.rouletteRevision))){
-        rouletteDebug('blocked stale visual snapshot',{incoming:incomingStamp,accepted:acceptedStamp});
-        return;
-      }
-      if(!gameId)return;
-      if(rouletteVisualRuntime.gameId!==gameId)rouletteResetVisualRuntime(gameId);
-      const root=duelActive?.querySelector(`[data-roulette-game][data-game-id="${CSS.escape(gameId)}"]`);
-      if(!root)return;
-      try{if(localStorage.getItem(`rouletteOpeningDone:${gameId}`)==='1')rouletteOpeningCompletedGames.add(gameId)}catch(_){}
-      if(rouletteOpeningCompletedGames.has(gameId))rouletteVisualRuntime.openingDone=true;
-      if(rouletteVisualRuntime.openingDone&&!rouletteVisualRuntime.angleHydrated&&st.turnId){
-        const hydratedTurnId=String(st.turnId||'');
-        const hydratedAngle=rouletteAngleForPlayer(game,hydratedTurnId);
-        rouletteVisualRuntime.currentAngle=hydratedAngle;
-        rouletteVisualRuntime.angleHydrated=true;
-        rouletteVisualRuntime.lastTurnId=hydratedTurnId;
-        rouletteVisualRuntime.displayTurnId=hydratedTurnId;
-        const mountedMotion=root.querySelector('[data-roulette-motion]');
-        if(mountedMotion){mountedMotion.getAnimations?.().forEach(a=>a.cancel());mountedMotion.style.transform=rouletteMotionTransform(hydratedAngle,rouletteMotionScale())}
-        // A mounted historical snapshot is state, not a new animation command.
-        if(st.lastAction)rouletteVisualRuntime.processed.add(`${gameId}:${st.revision}:${st.lastAction}:${st.lastOutcome}`);
-      }
-      if(!rouletteVisualRuntime.openingDone&&!rouletteOpeningCanStart(game)){
-        const motion=root.querySelector('[data-roulette-motion]');
-        if(motion){motion.getAnimations?.().forEach(a=>a.cancel());motion.style.transform=rouletteMotionTransform(-4,rouletteMotionScale())}
-        rouletteVisualRuntime.currentAngle=-4;rouletteVisualRuntime.lastTurnId='';rouletteVisualRuntime.displayTurnId='';rouletteVisualRuntime.rotationTargetId='';
-        return;
-      }
-      if(!rouletteVisualRuntime.openingDone&&rouletteOpeningCanStart(game)){
-        if(!rouletteVisualRuntime.openingPending){
-          rouletteVisualRuntime.openingPending=true;
-          rouletteQueueVisual(async()=>{
-            try{
-              await rouletteOpeningSequence(game,st,gameId);
-              rouletteOpeningCompletedGames.add(gameId);
-              try{localStorage.setItem(`rouletteOpeningDone:${gameId}`,'1')}catch(_){}
-              rouletteVisualRuntime.openingDone=true;
-              const newest=rouletteLatestGame||game;
-              const newestState=newest?.rouletteState||st;
-              const openingWinnerId=String(st?.openingSpinWinnerId||st?.turnId||'');
-              const authoritativeTurnId=String(newestState?.turnId||openingWinnerId);
-              const settledTurnId=authoritativeTurnId||openingWinnerId;
-              const settledAngle=rouletteAngleForPlayer(newest,settledTurnId);
-              rouletteVisualRuntime.currentAngle=settledAngle;
-              rouletteVisualRuntime.angleHydrated=true;
-              rouletteVisualRuntime.lastTurnId=settledTurnId;
-              rouletteVisualRuntime.displayTurnId=settledTurnId;
-              rouletteVisualRuntime.rotationTargetId='';
-              // Re-render only the text and controls. rouletteHtml reads the
-              // runtime-owned angle, so this render cannot flip the gun.
-              duelLastRenderKey='';
-              duelRenderActive(newest,true);
-              requestAnimationFrame(()=>{
-                const settledRoot=duelActive?.querySelector(`[data-roulette-game][data-game-id="${CSS.escape(gameId)}"]`);
-                const settledMotion=settledRoot?.querySelector('[data-roulette-motion]');
-                if(settledMotion){
-                  settledMotion.getAnimations?.().forEach(a=>a.cancel());
-                  settledMotion.style.transform=rouletteMotionTransform(settledAngle,rouletteMotionScale());
-                }
-              });
-            }catch(e){
-              rouletteVisualRuntime.openingDone=false;
-              rouletteDebug('opening sequence failed',{message:String(e?.message||e)});
-            }finally{
-              rouletteVisualRuntime.openingPending=false;
-            }
-          });
-        }
-        return;
-      }
-      const incomingTurnId=String(st.turnId||'');
-      const turnChanged=rouletteVisualRuntime.openingDone&&incomingTurnId&&rouletteVisualRuntime.lastTurnId!==incomingTurnId;
-      const effectKey=`${gameId}:${st.revision}:${st.lastAction}:${st.lastOutcome}`;
-      const effectIsNew=Boolean(st.lastAction)&&!rouletteVisualRuntime.processed.has(effectKey);
-
-      // Effects may animate internal gun parts, but they never own direction.
-      // Direction changes are scheduled solely from a real turnId transition.
-      if(effectIsNew&&st.lastAction==='shoot'){
-        rouletteVisualRuntime.processed.add(effectKey);
-        // Shot visuals own recoil and hammer movement only. The authoritative
-        // facing guard observes any real turn change after the shot completes.
-        rouletteQueueVisual(()=>rouletteShotSequence(game,st,gameId));
-        return;
-      }
-
-      // Direction changes are owned exclusively by turn-facing-guard.js.
-      // Pass, shoot, polling, and rerenders only publish authoritative state.
-
-      if(!effectIsNew)return;
-      rouletteVisualRuntime.processed.add(effectKey);
-      if(st.lastAction==='spin'){
-        rouletteQueueVisual(async()=>{
-          const liveRoot=duelActive?.querySelector(`[data-roulette-game][data-game-id="${CSS.escape(gameId)}"]`);
-          if(!liveRoot)return;
-          // Cylinder spin feedback only. The revolver direction is untouched.
-          liveRoot.classList.add('rr-animation-lock');rouletteSpinSound();await rouletteWait(950);liveRoot.classList.remove('rr-animation-lock');
-        });
-      }
-    }
-    async function rouletteAct(choice,event){
-      if(event){event.preventDefault();event.stopPropagation();}
-      const now=Date.now();
-      // Mobile browsers can dispatch a delayed synthetic click after the Spin
-      // control is replaced by Shoot in the same screen position. Reject that
-      // handoff click so spinning can never fire the gun automatically.
-      if(choice==='roulette:shoot'&&now<rouletteInputLockUntil){
-        rouletteDebug('blocked post-spin ghost shoot',{remainingMs:rouletteInputLockUntil-now});
-        return;
-      }
-      if(rouletteActionPending||!duelCurrentGameId)return;
-      // Reject rapid repeat taps while the previous trigger/hammer animation is
-      // still settling. This applies to every roulette action, not only Spin.
-      if(now<rouletteInputLockUntil){
-        rouletteDebug('blocked rapid roulette input',{choice,remainingMs:rouletteInputLockUntil-now});
-        return;
-      }
-      rouletteInputLockUntil=now+(choice==='roulette:shoot'?900:650);
-      const st=rouletteLatestGame?.rouletteState||{};
-      const spinButton=duelActive?.querySelector('[data-roulette-spin]');
-      const previousSpinHtml=spinButton?.innerHTML||'';
-      if(choice==='roulette:spin'){
-        rouletteInputLockUntil=now+1400;
-        // Update the visible counter immediately on the first tap. The server
-        // remains authoritative, but the UI must not wait for a later poll or
-        // scene remount to show that the one-use spin has been consumed.
-        if(spinButton){
-          spinButton.disabled=true;
-          spinButton.innerHTML='<b>SPIN ×0</b><small>USED</small>';
-          spinButton.dataset.optimisticSpin='1';
-        }
-      }
-      rouletteActionPending=true;
-      try{
-        document.querySelectorAll('.rr-btn').forEach(b=>b.disabled=true);
-        const data=await duelRequest('act',{gameId:duelCurrentGameId,choice,actionId:`rr-${Date.now()}-${Math.random().toString(36).slice(2)}`,expectedRevision:Number(st.revision||0),expectedTurnId:String(st.turnId||'')});
-        if(data?.ignoredAction)rouletteDebug('server ignored stale duplicate action',{choice,reason:data.ignoreReason||'stale'});
-        const returnedGame=data?.game;
-        const accepted=rouletteAcceptSnapshot(returnedGame);
-        if(returnedGame&&String(returnedGame.gameId||'')===String(duelCurrentGameId||'')){
-          // A delayed action response may be older than a poll already accepted.
-          // Never remount that rejected snapshot: doing so replayed effects and
-          // pointed the gun at an obsolete turn. Rebuild controls from the newest
-          // authoritative snapshot instead.
-          const authoritativeGame=accepted
-            ? returnedGame
-            : ((rouletteLatestGame&&String(rouletteLatestGame.gameId||'')===String(duelCurrentGameId||''))
-              ? rouletteLatestGame
-              : ((duelLastActiveGame&&String(duelLastActiveGame.gameId||'')===String(duelCurrentGameId||''))?duelLastActiveGame:null));
-          if(authoritativeGame){
-            rouletteLatestGame=authoritativeGame;duelLastActiveGame=authoritativeGame;
-            duelLastRenderKey='';
-            const lockedRoot=duelActive?.querySelector('[data-roulette-game]');
-            if(lockedRoot)lockedRoot.dataset.revision='-999999';
-            duelRenderActive(authoritativeGame,true);
-            const confirmedSpin=duelActive?.querySelector('[data-roulette-spin]');
-            if(choice==='roulette:spin'&&confirmedSpin&&rouletteSpinWasUsed(authoritativeGame)){
-              confirmedSpin.innerHTML='<b>SPIN ×0</b><small>USED</small>';
-              confirmedSpin.disabled=true;delete confirmedSpin.dataset.optimisticSpin;
-            }
-          }
-          if(!accepted)rouletteDebug('rejected stale action snapshot; restored newest accepted state',{choice,returnedRevision:returnedGame?.rouletteState?.revision,acceptedRevision:authoritativeGame?.rouletteState?.revision});
-        }
-      }catch(e){
-        if(choice==='roulette:spin'){
-          rouletteInputLockUntil=0;
-          const rollbackSpin=duelActive?.querySelector('[data-roulette-spin]');
-          if(rollbackSpin&&rollbackSpin.dataset.optimisticSpin==='1'){
-            rollbackSpin.innerHTML=previousSpinHtml||'<b>SPIN ×1</b><small>AVAILABLE</small>';
-            rollbackSpin.disabled=!(Boolean(st.canSpin)&&!rouletteSpinWasUsed(rouletteLatestGame||game));
-            delete rollbackSpin.dataset.optimisticSpin;
-          }
-        }
-        const message=String(e?.message||'Roulette action failed.');
-        const stale=/stale roulette action|turn changed|not your turn/i.test(message);
-        if(!stale)duelSetStatus(message,'bad');
-        try{
-          await duelRefresh(true);
-          const latest=rouletteLatestGame||duelLastActiveGame;
-          if(latest&&String(latest.gameId||'')===String(duelCurrentGameId||''))duelRenderActive(latest,true);
-        }catch(_){
-          document.querySelectorAll('.rr-btn').forEach(b=>b.disabled=false);
-        }
-      }finally{
-        rouletteActionPending=false;
-        // Final safety net: derive enabled/disabled controls from the latest
-        // authoritative state after every request, including ignored duplicates.
-        const latest=rouletteLatestGame||duelLastActiveGame;
-        if(latest&&latest.mode==='roulette'&&String(latest.gameId||'')===String(duelCurrentGameId||'')){
-          setTimeout(()=>{if(!rouletteActionPending){
-            duelLastRenderKey='';
-            const lockedRoot=duelActive?.querySelector('[data-roulette-game]');
-            if(lockedRoot)lockedRoot.dataset.revision='-999999';
-            duelRenderActive(latest,true);
-          }},40);
-        }
-      }
-    }
-
-    function rouletteAudioCtx(){const ctx=getAudioContext?.();if(ctx&&ctx.state==='suspended')ctx.resume().catch(()=>{});return ctx}
-    function rouletteClickTone(freq=420,dur=.055,gain=.09){const ctx=rouletteAudioCtx();if(!ctx||!sfxGain||document.hidden)return;const o=ctx.createOscillator(),g=ctx.createGain(),f=ctx.createBiquadFilter();o.type='square';o.frequency.setValueAtTime(freq,ctx.currentTime);f.type='bandpass';f.frequency.value=freq;f.Q.value=2.5;g.gain.setValueAtTime(gain,ctx.currentTime);g.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+dur);o.connect(f);f.connect(g);g.connect(sfxGain);o.start();o.stop(ctx.currentTime+dur)}
-    function rouletteSpinSound(speedMultiplier=1){const ctx=rouletteAudioCtx();if(!ctx||document.hidden)return;let t=0;for(let i=0;i<24;i++){const step=(24+Math.pow(i/23,2)*86)*speedMultiplier;setTimeout(()=>{rouletteClickTone(230+(i%4)*34,.032+(i/23)*.025,.045+(i/23)*.035)},t);t+=step}setTimeout(()=>rouletteClickTone(118,.16,.14),t+35)}
-    function rouletteShotIndexSound(){rouletteClickTone(310,.025,.07);setTimeout(()=>rouletteClickTone(235,.035,.085),72);setTimeout(()=>rouletteClickTone(128,.075,.12),145)}
-    function rouletteBlankSound(){rouletteClickTone(520,.025,.08);setTimeout(()=>rouletteClickTone(142,.105,.18),32);setTimeout(()=>rouletteClickTone(88,.09,.08),105)}
-    function rouletteGunshotSound(){try{const a=new Audio(`assets/gunshot_punchy_${1+Math.floor(Math.random()*4)}.wav`);a.volume=.82;a.play().catch(()=>rouletteExplosionSound())}catch(_){rouletteExplosionSound()}}
-    function rouletteTone(){rouletteClickTone(360,.06,.07)}
-    function rouletteExplosionSound(){const ctx=rouletteAudioCtx();if(!ctx||!sfxGain||document.hidden)return;const len=Math.floor(ctx.sampleRate*.6),buf=ctx.createBuffer(1,len,ctx.sampleRate),d=buf.getChannelData(0);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,3);const src=ctx.createBufferSource(),g=ctx.createGain(),f=ctx.createBiquadFilter();src.buffer=buf;f.type='lowpass';f.frequency.setValueAtTime(3200,ctx.currentTime);f.frequency.exponentialRampToValueAtTime(180,ctx.currentTime+.55);g.gain.setValueAtTime(.7,ctx.currentTime);g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.6);src.connect(f);f.connect(g);g.connect(sfxGain);src.start()}
+    /* SITE_INCLUDE: games/multiplayer/roulette/presentation.js#rouletteAudioCtx_288150 */
+    /* SITE_INCLUDE: games/multiplayer/roulette/presentation.js#rouletteClickTone_288283 */
+    /* SITE_INCLUDE: games/multiplayer/roulette/presentation.js#rouletteSpinSound_288801 */
+    /* SITE_INCLUDE: games/multiplayer/roulette/presentation.js#rouletteShotIndexSound_289141 */
+    /* SITE_INCLUDE: games/multiplayer/roulette/presentation.js#rouletteBlankSound_289316 */
+    /* SITE_INCLUDE: games/multiplayer/roulette/presentation.js#rouletteGunshotSound_289484 */
+    /* SITE_INCLUDE: games/multiplayer/roulette/presentation.js#rouletteTone_289698 */
+    /* SITE_INCLUDE: games/multiplayer/roulette/presentation.js#rouletteExplosionSound_289758 */
 
 
 
@@ -12551,103 +10889,21 @@ function createSparkle(x, y) {
     }
 
 
-    function duelFishingStopCompletionTicker(){
-      if(duelFishingCompleteUi.ticker){clearInterval(duelFishingCompleteUi.ticker);duelFishingCompleteUi.ticker=0;}
-    }
-    function duelFishingCompletionElapsed(game){
-      const id=String(game?.gameId||"");
-      if(!id)return 999999;
-      if(duelFishingCompleteUi.gameId!==id){
-        duelFishingStopCompletionTicker();
-        duelFishingCompleteUi={gameId:id,firstSeen:Date.now(),firstSeenPerf:(window.performance?.now?.()||0),resultSoundPlayed:false,ticker:0};
-      }
-      const perfNow=window.performance?.now?.()||0;
-      const perfElapsed=duelFishingCompleteUi.firstSeenPerf&&perfNow>=duelFishingCompleteUi.firstSeenPerf?perfNow-duelFishingCompleteUi.firstSeenPerf:0;
-      const wallElapsed=Math.max(0,Date.now()-duelFishingCompleteUi.firstSeen);
-      return Math.max(perfElapsed,wallElapsed);
-    }
-    function duelFishingEnsureCompletionTicker(game){
-      if(!game||game.mode!=="fishing"||game.status!=="complete")return;
-      duelFishingCompletionElapsed(game);
-      if(duelFishingCompleteUi.ticker)return;
-      duelFishingCompleteUi.ticker=setInterval(()=>{
-        const latest=duelFishingLatestGame;
-        if(!latest||latest.mode!=="fishing"||latest.status!=="complete"||String(latest.gameId||"")!==duelFishingCompleteUi.gameId){duelFishingStopCompletionTicker();return;}
-        duelFishingPatchDom(latest);
-        if(duelFishingComparisonPhase(latest)==="result")duelFishingStopCompletionTicker();
-      },200);
-    }
-    function duelFishingResultPortal(){
-      let portal=document.getElementById('fishingResultPortal');
-      if(!portal){portal=document.createElement('div');portal.id='fishingResultPortal';portal.hidden=true;document.body.appendChild(portal);}
-      return portal;
-    }
-    function duelFishingHideResultPortal(){
-      const portal=document.getElementById('fishingResultPortal');
-      if(portal){portal.hidden=true;portal.innerHTML='';}
-      document.body.classList.remove('fishing-result-open');
-    }
-    function duelFishingShowResultPortal(game,html){
-      if(!html)return null;
-      const portal=duelFishingResultPortal();
-      if(!portal.querySelector('[data-fishing-result]'))portal.innerHTML=html;
-      portal.hidden=false;
-      document.body.classList.add('fishing-result-open');
-      document.querySelectorAll('.result-pop,.duel-big-result').forEach(node=>node.remove());
-      duelBindFishingLogbookPreview(portal);
-      duelBindResultButtons(game);
-      duelScheduleCompletedCloseButton(game);
-      return portal.querySelector('[data-fishing-result]');
-    }
-    function duelFishingPlayerAvatar(player){
-      return player?.avatarUrl?`<img class="fishing-compare-avatar" src="${escapeHtml(player.avatarUrl)}" alt="">`:`<div class="fishing-compare-avatar" style="display:grid;place-items:center">🎣</div>`;
-    }
-    function duelFishingPlayerChip(player,label){
-      const name=escapeHtml(String(player?.name||label||"Angler"));
-      const initial=escapeHtml(String(player?.profileInitial||player?.name||"?").trim().slice(0,1).toUpperCase());
-      const avatar=player?.avatarUrl
-        ? `<img class="fishing-player-chip-avatar" src="${escapeHtml(player.avatarUrl)}" alt="">`
-        : `<span class="fishing-player-chip-avatar fishing-player-chip-fallback">${initial}</span>`;
-      return `<div class="fishing-player-chip">${avatar}<span><small>${escapeHtml(label)}</small><b>${name}</b></span></div>`;
-    }
-    function duelFishingComparisonPhase(game){
-      const elapsed=duelFishingCompletionElapsed(game);
-      if(elapsed<2200)return "compare";
-      if(elapsed<5600)return "measuring";
-      if(elapsed<6800)return "revealed";
-      return "result";
-    }
-    function duelFishingComparisonOverlay(game){
-      if(!game||game.mode!=="fishing"||game.status!=="complete")return"";
-      const phase=duelFishingComparisonPhase(game);
-      if(phase==="compare"||phase==="result")return"";
-      const state=duelFishingStableState(game)||game.fishingState||{};
-      const c=state.creatorCatch,j=state.joinerCatch;
-      const winnerRole=game.result?.winnerRole||game.resolved?.winnerRole||"";
-      const revealed=phase==="revealed";
-      const leftWin=revealed&&winnerRole==="creator",rightWin=revealed&&winnerRole==="joiner";
-      const leftSize=revealed?(c?Number(c.size||0)+" cm":"—"):"???";
-      const rightSize=revealed?(j?Number(j.size||0)+" cm":"—"):"???";
-      const title=phase==="compare"?"COMPARE THE CATCHES":phase==="measuring"?"MEASURING THE FISH...":"FINAL MEASUREMENTS";
-      const sub=phase==="compare"?"Take a good look before the ruler comes out":phase==="measuring"?"The exact sizes are still hidden":"The larger catch takes it";
-      const ruler=phase==="compare"?"":`<div class="fishing-compare-ruler" aria-hidden="true"><div class="fishing-compare-fill"></div><div class="fishing-ruler-labels"><span>0</span><span>25</span><span>50</span><span>75</span><span>100 cm</span></div></div>`;
-      return `<div class="fishing-comparison-overlay ${phase}" data-fishing-comparison="1" data-comparison-phase="${phase}"><div class="fishing-comparison-title">${title}</div><div class="fishing-comparison-sub">${sub}</div><div class="fishing-comparison-fish"><div class="fishing-compare-side left ${leftWin?"winner":"pending-winner"}">${duelFishingPlayerAvatar(game.creator)}<div class="fishing-compare-art">${c?duelFishSvg(c.size,c.name,c):""}</div><div class="fishing-compare-name">${escapeHtml(c?FISHING_CATALOG.resolve(c).name:"No fish")}</div>${c?duelFishingRarityBadge(c):""}<div class="fishing-compare-size ${revealed?"":"concealed"}">${leftSize}</div></div><div class="fishing-compare-vs">VS</div><div class="fishing-compare-side right ${rightWin?"winner":"pending-winner"}">${duelFishingPlayerAvatar(game.joiner)}<div class="fishing-compare-art">${j?duelFishSvg(j.size,j.name,j):""}</div><div class="fishing-compare-name">${escapeHtml(j?FISHING_CATALOG.resolve(j).name:"No fish")}</div>${j?duelFishingRarityBadge(j):""}<div class="fishing-compare-size ${revealed?"":"concealed"}">${rightSize}</div></div></div>${ruler}</div>`;
-    }
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingStopCompletionTicker_296100 */
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingCompletionElapsed_296270 */
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingEnsureCompletionTicker_296967 */
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingResultPortal_297601 */
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingHideResultPortal_297875 */
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingShowResultPortal_298111 */
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingPlayerAvatar_298688 */
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingPlayerChip_298943 */
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingComparisonPhase_299545 */
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingComparisonOverlay_299800 */
 
-    function duelFishingPreviewVariant(speciesName){
-      return FISHING_CATALOG.resolve(speciesName).variant;
-    }
-    function duelFishingIsRareFish(variant="standard",rarity="regular"){
-      return FISHING_CATALOG.resolve({variant}).special;
-    }
-    function duelFishingCanAcceptRematch(game,now=Date.now()){
-      const offer=game?.rematch||{},requested=offer.requestedBy||{};
-      const expires=Date.parse(String(offer.expiresAt||""));
-      return Boolean(game?.mode==="fishing"&&game.status==="complete"&&game.remoteNetworkTest&&game.joiner?.isRemoteBot&&!game.rematchGameId&&requested[game.creator?.userId]&&!requested[game.joiner?.userId]&&Number.isFinite(expires)&&expires>now);
-    }
-    function duelFishingRareBadge(variant="standard",rarity="regular"){
-      return duelFishingIsRareFish(variant,rarity)?duelFishingRarityBadge({variant},true):"";
-    }
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingPreviewVariant_302203 */
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingIsRareFish_302321 */
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingCanAcceptRematch_302457 */
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingRareBadge_302904 */
     function duelBindFishingLogbookPreview(root=document){
       root?.querySelectorAll?.('[data-fishing-logbook]').forEach(book=>{
         const button=book.querySelector('[data-fishing-log-unlock]');
@@ -12662,78 +10918,9 @@ function createSparkle(x, y) {
         });
       });
     }
-    function duelFishingLogbookHtml(logbook, newSpecies=false) {
-      const book=logbook&&typeof logbook==="object"?logbook:{};
-      const caught=FISHING_CATALOG.records(book),discovered=caught.size;
-      const totalCaught=Math.max(0,Number(book.totalCaught||0)),rareCaught=Math.max(0,Number(book.rareCaught||0));
-      const speciesHtml=FISHING_CATALOG.tiers.map(tier=>{
-        const rows=FISHING_CATALOG.ordered.filter(f=>f.rarity===tier.id).map(fish=>{
-          const entry=caught.get(fish.name),name=escapeHtml(fish.name);
-          const picture=duelFishSvg(entry?.bestSize||48,fish.name,fish);
-          const badge=duelFishingRarityBadge(fish,fish.special);
-          const attributes=`data-fish-rarity="${fish.rarity}" data-fish-species="${name}"`;
-          if(!entry)return `<div class="fishing-log-entry locked" ${attributes}><div class="fishing-log-thumb" aria-hidden="true"><span class="fishing-log-question">?</span><span class="fishing-log-unlock-preview">${picture}</span></div><div class="fishing-log-copy"><b><span class="fishing-log-locked-name">???</span><span class="fishing-log-unlock-name">${name}</span></b>${badge}<span>Not caught yet</span></div></div>`;
-          const best=Number(entry.bestSize||0);
-          return `<div class="fishing-log-entry" ${attributes}><div class="fishing-log-thumb" aria-hidden="true">${picture}</div><div class="fishing-log-copy"><b>${name}</b>${badge}<span>Personal best <strong>${best>0?`${best} cm`:"—"}</strong></span><span>${Math.max(0,Number(entry.count||0))} caught</span></div></div>`;
-        }).join("");
-        return `<h3 class="fishing-log-section ${tier.id}" data-rarity-section="${tier.id}"><span>${tier.label}</span></h3>${rows}`;
-      }).join("");
-      return `<details class="fishing-logbook" data-fishing-logbook open><summary><span class="fishing-logbook-title"><i aria-hidden="true">▱</i><span>Angler's field log<small>Your personal fish collection</small></span></span>${newSpecies?'<span class="fishing-new-species">NEW SPECIES</span>':`<span class="fishing-logbook-count">${discovered} / ${FISHING_SPECIES.length}</span>`}</summary><div class="fishing-logbook-body"><div class="fishing-logbook-tools"><button type="button" class="fishing-log-unlock" data-fishing-log-unlock aria-pressed="false">Unlock all fish (testing)</button><small>Temporary collection preview</small></div><div class="fishing-logbook-stats"><div class="fishing-logbook-stat"><b>${discovered} / ${FISHING_SPECIES.length}</b>Discovered</div><div class="fishing-logbook-stat"><b>${totalCaught}</b>Total catches</div><div class="fishing-logbook-stat"><b>${rareCaught}</b>Special catches</div></div><div class="fishing-logbook-grid">${speciesHtml}</div></div></details>`;
-    }
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingLogbookHtml_303736 */
 
-    function duelFishingResultOverlay(game) {
-      if (!game || game.mode !== "fishing" || game.status !== "complete") return "";
-      if(duelFishingCompletionElapsed(game)<2200)return "";
-      if(duelFishingCompletionElapsed(game)<6800)return duelFishingComparisonOverlay(game);
-      const state = duelFishingStableState(game) || game.fishingState || {};
-      const meId = String(localStorage.getItem("tornVisitorUserId") || "");
-      const myCatch = game.isCreator ? state.creatorCatch : game.isJoiner ? state.joinerCatch : state.myCatch;
-      const opponentCatch = game.isCreator ? state.joinerCatch : state.creatorCatch;
-      const meWon = Boolean(game.winnerUserId && String(game.winnerUserId) === meId);
-      const isTie = Boolean(game.tie);
-      const resultTitle = isTie ? "DEAD HEAT" : meWon ? "BIGGEST CATCH!" : "OUTFISHED";
-      const resultClass = isTie ? "tie" : meWon ? "win" : "lose";
-      const catchName = escapeHtml(myCatch?FISHING_CATALOG.resolve(myCatch).name:"No fish caught");
-      const catchSize = myCatch ? `${Number(myCatch.size || 0)} cm` : "—";
-      const opponentName = escapeHtml(opponentCatch?FISHING_CATALOG.resolve(opponentCatch).name:"No fish caught");
-      const opponentSize = opponentCatch ? `${Number(opponentCatch.size || 0)} cm` : "—";
-      const myBigger=!isTie&&Number(myCatch?.size||0)>Number(opponentCatch?.size||0);
-      const oppBigger=!isTie&&Number(opponentCatch?.size||0)>Number(myCatch?.size||0);
-      const ticketsWon = meWon ? Number(game.payout || 0) : 0;
-      const rematch = game.rematch && typeof game.rematch === "object" ? game.rematch : {};
-      const requestedBy = rematch.requestedBy && typeof rematch.requestedBy === "object" ? rematch.requestedBy : {};
-      const entries = Object.entries(requestedBy).sort((a,b)=>Date.parse(a[1]||0)-Date.parse(b[1]||0));
-      const firstRequesterId = String(entries[0]?.[0] || "");
-      const expiresAt = Date.parse(rematch.expiresAt || 0);
-      const rematchSeconds = expiresAt ? Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000)) : 10;
-      const myRematch = Boolean(requestedBy[meId]);
-      const requesterPlayer = [game.creator, game.joiner].find(p => String(p?.userId || "") === firstRequesterId);
-      const requesterName = escapeHtml(requesterPlayer?.name || "Opponent");
-      const requesterAvatar = requesterPlayer?.avatarUrl
-        ? `<img src="${escapeHtml(requesterPlayer.avatarUrl)}" alt="" class="duel-rematch-avatar">`
-        : firstRequesterId ? `<span class="duel-rematch-avatar duel-rematch-avatar-fallback">${escapeHtml(String(requesterPlayer?.profileInitial || requesterPlayer?.name || "?").trim().slice(0,1).toUpperCase())}</span>` : "";
-      const rematchActive = Boolean(firstRequesterId && expiresAt && expiresAt > Date.now());
-      const rematchLabel = rematchActive ? `${requesterAvatar}<span>${firstRequesterId === meId ? "Rematch requested" : `${requesterName} wants a rematch`} • ${rematchSeconds}s</span>` : `<span>Rematch</span>`;
-      const myArt=myCatch?duelFishSvg(myCatch.size,myCatch.name,myCatch):"";
-      const oppArt=opponentCatch?duelFishSvg(opponentCatch.size,opponentCatch.name,opponentCatch):"";
-      const myRecord=game.isCreator?game.result?.creator?.record:game.isJoiner?game.result?.joiner?.record:null;
-      const opponentRecord=game.isCreator?game.result?.joiner?.record:game.result?.creator?.record;
-      const myResultRole=game.isCreator?game.result?.creator:game.result?.joiner;
-      const myLogbook=myResultRole?.logbook||{};
-      const myNewSpecies=Boolean(myResultRole?.newSpecies);
-      const resultSummary=isTie?"Identical measurements. Both wagers are returned.":meWon?"Your catch takes the tournament pot.":"The other angler landed the larger fish.";
-      const tieEmblem=isTie?`<div class="fishing-tie-emblem">IDENTICAL MEASUREMENTS</div>`:"";
-
-      const recordHtml=(record,label)=>{
-        const current=Number(record?.currentSize||0);
-        const previous=Number(record?.previousSize||0);
-        const badge=record?.newRecord?`<span class="fishing-record-badge">🏆 NEW RECORD</span>`:"";
-        const previousText=record?.newRecord&&previous>0?`<div class="fishing-record-previous">Previous: ${previous} cm</div>`:`<div class="fishing-record-previous"></div>`;
-        return `<div class="fishing-record-row">${badge}<span>${label}: <b>${current>0?`${current} cm`:"—"}</b></span></div>${previousText}`;
-      };
-      const payoutText=isTie?"WAGERS RETURNED":meWon?`${money(ticketsWon)} WON`:"NEXT CAST AWAITS";
-      return `<div class="fishing-result-overlay ${resultClass}" data-fishing-result="1" role="dialog" aria-label="Fishing match result"><div class="fishing-result-card" data-fishing-result-card="1"><header class="fishing-result-header"><div class="fishing-result-hook" aria-hidden="true">⌁</div><div><div class="fishing-result-kicker">TOURNAMENT WEIGH-IN</div><div class="fishing-result-title">${resultTitle}</div><p>${escapeHtml(resultSummary)}</p></div><div class="fishing-result-float" aria-hidden="true"><i></i></div></header><div class="fishing-result-content">${tieEmblem}<div class="fishing-result-catches"><div class="${myBigger?"winner":""}">${myBigger?'<span class="fishing-result-ribbon">LARGEST</span>':""}<span>Your catch</span><div class="fishing-result-fish-art">${myArt}</div><b>${catchName}${myCatch?duelFishingRarityBadge(myCatch):""}</b><strong>${catchSize}</strong>${recordHtml(myRecord,"Personal best")}</div><div class="${oppBigger?"winner":""}">${oppBigger?'<span class="fishing-result-ribbon">LARGEST</span>':""}<span>Opponent catch</span><div class="fishing-result-fish-art">${oppArt}</div><b>${opponentName}${opponentCatch?duelFishingRarityBadge(opponentCatch):""}</b><strong>${opponentSize}</strong>${recordHtml(opponentRecord,"Personal best")}</div></div>${duelFishingLogbookHtml(myLogbook,myNewSpecies)}<div class="fishing-result-payout"><span>RESULT</span><b>${payoutText}</b></div></div><footer class="fishing-result-actions"><button class="gold duel-rematch-btn ${myRematch ? "requested" : ""}" id="duelRematchBtn" type="button" ${myRematch ? "disabled" : ""}><i aria-hidden="true">↻</i>${rematchLabel}</button><button class="secondary" id="duelNewGameBtn" type="button"><i aria-hidden="true">＋</i><span>Create a New Game</span></button></footer></div></div>`;
-    }
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingResultOverlay_306472 */
 
     function duelActionChoices(game) {
       if (game?.mode === "blackjack") {
@@ -14280,18 +12467,9 @@ function createSparkle(x, y) {
       }
     }
 
-    function duelDrawOptimisticScore(delta) {
-      duelDrawAdjustVisualScore(delta, duelDrawLatestGame);
-    }
+    /* SITE_INCLUDE: games/multiplayer/draw/presentation.js#duelDrawOptimisticScore_398558 */
 
-    function duelDrawClearTargetNow(id) {
-      const btn = duelActive?.querySelector(`[data-draw-target="${id}"]`);
-      if (!btn) return;
-      btn.disabled = true;
-      const slot = btn.closest(".duel-draw-slot");
-      btn.remove();
-      if (slot) slot.innerHTML = `<div class="duel-draw-empty">…</div>`;
-    }
+    /* SITE_INCLUDE: games/multiplayer/draw/presentation.js#duelDrawClearTargetNow_398671 */
 
     function duelQueueDrawTap(targetId, pointerEvent = null) {
       const id = String(targetId || "").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 40);
@@ -14556,69 +12734,16 @@ function createSparkle(x, y) {
     // This final controller intentionally does not use any older fishing clock/cache.
     const fishingV3 = { key:"", game:null, endLocal:0, events:new Map(), creatorCatch:null, joinerCatch:null, myCatch:null, timer:null, epoch:0 };
     let fishingCountdownAnchor={key:"",serverMs:0,perfAt:0};
-    function duelFishingCountdownNow(game){
-      const key=`${game?.gameId||""}:${game?.startAt||""}`;
-      if(fishingCountdownAnchor.key!==key){
-        const serverMs=Date.parse(String(game?.serverNow||""));
-        fishingCountdownAnchor={key,serverMs:Number.isFinite(serverMs)?serverMs:Date.now(),perfAt:performance.now()};
-      }
-      return fishingCountdownAnchor.serverMs+Math.max(0,performance.now()-fishingCountdownAnchor.perfAt);
-    }
-    function fishingV3Key(game){ const st=game?.fishingState||{}; const perspective=String(game?.controlPerspective||((game?.isJoiner&&!game?.isCreator)?"joiner":"creator")); return `${String(game?.gameId||"")}:${String(st.roundId||st.startAt||"pending")}:${perspective}`; }
-    function fishingV3StopAudio(){
-      duelFishingAudioEpoch+=1; duelFishingClearAudioTimeouts(); duelFishingStopOcean(true); duelFishingRippleRumble(false);
-      try{ navigator.vibrate?.(0); }catch{}
-    }
-    function fishingV3Stop(){ if(fishingV3.timer)clearInterval(fishingV3.timer); fishingV3.timer=null; duelFishingTimer=null; fishingV3StopAudio(); }
-    function fishingV3Reset(game=null){
-      fishingV3Stop(); fishingV3.epoch+=1; fishingV3.key=game?fishingV3Key(game):""; fishingV3.game=game||null;
-      fishingV3.endLocal=0; fishingV3.events=new Map(); fishingV3.creatorCatch=null; fishingV3.joinerCatch=null; fishingV3.myCatch=null;
-      duelFishingLocalCatchLock={gameId:String(game?.gameId||""),locked:false};
-      duelFishingAudioState={gameId:String(game?.gameId||""),seenRippleIds:new Set(),creatorCatchId:"",joinerCatchId:"",resultKey:"",lastSecond:null,timedOut:false};
-    }
-    function fishingV3Hydrate(game){
-      if(!game||game.mode!=="fishing")return null;
-      const key=fishingV3Key(game); if(key!==fishingV3.key)fishingV3Reset(game); fishingV3.game=game;
-      const st=game.fishingState||{}, now=Date.now();
-      if(game.status==="playing"){
-        const serverNow=Number(st.serverEpochMs||Date.parse(st.serverNow||game.serverNow||""));
-        const serverEnd=Number(st.endEpochMs||Date.parse(st.endAt||""));
-        const startMs=Date.parse(st.startAt||game.startAt||"");
-        // A local countdown-to-playing transition may arrive before fish state.
-        // Use the server's scheduled start, never a new sixty-second timer per poll.
-        const endMs=Number.isFinite(serverEnd)?serverEnd:Number.isFinite(startMs)?startMs+60000:NaN;
-        const remaining=Number.isFinite(serverNow)&&Number.isFinite(endMs)?Math.max(0,endMs-serverNow):Number.isFinite(st.remainingMs)?st.remainingMs:Number.isFinite(st.secondsLeft)?st.secondsLeft*1000:NaN;
-        const projectedEnd=Number.isFinite(remaining)?now+Math.max(0,Math.min(60000,remaining)):0;
-        // Anchor the deadline once per round. Network latency can make repeated
-        // server projections move in both directions; a countdown must never rise.
-        // We only accept a later poll when it shortens the remaining time materially.
-        if(projectedEnd){
-          if(!fishingV3.endLocal) fishingV3.endLocal=projectedEnd;
-          else if(projectedEnd < fishingV3.endLocal - 750) fishingV3.endLocal=projectedEnd;
-        }
-      }else fishingV3.endLocal=0;
-      if(Array.isArray(st.events))for(const e of st.events){
-        const prior=fishingV3.events.get(String(e.id))||{};
-        const serverNow=Number(st.serverEpochMs||Date.parse(st.serverNow||""));
-        const at=Number(e.atMs||Date.parse(e.at||"")), end=Number(e.endAtMs||Date.parse(e.endAt||""));
-        let localAt=prior.localAt,localEnd=prior.localEnd;
-        const projectedAt=(Number.isFinite(serverNow)&&Number.isFinite(at))?now+(at-serverNow):NaN;
-        const projectedEnd=(Number.isFinite(serverNow)&&Number.isFinite(end))?now+(end-serverNow):NaN;
-        // Event windows are immutable for a round. Project each ripple once so
-        // later polls cannot make an active ripple blink in and out from latency.
-        if(Number.isFinite(projectedAt)&&Number.isFinite(projectedEnd)&&(!Number.isFinite(localAt)||!Number.isFinite(localEnd))){localAt=projectedAt;localEnd=projectedEnd;}
-        fishingV3.events.set(String(e.id),{...prior,...e,claimedBy:e.claimedBy||prior.claimedBy||"",localAt,localEnd});
-      }
-      if(st.creatorCatch)fishingV3.creatorCatch={...st.creatorCatch};
-      if(st.joinerCatch)fishingV3.joinerCatch={...st.joinerCatch};
-      const mine=st.myCatch||(game.isCreator?st.creatorCatch:game.isJoiner?st.joinerCatch:null);
-      if(mine){fishingV3.myCatch={...mine};duelFishingLocalCatchLock={gameId:String(game.gameId||""),locked:true};}
-      return fishingV3State();
-    }
-    function fishingV3State(){return {...(fishingV3.game?.fishingState||{}),events:[...fishingV3.events.values()],creatorCatch:fishingV3.creatorCatch,joinerCatch:fishingV3.joinerCatch,myCatch:fishingV3.myCatch};}
-    function fishingV3Remaining(){return Math.max(0,fishingV3.endLocal-Date.now());}
-    function fishingV3Active(){const now=Date.now();return [...fishingV3.events.values()].find(e=>!e.claimedBy&&Number.isFinite(e.localAt)&&Number.isFinite(e.localEnd)&&now>=e.localAt&&now<=e.localEnd)||null;}
-    function fishingV3Start(){if(fishingV3.timer||!["countdown","playing"].includes(fishingV3.game?.status))return;const ep=fishingV3.epoch;fishingV3.timer=setInterval(()=>{if(ep!==fishingV3.epoch||!["countdown","playing"].includes(fishingV3.game?.status)){fishingV3Stop();return;}duelFishingTick();},100);duelFishingTimer=fishingV3.timer;duelFishingTick();}
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingCountdownNow_412245 */
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#fishingV3Key_412695 */
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#fishingV3StopAudio_412970 */
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#fishingV3Stop_413180 */
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#fishingV3Reset_413330 */
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#fishingV3Hydrate_413871 */
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#fishingV3State_416855 */
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#fishingV3Remaining_417068 */
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#fishingV3Active_417153 */
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#fishingV3Start_417363 */
     duelFishingResetRuntime=(game=null)=>{if(!game||fishingV3Key(game)!==fishingV3.key)fishingV3Reset(game);};
     duelFishingStableState=game=>fishingV3Hydrate(game)||fishingV3State();
     duelFishingRemainingMs=fishingV3Remaining; duelFishingServerNowMs=()=>Date.now(); duelFishingActiveEvent=fishingV3Active;

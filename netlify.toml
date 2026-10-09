@@ -1,7 +1,7 @@
-# Summit Sprint preview redeploy marker: generated-assets-v29
+# Site organization and admin preview marker: admin-v1-20261009
 [build]
   command = "npm run build"
-  publish = "."
+  publish = "dist"
   functions = "netlify/functions"
 
 [functions]

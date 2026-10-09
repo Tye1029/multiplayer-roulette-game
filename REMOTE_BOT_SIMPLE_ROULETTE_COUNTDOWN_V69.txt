@@ -1,9 +1,0 @@
-V69 - Simple Roulette Countdown
-
-- Removed the body-level countdown portal for Russian Roulette.
-- Added one countdown element inside the Roulette game scene.
-- Countdown is driven locally from the authoritative server startAt/serverNow clock.
-- Displays 3, 2, 1, GO without depending on polling updates for every number.
-- Page scrolling no longer moves a separate countdown layer.
-- Draw and Fishing countdown behavior is unchanged.
-- No Roulette gun direction, shooting, turn, spin, winner, or server rules were changed.
