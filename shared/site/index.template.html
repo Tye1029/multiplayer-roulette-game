@@ -6632,9 +6632,9 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
   <script id="blackjackDuelRuntime" src="/assets/blackjack-duel/blackjack-duel.js?v=blackjack-duel-v17" defer></script>
 <!-- BLACKJACK_DUEL_ASSETS_END -->
 <!-- FISHING_DUEL_ASSETS_START -->
-  <script src="/shared/games/fishing-catalog.js?v=fishing-mechanics-v34"></script>
-  <link id="fishingDuelStyles" rel="stylesheet" href="/assets/fishing/fishing.css?v=fishing-mechanics-v34">
-  <script id="fishingDuelRuntime" defer src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v34"></script>
+  <script src="/shared/games/fishing-catalog.js?v=fishing-mechanics-v35"></script>
+  <link id="fishingDuelStyles" rel="stylesheet" href="/assets/fishing/fishing.css?v=fishing-mechanics-v35">
+  <script id="fishingDuelRuntime" defer src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v35"></script>
 <!-- FISHING_DUEL_ASSETS_END -->
 
 <!-- Game artwork is prewarmed when its game is chosen, before the Ready screen. -->
@@ -10313,6 +10313,9 @@ function createSparkle(x, y) {
     }
     async function duelRefreshBackgroundLobby() {
       if(duelBackgroundLobbyBusy||!duelCurrentGameId||duelBusy||document.hidden||duelScreen?.hidden)return;
+      // Focus network work on the current Fishing round; refresh open matches
+      // and join notices again after countdown/play rather than during a pull.
+      if(duelFishingLatestGame?.mode==='fishing'&&['countdown','playing'].includes(duelFishingLatestGame.status))return;
       duelBackgroundLobbyBusy=true;
       try {
         const data=await duelRequest('list');
@@ -10624,6 +10627,8 @@ function createSparkle(x, y) {
     /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingMaybeAmbient_209988 */
 
     /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingHandleAudio_210194 */
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingBindReelAudio_v35 */
+    /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingAcceptSnapshot_v35 */
     const FISHING_SPECIES=FISHING_CATALOG.entries.map(fish=>fish.name);
     /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingBaseName_211995 */
     /* SITE_INCLUDE: games/multiplayer/fishing/presentation.js#duelFishingAssetSlug_212078 */
@@ -10688,6 +10693,7 @@ function createSparkle(x, y) {
         }
       }
       const controller=root._fishingController;
+      duelFishingBindReelAudio(root);
       if(controller&&duelFishingLatestGame?.status==="countdown"&&!controller.castPlayed&&controller.phase!=="casting")controller.playCast();
       const copyButton=root.querySelector("[data-fishing-debug-copy]");
       if(copyButton&&!copyButton.dataset.bound){
@@ -10731,7 +10737,6 @@ function createSparkle(x, y) {
           const confirmedId=String(confirmedCatch?.eventId||"");
           if(confirmedId){
             const confirmationMs=Math.max(0,Math.round(performance.now()-Number(pending?.requestedAt||performance.now())));
-            duelFishingPlayFlop(pending?.side||((data.game?.isCreator)?"left":"right"));
             controller?.recordInput?.("confirmed",`Catch confirmed in ${confirmationMs}ms`,confirmedId);
             controller?.log?.("catch-confirmed",{eventId:confirmedId,side:pending?.side||"",networkMs:confirmationMs});
             if(data.game?.isCreator)duelFishingAudioState.creatorCatchId=confirmedId;
@@ -11049,6 +11054,7 @@ function createSparkle(x, y) {
       requestAnimationFrame(()=>{
         if(!gameId||String(duelSharedCountdownGame?.gameId||'')!==gameId)return;
         if(duelCountdownPortalLabel!==label||!portal?.classList.contains('show'))return;
+        if(game?.mode==='fishing'&&duelSharedCountdownLabel(duelSharedCountdownGame)!==label)return;
         duelPlayCountdownSound(game,label);
       });
     }
@@ -11462,6 +11468,7 @@ function createSparkle(x, y) {
     function duelRenderActive(game, force = false) {
       // Restored and joined matches also warm their assets before mounting Ready.
       window.DuelAssetLoader?.warm(game?.mode);
+      if(game?.mode==='fishing'&&!duelFishingAcceptSnapshot(game))return;
       duelTrackOwnedGame(game);
       duelRenderJoinNotice();
       if (!duelActive) return;

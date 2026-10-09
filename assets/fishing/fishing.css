@@ -1204,18 +1204,13 @@
   width: clamp(170px, 25vw, 310px);
   height: auto;
   opacity: .78;
-  filter: drop-shadow(0 8px 12px rgba(50, 111, 150, .15));
-  animation: fishingCloudTravel 34s linear infinite;
+  animation: fishingCloudTravel 110s linear infinite;
+  will-change: transform;
 }
 
 .fishing-cloud-bank .cloud-a { top: -20%; left: -30%; }
-.fishing-cloud-bank .cloud-b { top: 19%; left: -32%; width: clamp(120px, 18vw, 220px); opacity: .68; animation-duration: 45s; animation-delay: -17s; }
-.fishing-cloud-bank .cloud-c { top: -1%; left: -36%; width: clamp(100px, 14vw, 170px); opacity: .58; animation-duration: 57s; animation-delay: -38s; }
-
-/* Three different PNG silhouettes drift independently, without reshaping art. */
-.fishing-cloud-bank .cloud-b { top: 24%; width: clamp(150px, 25vw, 290px); opacity: .62; }
-.fishing-cloud-bank .cloud-c { top: 1%; width: clamp(105px, 15vw, 180px); opacity: .76; }
-.fishing-cloud-bank .cloud-d { top: 34%; left: -30%; width: clamp(95px, 12vw, 155px); opacity: .52; animation-duration: 63s; animation-delay: -46s; }
+.fishing-cloud-bank .cloud-c { top: 1%; left: -36%; width: clamp(105px, 15vw, 180px); opacity: .76; animation-duration: 125s; animation-delay: -58s; }
+.fishing-cloud-bank .cloud-d { top: 34%; left: -30%; width: clamp(95px, 12vw, 155px); opacity: .52; animation-duration: 140s; animation-delay: -86s; }
 
 .fishing-shore-rig {
   position: absolute;
@@ -1291,6 +1286,10 @@
   height: 100%;
   user-select: none;
 }
+
+.fishing-arm-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: none; pointer-events: none; }
+.fishing-angler.has-arm-motion .fishing-arm-canvas { display: block; }
+.fishing-angler.has-arm-motion img { visibility: hidden; }
 
 .fishing-rod-tip { position: absolute; width: 0; height: 0; pointer-events: none; }
 
@@ -1822,7 +1821,7 @@
 @keyframes fishingLineCast { 0%,20% { stroke-dashoffset: 520; opacity: 0; } 34% { opacity: 1; } 72%,100% { stroke-dashoffset: 0; opacity: 1; } }
 @keyframes fishingAnglerIdleLeft { 0%,100% { transform: translate3d(0,0,0) rotate(0); } 48% { transform: translate3d(1px,-2px,0) rotate(.65deg); } }
 @keyframes fishingAnglerIdleRight { 0%,100% { transform: scaleX(-1) translate3d(0,0,0) rotate(0); } 52% { transform: scaleX(-1) translate3d(1px,-2px,0) rotate(.65deg); } }
-@keyframes fishingAnglerPull { 0% { rotate: 0; translate: 0; } 18% { rotate: 4deg; translate: 3px 2px; } 48% { rotate: -12deg; translate: -4px -10px; } 72% { rotate: -5deg; translate: -2px -4px; } 100% { rotate: 1.5deg; translate: 0; } }
+@keyframes fishingAnglerPull { 0%,100% { rotate: 0; translate: 0; } }
 @keyframes fishingLineReel { to { stroke-dashoffset: 390; opacity: .25; } }
 @keyframes fishUnitPullFront { 0% { transform: translate(-50%,100px); opacity: .2; } 42% { opacity: 1; } 78% { transform: translate(-50%,-9px); } 100% { transform: translate(-50%,0); opacity: 1; } }
 @keyframes fishingFishReveal { from { opacity: 0; scale: .78; } to { opacity: 1; scale: 1; } }

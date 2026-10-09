@@ -22,6 +22,9 @@ function duelFishingScheduleAudio(fn, delay){
 function duelFishingNoiseBuffer(duration = 0.5) {
       const ctx = getAudioContext();
       if (!ctx) return null;
+      const cache=duelFishingNoiseBuffer.cache||(duelFishingNoiseBuffer.cache=new Map());
+      const key=`${ctx.sampleRate}:${duration}`;
+      if(cache.has(key))return cache.get(key);
       const length = Math.max(1, Math.floor(ctx.sampleRate * duration));
       const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
       const data = buffer.getChannelData(0);
@@ -30,7 +33,8 @@ function duelFishingNoiseBuffer(duration = 0.5) {
         smooth = smooth * 0.58 + (Math.random() * 2 - 1) * 0.42;
         data[i] = smooth;
       }
-      return buffer;
+      if(cache.size>=12)cache.delete(cache.keys().next().value);
+      cache.set(key,buffer);return buffer;
     }
 // SITE_FRAGMENT_END: duelFishingNoiseBuffer_202171
 
@@ -95,7 +99,7 @@ function duelFishingStopOcean(immediate=false) {
 // SITE_FRAGMENT_END: duelFishingStopOcean_203778
 
 // SITE_FRAGMENT_START: duelFishingPlayNoise_204599
-function duelFishingPlayNoise(duration, volume, lowpass, highpass = 40, pan = 0) {
+function duelFishingPlayNoise(duration, volume, lowpass, highpass = 40, pan = 0, delay=0) {
       const ctx = getAudioContext();
       if (!ctx || !sfxGain || !sfxEnabled || document.hidden) return;
       const source = ctx.createBufferSource();
@@ -105,7 +109,7 @@ function duelFishingPlayNoise(duration, volume, lowpass, highpass = 40, pan = 0)
       const hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = highpass;
       const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = lowpass;
       const gain = ctx.createGain();
-      const start = ctx.currentTime + 0.003;
+      const start = ctx.currentTime + 0.003 + delay;
       gain.gain.setValueAtTime(0.0001, start);
       gain.gain.linearRampToValueAtTime(volume, start + Math.min(0.025, duration * 0.15));
       gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
@@ -154,7 +158,7 @@ function duelFishingPlaySplash(side="center") {
       const ctx=getAudioContext(); if(!ctx||!sfxGain||document.hidden)return;
       const t=ctx.currentTime+.005;
       scheduleTone(118,t,.24,"sine",sfxGain,.040,{attack:.008,release:.20,sustain:.20,filterFrequency:520});
-      setTimeout(()=>duelFishingPlayNoise(.18,.055,2500,230,pan),105);
+      duelFishingPlayNoise(.18,.055,2500,230,pan,.105);
     }
 // SITE_FRAGMENT_END: duelFishingPlaySplash_207057
 
@@ -165,7 +169,7 @@ function duelFishingPlayFlop(side="center") {
       const ctx=getAudioContext(); if(!ctx||!sfxGain||document.hidden)return;
       const t=ctx.currentTime+.003;
       scheduleTone(105,t,.09,"triangle",sfxGain,.030,{attack:.002,release:.075,sustain:.12,filterFrequency:480});
-      setTimeout(()=>duelFishingPlayNoise(.08,.035,950,75,pan),145);
+      duelFishingPlayNoise(.08,.035,950,75,pan,.145);
     }
 // SITE_FRAGMENT_END: duelFishingPlayFlop_207516
 
@@ -233,26 +237,48 @@ function duelFishingHandleAudio(game, state, active) {
         duelFishingRippleRumble(active);
         duelFishingScheduleAudio(duelFishingPlayBite,140);
       }
-      for(const [role,c,side] of [["creator",state?.creatorCatch,"left"],["joiner",state?.joinerCatch,"right"]]){
+      for(const [role,c] of [["creator",state?.creatorCatch],["joiner",state?.joinerCatch]]){
         const key=String(c?.eventId||"");
         const field=role+"CatchId";
-        if(key&&key!==duelFishingAudioState[field]){
-          duelFishingPlaySplash(side);
-          const ctx=getAudioContext();
-          if(ctx&&sfxGain&&!document.hidden){
-            const t=ctx.currentTime+.08;
-            [410,470,535,610].forEach((f,i)=>scheduleTone(f,t+i*.07,.085,"triangle",sfxGain,.012,{attack:.003,release:.065,sustain:.12,filterFrequency:1900}));
-          }
-          duelFishingScheduleAudio(()=>duelFishingPlayFlop(side),360);
-        }
         if(key) duelFishingAudioState[field]=key;
       }
-      if(game?.status==="complete"){
-        const resultKey=`${gameId}:${game?.winnerUserId||"tie"}:${game?.tie?1:0}`;
-        if(resultKey!==duelFishingAudioState.resultKey){duelFishingAudioState.resultKey=resultKey;duelFishingScheduleAudio(()=>duelFishingPlayResult(game),480);}
-      }
+      // Catch sounds come from the visible rig, not a second poll/timer path.
+      // The result fanfare is owned by the final result reveal.
     }
 // SITE_FRAGMENT_END: duelFishingHandleAudio_210194
+
+// SITE_FRAGMENT_START: duelFishingBindReelAudio_v35
+function duelFishingBindReelAudio(root){
+      if(!root||root.dataset.reelAudioBound)return;root.dataset.reelAudioBound='1';
+      const seen=new Set();
+      root.addEventListener('fishing:reel-start',event=>{
+        if(document.hidden||!root.isConnected)return;
+        const key=`start:${event.detail?.side}:${event.detail?.catchId}`;if(seen.has(key))return;seen.add(key);
+        const ctx=getAudioContext();if(!ctx||!sfxGain)return;
+        const t=ctx.currentTime+.005;
+        [410,470,535,610].forEach((f,i)=>scheduleTone(f,t+i*.07,.085,'triangle',sfxGain,.012,{attack:.003,release:.065,sustain:.12,filterFrequency:1900}));
+      });
+      root.addEventListener('fishing:fish-surfaced',event=>{
+        if(document.hidden||!root.isConnected)return;
+        const key=`surface:${event.detail?.side}:${event.detail?.catchId}`;if(seen.has(key))return;seen.add(key);
+        duelFishingPlayFlop(event.detail?.side);
+      });
+    }
+// SITE_FRAGMENT_END: duelFishingBindReelAudio_v35
+
+// SITE_FRAGMENT_START: duelFishingAcceptSnapshot_v35
+function duelFishingAcceptSnapshot(game,previous=duelFishingLatestGame){
+      if(game?.mode!=='fishing'||!previous||String(previous.gameId)!==String(game.gameId))return true;
+      const a=previous.fishingState||{},b=game.fishingState||{};
+      if(a.roundId&&b.roundId&&a.roundId!==b.roundId)return true;
+      const oldRev=Number(previous.revision??-1),nextRev=Number(game.revision??-1);
+      if(nextRev<oldRev)return false;
+      const rank={waiting:0,ready:1,countdown:2,playing:3,complete:4,cancelled:4};
+      if((rank[game.status]??0)<(rank[previous.status]??0))return false;
+      if(nextRev===oldRev&&Number(b.revision??-1)<Number(a.revision??-1))return false;
+      return true;
+    }
+// SITE_FRAGMENT_END: duelFishingAcceptSnapshot_v35
 
 // SITE_FRAGMENT_START: duelFishingBaseName_211995
 function duelFishingBaseName(name){return FISHING_CATALOG.resolve(name).name;}
@@ -276,7 +302,7 @@ function duelFishingPerson(name,side){return "";}
 
 // SITE_FRAGMENT_START: duelFishingSceneSvg_213557
 function duelFishingSceneSvg(state){
-      return `<img class="fishing-lake-art" src="/assets/fishing/images/v2/approved-preview-clean-v1.png" alt="" aria-hidden="true"><canvas class="fishing-water-canvas" aria-hidden="true"></canvas><div class="fishing-cloud-bank" aria-hidden="true"><img class="cloud-a" src="/assets/fishing/images/v2/clouds-v2.png" alt=""><img class="cloud-b" src="/assets/fishing/images/v2/cloud-wisps-v1.png" alt=""><img class="cloud-c" src="/assets/fishing/images/v2/cloud-puff-v1.png" alt=""><img class="cloud-d" src="/assets/fishing/images/v2/cloud-puff-v1.png" alt=""></div><div class="fishing-scene-art" aria-hidden="true"><div class="fishing-shore-rig left"><div class="fishing-dock left"></div><div class="fishing-angler left"><img src="/assets/fishing/images/v2/fisherman-v2.png" alt=""></div></div><div class="fishing-shore-rig right"><div class="fishing-dock right"></div><div class="fishing-angler right"><img src="/assets/fishing/images/v2/fisherman-blue-transparent-v3.png" alt=""></div></div><svg class="fishing-line-art" viewBox="0 0 1000 430" preserveAspectRatio="none"><path class="fishing-line-svg left" data-line-side="left" d="M270 68 Q380 92 420 286"/><path class="fishing-line-svg right" data-line-side="right" d="M730 68 Q620 92 580 286"/></svg><div class="fishing-hook-node left"><span class="fishing-hook-bobber" aria-hidden="true"></span>${duelFishingCatchSlot(state?.creatorCatch,"left",false,true)}</div><div class="fishing-hook-node right"><span class="fishing-hook-bobber" aria-hidden="true"></span>${duelFishingCatchSlot(state?.joinerCatch,"right",false,true)}</div></div>`;
+      return `<img class="fishing-lake-art" src="/assets/fishing/images/v2/approved-preview-clean-v1.png" alt="" aria-hidden="true"><canvas class="fishing-water-canvas" aria-hidden="true"></canvas><div class="fishing-cloud-bank" aria-hidden="true"><img class="cloud-a" src="/assets/fishing/images/v2/clouds-v2.png" alt=""><img class="cloud-c" src="/assets/fishing/images/v2/cloud-puff-v1.png" alt=""><img class="cloud-d" src="/assets/fishing/images/v2/cloud-puff-v1.png" alt=""></div><div class="fishing-scene-art" aria-hidden="true"><div class="fishing-shore-rig left"><div class="fishing-dock left"></div><div class="fishing-angler left"><img src="/assets/fishing/images/v2/fisherman-v2.png" alt=""></div></div><div class="fishing-shore-rig right"><div class="fishing-dock right"></div><div class="fishing-angler right"><img src="/assets/fishing/images/v2/fisherman-blue-transparent-v3.png" alt=""></div></div><svg class="fishing-line-art" viewBox="0 0 1000 430" preserveAspectRatio="none"><path class="fishing-line-svg left" data-line-side="left" d="M270 68 Q380 92 420 286"/><path class="fishing-line-svg right" data-line-side="right" d="M730 68 Q620 92 580 286"/></svg><div class="fishing-hook-node left"><span class="fishing-hook-bobber" aria-hidden="true"></span>${duelFishingCatchSlot(state?.creatorCatch,"left",false,true)}</div><div class="fishing-hook-node right"><span class="fishing-hook-bobber" aria-hidden="true"></span>${duelFishingCatchSlot(state?.joinerCatch,"right",false,true)}</div></div>`;
     }
 // SITE_FRAGMENT_END: duelFishingSceneSvg_213557
 
@@ -439,7 +465,7 @@ function duelFishingEnsureController(root){
       if(window.FishingSceneController||window.__fishingControllerLoading)return;
       window.__fishingControllerLoading=true;
       const script=document.createElement("script");
-      script.src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v34&runtime=1";
+      script.src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v35&runtime=1";
       script.onload=()=>{window.__fishingControllerLoading=false;if(root?.isConnected)duelBindFishing(root);};
       script.onerror=()=>{window.__fishingControllerLoading=false;console.error("Fishing controller failed to load");};
       document.head.appendChild(script);

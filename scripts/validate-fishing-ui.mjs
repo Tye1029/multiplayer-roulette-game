@@ -18,6 +18,7 @@ const projection=between('    const fishingV3 =','    function fishingCountdownL
 const art=between('    const FISHING_SPECIES=','    function duelFishingEnsureController(');
 const log=between('    function duelFishingPreviewVariant(','    function duelFishingResultOverlay(');
 const clocks=fn('duelCountdownNow')+'\n'+fn('duelSharedCountdownLabel');
+const snapshotGuard=fn('duelFishingAcceptSnapshot');
 const stubs=`
 let duelCountdownClock={gameId:'',startMs:0,offsetMs:0,acceptedAt:0};
 const getAudioContext=()=>null;
@@ -31,8 +32,13 @@ const money=value=>value+' Test Chips';
 let now=Date.parse('2026-09-04T12:00:00Z');
 const epoch=now;
 const context=vm.createContext({FISHING_CATALOG:fishingCatalog,console,Date:class extends Date{static now(){return now;}},performance:{now:()=>now-epoch},navigator:{},setInterval:()=>1,clearInterval:()=>{},setTimeout:()=>1});
-vm.runInContext(declarations+stubs+art+projection+clocks+log,context);
+vm.runInContext(declarations+stubs+art+projection+clocks+snapshotGuard+log,context);
 const run=code=>vm.runInContext(code,context);
+run(`var accepted={gameId:'stale-fixture',mode:'fishing',status:'countdown',revision:2,fishingState:{roundId:'r',revision:3}}`);
+assert.equal(run(`duelFishingAcceptSnapshot({...accepted,status:'ready',revision:1},accepted)`),false,'A late Ready response must not restart the countdown');
+assert.equal(run(`duelFishingAcceptSnapshot({...accepted,status:'playing',fishingState:{roundId:'r',revision:1}},accepted)`),false,'Older state revisions must not remount the scene');
+assert.equal(run(`duelFishingAcceptSnapshot({...accepted,status:'playing',revision:3},accepted)`),true);
+assert.equal(run(`duelFishingAcceptSnapshot({...accepted,status:'ready',gameId:'rematch'},accepted)`),true,'New matches must remain playable');
 // Five server-owned seconds = two preparation seconds + three numeric cues.
 run(`var buffered={gameId:'buffer-test',mode:'fishing',status:'countdown',serverNow:new Date(Date.now()).toISOString(),startAt:new Date(Date.now()+5000).toISOString()}`);
 const cueStarts=[];
@@ -150,7 +156,7 @@ if(process.argv.includes('--serve')){
   const shell=(between('    <section class="duel-screen panel"','\n    </section>')+'\n    </section>').replace('id="duelScreen" hidden','id="duelScreen"').replace(/<button[^>]*id="duelNpcBtn"[^>]*>[\s\S]*?<\/button>/,'');
   const fixture=`<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">${styles}<script src="/shared/games/fishing-catalog.js"></script><script src="/assets/fishing/fishing-controller.js"></script><style>body{margin:0;padding:12px;background:#08121c}#fixture{width:min(100%,1100px);margin:auto}.fixture-tools{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}.fixture-tools button{font:14px system-ui;padding:8px}.fixture-book{margin:12px auto;max-width:800px}.fixture-label{color:#d7e8f0;font:14px system-ui}#duelActive{width:100%}</style></head><body class="duel-mode"><main class="page" id="fixture"><header><div class="logo"><span>XAN</span> DUELS</div></header><p class="fixture-label">Offline UI check — real game renderer, simulated server state, no account or wager</p><div class="fixture-tools"><button id="restart">Restart countdown</button><button id="pause">Pause test updates</button><button id="book">Show rare logbook</button><button id="measure">Show measuring fish</button></div>${shell}<div class="fixture-book" id="log"></div></main><script defer src="/assets/duel-shell.js"></script><script>
 ${declarations}${stubs}${art}${projection}${clocks}${log}
-${fn('duelFishingPlayerAvatar')}${fn('duelFishingComparisonPhase')}${fn('duelFishingComparisonOverlay')}${fn('duelFishingPlayerChip')}${fn('duelBindFishing')}${fn('duelFishingResultOverlay')}${renderer}
+${fn('duelFishingPlayerAvatar')}${fn('duelFishingComparisonPhase')}${fn('duelFishingComparisonOverlay')}${fn('duelFishingPlayerChip')}${fn('duelFishingBindReelAudio')}${fn('duelBindFishing')}${fn('duelFishingResultOverlay')}${renderer}
 let fixtureElapsed=10000; const duelFishingCompletionElapsed=()=>fixtureElapsed;
 // Fixture-only identity; never reads or writes a real account's browser storage.
 const localStorage={getItem:()=> 'fixture-user'};

@@ -49,7 +49,7 @@ assert(css.includes('@keyframes fishingBiteSplash'));
 // Deterministic decorative path: fade at both ends, swim both directions,
 // disappear between passes, and never render in reduced-motion mode.
 controller.ambientEpoch=0;controller.phase='waiting';
-controller.ambientFish=[{delay:2000,period:21000,duration:8500,y:.79,size:.03,direction:1,bend:0}];
+controller.ambientFish=[{startedAt:2000,nextAt:50000,duration:8500,fromX:.29,toX:.71,y:.88,size:.03,direction:1,bend:0}];
 calls.length=0;controller.drawFishShadows(1000,1000,545);
 assert.equal(calls.length,0,'Fish should only appear occasionally');
 controller.drawFishShadows(6250,1000,545);
@@ -66,4 +66,20 @@ controller.reducedMotion=false;controller.phase='complete';controller.drawFishSh
 assert.equal(calls.length,0,'Completed rounds should not run decorative swimmers');
 const shadowSource=source.slice(source.indexOf('    drawFishShadows('),source.indexOf('    frame('));
 assert(!/setRipple|syncCatch|FISHING_CATALOG|random/.test(shadowSource),'Ambient shadows must never affect fish identities or bites');
+for(let i=0;i<30;i++){
+  const fish={pass:0};controller.nextShadowPass(fish,1000);
+  assert(fish.nextAt-fish.startedAt-fish.duration>=28000,'Swimmers need at least 28 seconds of clear water');
+  assert(fish.y-.009>=.831,'Decorations must stay away from the .665-height bite/bobber zone');
+  assert(fish.y+.009<=.924,'Swimmers must stay inside foreground water');
+  assert(fish.fromX>=.29&&fish.toX<=.71,'Swimmers must not cross the dock artwork');
+}
+for(const point of [[.1,.8],[.5,.98],[.4,.54]]){
+  assert.deepEqual(JSON.parse(JSON.stringify(controller.armPoint(...point,1))),{x:point[0],y:point[1]},'Feet and lower body must be unchanged');
+}
+const hand=controller.armPoint(.35,.39,1);
+assert(hand.x<.35&&hand.y<.39,'Arms need actual local lift, not just body rotation');
+assert.deepEqual(JSON.parse(JSON.stringify(controller.armPoint(.35,.39,0))),{x:.35,y:.39},'Reel must return to the original pose');
+assert(source.includes('this.frameWaterRect=this.water?.getBoundingClientRect()'),'Water geometry must be read once for both rigs');
+assert(source.includes('this.frameTips=tips'),'Rod measurements must be batched before hook writes');
+assert(source.includes('now-this.lastWaterFrame>=1000/30'),'Water must be time-based and capped at 30 paints per second');
 console.log('Fishing surface passed: transformed rod anchors, bobber-top connection, submersion, dock clipping, continuous waves and splash animation.');
