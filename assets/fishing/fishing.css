@@ -1172,16 +1172,13 @@
   animation: fishingLakeBreath 6s cubic-bezier(.45,0,.55,1) infinite alternate;
 }
 
-.fishing-water::before {
-  position: absolute;
-  z-index: 1;
-  inset: 42% 0 0;
-  background:
-    linear-gradient(180deg, rgba(45, 194, 219, .045), rgba(1, 72, 112, .1)),
-    repeating-linear-gradient(173deg, transparent 0 18px, rgba(211, 253, 255, .13) 19px 21px, transparent 22px 39px);
-  content: "";
-  pointer-events: none;
-  animation: fishingWaterDrift 5.5s linear infinite;
+.fishing-water::before,
+.fishing-water::after,
+.fishing-water-glint {
+  /* One continuously phased, lake-clipped canvas owns all surface motion. */
+  display: none !important;
+  content: none !important;
+  animation: none !important;
 }
 
 .fishing-sky {
@@ -1288,6 +1285,25 @@
   width: auto;
   height: 100%;
   user-select: none;
+}
+
+.fishing-rod-tip { position: absolute; width: 0; height: 0; pointer-events: none; }
+
+.fishing-hook-node.is-floating .fishing-hook-bobber {
+  clip-path: inset(0 0 var(--bobber-dip, 5.5px) 0 round 45%);
+}
+.fishing-hook-node.is-floating::before {
+  position: absolute;
+  top: 7px;
+  left: -13px;
+  width: 26px;
+  height: 6px;
+  border: 1px solid rgba(226, 253, 255, .52);
+  border-bottom-color: rgba(19, 111, 140, .4);
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(61, 195, 208, .25), transparent 70%);
+  transform: translateY(var(--surface-offset, 0px));
+  content: "";
 }
 
 .fishing-angler.left { right: auto; left: 10.7%; }
@@ -1793,7 +1809,6 @@
   font-weight: 900;
 }
 
-@keyframes fishingWaterDrift { from { background-position: 0 0, 0 0; } to { background-position: 0 0, 140px 8px; } }
 @keyframes fishingLakeBreath { 0% { opacity: .25; transform: translate3d(-1.1%,0,0) scale(1.012,1.004); } 50% { opacity: .34; transform: translate3d(.2%,2px,0) scale(1.002,1.008); } 100% { opacity: .28; transform: translate3d(1.1%,-2px,0) scale(1.012,1.003); } }
 @keyframes fishingCloudTravel { from { transform: translateX(0); } to { transform: translateX(calc(100vw + 430px)); } }
 @keyframes fishingBobberFloat { 50% { translate: 0 5px; rotate: 3deg; } }
@@ -1922,19 +1937,19 @@
   top: var(--fishing-ripple-y, 69%) !important;
   left: var(--fishing-ripple-x, 50%) !important;
   width: clamp(58px, var(--ripple), 196px) !important;
-  height: clamp(18px, calc(var(--ripple) * .29), 57px) !important;
+  height: clamp(24px, calc(var(--ripple) * .42), 82px) !important;
   min-width: 58px;
-  min-height: 18px;
+  min-height: 24px;
   filter: drop-shadow(0 1px 2px rgba(0, 48, 72, .5)) drop-shadow(0 0 3px rgba(225, 255, 255, .26)) !important;
   mix-blend-mode: normal;
   opacity: 0;
   pointer-events: none;
   transform: translate(-50%, -50%) scaleX(var(--ripple-wobble, 1)) !important;
-  animation: fishingRipplePresenceIn .52s cubic-bezier(.2,.72,.25,1) forwards;
+  animation: fishingRipplePresenceIn .28s cubic-bezier(.2,.72,.25,1) forwards;
 }
 
 .fishing-ripple.is-fading-out {
-  animation: fishingRipplePresenceOut .52s ease-in forwards !important;
+  animation: fishingRipplePresenceOut .36s ease-in forwards !important;
 }
 
 .fishing-ripple::after {
@@ -1969,7 +1984,7 @@
 .fishing-ripple i {
   position: absolute;
   inset: 7% 0 !important;
-  border: 0 !important;
+  border: 1px solid rgba(213, 249, 251, .45) !important;
   border-top: var(--ripple-thickness, 1.8px) solid rgba(250, 255, 255, .94) !important;
   border-bottom: 1px solid rgba(27, 132, 164, .62) !important;
   border-radius: 50% !important;
@@ -1978,8 +1993,24 @@
   animation: fishingNaturalRipple var(--ripple-speed, 1.05s) ease-in-out infinite !important;
 }
 
-.fishing-ripple i:nth-child(2) { animation-delay: calc(var(--ripple-speed, 1.05s) * -.66) !important; }
-.fishing-ripple i:nth-child(3) { animation-delay: calc(var(--ripple-speed, 1.05s) * -.33) !important; }
+.fishing-ripple i:nth-child(2) { animation-delay: calc(var(--ripple-speed, 1.05s) * .33) !important; }
+.fishing-ripple i:nth-child(3) { animation-delay: calc(var(--ripple-speed, 1.05s) * .66) !important; }
+
+.fishing-ripple-splash { position: absolute; inset: 0; pointer-events: none; }
+.fishing-ripple-splash b {
+  position: absolute; left: 49%; top: 50%; width: 2px; height: 4px;
+  border-radius: 50%; background: rgba(241, 255, 255, .88);
+  opacity: 0;
+  animation: fishingBiteSplash calc(var(--ripple-speed, 1.05s) * 1.6) ease-out infinite;
+}
+.fishing-ripple-splash b:nth-child(2) { left: 45%; --splash-x: -7px; animation-delay: .18s; }
+.fishing-ripple-splash b:nth-child(3) { left: 53%; --splash-x: 8px; animation-delay: .3s; }
+@keyframes fishingBiteSplash {
+  0%, 52%, 100% { opacity: 0; transform: translate(0, 1px) scale(.35); }
+  10% { opacity: .85; }
+  25% { opacity: .55; transform: translate(var(--splash-x, 2px), -9px); }
+  42% { opacity: 0; transform: translate(var(--splash-x, 2px), 2px) scale(.4); }
+}
 
 .fishing-ripple.is-special {
   filter: drop-shadow(0 0 5px rgba(180,242,255,.58)) drop-shadow(0 0 9px rgba(223,197,255,.32)) !important;
@@ -2019,7 +2050,7 @@
 }
 
 @keyframes fishingNaturalRipple {
-  0% { opacity: 0; transform: scale(.22,.52); }
+  0% { opacity: 0; transform: scale(.16); }
   14% { opacity: .28; }
   30% { opacity: 1; }
   68% { opacity: .62; }
@@ -2039,12 +2070,20 @@
 }
 
 @keyframes fishingRipplePresenceOut {
-  0% { opacity: 1; }
-  65% { opacity: .3; }
+  0% { opacity: var(--ripple-exit-opacity, 1); }
+  65% { opacity: calc(var(--ripple-exit-opacity, 1) * .3); }
   100% { opacity: 0; }
 }
 
 .fishing-center-status:empty { display: none !important; }
+
+.fishing-result-header-payout {
+  margin-top: 8px;
+  color: #ffe2a0;
+  font-size: clamp(15px, 2vw, 22px);
+  font-weight: 800;
+  letter-spacing: .025em;
+}
 
 /* Catch feedback belongs to the same patch of water as the bite, not a
    player-side legacy hook offset. It expands in place and has no extra line. */
@@ -2054,7 +2093,7 @@
   left: var(--fishing-ripple-x, 50%);
   right: auto;
   width: clamp(58px, var(--ripple, 100px), 196px);
-  height: clamp(18px, calc(var(--ripple, 100px) * .29), 57px);
+  height: clamp(24px, calc(var(--ripple, 100px) * .42), 82px);
   z-index: 15;
   transform: translate(-50%, -50%);
   animation: none;

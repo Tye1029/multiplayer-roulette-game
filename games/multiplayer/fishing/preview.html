@@ -4,9 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Rumble Fishing Duel — Component Preview</title>
-  <script src="/shared/games/fishing-catalog.js?v=fishing-mechanics-v32"></script>
-  <link rel="stylesheet" href="/assets/fishing/fishing.css?v=fishing-mechanics-v32">
-  <script src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v32"></script>
+  <script src="/shared/games/fishing-catalog.js?v=fishing-mechanics-v33"></script>
+  <link rel="stylesheet" href="/assets/fishing/fishing.css?v=fishing-mechanics-v33">
+  <script src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v33"></script>
   <style>
     *{box-sizing:border-box}html,body{min-height:100%;margin:0;background:#041019;color:#fff;font-family:Inter,ui-sans-serif,system-ui,sans-serif}body{display:grid;place-items:center;padding:16px}.preview{width:min(100%,980px)}button{border:0;cursor:pointer}
     [data-preview-state]{display:none}[data-preview-state].active{display:block}.fishing-water{position:relative;min-height:0;aspect-ratio:1620/883;overflow:hidden}.fishing-sky{position:absolute;inset:0 0 64%}.fishing-dock{position:absolute}.fishing-center-status{position:absolute;z-index:15;left:50%;bottom:14px;transform:translateX(-50%)}
@@ -26,8 +26,8 @@
       </div>
     </section>
     <section id="fishingResultPortal" data-preview-state="result" hidden>
-      <div class="fishing-result-overlay win"><div class="fishing-result-card"><header class="fishing-result-header"><div class="fishing-result-hook">⌁</div><div><div class="fishing-result-kicker">TOURNAMENT WEIGH-IN</div><div class="fishing-result-title">BIGGEST CATCH!</div><p>Your catch takes the tournament pot.</p></div><div class="fishing-result-float"><i></i></div></header><div class="fishing-result-content"><div class="fishing-result-catches"><div class="winner" data-preview-result="left"><span class="fishing-result-ribbon">LARGEST</span><span>Your catch</span><div class="fishing-result-fish-art"><div class="fishing-fish fishing-fish-png" style="--fish-cm:95"><img src="/assets/fishing/images/v2/fish/giant-bluefin-tuna-v2.png" alt=""><span class="fishing-fish-eye-blink"></span></div></div><b>Giant Bluefin Tuna</b><strong>95 cm</strong><div class="fishing-record-row"><span>Personal best: <b>95 cm</b></span></div></div><div data-preview-result="right"><span>Opponent catch</span><div class="fishing-result-fish-art"><div class="fishing-fish fishing-fish-png" style="--fish-cm:67"><img src="/assets/fishing/images/v2/fish/peacock-bass-v2.png" alt=""><span class="fishing-fish-eye-blink"></span></div></div><b>Peacock Bass</b><strong>67 cm</strong><div class="fishing-record-row"><span>Personal best: <b>67 cm</b></span></div></div></div>
-          <div data-preview-logbook></div><div class="fishing-result-payout"><span>RESULT</span><b>2,000 CHIPS WON</b></div></div><footer class="fishing-result-actions"><button class="gold duel-rematch-btn"><i>↻</i><span>Rematch</span></button><button class="secondary"><i>＋</i><span>Create a New Game</span></button></footer></div></div>
+      <div class="fishing-result-overlay win"><div class="fishing-result-card"><header class="fishing-result-header"><div class="fishing-result-hook">⌁</div><div><div class="fishing-result-kicker">TOURNAMENT WEIGH-IN</div><div class="fishing-result-title">YOU WIN!</div><p>Your catch takes the tournament pot.</p><div class="fishing-result-header-payout">2,000 CHIPS WON</div></div><div class="fishing-result-float"><i></i></div></header><div class="fishing-result-content"><div class="fishing-result-catches"><div class="winner" data-preview-result="left"><span class="fishing-result-ribbon">LARGEST</span><span>Your catch</span><div class="fishing-result-fish-art"><div class="fishing-fish fishing-fish-png" style="--fish-cm:95"><img src="/assets/fishing/images/v2/fish/giant-bluefin-tuna-v2.png" alt=""><span class="fishing-fish-eye-blink"></span></div></div><b>Giant Bluefin Tuna</b><strong>95 cm</strong><div class="fishing-record-row"><span>Personal best: <b>95 cm</b></span></div></div><div data-preview-result="right"><span>Opponent catch</span><div class="fishing-result-fish-art"><div class="fishing-fish fishing-fish-png" style="--fish-cm:67"><img src="/assets/fishing/images/v2/fish/peacock-bass-v2.png" alt=""><span class="fishing-fish-eye-blink"></span></div></div><b>Peacock Bass</b><strong>67 cm</strong><div class="fishing-record-row"><span>Personal best: <b>67 cm</b></span></div></div></div>
+          <div data-preview-logbook></div></div><footer class="fishing-result-actions"><button class="gold duel-rematch-btn"><i>↻</i><span>Rematch</span></button><button class="secondary"><i>＋</i><span>Create a New Game</span></button></footer></div></div>
     </section>
   </main>
   <script>
@@ -58,10 +58,12 @@
       let saved=null;
       try{saved=JSON.parse(sessionStorage.getItem('fishingPreviewResult')||'null');}catch{}
       const catches=saved?.left&&saved?.right?saved:{left:{name:'Giant Bluefin Tuna',size:95,variant:'standard',rarity:'regular'},right:{name:'Peacock Bass',size:67,variant:'standard',rarity:'regular'}};
-      const winnerSide=Number(catches.left.size)>=Number(catches.right.size)?'left':'right',playerWon=winnerSide==='left';
-      portal.querySelector('.fishing-result-overlay').className=`fishing-result-overlay ${playerWon?'win':'lose'}`;
-      portal.querySelector('.fishing-result-title').textContent=playerWon?'BIGGEST CATCH!':'OUTFISHED';
-      portal.querySelector('.fishing-result-header p').textContent=playerWon?'Your catch takes the tournament pot.':'Your opponent landed the larger fish.';
+      const isTie=Number(catches.left.size)===Number(catches.right.size);
+      const winnerSide=isTie?null:Number(catches.left.size)>Number(catches.right.size)?'left':'right',playerWon=winnerSide==='left';
+      portal.querySelector('.fishing-result-overlay').className=`fishing-result-overlay ${isTie?'tie':playerWon?'win':'lose'}`;
+      portal.querySelector('.fishing-result-title').textContent=isTie?'DEAD HEAT':playerWon?'YOU WIN!':'YOU LOSE';
+      portal.querySelector('.fishing-result-header p').textContent=isTie?'Identical measurements. Both wagers are returned.':playerWon?'Your catch takes the tournament pot.':'Your opponent landed the larger fish.';
+      portal.querySelector('.fishing-result-header-payout').textContent=isTie?'WAGERS RETURNED':playerWon?'2,000 CHIPS WON':'';
       portal.querySelectorAll('.fishing-result-ribbon').forEach(node=>node.remove());
       for(const side of ['left','right']){
         const fish={...catches[side],...FISHING_CATALOG.identity(catches[side])},card=portal.querySelector(`[data-preview-result="${side}"]`);
@@ -117,14 +119,14 @@
         existing?.remove();hook.insertAdjacentHTML('beforeend',caught?fishMarkup(side):`<div class="fishing-hook-catch ${side}" data-catch-id=""></div>`);
       }
       function clearRipple(reason='cleared'){
-        clearTimeout(timers.biteExpiry);timers.biteExpiry=null;const ripple=water.querySelector('.fishing-ripple:not(.is-fading-out)');if(ripple){ripple.classList.add('is-fading-out');setTimeout(()=>ripple.remove(),540);}water.classList.remove('can-tap');previewState.activeBite='';controller.setRipple('');controller.log('preview-ripple-cleared',{reason});
+        clearTimeout(timers.biteExpiry);timers.biteExpiry=null;const ripple=water.querySelector('.fishing-ripple:not(.is-fading-out)');if(ripple){ripple.style.setProperty('--ripple-exit-opacity',getComputedStyle(ripple).opacity);ripple.classList.add('is-fading-out');setTimeout(()=>ripple.remove(),540);}water.classList.remove('can-tap');previewState.activeBite='';controller.setRipple('');controller.log('preview-ripple-cleared',{reason});
       }
       function spawnRipple(size=null,forceSpecial=false){
         if(!previewState.started||previewState.playerCaught||previewState.seconds<=0)return;
         clearRipple('replaced');const id=`preview-bite-${++biteSequence}`;previewState.activeBite=id;
         const measured=Number(size??(12+Math.random()*88).toFixed(1)),activeFish=previewRandomFish(measured,forceSpecial);previewState.activeFish=activeFish;
         const ratio=Math.max(0,Math.min(1,(measured-12)/88)),rippleSize=Number((58+ratio*138).toFixed(1));
-        const ripple=document.createElement('div');ripple.className=`fishing-ripple${activeFish.special?' is-special':''}`;ripple.dataset.rippleId=id;ripple.style.setProperty('--ripple',`${rippleSize}px`);ripple.style.setProperty('--ripple-speed',`${(1.32-ratio*.28).toFixed(2)}s`);ripple.style.setProperty('--ripple-thickness',`${(1.7+ratio*.9).toFixed(2)}px`);ripple.innerHTML=`<i></i><i></i><i></i>${activeFish.special?'<span class="fishing-ripple-sparkles"></span>':''}`;status.insertAdjacentElement('beforebegin',ripple);
+        const ripple=document.createElement('div');ripple.className=`fishing-ripple${activeFish.special?' is-special':''}`;ripple.dataset.rippleId=id;ripple.style.setProperty('--ripple',`${rippleSize}px`);ripple.style.setProperty('--ripple-speed',`${(1.32-ratio*.28).toFixed(2)}s`);ripple.style.setProperty('--ripple-thickness',`${(1.7+ratio*.9).toFixed(2)}px`);ripple.innerHTML=`<i></i><i></i><i></i><span class="fishing-ripple-splash" aria-hidden="true"><b></b><b></b><b></b></span>${activeFish.special?'<span class="fishing-ripple-sparkles"></span>':''}`;status.insertAdjacentElement('beforebegin',ripple);
         water.classList.add('can-tap');status.textContent='';controller.setRipple(id);controller.setPhase('bite');
         controller.log('preview-ripple-spawned',{id,fishSize:measured,rippleSize,special:activeFish.special});
         timers.biteExpiry=setTimeout(()=>{if(previewState.activeBite!==id)return;clearRipple('expired');previewState.activeFish=null;status.textContent='';controller.setPhase('waiting');timers.bite=setTimeout(()=>spawnRipple(),1500);},3200);

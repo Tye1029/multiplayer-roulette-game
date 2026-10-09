@@ -439,7 +439,7 @@ function duelFishingEnsureController(root){
       if(window.FishingSceneController||window.__fishingControllerLoading)return;
       window.__fishingControllerLoading=true;
       const script=document.createElement("script");
-      script.src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v32&runtime=1";
+      script.src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v33&runtime=1";
       script.onload=()=>{window.__fishingControllerLoading=false;if(root?.isConnected)duelBindFishing(root);};
       script.onerror=()=>{window.__fishingControllerLoading=false;console.error("Fishing controller failed to load");};
       document.head.appendChild(script);
@@ -616,7 +616,7 @@ function duelFishingResultOverlay(game) {
       const opponentCatch = game.isCreator ? state.joinerCatch : state.creatorCatch;
       const meWon = Boolean(game.winnerUserId && String(game.winnerUserId) === meId);
       const isTie = Boolean(game.tie);
-      const resultTitle = isTie ? "DEAD HEAT" : meWon ? "BIGGEST CATCH!" : "OUTFISHED";
+      const resultTitle = isTie ? "DEAD HEAT" : meWon ? "YOU WIN!" : "YOU LOSE";
       const resultClass = isTie ? "tie" : meWon ? "win" : "lose";
       const catchName = escapeHtml(myCatch?FISHING_CATALOG.resolve(myCatch).name:"No fish caught");
       const catchSize = myCatch ? `${Number(myCatch.size || 0)} cm` : "—";
@@ -656,8 +656,8 @@ function duelFishingResultOverlay(game) {
         const previousText=record?.newRecord&&previous>0?`<div class="fishing-record-previous">Previous: ${previous} cm</div>`:`<div class="fishing-record-previous"></div>`;
         return `<div class="fishing-record-row">${badge}<span>${label}: <b>${current>0?`${current} cm`:"—"}</b></span></div>${previousText}`;
       };
-      const payoutText=isTie?"WAGERS RETURNED":meWon?`${money(ticketsWon)} WON`:"NEXT CAST AWAITS";
-      return `<div class="fishing-result-overlay ${resultClass}" data-fishing-result="1" role="dialog" aria-label="Fishing match result"><div class="fishing-result-card" data-fishing-result-card="1"><header class="fishing-result-header"><div class="fishing-result-hook" aria-hidden="true">⌁</div><div><div class="fishing-result-kicker">TOURNAMENT WEIGH-IN</div><div class="fishing-result-title">${resultTitle}</div><p>${escapeHtml(resultSummary)}</p></div><div class="fishing-result-float" aria-hidden="true"><i></i></div></header><div class="fishing-result-content">${tieEmblem}<div class="fishing-result-catches"><div class="${myBigger?"winner":""}">${myBigger?'<span class="fishing-result-ribbon">LARGEST</span>':""}<span>Your catch</span><div class="fishing-result-fish-art">${myArt}</div><b>${catchName}${myCatch?duelFishingRarityBadge(myCatch):""}</b><strong>${catchSize}</strong>${recordHtml(myRecord,"Personal best")}</div><div class="${oppBigger?"winner":""}">${oppBigger?'<span class="fishing-result-ribbon">LARGEST</span>':""}<span>Opponent catch</span><div class="fishing-result-fish-art">${oppArt}</div><b>${opponentName}${opponentCatch?duelFishingRarityBadge(opponentCatch):""}</b><strong>${opponentSize}</strong>${recordHtml(opponentRecord,"Personal best")}</div></div>${duelFishingLogbookHtml(myLogbook,myNewSpecies)}<div class="fishing-result-payout"><span>RESULT</span><b>${payoutText}</b></div></div><footer class="fishing-result-actions"><button class="gold duel-rematch-btn ${myRematch ? "requested" : ""}" id="duelRematchBtn" type="button" ${myRematch ? "disabled" : ""}><i aria-hidden="true">↻</i>${rematchLabel}</button><button class="secondary" id="duelNewGameBtn" type="button"><i aria-hidden="true">＋</i><span>Create a New Game</span></button></footer></div></div>`;
+      const payoutText=isTie?"WAGERS RETURNED":meWon?`${money(ticketsWon)} WON`:"";
+      return `<div class="fishing-result-overlay ${resultClass}" data-fishing-result="1" role="dialog" aria-label="Fishing match result"><div class="fishing-result-card" data-fishing-result-card="1"><header class="fishing-result-header"><div class="fishing-result-hook" aria-hidden="true">⌁</div><div><div class="fishing-result-kicker">TOURNAMENT WEIGH-IN</div><div class="fishing-result-title">${resultTitle}</div><p>${escapeHtml(resultSummary)}</p>${payoutText?`<div class="fishing-result-header-payout">${escapeHtml(payoutText)}</div>`:""}</div><div class="fishing-result-float" aria-hidden="true"><i></i></div></header><div class="fishing-result-content">${tieEmblem}<div class="fishing-result-catches"><div class="${myBigger?"winner":""}">${myBigger?'<span class="fishing-result-ribbon">LARGEST</span>':""}<span>Your catch</span><div class="fishing-result-fish-art">${myArt}</div><b>${catchName}${myCatch?duelFishingRarityBadge(myCatch):""}</b><strong>${catchSize}</strong>${recordHtml(myRecord,"Personal best")}</div><div class="${oppBigger?"winner":""}">${oppBigger?'<span class="fishing-result-ribbon">LARGEST</span>':""}<span>Opponent catch</span><div class="fishing-result-fish-art">${oppArt}</div><b>${opponentName}${opponentCatch?duelFishingRarityBadge(opponentCatch):""}</b><strong>${opponentSize}</strong>${recordHtml(opponentRecord,"Personal best")}</div></div>${duelFishingLogbookHtml(myLogbook,myNewSpecies)}</div><footer class="fishing-result-actions"><button class="gold duel-rematch-btn ${myRematch ? "requested" : ""}" id="duelRematchBtn" type="button" ${myRematch ? "disabled" : ""}><i aria-hidden="true">↻</i>${rematchLabel}</button><button class="secondary" id="duelNewGameBtn" type="button"><i aria-hidden="true">＋</i><span>Create a New Game</span></button></footer></div></div>`;
     }
 // SITE_FRAGMENT_END: duelFishingResultOverlay_306472
 

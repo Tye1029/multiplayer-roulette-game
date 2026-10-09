@@ -1,7 +1,7 @@
 (function fishingControllerBootstrap(global){
   "use strict";
 
-  const VERSION="fishing-controller-v19";
+  const VERSION="fishing-controller-v20";
   const SIDES=["left","right"];
   const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
   const round=value=>Math.round(Number(value||0)*10)/10;
@@ -14,6 +14,15 @@
       this.root=root;
       this.water=root.querySelector("[data-fishing-water]");
       this.scene=this.water?.querySelector(".fishing-scene-art");
+      // Calibrated to the final guide ring in each PNG, in the image's own
+      // coordinate space. A child anchor follows every mirrored/casting transform.
+      this.scene?.querySelectorAll(".fishing-angler").forEach(angler=>{
+        const anchor=angler.querySelector(".fishing-rod-tip")||document.createElement("span");
+        anchor.className="fishing-rod-tip";
+        anchor.style.left=angler.classList.contains("left")?"98.6%":"95.6%";
+        anchor.style.top=angler.classList.contains("left")?"5.35%":"5.6%";
+        angler.appendChild(anchor);
+      });
       this.canvas=this.water?.querySelector(".fishing-water-canvas");
       this.ctx=this.canvas?.getContext("2d",{alpha:true});
       this.options={mode:"live",gameId:"",roundId:"",playerSide:"left",botSide:"right",...options};
@@ -181,11 +190,11 @@
     }
 
     rodTip(side){
-      const img=this.scene?.querySelector(`.fishing-angler.${side} img`);
+      const anchor=this.scene?.querySelector(`.fishing-angler.${side} .fishing-rod-tip`);
       const waterRect=this.water?.getBoundingClientRect();
-      if(!img||!waterRect)return{x:0,y:0};
-      const r=img.getBoundingClientRect();
-      return{x:side==="left"?r.right-r.width*.018:r.left+r.width*.018,y:r.top+r.height*.045};
+      if(!anchor||!waterRect)return{x:0,y:0};
+      const r=anchor.getBoundingClientRect();
+      return{x:r.left,y:r.top};
     }
 
     resize(){
@@ -211,15 +220,21 @@
         if(progress>=1){rig.x=rig.anim.toX;rig.y=rig.anim.toY;rig.baseY=rig.anim.toY;rig.anim=null;}
       }
       const hook=this.hook(rig.side);if(!hook||!this.water)return;
-      const bob=this.reducedMotion?0:Math.sin(now/1280+rig.phaseOffset)*(rig.caught?2.25:1.35);
+      const floating=!rig.caught&&!rig.anim;
+      const bob=this.reducedMotion?0:Math.sin(now/1280+rig.phaseOffset)*(rig.caught?2.25:2.1);
       hook.style.left=`${rig.x*100}%`;
       hook.style.top=`${rig.y*100}%`;
       hook.style.transform=`translate3d(-50%,${bob.toFixed(2)}px,0)`;
+      hook.classList.toggle("is-floating",floating);
+      hook.style.setProperty("--bobber-dip",`${(5.5+bob).toFixed(2)}px`);
+      hook.style.setProperty("--surface-offset",`${(-bob).toFixed(2)}px`);
       const waterRect=this.water.getBoundingClientRect(),tip=this.rodTip(rig.side);
       const sx=clamp((tip.x-waterRect.left)/Math.max(1,waterRect.width)*1000,0,1000);
       const sy=clamp((tip.y-waterRect.top)/Math.max(1,waterRect.height)*430,0,430);
-      const ex=rig.x*1000,ey=(rig.y+bob/Math.max(1,waterRect.height))*430;
-      const cx=sx+(ex-sx)*.64,cy=Math.min(sy,ey)-Math.max(18,Math.abs(ex-sx)*.095);
+      // Connect to the bobber's top, not its middle. Gravity bends the line
+      // downward immediately after the guide ring instead of looping upward.
+      const ex=rig.x*1000,ey=(rig.y+(bob-(rig.caught?7:8))/Math.max(1,waterRect.height))*430;
+      const cx=sx+(ex-sx)*.76,cy=sy+(ey-sy)*.36;
       const path=this.scene.querySelector(`.fishing-line-svg.${rig.side}`);
       path?.setAttribute("d",`M${sx.toFixed(1)} ${sy.toFixed(1)} Q${cx.toFixed(1)} ${cy.toFixed(1)} ${ex.toFixed(1)} ${ey.toFixed(1)}`);
       this.geometry[rig.side]={rodTip:{x:round(sx),y:round(sy)},lineEnd:{x:round(ex),y:round(ey)},connectedDelta:0,catchId:rig.catchId||"",caught:rig.caught};
@@ -229,6 +244,12 @@
       if(!this.ctx||!this.canvas)return;
       const ctx=this.ctx,dpr=this.canvasDpr||1,w=this.canvas.width/dpr,h=this.canvas.height/dpr,horizon=h*.42;
       ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);
+      // The docks are part of the approved background plate. Clip motion to
+      // exposed lake, conservatively excluding their decking, posts and braces.
+      ctx.save();ctx.beginPath();
+      const lake=[[0,.44],[1,.44],[1,.65],[.85,.535],[.65,.50],[.65,.725],[.73,.725],[.73,.88],[.95,1],[.05,1],[.27,.88],[.27,.725],[.35,.725],[.35,.50],[.15,.535],[0,.65]];
+      lake.forEach(([x,y],i)=>i?ctx.lineTo(x*w,y*h):ctx.moveTo(x*w,y*h));
+      ctx.closePath();ctx.clip();
       const phase=this.reducedMotion?0:now*.00115;
       const gradient=ctx.createLinearGradient(0,horizon,0,h);gradient.addColorStop(0,"rgba(86,238,244,.035)");gradient.addColorStop(.55,"rgba(18,171,205,.075)");gradient.addColorStop(1,"rgba(0,83,128,.105)");ctx.fillStyle=gradient;ctx.fillRect(0,horizon,w,h-horizon);
       ctx.globalCompositeOperation="screen";
@@ -246,6 +267,7 @@
         ctx.strokeStyle="rgba(214,252,255,.08)";ctx.lineWidth=3.5+band;ctx.stroke();
       }
       ctx.globalCompositeOperation="source-over";
+      ctx.restore();
     }
 
     frame(now){

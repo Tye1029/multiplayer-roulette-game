@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import "./validate-fishing-ui.mjs";
 import "./validate-fishing-catch-sync.mjs";
+import "./validate-fishing-surface.mjs";
 import "./validate-fishing-catalog.mjs";
 import "./validate-duel-shell.mjs";
 
@@ -14,9 +15,9 @@ const controller = fs.readFileSync(new URL("../assets/fishing/fishing-controller
 const preview = fs.readFileSync(new URL("../games/multiplayer/fishing/preview.html", import.meta.url), "utf8");
 const serverData = fs.readFileSync(new URL("../netlify/functions/_data.js", import.meta.url), "utf8");
 
-assert(html.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v32'), "versioned Fishing stylesheet is not loaded");
-assert(html.includes('id="fishingDuelRuntime" defer src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v32"'), "deferred shared Fishing controller is not loaded");
-assert(preview.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v32'), "preview is not using the current Fishing stylesheet");
+assert(html.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v33'), "versioned Fishing stylesheet is not loaded");
+assert(html.includes('id="fishingDuelRuntime" defer src="/assets/fishing/fishing-controller.js?v=fishing-mechanics-v33"'), "deferred shared Fishing controller is not loaded");
+assert(preview.includes('/assets/fishing/fishing.css?v=fishing-mechanics-v33'), "preview is not using the current Fishing stylesheet");
 assert(html.includes('function duelFishingEnsureController(root)'), "Fishing controller recovery loader is missing");
 assert(html.includes('class="fishing-command-bar"'), "game-owned Fishing header is missing");
 assert(html.includes('class="fishing-instructions" aria-label="How to play"'), "visible game instructions are missing");
@@ -83,7 +84,7 @@ assert(css.includes('@keyframes fishingRipplePresenceIn'), "ripples do not fade 
 assert(css.includes('@keyframes fishingRipplePresenceOut'), "ripples do not fade out smoothly");
 assert(html.includes("ripple.classList.add('is-fading-out')"), "live ripples are still removed abruptly");
 assert(preview.includes("ripple.classList.add('is-fading-out')"), "preview ripples are still removed abruptly");
-assert(css.includes('border: 0 !important;'), "legacy cartoon ripple borders can still override the realistic treatment");
+assert(css.includes('border: 1px solid rgba(213, 249, 251, .45) !important;'), "rounded ripple outline is missing");
 assert(css.includes('width: clamp(58px, var(--ripple), 196px)'), "ripple width is not directly mapped to fish size");
 assert(css.includes('top: var(--fishing-ripple-y, 69%) !important;'), "ripples are not positioned below the resting bobbers");
 assert(css.includes('top: var(--fishing-ripple-y, 69%);'), "catch ripple does not share the bite position");
@@ -143,7 +144,7 @@ assert(preview.includes('data-debug-copy'), "copyable preview debug report is mi
 assert(preview.includes('data-debug-cast'), "live preview debug controls are missing");
 
 assert(controller.includes('class FishingSceneController'), "Fishing scene controller class is missing");
-assert(controller.includes('const VERSION="fishing-controller-v19"'), "Fishing diagnostics do not identify the synchronized-pull controller");
+assert(controller.includes('const VERSION="fishing-controller-v20"'), "Fishing diagnostics do not identify the synchronized-pull controller");
 assert(controller.includes('playCast(options={})'), "shared casting lifecycle is missing");
 assert(controller.includes('syncCatch(side,catchId,animate=false)'), "authoritative catch synchronization is missing");
 assert(controller.includes('drawWater(now)'), "moving water renderer is missing");

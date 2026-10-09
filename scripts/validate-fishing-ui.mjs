@@ -115,10 +115,26 @@ run('rnbScheduleRematch(rematchFixture)');
 assert.equal(run('scheduledRematches.length'),0,'The same accepted offer cannot be scheduled twice');
 console.log('Fishing UI runtime tests passed: countdown, round time, stale snapshots, event windows, star stamps, rare-last ordering, Silver Minnow art, and guarded bot rematch acceptance.');
 
+// Exercise the actual result renderer for every outcome, not just the preview.
+vm.runInContext(`const localStorage={getItem:()=> 'human'};
+const duelFishingCompletionElapsed=()=>10000;
+duelFishingStableState=game=>game.fishingState;
+${fn('duelFishingResultOverlay')}`,context);
+run(`var resultGame={gameId:'result-check',mode:'fishing',status:'complete',isCreator:true,payout:2000,winnerUserId:'human',fishingState:{creatorCatch:{name:'Smelt',size:30},joinerCatch:{name:'Smelt',size:20}}}`);
+const won=run('duelFishingResultOverlay(resultGame)');
+assert.match(won.split('</header>')[0],/YOU WIN!.*Your catch takes the tournament pot.*2,000|YOU WIN!.*Your catch takes the tournament pot.*2000/s);
+assert(!won.includes('class="fishing-result-payout"'),'Payout must not sit beneath the collection');
+run(`resultGame.winnerUserId='bot'`);
+const lost=run('duelFishingResultOverlay(resultGame)');
+assert.match(lost.split('</header>')[0],/YOU LOSE/);
+assert(!lost.includes('2000')&&!lost.includes('fishing-result-header-payout'),'Loss must not show an amount');
+run(`resultGame.tie=true`);
+assert.match(run('duelFishingResultOverlay(resultGame)').split('</header>')[0],/DEAD HEAT.*WAGERS RETURNED/s);
+
 if(process.argv.includes('--serve')){
   const styles=[...html.matchAll(/<style\b[^>]*>[\s\S]*?<\/style>|<link\b[^>]*rel="stylesheet"[^>]*>/g)].map(m=>m[0]).join('\n');
   const renderer=between('    duelFishingHtml=function(game){','    const fishingV3NavIds=');
-  const shell=between('    <section class="duel-screen panel"','    <section class="arcade-screen panel"').replace('id="duelScreen" hidden','id="duelScreen"').replace(/<button[^>]*id="duelNpcBtn"[^>]*>[\s\S]*?<\/button>/,'');
+  const shell=(between('    <section class="duel-screen panel"','\n    </section>')+'\n    </section>').replace('id="duelScreen" hidden','id="duelScreen"').replace(/<button[^>]*id="duelNpcBtn"[^>]*>[\s\S]*?<\/button>/,'');
   const fixture=`<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">${styles}<script src="/shared/games/fishing-catalog.js"></script><script src="/assets/fishing/fishing-controller.js"></script><style>body{margin:0;padding:12px;background:#08121c}#fixture{width:min(100%,1100px);margin:auto}.fixture-tools{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}.fixture-tools button{font:14px system-ui;padding:8px}.fixture-book{margin:12px auto;max-width:800px}.fixture-label{color:#d7e8f0;font:14px system-ui}#duelActive{width:100%}</style></head><body class="duel-mode"><main class="page" id="fixture"><header><div class="logo"><span>XAN</span> DUELS</div></header><p class="fixture-label">Offline UI check — real game renderer, simulated server state, no account or wager</p><div class="fixture-tools"><button id="restart">Restart countdown</button><button id="pause">Pause test updates</button><button id="book">Show rare logbook</button><button id="measure">Show measuring fish</button></div>${shell}<div class="fixture-book" id="log"></div></main><script defer src="/assets/duel-shell.js"></script><script>
 ${declarations}${stubs}${art}${projection}${clocks}${log}
 ${fn('duelFishingPlayerAvatar')}${fn('duelFishingComparisonPhase')}${fn('duelFishingComparisonOverlay')}${fn('duelFishingPlayerChip')}${fn('duelBindFishing')}${fn('duelFishingResultOverlay')}${renderer}
@@ -160,7 +176,7 @@ document.getElementById('book').onclick=()=>{
  clearInterval(phaseTimer);clearInterval(pollTimer);fishingV3Stop();
  document.getElementById('duelCountdownPortal')?.classList.remove('show');
  const logbook={totalCaught:4,rareCaught:3,species:{nemo:{name:'Nemo',bestVariant:'nemo',bestSize:64.2,count:1,rareCount:1},koi:{name:'Aurora Koi',bestVariant:'aurora',bestSize:48,count:1,rareCount:1},catfish:{name:'Mekong Giant Catfish',bestVariant:'emerald',bestSize:93.3,count:1,rareCount:1},smelt:{name:'Smelt',bestVariant:'standard',bestSize:16.6,count:1}}};
- const result={...game,status:'complete',winnerUserId:'fixture-user',fishingState:{...game.fishingState,creatorCatch:{eventId:'caught-1',name:'Emerald Mekong Giant Catfish',variant:'emerald',rarity:'uncommon',size:93.3},joinerCatch:{eventId:'caught-2',name:'Smelt',variant:'standard',rarity:'regular',size:16.6}},result:{creator:{logbook}}};
+ const result={...game,status:'complete',payout:2000,winnerUserId:'fixture-user',fishingState:{...game.fishingState,creatorCatch:{eventId:'caught-1',name:'Emerald Mekong Giant Catfish',variant:'emerald',rarity:'uncommon',size:93.3},joinerCatch:{eventId:'caught-2',name:'Smelt',variant:'standard',rarity:'regular',size:16.6}},result:{creator:{logbook}}};
  let portal=document.getElementById('fishingResultPortal');if(!portal){portal=document.createElement('div');portal.id='fishingResultPortal';document.body.append(portal);}
  portal.innerHTML=duelFishingResultOverlay(result);document.body.classList.add('fishing-result-open');duelBindFishingLogbookPreview(portal);
  for(const button of portal.querySelectorAll('.fishing-result-actions button'))button.onclick=()=>{portal.remove();document.body.classList.remove('fishing-result-open');start();};
