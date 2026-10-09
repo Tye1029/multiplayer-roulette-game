@@ -25,7 +25,7 @@ const DUEL_PROFILE_CACHE_MS = 2 * 60 * 1000;
 // Native Functions supply the uncached Blobs endpoint. connectLambda would
 // replace that context with the legacy cached-only configuration.
 exports.default = async (request) => {
-  if (request.method === "HEAD") {
+  if (request.method === "HEAD" || (request.method === "GET" && new URL(request.url).searchParams.get("health") === "storage")) {
     // Read-only readiness check: no account, game, balance, or blob is changed.
     try {
       await getStore("torn-xan-users").get("health/duel-storage-readiness", { consistency: "strong" });

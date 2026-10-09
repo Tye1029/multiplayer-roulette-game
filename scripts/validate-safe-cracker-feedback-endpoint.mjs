@@ -17,7 +17,7 @@ const mocks = {
   getRecordBalance: record => record.balance
 };
 const context = vm.createContext({
-  exports: {}, Buffer, console, Request, Response,
+  exports: {}, Buffer, console, Request, Response, URL,
   process: {env: {DUEL_SESSION_SECRET: secret}},
   require: name => {
     if (name === 'crypto') return crypto;

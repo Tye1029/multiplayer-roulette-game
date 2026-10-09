@@ -43,13 +43,14 @@ try {
   assert.equal(saved.revision,2);
 
   const source = await readFile(new URL('../netlify/functions/duel-action.js',import.meta.url),'utf8');
-  const endpoint = vm.createContext({exports:{},Buffer,Response,console,process:{env:{}},require:name=>name==='@netlify/blobs'?{getStore}:name==='./_data'?{initBlobs(){throw new Error('Native context must not be replaced with legacy context');}}:require(name)});
+  const endpoint = vm.createContext({exports:{},Buffer,Response,URL,console,process:{env:{}},require:name=>name==='@netlify/blobs'?{getStore}:name==='./_data'?{initBlobs(){throw new Error('Native context must not be replaced with legacy context');}}:require(name)});
   vm.runInContext(source,endpoint);
   assert.equal(endpoint.exports.handler,undefined,'A legacy handler export would select the wrong Netlify runtime');
   const invoke = (method,body) => endpoint.exports.default(new Request('https://test.invalid/.netlify/functions/duel-action',{method,...(body===undefined?{}:{body})}));
   const readiness = await invoke('HEAD');
   assert.equal(readiness.status,204); assert.equal(readiness.headers.get('X-Duel-Storage'),'strong-v1');
   assert.equal(await readiness.text(),'');
+  assert.equal((await endpoint.exports.default(new Request('https://test.invalid/.netlify/functions/duel-action?health=storage'))).status,204);
   assert.equal((await invoke('OPTIONS')).status,204);
   assert.equal((await invoke('GET')).status,405);
   assert.equal((await invoke('POST','{')).status,400);
