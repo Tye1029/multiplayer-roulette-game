@@ -1,6 +1,6 @@
 /* rustic-v2: a single layout owns the table, seats and responsive composition. */
 html body [data-roulette-game][data-roulette-scene="rustic-v2"] {
-  height:650px!important;min-height:650px!important;max-width:820px!important;
+  height:690px!important;min-height:690px!important;max-width:820px!important;
   padding:0!important;overflow:hidden!important;isolation:isolate;
   background:radial-gradient(ellipse at 50% 40%,#30261b,#15120f 54%,#080807 100%)!important;
 }

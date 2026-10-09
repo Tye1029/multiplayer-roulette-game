@@ -90,7 +90,7 @@ const block = `${startMarker}\n` +
   '  <script src="/assets/roulette/lamp-config.js?v=19&scene=rustic-v2" defer></script>\n' +
   '  <script src="/assets/roulette/lamp.js?v=20&scene=rustic-v2" defer></script>\n' +
   '  <script src="/assets/roulette/lamp-bootstrap.js?v=19&scene=rustic-v2" defer></script>\n' +
-  '  <link rel="stylesheet" href="/assets/roulette/scene.css?v=rustic-v2">\n' +
+  '  <link rel="stylesheet" href="/assets/roulette/scene.css?v=rustic-v2-fit1">\n' +
   '  <script src="/assets/roulette/audio-manager.js?v=4&ambience=2&media=2&countdown=2&load=15" defer></script>\n' +
   '  <!-- compatibility: /assets/roulette/spin-audio-policy.js?v=3 -->\n' +
   '  <script src="/assets/roulette/spin-audio-policy.js?v=4&turnsound=4&reliable=1" defer></script>\n' +
