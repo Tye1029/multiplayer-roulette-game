@@ -19,7 +19,8 @@
   const visualAssets = [
     '/assets/safe-cracker/images/bank-vault-wall-v5.png',
     '/assets/safe-cracker/images/safe-steel-surface-v3.png',
-    '/assets/safe-cracker/textures/dial-reference-face-v7.svg?dial=7&layout=7'
+    '/assets/safe-cracker/textures/dial-reference-face-v7.svg?dial=7&layout=7',
+    '/assets/safe-cracker/textures/dial-index-steel.svg'
   ];
   let visualsReady = false;
   let visualPreparation = null;
@@ -86,6 +87,8 @@
     feedbackResultKey: '',
     feedbackFresh: false,
     dialSettleAnimation: null,
+    dialPaintFrame: 0,
+    dialDragRect: null,
     lastDragDirection: 0,
     countdownSoundKey: '',
     visualGameId: '',
@@ -1020,6 +1023,29 @@
   }
 
   // SAFE_CRACKER_DIAL_PHYSICS_V2_START
+  // Continue interrupted turns from the painted angle, rather than the target.
+  function visibleDialRotation() {
+    const face = document.querySelector('[data-sc-dial-face]');
+    const transform = face && window.getComputedStyle?.(face)?.transform;
+    const matrix = transform?.match(/^matrix\(([^)]+)\)$/)?.[1]?.split(',').map(Number);
+    if (!matrix || !Number.isFinite(matrix[0]) || !Number.isFinite(matrix[1])) return runtime.rotation;
+    const angle = Math.atan2(matrix[1], matrix[0]) * 180 / Math.PI;
+    return runtime.rotation + circularDeltaDegrees(angle - runtime.rotation);
+  }
+
+  function cancelDialPaint() {
+    if (runtime.dialPaintFrame) window.cancelAnimationFrame(runtime.dialPaintFrame);
+    runtime.dialPaintFrame = 0;
+  }
+
+  function queueDialVisual() {
+    if (runtime.dialPaintFrame) return;
+    runtime.dialPaintFrame = window.requestAnimationFrame(() => {
+      runtime.dialPaintFrame = 0;
+      if (runtime.dragging) applyDialVisual();
+    });
+  }
+
   function cancelDialSettle() {
     const animation = runtime.dialSettleAnimation;
     runtime.dialSettleAnimation = null;
@@ -1035,13 +1061,13 @@
     if (Math.abs(toRotation - fromRotation) < .05 || typeof face.animate !== 'function' || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
     const travel = toRotation - fromRotation;
     const motionDirection = Number(direction) || Math.sign(travel) || 1;
-    const overshoot = motionDirection * Math.min(5.5, Math.max(2, Math.abs(travel) * .12));
+    const overshoot = motionDirection * Math.min(2.5, Math.max(.7, Math.abs(travel) * .04));
     face.classList.add('settling');
     const animation = face.animate([
       { transform: `rotate(${fromRotation}deg)`, offset: 0 },
       { transform: `rotate(${toRotation + overshoot}deg)`, offset: .72 },
       { transform: `rotate(${toRotation}deg)`, offset: 1 }
-    ], { duration: 240, easing: 'cubic-bezier(.18,.78,.22,1)' });
+    ], { duration: 160, easing: 'cubic-bezier(.18,.78,.22,1)' });
     runtime.dialSettleAnimation = animation;
     const cleanup = () => {
       // A cancelled animation must never overwrite a newer turn or drag.
@@ -1061,15 +1087,12 @@
     if (face) face.style.transform = `rotate(${runtime.rotation}deg)`;
     if (current && current.textContent !== String(runtime.selected)) {
       current.textContent = String(runtime.selected);
-      if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches && current.animate) {
-        current.getAnimations().forEach(animation => animation.cancel());
-        current.animate([{opacity:.65},{opacity:1}], {duration:180,easing:'ease-out'});
-      }
     }
-    document.querySelectorAll('[data-sc-digit]').forEach(number => {
-      number.classList.toggle('selected', Number(number.dataset.scDigit) === Number(runtime.selected));
-    });
-    if (dial) {
+    // Rotation paints every frame; numeral/accessibility updates only at detents.
+    if (dial && dial.getAttribute('aria-valuenow') !== String(runtime.selected)) {
+      document.querySelectorAll('[data-sc-digit]').forEach(number => {
+        number.classList.toggle('selected', Number(number.dataset.scDigit) === Number(runtime.selected));
+      });
       dial.setAttribute('aria-valuenow', String(runtime.selected));
       dial.setAttribute('aria-valuetext', `Number ${runtime.selected}`);
     }
@@ -1077,7 +1100,7 @@
 
   function setSelected(digit, { sound = true } = {}) {
     const next = modulo(Number(digit) || 0, 10);
-    const previousRotation = runtime.rotation;
+    const previousRotation = visibleDialRotation();
     runtime.selected = next;
     runtime.rotation = nearestRotationForDigit(next, runtime.rotation);
     runtime.lastDetent = next;
@@ -1087,7 +1110,7 @@
   }
 
   function pointerAngle(event, element) {
-    const rect = element.getBoundingClientRect();
+    const rect = runtime.dialDragRect || element.getBoundingClientRect();
     const x = event.clientX - (rect.left + rect.width / 2);
     const y = event.clientY - (rect.top + rect.height / 2);
     return Math.atan2(y, x) * 180 / Math.PI;
@@ -1099,7 +1122,13 @@
       dial.addEventListener('pointerdown', event => {
         if (runtime.game?.status !== 'playing') return;
         resumeAudio();
+        const paintedRotation = visibleDialRotation();
         cancelDialSettle();
+        cancelDialPaint();
+        runtime.rotation = paintedRotation;
+        runtime.selected = selectedFromRotation(paintedRotation);
+        runtime.lastDetent = runtime.selected;
+        runtime.dialDragRect = dial.getBoundingClientRect?.() || null;
         runtime.lastDragDirection = 0;
         runtime.dragging = true;
         // SAFE_CRACKER_DIAL_ACTIVITY_V16_START
@@ -1121,6 +1150,7 @@
         runtime.lastPointerAngle = pointerAngle(event, dial);
         dial.setPointerCapture?.(event.pointerId);
         dial.classList.add('dragging');
+        applyDialVisual();
         event.preventDefault();
       });
       dial.addEventListener('pointermove', event => {
@@ -1146,7 +1176,7 @@
           runtime.selected = nextDigit;
           playDetent(nextDigit);
         }
-        applyDialVisual();
+        queueDialVisual();
         event.preventDefault();
       });
       const finishDrag = event => {
@@ -1165,6 +1195,8 @@
           safeCrackerDialInteraction.expiresAt = safeCrackerDialReleasedAt + 2500;
         }
         runtime.pointerId = null;
+        cancelDialPaint();
+        runtime.dialDragRect = null;
         dial.classList.remove('dragging');
         const releasedRotation = runtime.rotation;
         runtime.rotation = nearestRotationForDigit(runtime.selected, runtime.rotation);
@@ -1178,6 +1210,7 @@
       };
       dial.addEventListener('pointerup', finishDrag);
       dial.addEventListener('pointercancel', finishDrag);
+      dial.addEventListener('lostpointercapture', finishDrag);
       dial.addEventListener('keydown', event => {
         if (runtime.game?.status !== 'playing') return;
         if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') {

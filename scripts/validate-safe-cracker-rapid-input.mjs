@@ -63,6 +63,8 @@ assert.equal(runtime.game.gameId,'new-match','Late responses must not restore an
 const handlers={};
 const dial={addEventListener:(type,fn)=>{handlers[type]=fn;},setPointerCapture:()=>{},classList:{add:()=>{},remove:()=>{}}};
 context.resumeAudio=()=>{};context.cancelDialSettle=()=>{};context.pointerAngle=()=>0;
+context.visibleDialRotation=()=>runtime.rotation;context.cancelDialPaint=()=>{};
+context.queueDialVisual=()=>context.applyDialVisual();
 context.circularDeltaDegrees=n=>n;context.selectedFromRotation=()=>5;context.playDetent=()=>{};context.applyDialVisual=()=>{};
 context.window.__safeCrackerDialInteractionStarts=0;
 vm.runInContext(section('function bindControls(mount, game)', 'function bindResultControls(mount)'),context);

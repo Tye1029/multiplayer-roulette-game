@@ -51,3 +51,4 @@ await import('./validate-safe-cracker-audio-loading.mjs');
 console.log(`Verified complete Safe Cracker restored release ${release.release}: ${Object.keys(release.sha256).length} files.`);
 
 await import('./validate-safe-cracker-start-feedback.mjs');
+await import('./validate-safe-cracker-dial-continuity.mjs');

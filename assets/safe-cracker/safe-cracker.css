@@ -5586,3 +5586,39 @@ body:has(.safe-cracker-game) {
 .safe-cracker-game.sc-art-loading::after {content:'Preparing vault…';position:absolute;inset:40% 0 auto;text-align:center;color:#d9edf8;font-weight:600;pointer-events:none;}
 .safe-cracker-game.sc-art-error::after {content:'Vault artwork could not load. Refresh to retry.';}
 .safe-cracker-game .sc-display {transition:background 80ms ease,box-shadow 80ms ease,border-color 80ms ease;}
+
+/* SAFE_CRACKER_DIAL_CONTINUITY_V22_START */
+/* The single animation owns rotation. CSS interpolation must not lag behind
+   pointer input or compete with the mechanical settle animation. */
+.safe-cracker-game .sc-dial-face {
+  transition:none;
+  will-change:transform;
+}
+.safe-cracker-game .sc-dial,
+.safe-cracker-game .sc-dial.dragging {
+  transform:none;
+  transition:none;
+  filter:none;
+}
+.safe-cracker-game .sc-dial-number > span { transition:none; }
+/* A bolted steel index bridges the stationary bezel; its narrow engraved line
+   points at the number band. The old raised housing is superseded. */
+.safe-cracker-game .sc-dial-wrap::after { content:none !important; }
+.safe-cracker-game .sc-dial-pointer {
+  top:-34px;
+  width:64px;
+  height:46px;
+  clip-path:none;
+  border:0;
+  border-radius:0;
+  background:url('/assets/safe-cracker/textures/dial-index-steel.svg') center / contain no-repeat;
+  box-shadow:none;
+  filter:none;
+}
+@media(max-width:700px) {
+  .safe-cracker-game .sc-dial-pointer { top:-25px;width:50px;height:36px; }
+}
+@media(max-width:700px) and (max-height:720px) {
+  .safe-cracker-game .sc-dial-pointer { top:-18px;width:40px;height:29px; }
+}
+/* SAFE_CRACKER_DIAL_CONTINUITY_V22_END */
