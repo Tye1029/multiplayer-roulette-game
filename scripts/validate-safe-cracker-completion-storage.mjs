@@ -6,9 +6,13 @@ const records=new Map(); let releaseLate, enteredLate, delayLate=false, receiptR
 const store={get:async (key,options)=>{if(key.startsWith('safecracker-result:'))receiptReads++;
   if(lambdaCompatibility && options?.consistency==='strong')throw Object.assign(new Error('Missing uncachedEdgeURL'),{name:'BlobsConsistencyError'});
   return structuredClone(records.get(key)||null);},
-  setJSON:async(key,value)=>{if(delayLate && key==='game:test' && value.status==='playing'){
+  getWithMetadata:async key=>records.has(key)?{data:structuredClone(records.get(key)),etag:String(records.get(key).revision)}:null,
+  setJSON:async(key,value,options={})=>{
+    if(options.onlyIfNew&&records.has(key))return {modified:false};
+    if(options.onlyIfMatch&&String(records.get(key)?.revision)!==options.onlyIfMatch)return {modified:false};
+    if(delayLate && key==='game:test' && value.status==='playing'){
     delayLate=false;enteredLate();await new Promise(resolve=>{releaseLate=resolve;});
-  } records.set(key,structuredClone(value));}};
+  } records.set(key,structuredClone(value));return {modified:true,etag:String(value.revision)};}};
 const sandbox=vm.createContext({console,Promise,Math,Date,process:{env:{}},STORE_NAME:'test',DUEL_SCHEMA_VERSION:1,
   mpCleanId:x=>String(x||''),int:(x,f)=>Number.isFinite(Number(x))?Number(x):f,
   duelSanitizeGame:g=>g,duelGameKey:id=>'game:'+id,getUsersStore:()=>store,getStore:()=>store,

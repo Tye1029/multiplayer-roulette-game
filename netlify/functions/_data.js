@@ -4402,7 +4402,20 @@ async function duelSaveGame(game) {
     // A late nonterminal write can never erase this independent result.
     if (clean.status === 'complete') await getUsersStore().setJSON(safeCrackerResultKey(clean.gameId), clean);
   }
-  await getUsersStore().setJSON(duelGameKey(clean.gameId), clean);
+  if (clean.mode === 'roulette') {
+    // Compare-and-swap also serializes requests handled by different Functions.
+    // A process-local mutex alone cannot arbitrate a timeout against a late shot.
+    let store = getUsersStore();const key = duelGameKey(clean.gameId);
+    let stored;
+    try { stored=await store.getWithMetadata(key,{type:'json',consistency:'strong'}); }
+    catch(error){if(error?.name!=='BlobsConsistencyError'&&!String(error?.message||'').includes('uncachedEdgeURL'))throw error;store=duelGetStrongStore();stored=await store.getWithMetadata(key,{type:'json',consistency:'strong'});}
+    if(stored&&!stored.etag)throw new Error('Roulette storage could not confirm the current revision.');
+    if (stored && Number(stored.data?.revision || 0) !== Number(game?.revision || 0)) {
+      throw new Error('Roulette state changed. Refresh and try again.');
+    }
+    const write = await store.setJSON(key, clean, stored ? { onlyIfMatch: stored.etag } : { onlyIfNew: true });
+    if (!write.modified) throw new Error('Roulette state changed. Refresh and try again.');
+  } else await getUsersStore().setJSON(duelGameKey(clean.gameId), clean);
   if (duelIsActiveStatus(clean.status)) await Promise.all([clean.creator?.userId,clean.joiner?.userId].filter(Boolean).map(id=>duelSetActivePointer(id,clean)));
   else await duelClearPointers(clean);
   return clean;
@@ -6955,8 +6968,8 @@ async function duelGetGame(user, gameId, options = {}) {
 const ROULETTE_LOCKS = globalThis.__ROULETTE_GAME_LOCKS || (globalThis.__ROULETTE_GAME_LOCKS = new Map());
 async function withRouletteLock(gameId, task){
   const key=mpCleanId(gameId); const prior=ROULETTE_LOCKS.get(key)||Promise.resolve(); let release;
-  const gate=new Promise(r=>release=r); ROULETTE_LOCKS.set(key,prior.then(()=>gate)); await prior;
-  try{return await task();}finally{release();setTimeout(()=>ROULETTE_LOCKS.delete(key),0);}
+  const gate=new Promise(r=>release=r), tail=prior.then(()=>gate); ROULETTE_LOCKS.set(key,tail); await prior;
+  try{return await task();}finally{release();if(ROULETTE_LOCKS.get(key)===tail)ROULETTE_LOCKS.delete(key);}
 }
 function roulettePlayerIds(game){return [cleanUserId(game?.creator?.userId),cleanUserId(game?.joiner?.userId)].filter(Boolean);}
 function rouletteOther(game,id){return roulettePlayerIds(game).find(x=>x!==cleanUserId(id))||"";}
@@ -6976,8 +6989,10 @@ function rouletteRemaining(state={}){
 function rouletteInitialState(game,startMs=Date.now()){
   const ids=roulettePlayerIds(game); const first=ids[Math.floor(Math.random()*Math.max(1,ids.length))]||ids[0]||"";
   const chamber=rouletteNewChamberCycle();
-  return {phase:"turn",turnId:first,openingSpinWinnerId:first,revolverModel:ROULETTE_REVOLVER_MODEL,...chamber,shotsFired:0,shotsByPlayer:Object.fromEntries(ids.map(id=>[id,0])),blankStreak:0,spinUsed:Object.fromEntries(ids.map(id=>[id,false])),lastAction:"opening_spin",lastActorId:"",lastOutcome:"first_player",lastShotNumber:0,winnerId:"",loserId:"",startedAt:new Date(startMs).toISOString(),revision:1};
+  return {phase:"turn",turnId:first,openingSpinWinnerId:first,revolverModel:ROULETTE_REVOLVER_MODEL,...chamber,shotsFired:0,shotsByPlayer:Object.fromEntries(ids.map(id=>[id,0])),blankStreak:0,spinUsed:Object.fromEntries(ids.map(id=>[id,false])),lastAction:"opening_spin",lastActorId:"",lastOutcome:"first_player",lastShotNumber:0,winnerId:"",loserId:"",startedAt:new Date(startMs).toISOString(),openingReadyAt:new Date(startMs+6500).toISOString(),turnDeadline:new Date(startMs+66500).toISOString(),revision:1};
 }
+function rouletteTurnExpired(state,now=Date.now()) { return Number.isFinite(Date.parse(state?.turnDeadline))&&now>=Date.parse(state.turnDeadline); }
+function rouletteCanExecute(game,id) { const s=game?.rouletteState||{};return game?.status==='playing'&&['turn','press_luck'].includes(s.phase)&&roulettePlayerIds(game).includes(cleanUserId(id))&&cleanUserId(id)!==cleanUserId(s.turnId)&&rouletteTurnExpired(s); }
 function rouletteHasShot(state,id){
   if(state.shotsByPlayer)return Number(state.shotsByPlayer[cleanUserId(id)]||0)>0;
   // Compatibility with matches started before per-player shot tracking.
@@ -6992,14 +7007,14 @@ function rouletteRecordShot(state,id){
 }
 function rouletteSpinAllowed(game,id){
   const state=game?.rouletteState||{};
-  return game?.status==="playing"&&cleanUserId(state.turnId)===cleanUserId(id)&&["turn","press_luck"].includes(state.phase)&&!Boolean(state.spinUsed?.[cleanUserId(id)]);
+  return rouletteCanAct(game,id)&&!Boolean(state.spinUsed?.[cleanUserId(id)]);
 }
 function roulettePublicState(game,viewer){
   const st=game?.rouletteState||null;if(!st)return null;
   const {bulletPosition:_hidden,remaining:_hiddenRemaining,chamberCycleId:_hiddenCycle,blankRoundsRemaining:_hiddenBlanks,processedActionIds:_hiddenActionIds,...safe}=st; const id=cleanUserId(viewer);
-  return {...safe,revolverModel:ROULETTE_REVOLVER_MODEL,chambersTotal:6,liveRounds:1,chamberModel:"fixed-six",isMyTurn:game?.status==="playing"&&cleanUserId(st.turnId)===id,canSpin:rouletteSpinAllowed(game,id),myFirstShotTaken:rouletteHasShot(st,id),canShoot:cleanUserId(st.turnId)===id&&["turn","press_luck"].includes(st.phase),canPass:cleanUserId(st.turnId)===id&&st.phase==="press_luck",mySpinUsed:Boolean(st.spinUsed?.[id]),opponentSpinUsed:Boolean(st.spinUsed?.[rouletteOther(game,id)])};
+  return {...safe,revolverModel:ROULETTE_REVOLVER_MODEL,chambersTotal:6,liveRounds:1,chamberModel:"fixed-six",isMyTurn:game?.status==="playing"&&cleanUserId(st.turnId)===id,canSpin:rouletteSpinAllowed(game,id),myFirstShotTaken:rouletteHasShot(st,id),canShoot:rouletteCanAct(game,id),canPass:rouletteCanAct(game,id)&&st.phase==="press_luck",canExecute:rouletteCanExecute(game,id),mySpinUsed:Boolean(st.spinUsed?.[id]),opponentSpinUsed:Boolean(st.spinUsed?.[rouletteOther(game,id)])};
 }
-function rouletteCanAct(game,viewer){const st=game?.rouletteState||{};return game.status==="playing"&&cleanUserId(st.turnId)===cleanUserId(viewer)&&["turn","press_luck"].includes(st.phase);}
+function rouletteCanAct(game,viewer){const st=game?.rouletteState||{};return game.status==="playing"&&cleanUserId(st.turnId)===cleanUserId(viewer)&&["turn","press_luck"].includes(st.phase)&&!rouletteTurnExpired(st)&&!(Date.now()<Date.parse(st.openingReadyAt));}
 async function roulettePayComplete(game,winnerId,loserId){
   const ids=roulettePlayerIds(game),winner=cleanUserId(winnerId),loser=cleanUserId(loserId);
   if(ids.length!==2||!ids.includes(winner)||!ids.includes(loser)||winner===loser) throw new Error("Russian Roulette winner state is inconsistent.");
@@ -7011,6 +7026,17 @@ async function roulettePayComplete(game,winnerId,loserId){
 }
 async function rouletteAdvance(game){
   let g=duelSanitizeGame(game),s={...(g.rouletteState||rouletteInitialState(g,Date.parse(g.startAt||0)||Date.now()))}; if(g.status!=="playing")return g;
+  if(s.phase==='complete')return await roulettePayComplete(g,s.winnerId,s.loserId);
+  if(!s.turnDeadline)s.turnDeadline=new Date(Date.now()+60000).toISOString();
+  if(Date.now()<Date.parse(s.openingReadyAt))return {...g,rouletteState:s};
+  if(rouletteTurnExpired(s)){
+    const winner=rouletteOther(g,s.turnId),npcWinner=Boolean(g.joiner?.isNpc)&&winner===cleanUserId(g.joiner.userId);
+    if(npcWinner){
+      s={...s,phase:'complete',lastAction:'shoot',lastActorId:s.turnId,lastOutcome:'live',timeoutExecution:true,winnerId:winner,loserId:s.turnId,revision:Number(s.revision||0)+1};
+      g=await duelSaveGame({...g,rouletteState:s,npcActionAt:null});return await roulettePayComplete(g,winner,s.loserId);
+    }
+    return {...g,rouletteState:s};
+  }
   const npcId=(g.joiner?.isNpc||String(g.joiner?.userId||"").startsWith("npc-"))?cleanUserId(g.joiner.userId):"";
   if(!(npcId&&cleanUserId(s.turnId)===npcId&&["turn","press_luck"].includes(s.phase))) return {...g,rouletteState:s,npcActionAt:null};
 
@@ -7039,7 +7065,7 @@ async function rouletteAdvance(game){
   const remaining=rouletteRemaining(s);
   const pressAgain=s.phase==="press_luck"&&remaining>=4&&Math.random()<.55;
   if(s.phase==="press_luck"&&!pressAgain){
-    s={...s,phase:"turn",turnId:rouletteOther(g,npcId),blankStreak:0,lastAction:"pass",lastActorId:npcId,lastOutcome:"passed",revision:Number(s.revision||0)+1};
+    s={...s,phase:"turn",turnId:rouletteOther(g,npcId),turnDeadline:new Date(now+60000).toISOString(),blankStreak:0,lastAction:"pass",lastActorId:npcId,lastOutcome:"passed",revision:Number(s.revision||0)+1};
     return {...g,rouletteState:s,npcActionAt:null};
   }
 
@@ -7048,7 +7074,7 @@ async function rouletteAdvance(game){
     const winner=rouletteOther(g,npcId);
     if(!winner||winner===npcId) throw new Error("Russian Roulette could not identify the surviving opponent.");
     s={...s,phase:"complete",lastAction:"shoot",lastActorId:npcId,lastOutcome:"live",lastShotNumber:Number(s.shotsFired||0)+1,shotsFired:Number(s.shotsFired||0)+1,shotsByPlayer:rouletteRecordShot(s,npcId),winnerId:winner,loserId:npcId,revision:Number(s.revision||0)+1};
-    g={...g,rouletteState:s,npcActionAt:null};
+    g=await duelSaveGame({...g,rouletteState:s,npcActionAt:null});
     return await roulettePayComplete(g,winner,npcId);
   }
   const nextRemaining=rouletteChamberPosition(remaining-1);
@@ -7063,7 +7089,7 @@ async function rouletteAdvanceAndSave(game){
   // delayed/stale GET must never save an NPC action after control has already
   // returned to the human player.
   return await withRouletteLock(gameId,async()=>{
-    const latest=await duelGetRaw(gameId);
+    const latest=await duelGetRawStrong(gameId);
     if(!latest)return game;
     const next=await rouletteAdvance(latest);
     return JSON.stringify(next)!==JSON.stringify(latest)?await duelSaveGame(next):latest;
@@ -7075,12 +7101,25 @@ async function rouletteAction(user,gameId,choice,details={}){return await withRo
   // stale browser request could run rouletteAdvance(), let the NPC finish its
   // turn, then continue as a human shot after control returned to the player.
   // NPC advancement now happens only in authoritative GET/poll processing.
-  let g=await duelGetRaw(gameId);if(!g)throw new Error("That duel was not found.");
+  let g=await duelGetRawStrong(gameId);if(!g)throw new Error("That duel was not found.");
   if(g.status!=="playing")return {game:duelPublicGame(g,user.id),record:await getUserRecord(user.id)};
   let s={...(g.rouletteState||{})},id=cleanUserId(user.id);
   const actionId=String(details.actionId||"").replace(/[^a-zA-Z0-9._:-]/g,"").slice(0,120);
   const processed=Array.isArray(s.processedActionIds)?s.processedActionIds.map(String):[];
   if(actionId&&processed.includes(actionId))return {game:duelPublicGame(g,id),record:await getUserRecord(id)};
+  if(s.phase==='complete') {g=await duelSaveGame(await roulettePayComplete(g,s.winnerId,s.loserId));return {game:duelPublicGame(g,id),record:await getUserRecord(id)};}
+  if(choice==='roulette:execute'){
+    if(!rouletteCanExecute(g,id))throw new Error('Shoot Em Dead is only available to the opponent after the turn expires.');
+    if(details.expectedTurnId&&cleanUserId(details.expectedTurnId)!==cleanUserId(s.turnId))throw new Error('The turn changed.');
+    if(details.expectedRevision!=null&&Number(details.expectedRevision)!==Number(s.revision))throw new Error('Roulette state changed. Refresh and try again.');
+    const loser=cleanUserId(s.turnId);
+    s={...s,phase:'complete',lastAction:'shoot',lastActorId:loser,lastOutcome:'live',timeoutExecution:true,winnerId:id,loserId:loser,revision:Number(s.revision||0)+1,processedActionIds:actionId?[...processed,actionId].slice(-40):processed};
+    g=await duelSaveGame({...g,rouletteState:s,npcActionAt:null});
+    g=await duelSaveGame(await roulettePayComplete(g,id,loser));
+    return {game:duelPublicGame(g,id),record:await getUserRecord(id)};
+  }
+  if(rouletteTurnExpired(s))throw new Error('Your 60-second turn has expired.');
+  if(Date.now()<Date.parse(s.openingReadyAt))throw new Error('The opening spin is still choosing the first player.');
   const expectedTurnId=cleanUserId(details.expectedTurnId||"");
   // Delayed mobile taps and overlapping network responses must be idempotent.
   // Return the newest authoritative snapshot instead of turning an already
@@ -7111,7 +7150,7 @@ async function rouletteAction(user,gameId,choice,details={}){return await withRo
   }else if(choice==="roulette:pass"){
     if(s.phase!=="press_luck")throw new Error("You can only pass after surviving a blank.");
     const nextTurnId=rouletteOther(g,id);
-    s={...s,phase:"turn",turnId:nextTurnId,blankStreak:0,lastAction:"pass",lastActorId:id,lastOutcome:"passed",revision:Number(s.revision||0)+1};
+    s={...s,phase:"turn",turnId:nextTurnId,turnDeadline:new Date(Date.now()+60000).toISOString(),blankStreak:0,lastAction:"pass",lastActorId:id,lastOutcome:"passed",revision:Number(s.revision||0)+1};
     // When control passes to the NPC, persist its decision deadline now. This
     // removes the otherwise-required extra polling request just to schedule it.
     const nextIsNpc=Boolean(g.joiner?.isNpc)&&cleanUserId(g.joiner?.userId)===cleanUserId(nextTurnId);

@@ -3,7 +3,7 @@
   const configApi = global.RouletteLampConfig;
   if (!configApi) throw new Error('lamp-config.js must load before lamp.js');
   const lampAsset = '/assets/roulette/decor/rustic-pendant-v2.png';
-  const styleAsset = '/assets/roulette/lamp.css?v=18&scene=rustic-v2&warm=3';
+  const styleAsset = '/assets/roulette/lamp.css?v=18&scene=rustic-v2&warm=4';
   const phaseEpoch = Number(global.__rrLampPhaseEpoch) || Date.now();
   global.__rrLampPhaseEpoch = phaseEpoch;
   const drivers = new WeakMap();
@@ -11,7 +11,7 @@
   function ensureStyles(doc) {
     let link = doc.getElementById('rrLampExternalStyles');
     if (!link) { link = doc.createElement('link'); link.id = 'rrLampExternalStyles'; link.rel = 'stylesheet'; doc.head.append(link); }
-    if (!link.href.includes('warm=3')) link.href = styleAsset;
+    if (!link.href.includes('warm=4')) link.href = styleAsset;
     return link;
   }
   function queryScene(doc) {
@@ -107,6 +107,8 @@
       scene.volume.style.setProperty('left',light.bulbX+'px');
       scene.volume.style.setProperty('top',light.bulbY+'px');
     }
+    scene.game.style.setProperty('--rr-room-light-x',light.poolX+'px');
+    scene.game.style.setProperty('--rr-room-light-y',(light.bulbY+box.height*.14)+'px');
     scene.game.dataset.lampAngle=light.angle.toFixed(3);
     scene.game.dataset.lightX=light.poolX.toFixed(2);
     scene.game.dataset.lightY=light.poolY.toFixed(2);
@@ -147,14 +149,14 @@
     }
     const field=ensureProbes(doc,scene.gunGlint);
     if(field) {
-      field.style.setProperty('--rr-gun-light-strength',String(Math.min(1,cfg.strength)*(.65+cfg.gunGleam)));
-      field.style.background='radial-gradient(circle,hsla('+cfg.lightHue+','+cfg.lightSaturation+'%,82%,.48),hsla('+cfg.lightHue+','+cfg.lightSaturation+'%,66%,.22) 35%,hsla('+cfg.lightHue+','+cfg.lightSaturation+'%,58%,.06) 65%,transparent 100%)';
+      field.style.setProperty('--rr-gun-light-strength',String(Math.min(1,cfg.strength)*(.40+cfg.gunGleam)));
+      field.style.background='radial-gradient(circle,hsla('+cfg.lightHue+','+cfg.lightSaturation+'%,68%,.34),hsla('+cfg.lightHue+','+cfg.lightSaturation+'%,55%,.14) 35%,hsla('+cfg.lightHue+','+cfg.lightSaturation+'%,58%,.06) 65%,transparent 100%)';
     }
     let driver=drivers.get(doc);
     if(!driver) {driver={scene,cfg,frame:0,lastTime:0};drivers.set(doc,driver);}
     driver.scene=scene;driver.cfg=cfg;
     draw(doc,scene,cfg);
-    scene.sceneLight?.querySelector('img')?.style.setProperty('filter','brightness(1.65) saturate(1.08) sepia(.32) hue-rotate('+(cfg.lightHue-34)+'deg)');
+    scene.sceneLight?.querySelector('img')?.style.setProperty('filter','brightness(1.32) saturate(1.12) sepia(.42) hue-rotate('+(cfg.lightHue-34)+'deg)');
     const targetExists={lampImage:!!scene.image,swingAndChains:!!scene.swing&&!!scene.chain,swing:!!scene.swing,
       chains:!!scene.chain,leftChain:!!scene.chain,rightChain:!!scene.chain,
       trackedLight:!!scene.sceneLight,roomOverlay:!!scene.game,gunGlint:!!scene.gunGlint};

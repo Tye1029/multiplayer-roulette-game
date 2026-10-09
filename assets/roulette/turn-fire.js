@@ -57,15 +57,30 @@
     const live = state?.lastOutcome === 'live';
     if (live) {
       rouletteGunshotSound();
+      const roomLight=layers.root.querySelector('.rr-muzzle-room-light');
+      const muzzle=layers.root.querySelector('.rr-muzzle-point');
+      if(roomLight&&muzzle){
+        const started=performance.now();
+        const illuminate=now=>{
+          const age=(now-started)/190;
+          if(age>=1||!layers.root.isConnected){roomLight.style.opacity='0';return;}
+          const room=layers.root.getBoundingClientRect(),tip=muzzle.getBoundingClientRect();
+          roomLight.style.setProperty('--rr-shot-x',(tip.left-room.left)+'px');
+          roomLight.style.setProperty('--rr-shot-y',(tip.top-room.top)+'px');
+          roomLight.style.opacity=String(.34*Math.pow(1-Math.max(0,age),2));
+          requestAnimationFrame(illuminate);
+        };
+        requestAnimationFrame(illuminate);
+      }
       navigator.vibrate?.([90, 35, 220]);
       const effects = [];
       if (flash) {
         effects.push(rouletteAnimate(flash, [
-          { opacity: 0, transform: 'translate(-50%,-50%) scale(.1)' },
-          { opacity: 1, transform: 'translate(-50%,-50%) scale(1.7)', offset: 0.16 },
-          { opacity: 0.75, transform: 'translate(-50%,-50%) scale(2.7)', offset: 0.42 },
-          { opacity: 0, transform: 'translate(-50%,-50%) scale(4.2)' }
-        ], { duration: 380, easing: 'ease-out' }));
+          { opacity: 0, transform: 'translate(-100%,-50%) scale(.3)' },
+          { opacity: 1, transform: 'translate(-100%,-50%) scale(1)', offset: 0.12 },
+          { opacity: 0.55, transform: 'translate(-100%,-50%) scale(1.15,.7)', offset: 0.45 },
+          { opacity: 0, transform: 'translate(-100%,-50%) scale(1.4,.35)' }
+        ], { duration: 160, easing: 'ease-out' }));
       }
       smoke.forEach((particle, index) => {
         effects.push(rouletteAnimate(particle, [

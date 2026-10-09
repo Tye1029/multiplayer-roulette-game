@@ -62,3 +62,29 @@ fixture at `http://127.0.0.1:8788/`, with no account, balance or wager. It measu
 animation frames, clipping, media readiness and audio starts. Optional
 `?base=https://deploy-preview-20--famous-piroshki-b621da.netlify.app/` loads shipped
 presentation/styles/media while keeping actions on the local fixture.
+
+
+## Frontier update — 9 October 2026
+
+- Added a server-owned 60-second deadline per turn. Passing resets it; shooting again and spinning do not extend the same turn. The first clock starts after the opening presentation allowance. Expired actors cannot act; their opponent can claim Shoot Em Dead. Spectators cannot claim. The existing payout ledger remains idempotent. Roulette game writes now use Blob ETag compare-and-swap, and actions/polls reread strong state. The local queue releases only its own tail.
+- Initial chamber and each player's one spin independently use crypto.randomInt(1,7), with no exclusion of the previous position. The chamber advances without rerolling on a blank.
+- Fixed the opening lock through its final announcement, prevented NPC input during the chooser, and isolated old-game animation completion from a newer game. Countdown synth is restored and its context unlocked by a trusted Roulette gesture.
+- Disabled/off-turn/used buttons are gray with a normal cursor. Timer is beside the pot. Softer orange light, stronger moving room shadows, a solid table pedestal and a textured full-page surround replace the empty blue area.
+- Flash and smoke anchor at each model's actual muzzle; a 190ms radial room illumination follows that point through recoil. Hammer and cylinder animations retain their own layers and do not own facing.
+- Midnight Gold plus Silver Smoke, Burnished Copper, Jade Outlaw and Violet Dusk use reusable native CSS material filters, so they add no texture downloads. Neon Frontier uses a separate body and hammer. Selection stays in this browser's rouletteGunPreferenceV1 local storage and is never sent to the server or other players. Images decode before a swap.
+
+New project assets (built-in imagegen; proportionally downsampled, original alpha retained):
+- assets/roulette/revolver-neon-frontier.webp
+- assets/roulette/revolver-neon-frontier-hammer.webp
+
+Body prompt: Reference the original revolver only for orthographic left-facing camera, registration and 1307:522 proportions. Create a completely new cowboy cyberpunk revolver in worn dark titanium, copper fittings, restrained turquoise conduits, engraved frontier motifs, angular long barrel and dark leather grip. Muzzle at x0.5%, y10%; cylinder x54–70%, y4–35%; grip on right. Remove the hammer and leave a recessed socket. No floor, external shadow, labels or background; genuine transparent alpha, neutral studio illumination.
+
+Hammer prompt: Edit the original isolated hammer sprite with the new revolver as a style reference. Replace only the hammer with angular titanium, copper trim and a small cyan inset. Preserve full transparent 1307:522 canvas and original registration, without centering or enlarging the hammer; no other gun parts, text or external shadows. The returned pivot is registered separately in CSS for the new model.
+
+Generated originals:
+- C:/Users/tyeta/.codex/generated_images/01a11f0a-2a0d-7ad2-94ff-404ff74605c5/exec-e1c2f508-2ffa-4007-90fa-2528ddca0096.png
+- C:/Users/tyeta/.codex/generated_images/01a11f0a-2a0d-7ad2-94ff-404ff74605c5/exec-dfc2543e-83b0-4d28-89ca-01efc013db3d.png
+
+Historical patch scripts/audio aliases are retained because assembly compatibility paths and diagnostic validators still reference them. Existing classic sprites remain in use for the five material finishes. No new assets are preloaded before Roulette is selected; Neon Frontier loads only when selected or restored as the saved choice.
+
+Validation: validate-roulette-frontier executes production chamber/deadline rules, all six positions, identical-position respins, timeout authorization and duplicate claims, competing ETag writes, opponent opening delay, countdown synth/muting, local preference fallback, and repeated mounts during the announcement. The protected baseline includes this test plus existing Roulette motion/scene and other-game regressions.

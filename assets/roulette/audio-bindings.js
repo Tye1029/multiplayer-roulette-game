@@ -195,7 +195,7 @@
     try { clip.removeAttribute('src'); } catch {}
   }
 
-  function playSpinButtonChamber() {
+  function playSpinButtonChamber(duration=1350) {
     const now = performance.now();
     if (now - lastSpinButtonAt < SPIN_BUTTON_COOLDOWN_MS) return;
     lastSpinButtonAt = now;
@@ -223,7 +223,17 @@
       cleanup();
       return;
     }
-    Promise.resolve(play.call(clip)).catch(cleanup);
+    return new Promise(resolve=>{
+      const fallback=setTimeout(()=>{stopClip(clip);cleanup();resolve(false);},1200);
+      Promise.resolve(play.call(clip)).then(()=>{
+        clearTimeout(fallback);resolve(true);
+        setTimeout(()=>{
+          const began=performance.now();
+          const fade=now=>{if(activeSpinButtonClip!==clip)return;const t=Math.max(0,Math.min(1,(now-began)/150));clip.volume=.34*(1-t);if(t<1)requestAnimationFrame(fade);else{stopClip(clip);cleanup();}};
+          requestAnimationFrame(fade);
+        },Math.max(0,duration-150));
+      }).catch(()=>{clearTimeout(fallback);cleanup();resolve(false);});
+    });
   }
 
   function currentGame() {
@@ -669,8 +679,8 @@
     rouletteShotSequence = boundShotSequence;
   }
 
-  document.addEventListener('pointerdown', handleSpinGesture, true);
-  document.addEventListener('click', handleSpinGesture, true);
+  // The accepted cylinder animation starts its own sound, including remote
+  // spins. A pointer gesture alone may be rejected by the authoritative server.
 
   // Roulette result sounds are fired directly when the result popup appears.
   // Keep the older document scanner inactive to prevent duplicate result audio.

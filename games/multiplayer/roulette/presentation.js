@@ -10,7 +10,8 @@ function rouletteResetVisualRuntime(gameId){
 
 // SITE_FRAGMENT_START: rouletteQueueVisual_233182
 function rouletteQueueVisual(task){
-      rouletteVisualRuntime.queue=rouletteVisualRuntime.queue.then(async()=>{rouletteVisualRuntime.busy=true;try{await task()}finally{rouletteVisualRuntime.busy=false}}).catch(e=>rouletteDebug('visual queue error',{message:String(e?.message||e)}));
+      const queuedGameId=rouletteVisualRuntime.gameId;
+      rouletteVisualRuntime.queue=rouletteVisualRuntime.queue.then(async()=>{if(rouletteVisualRuntime.gameId!==queuedGameId)return;rouletteVisualRuntime.busy=true;try{await task()}finally{if(rouletteVisualRuntime.gameId===queuedGameId)rouletteVisualRuntime.busy=false}}).catch(e=>rouletteDebug('visual queue error',{message:String(e?.message||e)}));
       return rouletteVisualRuntime.queue;
     }
 // SITE_FRAGMENT_END: rouletteQueueVisual_233182
@@ -90,6 +91,8 @@ function roulettePatchMountedRuntime(game){
       const hasSpin=!!oldRoot.querySelector('[data-roulette-spin]');
       const hasPass=!!oldRoot.querySelector('[data-roulette-pass]');
       const hasWait=!!oldRoot.querySelector('.rr-control-note');
+      const permissions=[game.rouletteState?.canSpin,game.rouletteState?.canShoot,game.rouletteState?.canPass,game.rouletteState?.canExecute].map(Boolean).join();
+      const permissionsMatch=oldRoot.dataset.actionPermissions===permissions;
       const controlsMatch=!expectsControls||(hasControls&&hasShoot&&hasSpin&&
         (incomingPhase!=='press_luck'||!incomingMyTurn||hasPass));
       const waitMatches=!expectsWait||hasWait;
@@ -97,7 +100,7 @@ function roulettePatchMountedRuntime(game){
       // actual DOM structure agree. The opening animation temporarily removes
       // .rr-controls; without this structural guard, an unchanged poll could
       // incorrectly keep that control-less scene mounted forever.
-      if(incomingRevision===oldRevision&&incomingStatus===oldStatus&&incomingTurnId===oldTurnId&&incomingPhase===oldPhase&&incomingMyTurn===oldMyTurn&&incomingControlsLocked===oldControlsLocked&&incomingOpeningReady===oldOpeningReady&&controlsMatch&&waitMatches){
+      if(incomingRevision===oldRevision&&incomingStatus===oldStatus&&incomingTurnId===oldTurnId&&incomingPhase===oldPhase&&incomingMyTurn===oldMyTurn&&incomingControlsLocked===oldControlsLocked&&incomingOpeningReady===oldOpeningReady&&controlsMatch&&waitMatches&&permissionsMatch){
         rouletteVisualRuntime.mountedRevision=incomingRevision;
         rouletteVisualRuntime.mountedStatus=incomingStatus;
         requestAnimationFrame(()=>rouletteHandleEffects(game));
@@ -227,7 +230,7 @@ function rouletteBothReady(game){
 // SITE_FRAGMENT_START: rouletteOpeningCanStart_244665
 function rouletteOpeningCanStart(game){
       const st=game?.rouletteState||{};
-      return game?.status==='playing'&&rouletteBothReady(game)&&rouletteCountdownFinished(game)&&String(st.lastAction||'')==='opening_spin'&&Boolean(st.turnId);
+      return game?.status==='playing'&&rouletteBothReady(game)&&rouletteCountdownFinished(game)&&Boolean(st.openingSpinWinnerId)&&Boolean(st.turnId);
     }
 // SITE_FRAGMENT_END: rouletteOpeningCanStart_244665
 
@@ -362,6 +365,7 @@ function rouletteHtml(game){
       const openingConcealed=!complete&&!openingAlreadyCompleted;
       const preOpening=openingConcealed&&!openingCanStart;
       const revolverModel='steel-walnut';
+      const gunAsset=window.RouletteArsenal?.asset()||'assets/roulette/revolver-steel-walnut.png';
       const actor=String(st.turnId||'')===String(creator.userId||'')?creator:joiner;
       let status,sub,controlNote;
       if(!hasOpponent){status='WAITING FOR A PLAYER TO JOIN';sub='';controlNote='Waiting for other player';}
@@ -411,25 +415,25 @@ function rouletteHtml(game){
       // remounts from snapping the gun to either side mid-animation.
       const runtimeOwnsAngle=rouletteVisualRuntime.gameId===rouletteGameId&&rouletteVisualRuntime.angleHydrated&&Number.isFinite(rouletteVisualRuntime.currentAngle);
       const neutralAngle=!openingAlreadyCompleted?-4:(runtimeOwnsAngle?rouletteVisualRuntime.currentAngle:rouletteTurnAngle(game,st));
-      return `<div class="rr-game ${!hasOpponent?'rr-waiting-player ':''}${openingConcealed?'rr-opening-active ':''}${st.lastOutcome==='live'?'rr-fired':''}" data-roulette-scene="rustic-v2" data-roulette-opening="${openingConcealed?'1':'0'}" data-roulette-game data-game-id="${escapeHtml(String(game.gameId||''))}" data-revision="${Number(st.revision||0)}" data-status="${escapeHtml(String(game.status||''))}" data-turn-id="${escapeHtml(String(st.turnId||''))}" data-my-turn="${myTurn?'1':'0'}" data-phase="${escapeHtml(String(st.phase||''))}" data-controls-locked="${controlsLocked?'1':'0'}" data-opening-ready="${openingCanStart?'1':'0'}">
+      return `<div class="rr-game ${!hasOpponent?'rr-waiting-player ':''}${openingConcealed?'rr-opening-active ':''}${st.lastOutcome==='live'?'rr-fired':''}" data-roulette-scene="rustic-v2" data-action-permissions="${[st.canSpin,st.canShoot,st.canPass,st.canExecute].map(Boolean).join()}" data-roulette-opening="${openingConcealed?'1':'0'}" data-roulette-game data-game-id="${escapeHtml(String(game.gameId||''))}" data-revision="${Number(st.revision||0)}" data-status="${escapeHtml(String(game.status||''))}" data-turn-id="${escapeHtml(String(st.turnId||''))}" data-my-turn="${myTurn?'1':'0'}" data-phase="${escapeHtml(String(st.phase||''))}" data-controls-locked="${controlsLocked?'1':'0'}" data-opening-ready="${openingCanStart?'1':'0'}">
         <div class="rr-backwall"></div><div class="rr-floor" aria-hidden="true"></div><div class="rr-scene-props" aria-hidden="true"><div class="rr-light-volume"></div><div class="rr126-lamp-rig"><div class="rr126-swing"><div class="rr126-chain"></div><img id="rrLampPng" src="/assets/roulette/decor/rustic-pendant-v2.png" alt="" draggable="false"></div></div></div>
-        <div class="rr-top"><div class="rr-player ${openingAlreadyCompleted&&String(st.turnId||'')===String(creator.userId||'')?'active':''}">${roulettePlayerAvatar(creator)}<b>${escapeHtml(creator.name||'Player 1')}</b><span>${rouletteSpinWasUsed(game,creator.userId)?'SPIN USED':'SPIN READY'}</span></div><div class="rr-pot"><span>Pot</span><b>${rouletteCompactPot(game.pot||game.wager||0)}</b><small>Tickets</small></div><div class="rr-player ${openingAlreadyCompleted&&String(st.turnId||'')===String(joiner.userId||'')?'active':''}">${roulettePlayerAvatar(joiner)}<b>${escapeHtml(joiner.name||'Waiting for Player')}</b><span>${!hasOpponent?'OPEN SEAT':(rouletteSpinWasUsed(game,joiner.userId)?'SPIN USED':'SPIN READY')}</span></div></div>
+        <div class="rr-top"><div class="rr-player ${openingAlreadyCompleted&&String(st.turnId||'')===String(creator.userId||'')?'active':''}">${roulettePlayerAvatar(creator)}<b>${escapeHtml(creator.name||'Player 1')}</b><span>${rouletteSpinWasUsed(game,creator.userId)?'SPIN USED':'SPIN READY'}</span></div><div class="rr-pot"><span>Pot</span><b>${rouletteCompactPot(game.pot||game.wager||0)}</b><small>Tickets</small><span class="rr-turn-clock" data-roulette-clock aria-label="Turn time remaining">60s</span></div><div class="rr-player ${openingAlreadyCompleted&&String(st.turnId||'')===String(joiner.userId||'')?'active':''}">${roulettePlayerAvatar(joiner)}<b>${escapeHtml(joiner.name||'Waiting for Player')}</b><span>${!hasOpponent?'OPEN SEAT':(rouletteSpinWasUsed(game,joiner.userId)?'SPIN USED':'SPIN READY')}</span></div></div>
         <div class="rr-status"><strong>${status}</strong><small>${sub}</small></div>
         ${clientCountdownActive?`<div class="rr-scene-countdown" data-roulette-countdown><div class="duel-countdown-number cue">${escapeHtml(rouletteClientCountdownLabel()||'3')}</div></div>`:''}
         ${openingCanStart&&openingConcealed?'<div class="rr-opening-banner">Choosing First Player</div>':''}
-        <div class="rr-table"><img class="rr-table-art" src="/assets/roulette/decor/oval-table-v2.png" alt="" draggable="false"><div class="rr130-table-illumination" aria-hidden="true"><img src="/assets/roulette/decor/oval-table-v2.png" alt="" draggable="false"></div><div class="rr-table-shadow"></div>
+        <div class="rr-table-pedestal" aria-hidden="true"></div><div class="rr-room-shade" aria-hidden="true"></div><div class="rr-muzzle-room-light" aria-hidden="true"></div><div class="rr-table"><img class="rr-table-art" src="/assets/roulette/decor/oval-table-v2.png" alt="" draggable="false"><div class="rr130-table-illumination" aria-hidden="true"><img src="/assets/roulette/decor/oval-table-v2.png" alt="" draggable="false"></div><div class="rr-table-shadow"></div>
         <div class="rr-gun-motion" data-roulette-motion style="transform:${rouletteMotionTransform(neutralAngle)}">
           <div class="rr-turn-facing" data-roulette-facing="1" style="transform:rotate(${neutralAngle}deg)"><div class="rr-gun-recoil" data-roulette-recoil="1">
           <div class="rr-revolver rr-photo-revolver" aria-label="Long-barrel side-view revolver" data-revolver-model="${escapeHtml(revolverModel)}">
-            <img class="rr-gun-photo" src="assets/roulette/revolver-${escapeHtml(revolverModel)}.png" alt="" draggable="false">
+            <img class="rr-gun-photo" src="${gunAsset}" alt="" draggable="false">
             <span class="rr-hammer-cover" aria-hidden="true"></span>
-            <img class="rr-hammer-photo" src="assets/roulette/revolver-${escapeHtml(revolverModel)}-hammer.png" alt="" draggable="false">
+            <img class="rr-hammer-photo" src="${window.RouletteArsenal?.hammerAsset()||'assets/roulette/revolver-steel-walnut-hammer.png'}" alt="" draggable="false">
             <span class="rr-metal-glint" aria-hidden="true" style="--rr-gun-mask:url(&quot;assets/roulette/revolver-${escapeHtml(revolverModel)}.png&quot;)"></span>
           </div>
-          <div class="rr-shot-flash" aria-hidden="true"></div>
+          <i class="rr-muzzle-point" aria-hidden="true"></i><div class="rr-shot-flash" aria-hidden="true"></div>
           <div class="rr-shot-smoke" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
         </div></div></div><div class="rr-shell"></div></div>
-        ${controls}${final}
+        ${controls}<button class="rr-btn rr-execute" data-roulette-execute type="button" hidden>Shoot Em Dead</button>${window.RouletteArsenal?.menu()||''}${final}
       </div>`;
     }
 // SITE_FRAGMENT_END: rouletteHtml_251060
@@ -444,6 +448,8 @@ function rouletteBind(root=duelActive){
       gameRoot.querySelector('[data-roulette-spin]')?.addEventListener('click',(event)=>rouletteAct('roulette:spin',event));
       gameRoot.querySelector('[data-roulette-shoot]')?.addEventListener('click',(event)=>rouletteAct('roulette:shoot',event));
       gameRoot.querySelector('[data-roulette-pass]')?.addEventListener('click',(event)=>rouletteAct('roulette:pass',event));
+      window.RouletteArsenal?.bind(gameRoot);
+      window.RouletteTurnClock?.bind(gameRoot,rouletteLatestGame);
       duelBindResultButtons(rouletteLatestGame);
       gameRoot.querySelector('#duelNewGameBtn')?.addEventListener('click',duelStartNewGame);
       const boundGameId=String(gameRoot.dataset.gameId||'');
@@ -739,6 +745,7 @@ function rouletteHandleEffects(game){
       if(!root)return;
       try{if(localStorage.getItem(`rouletteOpeningDone:${gameId}`)==='1')rouletteOpeningCompletedGames.add(gameId)}catch(_){}
       if(rouletteOpeningCompletedGames.has(gameId))rouletteVisualRuntime.openingDone=true;
+      if(!rouletteVisualRuntime.openingDone&&rouletteEnsureClientCountdown(game))return;
       if(rouletteVisualRuntime.openingDone&&!rouletteVisualRuntime.angleHydrated&&st.turnId){
         const hydratedTurnId=String(st.turnId||'');
         const hydratedAngle=rouletteAngleForPlayer(game,hydratedTurnId);
@@ -763,6 +770,7 @@ function rouletteHandleEffects(game){
           rouletteQueueVisual(async()=>{
             try{
               await rouletteOpeningSequence(game,st,gameId);
+              if(rouletteVisualRuntime.gameId!==gameId)return;
               rouletteOpeningCompletedGames.add(gameId);
               try{localStorage.setItem(`rouletteOpeningDone:${gameId}`,'1')}catch(_){}
               rouletteVisualRuntime.openingDone=true;
@@ -770,7 +778,7 @@ function rouletteHandleEffects(game){
               const newestState=newest?.rouletteState||st;
               const openingWinnerId=String(st?.openingSpinWinnerId||st?.turnId||'');
               const authoritativeTurnId=String(newestState?.turnId||openingWinnerId);
-              const settledTurnId=authoritativeTurnId||openingWinnerId;
+              const settledTurnId=window.RouletteTurnLock?.lock?.turnId||openingWinnerId;
               const settledAngle=rouletteAngleForPlayer(newest,settledTurnId);
               rouletteVisualRuntime.currentAngle=settledAngle;
               rouletteVisualRuntime.angleHydrated=true;
@@ -793,7 +801,7 @@ function rouletteHandleEffects(game){
               rouletteVisualRuntime.openingDone=false;
               rouletteDebug('opening sequence failed',{message:String(e?.message||e)});
             }finally{
-              rouletteVisualRuntime.openingPending=false;
+              if(rouletteVisualRuntime.gameId===gameId)rouletteVisualRuntime.openingPending=false;
             }
           });
         }
@@ -824,7 +832,7 @@ function rouletteHandleEffects(game){
           const liveRoot=duelActive?.querySelector(`[data-roulette-game][data-game-id="${CSS.escape(gameId)}"]`);
           if(!liveRoot)return;
           // Cylinder spin feedback only. The revolver direction is untouched.
-          liveRoot.classList.add('rr-animation-lock');rouletteSpinSound();await rouletteWait(950);liveRoot.classList.remove('rr-animation-lock');
+          liveRoot.classList.add('rr-animation-lock');rouletteSpinSound();await window.RouletteArsenal?.spin?.(liveRoot);liveRoot.classList.remove('rr-animation-lock');
         });
       }
     }
@@ -900,7 +908,7 @@ async function rouletteAct(choice,event){
           const rollbackSpin=duelActive?.querySelector('[data-roulette-spin]');
           if(rollbackSpin&&rollbackSpin.dataset.optimisticSpin==='1'){
             rollbackSpin.innerHTML=previousSpinHtml||'<b>SPIN ×1</b><small>AVAILABLE</small>';
-            rollbackSpin.disabled=!(Boolean(st.canSpin)&&!rouletteSpinWasUsed(rouletteLatestGame||game));
+            rollbackSpin.disabled=!(Boolean(st.canSpin)&&!rouletteSpinWasUsed(rouletteLatestGame));
             delete rollbackSpin.dataset.optimisticSpin;
           }
         }
@@ -924,7 +932,7 @@ async function rouletteAct(choice,event){
             duelLastRenderKey='';
             const lockedRoot=duelActive?.querySelector('[data-roulette-game]');
             if(lockedRoot)lockedRoot.dataset.revision='-999999';
-            duelRenderActive(latest,true);
+            duelRenderActive(rouletteLatestGame||latest,true);
           }},40);
         }
       }

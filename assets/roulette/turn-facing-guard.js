@@ -487,6 +487,10 @@
     // Observing the snapshot must not consume its transition without queuing it.
     if (openingIsActive(root, lock)) return;
 
+    // The server may already be playing while this browser is counting down
+    // or decoding its first frame. Do not aim at the chosen player early.
+    if (String(root.dataset.controlsLocked)==='1' && visualRuntime()?.openingDone===false) return;
+
     if (state.pendingTransition) {
       await runPendingTransition();
       return;

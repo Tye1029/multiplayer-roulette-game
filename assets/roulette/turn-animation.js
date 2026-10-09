@@ -200,6 +200,7 @@
   function enforceLockedFacing(gameId) {
     const layers = ensureLayers(currentRoot(gameId));
     if (!layers) return null;
+    if (lock.opening && layers.facing === lock.animatingFacing) return layers;
 
     if (lock.gameId !== String(gameId || '')) {
       applyFacing(layers, -4, '', true);
@@ -322,7 +323,8 @@
     const layers = ensureLayers(currentRoot(gameId));
     if (!layers) return;
 
-    if (lock.opening) {
+    if(lock.gameId!==gameId){lock.epoch++;lock.opening=false;lock.firing=false;lock.pendingTurnId='';lock.animatingFacing=null;}
+    if (lock.opening || layers.root.classList.contains('rr-opening-active')) {
       if (layers.facing !== lock.animatingFacing && lock.pendingTurnId) {
         applyFacing(layers, lock.pendingAngle, lock.pendingTurnId, true);
       }
@@ -446,25 +448,22 @@
       )
     ]);
 
+    if(epoch!==lock.epoch||lock.gameId!==String(gameId))return;
     if (epoch === lock.epoch) {
       applyFacing(ensureLayers(currentRoot(gameId)), finalAngle, finalTurnId, true);
       setRuntimeLock(gameId, finalTurnId, finalAngle);
     }
-    lock.opening = false;
 
     banner.textContent = String(finalTurnId) === String(game?.creator?.userId || '')
       ? `${String(game?.creator?.name || 'PLAYER 1').toUpperCase()} GOES FIRST`
       : `${String(game?.joiner?.name || 'PLAYER 2').toUpperCase()} GOES FIRST`;
     await rouletteWait(850);
+    if(epoch!==lock.epoch||lock.gameId!==String(gameId))return;
     banner.remove();
     layers.root.classList.remove('rr-animation-lock', 'rr-opening-active');
     layers.root.dataset.rouletteOpening = '0';
-
-    const newest = latestGameFor(gameId, game);
-    const newestTurnId = String(newest?.rouletteState?.turnId || '');
-    if (newest?.status === 'playing' && newestTurnId && newestTurnId !== lock.turnId) {
-      await rotateToLockedTurn(newest, gameId, newestTurnId, 800);
-    }
+    lock.opening = false;
+    // Only the facing guard may consume a turn received during the chooser.
   };
 
   window.RouletteTurnLock = {

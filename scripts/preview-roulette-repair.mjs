@@ -51,6 +51,7 @@ const DUEL_STATUS_RANK={waiting:0,ready:1,countdown:2,playing:3,complete:4};
 const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=value=>String(value),getAudioContext=()=>null,sfxGain=null;
 const duelBindResultButtons=()=>{},duelStartNewGame=()=>location.reload();
+function duelPlayCountdownSound(_game,label){window.RouletteAudio?.countdownCue?.(label);}
 const fixtureMediaEvents=[];
 const fixtureNativePlay=HTMLMediaElement.prototype.play;
 HTMLMediaElement.prototype.play=function(...args){
@@ -94,6 +95,10 @@ function sampleMotion(now){
     if(run.angles.length<420)run.angles.push({t:Math.round(Number(animation.currentTime)||0),angle});
     motionRuns.set(id,run);
   }
+  const partRuns=proof.partRuns||(proof.partRuns=[]);
+  for(const part of root?.querySelectorAll('.rr-hammer-photo,.rr-drum-roll,.rr-shot-flash')||[]){for(const animation of part.getAnimations()){if(animation.playState==='running'&&!partRuns.some(r=>r.id===nodeId(animation)))partRuns.push({id:nodeId(animation),part:part.className,finish:root.querySelector('.rr-revolver')?.dataset.finish,duration:animation.effect.getTiming().duration,frames:animation.effect.getKeyframes().map(f=>({offset:f.offset,transform:f.transform,opacity:f.opacity}))});}}
+  const roomLight=root?.querySelector('.rr-muzzle-room-light');
+  if(roomLight&&Number(roomLight.style.opacity)>0){const room=root.getBoundingClientRect(),tip=root.querySelector('.rr-muzzle-point').getBoundingClientRect();const x=parseFloat(roomLight.style.getPropertyValue('--rr-shot-x')),y=parseFloat(roomLight.style.getPropertyValue('--rr-shot-y'));const shots=proof.shotLights||(proof.shotLights=[]);shots.push({finish:root.querySelector('.rr-revolver')?.dataset.finish,opacity:Number(roomLight.style.opacity),distance:Math.hypot(x-(tip.left-room.left),y-(tip.top-room.top))});}
   priorFrame=now;requestAnimationFrame(sampleMotion);
 }
 requestAnimationFrame(sampleMotion);
@@ -188,7 +193,7 @@ function sample(){
   document.getElementById('rotationProof').textContent=JSON.stringify(proof);
 }
 async function fixtureRequest(path){const response=await fetch(fixtureUrl(path),{method:'POST'});const result=await response.json();if(!response.ok)throw new Error(result.error);return result;}
-async function reset(){await fixtureRequest('/fixture/reset');duelLastActiveGame=null;rouletteLatestGame=null;rouletteOpeningCompletedGames.clear();duelActive.innerHTML='';await duelRefresh();}
+async function reset(){duelSetStatus('');await fixtureRequest('/fixture/reset');duelLastActiveGame=null;rouletteLatestGame=null;rouletteOpeningCompletedGames.clear();duelActive.innerHTML='';await duelRefresh();}
 document.getElementById('newFixture').onclick=reset;
 document.getElementById('botMove').onclick=async()=>{try{const result=await fixtureRequest('/fixture/bot');duelRenderActive(result.game);}catch(error){duelSetStatus(error.message);}};
 async function liveRound(loser){
@@ -206,6 +211,9 @@ async function liveRound(loser){
 }
 document.getElementById('leftLive').onclick=()=>liveRound('alice');
 document.getElementById('rightLive').onclick=()=>liveRound('bob');
+document.getElementById('opponentFirst').onclick=async()=>{duelSetStatus('');await fixtureRequest('/fixture/reset?first=bob');duelLastActiveGame=null;rouletteLatestGame=null;rouletteOpeningCompletedGames.clear();duelActive.innerHTML='';await duelRefresh();};
+document.getElementById('previewMechanism').onclick=()=>{document.getElementById('previewMechanism').disabled=true;return rouletteQueueVisual(async()=>{const root=duelActive.querySelector('[data-roulette-game]');await RouletteArsenal.spin(root);await rouletteShotSequence(rouletteLatestGame,{lastOutcome:'live',lastShotNumber:Math.random()},rouletteLatestGame.gameId);}).finally(()=>document.getElementById('previewMechanism').disabled=false);};
+document.getElementById('expireTurn').onclick=async()=>{const result=await fixtureRequest('/fixture/expire');duelRenderActive(result.game);};
 duelRefresh();setInterval(()=>{proof.polls++;duelRefresh();},600);setInterval(sample,80);
 `;
 
@@ -215,7 +223,7 @@ async function pageFor(base) {
   const sceneLinks = [...source.html.matchAll(/<link\b[^>]*>/gi)].map(match => match[0])
     .filter(tag => /rel=["']stylesheet["']/.test(tag) && /\/assets\/roulette\//.test(tag)).join('\n');
   const runtimeTags = [...source.html.matchAll(/<script\b[^>]*\bsrc=["']([^"']+)["'][^>]*><\/script>/gi)]
-    .filter(match => /\/assets\/roulette\/(?:motion-profile|audio-manager|spin-audio-policy|opening-spin-sync|audio-bindings|turn-animation|turn-fire|turn-facing-guard|lamp-config|lamp|lamp-bootstrap|scene)\.js(?:\?|$)/.test(match[1]))
+    .filter(match => /\/assets\/roulette\/(?:arsenal|turn-clock|motion-profile|audio-manager|spin-audio-policy|opening-spin-sync|audio-bindings|turn-animation|turn-fire|turn-facing-guard|lamp-config|lamp|lamp-bootstrap|scene)\.js(?:\?|$)/.test(match[1]))
     .map(match => match[0].replace(/\sdefer\b/gi, '')).join('\n');
   const localGlobals = source.deployed ? '' : "const rouletteAcceptedRevisionByGame=new Map(),rouletteDebugLines=[],rouletteHitMessages=['You lost this round.'];";
   const decor = productionDecorIds.map(id => scriptWithId(source.html, id)).join('\n');
@@ -224,7 +232,7 @@ async function pageFor(base) {
   return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 ${base ? '<base href="' + base + '">' : ''}${styles}${sceneLinks}
 <style>body{margin:0;padding:8px;background:#080808}#fixture{max-width:1040px;margin:auto}.fixture-tools{position:relative;color:white;text-align:center;font:12px Arial,sans-serif}.fixture-tools button{padding:8px;margin:4px}.fixture-tools button:disabled{cursor:default;opacity:.5}</style>
-</head><body data-asset-base="${base || 'local'}"><div class="fixture-tools"><b>Local test · no account or wager · ${base ? 'deployed scene' : 'workspace scene'}</b><div id="fixtureStatus"></div><button id="newFixture">New test round</button><button id="botMove">Bot takes shot and passes</button><button id="leftLive">Live round at left seat</button><button id="rightLive">Live round at right seat</button></div><div id="fixture"></div><output id="rotationProof" hidden></output>
+</head><body data-asset-base="${base || 'local'}"><div class="fixture-tools"><b>Local test · no account or wager · ${base ? 'deployed scene' : 'workspace scene'}</b><div id="fixtureStatus"></div><button id="newFixture">New test round</button><button id="opponentFirst">Opponent first</button><button id="expireTurn">Expire turn in 2 seconds</button><button id="previewMechanism">Preview gun mechanisms</button><button id="botMove">Bot takes shot and passes</button><button id="leftLive">Live round at left seat</button><button id="rightLive">Live round at right seat</button></div><div id="fixture"></div><output id="rotationProof" hidden></output>
 <script>${globals}\n${localGlobals}\n${source.presentation}</script>${decor}${runtimeTags}<script>${instrumentation}</script></body></html>`;
 }
 
@@ -250,7 +258,8 @@ createServer(async (request, response) => {
     const url = new URL(request.url, 'http://localhost');
     const path = url.pathname;
     if (path.startsWith('/fixture/')) {
-      if (path === '/fixture/reset') fixture.reset();
+      if (path === '/fixture/reset') {fixture.reset();if(url.searchParams.get('first')==='bob'){fixture.get().rouletteState.turnId='bob';fixture.get().rouletteState.openingSpinWinnerId='bob';}}
+      if (path === '/fixture/expire') {fixture.get().rouletteState.turnDeadline=new Date(Date.now()+2500).toISOString();}
       if (path === '/fixture/action') {
         let body = ''; for await (const part of request) body += part;
         const input = JSON.parse(body);await fixture.act(input.choice, 'alice', input);

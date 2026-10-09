@@ -13,6 +13,7 @@ export async function rouletteTestRuntime() {
     withRouletteLock: async (_id, task) => task(),
     duelSanitizeGame: value => structuredClone(value),
     duelGetRaw: async () => game,
+    duelGetRawStrong: async () => game,
     duelSaveGame: async value => (game = value),
     getUserRecord: async () => ({}),
     duelPublicGame: (value, viewer) => ({ ...value, isCreator: viewer === 'alice', rouletteState: context.roulettePublicState(value, viewer) }),
@@ -28,7 +29,7 @@ export async function rouletteTestRuntime() {
       game = { gameId: `roulette-fixture-${Date.now()}`, mode: 'roulette', status: 'playing', revision: 1,
         creator: { userId: 'alice', name: 'Alice' }, joiner: { userId: 'bob', name: 'Remote Bot', isNpc: true },
         ready: { alice: true, bob: true }, startAt: new Date(Date.now() - 10000).toISOString(), pot: 0, wager: 0 };
-      game.rouletteState = context.rouletteInitialState(game);
+      game.rouletteState = context.rouletteInitialState(game,Date.now()-10000);
       game.rouletteState.turnId = 'alice'; game.rouletteState.openingSpinWinnerId = 'alice';
       return game;
     },
