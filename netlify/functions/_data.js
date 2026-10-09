@@ -5911,6 +5911,8 @@ function safeCrackerSummary(game, state, winnerId, tie, reason) {
 
 // SAFE_CRACKER_DIRECT_COMPLETION_START
 function safeCrackerCompletedPlayerId(game, state) {
+  const failed = safeCrackerPlayerIds(game).find(id => state?.players?.[id]?.heist?.failed);
+  if (failed) return safeCrackerPlayerIds(game).find(id => id !== failed) || '';
   return safeCrackerPlayerIds(game)
     .filter(id => Boolean(state?.players?.[id]?.completedAt) || int(state?.players?.[id]?.stage, 0) >= SAFE_CRACKER_STAGES)
     .sort((a, b) => String(state?.players?.[a]?.completedAt || '').localeCompare(String(state?.players?.[b]?.completedAt || '')))[0] || '';
@@ -5945,6 +5947,7 @@ async function safeCrackerComplete(game, state, winnerId = '', reason = '') {
     revision: Math.max(int(finalBase.revision, 0), int(state?.revision, 0)) + 1,
     npcActionAt: null
   };
+  if (ids.some(id => finalBase.players?.[id]?.heist?.failed)) reason = 'Five wrong wires triggered vault lockdown.';
   const summary = {
     ...safeCrackerSummary(baseGame, finalState, cleanWinner, tie, reason),
     completionAt,
@@ -6026,6 +6029,7 @@ async function safeCrackerApplyGuess(game, actorId, guess, actionId = '', isBot 
       const nextHeist = SAFE_CRACKER_HEIST.apply(player.heist, toolCommand, now);
       if (nextHeist === player.heist) return latest;
       player.heist = nextHeist;
+      player.heist.lastAction.actionId = cleanActionId;
     } else {
       if (player.heist && player.heist.phase !== 2) throw new Error('Finish the panel and wiring before checking the dial.');
       const stage = int(player.stage, 0);
@@ -6067,6 +6071,10 @@ async function safeCrackerApplyGuess(game, actorId, guess, actionId = '', isBot 
 
     // Final digits still use the protected immediate-completion path so the bot
     // cannot write after the winning player and reopen the round.
+    if (player.heist?.failed) {
+      const opponentId = safeCrackerPlayerIds(latest).find(other => other !== id);
+      return await safeCrackerComplete(candidate, state, opponentId, 'Five wrong wires triggered vault lockdown.');
+    }
     if (player.stage >= SAFE_CRACKER_STAGES) {
       return await safeCrackerComplete(candidate, state, id, ((latest.creator?.userId === id ? latest.creator?.name : latest.joiner?.name) || 'A player') + ' opened the safe first.');
     }
@@ -6177,7 +6185,10 @@ async function safeCrackerAction(user, gameId, rawChoice, details = {}) {
     }
     if (/^safecracker:(screw:[0-7]:(slot|cross|pozidriv|hex|star|triwing)|card:(open|close)|cut:(red|blue|green|yellow|orange|purple|pink|cyan|white|brown|lime|gray))$/.test(String(rawChoice))) {
       game = await safeCrackerApplyGuess({ ...game, safecrackerState: state }, viewer, String(rawChoice).slice(12), actionId, false);
-      return { game: duelPublicGame(game, viewer), skipBalanceLookup: true, feedbackPath: 'heist-authoritative-v2', feedbackServerMs: Date.now() - actionStartedAt };
+      const response = { game: duelPublicGame(game, viewer), feedbackPath: 'heist-authoritative-v3', feedbackServerMs: Date.now() - actionStartedAt };
+      if (game.status === 'complete') response.record = await getUserRecord(viewer);
+      else response.skipBalanceLookup = true;
+      return response;
     }
     const match = /^safecracker:guess:([0-9])$/.exec(String(rawChoice || '').toLowerCase());
     if (!match) throw new Error('Choose one dial number from 0 to 9.');

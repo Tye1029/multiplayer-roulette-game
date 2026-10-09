@@ -1,6 +1,6 @@
-# Three-stage Safe Cracker — heist26
+# Three-stage Safe Cracker — heist27
 
-New rounds are a 180-second race through eight fasteners, twelve wires, and the
+New rounds are a 180-second race through eight fasteners, ten wires, and the
 existing three tumblers. Existing persisted version-one rounds retain their
 60-second dial-only rules. The shared account, authentication, balance, lobby,
 result receipt, rematch and admin/API paths remain in use.
@@ -8,8 +8,9 @@ result receipt, rematch and admin/API paths remain in use.
 `netlify/functions/safe-cracker/heist.js` owns randomized puzzles and tool rules.
 `_data.js` applies those actions under the existing multiplayer lock, revision,
 idempotency and completion guards. A new round generates fresh private puzzles.
-The opponent receives only phase and progress counts. The note order is sent
-only while its server-owned card-open flag is set; cuts are rejected while open.
+The opponent receives only phase and progress counts. The viewer’s own note is preloaded privately for instant pickup; it is rendered
+only while open. Opponents receive no note or screw layout. The server-owned
+card-open flag still rejects cuts until the preceding close action is committed.
 
 The six head symbols are flat, cross, Pozi, hex, star and tri-wing. Every panel
 contains all six and two random duplicates, shuffled across eight sockets.
@@ -17,14 +18,20 @@ A mismatched driver strips a screw. Three subsequent correct uses remove it;
 another incorrect use does not erase earned turns. Removed screws stay removed.
 
 Each wire can be cut once. An incorrect wire stays cut, adds a fault and is
-skipped when its place in the order arrives, so every puzzle remains solvable.
+skipped when its place in the order arrives, until five faults trigger an automatic loss. Existing twelve-wire rounds retain
+their original wire count.
 One fault hides the central number, two map yellow feedback to orange, and three
 mask every proximity tier. Correct latches and locked digits remain available.
 There is no client-only penalty that can reveal the true proximity in a response.
 
-The browser's `heist.js` owns pointer dragging, tap/keyboard alternatives, card
+The browser's `heist.js` owns drag-only pointer tools, card
 focus, and stable board updates. `heist.css` scopes the new shell and dial finish.
 The generated backplate is static; wires, screws, tools and feedback are live.
+`heist-input.js` immediately projects each tool action, serializes writes, and
+reconciles action-ID acknowledgments without replaying effects. Failed requests
+retry once with the same ID, then roll back to the last authoritative state.
+Quitting or rematching discards outstanding presentation work. Dial checks retain
+the authoritative 500ms interval; the dial stage unlocks after wire writes settle.
 No per-frame work runs while idle. Drag painting uses one animation-frame request
 at a time; sparks, panel removal and opening light have bounded durations.
 
@@ -61,7 +68,8 @@ patches and their required inputs remain build/validation dependencies. New
 interior media loads only when Safe Cracker's existing asset warm-up is invoked.
 Local test servers, screenshots and full-resolution source art are not deployed.
 
-Validation: `node scripts/validate-safe-cracker-heist.mjs` plus `npm run build`.
+Validation: `node scripts/validate-safe-cracker-heist.mjs`,
+`node scripts/validate-safe-cracker-heist-input.mjs`, plus `npm run build`.
 The behavioral test covers randomized plans, stripping, private cards, cut
 penalties, bot progression, actor/phase/deadline guards, duplicate requests,
 legacy compatibility and fresh rematch state.

@@ -600,7 +600,8 @@
     // Confirm the checked digit for 240ms, then preserve the earlier 1080ms
     // small opening and 520ms viewing time for the glowing seam.
     const revealDelay = reducedMotion ? 0 : won ? 1840 : tied ? 420 : 520;
-    const remaining = Math.max(0, revealDelay - elapsed);
+    const failureDelay = !reducedMotion && game.safecrackerState?.me?.heist?.failed ? 1100 : 0;
+    const remaining = Math.max(0, Math.max(revealDelay, failureDelay) - elapsed);
     if (runtime.resultPortalTimer) window.clearTimeout(runtime.resultPortalTimer);
     runtime.resultPortalTimer = window.setTimeout(() => {
       revealSafeCrackerResultPortal(fresh, won);
@@ -745,8 +746,8 @@
     const message = tied
       ? 'Neither safe opened before time expired. Both wagers were returned.'
       : won
-        ? `You opened your safe first and won ${Number(game.payout || 0).toLocaleString('en-US')} Chips.`
-        : funnyLoss(game.gameId);
+        ? (String(game.resultSummary?.text || game.result?.text || '').includes('Five wrong wires') ? `Your opponent triggered vault lockdown. You won ${Number(game.payout || 0).toLocaleString('en-US')} Chips.` : `You opened your safe first and won ${Number(game.payout || 0).toLocaleString('en-US')} Chips.`)
+        : state.me?.heist?.failed ? 'Five wrong wires triggered vault lockdown. Your opponent wins.' : funnyLoss(game.gameId);
     const reveal = state.revealedCodes || {};
     const me = game.isCreator ? game.creator : game.joiner;
     const opponent = game.isCreator ? game.joiner : game.creator;
