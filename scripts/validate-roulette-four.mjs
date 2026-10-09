@@ -134,3 +134,25 @@ assert(!app.includes('/.netlify/functions/'), 'Practice cannot mutate account or
 assert(app.includes('createPersonality()')); assert(app.includes('stopTimers()'));
 console.log('Four-player Roulette validated: six chambers, $20 ladder, cent-exact weighted/tied splits, all 24 orders, all viewer perspectives, 1,000 randomized bot rounds and rematch lifecycle.');
 await import('./validate-roulette-four-profile.mjs');
+
+const { rotationPlan } = await import('../assets/roulette-four/motion.mjs');
+for (const current of [0, 90, 270, 1890]) for (const target of [0, 90, 180, 270]) {
+  const turn = rotationPlan(current, target), opening = rotationPlan(current, target, true);
+  assert(turn.angle >= current); assert.equal(turn.angle % 360, target);
+  assert(turn.duration <= 1380); assert(opening.duration >= 4200 && opening.duration <= 5250);
+  assert.equal(opening.angle - turn.angle, 1080);
+}
+assert(rotationPlan(0,270).duration > rotationPlan(0,90).duration, 'Skipped seats receive more rotation time');
+const { normalizeProfile, loadProfile } = await import('../assets/roulette-four/profile.mjs');
+assert.equal(normalizeProfile({ id: 1, name: '  Test  ', gender: '" onclick="bad', avatar: 'javascript:bad' }).gender, 'unknown');
+assert.equal(normalizeProfile({ id: 1, name: 'Test', avatar: 'https://user:secret@example.com/p.png' }).avatar, null);
+assert.equal(normalizeProfile({ id: 'invalid', name: 'Test' }), null);
+const saved = { localStorage: globalThis.localStorage, sessionStorage: globalThis.sessionStorage, fetch: globalThis.fetch };
+try {
+  let requests = 0;
+  globalThis.localStorage = { getItem: key => key === 'tornVisitorApiKey' ? 'TESTPROFILEKEY00' : '1' };
+  globalThis.sessionStorage = { getItem: () => JSON.stringify({ at: Date.now() + 999999, profile: { id: '1', name: 'Stale' } }), setItem() {} };
+  globalThis.fetch = async () => { requests++; return { ok: true, json: async () => ({ ok: true, profile: { id: '1', name: 'Fresh', gender: 'male' } }) }; };
+  assert.equal((await loadProfile()).profile.name, 'Fresh'); assert.equal(requests, 1, 'Future-dated profile caches are rejected');
+} finally { Object.assign(globalThis, saved); }
+console.log('Four-player readiness validated: bounded rotation timings, normalized cached profiles and cache expiry.');
