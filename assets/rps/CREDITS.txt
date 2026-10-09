@@ -1,0 +1,33 @@
+HAND OF DOOM — asset credits
+
+Music: "Metalmania" Kevin MacLeod (incompetech.com)
+https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1700023
+Licensed under Creative Commons Attribution 4.0:
+https://creativecommons.org/licenses/by/4.0/
+Adaptation: 25.6-second excerpt, fades, compressed to MP3. A short excerpt is
+also layered into the hand-reveal impact cue.
+
+Crowd: "Free Crowd Cheering Sounds" by Gregor Quendel
+https://opengameart.org/content/free-crowd-cheering-sounds
+https://www.gregorquendel.com/
+Licensed under Creative Commons Attribution 4.0:
+https://creativecommons.org/licenses/by/4.0/
+Adaptation: excerpts of 07 (Soft cheering and chatter) and 04 (Strong cheering
+II - Short), fades and MP3 recompression. No endorsement implied.
+
+Swish: "Swishes Sound Pack" by artisticdude, for Summoning Wars
+https://opengameart.org/content/swishes-sound-pack
+CC0: https://creativecommons.org/publicdomain/zero/1.0/
+Adaptation: swish-7, echo, MP3 compression; pitched version in impact cue.
+
+Announcer: original short lines rendered with installed Microsoft David Desktop
+speech synthesis, lowered pitch and short stadium echo. These are synthesized
+voice clips, not a recording of a human performer.
+
+Arena and character: generated using the built-in OpenAI image generation tool,
+October 9, 2026; optimized as PNG with aspect ratio preserved. The blue rival is
+a mirrored, hue-shifted reuse of the same gladiator. Hands are original SVG art.
+Prompt provenance: docs/rps-hand-of-doom.md in the source repository.
+
+Only the selected game's page loads these assets. All bundled media is used.
+No existing historical or protected-game assets were superseded by this game.

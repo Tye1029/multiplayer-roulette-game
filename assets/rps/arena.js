@@ -1,0 +1,265 @@
+/* HAND_OF_DOOM_V1_20261009 */
+(() => {
+  'use strict';
+  const $ = id => document.getElementById(id), rules = window.RPSRules, audio = window.RPSAudio;
+  const buttons = [...document.querySelectorAll('[data-choice]')];
+  const storage = { get(k) { try { return sessionStorage.getItem(k); } catch { return null; } },
+    set(k,v) { try { if (v == null) sessionStorage.removeItem(k); else sessionStorage.setItem(k,v); } catch {} } };
+  let token = storage.get('rps-token') || '', player = null, game = null, practice = null;
+  let busy = false, epoch = 0, pollTimer, polling = false, serverAnchor = Date.now(), perfAnchor = performance.now();
+  let lastShot = '', lastReveal = '', lastRound = '', historyKey = '', lastRivalMatch = '';
+  const inviteId = new URLSearchParams(location.search).get('arena') || '';
+  let gameId = storage.get('rps-match') || '';
+  $('joinCode').value = /^[a-f0-9]{12}$/i.test(inviteId) ? inviteId.toUpperCase() : '';
+  function status(text, error = false) { $('status').textContent = text; $('status').classList.toggle('error', error); }
+  function hand(choice) {
+    // Original vector hand drawings; the readable hand is always paired with its word.
+    const paths = {
+      rock: '<path d="M54 147 40 119 34 76Q33 60 47 59L57 61Q54 43 67 42Q82 42 86 61Q84 42 97 42Q110 41 114 62Q117 48 129 53Q141 58 140 76L148 90Q157 99 149 122L136 150Z"/><path d="M54 77Q56 61 69 68L106 89Q113 102 102 109L73 95M86 62 88 82M114 63 114 85M140 76 137 99M73 108 92 120 132 119" fill="none"/>',
+      paper: '<path d="M65 154Q45 138 37 113L19 88Q13 74 25 69Q33 65 43 79L57 97 49 34Q48 20 59 19Q71 18 73 34L81 80 78 19Q79 6 90 8Q101 8 102 24L104 79 111 25Q113 12 124 16Q135 20 131 35L126 85 141 45Q145 32 155 38Q163 44 157 57L145 111Q141 130 123 152Z"/><path d="M57 97Q76 95 83 117M79 128Q96 113 120 118" fill="none"/>',
+      scissors: '<path d="M65 150 48 122Q36 107 45 94Q50 88 61 92L38 33Q32 18 44 14Q55 10 62 26L87 79 100 21Q103 6 116 10Q128 13 123 29L111 84Q122 74 132 81L145 95Q154 106 147 123L131 150Z"/><path d="M63 91 89 101Q100 109 92 119Q84 126 72 116L58 108M110 84 103 103M130 91 118 111" fill="none"/>'
+    };
+    return `<svg viewBox="0 0 180 190" aria-hidden="true"><g fill="currentColor" stroke="#38251e" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">${paths[choice] || paths.rock}<path d="M58 147 136 147 145 183 52 183Z" fill="#9b6938"/><path d="M65 156H130M69 169H133" stroke="#edc879"/><circle cx="98" cy="166" r="9" fill="#d3a958"/></g></svg>`;
+  }
+  for (const b of buttons) b.querySelector('.choice-art').innerHTML = hand(b.dataset.choice);
+  function soundLabel() { $('sound').textContent = audio.enabled && audio.unlocked ? 'Sound on' : 'Sound off'; $('sound').setAttribute('aria-pressed', String(audio.enabled && audio.unlocked)); }
+  function unlock() { audio.unlock(); soundLabel(); }
+  $('sound').onclick = () => { if (!audio.unlocked && audio.enabled) audio.unlock(); else audio.toggle(); soundLabel(); };
+  let calm = localStorage.getItem('rps-calm') === '1' || matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function motionLabel() { document.body.classList.toggle('calm', calm); $('motion').setAttribute('aria-pressed', String(calm)); $('motion').textContent = calm ? 'Calm camera on' : 'Calm camera'; }
+  $('motion').onclick = () => { calm = !calm; localStorage.setItem('rps-calm', calm ? '1' : '0'); motionLabel(); }; motionLabel();
+  async function request(action, extra = {}) {
+    const started = performance.now();
+    const response = await fetch('/.netlify/functions/rps-action', { method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ action, token, ...extra }), signal:AbortSignal.timeout(12000) });
+    let data; try { data = await response.json(); } catch { throw new Error('The arena did not respond. Please retry.'); }
+    if (!response.ok || !data.ok) {
+      if (response.status === 401 && action !== 'login') { token = ''; storage.set('rps-token', null); connected(false); }
+      throw new Error(data.error || 'The arena is unavailable. Please retry.');
+    }
+    if (data.game) data.localServerNow = data.game.serverNow + (performance.now() - started) / 2;
+    return data;
+  }
+  function connected(yes) {
+    for (const id of ['create','remoteBot','join','refresh']) $(id).disabled = !yes || Boolean(game && !['complete','cancelled'].includes(game.phase));
+    for (const b of $('openGames').querySelectorAll('button')) b.disabled = Boolean(game && !['complete','cancelled'].includes(game.phase));
+    $('loginForm').hidden = yes;
+    $('identity').textContent = yes ? `${player.name} · Verified challenger` : 'Practice is ready. Connect for live 1v1.';
+  }
+  async function login(key) {
+    if (busy) return; busy = true; $('connect').disabled = true; $('identity').textContent = 'Verifying your Torn identity…';
+    try {
+      const data = await request('login', {visitorKey:key});
+      token = data.token; player = data.player; storage.set('rps-token', token); $('apiKey').value = ''; connected(true);
+      await loadLobby(); await loadRivals();
+      if (gameId && !practice) { try { await resume(gameId); } catch { gameId = ''; storage.set('rps-match',null); } }
+    } catch (e) { connected(false); $('identity').textContent = e.message; status(e.message,true); }
+    finally { busy = false; $('connect').disabled = false; }
+  }
+  $('loginForm').onsubmit = e => { e.preventDefault(); unlock(); login($('apiKey').value.trim()); };
+  async function loadLobby() {
+    if (!token) return;
+    const data = await request('lobby'); player = data.player; connected(true); $('openGames').replaceChildren();
+    if (!data.games.length) $('openGames').textContent = 'The sand is yours. Create the first challenge.';
+    for (const item of data.games) {
+      const b = document.createElement('button'), name = document.createElement('span'), action = document.createElement('b');
+      name.textContent = item.name; action.textContent = item.mine ? 'Resume →' : 'Duel →'; b.append(name,action);
+      b.disabled = Boolean(game && !['complete','cancelled'].includes(game.phase)); b.onclick = () => perform('join', {gameId:item.id}); $('openGames').append(b);
+    }
+  }
+  async function loadRivals() {
+    if (!token) return;
+    try {
+      const data = await request('rivals'), rival = data.archRival;
+      $('archName').textContent = rival ? rival.name : 'A legend needs a nemesis.';
+      $('archStats').textContent = rival ? `${rival.matches} matches · You ${rival.wins} — ${rival.losses} ${rival.name}` : 'Finish a live duel to begin your rivalry.';
+      $('rivalList').replaceChildren();
+      for (const rival of data.opponents.slice(0,8)) {
+        const row = document.createElement('div'); row.className = 'rival-row';
+        const n = document.createElement('span'), s = document.createElement('b'); n.textContent = rival.name; s.textContent = `${rival.wins} W / ${rival.losses} L`;
+        row.append(n,s); $('rivalList').append(row);
+      }
+    } catch { $('archStats').textContent = 'Rivalry records are temporarily unavailable. Refresh to retry.'; }
+  }
+  function resetPresentation() { lastShot = ''; lastRound = ''; lastReveal = ''; historyKey = ''; $('confetti').replaceChildren(); }
+  function accept(data) {
+    const s = data.game;
+    if (game?.id === s.id && (s.revision < game.revision || (s.revision === game.revision && s.serverNow < game.serverNow))) return;
+    if (game?.id !== s.id) resetPresentation();
+    game = s; gameId = s.id; player = data.player || player;
+    serverAnchor = data.localServerNow || s.serverNow; perfAnchor = performance.now();
+    if (!practice) storage.set('rps-match', gameId);
+    if (s.nextMatch && !practice) { resume(s.nextMatch).catch(e => status(e.message,true)); return; }
+    render();
+  }
+  async function resume(id) { const guard = epoch; const data = await request('get',{gameId:id}); if (guard === epoch) { accept(data); schedulePoll(); } }
+  async function perform(action, extra = {}) {
+    if (busy) return;
+    busy = true; const guard = epoch; unlock();
+    try {
+      status('Contacting the arena…');
+      const data = await request(action,{gameId,...extra});
+      if (guard !== epoch) return;
+      practice = null; accept(data); schedulePoll();
+      if (['create','join','rematch'].includes(action)) document.querySelector('.game-column').scrollIntoView({block:'start',behavior:calm?'instant':'smooth'});
+      if (action === 'leave') exit();
+    } catch (e) { if (guard === epoch) status(e.message,true); }
+    finally { busy = false; if (game) renderControls(); }
+  }
+  function schedulePoll() { clearTimeout(pollTimer); if (practice || !gameId || !token || game?.phase === 'cancelled') return; pollTimer = setTimeout(poll, ['waiting','complete'].includes(game?.phase) ? 1800 : 450); }
+  async function poll() {
+    if (polling || practice || !gameId || !token) return;
+    if (document.hidden) { pollTimer = setTimeout(poll,2000); return; }
+    polling = true; const guard = epoch, id = gameId;
+    try { const data = await request('get',{gameId:id}); if (guard === epoch && id === gameId) accept(data); }
+    catch (e) { if (guard === epoch) status(`${e.message} Reconnecting…`,true); }
+    finally { polling = false; if (guard === epoch) schedulePoll(); }
+  }
+  function startPractice() {
+    if (game && !['complete','cancelled'].includes(game.phase)) return;
+    epoch++; clearTimeout(pollTimer); unlock();
+    const now = Date.now(); practice = rules.join(rules.create(`practice-${now}`,{id:'you',name:player?.name || 'You'},now),{id:'bot:emperor',name:'Emperor Scissorius',bot:true},now);
+    accept({game:rules.publicState(practice,'you',now)});
+    document.querySelector('.game-column').scrollIntoView({block:'start',behavior:calm?'instant':'smooth'});
+  }
+  function choose(choice) {
+    if (!game || busy || game.phase !== 'choosing' || game.locked[game.seat]) return;
+    unlock();
+    if (practice) {
+      const now = Date.now(), bytes = new Uint32Array(1); crypto.getRandomValues(bytes);
+      practice = rules.pick(practice,'bot:emperor',rules.CHOICES[bytes[0] % 3],practice.round,now);
+      practice = rules.pick(practice,'you',choice,practice.round,now,(practice.round-1)%3);
+      accept({game:rules.publicState(practice,'you',now)});
+    } else { perform('pick',{choice,round:game.round}); renderControls(); }
+  }
+  for (const b of buttons) b.onclick = () => choose(b.dataset.choice);
+  document.addEventListener('keydown', e => { if (/INPUT|TEXTAREA|SELECT/.test(e.target.tagName) || e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+    if (['1','2','3'].includes(e.key)) { e.preventDefault(); choose(rules.CHOICES[Number(e.key)-1]); } });
+  $('practice').onclick = startPractice;
+  $('create').onclick = () => perform('create'); $('remoteBot').onclick = () => perform('create',{bot:true});
+  $('joinForm').onsubmit = e => { e.preventDefault(); if (token) perform('join',{gameId:$('joinCode').value.trim().toUpperCase()}); };
+  $('refresh').onclick = () => { loadLobby().catch(e => status(e.message,true)); loadRivals(); };
+  $('leave').onclick = () => { if (practice) exit(); else perform('leave'); };
+  $('backLobby').onclick = exit;
+  $('rematch').onclick = () => { if (practice) startPractice(); else perform('rematch'); };
+  $('copy').onclick = async () => {
+    const url = new URL(location.pathname,location.origin); url.searchParams.set('arena',gameId);
+    try { await navigator.clipboard.writeText(url.href); $('copy').textContent = 'Copied!'; }
+    catch { $('arenaCode').select(); status('Copy the selected arena code and send it to your rival.'); }
+  };
+  function exit() {
+    epoch++; clearTimeout(pollTimer); practice = null; game = null; gameId = ''; storage.set('rps-match',null); resetPresentation();
+    $('arena').dataset.shot = 'wide'; $('arena').classList.remove('celebrate','sudden'); $('invite').hidden = true; $('leave').hidden = true;
+    $('hands').setAttribute('aria-hidden','true'); $('matchActions').hidden = true; $('choices').hidden = false;
+    $('callout').textContent = 'THE ARENA AWAITS.'; $('subcallout').textContent = 'A new grudge is only three hand gestures away.';
+    $('crowdLabel').textContent = 'THE CROWD DEMANDS HANDS'; $('roundLabel').textContent = 'FIRST TO TWO ROUND WINS';
+    $('pickTitle').textContent = 'Choose your weapon.'; $('scoreA').textContent = '0'; $('scoreB').textContent = '0'; $('roundHistory').replaceChildren();
+    $('announcer').textContent = '“Bring me another unreasonable rivalry!”'; $('practice').disabled = false; buttons.forEach(b => { b.disabled=true; b.classList.remove('selected'); });
+    audio.hush(false); audio.stop(); connected(Boolean(token)); status('Create a live duel or challenge the emperor.');
+    if (token) { loadLobby().catch(e=>status(e.message,true)); loadRivals(); }
+  }
+  function renderControls() {
+    if (!game) return;
+    const g = game, ended = ['complete','cancelled'].includes(g.phase);
+    buttons.forEach(b => { b.disabled = busy || (!practice && !token) || g.phase !== 'choosing' || g.locked[g.seat]; b.classList.toggle('selected',b.dataset.choice === g.myChoice); });
+    $('choices').hidden = ended; $('matchActions').hidden = !ended;
+    $('rematch').hidden = g.phase !== 'complete'; $('rematch').disabled = busy || g.rematchVotes.includes(player?.id);
+    $('rematch').textContent = g.rematchVotes.includes(player?.id) ? 'Rival has been challenged…' : 'Demand a rematch';
+    $('practice').disabled = !ended; $('leave').hidden = ended;
+    $('pickTitle').textContent = ended ? (g.phase === 'complete' ? 'Settle this again?' : 'The duel ended.') : g.phase === 'waiting' ? 'Your rival is on the way.' : g.locked[g.seat] ? 'Your hand is locked.' : 'Choose your weapon.';
+    $('roundHint').textContent = g.suddenDeath && !ended ? '1–1. One hand decides everything.' : 'First to two wins. Ties do not count.';
+    connected(Boolean(token));
+  }
+  function render() {
+    const g = game, exhibition = Boolean(practice), bot = g.players.some(p => p.bot);
+    $('modeLabel').textContent = exhibition ? 'EXHIBITION · LOCAL PRACTICE' : bot ? 'REMOTE NETWORK BOT · UNRANKED' : 'LIVE 1V1 · RIVALRY MATCH';
+    $('nameA').textContent = g.players[0].name + (g.seat === 0 ? ' · YOU' : '');
+    $('nameB').textContent = (g.players[1]?.name || 'Awaiting challenger') + (g.seat === 1 ? ' · YOU' : '');
+    $('scoreA').textContent = g.scores[0]; $('scoreB').textContent = g.scores[1];
+    $('lockA').textContent = g.locked[0] ? 'HAND LOCKED' : 'HAND CONCEALED'; $('lockB').textContent = g.locked[1] ? 'HAND LOCKED' : 'HAND CONCEALED';
+    $('invite').hidden = exhibition || bot || g.phase !== 'waiting'; $('arenaCode').value = g.id;
+    renderControls();
+    const hKey = JSON.stringify(g.history);
+    if (hKey !== historyKey) { historyKey = hKey; $('roundHistory').replaceChildren(); for (const r of g.history) {
+      const el = document.createElement('span'); el.textContent = `R${r.round} · ${r.picks.join(' / ')} · ${r.winner === null ? 'Tie' : r.winner === g.seat ? 'Win' : 'Loss'}`; $('roundHistory').append(el);
+    } }
+    if (g.phase === 'waiting') status('Share your arena code or invite link. Your opponent can join from another device.');
+    if (g.phase === 'choosing') status(g.locked[g.seat] ? 'Hand locked. Waiting for your opponent…' : 'Pick a hand. Your rival cannot see it until both hands are locked.');
+    if (g.phase === 'reveal') status('Both hands locked. Prepare for a wildly excessive reveal.');
+    if (g.phase === 'cancelled') status(g.reason);
+    if (g.phase === 'complete') {
+      status(exhibition || bot ? 'Exhibition complete. Bot matches never affect rivalry records.' : 'Match complete. Your rivalry record is saved.');
+      if (!exhibition && lastRivalMatch !== g.id) { lastRivalMatch = g.id; loadRivals(); }
+    }
+    tick();
+  }
+  function showShot(shot) {
+    if (shot === lastShot) return;
+    $('arena').dataset.shot = shot; lastShot = shot;
+    if (shot === 'eyes' || shot === 'pose') audio.cue('swish');
+  }
+  function tick() {
+    if (!game || document.hidden) return;
+    const g = game, now = serverAnchor + performance.now() - perfAnchor;
+    $('arena').dataset.variant = String(g.variant);
+    const finished = g.phase === 'complete';
+    const revealed = Boolean(g.picks && (g.phase === 'reveal' || finished));
+    const quiet = g.suddenDeath && !finished && !(revealed && g.winner !== null);
+    $('arena').classList.toggle('sudden',quiet); audio.hush(quiet);
+    $('crowdLabel').textContent = quiet ? 'YOU COULD HEAR A SAND GRAIN DROP.' : finished ? 'THE COLOSSEUM HAS LOST ITS MIND' : 'THE CROWD DEMANDS HANDS';
+    if (g.phase === 'waiting') { showShot('wide'); $('callout').textContent = 'A RIVALRY IS BREWING.'; $('subcallout').textContent = 'Send your invite. Let the unreasonable drama begin.'; return; }
+    if (g.phase === 'cancelled') { showShot('wide'); $('callout').textContent = 'THE CROWD WANTS A REFUND.'; $('subcallout').textContent = 'Nobody won. Start a fresh duel.'; return; }
+    const roundKey = `${g.id}:${g.round}`;
+    if (g.phase === 'choosing') {
+      showShot('wide'); $('arena').classList.remove('celebrate'); $('confetti').replaceChildren();
+      $('roundLabel').textContent = `ROUND ${g.round} · ${g.suddenDeath ? 'THE DECIDING HAND' : 'FIRST TO TWO'}`;
+      $('callout').textContent = g.suddenDeath ? 'THE ENTIRE ARENA GOES QUIET.' : g.locked[g.seat] ? 'YOUR FATE IS SEALED.' : 'CHOOSE YOUR FATE.';
+      $('subcallout').textContent = g.locked[g.seat] ? 'Your hand stays secret. Let them sweat.' : 'A fist. A palm. Two fingers. An absurd amount of glory.';
+      if (lastRound !== roundKey) { lastRound = roundKey; audio.say(g.suddenDeath ? 'silence' : 'choose'); $('announcer').textContent = g.suddenDeath ? '“One hand. One legend. Even the emperor has stopped chewing.”' : '“Behold! The most consequential finger arrangement of your life!”'; }
+      return;
+    }
+    if (!revealed) {
+      const elapsed = now - g.cutAt;
+      const eyesFirst = g.variant !== 1;
+      showShot(elapsed < 0 ? 'wide' : elapsed < 650 ? (eyesFirst ? 'eyes' : 'pose') : (eyesFirst ? 'pose' : 'eyes'));
+      $('roundLabel').textContent = `ROUND ${g.round} · BOTH HANDS LOCKED`;
+      $('callout').textContent = ['DESTINY HAS FINGERS.','BEHOLD THE TECHNIQUE.','THIS IS EXTREMELY SERIOUS.'][g.variant];
+      $('subcallout').textContent = 'The reveal is coming…'; return;
+    }
+    showShot('hands'); $('hands').setAttribute('aria-hidden','false');
+    if (lastReveal !== roundKey) {
+      lastReveal = roundKey;
+      $('handA').innerHTML = hand(g.picks[0]) + `<span>${g.picks[0].toUpperCase()}</span>`;
+      $('handB').innerHTML = hand(g.picks[1]) + `<span>${g.picks[1].toUpperCase()}</span>`;
+      audio.cue('impact');
+      const tie = g.roundWinner === null;
+      if (!quiet) audio.cue('cheer');
+      audio.say(g.winner !== null ? 'champion' : tie ? 'tie' : ['rock','paper','scissors'][rules.CHOICES.indexOf(g.picks[g.roundWinner])]);
+      $('announcer').textContent = g.winner !== null ? '“A champion! Tell the historians to write down… rock, paper, scissors!”' : tie ? '“A draw! All that drama for absolutely nothing. AGAIN!”' : ({rock:'“An immovable fist! An entirely predictable geological victory!”',paper:'“Devastated by stationery! The scholars were right!”',scissors:'“Two fingers! One legend! Someone alert the tailors!”'}[g.picks[g.roundWinner]]);
+    }
+    const won = g.winner !== null, tie = g.roundWinner === null;
+    $('roundLabel').textContent = won ? 'THE COLOSSEUM CROWNS ITS CHAMPION' : `ROUND ${g.round} · ${tie ? 'TIE — REPLAY' : 'A POINT OF GLORY'}`;
+    $('callout').textContent = won ? (g.winner === g.seat ? 'YOU ARE THE HAND OF DOOM.' : `${g.players[g.winner].name.toUpperCase()} WINS.`) : tie ? 'IDENTICAL GENIUS. GO AGAIN.' : g.roundWinner === g.seat ? 'YOUR HAND. YOUR GLORY.' : 'A DEVASTATING HAND GESTURE.';
+    $('subcallout').textContent = won ? `${g.scores[0]} — ${g.scores[1]} · ${g.winner === g.seat ? 'The crowd will never forget those fingers.' : 'Your revenge arc starts with a rematch.'}` : tie ? 'No point awarded. New hands in a moment.' : `${g.picks[g.roundWinner]} beats ${g.picks[1-g.roundWinner]}. Next hand coming right up.`;
+    $('arena').classList.toggle('celebrate',won);
+    if (won && !$('confetti').childElementCount) for (let i=0;i<24;i++) { const p = document.createElement('i'); p.style.setProperty('--x',`${(i*37)%100}%`); p.style.setProperty('--delay',`${(i%7)*.13}s`); $('confetti').append(p); }
+  }
+  setInterval(() => {
+    if (practice && !document.hidden) {
+      practice = rules.advance(practice); const s = rules.publicState(practice,'you');
+      if (s.revision !== game?.revision || Boolean(s.picks) !== Boolean(game?.picks)) accept({game:s});
+    }
+    tick();
+  },100);
+  window.addEventListener('pagehide',()=>{epoch++;clearTimeout(pollTimer);});
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden && gameId && !practice) schedulePoll();});
+  async function boot() {
+    if (token) {
+      try { await loadLobby(); await loadRivals(); if (gameId) await resume(gameId); return; }
+      catch (e) { status(e.message,true); }
+    }
+    let savedKey = ''; try { savedKey = localStorage.getItem('tornVisitorApiKey') || ''; } catch {}
+    if (savedKey) await login(savedKey);
+  }
+  boot();
+})();

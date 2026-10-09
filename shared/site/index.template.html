@@ -13053,6 +13053,7 @@ function createSparkle(x, y) {
       <button class="sth-game" data-mode="safecracker" disabled>Safe Cracker</button>
       <button class="sth-game" data-mode="mountainrace" disabled>Summit Sprint</button>
       <button class="sth-game" data-mode="blackjackduel" disabled>Blackjack Duel</button>
+      <a href="/games/multiplayer/rps/" style="grid-column:1/-1;display:block;text-align:center;padding:18px 12px;border-radius:12px;background:linear-gradient(135deg,#92381d,#33251a);border:1px solid #c18743;color:#ffdfab;font-weight:900;text-decoration:none">Rock Paper Scissors · Hand of Doom ⚔</a>
     </div>
   </main>
 </div>
@@ -13087,6 +13088,7 @@ function createSparkle(x, y) {
  const ob=new MutationObserver(()=>document.querySelectorAll('#duelNpcBtn,#duelNpcActiveBtn,#duelRecoverNpcBtn').forEach(e=>e.remove()));ob.observe(document.body,{subtree:true,childList:true});
  document.title='XAN DUELS';sync();
  const requestedMode=new URLSearchParams(location.search).get('game');
+ if(requestedMode==='rps')location.replace('/games/multiplayer/rps/');
  if(requestedMode&&confirmed())setTimeout(()=>openGame(requestedMode),0);
 })();
 </script>
