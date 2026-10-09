@@ -1,35 +1,49 @@
-HAND OF DOOM — asset credits
+HAND OF DOOM — asset credits (V3, October 9, 2026)
 
-Music: "Metalmania" Kevin MacLeod (incompetech.com)
-https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1700023
-Licensed under Creative Commons Attribution 4.0:
-https://creativecommons.org/licenses/by/4.0/
-Adaptation: 25.6-second excerpt, fades, compressed to MP3. A short excerpt is
-also layered into the hand-reveal impact cue.
+Music: "Boss Battle #2 [Symphonic Metal]" by nene, CC0.
+https://opengameart.org/content/boss-battle-2-symphonic-metal
+Guitars, strings, brass and drums. Normalized and compressed to MP3.
+The source pack's names are reversed (as noted by its author): opening.wav
+is our 26.48-second loop; loop.wav is our 39.72-second introduction.
 
-Crowd: "Free Crowd Cheering Sounds" by Gregor Quendel
+Announcer: "Voiceover pack: Fighter (40+ taunts)" by Kenney, CC0.
+https://opengameart.org/content/voiceover-pack-fighter-40-taunts
+Recorded human performance. Thirteen calls, trimmed, normalized, light stadium
+echo, mono MP3. This is a licensed stock announcer, not a custom character voice.
+
+Lyra and Bryn: "Female RPG Voice Starter Pack" by cicifyre, CC0.
+https://opengameart.org/content/female-rpg-voice-starter-pack
+Voice types 2 and 3 respectively; three attacks and three hurt reactions each.
+Maximus and Voss: "15 vocal male strain/hurt/pain/jump sounds" by qubodup, CC0.
+https://opengameart.org/content/15-vocal-male-strainhurtpainjump-sounds
+Three attacks and three reactions shared by the male fighters. Trimmed,
+normalized and compressed to mono MP3; no imitation of an existing anime cast.
+CC0: https://creativecommons.org/publicdomain/zero/1.0/
+
+Crowd: "Free Crowd Cheering Sounds" by Gregor Quendel, CC BY 4.0.
 https://opengameart.org/content/free-crowd-cheering-sounds
 https://www.gregorquendel.com/
-Licensed under Creative Commons Attribution 4.0:
-https://creativecommons.org/licenses/by/4.0/
-Adaptation: excerpts of 07 (Soft cheering and chatter) and 04 (Strong cheering
-II - Short), fades and MP3 recompression. No endorsement implied.
+Excerpts of 07 (Soft cheering and chatter) and 04 (Strong cheering II - Short),
+fades and MP3 recompression. No endorsement implied.
 
-Swish: "Swishes Sound Pack" by artisticdude, for Summoning Wars
+Reveal impact contains a short excerpt of "Metalmania" by Kevin MacLeod
+(incompetech.com), CC BY 4.0, mixed with a pitched swish.
+https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1700023
+CC BY 4.0: https://creativecommons.org/licenses/by/4.0/
+The old Metalmania background loop is removed; this impact remains in use.
+
+Swish and cut: "Swishes Sound Pack" by artisticdude for Summoning Wars, CC0.
 https://opengameart.org/content/swishes-sound-pack
-CC0: https://creativecommons.org/publicdomain/zero/1.0/
-Adaptation: swish-7, echo, MP3 compression; pitched version in impact cue.
+swish-7, echo, MP3 compression; cut is a short faded excerpt.
 
-Announcer: original short lines rendered with installed Microsoft David Desktop
-speech synthesis, lowered pitch and short stadium echo. These are synthesized
-voice clips, not a recording of a human performer.
+Arena and characters: built-in OpenAI image generation, October 9, 2026.
+Four distinct gladiators: Maximus, Voss, Lyra and Bryn. Each has nine illustrated
+square panels: look-back, eyes, rage, tears, rock, paper, scissors, victory,
+disbelief. Atlas cells preserve proportions; opponent art is mirrored inward.
+Stone fist, flaming paper palm and blade scissors are generated transparent PNGs.
+Full body originals remain used for the roster and concealed-hand staging.
+Prompt provenance: docs/rps-art-prompts.txt, docs/rps-v2-art-prompts.txt,
+docs/rps-v3-art-prompts.txt. Audio transformations: docs/rps-v3-audio-sources.json.
 
-Arena and characters: generated using the built-in OpenAI image generation tool,
-October 9, 2026; optimized as PNG with aspect ratio and transparency preserved.
-Four distinct gladiators: Maximus, Voss, Lyra and Bryn. Opponent sprites face
-inward with a horizontal mirror; no recoloring. Hands are original SVG art.
-Prompt provenance: docs/rps-art-prompts.txt and docs/rps-v2-art-prompts.txt
-in the source repository.
-
-Only the selected game's page loads these assets. All bundled media is used.
-No existing historical or protected-game assets were superseded by this game.
+All media loads only on this game's page. Audio starts after a user gesture.
+Superseded synthesized voice clips and the old background music were removed.

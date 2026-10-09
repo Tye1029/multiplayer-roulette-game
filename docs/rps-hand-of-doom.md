@@ -8,7 +8,8 @@ tables and does not route through the old one-shot RPS mechanics.
 Two round wins end a match; tied hands replay without scoring. Picks are immutable,
 accepted once per server round, and hidden until the server reveal timestamp.
 Both clients use server timing: 200ms staging lead, reveal at 1500ms, new hand at
-2900ms. Three camera sequences rotate eyes, silhouette poses and hand impacts.
+2900ms. Six camera sequences rotate illustrated look-backs, intense eyes and rage poses,
+then show each fighter’s own hand and a victory/tears/disbelief reaction.
 At 1–1, crowd/music stop until a decisive hand. Calm camera, keyboard 1/2/3,
 touch targets, a sound toggle and reduced-motion support are included.
 
@@ -39,8 +40,8 @@ does not contact the database or claim to record a rivalry.
 
 ## V2 lobby and invitations
 
-The page uses the shared site's navy palette, system typography and Xan Duels
-wordmark while keeping arena theatrics inside the game surface. A compact side
+The page retains compact system typography and the Xan Duels wordmark. V3
+restores the original warm charcoal, bronze, orange and gold palette. A compact side
 card always displays the arch rival and match record. The larger marketing box
 is removed. Open public rooms are created with **Challenge a random opponent**;
 the arena-code form and **Challenge an opponent** invite link remain.
@@ -65,7 +66,7 @@ misleading emperor label; no leaderboard emperor is currently implemented.
 The four selectable gladiators are Maximus, Voss, Lyra and Bryn (two men and two
 women). The server validates character IDs, preserves designs through rematches,
 and assigns the next character if both select the same one. The roster, full
-sprites and eye cuts use those same images without recoloring.
+sprites and nine-panel illustrated pose sheets preserve distinct identities.
 
 No wagering, wallet deductions or payouts were added; the request was for a
 rivalry game. The other game runtimes, protected files and validations stay intact.
@@ -74,8 +75,8 @@ rivalry game. The other game runtimes, protected files and validations stay inta
 
 All assets are in `assets/rps/`. Detailed audio attribution and adaptations are
 in `assets/rps/CREDITS.txt`, also available from the game footer. Music and crowd
-are recorded media, not procedural oscillators. Announcer clips use synthesized
-speech. Background-tab/page-exit audio is stopped. Media playback is unlocked by
+are recorded media, not procedural oscillators. The announcer and fighter reactions use recorded human performances. Music
+is nene’s symphonic-metal boss theme; announcer calls duck it for clarity. Background-tab/page-exit audio is stopped. Media playback is unlocked by
 a user gesture. No RPS media is requested from the shared home page.
 
 The verbatim built-in image-generation prompt set is in `docs/rps-art-prompts.txt`.
@@ -92,7 +93,8 @@ Saved PNGs were optimized without stretching:
   chest forward, turned slightly right, wide planted stance. Full body in frame,
   clean cel shading and strong ink, no weapon/text/floor, genuinely transparent.
 
-No superseded assets were created. The existing legacy RPS contract is retained
+V3 removes the unused synthesized voice clips, old background loop and generic
+hand SVG renderer. The existing impact retains a credited short music excerpt. The existing legacy RPS contract is retained
 because protected multiplayer validators and historical game records reference it.
 
 ## Validation
@@ -109,5 +111,21 @@ Windows checkouts may require an LF validation copy for existing exact-string
 protected validators; no protected validator or runtime is changed for this game.
 Production schema is declared in `netlify/database/migrations/004_rps_arena.sql`.
 
-Deployment marker: `HAND_OF_DOOM_V2_20261009` in the page, controller, model and
+Deployment marker: `HAND_OF_DOOM_V3_20261009` in the page, controller, model and
 endpoint response header/body. PR #20 preview remains the delivery target.
+
+## V3 presentation and diagnostics
+
+The toolbar Debug button opens a session-only report with build, viewport,
+connection/request timing, public match state, camera cuts and media failures.
+Keys, session tokens, request bodies and concealed picks are excluded. Reports
+can be copied or downloaded. Crowd fists, embers and idle breathing use transform
+animation; hidden tabs pause animation and audio. Calm camera/reduced motion
+removes dramatic cuts without changing authoritative timing or rules.
+
+The 3×3 PNG atlases preload only the selected fighters. Each cell is square;
+background sizing selects a panel without distorting its proportions. Final
+reveal art is connected to the same fighter’s arm, not an unrelated icon. The
+stone/fire/blade icons are only on the choice buttons. V3 prompt provenance is
+in `docs/rps-v3-art-prompts.txt`; audio sourcing and a custom performance brief
+are in `docs/rps-v3-audio-brief.md`.

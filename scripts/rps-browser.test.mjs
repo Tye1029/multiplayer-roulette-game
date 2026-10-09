@@ -38,6 +38,10 @@ try {
   for(const [context,token] of [[ca,tokens[0]],[cb,tokens[1]]]) await context.addInitScript(t=>{sessionStorage.setItem('rps-token',t);localStorage.setItem('rps-muted','1');},token);
   const a=await ca.newPage(),b=await cb.newPage();
   for(const p of [a,b]) {p.on('pageerror',e=>errors.push(e.message));await p.goto(origin+'/games/multiplayer/rps/');await p.waitForFunction(()=>document.querySelector('#identity').textContent.includes('Verified'));}
+  await a.locator('#debug').click();
+  const report=await a.locator('#debug-report').inputValue();assert.match(report,/HAND_OF_DOOM_V3/);
+  for(const token of tokens)assert.ok(!report.includes(token));assert.ok(!report.includes('visitorKey'));
+  await a.locator('#refresh-debug').click();await a.locator('#close-debug').click();
   await a.screenshot({path:path.join(output,'desktop-lobby.png'),fullPage:true});
   await b.screenshot({path:path.join(output,'mobile-lobby.png'),fullPage:true});
   for(const p of [a,b]) assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,'no horizontal overflow');
@@ -46,6 +50,7 @@ try {
   await b.locator('#joinCode').fill(code);await b.locator('#join').click();
   await a.waitForFunction(()=>document.querySelector('#fighterB').src.includes('bryn.png'));
   assert.match(await b.locator('#fighterA').getAttribute('src'),/lyra/);
+  let capturedCut=false;
   async function choose(left,right) {
     await a.locator(`[data-choice="${left}"]`).waitFor({state:'visible'});
     await a.waitForFunction(()=>!document.querySelector('[data-choice="rock"]').disabled);
@@ -54,10 +59,15 @@ try {
     await a.waitForFunction(()=>document.querySelector('#pickTitle').textContent==='Your hand is locked.');
     assert.equal(await b.locator('#arena').getAttribute('data-shot'),'wide','opponent stays concealed before both picks');
     await b.locator(`[data-choice="${right}"]`).click();
+    if(!capturedCut){await a.waitForFunction(()=>['lookback','eyes','rage'].includes(document.querySelector('#arena').dataset.shot));await a.locator('#arena').screenshot({path:path.join(output,'desktop-pose-cut.png')});capturedCut=true;}
     await a.waitForFunction(()=>document.querySelector('#arena').dataset.shot==='hands');
     await b.waitForFunction(()=>document.querySelector('#arena').dataset.shot==='hands');
   }
   await choose('rock','rock');assert.equal(await a.locator('#scoreA').textContent(),'0');
+  assert.equal(await a.locator('#revealA').getAttribute('data-character'),'lyra');
+  assert.equal(await a.locator('#revealB').getAttribute('data-character'),'bryn');
+  assert.equal(await a.locator('#revealA').getAttribute('data-frame'),'4');
+  assert.equal(await a.locator('#hands svg').count(),0);
   await a.screenshot({path:path.join(output,'desktop-tie.png'),fullPage:true});
   await choose('rock','scissors');assert.equal(await a.locator('#scoreA').textContent(),'1');
   await choose('rock','paper');assert.equal(await b.locator('#scoreB').textContent(),'1');
@@ -69,6 +79,8 @@ try {
   await a.waitForFunction(()=>document.querySelector('#archName').textContent==='Paper Caesar');
   await b.waitForFunction(()=>document.querySelector('#archName').textContent==='Maximus');
   assert.match(await a.locator('#archStats').textContent(),/1 — 0/);assert.match(await b.locator('#archStats').textContent(),/0 — 1/);
+  await a.waitForFunction(()=>document.querySelector('#arena').classList.contains('reaction-cut'));
+  assert.equal(await a.locator('#reactionA').getAttribute('data-frame'),'7');
   await a.screenshot({path:path.join(output,'desktop-victory.png'),fullPage:true});
   await b.screenshot({path:path.join(output,'mobile-result.png'),fullPage:true});
   await a.locator('#rematch').click();await b.locator('#rematch').click();
@@ -112,7 +124,7 @@ try {
   await a.locator('#sound').click();await a.locator('[data-choice="paper"]').click();await a.waitForFunction(()=>document.querySelector('#arena').dataset.shot==='hands');
   await a.waitForTimeout(500);
   // Media URLs decode correctly; disabled autoplay still leaves controls playable.
-  const media=await a.evaluate(async()=>{const a=new Audio('/assets/rps/audio/metal.mp3');await new Promise((resolve,reject)=>{a.onloadedmetadata=resolve;a.onerror=reject;a.load();});return a.duration;});
+  const media=await a.evaluate(async()=>{const a=new Audio('/assets/rps/audio/battle-loop.mp3');await new Promise((resolve,reject)=>{a.onloadedmetadata=resolve;a.onerror=reject;a.load();});return a.duration;});
   assert.ok(media>25 && media<27);
   // Restoring a saved-key session must release busy controls after login finishes.
   const restoreGame=await db.create({id:'300',name:'Returning Player'},true);
@@ -128,5 +140,12 @@ try {
   await g.locator('#remoteBot').click();assert.match(await g.locator('#lobbyStatus').textContent(),/Connect your Torn/);
   await g.locator('#practice').click();await g.locator('[data-choice="paper"]').click();await g.waitForFunction(()=>document.querySelector('#arena').dataset.shot==='hands');
   for(const p of [a,b,returning,g]) assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+  const audioFiles=(await fs.readdir(path.join(root,'assets/rps/audio'))).filter(f=>f.endsWith('.mp3'));
+  const decoded=await g.evaluate(async files=>Promise.all(files.map(name=>new Promise((resolve,reject)=>{const clip=new Audio('/assets/rps/audio/'+name);clip.onloadedmetadata=()=>resolve({name,duration:clip.duration});clip.onerror=()=>reject(new Error(name));clip.load();}))),audioFiles);
+  assert.ok(decoded.every(c=>Number.isFinite(c.duration)&&c.duration>0));
+  assert.deepEqual(await g.evaluate(()=>window.RPSAudio.diagnostics().failed),[]);
+  await g.locator('#debug').click();const guestReport=JSON.parse(await g.locator('#debug-report').inputValue());assert.ok(!('picks' in guestReport.match));assert.ok(!('token' in guestReport.session));
+  await g.locator('#close-debug').click();await g.locator('#motion').click();
+  assert.equal(await g.locator('body').evaluate(el=>el.classList.contains('calm')),true);
   assert.deepEqual(errors,[]);console.log(JSON.stringify({ok:true,checks:'desktop/mobile human duel, tie, best-of-three, sudden death, records, rival invite accept/decline, distinct characters, rematch/reload, waiting-room network bot full match, saved-key restore, unavailable storage, guest practice, audio',screenshots:output}));
 } finally {await browser.close();await new Promise(r=>server.close(r));await pg.close();}

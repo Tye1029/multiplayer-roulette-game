@@ -1,7 +1,7 @@
 'use strict';
 const db = require('./rps/database');
 const rules = require('../../shared/games/rps-model');
-const BUILD = 'HAND_OF_DOOM_V2_20261009';
+const BUILD = 'HAND_OF_DOOM_V3_20261009';
 function createHandler(database = db, request = fetch) {
   return async event => {
     const headers = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'X-RPS-Build': BUILD };

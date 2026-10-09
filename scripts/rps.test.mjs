@@ -81,7 +81,7 @@ test('endpoint publishes only redacted state and rejects invalid actions and roo
 test('game media is isolated and public package includes the new route',()=>{
   const html=readFileSync(new URL('../games/multiplayer/rps/index.html',import.meta.url),'utf8');
   const shell=readFileSync(new URL('../shared/site/index.template.html',import.meta.url),'utf8');
-  assert.ok(html.includes('HAND_OF_DOOM_V2_20261009')); assert.ok(html.includes('aria-live="polite"'));
+  assert.ok(html.includes('HAND_OF_DOOM_V3_20261009')); assert.ok(html.includes('aria-live="polite"'));
   assert.ok(shell.includes('href="/games/multiplayer/rps/"')); assert.ok(!shell.includes('/assets/rps/'));
   assert.ok(readFileSync(new URL('../assets/rps/audio.js',import.meta.url),'utf8').includes("visibilitychange"));
 });
@@ -100,4 +100,21 @@ test('challenge target is the server-selected rival, never an arbitrary submitte
   }});
   const res=await handler({httpMethod:'POST',body:JSON.stringify({action:'challenge',invitedId:'999',character:'<script>'})});
   assert.equal(res.statusCode,200);assert.deepEqual(invited,b);
+});
+
+const cinema = require('../assets/rps/cinema.js');
+test('cinema never reveals concealed hands, rotates all edits and respects calm camera',()=>{
+ const game={id:'test',phase:'reveal',round:1,variant:0,cutAt:1000,revealAt:2500};
+ const sequences=new Set();
+ for(let round=1;round<=6;round++) {
+  const shots=[1100,1500,2000].map(now=>cinema.plan({...game,round},now));
+  assert.ok(shots.every(p=>!p.picks&&p.shot!=='hands'));sequences.add(shots.map(p=>p.shot).join(','));
+ }
+ assert.equal(sequences.size,6);assert.equal(cinema.plan(game,99999).picks,undefined);
+ assert.equal(cinema.plan(game,1600,true).shot,'wide');
+ const revealed={...game,picks:['rock','paper'],roundWinner:1};
+ assert.equal(cinema.plan(revealed,2600).reactions,false);
+ assert.deepEqual(cinema.plan(revealed,3400).reactionFrames,[3,7]);
+ assert.equal(cinema.plan(revealed,3400,true).reactions,false);
+ assert.equal(cinema.plan({...revealed,phase:'choosing'},3400).shot,'wide');
 });

@@ -1,0 +1,167 @@
+[
+  {
+    "file": "assets/rps/audio/battle-loop.mp3",
+    "source": "music/boss_battle_#2_metal_opening.wav",
+    "processing": "loudnorm=I=-18:TP=-2:LRA=9"
+  },
+  {
+    "file": "assets/rps/audio/battle-intro.mp3",
+    "source": "music/boss_battle_#2_metal_loop.wav",
+    "processing": "loudnorm=I=-18:TP=-2:LRA=9"
+  },
+  {
+    "file": "assets/rps/audio/call-prepare-yourself.mp3",
+    "source": "announcer/Audio/prepare_yourself.ogg",
+    "processing": "silenceremove=start_periods=1:start_threshold=-45dB,loudnorm=I=-16:TP=-2:LRA=7,aecho=0.8:0.75:65:0.13"
+  },
+  {
+    "file": "assets/rps/audio/call-ready.mp3",
+    "source": "announcer/Audio/ready.ogg",
+    "processing": "silenceremove=start_periods=1:start_threshold=-45dB,loudnorm=I=-16:TP=-2:LRA=7,aecho=0.8:0.75:65:0.13"
+  },
+  {
+    "file": "assets/rps/audio/call-fight.mp3",
+    "source": "announcer/Audio/fight.ogg",
+    "processing": "silenceremove=start_periods=1:start_threshold=-45dB,loudnorm=I=-16:TP=-2:LRA=7,aecho=0.8:0.75:65:0.13"
+  },
+  {
+    "file": "assets/rps/audio/call-final-round.mp3",
+    "source": "announcer/Audio/final_round.ogg",
+    "processing": "silenceremove=start_periods=1:start_threshold=-45dB,loudnorm=I=-16:TP=-2:LRA=7,aecho=0.8:0.75:65:0.13"
+  },
+  {
+    "file": "assets/rps/audio/call-flawless-victory.mp3",
+    "source": "announcer/Audio/flawless_victory.ogg",
+    "processing": "silenceremove=start_periods=1:start_threshold=-45dB,loudnorm=I=-16:TP=-2:LRA=7,aecho=0.8:0.75:65:0.13"
+  },
+  {
+    "file": "assets/rps/audio/call-winner.mp3",
+    "source": "announcer/Audio/winner.ogg",
+    "processing": "silenceremove=start_periods=1:start_threshold=-45dB,loudnorm=I=-16:TP=-2:LRA=7,aecho=0.8:0.75:65:0.13"
+  },
+  {
+    "file": "assets/rps/audio/call-you-win.mp3",
+    "source": "announcer/Audio/you_win.ogg",
+    "processing": "silenceremove=start_periods=1:start_threshold=-45dB,loudnorm=I=-16:TP=-2:LRA=7,aecho=0.8:0.75:65:0.13"
+  },
+  {
+    "file": "assets/rps/audio/call-you-lose.mp3",
+    "source": "announcer/Audio/you_lose.ogg",
+    "processing": "silenceremove=start_periods=1:start_threshold=-45dB,loudnorm=I=-16:TP=-2:LRA=7,aecho=0.8:0.75:65:0.13"
+  },
+  {
+    "file": "assets/rps/audio/call-tie.mp3",
+    "source": "announcer/Audio/tie.ogg",
+    "processing": "silenceremove=start_periods=1:start_threshold=-45dB,loudnorm=I=-16:TP=-2:LRA=7,aecho=0.8:0.75:65:0.13"
+  },
+  {
+    "file": "assets/rps/audio/call-tie-breaker.mp3",
+    "source": "announcer/Audio/tie_breaker.ogg",
+    "processing": "silenceremove=start_periods=1:start_threshold=-45dB,loudnorm=I=-16:TP=-2:LRA=7,aecho=0.8:0.75:65:0.13"
+  },
+  {
+    "file": "assets/rps/audio/call-round-1.mp3",
+    "source": "announcer/Audio/round_1.ogg",
+    "processing": "silenceremove=start_periods=1:start_threshold=-45dB,loudnorm=I=-16:TP=-2:LRA=7,aecho=0.8:0.75:65:0.13"
+  },
+  {
+    "file": "assets/rps/audio/call-round-2.mp3",
+    "source": "announcer/Audio/round_2.ogg",
+    "processing": "silenceremove=start_periods=1:start_threshold=-45dB,loudnorm=I=-16:TP=-2:LRA=7,aecho=0.8:0.75:65:0.13"
+  },
+  {
+    "file": "assets/rps/audio/call-round-3.mp3",
+    "source": "announcer/Audio/round_3.ogg",
+    "processing": "silenceremove=start_periods=1:start_threshold=-45dB,loudnorm=I=-16:TP=-2:LRA=7,aecho=0.8:0.75:65:0.13"
+  },
+  {
+    "file": "assets/rps/audio/lyra-attack-1.mp3",
+    "source": "female/RPG Voice Starter Pack/Type 2/attack1.wav",
+    "processing": "silenceremove=start_periods=1:start_threshold=-40dB,loudnorm=I=-17:TP=-2:LRA=7"
+  },
+  {
+    "file": "assets/rps/audio/lyra-attack-2.mp3",
+    "source": "female/RPG Voice Starter Pack/Type 2/attack2.wav",
+    "processing": "silenceremove=start_periods=1:start_threshold=-40dB,loudnorm=I=-17:TP=-2:LRA=7"
+  },
+  {
+    "file": "assets/rps/audio/lyra-attack-3.mp3",
+    "source": "female/RPG Voice Starter Pack/Type 2/attack3.wav",
+    "processing": "silenceremove=start_periods=1:start_threshold=-40dB,loudnorm=I=-17:TP=-2:LRA=7"
+  },
+  {
+    "file": "assets/rps/audio/lyra-hurt-1.mp3",
+    "source": "female/RPG Voice Starter Pack/Type 2/damaged1.wav",
+    "processing": "silenceremove=start_periods=1:start_threshold=-40dB,loudnorm=I=-17:TP=-2:LRA=7"
+  },
+  {
+    "file": "assets/rps/audio/lyra-hurt-2.mp3",
+    "source": "female/RPG Voice Starter Pack/Type 2/damaged2.wav",
+    "processing": "silenceremove=start_periods=1:start_threshold=-40dB,loudnorm=I=-17:TP=-2:LRA=7"
+  },
+  {
+    "file": "assets/rps/audio/lyra-hurt-3.mp3",
+    "source": "female/RPG Voice Starter Pack/Type 2/damaged3.wav",
+    "processing": "silenceremove=start_periods=1:start_threshold=-40dB,loudnorm=I=-17:TP=-2:LRA=7"
+  },
+  {
+    "file": "assets/rps/audio/bryn-attack-1.mp3",
+    "source": "female/RPG Voice Starter Pack/Type 3/attack1.wav",
+    "processing": "silenceremove=start_periods=1:start_threshold=-40dB,loudnorm=I=-17:TP=-2:LRA=7"
+  },
+  {
+    "file": "assets/rps/audio/bryn-attack-2.mp3",
+    "source": "female/RPG Voice Starter Pack/Type 3/attack2.wav",
+    "processing": "silenceremove=start_periods=1:start_threshold=-40dB,loudnorm=I=-17:TP=-2:LRA=7"
+  },
+  {
+    "file": "assets/rps/audio/bryn-attack-3.mp3",
+    "source": "female/RPG Voice Starter Pack/Type 3/attack3.wav",
+    "processing": "silenceremove=start_periods=1:start_threshold=-40dB,loudnorm=I=-17:TP=-2:LRA=7"
+  },
+  {
+    "file": "assets/rps/audio/bryn-hurt-1.mp3",
+    "source": "female/RPG Voice Starter Pack/Type 3/damaged1.wav",
+    "processing": "silenceremove=start_periods=1:start_threshold=-40dB,loudnorm=I=-17:TP=-2:LRA=7"
+  },
+  {
+    "file": "assets/rps/audio/bryn-hurt-2.mp3",
+    "source": "female/RPG Voice Starter Pack/Type 3/damaged2.wav",
+    "processing": "silenceremove=start_periods=1:start_threshold=-40dB,loudnorm=I=-17:TP=-2:LRA=7"
+  },
+  {
+    "file": "assets/rps/audio/bryn-hurt-3.mp3",
+    "source": "female/RPG Voice Starter Pack/Type 3/damaged3.wav",
+    "processing": "silenceremove=start_periods=1:start_threshold=-40dB,loudnorm=I=-17:TP=-2:LRA=7"
+  },
+  {
+    "file": "assets/rps/audio/male-attack-1.mp3",
+    "source": "male/slightscream-01.flac",
+    "processing": "silenceremove=start_periods=1:start_threshold=-40dB,loudnorm=I=-17:TP=-2:LRA=7"
+  },
+  {
+    "file": "assets/rps/audio/male-attack-2.mp3",
+    "source": "male/slightscream-04.flac",
+    "processing": "silenceremove=start_periods=1:start_threshold=-40dB,loudnorm=I=-17:TP=-2:LRA=7"
+  },
+  {
+    "file": "assets/rps/audio/male-attack-3.mp3",
+    "source": "male/slightscream-07.flac",
+    "processing": "silenceremove=start_periods=1:start_threshold=-40dB,loudnorm=I=-17:TP=-2:LRA=7"
+  },
+  {
+    "file": "assets/rps/audio/male-hurt-1.mp3",
+    "source": "male/slightscream-02.flac",
+    "processing": "silenceremove=start_periods=1:start_threshold=-40dB,loudnorm=I=-17:TP=-2:LRA=7"
+  },
+  {
+    "file": "assets/rps/audio/male-hurt-2.mp3",
+    "source": "male/slightscream-08.flac",
+    "processing": "silenceremove=start_periods=1:start_threshold=-40dB,loudnorm=I=-17:TP=-2:LRA=7"
+  },
+  {
+    "file": "assets/rps/audio/male-hurt-3.mp3",
+    "source": "male/slightscream-12.flac",
+    "processing": "silenceremove=start_periods=1:start_threshold=-40dB,loudnorm=I=-17:TP=-2:LRA=7"
+  }
+]

@@ -1,0 +1,68 @@
+V3: built-in image generation. Character references are the four existing sprites.
+Each 3x3 character atlas contains nine equally sized shots; CSS displays one cell without stretching.
+Atlases optimized with a 256-color PNG palette. Icons downsampled proportionally to 256px; alpha retained.
+
+assets/rps/images/maximus-cuts.png
+Use case: identity-preserve. This reference is the exact character identity and costume. Create one production animation atlas for this same adult gladiator: a SQUARE image divided into an EXACT 3 by 3 grid of nine equally sized square panels, no gutters, borders, labels or lettering. Every panel must contain only ONE pose of the SAME character. Preserve face, hairstyle, skin tone, armor, outfit colors, age and gender exactly. Rich detailed hand-painted shonen-anime cel shading with sharp ink and golden rim lighting. Each square is a dramatic independent camera shot, character fully contained in that square, pure black background. No art crosses a grid boundary. This will be displayed one square at a time in a fast-cut rock paper scissors duel. Exact panel order left-to-right then top-to-bottom:
+1. Waist-up three-quarter back view, dramatically looking back over shoulder at the opponent with a clenched fist raised beside the face. Cocky intense eyes.
+2. Extreme cinematic face close-up, narrowed intense eyes, sweat bead, quiet resolve. Fill square with face.
+3. Chest-up screaming power-up pose, furious eyes, clenched fists by sides, flying hair/cloth.
+4. Comically devastated chest-up reaction, enormous twin streams of tears down cheeks, trembling open mouth. Still this same detailed adult character, not chibi.
+5. ROCK REVEAL: character thrusts their own bare closed human fist directly toward camera, huge foreshortened fist prominently centered in foreground taking half the square, clearly connected wrist and armored forearm leads to the SAME character's face and torso visible behind. All fingers folded in a rock-paper-scissors closed fist.
+6. PAPER REVEAL: character thrusts their own bare OPEN PALM directly toward camera, FIVE spread human fingers, huge foreshortened open palm centered foreground taking half square, connected wrist and armored forearm leads to same character face and torso behind.
+7. SCISSORS REVEAL: character thrusts their own bare hand toward camera with ONLY INDEX AND MIDDLE fingers extended forming a clear V, ring/pinky folded under thumb, huge foreshortened hand centered foreground, connected forearm leads to same character face and torso behind. Human fingers, NOT an object or blades.
+8. Waist-up euphoric victory pose, fist raised high, laughing triumphant expression and flowing costume.
+9. Chest-up gritted-teeth incredulous rage reaction, eyebrow twitch, hand clutching hair, melodramatic disbelief.
+Keep accurate human hand anatomy and clear gestures in panels 5,6,7. Black backgrounds throughout, no floating detached hands, no logos. All nine cells equal sizes.
+Character identity: maximus.
+
+assets/rps/images/voss-cuts.png
+Use case: identity-preserve. This reference is the exact character identity and costume. Create one production animation atlas for this same adult gladiator: a SQUARE image divided into an EXACT 3 by 3 grid of nine equally sized square panels, no gutters, borders, labels or lettering. Every panel must contain only ONE pose of the SAME character. Preserve face, hairstyle, skin tone, armor, outfit colors, age and gender exactly. Rich detailed hand-painted shonen-anime cel shading with sharp ink and golden rim lighting. Each square is a dramatic independent camera shot, character fully contained in that square, pure black background. No art crosses a grid boundary. This will be displayed one square at a time in a fast-cut rock paper scissors duel. Exact panel order left-to-right then top-to-bottom:
+1. Waist-up three-quarter back view, dramatically looking back over shoulder at the opponent with a clenched fist raised beside the face. Cocky intense eyes.
+2. Extreme cinematic face close-up, narrowed intense eyes, sweat bead, quiet resolve. Fill square with face.
+3. Chest-up screaming power-up pose, furious eyes, clenched fists by sides, flying hair/cloth.
+4. Comically devastated chest-up reaction, enormous twin streams of tears down cheeks, trembling open mouth. Still this same detailed adult character, not chibi.
+5. ROCK REVEAL: character thrusts their own bare closed human fist directly toward camera, huge foreshortened fist prominently centered in foreground taking half the square, clearly connected wrist and armored forearm leads to the SAME character's face and torso visible behind. All fingers folded in a rock-paper-scissors closed fist.
+6. PAPER REVEAL: character thrusts their own bare OPEN PALM directly toward camera, FIVE spread human fingers, huge foreshortened open palm centered foreground taking half square, connected wrist and armored forearm leads to same character face and torso behind.
+7. SCISSORS REVEAL: character thrusts their own bare hand toward camera with ONLY INDEX AND MIDDLE fingers extended forming a clear V, ring/pinky folded under thumb, huge foreshortened hand centered foreground, connected forearm leads to same character face and torso behind. Human fingers, NOT an object or blades.
+8. Waist-up euphoric victory pose, fist raised high, laughing triumphant expression and flowing costume.
+9. Chest-up gritted-teeth incredulous rage reaction, eyebrow twitch, hand clutching hair, melodramatic disbelief.
+Keep accurate human hand anatomy and clear gestures in panels 5,6,7. Black backgrounds throughout, no floating detached hands, no logos. All nine cells equal sizes.
+Character identity: voss.
+
+assets/rps/images/lyra-cuts.png
+Use case: identity-preserve. This reference is the exact character identity and costume. Create one production animation atlas for this same adult gladiator: a SQUARE image divided into an EXACT 3 by 3 grid of nine equally sized square panels, no gutters, borders, labels or lettering. Every panel must contain only ONE pose of the SAME character. Preserve face, hairstyle, skin tone, armor, outfit colors, age and gender exactly. Rich detailed hand-painted shonen-anime cel shading with sharp ink and golden rim lighting. Each square is a dramatic independent camera shot, character fully contained in that square, pure black background. No art crosses a grid boundary. This will be displayed one square at a time in a fast-cut rock paper scissors duel. Exact panel order left-to-right then top-to-bottom:
+1. Waist-up three-quarter back view, dramatically looking back over shoulder at the opponent with a clenched fist raised beside the face. Cocky intense eyes.
+2. Extreme cinematic face close-up, narrowed intense eyes, sweat bead, quiet resolve. Fill square with face.
+3. Chest-up screaming power-up pose, furious eyes, clenched fists by sides, flying hair/cloth.
+4. Comically devastated chest-up reaction, enormous twin streams of tears down cheeks, trembling open mouth. Still this same detailed adult character, not chibi.
+5. ROCK REVEAL: character thrusts their own bare closed human fist directly toward camera, huge foreshortened fist prominently centered in foreground taking half the square, clearly connected wrist and armored forearm leads to the SAME character's face and torso visible behind. All fingers folded in a rock-paper-scissors closed fist.
+6. PAPER REVEAL: character thrusts their own bare OPEN PALM directly toward camera, FIVE spread human fingers, huge foreshortened open palm centered foreground taking half square, connected wrist and armored forearm leads to same character face and torso behind.
+7. SCISSORS REVEAL: character thrusts their own bare hand toward camera with ONLY INDEX AND MIDDLE fingers extended forming a clear V, ring/pinky folded under thumb, huge foreshortened hand centered foreground, connected forearm leads to same character face and torso behind. Human fingers, NOT an object or blades.
+8. Waist-up euphoric victory pose, fist raised high, laughing triumphant expression and flowing costume.
+9. Chest-up gritted-teeth incredulous rage reaction, eyebrow twitch, hand clutching hair, melodramatic disbelief.
+Keep accurate human hand anatomy and clear gestures in panels 5,6,7. Black backgrounds throughout, no floating detached hands, no logos. All nine cells equal sizes.
+Character identity: lyra.
+
+assets/rps/images/bryn-cuts.png
+Use case: identity-preserve. This reference is the exact character identity and costume. Create one production animation atlas for this same adult gladiator: a SQUARE image divided into an EXACT 3 by 3 grid of nine equally sized square panels, no gutters, borders, labels or lettering. Every panel must contain only ONE pose of the SAME character. Preserve face, hairstyle, skin tone, armor, outfit colors, age and gender exactly. Rich detailed hand-painted shonen-anime cel shading with sharp ink and golden rim lighting. Each square is a dramatic independent camera shot, character fully contained in that square, pure black background. No art crosses a grid boundary. This will be displayed one square at a time in a fast-cut rock paper scissors duel. Exact panel order left-to-right then top-to-bottom:
+1. Waist-up three-quarter back view, dramatically looking back over shoulder at the opponent with a clenched fist raised beside the face. Cocky intense eyes.
+2. Extreme cinematic face close-up, narrowed intense eyes, sweat bead, quiet resolve. Fill square with face.
+3. Chest-up screaming power-up pose, furious eyes, clenched fists by sides, flying hair/cloth.
+4. Comically devastated chest-up reaction, enormous twin streams of tears down cheeks, trembling open mouth. Still this same detailed adult character, not chibi.
+5. ROCK REVEAL: character thrusts their own bare closed human fist directly toward camera, huge foreshortened fist prominently centered in foreground taking half the square, clearly connected wrist and armored forearm leads to the SAME character's face and torso visible behind. All fingers folded in a rock-paper-scissors closed fist.
+6. PAPER REVEAL: character thrusts their own bare OPEN PALM directly toward camera, FIVE spread human fingers, huge foreshortened open palm centered foreground taking half square, connected wrist and armored forearm leads to same character face and torso behind.
+7. SCISSORS REVEAL: character thrusts their own bare hand toward camera with ONLY INDEX AND MIDDLE fingers extended forming a clear V, ring/pinky folded under thumb, huge foreshortened hand centered foreground, connected forearm leads to same character face and torso behind. Human fingers, NOT an object or blades.
+8. Waist-up euphoric victory pose, fist raised high, laughing triumphant expression and flowing costume.
+9. Chest-up gritted-teeth incredulous rage reaction, eyebrow twitch, hand clutching hair, melodramatic disbelief.
+Keep accurate human hand anatomy and clear gestures in panels 5,6,7. Black backgrounds throughout, no floating detached hands, no logos. All nine cells equal sizes.
+Character identity: bryn.
+
+assets/rps/images/rock-icon.png
+Use case: stylized-concept. Single premium anime fighting game ability icon, square composition, transparent background. A colossal closed fist sculpted entirely from jagged dark volcanic STONE, four massive knuckles, glowing gold fissures, flying stone chips, recognizable rock-paper-scissors closed fist gesture. Dramatic hand-painted cel shading, crisp dark ink contours, metallic bronze wrist cuff, compact controlled effects, centered with padding, designed to read at 80 pixels tall. No lettering, no UI frame, no other objects, no flat emoji or clipart.
+
+assets/rps/images/paper-icon.png
+Use case: stylized-concept. Single premium anime fighting game ability icon, square composition, transparent background. An open FIVE-FINGER human-shaped palm made from folded ivory PAPER with visible origami creases, blazing golden orange magical FIRE around all five spread fingers, recognizable rock-paper-scissors open palm gesture. Dramatic hand-painted cel shading, crisp dark ink contours, metallic bronze wrist cuff, compact controlled effects, centered with padding, designed to read at 80 pixels tall. No lettering, no UI frame, no other objects, no flat emoji or clipart.
+
+assets/rps/images/scissors-icon.png
+Use case: stylized-concept. Single premium anime fighting game ability icon, square composition, transparent background. A stylized armored human hand in rock-paper-scissors V gesture with index and middle fingers replaced by TWO sharp silver KATANA BLADES, ring and pinky folded, fierce steel glints and cyan-white cutting arcs. Exactly two blade fingers, clear readable V silhouette. Dramatic hand-painted cel shading, crisp dark ink contours, metallic bronze wrist cuff, compact controlled effects, centered with padding, designed to read at 80 pixels tall. No lettering, no UI frame, no other objects, no flat emoji or clipart.

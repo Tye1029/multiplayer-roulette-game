@@ -1,7 +1,8 @@
-/* HAND_OF_DOOM_V2_20261009 */
+/* HAND_OF_DOOM_V3_20261009 */
 (() => {
   'use strict';
   const $ = id => document.getElementById(id), rules = window.RPSRules, audio = window.RPSAudio;
+  const debug = window.RPSDebug, cinema = window.RPSCinema.mount(audio,(type,data)=>debug.record(type,data));
   const buttons = [...document.querySelectorAll('[data-choice]')];
   const storage = { get(k) { try { return sessionStorage.getItem(k); } catch { return null; } },
     set(k,v) { try { if (v == null) sessionStorage.removeItem(k); else sessionStorage.setItem(k,v); } catch {} } };
@@ -21,9 +22,10 @@
       const c = rules.CHARACTERS.find(c => c.id === characters[i]?.character) || rules.CHARACTERS[i];
       const img = $('fighter'+seat); if (img.getAttribute('src') !== imagePath(c)) img.src = imagePath(c);
       img.alt = `${c.name}, ${c.title.toLowerCase()}, with hands concealed`;
-      document.querySelector('.eye-'+seat.toLowerCase()).style.backgroundImage = `url("${imagePath(c)}")`;
+
     });
     for (const b of $('characters').children) { b.setAttribute('aria-pressed',String(b.dataset.character === selectedCharacter)); b.disabled = Boolean(active()) || busy; }
+    cinema.setCharacters([0,1].map(i=>rules.character(characters[i]?.character || (i?'voss':selectedCharacter))));
     $('characterHint').textContent = active() ? 'Gladiators are locked for this duel.' : 'If both choose the same fighter, the guest gets the next one.';
   }
   for (const c of rules.CHARACTERS) {
@@ -35,16 +37,6 @@
   showCharacters();
   $('joinCode').value = /^[a-f0-9]{12}$/i.test(inviteId) ? inviteId.toUpperCase() : '';
   function status(text, error = false) { for (const id of ['status','lobbyStatus']) { $(id).textContent = text; $(id).classList.toggle('error',error); } }
-  function hand(choice) {
-    // Original vector hand drawings; the readable hand is always paired with its word.
-    const paths = {
-      rock: '<path d="M54 147 40 119 34 76Q33 60 47 59L57 61Q54 43 67 42Q82 42 86 61Q84 42 97 42Q110 41 114 62Q117 48 129 53Q141 58 140 76L148 90Q157 99 149 122L136 150Z"/><path d="M54 77Q56 61 69 68L106 89Q113 102 102 109L73 95M86 62 88 82M114 63 114 85M140 76 137 99M73 108 92 120 132 119" fill="none"/>',
-      paper: '<path d="M65 154Q45 138 37 113L19 88Q13 74 25 69Q33 65 43 79L57 97 49 34Q48 20 59 19Q71 18 73 34L81 80 78 19Q79 6 90 8Q101 8 102 24L104 79 111 25Q113 12 124 16Q135 20 131 35L126 85 141 45Q145 32 155 38Q163 44 157 57L145 111Q141 130 123 152Z"/><path d="M57 97Q76 95 83 117M79 128Q96 113 120 118" fill="none"/>',
-      scissors: '<path d="M65 150 48 122Q36 107 45 94Q50 88 61 92L38 33Q32 18 44 14Q55 10 62 26L87 79 100 21Q103 6 116 10Q128 13 123 29L111 84Q122 74 132 81L145 95Q154 106 147 123L131 150Z"/><path d="M63 91 89 101Q100 109 92 119Q84 126 72 116L58 108M110 84 103 103M130 91 118 111" fill="none"/>'
-    };
-    return `<svg viewBox="0 0 180 190" aria-hidden="true"><g fill="currentColor" stroke="#38251e" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">${paths[choice] || paths.rock}<path d="M58 147 136 147 145 183 52 183Z" fill="#9b6938"/><path d="M65 156H130M69 169H133" stroke="#edc879"/><circle cx="98" cy="166" r="9" fill="#d3a958"/></g></svg>`;
-  }
-  for (const b of buttons) b.querySelector('.choice-art').innerHTML = hand(b.dataset.choice);
   function soundLabel() { $('sound').textContent = audio.enabled && audio.unlocked ? 'Sound on' : 'Sound off'; $('sound').setAttribute('aria-pressed', String(audio.enabled && audio.unlocked)); }
   function unlock() { try { audio.unlock(); soundLabel(); } catch {} }
   $('sound').onclick = () => { if (!audio.unlocked && audio.enabled) audio.unlock(); else audio.toggle(); soundLabel(); };
@@ -57,9 +49,11 @@
       body:JSON.stringify({ action, token, character:selectedCharacter, ...extra }), signal:AbortSignal.timeout(12000) });
     let data; try { data = await response.json(); } catch { throw new Error('The arena did not respond. Please retry.'); }
     if (!response.ok || !data.ok) {
+      debug.record('request-error',{action,status:response.status,ms:Math.round(performance.now()-started)});
       if (response.status === 401 && action !== 'login') { token = ''; storage.set('rps-token', null); connected(false); renderControls(); }
       throw new Error(data.error || 'The arena is unavailable. Please retry.');
     }
+    debug.record('request',{action,status:response.status,ms:Math.round(performance.now()-started)});
     if (data.game) data.localServerNow = data.game.serverNow + (performance.now() - started) / 2;
     return data;
   }
@@ -144,7 +138,7 @@
     finally { inboxBusy = false; }
   }
   setInterval(loadInvitations,5000);
-  function resetPresentation() { lastShot = ''; lastRound = ''; lastReveal = ''; historyKey = ''; $('confetti').replaceChildren(); }
+  function resetPresentation() { cinema.reset(); lastShot = ''; lastRound = ''; lastReveal = ''; historyKey = ''; $('confetti').replaceChildren(); }
   function accept(data) {
     const s = data.game;
     if (game?.id === s.id && (s.revision < game.revision || (s.revision === game.revision && s.serverNow < game.serverNow))) return;
@@ -220,7 +214,7 @@
     $('hands').setAttribute('aria-hidden','true'); $('matchActions').hidden = true; $('choices').hidden = false;
     $('callout').textContent = 'THE ARENA AWAITS.'; $('subcallout').textContent = 'A new grudge is only three hand gestures away.';
     $('crowdLabel').textContent = 'THE CROWD DEMANDS HANDS'; $('roundLabel').textContent = 'FIRST TO TWO ROUND WINS';
-    $('pickTitle').textContent = 'Choose your weapon.'; $('scoreA').textContent = '0'; $('scoreB').textContent = '0'; $('roundHistory').replaceChildren();
+    $('pickTitle').textContent = 'Choose your weapon.'; $('scoreA').textContent = '0'; $('scoreB').textContent = '0'; $('roundHistory').replaceChildren(); $('sealsA').replaceChildren(); $('sealsB').replaceChildren();
     $('announcer').textContent = '“Bring me another unreasonable rivalry!”'; $('practice').disabled = false; buttons.forEach(b => { b.disabled=true; b.classList.remove('selected'); });
     $('modeLabel').textContent = 'THE COLOSSEUM'; $('nameA').textContent = player?.name || 'You'; $('nameB').textContent = 'Your opponent';
     $('lockA').textContent = $('lockB').textContent = 'HAND CONCEALED';
@@ -245,6 +239,7 @@
     $('nameA').textContent = g.players[0].name + (g.seat === 0 ? ' · YOU' : '');
     $('nameB').textContent = (g.players[1]?.name || 'Awaiting challenger') + (g.seat === 1 ? ' · YOU' : '');
     $('scoreA').textContent = g.scores[0]; $('scoreB').textContent = g.scores[1];
+    for(const [i,seat] of ['A','B'].entries()) $('seals'+seat).innerHTML = [0,1].map(n=>`<i class="${g.scores[i]>n?'earned':''}" aria-label="${g.scores[i]>n?'Won':'Needed'}">◆</i>`).join('');
     $('lockA').textContent = g.locked[0] ? 'HAND LOCKED' : 'HAND CONCEALED'; $('lockB').textContent = g.locked[1] ? 'HAND LOCKED' : 'HAND CONCEALED';
     $('invite').hidden = exhibition || bot || g.phase !== 'waiting'; $('arenaCode').value = g.id;
     renderControls();
@@ -265,11 +260,12 @@
   function showShot(shot) {
     if (shot === lastShot) return;
     $('arena').dataset.shot = shot; lastShot = shot;
-    if (shot === 'eyes' || shot === 'pose') audio.cue('swish');
+
   }
   function tick() {
     if (!game || document.hidden) return;
     const g = game, now = serverAnchor + performance.now() - perfAnchor;
+    cinema.draw(g,now,calm);
     $('arena').dataset.variant = String(g.variant);
     const finished = g.phase === 'complete';
     const revealed = Boolean(g.picks && (g.phase === 'reveal' || finished));
@@ -284,13 +280,11 @@
       $('roundLabel').textContent = `ROUND ${g.round} · ${g.suddenDeath ? 'THE DECIDING HAND' : 'FIRST TO TWO'}`;
       $('callout').textContent = g.suddenDeath ? 'THE ENTIRE ARENA GOES QUIET.' : g.locked[g.seat] ? 'YOUR FATE IS SEALED.' : 'CHOOSE YOUR FATE.';
       $('subcallout').textContent = g.locked[g.seat] ? 'Your hand stays secret. Let them sweat.' : 'A fist. A palm. Two fingers. An absurd amount of glory.';
-      if (lastRound !== roundKey) { lastRound = roundKey; audio.say(g.suddenDeath ? 'silence' : 'choose'); $('announcer').textContent = g.suddenDeath ? '“One hand. One legend. Even the emperor has stopped chewing.”' : '“Behold! The most consequential finger arrangement of your life!”'; }
+      if (lastRound !== roundKey) { lastRound = roundKey; audio.round(g.round,g.suddenDeath); $('announcer').textContent = g.suddenDeath ? '“One hand. One legend. Even the emperor has stopped chewing.”' : '“Behold! The most consequential finger arrangement of your life!”'; }
       return;
     }
     if (!revealed) {
-      const elapsed = now - g.cutAt;
-      const eyesFirst = g.variant !== 1;
-      showShot(elapsed < 0 ? 'wide' : elapsed < 650 ? (eyesFirst ? 'eyes' : 'pose') : (eyesFirst ? 'pose' : 'eyes'));
+
       $('roundLabel').textContent = `ROUND ${g.round} · BOTH HANDS LOCKED`;
       $('callout').textContent = ['DESTINY HAS FINGERS.','BEHOLD THE TECHNIQUE.','THIS IS EXTREMELY SERIOUS.'][g.variant];
       $('subcallout').textContent = 'The reveal is coming…'; return;
@@ -298,12 +292,11 @@
     showShot('hands'); $('hands').setAttribute('aria-hidden','false');
     if (lastReveal !== roundKey) {
       lastReveal = roundKey;
-      $('handA').innerHTML = hand(g.picks[0]) + `<span>${g.picks[0].toUpperCase()}</span>`;
-      $('handB').innerHTML = hand(g.picks[1]) + `<span>${g.picks[1].toUpperCase()}</span>`;
+
       audio.cue('impact');
       const tie = g.roundWinner === null;
       if (!quiet) audio.cue('cheer');
-      audio.say(g.winner !== null ? 'champion' : tie ? 'tie' : ['rock','paper','scissors'][rules.CHOICES.indexOf(g.picks[g.roundWinner])]);
+      audio.result({tie,won:g.winner!==null,youWon:g.winner===g.seat,flawless:g.winner!==null && g.scores[1-g.winner]===0,round:g.round});
       $('announcer').textContent = g.winner !== null ? '“A champion! Tell the historians to write down… rock, paper, scissors!”' : tie ? '“A draw! All that drama for absolutely nothing. AGAIN!”' : ({rock:'“An immovable fist! An entirely predictable geological victory!”',paper:'“Devastated by stationery! The scholars were right!”',scissors:'“Two fingers! One legend! Someone alert the tailors!”'}[g.picks[g.roundWinner]]);
     }
     const won = g.winner !== null, tie = g.roundWinner === null;
@@ -330,5 +323,6 @@
     let savedKey = ''; try { savedKey = localStorage.getItem('tornVisitorApiKey') || ''; } catch {}
     if (savedKey) await login(savedKey);
   }
+  debug.install(()=>({session:{connected:Boolean(token),busy,polling,mode:practice?'local':'network'},match:game?{id:game.id,phase:game.phase,round:game.round,revision:game.revision,seat:game.seat,scores:game.scores,locked:game.locked,characters:game.players.map(p=>p.character),serverOffsetMs:Math.round(serverAnchor+performance.now()-perfAnchor-Date.now())}:null,media:{...cinema.diagnostics(),audio:audio.diagnostics()},calm}));
   boot();
 })();

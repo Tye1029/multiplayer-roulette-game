@@ -1,4 +1,4 @@
-/* HAND_OF_DOOM_V2_20261009 — shared rules; only the server owns online state. */
+/* HAND_OF_DOOM_V3_20261009 — shared rules; only the server owns online state. */
 (function(root, factory) {
   const api = factory();
   if (typeof module === 'object' && module.exports) module.exports = api;
