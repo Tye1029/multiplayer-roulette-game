@@ -24,10 +24,12 @@ Announcer: original short lines rendered with installed Microsoft David Desktop
 speech synthesis, lowered pitch and short stadium echo. These are synthesized
 voice clips, not a recording of a human performer.
 
-Arena and character: generated using the built-in OpenAI image generation tool,
-October 9, 2026; optimized as PNG with aspect ratio preserved. The blue rival is
-a mirrored, hue-shifted reuse of the same gladiator. Hands are original SVG art.
-Prompt provenance: docs/rps-hand-of-doom.md in the source repository.
+Arena and characters: generated using the built-in OpenAI image generation tool,
+October 9, 2026; optimized as PNG with aspect ratio and transparency preserved.
+Four distinct gladiators: Maximus, Voss, Lyra and Bryn. Opponent sprites face
+inward with a horizontal mirror; no recoloring. Hands are original SVG art.
+Prompt provenance: docs/rps-art-prompts.txt and docs/rps-v2-art-prompts.txt
+in the source repository.
 
 Only the selected game's page loads these assets. All bundled media is used.
 No existing historical or protected-game assets were superseded by this game.

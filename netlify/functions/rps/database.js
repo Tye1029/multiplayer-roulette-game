@@ -14,7 +14,7 @@ function db() {
 async function ready() {
   if (!schema) schema = (async () => {
     // IF NOT EXISTS alone still races while PostgreSQL creates composite types.
-    // One transactional block shares a lock with deploy migrations/cold workers.
+    // One transactional block shares a lock across cold workers.
     await db().query(`DO $rps$ BEGIN
     PERFORM pg_advisory_xact_lock(hashtext('hand-of-doom-schema-v1'));
     CREATE TABLE IF NOT EXISTS rps_sessions (
@@ -53,16 +53,26 @@ function error(message, status = 409) { const e = new Error(message); e.status =
 async function insert(c, state) {
   await c.query('INSERT INTO rps_matches(id,state) VALUES($1,$2::jsonb)', [state.id, JSON.stringify(state)]);
 }
-async function create(player, bot = false) {
+async function create(player, bot = false, invited = null) {
   return transaction(async c => {
     // Serialize creates per verified identity, so request retries reuse an active arena.
     await c.query('SELECT pg_advisory_xact_lock(hashtext($1))', ['rps:' + player.id]);
     const { rows } = await c.query(`SELECT state FROM rps_matches WHERE updated_at>NOW()-INTERVAL '20 minutes'
-      AND state->'players' @> $1::jsonb ORDER BY updated_at DESC LIMIT 20`, [JSON.stringify([{ id: player.id }])]);
+      AND state->'players' @> $1::jsonb ORDER BY updated_at DESC LIMIT 20 FOR UPDATE`, [JSON.stringify([{ id: player.id }])]);
     const active = rows.map(r => rules.advance(r.state)).find(s => ['waiting','choosing','reveal'].includes(s.phase));
-    if (active) return active;
+    if (active) {
+      if (active.phase === 'waiting' && bot && !active.invitedId) {
+        const next = rules.join(active, { id:'bot:emperor', name:'Network Bot', character:'voss', bot:true });
+        await c.query('UPDATE rps_matches SET state=$2::jsonb,updated_at=NOW() WHERE id=$1', [next.id,JSON.stringify(next)]);
+        return next;
+      }
+      if (invited && active.invitedId !== invited.id) error('Leave your current duel before challenging your rival.');
+      if (bot && !active.players.some(p => p.bot)) error('Leave your current duel before starting network practice.');
+      return active;
+    }
     let s = rules.create(id(), player);
-    if (bot) s = rules.join(s, { id: 'bot:emperor', name: 'Emperor Scissorius', bot: true });
+    if (invited) { s.invitedId = invited.id; s.invitedName = invited.name; }
+    if (bot) s = rules.join(s, { id: 'bot:emperor', name: 'Network Bot', character:'voss', bot: true });
     await insert(c, s); return s;
   });
 }
@@ -76,9 +86,23 @@ async function record(c, s) {
 }
 async function act(gameId, player, action, body = {}) {
   return transaction(async c => {
+    if (action === 'join') {
+      await c.query('SELECT pg_advisory_xact_lock(hashtext($1))', ['rps:' + player.id]);
+      const active = await c.query(`SELECT state FROM rps_matches WHERE id<>$1 AND updated_at>NOW()-INTERVAL '20 minutes'
+        AND state->'players' @> $2::jsonb`,[gameId,JSON.stringify([{id:player.id}])]);
+      if (active.rows.some(r => ['waiting','choosing','reveal'].includes(rules.advance(r.state).phase))) error('Leave your current duel before joining another.');
+    }
     const row = (await c.query('SELECT state FROM rps_matches WHERE id=$1 FOR UPDATE', [gameId])).rows[0];
     if (!row) error('Arena not found. Check the invite code.', 404);
     let s = rules.advance(row.state), now = Date.now();
+    if (action === 'decline') {
+      if (s.invitedId !== player.id) error('This invitation belongs to its recipient.',403);
+      if (s.phase === 'waiting') {
+        s.phase = 'cancelled'; s.reason = 'The invitation was declined. Challenge another opponent.'; s.revision++;
+        await c.query('UPDATE rps_matches SET state=$2::jsonb,updated_at=NOW() WHERE id=$1',[s.id,JSON.stringify(s)]);
+      }
+      return null;
+    }
     if (action === 'join') s = rules.join(s, player, now);
     if (!s.players.some(p => p.id === player.id)) error('This duel belongs to its two players.', 403);
     if (action === 'pick') {
@@ -109,7 +133,14 @@ async function lobby(player) {
   await ready();
   const { rows } = await db().query(`SELECT state FROM rps_matches WHERE state->>'phase'='waiting'
     AND (state->>'deadline')::bigint>$1 ORDER BY updated_at DESC LIMIT 30`, [Date.now()]);
-  return rows.map(({state:s}) => ({ id:s.id, name:s.players[0].name, mine:s.players[0].id === player.id }));
+  return rows.filter(({state:s}) => !s.invitedId || s.players[0].id === player.id)
+    .map(({state:s}) => ({ id:s.id, name:s.players[0].name, mine:s.players[0].id === player.id }));
+}
+async function invitations(player) {
+  await ready();
+  const {rows} = await db().query(`SELECT state FROM rps_matches WHERE state->>'phase'='waiting'
+    AND state->>'invitedId'=$1 AND (state->>'deadline')::bigint>$2 ORDER BY updated_at DESC LIMIT 20`,[player.id,Date.now()]);
+  return rows.map(({state:s}) => ({id:s.id,name:s.players[0].name,expiresAt:s.deadline}));
 }
 async function rivals(player) {
   await ready();
@@ -122,6 +153,6 @@ async function rivals(player) {
     ORDER BY matches DESC,last_played DESC,id ASC LIMIT 50`, [player.id]);
   return { archRival: rows[0] || null, opponents: rows };
 }
-return { session, authenticate, create, act, lobby, rivals };
+return { session, authenticate, create, act, lobby, rivals, invitations };
 }
 module.exports = { ...createStore(), createStore };

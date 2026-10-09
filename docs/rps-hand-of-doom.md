@@ -1,6 +1,6 @@
 # Hand of Doom
 
-Standalone 1v1 Rock Paper Scissors at `/games/multiplayer/rps/`, linked from the
+1v1 Rock Paper Scissors at `/games/multiplayer/rps/`, linked from the
 main game selector. The older shared-runtime RPS registration is retained for
 historical compatibility; this page uses its own endpoint and authoritative
 tables and does not route through the old one-shot RPS mechanics.
@@ -37,6 +37,36 @@ The Remote Network Bot is server-authoritative and chooses with crypto.randomInt
 before the human pick is processed. Local exhibition uses the same rules but
 does not contact the database or claim to record a rivalry.
 
+## V2 lobby and invitations
+
+The page uses the shared site's navy palette, system typography and Xan Duels
+wordmark while keeping arena theatrics inside the game surface. A compact side
+card always displays the arch rival and match record. The larger marketing box
+is removed. Open public rooms are created with **Challenge a random opponent**;
+the arena-code form and **Challenge an opponent** invite link remain.
+
+**Challenge your rival** resolves the most-played opponent on the server and
+creates a reserved room. The room's JSON state holds the invited identity and
+name, requiring no schema migration. Authenticated arena pages poll for incoming
+invitations every five seconds while visible. Accept joins with the normal
+membership/active-match checks; decline cancels the room. Invitations expire
+after fifteen minutes, survive reloads and are omitted from public lobbies.
+Only the recipient can accept or decline; a retry reuses the same active room.
+This is an arena inbox, not a site-wide push/email notification service.
+
+An open public room can attach the Remote Network Bot atomically without
+creating another room. A playing duel must be left before changing modes; the
+Leave duel button is beside the sound/camera controls. Logged-out online buttons
+explain how to connect instead of silently appearing broken. Local practice
+remains available without a key or browser storage. Restored logins release
+the busy state and re-enable pick controls. **Quick practice** replaces the
+misleading emperor label; no leaderboard emperor is currently implemented.
+
+The four selectable gladiators are Maximus, Voss, Lyra and Bryn (two men and two
+women). The server validates character IDs, preserves designs through rematches,
+and assigns the next character if both select the same one. The roster, full
+sprites and eye cuts use those same images without recoloring.
+
 No wagering, wallet deductions or payouts were added; the request was for a
 rivalry game. The other game runtimes, protected files and validations stay intact.
 
@@ -49,6 +79,7 @@ speech. Background-tab/page-exit audio is stopped. Media playback is unlocked by
 a user gesture. No RPS media is requested from the shared home page.
 
 The verbatim built-in image-generation prompt set is in `docs/rps-art-prompts.txt`.
+The V2 additions and their workspace paths are in `docs/rps-v2-art-prompts.txt`.
 Saved PNGs were optimized without stretching:
 
 - `images/coliseum.png`: Wide anime Roman coliseum at night, thousands of cheering
@@ -78,5 +109,5 @@ Windows checkouts may require an LF validation copy for existing exact-string
 protected validators; no protected validator or runtime is changed for this game.
 Production schema is declared in `netlify/database/migrations/004_rps_arena.sql`.
 
-Deployment marker: `HAND_OF_DOOM_V1_20261009` in the page, controller, model and
+Deployment marker: `HAND_OF_DOOM_V2_20261009` in the page, controller, model and
 endpoint response header/body. PR #20 preview remains the delivery target.

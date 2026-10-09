@@ -1,7 +1,8 @@
 /* Recorded music/crowd + short announcer clips. Loaded only after a user gesture. */
 (() => {
   'use strict';
-  let enabled = localStorage.getItem('rps-muted') !== '1', unlocked = false, silent = false;
+  let enabled = true, unlocked = false, silent = false;
+  try { enabled = localStorage.getItem('rps-muted') !== '1'; } catch {}
   const clips = new Map();
   let voice;
   function clip(name, loop = false) {
@@ -26,7 +27,7 @@
     get enabled() { return enabled; },
     get unlocked() { return unlocked; },
     unlock() { unlocked = true; ambience(); },
-    toggle() { enabled = !enabled; localStorage.setItem('rps-muted', enabled ? '0' : '1'); if (enabled) { unlocked = true; ambience(); } else stop(); return enabled; },
+    toggle() { enabled = !enabled; try { localStorage.setItem('rps-muted', enabled ? '0' : '1'); } catch {} if (enabled) { unlocked = true; ambience(); } else stop(); return enabled; },
     hush(value) { if (silent === value) return; silent = value; ambience(); if (value) clip('cheer').pause(); },
     cue(name) {
       if (!enabled || !unlocked) return;

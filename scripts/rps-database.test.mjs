@@ -52,5 +52,35 @@ test('transactional sessions, concurrent picks, exactly-once results and consens
     // Most matches determines nemesis even when another opponent is more recent.
     await pg.query("INSERT INTO rps_results(game_id,player_a,player_b,name_a,name_b,winner) VALUES('other','100','300','Alpha','Gamma','300'),('repeat','100','200','Alpha','Beta','200')");
     assert.equal((await db.rivals(a)).archRival.id,'200'); assert.equal((await db.rivals(a)).archRival.matches,2);
+    // A waiting public duel can attach the bot, including retried requests.
+    let waiting = await db.create(a);
+    const attached = await db.create(a,true);
+    assert.equal(attached.id,waiting.id); assert.equal(attached.phase,'choosing');
+    assert.equal(attached.players[1].bot,true); assert.equal((await db.create(a,true)).id,attached.id);
+    await db.act(attached.id,a,'pick',{choice:'rock',round:1});
+    assert.equal((await db.act(attached.id,a,'get')).phase,'reveal');
+    await db.act(attached.id,a,'leave');
+    // Reserved invitations are durable, private, recipient-only and cancellable.
+    const invite = await db.create({...a,character:'lyra'},false,{id:b.id,name:b.name});
+    assert.equal((await db.create(a,false,b)).id,invite.id,'challenge retries do not duplicate invitations');
+    assert.equal((await db.invitations(b))[0].id,invite.id);
+    assert.equal((await db.lobby(b)).some(r=>r.id===invite.id),false);
+    assert.equal((await db.lobby(c)).some(r=>r.id===invite.id),false);
+    await assert.rejects(db.act(invite.id,c,'decline'),/recipient/);
+    await db.act(bot.id,c,'leave');
+    await assert.rejects(db.act(invite.id,c,'join'),/reserved/);
+    await assert.rejects(db.create(a,true),/Leave/);
+    const joined = await db.act(invite.id,{...b,character:'bryn'},'join');
+    assert.deepEqual(joined.players.map(p=>p.character),['lyra','bryn']);
+    assert.equal((await db.invitations(b)).length,0);
+    await db.act(invite.id,a,'leave');
+    const declined = await db.create(a,false,b);
+    await db.act(declined.id,b,'decline');
+    assert.equal((await db.act(declined.id,a,'get')).phase,'cancelled');
+    assert.equal((await db.invitations(b)).length,0);
+    const expired = await db.create(a,false,b);
+    await pg.query("UPDATE rps_matches SET state=jsonb_set(state,'{deadline}','0') WHERE id=$1",[expired.id]);
+    assert.equal((await db.invitations(b)).length,0);
+    await assert.rejects(db.act(expired.id,b,'join'),/no longer open/);
   } finally { await pg.close(); }
 });

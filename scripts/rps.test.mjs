@@ -81,7 +81,23 @@ test('endpoint publishes only redacted state and rejects invalid actions and roo
 test('game media is isolated and public package includes the new route',()=>{
   const html=readFileSync(new URL('../games/multiplayer/rps/index.html',import.meta.url),'utf8');
   const shell=readFileSync(new URL('../shared/site/index.template.html',import.meta.url),'utf8');
-  assert.ok(html.includes('HAND_OF_DOOM_V1_20261009')); assert.ok(html.includes('aria-live="polite"'));
+  assert.ok(html.includes('HAND_OF_DOOM_V2_20261009')); assert.ok(html.includes('aria-live="polite"'));
   assert.ok(shell.includes('href="/games/multiplayer/rps/"')); assert.ok(!shell.includes('/assets/rps/'));
   assert.ok(readFileSync(new URL('../assets/rps/audio.js',import.meta.url),'utf8').includes("visibilitychange"));
+});
+test('four distinct characters persist publicly and same-character duels receive unique designs',()=>{
+  assert.equal(rules.CHARACTERS.length,4);
+  assert.equal(new Set(rules.CHARACTERS.map(c=>c.image)).size,4);
+  const s=rules.join(rules.create('ABCDEF123456',{...a,character:'lyra'}),{...b,character:'lyra'});
+  assert.equal(s.players[0].character,'lyra'); assert.equal(s.players[1].character,'bryn');
+  assert.deepEqual(rules.publicState(s,a.id).players,s.players);
+  assert.equal(rules.character('../../secret'),'maximus');
+});
+test('challenge target is the server-selected rival, never an arbitrary submitted recipient',async()=>{
+  let invited;
+  const handler=createHandler({authenticate:async()=>a,rivals:async()=>({archRival:b}),create:async(p,bot,target)=>{
+    invited=target;assert.equal(p.character,'maximus');return rules.create('ABCDEF123456',p);
+  }});
+  const res=await handler({httpMethod:'POST',body:JSON.stringify({action:'challenge',invitedId:'999',character:'<script>'})});
+  assert.equal(res.statusCode,200);assert.deepEqual(invited,b);
 });

@@ -3,28 +3,29 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#151310">
+  <meta name="theme-color" content="#080d14">
   <meta name="referrer" content="same-origin">
-  <title>Hand of Doom · Rock Paper Scissors</title>
-  <!-- HAND_OF_DOOM_V1_20261009 -->
-  <link rel="stylesheet" href="/assets/rps/arena.css?v=1">
-  <script src="/shared/games/rps-model.js?v=1" defer></script>
-  <script src="/assets/rps/audio.js?v=1" defer></script>
-  <script src="/assets/rps/arena.js?v=1" defer></script>
+  <title>Rock Paper Scissors · Xan Duels</title>
+  <!-- HAND_OF_DOOM_V2_20261009 -->
+  <link rel="stylesheet" href="/assets/rps/arena.css?v=2">
+  <script src="/shared/games/rps-model.js?v=2" defer></script>
+  <script src="/assets/rps/audio.js?v=2" defer></script>
+  <script src="/assets/rps/arena.js?v=2" defer></script>
 </head>
 <body>
-  <header class="topbar"><a href="/" class="wordmark">XAN<span>DUELS</span></a><span class="top-label">THE COLOSSEUM / 07</span><a href="/">← All games</a></header>
+  <header class="topbar"><a href="/" class="wordmark">XAN <span>DUELS</span></a><span class="top-label">MULTIPLAYER GAMES</span><a href="/">← All games</a></header>
   <main>
-    <div class="masthead"><div><p class="eyebrow"><i></i> ROCK. PAPER. SCISSORS. UNREASONABLE STAKES.</p><h1>HAND OF <em>DOOM.</em></h1><p class="intro">Two gladiators. Three hand gestures. Absolutely no chill.</p></div><div class="seal">I vs I<span>FIRST TO TWO</span></div></div>
+    <div class="masthead"><div><p class="eyebrow">THE COLOSSEUM · TEST ARENA</p><h1>Rock Paper Scissors</h1><p class="intro">Two gladiators. Three hand gestures. Absolutely no chill.</p></div><span class="game-tag">1v1 · Free play</span></div>
+    <section id="invitations" class="invitations" aria-label="Duel invitations" aria-live="polite" hidden></section>
     <div class="layout">
       <section class="game-column" aria-label="Duel arena">
-        <div class="arena-toolbar"><span id="modeLabel">EXHIBITION ARENA</span><div><button id="sound" aria-pressed="false" title="Enable music, crowd and announcer">Sound off</button><button id="motion" aria-pressed="false">Calm camera</button></div></div>
-        <div class="scoreboard"><div><small>CHALLENGER I</small><strong id="nameA">You</strong><span id="lockA">HAND CONCEALED</span></div><div class="score"><b id="scoreA">0</b><span>:</span><b id="scoreB">0</b><small>BEST OF THREE</small></div><div><small>CHALLENGER II</small><strong id="nameB">Scissorius</strong><span id="lockB">HAND CONCEALED</span></div></div>
+        <div class="arena-toolbar"><span id="modeLabel">THE COLOSSEUM</span><div><button id="leave" hidden>Leave duel</button><button id="sound" aria-pressed="false" title="Enable music, crowd and announcer">Sound off</button><button id="motion" aria-pressed="false">Calm camera</button></div></div>
+        <div class="scoreboard"><div><small>CHALLENGER I</small><strong id="nameA">You</strong><span id="lockA">HAND CONCEALED</span></div><div class="score"><b id="scoreA">0</b><span>:</span><b id="scoreB">0</b><small>BEST OF THREE</small></div><div><small>CHALLENGER II</small><strong id="nameB">Your opponent</strong><span id="lockB">HAND CONCEALED</span></div></div>
         <div class="arena" id="arena" data-shot="wide" data-variant="0">
           <div class="arena-scenery"></div><div class="vignette"></div>
           <div class="crowd-ribbon" id="crowdLabel">THE CROWD DEMANDS HANDS</div>
-          <div class="fighter fighter-a"><img src="/assets/rps/images/gladiator.png?v=1" alt="Crimson gladiator holding his hands behind his back" width="1024" height="1536"></div>
-          <div class="fighter fighter-b"><img src="/assets/rps/images/gladiator.png?v=1" alt="Blue gladiator holding his hands behind his back" width="1024" height="1536"></div>
+          <div class="fighter fighter-a"><img id="fighterA" src="/assets/rps/images/gladiator.png?v=1" alt="Maximus, the crimson gladiator" width="600" height="900"></div>
+          <div class="fighter fighter-b"><img id="fighterB" src="/assets/rps/images/voss.png?v=2" alt="Voss, the iron veteran" width="600" height="900"></div>
           <div class="versus" aria-hidden="true">VS<span>FOR ETERNAL<br>BRAGGING RIGHTS</span></div>
           <div class="eyes" aria-hidden="true"><div class="eye eye-a"></div><div class="eye eye-b"></div><b>AN UNREASONABLE<br>AMOUNT OF FOCUS.</b></div>
           <div class="speed-lines" aria-hidden="true"></div>
@@ -34,7 +35,7 @@
           <div class="round-banner"><small id="roundLabel">THE SMALLEST BATTLE. THE BIGGEST PRODUCTION.</small><strong id="callout">ARE YOU NOT ENTERTAINED?</strong><span id="subcallout">Enter the arena. Hide your hand. Make history.</span></div>
         </div>
         <div class="announcer"><span>THE ANNOUNCER</span><p id="announcer" aria-live="polite">“Thousands have gathered to watch you choose a hand.”</p></div>
-        <div class="play-panel"><div class="pick-heading"><h2 id="pickTitle">Choose your weapon.</h2><span id="roundHint">Rock beats scissors. You know the drill.</span></div><div class="choices" id="choices">
+        <div class="play-panel"><div class="pick-heading"><h2 id="pickTitle">Enter the arena to play.</h2><span id="roundHint">Rock beats scissors. You know the drill.</span></div><div class="choices" id="choices">
           <button data-choice="rock" disabled><span class="choice-art"></span><span><b>ROCK</b><small>Crushes scissors</small></span><kbd>1</kbd></button>
           <button data-choice="paper" disabled><span class="choice-art"></span><span><b>PAPER</b><small>Wraps rock</small></span><kbd>2</kbd></button>
           <button data-choice="scissors" disabled><span class="choice-art"></span><span><b>SCISSORS</b><small>Cuts paper</small></span><kbd>3</kbd></button>
@@ -42,19 +43,20 @@
         <div class="rule-strip"><span><b>01</b> Lock a secret hand</span><span><b>02</b> Endure 1.5 seconds of drama</span><span><b>03</b> First to two wins</span></div>
       </section>
       <aside>
-        <section class="lobby-card"><p class="eyebrow">YOUR NEXT BAD DECISION</p><h2>Enter the arena.</h2><p>Challenge a friend or face the emperor. Free play. Eternal grudges.</p>
+        <section class="lobby-card"><h2>Challenge an opponent</h2><p>Quick duels. Ridiculous drama. First to two wins.</p>
           <div id="identity" class="identity">Practice is ready. Connect for live 1v1.</div>
           <form id="loginForm"><label for="apiKey">Torn API key</label><div class="input-row"><input type="password" id="apiKey" placeholder="Your key stays private" autocomplete="off" maxlength="64"><button type="submit" id="connect">Connect</button></div></form>
-          <div class="lobby-buttons"><button id="create" class="primary" disabled>Create a live duel <span>↗</span></button><button id="practice">Challenge the emperor <span>⚔</span></button><button id="remoteBot" disabled>Remote Network Bot <small>Server practice</small></button></div>
-          <div class="invite" id="invite" hidden><label for="arenaCode">Invite a rival</label><div class="input-row"><input id="arenaCode" readonly><button id="copy">Copy link</button></div></div>
+          <fieldset class="character-picker"><legend>Your gladiator</legend><div id="characters" class="characters"></div><p id="characterHint">Your look, your dramatic entrance.</p></fieldset>
+          <div class="lobby-buttons"><button id="create" class="primary">Challenge a random opponent <span>↗</span></button><button id="practice">Quick practice <small>Local bot · no key</small></button><button id="remoteBot">Remote Network Bot <small>Server practice</small></button></div>
+          <p id="lobbyStatus" class="lobby-status" role="status">Connect for online play, or try quick practice.</p>
+          <div class="invite" id="invite" hidden><label for="arenaCode">Challenge an opponent</label><div class="input-row"><input id="arenaCode" readonly><button id="copy">Copy link</button></div></div>
           <form id="joinForm"><label for="joinCode">Have an arena code?</label><div class="input-row"><input id="joinCode" placeholder="12-character code" maxlength="12" autocomplete="off"><button id="join" disabled>Join</button></div></form>
           <div class="open-heading"><h3>Open challenges</h3><button id="refresh" disabled>Refresh</button></div><div id="openGames" class="open-games">Connect to see live challenges.</div>
-          <button id="leave" class="text-button" hidden>Leave this duel</button>
         </section>
-        <section class="rival-card"><div class="rival-icon" aria-hidden="true">⚔</div><p class="eyebrow">SOME THINGS GET PERSONAL</p><h2>Your arch rival.</h2><strong id="archName">A legend needs a nemesis.</strong><p id="archStats">Your most-played opponent earns this questionable honor.</p><div id="rivalList"></div><small>Completed live matches count. Ties, bots and exhibitions don’t. Records follow your Torn identity.</small></section>
+        <section class="rival-card"><p class="eyebrow">A LITTLE UNFINISHED BUSINESS</p><h2>Your arch rival</h2><strong id="archName">No rival yet</strong><p id="archStats">Your most-played human opponent appears here.</p><button id="challengeRival" disabled>Challenge your rival <span>⚔</span></button><p class="rival-note">Invites appear here when your rival opens the arena. They expire after 15 minutes.</p><details><summary>Match records</summary><div id="rivalList"></div><small>Completed human duels count. Bot practice stays off the record.</small></details></section>
       </aside>
     </div>
-    <footer><span>HAND OF DOOM <b>VOL. 01</b> · Small game. Stadium-sized ego.</span><details><summary>Art & audio credits</summary><p>“Metalmania” by <a href="https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1700023">Kevin MacLeod</a> and crowd recordings by <a href="https://opengameart.org/content/free-crowd-cheering-sounds">Gregor Quendel</a>, licensed under <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>. Audio excerpted, faded and compressed. Swishes by <a href="https://opengameart.org/content/swishes-sound-pack">artisticdude</a> (CC0). AI-generated arena and character art; synthesized announcer voice. Full source and adaptation notes in <a href="/assets/rps/CREDITS.txt">credits</a>.</p></details></footer>
+    <footer><span>XAN DUELS · Hand of Doom <b>TEST ARENA V2</b></span><details><summary>Art & audio credits</summary><p>“Metalmania” by <a href="https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1700023">Kevin MacLeod</a> and crowd recordings by <a href="https://opengameart.org/content/free-crowd-cheering-sounds">Gregor Quendel</a>, licensed under <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>. Audio excerpted, faded and compressed. Swishes by <a href="https://opengameart.org/content/swishes-sound-pack">artisticdude</a> (CC0). AI-generated arena and character art; synthesized announcer voice. Full source and adaptation notes in <a href="/assets/rps/CREDITS.txt">credits</a>.</p></details></footer>
   </main>
 </body>
 </html>

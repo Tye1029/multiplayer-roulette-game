@@ -1,4 +1,4 @@
-/* HAND_OF_DOOM_V1_20261009 — shared rules; only the server owns online state. */
+/* HAND_OF_DOOM_V2_20261009 — shared rules; only the server owns online state. */
 (function(root, factory) {
   const api = factory();
   if (typeof module === 'object' && module.exports) module.exports = api;
@@ -6,11 +6,18 @@
 })(typeof globalThis === 'object' ? globalThis : this, () => {
   'use strict';
   const CHOICES = ['rock', 'paper', 'scissors'];
+  const CHARACTERS = [
+    { id:'maximus', name:'Maximus', title:'The dramatic one', image:'gladiator.png' },
+    { id:'voss', name:'Voss', title:'The iron veteran', image:'voss.png' },
+    { id:'lyra', name:'Lyra', title:'The knowing smirk', image:'lyra.png' },
+    { id:'bryn', name:'Bryn', title:'The crowd favorite', image:'bryn.png' }
+  ];
+  const character = value => CHARACTERS.some(c => c.id === value) ? value : 'maximus';
   const REVEAL_MS = 1500, NEXT_MS = 2900, PICK_MS = 90000;
   const clone = value => JSON.parse(JSON.stringify(value));
   function fail(message) { const e = new Error(message); e.status = 409; throw e; }
   function create(id, player, now = Date.now()) {
-    return { id, players: [player], phase: 'waiting', scores: [0, 0], round: 1,
+    return { id, players: [{...player, character:character(player.character)}], phase: 'waiting', scores: [0, 0], round: 1,
       picks: [null, null], history: [], revision: 0, createdAt: now, deadline: now + 900000,
       winner: null, rematchVotes: [], nextMatch: null };
   }
@@ -18,7 +25,10 @@
     const s = clone(state);
     if (s.players.some(p => p.id === player.id)) return s;
     if (s.phase !== 'waiting' || now >= s.deadline) fail('This arena is no longer open.');
-    s.players.push(player); s.phase = 'choosing'; s.deadline = now + PICK_MS; s.revision++;
+    if (s.invitedId && s.invitedId !== player.id) fail('This challenge is reserved for the invited opponent.');
+    let avatar = character(player.character);
+    if (avatar === character(s.players[0].character)) avatar = CHARACTERS[(CHARACTERS.findIndex(c => c.id === avatar)+1)%CHARACTERS.length].id;
+    s.players.push({...player, character:avatar}); s.phase = 'choosing'; s.deadline = now + PICK_MS; s.revision++;
     return s;
   }
   function advance(state, now = Date.now()) {
@@ -68,7 +78,8 @@
       cutAt: state.cutAt || null, revealAt: state.revealAt || null, nextAt: state.nextAt || null,
       deadline: state.deadline, variant: state.variant || 0, serverNow: now,
       rematchVotes: state.rematchVotes, nextMatch: state.nextMatch, reason: state.reason || '',
+      invitedName: state.invitedName || '',
       suddenDeath: (state.phase === 'reveal' ? state.beforeScores : state.scores).every(n => n === 1) };
   }
-  return { CHOICES, REVEAL_MS, NEXT_MS, PICK_MS, create, join, advance, pick, publicState };
+  return { CHOICES, CHARACTERS, character, REVEAL_MS, NEXT_MS, PICK_MS, create, join, advance, pick, publicState };
 });
