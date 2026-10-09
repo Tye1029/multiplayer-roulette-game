@@ -122,3 +122,4 @@ console.log('Injected independent lamp without smoke, synchronized shorter openi
 
 await import('./publish-site.mjs');
 await import('./validate-site-package.mjs');
+await import('./validate-roulette-four.mjs');
