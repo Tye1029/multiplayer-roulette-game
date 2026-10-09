@@ -99,7 +99,7 @@ if (/position\s*:\s*fixed/i.test(block) || /backdrop-filter\s*:/i.test(block)) {
   throw new Error('Safe Cracker final dial-layout validation failed: the refinement escaped its component boundary.');
 }
 
-const assetPath = '/assets/safe-cracker/textures/dial-reference-face-v7.svg?dial=7&layout=7';
+const assetPath = '/assets/safe-cracker/images/dial-reference-face.png?dial=24';
 if (!client.includes(`src="${assetPath}"`)) {
   throw new Error('Safe Cracker final dial-layout validation failed: the mounted plate does not use layout=7.');
 }

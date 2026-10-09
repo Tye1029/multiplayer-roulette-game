@@ -19,8 +19,8 @@
       const saved = JSON.parse(localStorage.getItem(configApi.storageKey) || 'null');
       if (saved) return configApi.normalize(saved);
 
-      const legacy = JSON.parse(localStorage.getItem(configApi.legacyStorageKey) || 'null');
-      if (legacy) return configApi.normalize(legacy);
+      // Older calibrations position the full reference photograph, rather than
+      // the transparent fixture. Start the new geometry from its fitted defaults.
     } catch {}
 
     return configApi.normalize(configApi.defaults);

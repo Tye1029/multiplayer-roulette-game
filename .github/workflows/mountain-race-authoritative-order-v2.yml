@@ -1,0 +1,119 @@
+name: Summit Sprint Visual Rebuild V14
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: summit-sprint-visual-rebuild-v14-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate-visual-rebuild:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+
+      - name: Use Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build exact Netlify output
+        run: npm run build
+
+      - name: Verify visual rebuild and authoritative protections
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check scripts/patch-mountain-race-input-rebase-v8.mjs
+          node --check scripts/patch-mountain-race-fast-ack-v9.mjs
+          node --check scripts/patch-mountain-race-terminal-poll-v10.mjs
+          node --check scripts/patch-mountain-race-lifecycle-guard-v11.mjs
+          node --check scripts/patch-mountain-race-visual-foundation-v13.mjs
+          node --check scripts/patch-mountain-race-visual-rebuild-v14-preflight.mjs
+          node --check scripts/patch-mountain-race-visual-rebuild-v14.mjs
+          node --check scripts/validate-mountain-race-visual-foundation-v13.mjs
+          node --check scripts/validate-mountain-race-visual-rebuild-v14.mjs
+          node --check assets/mountain-race/mountain-race-multiplayer.js
+          node --check netlify/functions/_data.js
+          node --check netlify/functions/mountain-race/integration.js
+          node --check netlify/functions/duel-action.js
+
+          node scripts/validate-mountain-race-input-rebase-v8.mjs
+          node scripts/validate-mountain-race-fast-ack-v9.mjs
+          node scripts/validate-mountain-race-terminal-poll-v10.mjs
+          node scripts/validate-mountain-race-lifecycle-guard-v11.mjs
+          node scripts/validate-mountain-race-visual-foundation-v13.mjs
+          node scripts/validate-mountain-race-visual-rebuild-v14.mjs
+          node scripts/validate-mountain-race-state-sync.mjs
+          node scripts/validate-mountain-race-start-stability.mjs
+          node scripts/validate-mountain-race-gameplay-visibility.mjs
+          node scripts/validate-mountain-race-load-performance.mjs
+
+          grep -Fq 'MOUNTAIN_RACE_VISUAL_REBUILD_V14' index.html
+          grep -Fq 'MOUNTAIN_RACE_VISUAL_REBUILD_V14' assets/mountain-race/mountain-race.css
+          grep -Fq 'MOUNTAIN_RACE_VISUAL_REBUILD_V14' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'const MOUNTAIN_RACE_WORLD_V14' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'function ensureMountainRaceWorld(root)' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'previousGameElement.replaceChildren' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'class=\"mr-world-layer\"' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'class=\"mr-world-moon\"' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'class="mr-stage-ridge"' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'class="mr-route-rope"' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq '[data-mountain-race-mount] > .mr-world-layer' assets/mountain-race/mountain-race.css
+          grep -Fq 'backdrop-filter: none !important' assets/mountain-race/mountain-race.css
+          grep -Fq 'visual=14' index.html
+          if grep -Fq 'root.innerHTML = `' assets/mountain-race/mountain-race-multiplayer.js; then
+            echo 'Summit Sprint still replaces the whole mount during active renders.' >&2
+            exit 1
+          fi
+
+          grep -Fq 'MOUNTAIN_RACE_INPUT_REBASE_V8' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'function authoritativeSlip(' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'function rebaseInputQueueAgainstGame(' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'MOUNTAIN_RACE_TERMINAL_POLL_V10' index.html
+          grep -Fq 'MOUNTAIN_RACE_LIFECYCLE_GUARD_V11' index.html
+          grep -Fq 'MOUNTAIN_RACE_FAST_ACK_V9' netlify/functions/_data.js
+          grep -Fq 'result?.skipBalanceLookup' netlify/functions/duel-action.js
+
+          test -s assets/safe-cracker/safe-cracker.js
+          test -s assets/safe-cracker/safe-cracker.css
+          test -s assets/roulette/turn-animation.js
+          test -s assets/roulette/turn-fire.js
+          test -s assets/roulette/audio-bindings.js
+
+      - name: Verify live Netlify Visual Rebuild V14 deployment
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          url='https://deploy-preview-20--famous-piroshki-b621da.netlify.app/'
+          for attempt in $(seq 1 48); do
+            page="$(curl -fsSL --max-time 20 "${url}?summit_visual_rebuild_v14=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            runtime="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race-multiplayer.js?visual=14&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            styles="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race.css?visual=14&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            if grep -Fq 'MOUNTAIN_RACE_VISUAL_REBUILD_V14' <<<"$page" && \
+               grep -Fq 'visual=14' <<<"$page" && \
+               grep -Fq 'MOUNTAIN_RACE_VISUAL_REBUILD_V14' <<<"$runtime" && \
+               grep -Fq 'function ensureMountainRaceWorld(root)' <<<"$runtime" && \
+               grep -Fq 'previousGameElement.replaceChildren' <<<"$runtime" && \
+               grep -Fq 'MOUNTAIN_RACE_INPUT_REBASE_V8' <<<"$runtime" && \
+               grep -Fq 'MOUNTAIN_RACE_VISUAL_REBUILD_V14' <<<"$styles" && \
+               grep -Fq '[data-mountain-race-mount] > .mr-world-layer' <<<"$styles" && \
+               grep -Fq 'backdrop-filter: none !important' <<<"$styles"; then
+              echo 'Verified live Summit Sprint Visual Rebuild V14 deployment.'
+              exit 0
+            fi
+            echo "Waiting for Netlify Visual Rebuild V14 deployment (${attempt}/48)..."
+            sleep 10
+          done
+          echo 'Netlify did not serve Summit Sprint Visual Rebuild V14.' >&2
+          exit 1

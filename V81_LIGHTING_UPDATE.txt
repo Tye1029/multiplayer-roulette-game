@@ -1,8 +1,0 @@
-V81 lamp lighting update
-
-- Replaced broad/random light beams with one cone whose apex begins at the exposed bulb tip.
-- Brightened the table only where the cone lands.
-- Increased gradual shadow falloff toward the room edges.
-- Kept the bulb tip as the only obvious source of illumination.
-- Clipped illuminated smoke to the same moving cone and synchronized it with the lamp swing.
-- Reduced ambient haze visibility outside the direct light.

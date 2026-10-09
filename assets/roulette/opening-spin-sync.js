@@ -9,12 +9,12 @@
   const MIN_PLAYBACK_RATE = 0.25;
   const MAX_PLAYBACK_RATE = 4;
   const MAX_SYNC_ATTEMPTS = 20;
-  const RAPID_FADE_START_PROGRESS = 0.40;
-  const RAPID_FADE_END_PROGRESS = 0.53;
-  const RAPID_FADE_LEVEL = 0.08;
-  const SETTLE_FADE_END_PROGRESS = 0.66;
-  const SETTLE_FADE_LEVEL = 0.015;
-  const SILENT_PROGRESS = 0.74;
+  const RAPID_FADE_START_PROGRESS = 0.64;
+  const RAPID_FADE_END_PROGRESS = 0.82;
+  const RAPID_FADE_LEVEL = 0.35;
+  const SETTLE_FADE_END_PROGRESS = 0.94;
+  const SETTLE_FADE_LEVEL = 0.08;
+  const SILENT_PROGRESS = 1;
 
   function clamp(value, minimum, maximum) {
     return Math.max(minimum, Math.min(maximum, value));
@@ -194,10 +194,11 @@
 
       const progress = clamp(timing.currentTime / timing.duration, 0, 1);
       if (!Number.isFinite(baseVolume)) {
-        baseVolume = Math.max(0, Number(clip.volume) || 0);
+        baseVolume = clamp(Number(clip.volume) || 0, 0, 1);
       }
 
-      clip.volume = baseVolume * openingVolumeEnvelope(progress);
+      // SHARED_RUNTIME_STABILITY_V48
+      clip.volume = clamp(baseVolume * openingVolumeEnvelope(progress), 0, 1);
       clip.__rrOpeningProgress = progress;
       clip.__rrOpeningVolumeEnvelope = openingVolumeEnvelope(progress);
 
@@ -216,7 +217,7 @@
 
     const startTracking = () => {
       if (stopped) return;
-      baseVolume = Math.max(0, Number(clip.volume) || 0);
+      baseVolume = clamp(Number(clip.volume) || 0, 0, 1);
       synchronizeClip(clip);
       stopEnvelope();
       envelopeFrame = requestAnimationFrame(trackEnvelope);

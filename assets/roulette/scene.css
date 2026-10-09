@@ -1,0 +1,157 @@
+/* warm-v3: soft bulb falloff, complete table, and one textured room. */
+html body [data-roulette-game][data-roulette-scene="rustic-v2"] {
+  height:730px!important;min-height:730px!important;max-width:820px!important;
+  padding:0!important;overflow:hidden!important;isolation:isolate;
+  background:#17120d!important;
+}
+html body [data-roulette-scene="rustic-v2"] .rr-backwall {
+  inset:0!important;background:linear-gradient(#0003,#0006),url('/assets/roulette/decor/saloon-room-v3.webp') center/cover no-repeat!important;
+  filter:brightness(calc(1 - var(--rr-wall-dark,.25))) saturate(.76)!important;
+}
+html body [data-roulette-scene="rustic-v2"] .rr-backwall::before,
+html body [data-roulette-scene="rustic-v2"] .rr-backwall::after {content:none!important;display:none!important}
+html body [data-roulette-scene="rustic-v2"] .rr-floor {
+  position:absolute;inset:62% 0 0;z-index:1;pointer-events:none;
+  background:linear-gradient(#0000,#0004);
+  filter:brightness(.66) saturate(.7);mask-image:linear-gradient(transparent,#000 22%);
+}
+html body [data-roulette-game][data-roulette-scene="rustic-v2"]::before,
+html body [data-roulette-game][data-roulette-scene="rustic-v2"]::after,
+html body [data-roulette-game][data-roulette-scene="rustic-v2"] .rr-table::before,
+html body [data-roulette-game][data-roulette-scene="rustic-v2"] .rr-table::after {content:none!important;display:none!important}
+html body [data-roulette-scene="rustic-v2"] .rr-table {
+  inset:230px 5% auto!important;width:90%!important;height:auto!important;
+  aspect-ratio:1200/632!important;border:0!important;border-radius:0!important;
+  background:none!important;box-shadow:none!important;filter:none!important;
+  overflow:visible!important;isolation:isolate;z-index:4!important;
+}
+html body [data-roulette-scene="rustic-v2"] .rr-table-art,
+html body [data-roulette-scene="rustic-v2"] .rr130-table-illumination img {
+  display:block;width:100%!important;height:auto!important;max-width:none!important;
+  position:absolute;inset:0;object-fit:contain;pointer-events:none;
+}
+html body [data-roulette-scene="rustic-v2"] .rr-table-art {filter:brightness(.40) saturate(.88) drop-shadow(0 15px 12px #0009)}
+html body [data-roulette-scene="rustic-v2"] .rr130-table-illumination {
+  position:absolute!important;inset:0!important;width:100%!important;height:100%!important;
+  z-index:1!important;filter:none!important;background:none!important;
+  animation:none!important;mix-blend-mode:normal!important;opacity:1!important;
+  pointer-events:none;-webkit-mask-image:var(--rr-surface-light);mask-image:var(--rr-surface-light);
+}
+html body [data-roulette-scene="rustic-v2"] .rr130-table-illumination img {filter:brightness(1.65) saturate(1.08) sepia(.32)}
+html body [data-roulette-scene="rustic-v2"] .rr-table-shadow {display:none!important}
+html body [data-roulette-scene="rustic-v2"] .rr-gun-motion {
+  width:min(62%,400px)!important;height:auto!important;aspect-ratio:1307/522!important;
+  left:50%!important;top:48%!important;z-index:3!important;
+}
+html body [data-roulette-scene="rustic-v2"] .rr-table .rr-gun-motion {opacity:0;transition:opacity 140ms ease-out!important}
+html body [data-roulette-scene="rustic-v2"] .rr-gun-motion.rr-media-ready {opacity:1}
+html body [data-roulette-scene="rustic-v2"] .rr-photo-revolver {filter:drop-shadow(var(--rr-shadow-x,3px) 8px 4px #000a)!important}
+html body [data-roulette-scene="rustic-v2"] .rr-gun-photo,
+html body [data-roulette-scene="rustic-v2"] .rr-hammer-photo {filter:brightness(.82) saturate(.88)!important}
+html body [data-roulette-scene="rustic-v2"] .rr-metal-glint {
+  display:block!important;opacity:1!important;inset:0!important;
+  animation:none!important;background:none!important;clip-path:none!important;
+  mix-blend-mode:screen!important;overflow:hidden;pointer-events:none;
+}
+html body [data-roulette-scene="rustic-v2"] .rr-gun-light-field {
+  position:absolute;width:100px;height:100px;left:0;top:0;transform-origin:0 0;
+  background:radial-gradient(circle,rgba(255,237,202,.52),rgba(236,191,123,.24) 35%,rgba(236,191,123,.08) 62%,transparent 100%);
+  opacity:var(--rr-gun-light-strength,1);pointer-events:none;
+}
+.rr-light-probe {position:absolute;width:0;height:0;pointer-events:none}
+.rr-light-probe-a {left:0;top:0}.rr-light-probe-b {left:100%;top:0}.rr-light-probe-c {left:0;top:100%}
+html body [data-roulette-scene="rustic-v2"] .rr-scene-props {position:absolute;inset:0;z-index:2;pointer-events:none}
+html body [data-roulette-scene="rustic-v2"] .rr-top {position:absolute!important;inset:8px 0 auto!important;padding:6px 14px!important;z-index:8!important}
+html body [data-roulette-scene="rustic-v2"] .rr-player:first-child {grid-column:1}
+html body [data-roulette-scene="rustic-v2"] .rr-player:last-child {grid-column:3}
+html body [data-roulette-scene="rustic-v2"] .rr-pot {
+  position:absolute;left:14px;top:80px;display:flex!important;align-items:center;gap:7px;
+  margin:0;padding:7px 10px!important;border-radius:7px!important;background:#110e0ad9!important;
+}
+html body [data-roulette-scene="rustic-v2"] .rr-pot b {font-size:1rem!important}
+html body [data-roulette-scene="rustic-v2"] .rr-status {
+  position:absolute!important;left:50%!important;top:192px!important;transform:translateX(-50%)!important;
+  margin:0!important;min-height:0!important;padding:0!important;z-index:8!important;
+}
+html body [data-roulette-scene="rustic-v2"] .rr-status strong {font-size:clamp(1rem,3vw,1.35rem)!important}
+html body [data-roulette-scene="rustic-v2"] .rr-opening-banner {top:197px!important;z-index:8!important}
+html body [data-roulette-scene="rustic-v2"] .rr-controls {
+  position:absolute!important;bottom:14px!important;left:50%!important;transform:translateX(-50%)!important;
+  width:calc(100% - 30px)!important;max-width:660px!important;z-index:9!important;
+}
+html body [data-roulette-scene="rustic-v2"] .rr-btn {min-height:52px!important}
+html body [data-roulette-game] .rr-btn:disabled,
+html body [data-roulette-game] .rr-controls-disabled .rr-btn {cursor:default!important;opacity:.6!important;filter:grayscale(1) brightness(.72)!important}
+html body [data-roulette-scene="rustic-v2"] :is(.rr-table-light,.rr-lamp,.rr-lamp-fixture,.rr-smoke,.rr-rain,.rr-turn-pulse,.rr-dust,.rr-embers,.rr-light-haze,.rr-chair-png,.rr-chair-back,.rr-chair-left,.rr-chair-right,[class*="rr-v100"],[class*="rr-v106"]) {display:none!important}
+@media(max-width:560px) {
+  html body [data-roulette-game][data-roulette-scene="rustic-v2"] {height:490px!important;min-height:490px!important}
+  html body [data-roulette-scene="rustic-v2"] .rr-table {inset:205px 3% auto!important;width:94%!important}
+  html body [data-roulette-scene="rustic-v2"] .rr-gun-motion {width:58%!important}
+  html body [data-roulette-scene="rustic-v2"] .rr-top {inset:5px 0 auto!important;padding:3px 5px!important}
+  html body [data-roulette-scene="rustic-v2"] .rr-player {padding:5px!important}
+  html body [data-roulette-scene="rustic-v2"] .rr-pot {left:8px;top:70px;gap:4px;padding:5px 6px!important}
+  html body [data-roulette-scene="rustic-v2"] .rr-status {top:173px!important}
+  html body [data-roulette-scene="rustic-v2"] .rr-status strong {font-size:.95rem!important}
+  html body [data-roulette-scene="rustic-v2"] .rr-opening-banner {top:179px!important}
+  html body [data-roulette-scene="rustic-v2"] .rr-controls {width:calc(100% - 16px)!important;bottom:10px!important;gap:6px!important}
+  html body [data-roulette-scene="rustic-v2"] .rr-btn {min-height:48px!important}
+}
+@media(prefers-reduced-motion:reduce) {html body [data-roulette-scene="rustic-v2"] .rr-table .rr-gun-motion {transition:none!important}}
+
+/* frontier-v4: warm falloff, local finishes, precise muzzle origin and room shell. */
+body:has([data-roulette-game]) {background:radial-gradient(ellipse at 50% 40%,#302319a8,#080808ed 75%),url('/assets/roulette/decor/saloon-room-v3.webp') center/cover fixed!important;}
+body:has([data-roulette-game]) #duelScreen {padding-top:clamp(14px,4vh,48px)!important;padding-bottom:36px!important;}
+body:has([data-roulette-game]) .roulette-clean {margin-inline:auto!important;}
+.rr-room-shade {position:absolute;inset:0;z-index:3;pointer-events:none;background:radial-gradient(ellipse 55% 75% at var(--rr-room-light-x,50%) var(--rr-room-light-y,40%),#1d080000 0%,#16090230 30%,#050302b8 85%);}
+.rr-turn-clock {border-left:1px solid #96714466;padding-left:8px;margin-left:3px;min-width:40px;font:700 15px ui-monospace,monospace;color:#d8bc91;font-variant-numeric:tabular-nums;}
+.rr-turn-clock[data-urgent=true] {color:#ff8054;}
+html body [data-roulette-game] .rr-gun-toggle {position:absolute;right:15px;top:91px;z-index:10;padding:7px 9px;font-size:10px;letter-spacing:.08em;color:#cdb38b;border:1px solid #96714470;border-radius:6px;background:#120e0bd9;cursor:pointer;}
+.rr-gun-menu {position:absolute;z-index:45;right:14px;top:126px;width:225px;padding:15px;background:#17100ff5;border:1px solid #97714e;border-radius:10px;box-shadow:0 15px 35px #000b;color:#e6cba1;}
+.rr-gun-menu[hidden] {display:none;}.rr-gun-menu>small {display:block;font:11px/1.5 system-ui;margin:6px 0 10px;color:#aa9782;}
+.rr-gun-menu button {display:flex;align-items:center;gap:10px;width:100%;padding:9px;background:#292019;border:1px solid #60473455;margin-top:4px;color:#dbc6a7;border-radius:5px;cursor:pointer;font:12px system-ui;}
+.rr-gun-menu button[aria-pressed=true] {border-color:#d4a05e;background:#443121;}.rr-gun-menu i {width:13px;height:13px;border-radius:50%;}
+html body [data-roulette-game] .rr-execute {position:absolute;z-index:11;left:50%;bottom:83px;transform:translateX(-50%);padding:12px 26px;color:#ffe5c1;background:linear-gradient(#a73720,#501509);border:1px solid #e48e58;border-radius:9px;cursor:pointer;}
+.rr-execute[hidden] {display:none!important;}
+.rr-muzzle-point {position:absolute;left:var(--rr-muzzle-x,.35%);top:var(--rr-muzzle-y,10%);width:0;height:0;}
+html body [data-roulette-game] .rr-shot-flash {left:var(--rr-muzzle-x,.35%)!important;top:var(--rr-muzzle-y,10%)!important;width:22%!important;height:22%!important;aspect-ratio:auto;transform-origin:100% 50%;border-radius:80% 25% 25% 80%;background:radial-gradient(ellipse at 91% 50%,#fffbe6 0 5%,#ffdf8bd9 15%,#ff8b2b90 38%,#e9441110 68%,transparent 76%)!important;filter:drop-shadow(0 0 4px #ff9b43)!important;}
+html body [data-roulette-game] .rr-shot-flash:before {left:55%;top:43%;width:95%;height:26%;background:radial-gradient(ellipse,#fff6c5,#ffa14380 46%,transparent 70%);transform:translate(-50%,-50%) rotate(8deg);}
+html body [data-roulette-game] .rr-shot-flash:after {left:64%;top:69%;width:70%;height:22%;background:radial-gradient(ellipse,#fff3c5,#ff871f77 40%,transparent 72%);transform:translate(-50%,-50%) rotate(-13deg);}
+html body [data-roulette-game] .rr-shot-smoke {left:var(--rr-muzzle-x,.35%)!important;top:var(--rr-muzzle-y,10%)!important;}
+.rr-muzzle-room-light {position:absolute;inset:0;z-index:7;pointer-events:none;opacity:0;mix-blend-mode:screen;background:radial-gradient(ellipse 75% 90% at var(--rr-shot-x,50%) var(--rr-shot-y,50%),#ffdfb8 0%,#dc853aaa 17%,#9a4d2044 42%,transparent 75%);}
+@media(max-width:560px){html body [data-roulette-game] .rr-gun-toggle {right:8px;top:78px;font-size:8px;padding:6px}.rr-gun-menu{top:112px;right:8px}.rr-turn-clock{font-size:12px;min-width:29px;padding-left:5px}body:has([data-roulette-game]) #duelScreen{padding-top:10px!important}.rr-execute{bottom:80px!important;}}
+
+html body [data-roulette-scene="rustic-v2"] .rr-pot {flex-direction:row!important;width:auto!important;min-width:0!important;}
+html body [data-roulette-scene="rustic-v2"] .rr-pot>span,html body [data-roulette-scene="rustic-v2"] .rr-pot>small {display:inline!important;}
+
+html body [data-roulette-game] [data-revolver-model=neon-frontier] .rr-hammer-photo {left:-.25%!important;top:1.8%!important;transform-origin:75.25% 17.3%!important;}
+
+html body [data-roulette-game] .rr-execute{width:max-content!important;max-width:calc(100% - 24px)!important;min-width:180px;}
+/* Apply the room surround to the actual arcade shell, including its blue panel. */
+html body:has([data-roulette-game]) #duelScreen{background:transparent!important;border-color:#89634533!important;display:block!important;}
+html body:has([data-roulette-game]) .duel-grid{grid-template-columns:minmax(0,1fr)!important;}
+html body:has([data-roulette-game]) .duel-side-stack{display:none!important;}
+html body:has([data-roulette-game]) .duel-live-card{background:transparent!important;border:0!important;box-shadow:none!important;padding:8px!important;}
+html body:has([data-roulette-game]) .rr-game{margin-inline:auto!important;}
+html body [data-roulette-scene="rustic-v2"] .rr-pot{gap:6px!important;}
+@media(max-width:560px){html body:has([data-roulette-game]) .duel-live-card{padding:0!important;}html body [data-roulette-scene="rustic-v2"] .rr-pot{gap:4px!important;}}
+@media(max-width:560px){html body:has([data-roulette-game]) .page{padding-inline:0!important;}html body:has([data-roulette-game]) #duelScreen{padding-inline:4px!important;border:0!important;}}
+
+/* energy-v6: registered mechanisms, a single surround and matched oak supports. */
+html body:has([data-roulette-game])::before{content:none!important;display:none!important}
+html body:has([data-roulette-game]) #duelScreen{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;box-shadow:none!important;border:0!important}
+html body:has([data-roulette-game]) .duel-live-card{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+html body [data-roulette-game] .rr-gun-photo{filter:brightness(.78) saturate(.9)!important}
+html body [data-roulette-game] .rr-hammer-photo{filter:var(--rr-hammer-finish,none) brightness(.78) saturate(.9)!important}
+html body [data-roulette-game] .rr-drum-roll{position:absolute;z-index:2;pointer-events:none;opacity:1;filter:brightness(.78) saturate(.9);border:0;box-shadow:none;background:none;border-radius:5% 9% 9% 5%;clip-path:polygon(0 0,94% 0,100% 8%,100% 94%,94% 100%,0 100%)}
+html body [data-roulette-game] .rr-metal-glint{z-index:4!important}
+html body [data-roulette-game] .rr-gun-light-field{visibility:hidden}
+html body [data-roulette-game] .rr-gun-light-field[data-projected]{visibility:visible}
+html body [data-roulette-game] .rr-table-art{z-index:1}
+html body [data-roulette-game] .rr130-table-illumination{z-index:2!important}
+html body [data-roulette-game] .rr-table-pedestal{position:absolute;left:23%;top:70%;width:54%;height:auto;z-index:0;pointer-events:none;filter:brightness(.65) drop-shadow(0 10px 7px #000b)}
+html body [data-gun-type=laser] .rr-hammer-photo,html body [data-gun-type=laser] .rr-hammer-cover,html body [data-gun-type=laser] .rr-shot-smoke{display:none!important}
+.rr-charge{position:absolute;left:52.6%;top:22%;width:15.6%;height:4.5%;z-index:5;border-radius:999px;overflow:hidden;background:#1a0508;box-shadow:inset 0 0 2px #000}
+.rr-charge i{display:block;width:100%;height:100%;transform-origin:0 50%;background:repeating-linear-gradient(90deg,#ff3648 0 7%,#49000b 8% 10%);box-shadow:0 0 5px #ff1639;filter:drop-shadow(0 0 2px #ff1e32)}
+html body [data-gun-type=laser] .rr-shot-flash{width:230%!important;height:4%!important;clip-path:none!important;border-radius:999px!important;background:linear-gradient(0deg,#ff173300,#ff174b 28%,#ffced6 47%,#fff 50%,#ff4563 60%,#ff173300)!important;filter:drop-shadow(0 0 5px #ff143c)!important;transform-origin:100% 50%}
+html body [data-gun-type=laser] .rr-shot-flash::before,html body [data-gun-type=laser] .rr-shot-flash::after{display:none!important}
+html body [data-gun-type=laser] .rr-muzzle-room-light{background:radial-gradient(ellipse 75% 90% at var(--rr-shot-x,50%) var(--rr-shot-y,50%),#ff9aa8 0%,#ff214cdd 14%,#d8003b88 40%,#9d002522 68%,transparent 90%)}

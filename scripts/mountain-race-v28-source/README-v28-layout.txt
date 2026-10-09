@@ -1,0 +1,1 @@
+Do not display the V28 source chunks directly. The V28 patch writes the generated scene PNG and mounts it as the non-distorted visual substrate while live gameplay overlays remain separate.

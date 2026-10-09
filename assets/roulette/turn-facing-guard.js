@@ -418,6 +418,7 @@
 
     try {
       await api.rotateToLockedTurn(game, transition.gameId, transition.turnId, 1020);
+      if (state.activeTransition?.token !== transition.token) return;
       const newest = currentGame();
       const newestTurnId = authoritativeTurnId(newest);
       if (
@@ -436,7 +437,7 @@
       recordDiagnostic('blocked', { reason: 'rotation-error', token: transition.token, message: String(error?.message || error) });
     } finally {
       if (state.activeTransition?.token === transition.token) state.activeTransition = null;
-      state.soundToken = '';
+      if (!state.activeTransition) state.soundToken = '';
     }
   }
 
@@ -460,13 +461,20 @@
       if (state.pendingTransition || state.activeTransition || lock.pendingTurnId) {
         cancelTransition(`status-${String(game.status || 'unknown')}`, game, turnId);
       }
-      snapFacing(game, turnId, 'non-playing-final-lock', !lockMatches(gameId, turnId, angleForTurn(game, turnId)));
+      if (game.status === 'complete') {
+        snapFacing(game, turnId, 'non-playing-final-lock', !lockMatches(gameId, turnId, angleForTurn(game, turnId)));
+        return;
+      }
+      if (openingIsActive(root, lock)) return;
+      const defaultTurnId = String(game?.creator?.userId || turnId);
+      snapFacing(game, defaultTurnId, 'pre-opening-default-left', !lockMatches(gameId, defaultTurnId, angleForTurn(game, defaultTurnId)));
       return;
     }
 
-    if (openingIsActive(root, lock)) return;
-
     if (transition) {
+      if (state.activeTransition && state.activeTransition.turnId !== transition.turnId) {
+        cancelTransition('superseded-active-transition', game, turnId);
+      }
       if (state.pendingTransition && state.pendingTransition.token !== transition.token) {
         recordDiagnostic('cancelled', { reason: 'superseded-before-start', ...state.pendingTransition });
         state.cancelledRotations += 1;
@@ -475,13 +483,48 @@
       recordDiagnostic('requested', transition);
     }
 
+    // Preserve a turn first seen while opening/shot feedback is still running.
+    // Observing the snapshot must not consume its transition without queuing it.
+    if (openingIsActive(root, lock)) return;
+
+    // The server may already be playing while this browser is counting down
+    // or decoding its first frame. Do not aim at the chosen player early.
+    if (String(root.dataset.controlsLocked)==='1' && visualRuntime()?.openingDone===false) return;
+
     if (state.pendingTransition) {
       await runPendingTransition();
       return;
     }
 
+    if (state.activeTransition) {
+      const active = state.activeTransition;
+      if (active.gameId !== gameId || active.turnId !== turnId) {
+        cancelTransition('active-transition-no-longer-authoritative', game, turnId);
+        return;
+      }
+      // Pending facing is intentional while an approved rotation is running.
+      // Repeated polls and control rerenders must not cancel that animation.
+      api.enforceLockedFacing(gameId);
+      root.dataset.rouletteAuthoritativeTurnId = turnId;
+      root.dataset.rouletteAuthoritativeAngle = String(angleForTurn(game, turnId));
+      return;
+    }
+
     const targetAngle = angleForTurn(game, turnId);
     if (!lockMatches(gameId, turnId, targetAngle)) {
+      if (lock.gameId === gameId && lock.turnId && lock.turnId !== turnId) {
+        const recovered = {
+          gameId, fromTurnId: lock.turnId, turnId, status: game.status,
+          ...snapshotStamp(game),
+          token: transitionToken(gameId, lock.turnId, turnId, game.rouletteState?.revision)
+        };
+        if (!state.seenTokens.has(recovered.token)) {
+          state.pendingTransition = recovered;
+          recordDiagnostic('requested', { ...recovered, reason: 'recover-mounted-handoff' });
+          await runPendingTransition();
+          return;
+        }
+      }
       // A mismatch without a new accepted turn-transition token is a rerender,
       // reload, stale animation, or completion residue. Correct it instantly.
       snapFacing(game, turnId, 'mismatch-without-transition-token', true);
@@ -507,16 +550,23 @@
     installSingleOwnerGates();
     scheduleReconcile('start');
 
-    state.timer = global.setInterval(() => scheduleReconcile('single-owner-poll'), 80);
+    state.timer = global.setInterval(() => {
+      if (!document.hidden && mountedRoot()) scheduleReconcile('single-owner-poll');
+    }, 200);
     const Observer = global.MutationObserver;
     const root = document.body || document.documentElement;
     if (Observer && root) {
-      state.observer = new Observer(() => scheduleReconcile('scene-mutation'));
+      state.observer = new Observer(records => {
+        if (records.some(record => record.target?.matches?.('[data-roulette-game]') ||
+          (record.type === 'childList' && (record.target?.closest?.('[data-roulette-game]') ||
+            [...record.addedNodes].some(node => node.matches?.('[data-roulette-game]') || node.querySelector?.('[data-roulette-game]'))))))
+          scheduleReconcile('scene-mutation');
+      });
       state.observer.observe(root, {
         childList: true,
         subtree: true,
         attributes: true,
-        attributeFilter: ['class', 'style', 'data-turn-id', 'data-status', 'data-revision', 'data-roulette-opening']
+        attributeFilter: ['data-turn-id', 'data-status', 'data-revision', 'data-roulette-opening']
       });
     }
   }

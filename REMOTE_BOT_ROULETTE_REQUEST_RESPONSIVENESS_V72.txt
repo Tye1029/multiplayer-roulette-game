@@ -1,9 +1,0 @@
-V72 changes
-- Restored the original opening revolver spin duration and first-player banner timing.
-- Restored the original hammer, recoil, blank, and live-shot animation timings.
-- Removed the optimistic/pre-server hammer animation introduced in V71.
-- Preserved the fixed six-chamber server model and authoritative live/blank result handling.
-- Kept the shorter client countdown completion threshold so GO hands off sooner without changing revolver animation speed.
-- Prevented passive roulette polling from queueing while an action request is pending.
-- Reduced unnecessary lobby list requests during a focused game from roughly every 1.2 seconds to every 15 seconds.
-- Adjusted focused roulette polling to 800ms because action responses render authoritative state directly.

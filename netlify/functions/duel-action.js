@@ -1,7 +1,8 @@
 const crypto = require("crypto");
-const DUEL_FUNCTION_BUILD = "safecracker-start-flow-v3";
+const { getStore } = require("@netlify/blobs");
+const DUEL_FUNCTION_BUILD = "multiplayer_cohesion_v6";
+const SUMMIT_INPUT_ROUTE_BUILD = "batch-v7";
 const {
-  initBlobs,
   resolveSiteUser,
   getUserRecord,
   getRecordBalance,
@@ -13,6 +14,7 @@ const {
   duelJoinGame,
   duelAddSimpleNpc,
   duelAddRemoteNetworkBot,
+  duelCreateRemoteNetworkBotGame,
   duelActionGame
 } = require("./_data");
 
@@ -20,15 +22,32 @@ const TORN_API_BASE = "https://api.torn.com";
 const DUEL_PROFILE_CACHE = globalThis.__DUEL_PROFILE_CACHE || (globalThis.__DUEL_PROFILE_CACHE = new Map());
 const DUEL_PROFILE_CACHE_MS = 2 * 60 * 1000;
 
-exports.handler = async (event) => {
-  initBlobs(event);
+// Native Functions supply the uncached Blobs endpoint. connectLambda would
+// replace that context with the legacy cached-only configuration.
+exports.default = async (request) => {
+  if (request.method === "HEAD" || (request.method === "GET" && new URL(request.url).searchParams.get("health") === "storage")) {
+    // Read-only readiness check: no account, game, balance, or blob is changed.
+    try {
+      await getStore("torn-xan-users").get("health/duel-storage-readiness", { consistency: "strong" });
+      return new Response(null, { status: 204, headers: { "Cache-Control": "no-store", "X-Duel-Storage": "strong-v1" } });
+    } catch {
+      return new Response(null, { status: 503, headers: { "Cache-Control": "no-store" } });
+    }
+  }
+  const result = await duelActionHandler({ httpMethod: request.method, body: request.method === "POST" ? await request.text() : "" });
+  return new Response(result.statusCode === 204 ? null : result.body, { status: result.statusCode, headers: { ...result.headers, "X-Duel-Storage": "native-v1" } });
+};
+
+const duelActionHandler = async (event) => {
   const headers = {
     "Content-Type": "application/json",
     "Cache-Control": "no-store",
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "Content-Type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "X-Duel-Function-Build": DUEL_FUNCTION_BUILD
+    "X-Duel-Function-Build": DUEL_FUNCTION_BUILD,
+    "X-Safe-Cracker-Feedback": "fast-authoritative-v1",
+    "X-Summit-Input-Route-Build": SUMMIT_INPUT_ROUTE_BUILD
   };
 
   if (event.httpMethod === "OPTIONS") return { statusCode: 204, headers, body: "" };
@@ -84,12 +103,13 @@ exports.handler = async (event) => {
     else if (action === "join") result = await duelJoinGame(user, body.gameId);
     else if (action === "npc") result = await duelAddSimpleNpc(user, body.gameId);
     else if (action === "remote-bot") result = await duelAddRemoteNetworkBot(user, body.gameId, body.profile);
-    else if (action === "act") result = await duelActionGame(user, body.gameId, { choice: body.choice, hand: body.hand, clickedAt: body.clickedAt, actionId: body.actionId, chargeMs: body.chargeMs, flightId: body.flightId, visualOffsetMs: body.visualOffsetMs, estimatedOneWayMs: body.estimatedOneWayMs, expectedPhase: body.expectedPhase, expectedRevision: body.expectedRevision, expectedTurnId: body.expectedTurnId, expectedVisualKey: body.expectedVisualKey, asTestPlayer: Boolean(body.controlTestPlayer) });
+    else if (action === "create-remote-bot") result = await duelCreateRemoteNetworkBotGame(user, body);
+    else if (action === "act") result = await duelActionGame(user, body.gameId, { choice: body.choice, hand: body.hand, clickedAt: body.clickedAt, actionId: body.actionId, chargeMs: body.chargeMs, flightId: body.flightId, visualOffsetMs: body.visualOffsetMs, estimatedOneWayMs: body.estimatedOneWayMs, expectedPhase: body.expectedPhase, expectedRevision: body.expectedRevision, expectedTurnId: body.expectedTurnId, expectedVisualKey: body.expectedVisualKey, expectedPromptIndex: body.expectedPromptIndex, expectedControl: body.expectedControl, inputBatch: body.inputBatch, asTestPlayer: Boolean(body.controlTestPlayer) });
     else return json(headers, 400, { ok: false, error: "Unknown Multiplayer Arcade action." });
 
     // Unchanged DRAW sync responses intentionally skip the balance lookup and
     // large game payload. This keeps active polling small and inexpensive.
-    if (result?.unchanged || result?.databaseAuthoritative) {
+    if (result?.unchanged || result?.databaseAuthoritative || result?.skipBalanceLookup) {
       return json(headers, 200, { ok: true, siteUserId: user.id, duelSessionToken: refreshedSessionToken || undefined, ...result });
     }
     const record = result.record || await getUserRecord(user.id);

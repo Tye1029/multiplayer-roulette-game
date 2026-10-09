@@ -1,0 +1,25 @@
+name: Hand of Doom arena
+on:
+  push:
+    branches: [mountain-race-development]
+  pull_request:
+    branches: [safe-cracker-development]
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install --no-package-lock
+      - run: npm install --no-save --no-package-lock @electric-sql/pglite@0.3.14 playwright@1.61.1
+      - run: npx playwright install --with-deps chromium
+      - run: node --test scripts/rps.test.mjs scripts/rps-database.test.mjs
+      - run: npm run build
+      - run: node scripts/rps-browser.test.mjs
+      - run: npm run validate:protected-current
+      - run: npm run validate:mountain-race

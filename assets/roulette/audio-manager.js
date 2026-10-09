@@ -40,6 +40,7 @@
   const legacyNoop = function () { return null; };
 
   let unlocked = false;
+  let primed = false;
   let enabled = true;
   let master = 1;
   let roomWanted = false;
@@ -86,8 +87,8 @@
     const milliseconds = Math.max(16, Number(duration) || 16);
     const step = now => {
       if (audio.__rrAudioFadeToken !== token) return;
-      const progress = Math.min(1, (now - began) / milliseconds);
-      audio.volume = start + (end - start) * progress;
+      const progress = Math.max(0, Math.min(1, (now - began) / milliseconds));
+      audio.volume = Math.max(0, Math.min(1, start + (end - start) * progress));
       if (progress < 1) requestAnimationFrame(step);
     };
     requestAnimationFrame(step);
@@ -471,18 +472,8 @@
     if (roomWanted && !roomTimer) scheduleRoomDetail();
     if (!roomWanted) clearRoomDetail();
 
-    if (sameGame && !previous.joinerId && joinerId) {
-      play('chair', { group: 'join', replaceGroup: true, volume: 0.1, duration: 2.4, fadeOut: 0.55 });
-    }
-
-    if (sameGame && previous.turnId && turnId && previous.turnId !== turnId && status === 'playing') {
-      turnRotate(1020);
-      scheduleAction('turn-cue', () => play('tap', {
-        group: 'turn-cue',
-        replaceGroup: true,
-        volume: 0.11
-      }), 850);
-    }
+    // Handoff audio starts at the approved facing animation, not a poll. The
+    // scene no longer has chairs, so joining does not play a chair scrape.
 
     if (
       sameGame &&
@@ -518,16 +509,46 @@
     previous = { gameId, status, turnId, joinerId, revision, outcome };
   }
 
-  function unlock() {
-    if (unlocked) return;
+  function shouldWarmForInteraction(selection = '') {
+    if (document.hidden) return false;
+    if (typeof selection === 'string' && selection) return selection === 'roulette';
+    const choice = selection?.target?.closest?.('.sth-game[data-mode], [data-rnb-game]');
+    if (choice) return !choice.disabled && (choice.dataset.mode || choice.dataset.rnbGame) === 'roulette';
+    const home = document.getElementById('simpleTestHome');
+    if (home && !home.hidden) return false;
+    if (document.getElementById('duelScreen')?.hidden) return false;
+    const intent = String(global.__duelRequestedModeIntent || '');
+    if (intent) return intent === 'roulette';
+    const board = document.querySelector('[data-roulette-game]');
+    if (board && !board.closest('[hidden]')) return true;
+    const mode = String(document.getElementById('duelModeSelect')?.value || '');
+    return mode ? mode === 'roulette' : Boolean(currentGame());
+  }
+
+  function preload(selection = '') {
+    if (!shouldWarmForInteraction(selection)) return;
+    if (!primed) {
+      primed = true;
+      for (const name of Object.keys(FILES)) template(name).load();
+    }
+    global.RouletteReactionAudio?.preload('roulette');
+    global.RouletteAudioBindings?.preloadOpening?.();
+  }
+
+  function unlock(event) {
+    if (unlocked || !shouldWarmForInteraction(event)) return;
     unlocked = true;
-    for (const name of Object.keys(FILES)) template(name).load();
+    preload('roulette');
+    for (const type of ['pointerdown', 'pointerup', 'touchstart', 'click', 'keydown']) {
+      document.removeEventListener(type, unlock, true);
+    }
     sync();
     refreshLoops();
   }
 
   function setEnabled(value) {
     enabled = Boolean(value);
+    refreshLaserVolume();
     if (!enabled) {
       clearRoomDetail();
       for (const name of [...loops.keys()]) stopLoop(name, 250);
@@ -539,12 +560,226 @@
 
   function setMasterVolume(value) {
     master = Math.max(0, Math.min(1, Number(value) || 0));
+    refreshLaserVolume();
     for (const [name, audio] of loops) fade(audio, loopTarget(name), 300);
   }
 
   function markBindingsReady() {
     bindingsReady = true;
     silenceLegacyRouletteAudio();
+  }
+
+  let countdownSynthContext = null;
+
+  function countdownSynthAudioContext() {
+    if (countdownSynthContext && countdownSynthContext.state !== 'closed') return countdownSynthContext;
+    const AudioContextType = global.AudioContext || global.webkitAudioContext;
+    if (typeof AudioContextType !== 'function') return null;
+    try {
+      countdownSynthContext = new AudioContextType({ latencyHint: 'interactive' });
+    } catch {
+      try { countdownSynthContext = new AudioContextType(); } catch { countdownSynthContext = null; }
+    }
+    return countdownSynthContext;
+  }
+
+  function countdownSynthTone(context, destination, options) {
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    const start = options.start;
+    const duration = options.duration;
+    const attack = Math.min(duration * 0.25, options.attack || 0.012);
+    const level = Math.max(0.0001, options.level || 0.04);
+
+    oscillator.type = options.type || 'sine';
+    oscillator.frequency.setValueAtTime(options.frequency, start);
+    if (options.endFrequency && options.endFrequency > 0) {
+      oscillator.frequency.exponentialRampToValueAtTime(options.endFrequency, start + duration);
+    }
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(level, start + attack);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+    oscillator.connect(gain);
+    gain.connect(destination);
+    oscillator.start(start);
+    oscillator.stop(start + duration + 0.025);
+  }
+
+  function countdownSynthClick(context, destination, start, level) {
+    const sampleRate = context.sampleRate || 44100;
+    const frameCount = Math.max(1, Math.floor(sampleRate * 0.055));
+    const buffer = context.createBuffer(1, frameCount, sampleRate);
+    const channel = buffer.getChannelData(0);
+    for (let index = 0; index < frameCount; index += 1) {
+      const envelope = 1 - index / frameCount;
+      channel[index] = (Math.random() * 2 - 1) * envelope * envelope;
+    }
+
+    const source = context.createBufferSource();
+    const filter = context.createBiquadFilter();
+    const gain = context.createGain();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(1450, start);
+    filter.Q.setValueAtTime(1.8, start);
+    gain.gain.setValueAtTime(Math.max(0.0001, level), start);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.055);
+    source.buffer = buffer;
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(destination);
+    source.start(start);
+  }
+
+  function countdownCue(label) {
+    const value = String(label || '');
+    if (!['3', '2', '1', 'GO!'].includes(value)) return false;
+    if (!enabled || master<=0 || document.hidden) return true;
+    if(!unlocked)return false;
+
+    const context = countdownSynthAudioContext();
+    if (!context) return false;
+
+    try {
+      if (context.state === 'suspended') context.resume().catch(() => {});
+      const now = context.currentTime + 0.014;
+      const output = context.createGain();
+      output.gain.setValueAtTime(Math.max(0, Math.min(1, master)), now);
+      output.connect(context.destination);
+
+      if (value === 'GO!') {
+        countdownSynthClick(context, output, now, 0.11);
+        countdownSynthTone(context, output, {
+          start: now,
+          duration: 0.30,
+          frequency: 293.66,
+          endFrequency: 220,
+          type: 'triangle',
+          level: 0.105,
+          attack: 0.008
+        });
+        countdownSynthTone(context, output, {
+          start: now + 0.065,
+          duration: 0.42,
+          frequency: 440,
+          endFrequency: 659.25,
+          type: 'sine',
+          level: 0.075,
+          attack: 0.012
+        });
+        countdownSynthTone(context, output, {
+          start: now + 0.075,
+          duration: 0.34,
+          frequency: 880,
+          endFrequency: 1174.66,
+          type: 'triangle',
+          level: 0.026,
+          attack: 0.009
+        });
+      } else {
+        const step = value === '3' ? 0 : value === '2' ? 1 : 2;
+        const fundamental = [174.61, 207.65, 246.94][step];
+        countdownSynthClick(context, output, now, 0.075 + step * 0.008);
+        countdownSynthTone(context, output, {
+          start: now,
+          duration: 0.24,
+          frequency: fundamental,
+          endFrequency: fundamental * 0.82,
+          type: 'triangle',
+          level: 0.082,
+          attack: 0.007
+        });
+        countdownSynthTone(context, output, {
+          start: now + 0.012,
+          duration: 0.19,
+          frequency: fundamental * 3,
+          endFrequency: fundamental * 2.25,
+          type: 'sine',
+          level: 0.026,
+          attack: 0.005
+        });
+      }
+
+      global.setTimeout(() => {
+        try { output.disconnect(); } catch {}
+      }, value === 'GO!' ? 900 : 520);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+
+  const laserBuffers = new Map(), laserOutputs = new Set();
+  function refreshLaserVolume() {
+    for (const output of laserOutputs) output.gain.value = enabled ? master * .72 : 0;
+  }
+  // Cached, layered PCM: coil resonance, electrical arc, relay transient and
+  // short room reflections. No downloads or sample generation on every frame.
+  function laserBuffer(context, cue) {
+    if (laserBuffers.has(cue)) return laserBuffers.get(cue);
+    const duration={fire:.82,error:1,charge:1.5,cycle:.9}[cue];
+    const rate=context.sampleRate, count=Math.ceil(rate*duration);
+    const buffer=context.createBuffer(1,count,rate),wave=buffer.getChannelData(0);
+    let seed=1977,low=0,phase=0,mod=0;
+    const tau=Math.PI*2;
+    for(let i=0;i<count;i++){
+      const t=i/rate,p=t/duration;
+      seed=(Math.imul(seed,1664525)+1013904223)>>>0;
+      const noise=seed/2147483648-1;low+=.075*(noise-low);
+      const hiss=noise-low;
+      let sample=0;
+      if(cue==='fire'){
+        const freq=95+1900*Math.exp(-t*22);
+        phase+=tau*freq/rate;mod+=tau*(freq*1.47)/rate;
+        const arc=Math.sin(phase+3*Math.exp(-t*12)*Math.sin(mod));
+        sample=.48*arc*Math.exp(-t*11)+.28*hiss*Math.exp(-t*48)
+          +.36*Math.sin(tau*(53*t+1.8*(1-Math.exp(-t*25))))*Math.exp(-t*12)
+          +.16*low*Math.exp(-t*4);
+      }else if(cue==='error'){
+        // A relay engages, power stutters twice, then the coil winds down.
+        const pulse=Math.exp(-t*22)+.7*Math.exp(-Math.max(0,t-.43)*26)*(t>=.43);
+        phase+=tau*(78+360*Math.exp(-t*6))/rate;mod+=tau*631/rate;
+        sample=.35*Math.sin(phase+1.4*Math.sin(mod))*pulse
+          +.38*hiss*(Math.exp(-t*110)+.55*Math.exp(-Math.max(0,t-.43)*90)*(t>=.43))
+          +.2*low*Math.sin(tau*29*t)**2*Math.exp(-t*4);
+      }else{
+        // Accelerating capacitor/transformer whine under a rising air texture.
+        const rise=Math.min(1,p/.84),tail=Math.max(0,1-(p-.84)/.16);
+        const freq=70+920*rise*rise;phase+=tau*freq/rate;mod+=tau*(freq*2.013)/rate;
+        const envelope=Math.min(1,t*18)*tail;
+        sample=envelope*((.1+.13*rise)*Math.sin(phase+.6*Math.sin(mod))
+          +.12*Math.sin(phase*.499)*(.6+.4*Math.sin(tau*(7*t+8*t*t)))
+          +(.12+.16*rise)*low+.035*hiss*rise);
+        if(p>.84)sample+=.11*Math.sin(tau*1420*t)*Math.exp(-(p-.84)*32);
+      }
+      const edge=Math.min(1,t/.002,(duration-t)/.015);
+      wave[i]=Math.tanh(sample*1.5)*edge;
+    }
+    // Sparse early reflections give a physical room without a long muddy tail.
+    const dry=wave.slice();
+    for(const [delay,level] of [[.023,.16],[.047,.11],[.079,.065]]){
+      const offset=Math.round(delay*rate);
+      for(let i=offset;i<count;i++)wave[i]+=dry[i-offset]*level*Math.min(1,(count-i)/(rate*.03));
+    }
+    let peak=0;for(const value of wave)peak=Math.max(peak,Math.abs(value));
+    if(peak>.88)for(let i=0;i<count;i++)wave[i]*=.88/peak;
+    laserBuffers.set(cue,buffer);return buffer;
+  }
+  function laserCue(cue) {
+    if (!enabled || master<=0 || document.hidden || !unlocked) return false;
+    if(!['fire','error','charge','cycle'].includes(cue))return false;
+    const context=countdownSynthAudioContext();if(!context)return false;
+    try {
+      context.resume?.().catch(()=>{});
+      const source=context.createBufferSource(),output=context.createGain();
+      source.buffer=laserBuffer(context,cue);
+      laserOutputs.add(output);refreshLaserVolume();
+      source.connect(output);output.connect(context.destination);
+      if(cue==='fire')duckForShot();
+      source.onended=()=>{source.disconnect();output.disconnect();laserOutputs.delete(output);};
+      source.start(context.currentTime+.008);
+      return true;
+    }catch{return false;}
   }
 
   function diagnostics() {
@@ -564,6 +799,8 @@
 
   global.RouletteAudio = Object.freeze({
     FILES,
+    preload,
+    shouldWarmForInteraction,
     unlock,
     sync,
     openingSpin,
@@ -575,12 +812,16 @@
     markBindingsReady,
     setEnabled,
     setMasterVolume,
+    countdownCue,
+    laserCue,
     diagnostics
   });
 
   silenceLegacyRouletteAudio();
   for (const type of ['pointerdown', 'pointerup', 'touchstart', 'click', 'keydown']) {
-    document.addEventListener(type, unlock, { capture: true, passive: true, once: true });
+    // Keep listening after unrelated gestures so a later Roulette visit still
+    // unlocks during its real pointer/keyboard activation on mobile browsers.
+    document.addEventListener(type, event => { unlock(event); if(shouldWarmForInteraction(event)){const context=countdownSynthAudioContext();context?.resume?.().catch(()=>{});} }, { capture: true, passive: true });
   }
 
   const poll = () => {

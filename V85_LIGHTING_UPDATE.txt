@@ -1,8 +1,0 @@
-V85 bulb-anchored lighting update
-
-- Replaced the detached hard triangle with a soft expanding amber cone.
-- Anchored the cone apex visually to the exposed bulb tip.
-- Matched bulb glow, cone, table pool, and illuminated smoke to one warm palette.
-- Widened the table pool so the complete tabletop remains readable.
-- Kept walls and room edges darker than the table.
-- Synchronized cone, table glow, and smoke with the lamp swing.

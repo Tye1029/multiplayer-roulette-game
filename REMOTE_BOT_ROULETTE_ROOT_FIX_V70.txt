@@ -1,7 +1,0 @@
-V70 Roulette root fix
-- Replaces server-snapshot-only countdown display with a once-per-game local visual sequence (3, 2, 1, GO).
-- The sequence also starts if latency skips the countdown response and the first received state is already playing.
-- Countdown stays inside the Roulette scene and never creates a body-level overlay.
-- Spin usage is monotonic per game. Once either player is observed using their one spin, delayed polls cannot restore it.
-- The local player's Spin button changes to SPIN ×0 / USED immediately on click, before the network response returns.
-- No changes to Roulette winner calculation, chamber selection, turn rules, or revolver rotation logic.

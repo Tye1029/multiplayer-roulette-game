@@ -1,0 +1,1085 @@
+/* MOUNTAIN_RACE_APPROVED_SCENE_V65
+   One authoritative Summit Sprint scene. Each lane owns its own continuous
+   camera, while the control deck overlays the same ground/cliff world. */
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] {
+  --mr-v65-blue: #16adf2;
+  --mr-v65-orange: #ff9b35;
+  --mr-v65-ink: #061824;
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  border: 0;
+  border-radius: 18px;
+  background: #5aaee4;
+  box-shadow: 0 24px 60px rgba(0, 8, 16, .28);
+  color: #f7fbff;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] *,
+[data-mountain-race-mount][data-mr-approved-scene="65"] *::before,
+[data-mountain-race-mount][data-mr-approved-scene="65"] *::after {
+  box-sizing: border-box;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mountain-race-game {
+  position: relative !important;
+  width: 100% !important;
+  max-width: none !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: #5aaee4 !important;
+  box-shadow: none !important;
+  isolation: isolate;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-titlebar {
+  position: relative !important;
+  z-index: 80 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  min-height: 88px !important;
+  padding: 10px 94px 9px 22px !important;
+  overflow: hidden !important;
+  border: 0 !important;
+  border-bottom: 1px solid rgba(145, 211, 244, .35) !important;
+  border-radius: 0 !important;
+  clip-path: none !important;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,.045), transparent 30%, rgba(255,255,255,.025)),
+    rgba(4, 24, 37, .96) !important;
+  box-shadow: 0 8px 22px rgba(0, 9, 17, .34) !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-titlebar::before,
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-titlebar::after {
+  content: none !important;
+  display: none !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-expedition-heading {
+  min-width: 0;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-titlebar p,
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-expedition-meta {
+  margin: 0 !important;
+  color: #a9d8ef !important;
+  font-size: 10px !important;
+  font-weight: 900 !important;
+  letter-spacing: .2em !important;
+  line-height: 1.2 !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-title-lockup {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  margin: 2px 0 !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-titlebar h2 {
+  margin: 0 !important;
+  color: #fff !important;
+  font-size: clamp(30px, 5.2vw, 49px) !important;
+  font-weight: 1000 !important;
+  letter-spacing: .015em !important;
+  line-height: .98 !important;
+  text-shadow: 0 3px 0 rgba(0,0,0,.28) !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-expedition-mark {
+  display: grid !important;
+  place-items: center !important;
+  flex: 0 0 auto !important;
+  width: 39px !important;
+  height: 39px !important;
+  border: 1px solid rgba(172, 223, 248, .52) !important;
+  border-radius: 10px !important;
+  background: rgba(41, 104, 135, .4) !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-expedition-mark::before {
+  content: "▲";
+  color: #bde9fb;
+  font-size: 23px;
+  filter: drop-shadow(0 2px 2px rgba(0,0,0,.35));
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-expedition-mark i {
+  display: none !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-race-clock {
+  position: absolute !important;
+  top: 10px !important;
+  right: 18px !important;
+  display: grid !important;
+  place-items: center !important;
+  min-width: 72px !important;
+  min-height: 66px !important;
+  padding: 6px 12px !important;
+  border: 1px solid rgba(169, 218, 241, .38) !important;
+  border-radius: 13px !important;
+  background: rgba(3, 18, 29, .82) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.08), 0 6px 13px rgba(0,0,0,.25) !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-race-clock small {
+  color: #afd8ea !important;
+  font-size: 9px !important;
+  font-weight: 900 !important;
+  letter-spacing: .22em !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-race-clock strong {
+  color: #fff !important;
+  font-size: 27px !important;
+  font-variant-numeric: tabular-nums;
+  line-height: 1 !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-race-stage {
+  position: relative !important;
+  z-index: 1 !important;
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 0 !important;
+  width: 100% !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: #60afe2 !important;
+  box-shadow: none !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-race-stage::before,
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-race-stage::after,
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-stage-ridge,
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-control-terrain {
+  content: none !important;
+  display: none !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-lane {
+  position: relative !important;
+  z-index: 1 !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: #5eb0e5 !important;
+  box-shadow: none !important;
+  isolation: isolate;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-lane.me {
+  --mr-v65-accent: var(--mr-v65-blue);
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-lane.opponent {
+  --mr-v65-accent: var(--mr-v65-orange);
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-v65-scenery {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  display: block;
+  overflow: hidden;
+  pointer-events: none;
+  background: #61b0e3;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-v65-scenery > span {
+  position: absolute;
+  inset: 0;
+  display: block;
+  pointer-events: none;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-v65-sky {
+  inset: -4% -10% !important;
+  background: #5fafe2 url('/assets/mountain-race/images/summit-sprint-moving-sky-v65.png') center 48% / cover no-repeat;
+  animation: mrV65CloudDrift 26s ease-in-out infinite alternate;
+  transform: translateZ(0) scale(1.04);
+  will-change: background-position;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-v65-cliff {
+  inset: -3% !important;
+  opacity: calc(1 - var(--mr-v65-summit-reveal, 0));
+  background: #302e2b url('/assets/mountain-race/images/summit-sprint-jagged-cliff-v65.png') center var(--mr-v65-cliff-position, 42%) / cover no-repeat;
+  filter: saturate(.98) contrast(1.04);
+  transform: translateZ(0) scale(1.025);
+  transition: opacity 520ms ease, background-position 620ms cubic-bezier(.2,.72,.22,1);
+  will-change: opacity, background-position;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-lane.opponent .mr-v65-cliff {
+  transform: translateZ(0) scale(-1.025, 1.025);
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-v65-light {
+  z-index: 3;
+  opacity: .64;
+  background:
+    radial-gradient(ellipse at 12% 6%, rgba(255, 228, 174, .34), transparent 32%),
+    linear-gradient(105deg, rgba(255,255,255,.1), transparent 38%, rgba(0, 13, 24, .24));
+  mix-blend-mode: soft-light;
+  animation: mrV65LightBreathe 8s ease-in-out infinite alternate;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-player-card {
+  position: relative !important;
+  z-index: 40 !important;
+  display: grid !important;
+  grid-template-columns: auto minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  gap: 9px !important;
+  min-height: 58px !important;
+  padding: 7px 12px !important;
+  border: 0 !important;
+  border-bottom: 1px solid rgba(255,255,255,.19) !important;
+  border-radius: 0 !important;
+  background: linear-gradient(90deg, rgba(2, 19, 30, .92), rgba(4, 27, 40, .78)) !important;
+  box-shadow: 0 6px 12px rgba(0, 8, 15, .28) !important;
+  backdrop-filter: blur(4px);
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-lane.me .mr-player-card {
+  border-left: 4px solid var(--mr-v65-blue) !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-lane.opponent .mr-player-card {
+  border-right: 4px solid var(--mr-v65-orange) !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-player-badge {
+  display: grid !important;
+  place-items: center !important;
+  width: 38px !important;
+  height: 38px !important;
+  border: 0 !important;
+  border-radius: 50% !important;
+  color: #04141e !important;
+  background: var(--mr-v65-accent) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.45), 0 3px 8px rgba(0,0,0,.32) !important;
+  font-size: 10px !important;
+  font-weight: 1000 !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-player-copy {
+  display: grid !important;
+  min-width: 0 !important;
+  line-height: 1.05 !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-player-copy strong {
+  overflow: hidden;
+  color: #fff !important;
+  font-size: 14px !important;
+  font-weight: 900 !important;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-shadow: 0 2px 2px rgba(0,0,0,.5);
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-player-copy small {
+  color: #b9dcec !important;
+  font-size: 8px !important;
+  font-weight: 900 !important;
+  letter-spacing: .08em !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-player-progress {
+  color: #fff !important;
+  font-size: 12px !important;
+  font-weight: 1000 !important;
+  line-height: 1.05 !important;
+  text-align: right !important;
+  text-shadow: 0 2px 2px rgba(0,0,0,.55);
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-climb-viewport {
+  position: relative !important;
+  z-index: 4 !important;
+  height: clamp(570px, 68vh, 720px) !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  isolation: isolate;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-climb-viewport::before {
+  content: "" !important;
+  position: absolute !important;
+  z-index: 30 !important;
+  inset: 0 !important;
+  height: auto !important;
+  pointer-events: none !important;
+  background: linear-gradient(180deg, rgba(2, 13, 20, .16), transparent 20%, transparent 73%, rgba(1, 10, 16, .18)) !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-climb-viewport::after {
+  content: none !important;
+  display: none !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-mountain-wall {
+  position: absolute !important;
+  z-index: 8 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100% !important;
+  height: var(--mr-wall-height, 2800px) !important;
+  transform: translateY(var(--mr-wall-scroll, 0px)) !important;
+  transition: transform 480ms cubic-bezier(.2,.72,.22,1) !important;
+  overflow: visible !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  clip-path: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  filter: none !important;
+  contain: layout style;
+  will-change: transform;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-mountain-wall::before,
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-mountain-wall::after,
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-v44-cliff {
+  content: none !important;
+  display: none !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-v44-start {
+  position: absolute !important;
+  z-index: 7 !important;
+  left: 50% !important;
+  bottom: -46px !important;
+  display: block !important;
+  width: 112% !important;
+  height: auto !important;
+  aspect-ratio: 3 / 2 !important;
+  transform: translateX(-50%) !important;
+  overflow: visible !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: url('/assets/mountain-race/images/summit-sprint-jagged-ground-v65.png') center top / 100% auto no-repeat !important;
+  box-shadow: none !important;
+  filter: drop-shadow(0 12px 10px rgba(0, 8, 13, .42)) !important;
+  pointer-events: none !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-v44-start i {
+  display: none !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-rock-hold {
+  position: absolute !important;
+  z-index: 16 !important;
+  left: var(--mr-hold-left, 50%) !important;
+  bottom: var(--mr-hold-bottom, 196px) !important;
+  display: grid !important;
+  place-items: center !important;
+  width: 148px !important;
+  height: 64px !important;
+  transform: translate(-50%, 0) !important;
+  overflow: visible !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background-color: transparent !important;
+  background-image: url('/assets/mountain-race/images/summit-sprint-jagged-ledges-v65.png') !important;
+  background-repeat: no-repeat !important;
+  background-size: 300% 200% !important;
+  box-shadow: none !important;
+  filter: drop-shadow(0 8px 6px rgba(0, 7, 11, .56)) !important;
+  opacity: 1 !important;
+  transition: opacity 180ms ease, filter 180ms ease !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-rock-hold[data-mr-outcrop="0"] { background-position: 0 0 !important; }
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-rock-hold[data-mr-outcrop="1"] { background-position: 50% 0 !important; }
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-rock-hold[data-mr-outcrop="2"] { background-position: 100% 0 !important; }
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-rock-hold[data-mr-outcrop="3"] { background-position: 0 100% !important; }
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-rock-hold[data-mr-outcrop="4"] { background-position: 50% 100% !important; }
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-rock-hold[data-mr-outcrop="5"] { background-position: 100% 100% !important; }
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-rock-hold::before,
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-rock-hold::after {
+  content: none !important;
+  display: none !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-rock-hold.current {
+  z-index: 20 !important;
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--mr-v65-accent), transparent 2%)) drop-shadow(0 8px 6px rgba(0, 7, 11, .62)) !important;
+  animation: none !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-rock-hold.contact {
+  z-index: 27 !important;
+  opacity: 1 !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-rock-hold.passed:not(.contact) {
+  opacity: .56 !important;
+  filter: saturate(.72) brightness(.82) drop-shadow(0 7px 5px rgba(0,0,0,.42)) !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-lane.opponent .mr-rock-hold.opponent-upcoming {
+  display: grid !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-lane.opponent .mr-rock-hold.opponent-upcoming:not(.current) b {
+  display: none !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-rock-hold b {
+  position: absolute !important;
+  z-index: 3 !important;
+  top: -6px !important;
+  left: 50% !important;
+  display: grid !important;
+  place-items: center !important;
+  width: 36px !important;
+  height: 36px !important;
+  transform: translateX(-50%) !important;
+  overflow: hidden !important;
+  border: 2px solid rgba(235, 248, 255, .88) !important;
+  border-radius: 50% !important;
+  color: #fff !important;
+  background: rgba(3, 19, 29, .96) !important;
+  box-shadow: 0 4px 9px rgba(0,0,0,.58) !important;
+  font-family: Arial, Helvetica, sans-serif !important;
+  font-size: 19px !important;
+  font-weight: 1000 !important;
+  line-height: 1 !important;
+  text-shadow: none !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-rock-hold b svg {
+  width: 20px !important;
+  height: 20px !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-rock-hold.unknown b {
+  opacity: 0 !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-rock-hold.final-hold {
+  z-index: 21 !important;
+  background-image: none !important;
+  filter: none !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-rock-hold.final-hold b {
+  top: 3px !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-finish-ledge.mr-summit-plateau {
+  position: absolute !important;
+  z-index: 25 !important;
+  left: 50% !important;
+  right: auto !important;
+  bottom: var(--mr-summit-bottom) !important;
+  display: block !important;
+  width: 112% !important;
+  height: auto !important;
+  aspect-ratio: 2 / 3 !important;
+  transform: translate(-50%, calc(100% - 84px)) !important;
+  overflow: visible !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: url('/assets/mountain-race/images/summit-sprint-jagged-summit-v65.png') center top / 100% auto no-repeat !important;
+  box-shadow: none !important;
+  filter: drop-shadow(0 12px 10px rgba(0, 7, 12, .5)) !important;
+  pointer-events: none !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-lane.summit-view .mr-finish-ledge.mr-summit-plateau {
+  z-index: 18 !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-finish-ledge i,
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-finish-ledge b {
+  display: none !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-climber {
+  position: absolute !important;
+  z-index: 24 !important;
+  left: var(--mr-climber-left, 50%) !important;
+  bottom: var(--mr-climber-grip-bottom, 76px) !important;
+  display: block !important;
+  width: 154px !important;
+  height: 205px !important;
+  transform: translate(-50%, 64%) !important;
+  transform-origin: 50% 64% !important;
+  transition: none !important;
+  animation: none !important;
+  filter: drop-shadow(0 8px 5px rgba(0,0,0,.48)) !important;
+  will-change: translate, rotate;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-climber::before,
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-climber::after,
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-climber > * {
+  display: none !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-climber > .mr-motion-frame-0.mr-v45-climber-sprite {
+  position: absolute !important;
+  z-index: 2 !important;
+  inset: 0 !important;
+  display: block !important;
+  opacity: 1 !important;
+  background-image: url('/assets/mountain-race/images/summit-sprint-climber-back-sheet-v45.png') !important;
+  background-size: 400% 200% !important;
+  background-position: var(--mr-v45-frame-x, 0%) var(--mr-v45-frame-y, 0%) !important;
+  background-repeat: no-repeat !important;
+  animation: none !important;
+  pointer-events: none !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-climber.opponent > .mr-motion-frame-0.mr-v45-climber-sprite {
+  background-image: url('/assets/mountain-race/images/summit-sprint-climber-back-opponent-sheet-v45.png') !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-climber.direction-left > .mr-motion-frame-0.mr-v45-climber-sprite {
+  transform: scaleX(-1) !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-climber.direction-right > .mr-motion-frame-0.mr-v45-climber-sprite {
+  transform: none !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-climber:is(.climb-up,.climb-left,.climb-right,.climb-down) > .mr-motion-frame-0.mr-v45-climber-sprite {
+  animation: mrV45ReachFrames 480ms steps(1,end) both !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-climber.slip > .mr-motion-frame-0.mr-v45-climber-sprite {
+  animation: mrV45SlipFrames 620ms steps(1,end) both !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-climber.ready-next:not(.climb-up):not(.climb-left):not(.climb-right):not(.climb-down):not(.slip) > .mr-motion-frame-0.mr-v45-climber-sprite {
+  --mr-v45-frame-x: 66.667%;
+  --mr-v45-frame-y: 0%;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-climber.standing-start {
+  left: 50% !important;
+  bottom: 76px !important;
+  transform: translate(-50%, 24%) !important;
+  transform-origin: 50% 100% !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-climber.standing-start > .mr-motion-frame-0.mr-v45-climber-sprite {
+  background-image: url('/assets/mountain-race/images/summit-sprint-waiting-climbers-v55.png') !important;
+  background-size: 200% 100% !important;
+  background-position: left center !important;
+  transform: none !important;
+  animation: none !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-climber.standing-start.opponent > .mr-motion-frame-0.mr-v45-climber-sprite {
+  background-position: right center !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-climber.standing-start.start-reaching > .mr-motion-frame-0.mr-v45-climber-sprite {
+  background-image: url('/assets/mountain-race/images/summit-sprint-start-climbers-v55.png') !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-climber.standing-start.start-reaching.direction-left > .mr-motion-frame-0.mr-v45-climber-sprite {
+  transform: scaleX(-1) !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-climber.standing-start.start-reaching.direction-right > .mr-motion-frame-0.mr-v45-climber-sprite {
+  transform: none !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-climber.summit-reaching {
+  z-index: 24 !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-climber.finished,
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-climber.standing-on-summit {
+  z-index: 24 !important;
+  left: 50% !important;
+  transform: translate(-50%, 0) !important;
+  animation: mrV65SummitSettle 650ms cubic-bezier(.2,.72,.24,1) both !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-climber.celebrate > .mr-motion-frame-0.mr-v45-climber-sprite {
+  display: block !important;
+  background-image: url('/assets/mountain-race/images/summit-sprint-celebration-climbers-v57.png') !important;
+  background-size: 200% 100% !important;
+  background-position: left center !important;
+  transform: none !important;
+  animation: mrV57WinnerLift 680ms ease-in-out infinite alternate !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-climber.celebrate.opponent > .mr-motion-frame-0.mr-v45-climber-sprite {
+  background-position: right center !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-winner-confetti {
+  position: absolute !important;
+  z-index: 36 !important;
+  left: 50% !important;
+  bottom: var(--mr-confetti-bottom) !important;
+  display: block !important;
+  width: 250px !important;
+  height: 235px !important;
+  transform: translateX(-50%) !important;
+  overflow: visible !important;
+  pointer-events: none !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-winner-confetti i {
+  position: absolute !important;
+  top: 0 !important;
+  left: var(--mr-confetti-x) !important;
+  display: block !important;
+  width: 8px !important;
+  height: 14px !important;
+  border-radius: 1px !important;
+  background: hsl(calc(var(--mr-confetti-index) * 47deg) 88% 56%) !important;
+  animation: mrV57Confetti 1.45s cubic-bezier(.18,.72,.35,1) infinite !important;
+  animation-delay: calc(var(--mr-confetti-index) * -53ms) !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-altitude-meter {
+  display: none !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-v51-center-rope {
+  position: absolute !important;
+  z-index: 60 !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  left: 50% !important;
+  display: block !important;
+  width: 14px !important;
+  transform: translateX(-50%) !important;
+  overflow: visible !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+  pointer-events: none !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-v51-center-rope::before {
+  content: "" !important;
+  position: absolute !important;
+  z-index: 2 !important;
+  top: 54px !important;
+  left: 50% !important;
+  display: block !important;
+  width: 25px !important;
+  height: 25px !important;
+  transform: translate(-50%, -50%) !important;
+  border: 5px solid #674520 !important;
+  border-radius: 50% !important;
+  background: #211d17 !important;
+  box-shadow: inset 0 0 0 2px #d0a25a, 0 4px 7px rgba(0,0,0,.68) !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-v51-center-rope::after {
+  content: "" !important;
+  position: absolute !important;
+  top: 58px !important;
+  bottom: 0 !important;
+  left: 50% !important;
+  display: block !important;
+  width: 10px !important;
+  transform: translateX(-50%) !important;
+  border-radius: 6px !important;
+  background:
+    linear-gradient(90deg, rgba(42,25,9,.7), transparent 27% 69%, rgba(42,25,9,.7)),
+    repeating-linear-gradient(31deg, #875f2d 0 4px, #d0a25a 4px 7px, #71491e 7px 11px) !important;
+  box-shadow: inset 2px 0 rgba(255,231,179,.24), inset -2px 0 rgba(35,20,7,.38), 0 2px 4px rgba(0,0,0,.65) !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-v51-center-rope i {
+  display: none !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-command-deck {
+  position: absolute !important;
+  z-index: 70 !important;
+  right: 20px !important;
+  bottom: 18px !important;
+  left: 20px !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  gap: 16px !important;
+  min-height: 160px !important;
+  margin: 0 !important;
+  padding: 13px 16px !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(160, 216, 242, .42) !important;
+  border-radius: 18px !important;
+  background: rgba(3, 23, 35, .82) !important;
+  box-shadow: 0 14px 28px rgba(0, 7, 13, .42), inset 0 1px rgba(255,255,255,.08) !important;
+  backdrop-filter: blur(7px) saturate(1.06) !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-next-moves {
+  min-width: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-prompt-label {
+  display: block !important;
+  margin: 0 0 8px !important;
+  color: #d5edf8 !important;
+  font-size: 10px !important;
+  font-weight: 1000 !important;
+  letter-spacing: .14em !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-prompt-sequence {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  min-height: 62px !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-prompt {
+  position: relative !important;
+  display: grid !important;
+  place-items: center !important;
+  width: 58px !important;
+  height: 58px !important;
+  border: 1px solid rgba(166, 218, 241, .42) !important;
+  border-radius: 14px !important;
+  color: #f3fbff !important;
+  background: rgba(11, 48, 66, .9) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.08), 0 5px 9px rgba(0,0,0,.25) !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-prompt.active {
+  width: 68px !important;
+  height: 68px !important;
+  border-color: #a7e5ff !important;
+  background: #0d7dae !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.22), 0 0 0 2px rgba(76, 190, 241, .22), 0 6px 12px rgba(0,0,0,.3) !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-prompt b {
+  font-size: 24px !important;
+  line-height: 1 !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-prompt small {
+  position: absolute !important;
+  bottom: 4px !important;
+  color: #acd5e8 !important;
+  font-size: 7px !important;
+  font-weight: 1000 !important;
+  letter-spacing: .08em !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-status {
+  min-height: 18px !important;
+  margin: 8px 0 0 !important;
+  color: #b8d5e2 !important;
+  font-size: 12px !important;
+  line-height: 1.3 !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-status.correct { color: #78e5ae !important; }
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-status.wrong { color: #ff8e84 !important; }
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-direction-pad {
+  display: grid !important;
+  grid-template-columns: repeat(3, 70px) !important;
+  grid-template-rows: repeat(2, 62px) !important;
+  gap: 7px !important;
+  touch-action: manipulation !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-control {
+  position: relative !important;
+  display: grid !important;
+  place-items: center !important;
+  border: 1px solid rgba(182, 226, 246, .35) !important;
+  border-radius: 14px !important;
+  color: #fff !important;
+  background: #17475f !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.1), 0 5px 0 #082837, 0 8px 12px rgba(0,0,0,.28) !important;
+  cursor: pointer !important;
+  touch-action: none !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-control:not(:disabled):active {
+  transform: translateY(4px) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.08), 0 1px 0 #082837 !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-control:disabled {
+  opacity: .48 !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-control b {
+  font-size: 23px !important;
+  line-height: 1 !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-control small {
+  position: absolute !important;
+  bottom: 5px !important;
+  color: #b5d7e6 !important;
+  font-size: 7px !important;
+  font-weight: 1000 !important;
+  letter-spacing: .07em !important;
+}
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-control-up { grid-column: 2 !important; grid-row: 1 !important; }
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-control-left { grid-column: 1 !important; grid-row: 2 !important; }
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-control-down { grid-column: 2 !important; grid-row: 2 !important; }
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-control-right { grid-column: 3 !important; grid-row: 2 !important; }
+
+[data-mountain-race-mount][data-mr-approved-scene="65"] .mr-overlay {
+  z-index: 120 !important;
+}
+
+@keyframes mrV65CloudDrift {
+  from { background-position: 44% 48%; }
+  to { background-position: 56% 48%; }
+}
+
+@keyframes mrV65LightBreathe {
+  from { opacity: .52; }
+  to { opacity: .72; }
+}
+
+@keyframes mrV65SummitSettle {
+  from { translate: 0 42px; }
+  to { translate: 0 0; }
+}
+
+@media (max-width: 760px) {
+  [data-mountain-race-mount][data-mr-approved-scene="65"] {
+    border-radius: 0;
+  }
+
+  [data-mountain-race-mount][data-mr-approved-scene="65"] .mountain-race-game {
+    min-height: 100dvh !important;
+  }
+
+  [data-mountain-race-mount][data-mr-approved-scene="65"] .mr-titlebar {
+    min-height: 72px !important;
+    padding: 8px 70px 7px 12px !important;
+  }
+
+  [data-mountain-race-mount][data-mr-approved-scene="65"] .mr-titlebar p,
+  [data-mountain-race-mount][data-mr-approved-scene="65"] .mr-expedition-meta {
+    font-size: 7px !important;
+    letter-spacing: .14em !important;
+  }
+
+  [data-mountain-race-mount][data-mr-approved-scene="65"] .mr-titlebar h2 {
+    font-size: clamp(24px, 7.2vw, 34px) !important;
+  }
+
+  [data-mountain-race-mount][data-mr-approved-scene="65"] .mr-expedition-mark {
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  [data-mountain-race-mount][data-mr-approved-scene="65"] .mr-race-clock {
+    top: 7px !important;
+    right: 8px !important;
+    min-width: 55px !important;
+    min-height: 53px !important;
+    padding: 5px 8px !important;
+  }
+
+  [data-mountain-race-mount][data-mr-approved-scene="65"] .mr-race-clock strong {
+    font-size: 21px !important;
+  }
+
+  [data-mountain-race-mount][data-mr-approved-scene="65"] .mr-player-card {
+    grid-template-columns: auto minmax(0, 1fr) !important;
+    gap: 5px !important;
+    min-height: 52px !important;
+    padding: 5px 6px !important;
+  }
+
+  [data-mountain-race-mount][data-mr-approved-scene="65"] .mr-player-badge {
+    width: 30px !important;
+    height: 30px !important;
+    font-size: 8px !important;
+  }
+
+  [data-mountain-race-mount][data-mr-approved-scene="65"] .mr-player-copy strong {
+    font-size: 10px !important;
+  }
+
+  [data-mountain-race-mount][data-mr-approved-scene="65"] .mr-player-copy small {
+    font-size: 7px !important;
+  }
+
+  [data-mountain-race-mount][data-mr-approved-scene="65"] .mr-player-progress {
+    grid-column: 1 / -1 !important;
+    justify-self: center !important;
+    font-size: 9px !important;
+  }
+
+  [data-mountain-race-mount][data-mr-approved-scene="65"] .mr-climb-viewport {
+    height: clamp(530px, 70dvh, 650px) !important;
+  }
+
+  [data-mountain-race-mount][data-mr-approved-scene="65"] .mr-v44-start {
+    bottom: -32px !important;
+    width: 118% !important;
+  }
+
+  [data-mountain-race-mount][data-mr-approved-scene="65"] .mr-rock-hold {
+    width: 108px !important;
+    height: 50px !important;
+  }
+
+  [data-mountain-race-mount][data-mr-approved-scene="65"] .mr-rock-hold b {
+    top: -5px !important;
+    width: 30px !important;
+    height: 30px !important;
+    font-size: 16px !important;
+  }
+
+  [data-mountain-race-mount][data-mr-approved-scene="65"] .mr-rock-hold.final-hold b {
+    top: 2px !important;
+  }
+
+  [data-mountain-race-mount][data-mr-approved-scene="65"] .mr-finish-ledge.mr-summit-plateau {
+    width: 118% !important;
+    transform: translate(-50%, calc(100% - 62px)) !important;
+  }
+
+  [data-mountain-race-mount][data-mr-approved-scene="65"] .mr-climber {
+    width: 110px !important;
+    height: 147px !important;
+    transform: translate(-50%, 64%) !important;
+  }
+
+  [data-mountain-race-mount][data-mr-approved-scene="65"] .mr-climber.standing-start {
+    transform: translate(-50%, 30%) !important;
+  }
+
+  [data-mountain-race-mount][data-mr-approved-scene="65"] .mr-climber.finished,
+  [data-mountain-race-mount][data-mr-approved-scene="65"] .mr-climber.standing-on-summit {
+    transform: translate(-50%, 0) !important;
+  }
+
+  [data-mountain-race-mount][data-mr-approved-scene="65"] .mr-winner-confetti {
+    width: 185px !important;
+    height: 205px !important;
+    transform: translateX(-50%) !important;
+  }
+
+  [data-mountain-race-mount][data-mr-approved-scene="65"] .mr-v51-center-rope {
+    width: 9px !important;
+  }
+
+  [data-mountain-race-mount][data-mr-approved-scene="65"] .mr-v51-center-rope::before {
+    top: 49px !important;
+    width: 19px !important;
+    height: 19px !important;
+    border-width: 4px !important;
+  }
+
+  [data-mountain-race-mount][data-mr-approved-scene="65"] .mr-v51-center-rope::after {
+    top: 52px !important;
+    width: 7px !important;
+  }
+
+  [data-mountain-race-mount][data-mr-approved-scene="65"] .mr-command-deck {
+    right: 8px !important;
+    bottom: 8px !important;
+    left: 8px !important;
+    gap: 8px !important;
+    min-height: 186px !important;
+    padding: 9px !important;
+    border-radius: 14px !important;
+  }
+
+  [data-mountain-race-mount][data-mr-approved-scene="65"] .mr-prompt {
+    width: 47px !important;
+    height: 47px !important;
+    border-radius: 11px !important;
+  }
+
+  [data-mountain-race-mount][data-mr-approved-scene="65"] .mr-prompt.active {
+    width: 56px !important;
+    height: 56px !important;
+  }
+
+  [data-mountain-race-mount][data-mr-approved-scene="65"] .mr-direction-pad {
+    grid-template-columns: repeat(3, 58px) !important;
+    grid-template-rows: repeat(2, 53px) !important;
+    gap: 6px !important;
+  }
+}
+
+@media (max-width: 520px) {
+  [data-mountain-race-mount][data-mr-approved-scene="65"] .mr-expedition-meta {
+    display: none !important;
+  }
+
+  [data-mountain-race-mount][data-mr-approved-scene="65"] .mr-command-deck {
+    grid-template-columns: 1fr !important;
+    min-height: 244px !important;
+  }
+
+  [data-mountain-race-mount][data-mr-approved-scene="65"] .mr-v44-start {
+    width: 190% !important;
+  }
+
+  [data-mountain-race-mount][data-mr-approved-scene="65"] .mr-next-moves {
+    text-align: center !important;
+  }
+
+  [data-mountain-race-mount][data-mr-approved-scene="65"] .mr-prompt-sequence,
+  [data-mountain-race-mount][data-mr-approved-scene="65"] .mr-direction-pad {
+    justify-content: center !important;
+  }
+
+  [data-mountain-race-mount][data-mr-approved-scene="65"] .mr-climb-viewport {
+    height: clamp(600px, 76dvh, 710px) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-mountain-race-mount][data-mr-approved-scene="65"] .mr-v65-sky,
+  [data-mountain-race-mount][data-mr-approved-scene="65"] .mr-v65-light {
+    animation: none !important;
+  }
+
+  [data-mountain-race-mount][data-mr-approved-scene="65"] .mr-mountain-wall {
+    transition-duration: 1ms !important;
+  }
+}

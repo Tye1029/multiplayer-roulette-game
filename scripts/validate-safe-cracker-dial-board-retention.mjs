@@ -22,7 +22,6 @@ function renderDecision(incoming, retained, interaction, now = 1000) {
   const terminalStatuses = ['complete', 'cancelled'];
   const ranks = { waiting: 0, ready: 1, countdown: 2, playing: 3, complete: 4, cancelled: 4 };
   const live = Boolean(interaction?.gameId && Number(interaction?.expiresAt || 0) >= now);
-  const pointerDown = Boolean(live && interaction?.active !== false && interaction?.pointerDown === true);
   const retainedActive = retained?.mode === 'safecracker' && activeStatuses.includes(retained.status);
   if (!live || !retainedActive || String(interaction.gameId) !== String(retained.gameId)) return 'render';
 
@@ -53,7 +52,7 @@ function renderDecision(incoming, retained, interaction, now = 1000) {
     (!Number.isFinite(retainedStateRevision) || (Number.isFinite(incomingStateRevision) && incomingStateRevision >= retainedStateRevision))
   );
 
-  if (terminalConfirmed && !pointerDown) return 'render';
+  if (terminalConfirmed) return 'render';
   return active && !regressed ? 'in-place' : 'hold';
 }
 
@@ -75,7 +74,7 @@ assert(html.includes('window.__safeCrackerDialInPlaceUpdates'), 'in-place update
 assert(html.includes('window.__safeCrackerDialBoardRecoveries'), 'held-render diagnostics are missing');
 assert(html.includes('window.__safeCrackerDialTerminalHolds'), 'terminal-hold diagnostics are missing');
 assert(html.includes('safeCrackerDialIncomingTerminalConfirmed'), 'terminal snapshots are not revision-confirmed');
-assert(html.includes('(!safeCrackerDialIncomingTerminalConfirmed || safeCrackerDialPointerDown)'), 'active pointer does not own the terminal render boundary');
+assert(html.includes('safeCrackerDialInteractionMatches &&\n        !safeCrackerDialIncomingTerminalConfirmed'), 'unconfirmed terminal snapshots must remain held');
 assert(!html.includes('safeCrackerDialInteractionMatches && !safeCrackerDialIncomingTerminal'), 'v15 terminal bypass remains');
 assert(html.includes('game.mode === "safecracker" && ["ready", "countdown", "playing", "complete"]'), 'Safe Cracker creator readiness label is not lifecycle-aware');
 assert(occurrences(html, 'game.mode === "safecracker" && ["ready", "countdown", "playing", "complete"]') === 2, 'both Safe Cracker player labels are not lifecycle-aware');
@@ -113,10 +112,10 @@ assert(renderDecision(newer, playing, pointerInteraction) === 'in-place', 'newer
 assert(renderDecision(null, playing, pointerInteraction) === 'hold', 'null render closes the board during drag');
 assert(renderDecision(foreign, playing, pointerInteraction) === 'hold', 'foreign render replaces the board during drag');
 assert(renderDecision(waiting, playing, pointerInteraction) === 'hold', 'waiting regression replaces the playing board');
-assert(renderDecision(complete, playing, pointerInteraction) === 'hold', 'confirmed completion closes the board while the dial pointer is down');
+assert(renderDecision(complete, playing, pointerInteraction) === 'render', 'confirmed completion must reach the retained board immediately during a drag');
 assert(renderDecision(complete, playing, releasedInteraction) === 'render', 'confirmed completion is blocked after pointer release');
 assert(renderDecision(staleComplete, playing, releasedInteraction) === 'hold', 'stale terminal snapshot closes the playing board during release grace');
 assert(renderDecision(unversionedComplete, playing, releasedInteraction) === 'hold', 'unversioned terminal snapshot closes the playing board during release grace');
 assert(renderDecision(newer, playing, { gameId: 'safe-1', active: false, pointerDown: false, expiresAt: 0 }) === 'render', 'expired interaction prevents normal rendering');
 
-console.log('Safe Cracker dial-board retention validation passed: pointer-down interaction retains the active board even against terminal-looking snapshots, only revision-confirmed completion can render after release, delayed/null/foreign/backward snapshots are held, live progress stays in place, pre-lighting visuals remain intact, and networking, audio and Roulette are untouched.');
+console.log('Safe Cracker dial-board retention validation passed: pointer interaction retains the active board, only revision-confirmed completion can advance it during a drag, delayed/null/foreign/backward snapshots are held, live progress stays in place, and networking, audio and Roulette are untouched.');

@@ -1,0 +1,88 @@
+name: Summit Sprint Corrected Reference V24
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: summit-sprint-corrected-reference-v24-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate-corrected-reference:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+
+      - name: Use Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build exact Netlify output
+        run: npm run build
+
+      - name: Verify corrected terrain and protected gameplay
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check scripts/patch-mountain-race-corrected-reference-v24.mjs
+          node --check scripts/validate-mountain-race-corrected-reference-v24.mjs
+          node --check assets/mountain-race/mountain-race-multiplayer.js
+          node --check netlify/functions/_data.js
+          node --check netlify/functions/mountain-race/integration.js
+          node --check netlify/functions/duel-action.js
+
+          node scripts/validate-mountain-race-corrected-reference-v24.mjs
+          node scripts/validate-mountain-race-full-cliff-v23.mjs
+          node scripts/validate-mountain-race-reference-rebuild-v22.mjs
+          node scripts/validate-mountain-race-reference-atlas-v21.mjs
+          node scripts/validate-mountain-race-lifecycle-guard-v11.mjs
+          node scripts/validate-mountain-race-terminal-poll-v10.mjs
+          node scripts/validate-mountain-race-input-rebase-v8.mjs
+          node scripts/validate-mountain-race-state-sync.mjs
+          node scripts/validate-mountain-race-load-performance.mjs
+
+          grep -Fq 'MOUNTAIN_RACE_CORRECTED_REFERENCE_V24' assets/mountain-race/mountain-race.css
+          grep -Fq 'MOUNTAIN_RACE_CORRECTED_REFERENCE_V24' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq -- '--mr-v24-left-cliff' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq -- '--mr-v24-holds' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'corrected=24' index.html
+          test -s assets/mountain-race/images/summit-sprint-reference-v21.jpg
+
+          test -s assets/safe-cracker/safe-cracker.js
+          test -s assets/safe-cracker/safe-cracker.css
+          test -s assets/roulette/turn-animation.js
+          test -s assets/roulette/turn-fire.js
+          test -s assets/roulette/audio-bindings.js
+
+      - name: Verify live Netlify Corrected Reference V24 deployment
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          url='https://deploy-preview-20--famous-piroshki-b621da.netlify.app/'
+          for attempt in $(seq 1 54); do
+            page="$(curl -fsSL --max-time 20 "${url}?summit_corrected_reference_v24=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            runtime="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race-multiplayer.js?corrected=24&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            styles="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race.css?corrected=24&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            reference_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-reference-v21.jpg?corrected=24&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            if grep -Fq 'corrected=24' <<<"$page" && \
+               grep -Fq 'MOUNTAIN_RACE_CORRECTED_REFERENCE_V24' <<<"$runtime" && \
+               grep -Fq 'MOUNTAIN_RACE_CORRECTED_REFERENCE_V24' <<<"$styles" && \
+               grep -Fqi 'content-type: image/jpeg' <<<"$reference_headers"; then
+              echo 'Verified live Summit Sprint Corrected Reference V24 deployment.'
+              exit 0
+            fi
+            echo "Waiting for Netlify Corrected Reference V24 deployment (${attempt}/54)..."
+            sleep 10
+          done
+          echo 'Netlify did not serve Summit Sprint Corrected Reference V24.' >&2
+          exit 1

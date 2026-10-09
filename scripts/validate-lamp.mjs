@@ -45,8 +45,8 @@ function gitBlobSha(source) {
 }
 
 for (const [name, expected, source] of [
-  ['turn-animation.js', '24358e84c147d99e7297089e69ed1abd0802379f', turnLock],
-  ['turn-fire.js', '940e824eae39ddc40dda6200f893f97fc365949b', turnFire]
+  ['turn-animation.js', '6e3c3e20d5b30b1bdecb95959a0f28a88d43232d', turnLock],
+  ['turn-fire.js', '7ed8f3c480620ba21ae7d60f6bc6e3d5f45951ee', turnFire]
 ]) {
   const actual = gitBlobSha(source);
   if (actual !== expected) throw new Error(`${name} hash changed: ${actual}`);
@@ -197,27 +197,18 @@ for (const forbidden of ['audio.hammer()', 'audio.blank()', 'audio.gunshot()']) 
 }
 
 for (const required of [
-  '/assets/roulette/decor/lamp-1.png',
-  'const phaseEpoch = Number(global.__rrLampPhaseEpoch) || Date.now()',
-  'function phaseMilliseconds(durationSeconds)',
-  'function ensureElementTimeline(element, stateKey, signature, frames, timing, phase)',
-  'function ensureSwingTimeline(swing, cfg)',
-  "setImportant(swing, 'animation', 'none')",
-  "'__rrLampSwingTimeline'",
-  'function ensureLightTimeline(sceneLight, cfg)',
-  "setImportant(sceneLight, 'animation', 'none')",
-  "'__rrLampLightTimeline'",
-  'animation.currentTime = phase'
-]) if (!lamp.includes(required)) throw new Error(`Independent lamp timeline is missing ${required}`);
+  '/assets/roulette/decor/rustic-pendant-v2.png',
+  'function samplePendulum(cfg, elapsedMs, geometry)',
+  'function projectLightToSurface(points, worldX, worldY)',
+  'light.poolX', 'light.poolY', '--rr-surface-light', '.rr-gun-light-field',
+  'visibilitychange', 'doc.hidden'
+]) if (!lamp.includes(required)) throw new Error(`Shared lamp projection is missing ${required}`);
 
+// Lighting reads probe geometry and never owns turn/recoil state.
 for (const forbidden of [
-  'RouletteAudio', 'rouletteShotSequence', 'rouletteRotateToTurn',
-  '.rr-gun-motion', 'scene.gun', 'scene.table'
-]) {
-  if (lamp.includes(forbidden) || lampCss.includes(forbidden)) {
-    throw new Error(`Lamp visuals are coupled to audio or gun state: ${forbidden}`);
-  }
-}
+  'RouletteAudio', 'rouletteShotSequence', 'rouletteRotateToTurn', 'applyFacing(',
+  'rotateToLockedTurn(', 'getAnimations(', '.rr-turn-facing', '.rr-gun-recoil'
+]) if (lamp.includes(forbidden)) throw new Error(`Lamp can change protected gameplay: ${forbidden}`);
 
 if (!calibrationHtml.includes('/assets/roulette/lamp.js?v=20') ||
     !calibrationHtml.includes('lampCalibration=20')) {
@@ -245,7 +236,7 @@ for (const path of [
 ]) await requireMissing(path);
 
 for (const path of [
-  'assets/roulette/decor/lamp-1.png',
+  'assets/roulette/decor/rustic-pendant-v2.png',
   'assets/roulette/decor/workshop-lamp-chain.png',
   'assets/roulette/audio/soundsforyou-the-ambience-room-tone-139064.mp3',
   'assets/roulette/audio/freesound_community-lamp-electricity-buzzingwav-14609.mp3',

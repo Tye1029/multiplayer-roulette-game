@@ -18,6 +18,7 @@
     lock.firing = true;
     const lockedTurnId = lock.turnId;
     const lockedAngle = lock.angle;
+    const laser = window.RouletteArsenal?.current(layers.root)?.laser === true;
     const hammer = layers.root.querySelector('.rr-hammer-photo');
     const cover = layers.root.querySelector('.rr-hammer-cover');
     const glint = layers.root.querySelector('.rr-metal-glint');
@@ -31,7 +32,7 @@
     layers.recoil.style.transform = 'none';
     if (cover) cover.style.opacity = '0';
 
-    if (hammer) {
+    if (hammer && !laser) {
       hammer.style.opacity = '1';
       rouletteShotIndexSound();
       layers.root._rrHammerMotion = rouletteAnimate(
@@ -55,19 +56,38 @@
     }
 
     const live = state?.lastOutcome === 'live';
+    const effectRoot = layers.recoil.closest('[data-roulette-game]') || layers.root;
+    if (laser) layers.root._rrLaserMotion = window.RouletteArsenal?.laserFeedback(effectRoot,live);
     if (live) {
       rouletteGunshotSound();
+      const roomLight=effectRoot.querySelector('.rr-muzzle-room-light');
+      const muzzle=effectRoot.querySelector('.rr-muzzle-point');
+      if(roomLight&&muzzle){
+        const started=performance.now();
+        const illuminate=now=>{
+          const age=(now-started)/(laser?360:190);
+          // Polling replaces the outer root while retaining the table and flash.
+          const activeRoot=muzzle.closest('[data-roulette-game]');
+          if(age>=1||!activeRoot?.isConnected){roomLight.style.opacity='0';return;}
+          const room=activeRoot.getBoundingClientRect(),tip=muzzle.getBoundingClientRect();
+          roomLight.style.setProperty('--rr-shot-x',(tip.left-room.left)+'px');
+          roomLight.style.setProperty('--rr-shot-y',(tip.top-room.top)+'px');
+          roomLight.style.opacity=String(laser?.85*Math.pow(1-Math.max(0,age),1.25):.34*Math.pow(1-Math.max(0,age),2));
+          requestAnimationFrame(illuminate);
+        };
+        requestAnimationFrame(illuminate);
+      }
       navigator.vibrate?.([90, 35, 220]);
       const effects = [];
       if (flash) {
         effects.push(rouletteAnimate(flash, [
-          { opacity: 0, transform: 'translate(-50%,-50%) scale(.1)' },
-          { opacity: 1, transform: 'translate(-50%,-50%) scale(1.7)', offset: 0.16 },
-          { opacity: 0.75, transform: 'translate(-50%,-50%) scale(2.7)', offset: 0.42 },
-          { opacity: 0, transform: 'translate(-50%,-50%) scale(4.2)' }
-        ], { duration: 380, easing: 'ease-out' }));
+          { opacity: 0, transform: 'translate(-100%,-50%) scale(.3)' },
+          { opacity: 1, transform: 'translate(-100%,-50%) scale(1)', offset: 0.12 },
+          { opacity: 0.55, transform: 'translate(-100%,-50%) scale(1.15,.7)', offset: 0.45 },
+          { opacity: 0, transform: 'translate(-100%,-50%) scale(1.4,.35)' }
+        ], { duration: 160, easing: 'ease-out' }));
       }
-      smoke.forEach((particle, index) => {
+      (laser ? [] : smoke).forEach((particle, index) => {
         effects.push(rouletteAnimate(particle, [
           { opacity: 0, transform: 'translate(0,0) scale(.25)' },
           {
@@ -93,6 +113,7 @@
       ], { duration: 560, easing: 'cubic-bezier(.16,.85,.2,1)' });
       await Promise.all([
         layers.root._rrHammerMotion || Promise.resolve(),
+        layers.root._rrLaserMotion || Promise.resolve(),
         recoilMotion,
         ...effects
       ]);
@@ -101,6 +122,7 @@
       navigator.vibrate?.(30);
       await Promise.all([
         layers.root._rrHammerMotion || Promise.resolve(),
+        layers.root._rrLaserMotion || Promise.resolve(),
         rouletteAnimate(layers.recoil, [
           { transform: 'translateX(0)' },
           { transform: 'translateX(-3px)', offset: 0.42 },
@@ -110,6 +132,7 @@
     }
 
     delete layers.root._rrHammerMotion;
+    delete layers.root._rrLaserMotion;
     const mounted = ensureLayers(currentRoot(gameId));
     for (const element of new Set([layers.recoil, mounted?.recoil].filter(Boolean))) {
       element.getAnimations?.().forEach(animation => animation.cancel());
@@ -128,13 +151,9 @@
     layers.root.classList.remove('rr-animation-lock');
     mounted?.root.classList.remove('rr-animation-lock');
 
-    const newest = latestGameFor(gameId, null);
-    const newestTurnId = String(newest?.rouletteState?.turnId || '');
-    if (newest?.status === 'playing' && newestTurnId && newestTurnId !== lockedTurnId) {
-      await rotateToLockedTurn(newest, gameId, newestTurnId, 1020);
-    } else {
-      enforceLockedFacing(gameId);
-    }
+    // The facing guard owns every handoff. A shot must never consume the new
+    // turn by attempting a second, unauthorized rotation while its queue is busy.
+    enforceLockedFacing(gameId);
   };
 
 })();

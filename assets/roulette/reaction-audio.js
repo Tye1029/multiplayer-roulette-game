@@ -122,7 +122,8 @@
     return sourceCache.get(key);
   }
 
-  function preload() {
+  function preload(selection = '') {
+    if (!global.RouletteAudio?.shouldWarmForInteraction(selection)) return;
     for (const source of [...RELIEF_SOURCES, CHAIR_FALL_SOURCE]) {
       audioSource(source).catch(() => {});
     }
@@ -192,7 +193,8 @@
     global.rouletteShotSequence = wrappedShotSequence;
   }
 
-  document.addEventListener('pointerdown', preload, { once: true, capture: true });
+  document.addEventListener('pointerdown', preload, { capture: true });
+  document.addEventListener('keydown', preload, { capture: true });
   global.addEventListener('pagehide', () => {
     for (const timer of timers) clearTimeout(timer);
     timers.clear();
@@ -201,6 +203,7 @@
   }, { once: true });
 
   global.RouletteReactionAudio = Object.freeze({
+    preload,
     blanksRemaining,
     queueReaction,
     diagnostics: () => ({ seenShots: seenShots.size, playing: Boolean(activeClip) })
