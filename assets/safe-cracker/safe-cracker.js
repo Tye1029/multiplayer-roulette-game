@@ -19,7 +19,7 @@
   const visualAssets = [
     '/assets/safe-cracker/images/bank-vault-wall-v5.png',
     '/assets/safe-cracker/images/safe-steel-surface-v3.png',
-    '/assets/safe-cracker/textures/dial-reference-face-v7.svg?dial=7&layout=7',
+    '/assets/safe-cracker/images/dial-reference-face.png?dial=24',
     '/assets/safe-cracker/textures/dial-index-steel.svg'
   ];
   let visualsReady = false;
@@ -949,6 +949,7 @@
   }
 
   function safeCrackerStopDialInteraction() {
+    safeCrackerStopFrameProbe();
     const pointerId = runtime.pointerId;
     runtime.dragging = false;
     runtime.pointerId = null;
@@ -1075,7 +1076,7 @@
           <div class="sc-dial-wrap">
             <div class="sc-dial-pointer" aria-hidden="true"></div>
             <div class="sc-dial" role="slider" tabindex="${game.status === 'playing' ? 0 : -1}" aria-disabled="${game.status !== 'playing'}" aria-label="Safe dial" aria-valuemin="0" aria-valuemax="9" aria-valuenow="${runtime.selected}" data-sc-dial>
-              <div class="sc-dial-face" data-sc-dial-face style="transform:rotate(${runtime.rotation}deg)"><img class="sc-dial-reference-plate" src="/assets/safe-cracker/textures/dial-reference-face-v7.svg?dial=7&layout=7" alt="" aria-hidden="true" draggable="false">${dialNumbers()}<div class="sc-dial-hub"></div></div>
+              <div class="sc-dial-face" data-sc-dial-face style="transform:rotate(${runtime.rotation}deg)"><img class="sc-dial-reference-plate" src="/assets/safe-cracker/images/dial-reference-face.png?dial=24" alt="" aria-hidden="true" draggable="false">${dialNumbers()}<div class="sc-dial-hub"></div></div>
             </div>
             <div class="sc-current-number" data-sc-current>${runtime.selected}</div>
           </div>
@@ -1100,6 +1101,45 @@
     mountSafeCrackerResultPortal(game, mount);
     updateTimerOnly();
   }
+
+  // SAFE_CRACKER_FRAME_TIMING_V24_START
+  // Measure actual animation-frame delivery during a drag, independently of
+  // pointer event frequency. No probe runs while the game is idle or hidden.
+  let dialFrameProbe = null;
+  function safeCrackerStopFrameProbe() {
+    const probe = dialFrameProbe;
+    dialFrameProbe = null;
+    if (!probe) return;
+    window.cancelAnimationFrame(probe.frame);
+    if (probe.intervals.length < 12) return;
+    const sorted = probe.intervals.slice().sort((a, b) => a - b);
+    const average = sorted.reduce((sum, ms) => sum + ms, 0) / sorted.length;
+    const samples = window.__safeCrackerFrameDiagnostics ||= [];
+    samples.push({
+      phase: 'dial-drag', sampledAt: new Date().toISOString(),
+      frames: sorted.length, estimatedFps: Math.round(1000 / average),
+      medianFrameMs: +sorted[Math.floor(sorted.length * .5)].toFixed(1),
+      p95FrameMs: +sorted[Math.floor(sorted.length * .95)].toFixed(1),
+      framesOver50Ms: sorted.filter(ms => ms > 50).length,
+      viewport: { width: window.innerWidth, height: window.innerHeight, pixelRatio: window.devicePixelRatio }
+    });
+    if (samples.length > 6) samples.splice(0, samples.length - 6);
+  }
+  function safeCrackerStartFrameProbe() {
+    safeCrackerStopFrameProbe();
+    const probe = dialFrameProbe = { frame: 0, previous: 0, intervals: [] };
+    const tick = time => {
+      if (dialFrameProbe !== probe) return;
+      if (!runtime.dragging || document.hidden) { safeCrackerStopFrameProbe(); return; }
+      if (probe.previous) probe.intervals.push(time - probe.previous);
+      probe.previous = time;
+      // Bound diagnostics to the first 240 frames of each gesture.
+      if (probe.intervals.length >= 240) { safeCrackerStopFrameProbe(); return; }
+      probe.frame = window.requestAnimationFrame(tick);
+    };
+    probe.frame = window.requestAnimationFrame(tick);
+  }
+  // SAFE_CRACKER_FRAME_TIMING_V24_END
 
   // SAFE_CRACKER_DIAL_PHYSICS_V2_START
   // Continue interrupted turns from the painted angle, rather than the target.
@@ -1210,6 +1250,7 @@
         runtime.dialDragRect = dial.getBoundingClientRect?.() || null;
         runtime.lastDragDirection = 0;
         runtime.dragging = true;
+        safeCrackerStartFrameProbe();
         // SAFE_CRACKER_DIAL_ACTIVITY_V16_START
         const safeCrackerDialInteractionStartedAt = Date.now();
         window.__safeCrackerDialInteractionV16 = {
@@ -1260,6 +1301,7 @@
       });
       const finishDrag = event => {
         if (!runtime.dragging || runtime.pointerId !== event.pointerId) return;
+        safeCrackerStopFrameProbe();
         runtime.dragging = false;
         const safeCrackerDialInteraction = window.__safeCrackerDialInteractionV16;
         if (
@@ -1487,6 +1529,7 @@
   });
 
   document.addEventListener('visibilitychange', () => {
+    if (document.hidden) safeCrackerStopFrameProbe();
     if (!document.hidden && runtime.game) {
       updateTimerOnly();
       window.__safeCrackerBridge?.refresh?.();
@@ -1819,6 +1862,8 @@
   }, true);
 
   const safeCrackerCountdownObserver = new MutationObserver(() => {
+    // Dial number mutations never need a countdown/audio scan.
+    if (runtime.game?.status !== 'countdown') return;
     if (runtime.safeCrackerCountdownScanQueued) return;
     runtime.safeCrackerCountdownScanQueued = true;
     window.requestAnimationFrame(() => {

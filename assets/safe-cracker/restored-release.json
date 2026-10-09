@@ -1,5 +1,5 @@
 {
-  "release": "20261009-finish23",
+  "release": "20261009-raster24",
   "sourcePreview": "https://deploy-preview-19--famous-piroshki-b621da.netlify.app/",
   "sourceDeploy": "6a70b46ca5416100089b828b",
   "sourceBranch": "safe-cracker-development",
@@ -29,14 +29,15 @@
     "assets/safe-cracker/audio-data/submit-latch.b64": "f946badd32b429169b00b2a1e0956aab235e224ce142bb56080aa437306cadd2",
     "assets/safe-cracker/audio-data/tumbler-lock.b64": "ab70c5fe2cc2a0b8466871418bb2f0af6274b52ba1659c5c3d4fa723aa403754",
     "assets/safe-cracker/safe-cracker.css": "08d0a83deda17ed539429530ac1e1b60e70b49bfa24ac928caf6f43b276a9a16",
-    "assets/safe-cracker/safe-cracker.js": "51a41eb927319d1ded22ea38255a5554331eecd1e4c13d3d79bfd1b33397caee",
+    "assets/safe-cracker/safe-cracker.js": "01ef1d27b8a433fc8f8d69c85daa64396452526da1d144d3d0cd0458ac63dc4c",
     "assets/safe-cracker/textures/dial-machined.svg": "e4f73a99dccca8a9bdcb79ac8fb93d3b93c26a843c01bf6ffd65cd2e081fa361",
     "assets/safe-cracker/textures/dial-reference-face-v7.svg": "4ac122e6319ef8ae3b604f64726994af47d9a7815f58c2898f8143dd3fa339c0",
     "assets/safe-cracker/textures/metal-wear.svg": "ca22e39bd6a2d21ef5c6634a035f024e016ecbc7c908caab9ea1597bb28a1824",
     "assets/safe-cracker/textures/safe-steel-base.svg": "fdf1f549626d023361ecb60529b6fec98f9b45ec4785080ed032796bb6eeca07",
     "assets/safe-cracker/images/bank-vault-wall-v5.png": "860901ba5903232346ddeaec31a8ed97f2e86b8de41d6c3cee650065e0d97d5e",
     "assets/safe-cracker/images/safe-steel-surface-v3.png": "65d130d407de98d1e443e849f4100959214714a44408700bb78af509a23238a9",
-    "assets/safe-cracker/textures/dial-index-steel.svg": "f4f21a18bf6b8f7924a0ceb45ddc2c0a10e02622cac858b29cea0e79187a17ca"
+    "assets/safe-cracker/textures/dial-index-steel.svg": "f4f21a18bf6b8f7924a0ceb45ddc2c0a10e02622cac858b29cea0e79187a17ca",
+    "assets/safe-cracker/images/dial-reference-face.png": "a8d184102637890154216a3e35740fc5141365cce920d20564eb6ed866e0dd88"
   },
   "sourceNote": "Recovered from the last deployed Safe Cracker preview; one whitespace-only runtime line was cleaned. Supporting generated SVG and recordings were rebuilt from the unchanged repository sources and matched that deployment.",
   "changes": [
@@ -55,6 +56,7 @@
     "Decode current wall, door, and dial before reveal; retain all authoritative guards with a 500 ms verification interval and stop expired bot rematch retries.",
     "Removed ten unreferenced recording-fragment experiments. Original source chunks remain because the audio rebuild script uses them; current SVG hardware textures remain referenced by CSS.",
     "Paint drag rotation once per frame using cached geometry; preserve the visible angle on interrupted turns, shorten the settle, and keep numerals steady. Replace the floating index and housing with one bolted steel fixture; include it in decoded-art preparation.",
-    "Reject stale local/deferred views after completion; deliver only revision-confirmed terminal snapshots during drag without replacing the board. Show the checked digit and green feedback for 240ms before the existing door/light sequence, hide the pending result from focus/announcements, preserve progress nodes and use local opacity lighting instead of animated safe filters."
+    "Reject stale local/deferred views after completion; deliver only revision-confirmed terminal snapshots during drag without replacing the board. Show the checked digit and green feedback for 240ms before the existing door/light sequence, hide the pending result from focus/announcements, preserve progress nodes and use local opacity lighting instead of animated safe filters.",
+    "Render the unchanged detailed dial artwork from a decoded 640px PNG; retain SVG as rebuild/validation source. Gate countdown scans to countdown state, and include bounded, local drag frame timing in copied game diagnostics. No idle frame loop or gameplay/network changes."
   ]
 }

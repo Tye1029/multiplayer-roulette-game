@@ -53,3 +53,4 @@ console.log(`Verified complete Safe Cracker restored release ${release.release}:
 await import('./validate-safe-cracker-start-feedback.mjs');
 await import('./validate-safe-cracker-dial-continuity.mjs');
 await import('./validate-safe-cracker-finish-continuity.mjs');
+await import('./validate-safe-cracker-frame-timing.mjs');

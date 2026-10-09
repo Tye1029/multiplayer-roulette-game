@@ -21,6 +21,7 @@ const context = vm.createContext({
   document:{querySelector:()=>null},
   window:{__safeCrackerBridge:{submit:payload=>{requests.push(payload);return new Promise((resolve,reject)=>{resolveRequest=resolve;rejectRequest=reject;});}}}
 });
+context.safeCrackerStartFrameProbe=()=>{};context.safeCrackerStopFrameProbe=()=>{};
 vm.runInContext(section('function safeCrackerCanSubmit(game', 'function safeCrackerUpdateConfirmControl()'),context);
 vm.runInContext(section('function safeCrackerRequestGuess()', 'function updateTimerOnly()'),context);
 

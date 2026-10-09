@@ -23,6 +23,7 @@ const context=vm.createContext({runtime,Number,String,Date,Math,STATE_EVENT:'saf
   safeCrackerUpdateMountedBoard:g=>{views.push({status:g.status,digit:runtime.selected,tier:runtime.feedbackResult?.tier});return true;},
   revealPreparedVault(){},mountCountdownPortal(){},bindResultControls(){},mountSafeCrackerResultPortal(){},updateTimerOnly(){}
 });
+context.safeCrackerStartFrameProbe=()=>{};context.safeCrackerStopFrameProbe=()=>{};
 vm.runInContext(section('function submittedFeedbackKey(result)', '// SAFE_CRACKER_FEEDBACK_LATCH_END'),context);
 vm.runInContext(section('function safeCrackerSetMarkup(element, markup)', '// SAFE_CRACKER_PRESENTATION_ORDER_V23_END'),context);
 vm.runInContext(section('function render(game)', '// SAFE_CRACKER_DIAL_PHYSICS_V2_START'),context);

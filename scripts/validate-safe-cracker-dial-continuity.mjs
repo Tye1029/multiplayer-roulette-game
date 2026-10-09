@@ -27,6 +27,7 @@ const context = vm.createContext({runtime,Math,Date,Number,String,DETENT_DEGREES
     requestAnimationFrame:fn=>{frames.set(++id,fn);return id;},cancelAnimationFrame:key=>frames.delete(key)},
   playDetent:()=>{detents++;},resumeAudio(){},render(){},safeCrackerRequestGuess(){}
 });
+context.safeCrackerStartFrameProbe=()=>{};context.safeCrackerStopFrameProbe=()=>{};
 vm.runInContext(section('function modulo(value, size)', 'function stateFor(game'), context);
 vm.runInContext(section('function safeCrackerSetMarkup(element, markup)', '// SAFE_CRACKER_PRESENTATION_ORDER_V23_END'), context);
 vm.runInContext(section('function visibleDialRotation()', 'function bindResultControls(mount)'), context);
