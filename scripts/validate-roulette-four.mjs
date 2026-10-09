@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { Round, splitPot, relativeSeat, createPersonality, botDecision, VERSION } from '../assets/roulette-four/model.mjs';
+import { TURN_MS, REMATCH_MS, Round, splitPot, relativeSeat, createPersonality, botDecision, VERSION } from '../assets/roulette-four/model.mjs';
 
 const players = ['a', 'b', 'c', 'd'].map(id => ({ id, name: id }));
 function rng(seed) { let s = seed; return () => { s ^= s << 13; s ^= s >>> 17; s ^= s << 5; return (s >>> 0) / 4294967296; }; }
@@ -51,7 +51,7 @@ for (const viewer of players) {
   assert.equal(game.snapshot().ready.length, 1);
   assert.equal(game.vote('unknown', 1003), false);
   game.vote('b', 1003); game.vote('c', 1004);
-  assert.equal(game.vote('d', 10999), true, 'All four ready inside 10 seconds');
+  assert.equal(game.vote('d', 15999), true, 'All four ready inside 15 seconds');
 }
 {
   const game = new Round(players, () => 0); game.begin();
@@ -60,13 +60,56 @@ for (const viewer of players) {
   assert.equal(game.snapshot().players.find(p => p.id === first).bank, 0);
   assert.deepEqual(game.snapshot().players.filter(p => p.id !== first).map(p => p.bank).sort(), [13333, 13333, 13334]);
   game.openRematch(0);
-  assert.equal(game.vote('a', 10000), false, 'Deadline is exclusive');
+  assert.equal(game.vote('a', 15000), false, 'Deadline is exclusive');
   assert.equal(game.snapshot().phase, 'expired');
   const next = new Round(players, rng(9876), 2);
   assert.equal(next.snapshot().pot, 40000);
   assert(next.snapshot().players.every(p => p.shots === 0 && p.bank === 0 && !p.spinUsed));
   assert.deepEqual(next.snapshot().ready, []);
 }
+
+assert.equal(TURN_MS, 60000); assert.equal(REMATCH_MS, 15000);
+{
+  const game = new Round(players, six); game.begin(0);
+  game.act('a', 'shoot', 100); game.act('a', 'shoot', 200);
+  assert.equal(game.snapshot().turnDeadline, 60000, 'Shots do not reset a turn');
+  assert.equal(game.timeout(59999), null);
+  assert.equal(game.act('a', 'shoot', 60000).ok, false, 'Late actions cannot beat the clock');
+  const event = game.timeout(60000);
+  assert.equal(event.returned, 6000); assert.equal(game.snapshot().pot, 34000);
+  assert.deepEqual(game.snapshot().players.map(p => p.bank), [0, 2000, 2000, 2000]);
+  assert.equal(game.snapshot().activeId, 'b'); assert.equal(game.snapshot().turnDeadline, 120000);
+  assert.equal(game.timeout(60000), null, 'Timeout is idempotent');
+  game.timeout(120000);
+  assert.deepEqual(game.snapshot().players.map(p => p.bank), [0, 0, 3000, 3000]);
+  game.timeout(180000);
+  assert.equal(game.snapshot().result.reason, 'last-survivor');
+  assert.deepEqual(game.snapshot().players.map(p => p.bank), [0, 0, 0, 40000]);
+  assert.equal(game.timeout(240000), null);
+}
+{
+  const game = new Round(players, six); game.begin(0);
+  game.act('a', 'shoot', 1); game.act('a', 'spin', 2);
+  assert.equal(game.snapshot().turnDeadline, 60000, 'Spin does not reset a turn');
+  assert.equal(game.act('a', 'pass', 3).ok, true, 'A player may spin before passing after their mandatory shot');
+  assert.equal(game.snapshot().award, 2000); assert.equal(game.snapshot().turnDeadline, 60003);
+  game.timeout(60003); // B is skipped on future circuits.
+  game.act('c', 'shoot', 60004); game.act('c', 'pass', 60005);
+  game.act('d', 'shoot', 60006); game.act('d', 'pass', 60007);
+  assert.equal(game.snapshot().activeId, 'a');
+  game.act('a', 'shoot', 60008); game.act('a', 'pass', 60009);
+  assert.equal(game.snapshot().activeId, 'c');
+}
+{
+  const game = new Round(players, () => .2); game.begin(0);
+  const first = game.snapshot().activeId; game.act(first, 'shoot', 1); game.timeout(60000);
+  const next = game.snapshot().activeId; assert.equal(game.act(next, 'shoot', 60001).fatal, true);
+  const s = game.snapshot(); assert.equal(s.phase, 'complete');
+  assert.equal(s.players.filter(p => p.eliminated).length, 2);
+  assert.equal(s.players.find(p => p.id === first).bank, 0);
+  assert.equal(s.players.reduce((sum, p) => sum + p.bank, s.pot), 40000);
+}
+
 const personalities = new Set(), orders = new Set();
 for (let seed = 1; seed <= 1000; seed++) {
   const draw = rng(seed * 11717), game = new Round(players, draw), traits = Object.fromEntries(players.map(p => [p.id, createPersonality(draw)]));

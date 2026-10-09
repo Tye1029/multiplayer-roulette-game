@@ -1,8 +1,9 @@
 // FOUR_PLAYER_ROULETTE_V1 — isolated practice rules; amounts are integer cents.
-export const VERSION = 'four-player-roulette-atmosphere-v3';
+export const VERSION = 'four-player-roulette-turns-v4';
 export const ENTRY = 10000;
 export const BASE = 2000;
-export const REMATCH_MS = 10000;
+export const REMATCH_MS = 15000;
+export const TURN_MS = 60000;
 export const DIRECTIONS = ['down', 'left', 'up', 'right'];
 export function random() {
   const value = new Uint32Array(1);
@@ -22,18 +23,19 @@ export function relativeSeat(order, playerId, viewerId) {
   if (player < 0 || viewer < 0) throw new Error('Unknown seat');
   return (player - viewer + 4) % 4;
 }
-export function splitPot(players, cents, rng = random) {
-  if (players.length !== 3 || !Number.isSafeInteger(cents) || cents < 0) throw new Error('Invalid split');
+export function splitPot(players, cents, rng = random, equal = false) {
+  if (players.length < 1 || players.length > 3 || !Number.isSafeInteger(cents) || cents < 0) throw new Error('Invalid split');
   const ranks = [...players].sort((a, b) => a.shots - b.shots);
-  const weights = [25, 30, 35];
+  const weights = equal ? players.map(() => 1) : players.length === 3 ? [25, 30, 35] : players.length === 2 ? [25, 35] : [1];
+  const totalWeight = weights.reduce((a, b) => a + b, 0);
   const result = [];
   for (let from = 0; from < ranks.length;) {
     let to = from + 1;
     while (to < ranks.length && ranks[to].shots === ranks[from].shots) to++;
     const weight = weights.slice(from, to).reduce((a, b) => a + b, 0) / (to - from);
     for (let i = from; i < to; i++) {
-      const exact = cents * weight / 90;
-      result.push({ id: ranks[i].id, cents: Math.floor(exact), share: weight / 90, fraction: exact % 1 });
+      const exact = cents * weight / totalWeight;
+      result.push({ id: ranks[i].id, cents: Math.floor(exact), share: weight / totalWeight, fraction: exact % 1 });
     }
     from = to;
   }
@@ -55,30 +57,54 @@ export class Round {
       version: VERSION, round, phase: 'opening', order: shuffle(players.map(p => p.id), rng),
       players: players.map(p => ({ ...p, bank: 0, shots: 0, spinUsed: false, eliminated: false, split: 0, share: 0 })),
       turn: 0, turnShots: 0, spinPending: false, safeSinceSpin: 0, pot: ENTRY * 4, nextPayout: BASE,
-      actions: [], result: null, ready: [], rematchDeadline: null
+      actions: [], result: null, ready: [], rematchDeadline: null, turnDeadline: null
     };
   }
   snapshot() {
     const s = structuredClone(this.state);
     s.activeId = s.order[s.turn];
-    s.canPass = s.phase === 'playing' && s.turnShots > 0 && !s.spinPending;
+    s.canPass = s.phase === 'playing' && s.turnShots > 0;
     s.award = Math.min(s.nextPayout, s.pot);
     s.fatalRisk = 1 / (6 - s.safeSinceSpin);
     return s;
   }
-  begin() {
+  begin(now = Date.now()) {
     if (this.state.phase !== 'opening') return false;
     this.state.phase = 'playing';
+    this.state.turnDeadline = now + TURN_MS;
     return true;
   }
-  act(id, action) {
+  nextTurn(now) {
+    const s = this.state;
+    do { s.turn = (s.turn + 1) % 4; } while (s.players.find(p => p.id === s.order[s.turn]).eliminated);
+    s.turnShots = 0; s.spinPending = false; s.turnDeadline = now + TURN_MS;
+  }
+  timeout(now = Date.now()) {
+    const s = this.state;
+    if (s.phase !== 'playing' || now < s.turnDeadline) return null;
+    const p = s.players.find(p => p.id === s.order[s.turn]), returned = p.bank;
+    p.bank = 0; p.eliminated = true; p.eliminationReason = 'timeout';
+    const survivors = s.players.filter(p => !p.eliminated);
+    const awards = splitPot(survivors, returned, this.#rng, true);
+    for (const award of awards) s.players.find(p => p.id === award.id).bank += award.cents;
+    const event = { id: p.id, action: 'timeout', returned, awards, number: s.actions.length + 1 };
+    s.actions.push(event);
+    if (survivors.length === 1) {
+      const splitTotal = s.pot; survivors[0].bank += s.pot; s.pot = 0;
+      s.phase = 'complete'; s.turnDeadline = null;
+      s.result = { reason: 'last-survivor', winnerId: survivors[0].id, splitTotal };
+    } else this.nextTurn(now);
+    return event;
+  }
+  act(id, action, now = Date.now()) {
     const s = this.state;
     if (s.phase !== 'playing' || s.order[s.turn] !== id) return { ok: false, reason: 'Wait for your turn.' };
+    if (now >= s.turnDeadline) return { ok: false, reason: 'Your turn has expired.' };
     const player = s.players.find(p => p.id === id);
     const event = { id, action, number: s.actions.length + 1 };
     if (action === 'pass') {
-      if (!s.turnShots || s.spinPending) return { ok: false, reason: 'Take a shot before passing.' };
-      s.turn = (s.turn + 1) % 4; s.turnShots = 0;
+      if (!s.turnShots) return { ok: false, reason: 'Take a shot before passing.' };
+      this.nextTurn(now);
     } else if (action === 'spin') {
       if (player.spinUsed) return { ok: false, reason: 'Your spin has been used.' };
       player.spinUsed = true; s.spinPending = true; s.safeSinceSpin = 0; s.nextPayout = BASE;
@@ -99,11 +125,12 @@ export class Round {
         s.pot = 0;
         s.result = { reason: 'elimination', eliminatedId: id, returned, splitTotal };
         s.phase = 'complete';
+        s.turnDeadline = null;
       } else {
         event.award = Math.min(s.nextPayout, s.pot);
         player.bank += event.award; s.pot -= event.award;
         player.shots++; s.turnShots++; s.safeSinceSpin++; s.nextPayout += BASE;
-        if (s.pot === 0) { s.phase = 'complete'; s.result = { reason: 'empty', splitTotal: 0 }; }
+        if (s.pot === 0) { s.phase = 'complete'; s.turnDeadline = null; s.result = { reason: 'empty', splitTotal: 0 }; }
       }
     } else return { ok: false, reason: 'Unknown action.' };
     s.actions.push(event);
@@ -146,10 +173,10 @@ export function botDecision(snapshot, id, personality, rng = random) {
   if (snapshot.phase !== 'playing' || snapshot.activeId !== id) return null;
   const p = snapshot.players.find(player => player.id === id);
   const q = snapshot.fatalRisk;
-  if (snapshot.spinPending) return 'shoot';
+  if (snapshot.spinPending && !snapshot.canPass) return 'shoot';
   const wantSpin = !p.spinUsed && (q >= 1 || q >= personality.spin + (rng() - 0.5) * 0.12);
   if (snapshot.canPass) {
-    const leaderShots = Math.max(...snapshot.players.filter(player => player.id !== id).map(player => player.shots));
+    const leaderShots = Math.max(...snapshot.players.filter(player => player.id !== id && !player.eliminated).map(player => player.shots));
     const rankChase = p.shots <= leaderShots && p.shots + 1 >= leaderShots ? 0.12 : 0;
     const reward = snapshot.award / Math.max(BASE, p.bank + snapshot.award);
     const chance = Math.max(0.03, Math.min(0.92,

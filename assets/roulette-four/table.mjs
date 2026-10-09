@@ -1,19 +1,21 @@
-import { Round, VERSION, ENTRY, DIRECTIONS, relativeSeat, random, shuffle, createPersonality, botDecision, botDelay } from './model.mjs?v=four-player-roulette-atmosphere-v3';
-import { installDebug } from './debug.mjs?v=four-player-roulette-atmosphere-v3';
+import { Round, VERSION, ENTRY, DIRECTIONS, relativeSeat, random, shuffle, createPersonality, botDecision, botDelay } from './model.mjs?v=four-player-roulette-turns-v4';
+import { installDebug } from './debug.mjs?v=four-player-roulette-turns-v4';
 
-import { loadProfile } from './profile.mjs?v=four-player-roulette-atmosphere-v3';
-import { createTableAudio } from './audio.mjs?v=four-player-roulette-atmosphere-v3';
-import { createGun } from './gun.mjs?v=four-player-roulette-atmosphere-v3';
+import { loadProfile } from './profile.mjs?v=four-player-roulette-turns-v4';
+import { createTableAudio } from './audio.mjs?v=four-player-roulette-turns-v4';
+import { createGun } from './gun.mjs?v=four-player-roulette-turns-v4';
+
+import { animateRoom } from './room.mjs?v=four-player-roulette-turns-v4';
 
 const $ = id => document.getElementById(id);
-const money = cents => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: cents % 100 ? 2 : 0 }).format(cents / 100);
+const money = cents => new Intl.NumberFormat('en-US', { maximumFractionDigits: cents % 100 ? 2 : 0 }).format(cents / 100) + ' Chips';
 const esc = text => String(text).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const asset = name => `/assets/roulette-four/images/${name}`;
 const names = ['Marlow', 'Vega', 'Rook', 'Jules', 'Ash', 'Knox', 'Indigo', 'Remy', 'Sage', 'Kit'];
 const profiles = ['amber.svg', 'mint.svg', 'rose.svg', 'violet.svg'];
 let roster = [], personalities = {}, game = null, roundNumber = 0, generation = 0, busy = false, muted = false;
 let angle = 270, phase = 'lobby', connectedProfile = null, messageTimer, tick, resumeResults = false;
-let tableNumber = 0;
+let tableNumber = 0, turnTick, pendingShot = false;
 const timers = new Set(), completedRounds = [];
 const diagnostics = installDebug(() => {
   const state = game?.snapshot() || null;
@@ -32,7 +34,7 @@ const tableAudio = createTableAudio(trace);
 const gun = createGun(trace);
 function stopTimers() {
   generation++; for (const timer of timers) clearTimeout(timer); timers.clear();
-  clearInterval(tick); clearTimeout(messageTimer);
+  clearInterval(tick); clearInterval(turnTick); clearTimeout(messageTimer); pendingShot = false;
   tableAudio.stop(); gun.stop();
 }
 function later(fn, ms) {
@@ -58,13 +60,13 @@ function rotateTo(id, opening = false) {
 }
 function buildRoster() {
   const botNames = shuffle(names).slice(0, 3), botProfiles = shuffle(profiles.filter(name => connectedProfile?.avatar || name !== 'amber.svg')).slice(0, 3);
-  roster = [{ id: 'you', name: $('player-name').value.trim().slice(0, 24) || 'You', avatar: connectedProfile?.avatar || asset('amber.svg'), gender: connectedProfile?.gender || 'unknown', isBot: false },
+  roster = [{ id: 'you', name: connectedProfile?.name || 'Guest', avatar: connectedProfile?.avatar || asset('amber.svg'), gender: connectedProfile?.gender || 'unknown', isBot: false },
     ...botNames.map((name, i) => ({ id: `bot-${i + 1}`, name, avatar: asset(botProfiles[i]), gender: i === 1 ? 'female' : 'male', pose: i, isBot: true }))];
 }
 function mountSeats(s) {
   $('seats').innerHTML = s.players.filter(p => p.id !== 'you').map(p => `<div class="seat" data-player="${p.id}" data-gender="${p.gender}" data-pose="${p.pose}" data-direction="${DIRECTIONS[relativeSeat(s.order, p.id, 'you')]}" style="--pose:${p.pose};--model:${p.gender === 'female' ? 1 : 0};--idle-delay:-${p.pose * 2.3}s"><div class="seat-figure"><div class="mannequin" role="img" aria-label="${esc(p.name)} seated at the table"></div><div class="tv-glow"></div><div class="tv-screen">${avatar(p, '')}${crack()}</div></div><span class="seat-name">${esc(p.name)}</span></div>`).join('');
   const me = s.players.find(p => p.id === 'you');
-  $('self-seat').innerHTML = `<span class="self-picture">${avatar(me)}${crack()}</span><span>${esc(me.name)} <small>You sit here · ↓</small></span>`;
+  $('self-seat').innerHTML = `<span class="self-picture">${avatar(me)}${crack()}</span><span>${esc(me.name)} </span>`;
 }
 function render() {
   if (!game) return;
@@ -74,7 +76,7 @@ function render() {
   $('roulette-four').dataset.phase = phase;
   $('players').innerHTML = s.order.map((id, i) => {
     const p = s.players.find(p => p.id === id), active = phase === 'playing' && id === s.activeId;
-    return `<article class="player-bar ${active ? 'active' : ''} ${p.eliminated ? 'eliminated' : ''}" data-player="${id}" ${active ? 'aria-current="true"' : ''}>${avatar(p)}<div><b class="player-name">${esc(p.name)}${id === 'you' && p.name !== 'You' ? ' · You' : ''}</b><span class="player-detail">${p.shots} safe · ${p.spinUsed ? 'spin used' : '1 spin'}${p.isBot ? ' · BOT' : ''}</span></div><div><span class="order">${p.eliminated ? 'OUT' : active ? `#${i + 1} · TURN` : `#${i + 1}`}</span><strong class="player-money">${money(p.bank)}</strong></div></article>`;
+    return `<article class="player-bar ${active ? 'active' : ''} ${p.eliminated ? 'eliminated' : ''}" data-player="${id}" ${active ? 'aria-current="true"' : ''}>${avatar(p)}<div><b class="player-name">${esc(p.name)}${id === 'you' && p.name !== 'You' ? ' · You' : ''}</b><span class="player-detail">${p.spinUsed ? 'Spin used' : '1 spin'} <span class="turn-timer" data-turn-timer="${id}" aria-label="Turn time remaining">${active ? Math.max(0, Math.ceil((s.turnDeadline - Date.now()) / 1000)) + 's' : ''}</span></span></div><div><span class="order">${p.eliminated ? 'OUT' : active ? `#${i + 1} · TURN` : `#${i + 1}`}</span><strong class="player-money">${money(p.bank)}</strong></div></article>`;
   }).join('');
   document.querySelectorAll('.seat').forEach(seat => {
     const p = s.players.find(p => p.id === seat.dataset.player);
@@ -84,33 +86,25 @@ function render() {
   $('self-seat').classList.toggle('active', phase === 'playing' && s.activeId === 'you');
   $('self-seat').classList.toggle('eliminated', me.eliminated);
   $('pot').textContent = money(s.pot);
-  $('round-label').textContent = `Round ${s.round} · $100 each`;
   const canAct = phase === 'playing' && s.activeId === 'you' && !busy;
   $('gun-options').disabled = busy;
   $('shoot').disabled = !canAct; $('pass').disabled = !canAct || !s.canPass;
   $('spin').disabled = !canAct || me.spinUsed;
-  $('spin').innerHTML = `Spin chamber <small>${me.spinUsed ? 'Used this round' : '1 left · resets to $20'}</small>`;
+  $('spin').innerHTML = `Spin chamber <small>${me.spinUsed ? 'Used this game' : '1 left · resets to 20 Chips'}</small>`;
   $('shoot-value').textContent = `+${money(s.award)}`;
   $('shoot').setAttribute('aria-label', `Shoot to earn ${money(s.award)} if you survive`);
-  $('your-count').textContent = `${me.shots} safe shot${me.shots === 1 ? '' : 's'}`;
   $('risk-label').textContent = `1 in ${6 - s.safeSinceSpin} · ${(s.fatalRisk * 100).toFixed(1)}% risk`;
   $('chambers').innerHTML = Array.from({ length: 6 }, (_, i) => `<i class="chamber-dot ${i < s.safeSinceSpin ? 'spent' : ''}"></i>`).join('');
   if (phase === 'opening') {
-    $('turn-label').textContent = 'Choosing the first player'; $('turn-hint').textContent = 'Your seat is always at the bottom.';
+    $('turn-label').textContent = 'Choosing the first player'; $('turn-hint').textContent = '';
   } else if (phase === 'playing') {
     const active = s.players.find(p => p.id === s.activeId);
     $('turn-label').textContent = s.activeId === 'you' ? 'Your turn' : `${active.name}’s turn`;
-    $('turn-hint').textContent = s.activeId === 'you' ? (s.spinPending ? 'Chamber spun. Take your shot.' : s.canPass ? 'Keep going, or pass clockwise.' : 'Take at least one shot before passing.') : (busy ? 'At the table…' : 'Thinking…');
+    $('turn-hint').textContent = s.activeId === 'you' ? (s.canPass ? 'Shoot again or pass.' : '') : (busy ? 'At the table…' : 'Thinking…');
   } else {
-    $('turn-label').textContent = 'Round complete';
-    $('turn-hint').textContent = 'The round has ended.';
+    $('turn-label').textContent = 'Game complete';
+    $('turn-hint').textContent = 'The game has ended.';
   }
-  const descriptions = s.actions.map(event => {
-    const p = s.players.find(p => p.id === event.id);
-    return `${p.name} ${event.action === 'pass' ? 'passed clockwise' : event.action === 'spin' ? 'spun the chamber · next shot $20' : event.fatal ? 'was eliminated' : `survived · +${money(event.award)}`}`;
-  });
-  $('activity').innerHTML = descriptions.map(text => `<li>${esc(text)}</li>`).join('');
-  $('last-action').textContent = descriptions.at(-1) || 'The opening draw';
   diagnostics.refresh();
 }
 function startRound() {
@@ -126,7 +120,24 @@ function startRound() {
   later(() => {
     const s = game.snapshot(); $('opening-name').textContent = `${player(s.activeId).name} goes first`;
   }, 3700);
-  later(() => { $('opening').hidden = true; busy = false; game.begin(); trace('round-playing'); render(); scheduleBot(); }, 4500);
+  later(() => { $('opening').hidden = true; busy = false; game.begin(); startTurnClock(); trace('round-playing'); render(); scheduleBot(); }, 4500);
+}
+function startTurnClock() {
+  clearInterval(turnTick); turnTick = setInterval(checkTurnClock, 200);
+}
+function checkTurnClock() {
+  if (!game || game.state.phase !== 'playing') return false;
+  const s = game.snapshot(), remaining = Math.max(0, Math.ceil((s.turnDeadline - Date.now()) / 1000));
+  const clock = document.querySelector('[data-turn-timer="' + s.activeId + '"]');
+  if (clock) { const text = remaining + 's'; if (clock.textContent !== text) clock.textContent = text; clock.classList.toggle('urgent', remaining <= 10); }
+  if (remaining > 0 || pendingShot) return false;
+  const event = game.timeout(); if (!event) return false;
+  stopTimers(); busy = true; trace('turn-timeout', event);
+  toast(player(event.id).name + ' ran out of time');
+  const after = game.snapshot(); render();
+  if (after.phase === 'complete') later(showResults, 1500);
+  else { rotateTo(after.activeId); startTurnClock(); later(() => { busy = false; render(); scheduleBot(); }, 700); }
+  return true;
 }
 function scheduleBot() {
   const s = game.snapshot();
@@ -144,9 +155,13 @@ function scheduleBot() {
   }, delay);
 }
 function act(id, action) {
+  if (checkTurnClock()) return;
+  const acceptedAt = Date.now(), actingTurn = game.snapshot().turnDeadline;
   if (busy) { trace('action-rejected', { player: id, action, reason: 'UI busy' }); return; }
   const execute = () => {
-    const event = game.act(id, action);
+    pendingShot = false;
+    if (game.snapshot().turnDeadline !== actingTurn) return;
+    const event = game.act(id, action, acceptedAt);
     if (!event.ok) { busy = false; trace('action-rejected', event); toast(event.reason); render(); return; }
     const after = game.snapshot();
     trace('action', { ...event, phase: after.phase, activePlayer: after.activeId, potCents: after.pot, nextAwardCents: after.award,
@@ -155,7 +170,7 @@ function act(id, action) {
     if (action === 'pass') rotateTo(after.activeId);
     if (action === 'spin') {
       gun.roll(); tableAudio.play('spin', { duration: 1350, volume: .24 });
-      toast(`${player(id).name} spun · next shot $20`);
+      toast(`${player(id).name} spun · next shot 20 Chips`);
     }
     if (action === 'shoot') {
       gun.strike(event.fatal);
@@ -170,7 +185,7 @@ function act(id, action) {
     later(() => { busy = false; render(); scheduleBot(); }, action === 'spin' ? 1400 : action === 'pass' ? 700 : 550);
   };
   if (action === 'shoot') {
-    busy = true; render(); gun.cock();
+    pendingShot = true; busy = true; render(); gun.cock();
     if (!gun.selected().laser) tableAudio.play('hammer', { duration: 230, volume: .2 });
     later(execute, 320);
   } else execute();
@@ -181,12 +196,13 @@ function showResults() {
   completedRounds.push({ table: tableNumber, round: roundNumber, at: new Date().toISOString(), order: s.order, result: s.result, players: s.players.map(({ avatar, ...p }) => p) });
   if (completedRounds.length > 50) completedRounds.shift();
   trace('results', { result: s.result, players: s.players.map(({ avatar, ...p }) => p), deadline: s.rematchDeadline });
-  $('result-kicker').textContent = `ROUND ${s.round} COMPLETE`;
-  $('result-title').textContent = s.result.reason === 'empty' ? 'The pot is empty.' : `${player(s.result.eliminatedId).name} is out.`;
-  $('result-description').textContent = s.result.reason === 'empty' ? 'All $400 has been claimed. Everyone keeps their bank.' : `${money(s.result.splitTotal)} split by surviving shot counts. You finish with ${money(me.bank)}.`;
+  clearInterval(turnTick);
+  $('result-kicker').textContent = 'GAME COMPLETE';
+  $('result-title').textContent = s.result.reason === 'last-survivor' ? `${player(s.result.winnerId).name} is the last survivor.` : s.result.reason === 'empty' ? 'The pot is empty.' : `${player(s.result.eliminatedId).name} is out.`;
+  $('result-description').textContent = s.result.reason === 'last-survivor' ? `The last survivor claims the remaining ${money(s.result.splitTotal)}.` : s.result.reason === 'empty' ? 'All Chips have been claimed. Everyone keeps their bank.' : `${money(s.result.splitTotal)} split by surviving shot counts. You finish with ${money(me.bank)}.`;
   $('result-rows').innerHTML = s.order.map(id => {
     const p = s.players.find(p => p.id === id), net = p.bank - ENTRY;
-    return `<div class="result-row">${avatar(p)}<div><b>${esc(p.name)}${id === 'you' && p.name !== 'You' ? ' · You' : ''}</b><small>${p.shots} safe shots · ${p.eliminated ? 'Eliminated' : s.result.reason === 'empty' ? 'Bank kept' : `${(p.share * 100).toFixed(2)}% split · +${money(p.split)}`}</small></div><div class="result-total ${net < 0 ? 'negative' : ''}">${money(p.bank)}<small>${net >= 0 ? '+' : '−'}${money(Math.abs(net))} net</small></div></div>`;
+    return `<div class="result-row">${avatar(p)}<div><b>${esc(p.name)}${id === 'you' && p.name !== 'You' ? ' · You' : ''}</b><small>${p.eliminated ? (p.eliminationReason === 'timeout' ? 'Timed out' : 'Eliminated') : s.result.reason !== 'elimination' ? 'Bank kept' : `Pot share · +${money(p.split)}`}</small></div><div class="result-total ${net < 0 ? 'negative' : ''}">${money(p.bank)}<small>${net >= 0 ? '+' : '−'}${money(Math.abs(net))} net</small></div></div>`;
   }).join('');
   $('rematch').disabled = false; $('rematch').textContent = "I'm in · Rematch";
   if (!$('result-dialog').open) $('result-dialog').showModal();
@@ -224,7 +240,7 @@ function vote(id) {
 }
 function newTable() { stopTimers(); buildRoster(); roundNumber = 0; tableNumber++; startRound(); }
 
-$('join-form').addEventListener('submit', async event => { event.preventDefault(); const button = $('join-form').querySelector('button'); button.disabled = true; button.textContent = 'Preparing the table…'; await Promise.all([tableAudio.unlock(), gun.ready()]); newTable(); button.disabled = false; button.textContent = 'Take a seat · $100'; });
+$('join-form').addEventListener('submit', async event => { event.preventDefault(); const button = $('join-form').querySelector('button'); button.disabled = true; button.textContent = 'Preparing the table…'; await Promise.all([tableAudio.unlock(), gun.ready()]); newTable(); button.disabled = false; button.textContent = 'Take a seat'; });
 $('gun-options').addEventListener('change', async event => { if (busy) return; const token = generation; busy = true; render(); await gun.select(event.target.value); if (generation !== token) return; busy = false; render(); scheduleBot(); });
 $('shoot').addEventListener('click', () => act('you', 'shoot'));
 $('spin').addEventListener('click', () => act('you', 'spin'));
@@ -241,14 +257,13 @@ $('sound').addEventListener('click', () => {
 $('rules').addEventListener('click', () => $('rules-dialog').showModal());
 $('close-rules').addEventListener('click', () => $('rules-dialog').close());
 $('welcome').addEventListener('cancel', event => event.preventDefault());
-try { $('player-name').value = localStorage.getItem('tornKeyConfirmedName') || 'You'; } catch {}
 window.addEventListener('pagehide', () => { stopTimers(); resumeResults = true; });
 window.addEventListener('pageshow', event => {
   if (!event.persisted || !resumeResults || !game) return;
   resumeResults = false; busy = false;
   const s = game.snapshot();
-  if (s.phase === 'opening') { game.begin(); $('opening').hidden = true; render(); scheduleBot(); }
-  else if (s.phase === 'playing') { render(); scheduleBot(); }
+  if (s.phase === 'opening') { game.begin(); startTurnClock(); $('opening').hidden = true; render(); scheduleBot(); }
+  else if (s.phase === 'playing') { startTurnClock(); if (!checkTurnClock()) { render(); scheduleBot(); } }
   else if (s.phase === 'complete') showResults();
   else { updateRematch(); tick = setInterval(updateRematch, 100); }
 });
@@ -263,15 +278,16 @@ async function connectProfile() {
   $('profile-status').textContent = 'Loading your Torn profile…';
   const loaded = await loadProfile(); connectedProfile = loaded.profile || null;
   if (connectedProfile) {
-    $('player-name').value = connectedProfile.name; $('player-name').readOnly = true;
+    $('profile-name').textContent = connectedProfile.name;
     $('profile-status').textContent = 'Connected to Torn · your profile picture and character are automatic.';
     $('profile-preview').src = connectedProfile.avatar || asset('amber.svg'); $('profile-preview').hidden = false;
-  } else $('profile-status').textContent = loaded.message;
+  } else { $('profile-name').textContent = 'Guest'; $('profile-status').textContent = loaded.message; }
   trace('profile-loaded', { status: loaded.status }); join.disabled = false;
 }
 document.addEventListener('error', event => {
   if (event.target instanceof HTMLImageElement && !event.target.src.endsWith('/amber.svg') && (event.target.matches('.avatar,.tv-screen img,.ready-bubble img,#profile-preview'))) event.target.src = asset('amber.svg');
 }, true);
 document.addEventListener('visibilitychange', () => { if (document.hidden) tableAudio.stop(); });
+animateRoom();
 connectProfile();
 console.info(`${VERSION}: four-player bot practice ready`);
