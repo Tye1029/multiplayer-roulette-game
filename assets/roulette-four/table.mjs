@@ -9,25 +9,24 @@ import {
   createPersonality,
   botDecision,
   botDelay,
-} from "./model.mjs?v=four-player-roulette-living-room-v7";
-import { installDebug } from "./debug.mjs?v=four-player-roulette-living-room-v7";
+} from "./model.mjs?v=four-player-roulette-connected-v8";
+import { installDebug } from "./debug.mjs?v=four-player-roulette-connected-v8";
 
-import { loadProfile } from "./profile.mjs?v=four-player-roulette-living-room-v7";
-import { createTableAudio } from "./audio.mjs?v=four-player-roulette-living-room-v7";
-import { createGun } from "./gun.mjs?v=four-player-roulette-living-room-v7";
+import { loadProfile } from "./profile.mjs?v=four-player-roulette-connected-v8";
+import { createTableAudio } from "./audio.mjs?v=four-player-roulette-connected-v8";
+import { createGun } from "./gun.mjs?v=four-player-roulette-connected-v8";
 
 import {
   MOTION,
   rotationPlan,
-} from "./motion.mjs?v=four-player-roulette-living-room-v7";
+} from "./motion.mjs?v=four-player-roulette-connected-v8";
 
 import {
-  pickCast,
   castById,
-  rectPath,
-} from "./cast.mjs?v=four-player-roulette-living-room-v7";
+  assignCast,
+} from "./cast.mjs?v=four-player-roulette-connected-v8";
 
-import { animateRoom } from "./room.mjs?v=four-player-roulette-living-room-v7";
+import { animateRoom } from "./room.mjs?v=four-player-roulette-connected-v8";
 
 const $ = (id) => document.getElementById(id);
 const money = (cents) =>
@@ -213,27 +212,19 @@ function buildRoster() {
       isBot: true,
     })),
   ];
+  roster = assignCast(roster);
 }
 function mountSeats(s) {
   $("seats").innerHTML = s.players
     .filter((p) => p.id !== "you")
     .map((p) => {
       const c = castById(p.character),
-        [x, y, w, h, tilt] = c.screen,
-        cut = c.cut || 23;
-      const bodyPath =
-        rectPath([0, cut, 100, 100 - cut]) +
-        rectPath(c.hand, true) +
-        rectPath(c.foot, true);
-      const handPath = rectPath(c.hand),
-        footPath = rectPath(c.foot);
-      const style = `--atlas:url('${c.art}');--atlas-rows:${c.rows * 100}%;--atlas-x:${c.col * 100}%;--atlas-y:${(c.row / (c.rows - 1)) * 100}%;--screen-x:${x}%;--screen-y:${y}%;--screen-w:${w}%;--screen-h:${h}%;--screen-tilt:${tilt}deg;--head-cut:${cut}%;--head-bottom:${100 - cut}%;--hand-origin:${c.hand[0] + c.hand[2] * 0.25}% ${c.hand[1] + c.hand[3] * 0.5}%;--foot-origin:${c.foot[0] + c.foot[2] * 0.5}% ${c.foot[1] + c.foot[3] * 0.2}%`;
-      return `<div class="seat" data-player="${p.id}" data-character="${c.id}" data-smoker="${!!c.smoker}" data-scratch="${!!c.scratch}" data-direction="${DIRECTIONS[relativeSeat(s.order, p.id, "you")]}" style="${style}">
-      <svg class="rig-clips" aria-hidden="true"><defs><clipPath id="body-${p.id}" clipPathUnits="objectBoundingBox"><path d="${bodyPath}" clip-rule="evenodd"/></clipPath><clipPath id="hand-${p.id}" clipPathUnits="objectBoundingBox"><path d="${handPath}"/></clipPath><clipPath id="foot-${p.id}" clipPathUnits="objectBoundingBox"><path d="${footPath}"/></clipPath></defs></svg>
-      <div class="seat-figure"><div class="character-art" role="img" aria-label="${esc(p.name)} seated at the table" style="clip-path:url(#body-${p.id})"></div>
-        <div class="hand-motion"><div class="character-art" style="clip-path:url(#hand-${p.id})"></div>${c.smoker ? `<i class="cigarette-tip" style="left:${c.tip[0]}%;top:${c.tip[1]}%"></i>` : ""}</div>
-        <div class="foot-motion"><div class="character-art" style="clip-path:url(#foot-${p.id})"></div></div>
-        <div class="head-motion"><div class="character-art character-head" aria-hidden="true"></div><div class="tv-glow"></div><div class="tv-screen">${avatar(p, "")}${crack()}<i class="tv-interference"></i></div></div>
+        [x, y, w, h, tilt] = c.screen;
+      const style = `--atlas:url('${c.art}');--atlas-rows:${c.rows * 100}%;--atlas-x:${c.col * 100}%;--atlas-y:${(c.row / (c.rows - 1)) * 100}%;--screen-x:${x}%;--screen-y:${y}%;--screen-w:${w}%;--screen-h:${h}%;--screen-tilt:${tilt}deg;--name-x:${x + w / 2}%;--name-y:${Math.max(0, y - 4.8)}%`;
+      return `<div class="seat" data-player="${p.id}" data-character="${c.id}" data-tv="${p.tvFinish}" data-repair="${!!c.repair}" data-smoker="${!!c.smoker}" data-scratch="${!!c.scratch}" data-direction="${DIRECTIONS[relativeSeat(s.order, p.id, "you")]}" style="${style}">
+      <div class="seat-figure"><div class="character-art character-fallback" role="img" aria-label="${esc(p.name)} seated at the table"></div><canvas class="character-canvas" aria-hidden="true"></canvas>
+        ${c.smoker ? `<i class="cigarette-tip" style="left:${c.tip[0]}%;top:${c.tip[1]}%"></i>` : ""}
+        <div class="head-motion"><div class="tv-glow"></div><div class="tv-screen">${avatar(p, "")}${crack()}<i class="tv-interference"></i></div></div>
       </div><span class="seat-name">${esc(p.name)}</span></div>`;
     })
     .join("");
@@ -315,13 +306,6 @@ function startRound() {
   personalities = Object.fromEntries(
     roster.filter((p) => p.isBot).map((p) => [p.id, createPersonality()]),
   );
-  const cast = pickCast();
-  let castIndex = 0;
-  roster = roster.map((p) => {
-    if (!p.isBot) return p;
-    const c = cast[castIndex++];
-    return { ...p, character: c.id, gender: c.gender };
-  });
   game = new Round(roster, random, roundNumber);
   trace("round-start", {
     order: game.snapshot().order,
@@ -474,11 +458,6 @@ function act(id, action) {
         hammerDelayMs: MOTION.hammer,
       });
       if (event.fatal) $("scene").classList.add("is-fatal");
-      toast(
-        event.fatal
-          ? `${player(id).name} is out`
-          : `${player(id).name} · safe · +${money(event.award)}`,
-      );
     }
     render();
     if (after.phase === "complete") {
@@ -719,15 +698,6 @@ window.addEventListener("pageshow", (event) => {
   }
 });
 buildRoster();
-{
-  const cast = pickCast();
-  let i = 0;
-  roster = roster.map((p) => {
-    if (!p.isBot) return p;
-    const c = cast[i++];
-    return { ...p, character: c.id, gender: c.gender };
-  });
-}
 game = new Round(roster);
 mountSeats(game.snapshot());
 render();

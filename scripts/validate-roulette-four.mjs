@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { CAST, pickCast } from '../assets/roulette-four/cast.mjs';
+import { CAST, pickCast, assignCast, TV_FINISHES } from '../assets/roulette-four/cast.mjs';
 import { readFile } from 'node:fs/promises';
 import { TURN_MS, REMATCH_MS, Round, splitPot, relativeSeat, createPersonality, botDecision, VERSION } from '../assets/roulette-four/model.mjs';
 
@@ -168,3 +168,15 @@ for (let seed = 1; seed <= 1000; seed++) {
 }
 assert.equal(seenCast.size, CAST.length);
 console.log('Unique cast selection: 1,000 seeded tables passed');
+
+const sourceRoster=players.map((p,i)=>({...p,isBot:i>0}));
+const assigned=assignCast(sourceRoster,rng(738392));
+assert(!sourceRoster.some(p=>p.character),'Cast assignment does not mutate existing roster');
+assert.equal(assigned[0],sourceRoster[0],'Human identity is preserved');
+assert.equal(new Set(assigned.slice(1).map(p=>p.character)).size,3);
+assert(assigned.slice(1).every(p=>TV_FINISHES.includes(p.tvFinish)));
+for(let round=1;round<=10;round++) {
+ const game=new Round(assigned,rng(round),round);
+ assert.deepEqual(game.snapshot().players.map(p=>[p.id,p.character,p.tvFinish]),assigned.map(p=>[p.id,p.character,p.tvFinish]),'Rounds preserve character and TV identity');
+}
+console.log('Table roster identity and TV finishes preserved across rounds');

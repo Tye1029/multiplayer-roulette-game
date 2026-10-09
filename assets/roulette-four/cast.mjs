@@ -30,6 +30,7 @@ export const CAST = [
   },
   {
     id: "tracksuit",
+    repair: [27, 10, 16, 24],
     art: classic,
     rows: 3,
     row: 1,
@@ -41,6 +42,7 @@ export const CAST = [
   },
   {
     id: "black-knit",
+    repair: [28, 10, 16, 24],
     art: classic,
     rows: 3,
     row: 1,
@@ -96,6 +98,7 @@ export const CAST = [
   },
   {
     id: "charcoal-suit",
+    repair: [31, 15, 16, 24],
     art: extra,
     rows: 2,
     row: 1,
@@ -138,9 +141,19 @@ export function pickCast(rng = Math.random) {
 export function castById(id) {
   return CAST.find((c) => c.id === id) || CAST[0];
 }
-export function rectPath([x, y, w, h], reverse = false) {
-  [x, y, w, h] = [x, y, w, h].map((n) => n / 100);
-  return reverse
-    ? `M${x},${y}v${h}h${w}v${-h}Z`
-    : `M${x},${y}h${w}v${h}h${-w}Z`;
+export const TV_FINISHES = ["walnut", "charcoal", "olive"];
+// Assign once at table creation; rematches reuse the roster unchanged.
+export function assignCast(players, rng = Math.random) {
+  const cast = pickCast(rng);
+  let i = 0;
+  return players.map((p) => {
+    if (!p.isBot) return p;
+    const c = cast[i++];
+    return {
+      ...p,
+      character: c.id,
+      gender: c.gender,
+      tvFinish: TV_FINISHES[Math.floor(rng() * TV_FINISHES.length)],
+    };
+  });
 }

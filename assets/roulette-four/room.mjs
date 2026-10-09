@@ -1,3 +1,5 @@
+import { createCharacterRig } from "./character-rig.mjs?v=four-player-roulette-connected-v8";
+import { castById } from "./cast.mjs?v=four-player-roulette-connected-v8";
 // All cast motion and atmosphere are cosmetic; game randomness is never sampled here.
 export function animateRoom() {
   const scene = document.getElementById("scene"),
@@ -38,9 +40,13 @@ export function animateRoom() {
   function stopActor(a) {
     for (const animation of a.animations) animation.cancel();
     a.animations.clear();
+    a.rig.stop();
   }
   function resetActors() {
-    actors.forEach(stopActor);
+    actors.forEach((a) => {
+      stopActor(a);
+      a.rig.destroy();
+    });
     effects.replaceChildren();
     actors = [...seats.querySelectorAll(".seat")].map((node) => {
       const tip = node.querySelector(".cigarette-tip");
@@ -55,8 +61,7 @@ export function animateRoom() {
       return {
         node,
         head: node.querySelector(".head-motion"),
-        hand: node.querySelector(".hand-motion"),
-        foot: node.querySelector(".foot-motion"),
+        rig: createCharacterRig(node, castById(node.dataset.character)),
         figure: node.querySelector(".seat-figure"),
         noise: node.querySelector(".tv-interference"),
         tip,
@@ -98,7 +103,7 @@ export function animateRoom() {
     a.puffs++;
     counts.puffs++;
   }
-  function gesture(a, now) {
+  function gesture(a, now, requested) {
     const options = [
       "neck-stretch",
       "glance",
@@ -107,106 +112,54 @@ export function animateRoom() {
     if (a.node.dataset.direction !== "up") options.push("foot-tap");
     if (a.node.dataset.scratch === "true") options.push("scratch");
     const choices = options.filter((x) => x !== a.previous),
-      kind = choices[Math.floor(Math.random() * choices.length)];
-    const sign = Math.random() < 0.5 ? -1 : 1;
-    let duration = 2000;
-    if (kind === "neck-stretch") {
-      duration = between(2700, 3400);
+      kind = requested || choices[Math.floor(Math.random() * choices.length)];
+    const durations = {
+      "neck-stretch": 3100,
+      glance: 2200,
+      "foot-tap": 1300,
+      scratch: 1600,
+      "ash-flick": 1150,
+      "finger-tap": 1400,
+      "tv-repair": 2600,
+    };
+    const duration = durations[kind];
+    a.rig.play(kind, duration, now);
+    if (kind === "ash-flick")
       perform(
         a,
-        a.head,
+        a.emitter.querySelector(".cigarette-ash"),
         [
-          { transform: "rotate(0deg)" },
-          { transform: `rotate(${sign * -5}deg)`, offset: 0.25 },
-          { transform: `rotate(${sign * -5}deg)`, offset: 0.38 },
-          { transform: `rotate(${sign * 4}deg)`, offset: 0.65 },
-          { transform: "rotate(0deg)" },
+          { opacity: 0, transform: "translate(0,0)" },
+          { opacity: 0.6, offset: 0.25 },
+          { opacity: 0, transform: "translate(6px,28px)" },
         ],
-        { duration, easing: "ease-in-out" },
+        { duration: 1100, delay: 200, easing: "ease-out" },
       );
-    } else if (kind === "glance") {
-      duration = between(1700, 2300);
+    if (kind === "tv-repair") {
       perform(
         a,
-        a.head,
+        a.noise,
         [
-          { transform: "translateX(0)" },
-          {
-            transform: `translateX(${sign * 2}px) rotate(${sign * 2}deg)`,
-            offset: 0.45,
-          },
-          { transform: "translateX(0)" },
+          { opacity: 0 },
+          { opacity: 0.58, offset: 0.06 },
+          { opacity: 0.38, offset: 0.4 },
+          { opacity: 0.2, offset: 0.49 },
+          { opacity: 0.52, offset: 0.6 },
+          { opacity: 0.3, offset: 0.73 },
+          { opacity: 0, offset: 0.8 },
+          { opacity: 0 },
         ],
-        { duration, easing: "ease-in-out" },
+        { duration, easing: "linear" },
       );
-    } else if (kind === "foot-tap") {
-      duration = 1050;
-      perform(
-        a,
-        a.foot,
-        [
-          { transform: "rotate(0deg)" },
-          { transform: "rotate(-3deg)", offset: 0.13 },
-          { transform: "rotate(0deg)", offset: 0.27 },
-          { transform: "rotate(-2.4deg)", offset: 0.43 },
-          { transform: "rotate(0deg)", offset: 0.57 },
-          { transform: "rotate(-2deg)", offset: 0.74 },
-          { transform: "rotate(0deg)" },
-        ],
-        { duration, easing: "ease-in-out" },
-      );
-    } else if (kind === "scratch") {
-      duration = 1450;
-      perform(
-        a,
-        a.hand,
-        [
-          { transform: "translate(0,0)" },
-          { transform: "translate(-3px,1px)", offset: 0.17 },
-          { transform: "translate(0,0)", offset: 0.32 },
-          { transform: "translate(-3px,1px)", offset: 0.49 },
-          { transform: "translate(0,0)", offset: 0.65 },
-          { transform: "translate(-2px,1px)", offset: 0.82 },
-          { transform: "translate(0,0)" },
-        ],
-        { duration, easing: "ease-in-out" },
-      );
-    } else {
-      duration = kind === "ash-flick" ? 800 : 1150;
-      perform(
-        a,
-        a.hand,
-        [
-          { transform: "rotate(0deg)" },
-          {
-            transform: `rotate(${kind === "ash-flick" ? -3 : -1.5}deg)`,
-            offset: 0.22,
-          },
-          { transform: "rotate(2deg)", offset: 0.4 },
-          { transform: "rotate(0deg)", offset: 0.6 },
-          { transform: "rotate(-1deg)", offset: 0.78 },
-          { transform: "rotate(0deg)" },
-        ],
-        { duration, easing: "ease-in-out" },
-      );
-      if (a.tip)
-        perform(
-          a,
-          a.emitter.querySelector(".cigarette-ash"),
-          [
-            { opacity: 0, transform: "translate(0,0)" },
-            { opacity: 0.7, offset: 0.25 },
-            { opacity: 0, transform: "translate(7px,32px)" },
-          ],
-          { duration: 1100, delay: 200, easing: "ease-out" },
-        );
+      a.static++;
+      counts.static++;
     }
     a.node.dataset.gesture = kind;
     a.previous = kind;
     a.gestures++;
     counts.gestures++;
     a.next = now + duration + between(9000, 18000);
-    nextGesture = now + duration + between(2200, 5000);
+    nextGesture = now + duration + between(3000, 5500);
   }
   function interference(a) {
     perform(
@@ -286,15 +239,30 @@ export function animateRoom() {
         a.nextPuff = now + between(1200, 3500);
         continue;
       }
+      a.rig.update(now);
       living.push(a);
       if (a.tip && now >= a.nextPuff) puff(a, now);
     }
-    const eligible = living.filter((a) => now >= a.next);
-    if (now >= nextGesture && eligible.length)
-      gesture(eligible[Math.floor(Math.random() * eligible.length)], now);
-    if (now >= nextStatic && living.length) {
-      interference(living[Math.floor(Math.random() * living.length)]);
+    const eligible = living.filter(
+      (a) => now >= a.next && a.rig.status().ready,
+    );
+    if (now >= nextStatic && living.length && now >= nextGesture) {
+      const repairers = living.filter(
+        (a) =>
+          a.node.dataset.repair === "true" &&
+          a.rig.status().ready &&
+          !a.rig.status().active,
+      );
+      if (repairers.length && Math.random() < 0.7)
+        gesture(
+          repairers[Math.floor(Math.random() * repairers.length)],
+          now,
+          "tv-repair",
+        );
+      else interference(living[Math.floor(Math.random() * living.length)]);
       nextStatic = now + between(20000, 40000);
+    } else if (now >= nextGesture && eligible.length) {
+      gesture(eligible[Math.floor(Math.random() * eligible.length)], now);
     }
   }
   frame = requestAnimationFrame(draw);
@@ -329,6 +297,8 @@ export function animateRoom() {
       characters: actors.map((a) => ({
         id: a.node.dataset.player,
         design: a.node.dataset.character,
+        tvFinish: a.node.dataset.tv,
+        rig: a.rig.status(),
         gesture: a.previous,
         gestures: a.gestures,
         puffs: a.puffs,

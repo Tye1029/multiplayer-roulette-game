@@ -1953,17 +1953,10 @@ h1 {
   transform: translateX(var(--shadow-x)) skewX(-15deg);
   background: #000b;
 }
-.seat-figure > .character-art {
-  clip-path: inset(23% 0 0);
-}
 .head-motion {
   position: absolute;
   inset: 0;
   transform-origin: 50% 23%;
-}
-.character-head {
-  clip-path: inset(0 0 77%);
-  pointer-events: none;
 }
 .tv-screen {
   box-shadow:
@@ -2106,12 +2099,6 @@ h1 {
   opacity: 0.7;
 }
 /* Living room V7: independent joints and foreground cigarette effects. */
-.rig-clips {
-  position: absolute;
-  width: 0;
-  height: 0;
-  overflow: hidden;
-}
 .seat,
 .seat.eliminated,
 .seat-figure {
@@ -2135,23 +2122,8 @@ h1 {
 .seat.eliminated .character-art {
   opacity: 0.45;
 }
-.hand-motion,
-.foot-motion {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-.hand-motion {
-  transform-origin: var(--hand-origin);
-}
-.foot-motion {
-  transform-origin: var(--foot-origin);
-}
 .head-motion {
-  transform-origin: 50% var(--head-cut);
-}
-.character-head {
-  clip-path: inset(0.6% 16% var(--head-bottom));
+  transform-origin: 50% 25%;
 }
 .tv-screen {
   transform: rotate(var(--screen-tilt));
@@ -2260,5 +2232,53 @@ dialog::backdrop {
 @media (max-width: 440px) {
   .seat[data-direction="right"][data-smoker="true"] {
     left: calc(100% - 95px);
+  }
+}
+
+/* V8: continuous character artwork; no disconnected rectangular body pieces. */
+.seat-figure > .character-fallback {
+  clip-path: none;
+}
+.character-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0;
+}
+.rig-ready .character-canvas {
+  opacity: 1;
+}
+.rig-ready .character-fallback {
+  visibility: hidden;
+}
+.seat.eliminated .character-canvas {
+  opacity: 0.45;
+}
+.seat-name {
+  left: var(--name-x);
+  top: var(--name-y);
+  transform: translate(-50%, calc(-100% - 5px));
+  z-index: 5;
+  padding: 3px 8px;
+}
+.tv-screen img {
+  filter: brightness(0.6) saturate(0.65);
+}
+.tv-screen,
+.seat.active .tv-screen {
+  background: #080c10;
+  box-shadow:
+    0 0 6px #9bc2cc45,
+    0 0 17px #8ec4d51c;
+}
+.tv-glow {
+  opacity: 0.65;
+}
+@media (max-width: 440px) {
+  .seat-name {
+    font-size: 9px;
+    padding: 2px 6px;
   }
 }
