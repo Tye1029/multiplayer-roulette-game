@@ -62,7 +62,7 @@ assert(finalOpeningCss.includes('transform:rotateY(90deg)') && finalOpeningCss.i
 assert(finalOpeningCss.includes('scVaultMetalBounce') && client.includes('sc-door-light'), 'warm light must affect the door edge and front rim');
 assert(client.includes("fresh.setAttribute('data-sc-result-portal', '');"), 'result overlay is not moved into a viewport portal');
 assert(client.includes('mountSafeCrackerResultPortal(game, mount);'), 'result portal helper is not called after controls are bound');
-assert(client.indexOf('bindControls(mount, game);') < client.indexOf('mountSafeCrackerResultPortal(game, mount);'), 'result buttons would be moved before their handlers are bound');
+assert(client.indexOf('bindResultControls(mount);') < client.indexOf('mountSafeCrackerResultPortal(game, mount);') && client.lastIndexOf('bindControls(mount, game);') < client.lastIndexOf('mountSafeCrackerResultPortal(game, mount);'), 'result buttons would be moved before their handlers are bound');
 assert(client.includes("choice: `safecracker:guess:${runtime.selected}`"), 'result-flow pass changed authoritative guess submission');
 assert(css.includes('@keyframes scGameplaySafeDoorOpen'), 'gameplay safe-opening animation is missing');
 assert(css.includes('@keyframes scGameplayGoldSpill'), 'golden light-spill animation is missing');
