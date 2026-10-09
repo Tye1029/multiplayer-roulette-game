@@ -6992,7 +6992,7 @@ function rouletteRecordShot(state,id){
 }
 function rouletteSpinAllowed(game,id){
   const state=game?.rouletteState||{};
-  return game?.status==="playing"&&cleanUserId(state.turnId)===cleanUserId(id)&&["turn","press_luck"].includes(state.phase)&&rouletteHasShot(state,id)&&!Boolean(state.spinUsed?.[cleanUserId(id)]);
+  return game?.status==="playing"&&cleanUserId(state.turnId)===cleanUserId(id)&&["turn","press_luck"].includes(state.phase)&&!Boolean(state.spinUsed?.[cleanUserId(id)]);
 }
 function roulettePublicState(game,viewer){
   const st=game?.rouletteState||null;if(!st)return null;
@@ -7098,7 +7098,7 @@ async function rouletteAction(user,gameId,choice,details={}){return await withRo
   const markProcessed=state=>actionId?{...state,processedActionIds:[...processed,actionId].slice(-40)}:state;
   if(choice==="roulette:spin"){
     if(s.spinUsed?.[id])throw new Error("You already used your spin.");
-    if(!rouletteSpinAllowed({...g,rouletteState:s},id))throw new Error("Spin unlocks after your first shot, on your turn.");
+    if(!rouletteSpinAllowed({...g,rouletteState:s},id))throw new Error("Spin is available once, on your turn.");
     const chamber=rouletteNewChamberCycle();
     s={...s,revolverModel:ROULETTE_REVOLVER_MODEL,...chamber,blankStreak:0,spinUsed:{...(s.spinUsed||{}),[id]:true},lastAction:"spin",lastActorId:id,lastOutcome:"spun",revision:Number(s.revision||0)+1};
   }else if(choice==="roulette:shoot"){

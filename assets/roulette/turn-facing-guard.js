@@ -471,8 +471,6 @@
       return;
     }
 
-    if (openingIsActive(root, lock)) return;
-
     if (transition) {
       if (state.activeTransition && state.activeTransition.turnId !== transition.turnId) {
         cancelTransition('superseded-active-transition', game, turnId);
@@ -484,6 +482,10 @@
       state.pendingTransition = transition;
       recordDiagnostic('requested', transition);
     }
+
+    // Preserve a turn first seen while opening/shot feedback is still running.
+    // Observing the snapshot must not consume its transition without queuing it.
+    if (openingIsActive(root, lock)) return;
 
     if (state.pendingTransition) {
       await runPendingTransition();
@@ -506,6 +508,19 @@
 
     const targetAngle = angleForTurn(game, turnId);
     if (!lockMatches(gameId, turnId, targetAngle)) {
+      if (lock.gameId === gameId && lock.turnId && lock.turnId !== turnId) {
+        const recovered = {
+          gameId, fromTurnId: lock.turnId, turnId, status: game.status,
+          ...snapshotStamp(game),
+          token: transitionToken(gameId, lock.turnId, turnId, game.rouletteState?.revision)
+        };
+        if (!state.seenTokens.has(recovered.token)) {
+          state.pendingTransition = recovered;
+          recordDiagnostic('requested', { ...recovered, reason: 'recover-mounted-handoff' });
+          await runPendingTransition();
+          return;
+        }
+      }
       // A mismatch without a new accepted turn-transition token is a rerender,
       // reload, stale animation, or completion residue. Correct it instantly.
       snapFacing(game, turnId, 'mismatch-without-transition-token', true);
@@ -531,16 +546,23 @@
     installSingleOwnerGates();
     scheduleReconcile('start');
 
-    state.timer = global.setInterval(() => scheduleReconcile('single-owner-poll'), 80);
+    state.timer = global.setInterval(() => {
+      if (!document.hidden && mountedRoot()) scheduleReconcile('single-owner-poll');
+    }, 200);
     const Observer = global.MutationObserver;
     const root = document.body || document.documentElement;
     if (Observer && root) {
-      state.observer = new Observer(() => scheduleReconcile('scene-mutation'));
+      state.observer = new Observer(records => {
+        if (records.some(record => record.target?.matches?.('[data-roulette-game]') ||
+          (record.type === 'childList' && (record.target?.closest?.('[data-roulette-game]') ||
+            [...record.addedNodes].some(node => node.matches?.('[data-roulette-game]') || node.querySelector?.('[data-roulette-game]'))))))
+          scheduleReconcile('scene-mutation');
+      });
       state.observer.observe(root, {
         childList: true,
         subtree: true,
         attributes: true,
-        attributeFilter: ['class', 'style', 'data-turn-id', 'data-status', 'data-revision', 'data-roulette-opening']
+        attributeFilter: ['data-turn-id', 'data-status', 'data-revision', 'data-roulette-opening']
       });
     }
   }

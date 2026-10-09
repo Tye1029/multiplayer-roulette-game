@@ -21,10 +21,15 @@ html body [data-roulette-scene="rustic-v2"] #rrLampPng {
 html body [data-roulette-scene="rustic-v2"] .rr126-swing::before,
 html body [data-roulette-scene="rustic-v2"] .rr126-swing::after {content:none!important;display:none!important}
 html body [data-roulette-scene="rustic-v2"] .rr-light-volume {
-  position:absolute;pointer-events:none;z-index:0;filter:blur(12px);
-  background:linear-gradient(to bottom,rgba(255,207,129,.025),rgba(255,207,129,.038) 65%,transparent);
+  position:absolute;pointer-events:none;z-index:0;transform:translate(-50%,-16%);
+  border:0;clip-path:none!important;filter:none!important;mix-blend-mode:screen;
+  background:radial-gradient(ellipse at 50% 18%,rgba(255,173,70,.21) 0%,rgba(255,164,58,.075) 14%,rgba(245,149,47,.025) 38%,transparent 72%);
 }
-html body [data-roulette-scene="rustic-v2"] .rr-backwall {filter:brightness(calc(1 - var(--rr-wall-dark,.25)))!important}
+html body [data-roulette-scene="rustic-v2"] .rr-bulb-bloom {
+  position:absolute;left:50%;top:var(--rr-bulb-local-y,165px);width:82px;height:68px;
+  transform:translate(-50%,-50%);pointer-events:none;z-index:3;mix-blend-mode:screen;
+  background:radial-gradient(ellipse,rgba(255,215,137,.30),rgba(255,174,66,.11) 25%,rgba(244,143,34,.025) 52%,transparent 72%);
+}
 @media(max-width:560px) {
   html body [data-roulette-scene="rustic-v2"] .rr126-lamp-rig {height:185px!important}
   html body [data-roulette-scene="rustic-v2"] .rr126-swing {width:155px!important;height:185px!important}

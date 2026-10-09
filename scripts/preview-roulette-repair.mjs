@@ -51,6 +51,14 @@ const DUEL_STATUS_RANK={waiting:0,ready:1,countdown:2,playing:3,complete:4};
 const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=value=>String(value),getAudioContext=()=>null,sfxGain=null;
 const duelBindResultButtons=()=>{},duelStartNewGame=()=>location.reload();
+const fixtureMediaEvents=[];
+const fixtureNativePlay=HTMLMediaElement.prototype.play;
+HTMLMediaElement.prototype.play=function(...args){
+  const source=String(this.src||'').split('/').pop();
+  fixtureMediaEvents.push({at:performance.now(),source,phase:'requested'});
+  this.addEventListener('playing',()=>fixtureMediaEvents.push({at:performance.now(),source,phase:'playing'}),{once:true});
+  return fixtureNativePlay.apply(this,args);
+};
 const fixtureUrl=path=>location.origin+path;
 function duelSetStatus(message){document.getElementById('fixtureStatus').textContent=message;}
 function duelRenderActive(game){
@@ -72,6 +80,23 @@ const proof={gameId:'',assetBase:document.body.dataset.assetBase,events:[],trans
   lightSamples:[],lightVariables:[],seatSamples:[],seatAnimations:[],seatRemounts:[],fallStats:{},wrongSideFallFrames:0,errors:[],polls:0};
 const nodeIds=new WeakMap();let nextNodeId=1;const nodeId=node=>{if(!node)return null;if(!nodeIds.has(node))nodeIds.set(node,nextNodeId++);return nodeIds.get(node);};
 const seatNodes=new Map();
+const motionRuns=new Map();let priorFrame=0;
+function sampleMotion(now){
+  const root=duelActive.querySelector('[data-roulette-game]'),facing=root?.querySelector('[data-roulette-facing]');
+  for(const animation of facing?.getAnimations()||[]){
+    if(animation.playState!=='running')continue;
+    const id=nodeId(animation),timing=animation.effect.getTiming();
+    const run=motionRuns.get(id)||{id,gameId:root.dataset.gameId,opening:root.dataset.rouletteOpening==='1',duration:timing.duration,startTime:animation.startTime,frames:0,slowFrames:0,maxGap:0,angles:[]};
+    if(animation.startTime!==null)run.startTime=animation.startTime;
+    run.frames++;if(priorFrame){const gap=now-priorFrame;run.maxGap=Math.max(run.maxGap,gap);if(gap>50)run.slowFrames++;}
+    const matrix=new DOMMatrixReadOnly(getComputedStyle(facing).transform);
+    const angle=Math.atan2(matrix.b,matrix.a)*180/Math.PI;
+    if(run.angles.length<420)run.angles.push({t:Math.round(Number(animation.currentTime)||0),angle});
+    motionRuns.set(id,run);
+  }
+  priorFrame=now;requestAnimationFrame(sampleMotion);
+}
+requestAnimationFrame(sampleMotion);
 window.addEventListener('roulette-facing-diagnostic',event=>{proof.events.push(event.detail);});
 window.addEventListener('error',event=>proof.errors.push(event.message));
 window.addEventListener('unhandledrejection',event=>proof.errors.push(String(event.reason?.message||event.reason)));
@@ -79,6 +104,11 @@ function rect(node){if(!node)return null;const b=node.getBoundingClientRect();re
 function sample(){
   const root=duelActive.querySelector('[data-roulette-game]');if(!root)return;
   proof.gameId=root.dataset.gameId;proof.sceneVersion=root.dataset.rouletteScene||root.dataset.sceneVersion||'';
+  proof.motionRuns=[...motionRuns.values()].map(run=>({...run,angles:run.angles}));
+  proof.mediaEvents=fixtureMediaEvents;
+  const motion=root.querySelector('[data-roulette-motion]');
+  proof.mediaReady=motion?.classList.contains('rr-media-ready');
+  proof.visibleBeforeDecode=Boolean(motion&&Number(getComputedStyle(motion).opacity)>0&&[...motion.querySelectorAll('img')].some(image=>!image.complete||!image.naturalWidth));
   const facing=root.querySelector('[data-roulette-facing]'),tableNode=root.querySelector('.rr-table');
   const table=rect(tableNode),gun=rect(facing);proof.sceneBounds=rect(root);proof.tableBounds=table;proof.gunBounds=gun;
   if(facing){const matrix=getComputedStyle(facing).transform;if(!proof.transforms.includes(matrix))proof.transforms.push(matrix);}
@@ -185,7 +215,7 @@ async function pageFor(base) {
   const sceneLinks = [...source.html.matchAll(/<link\b[^>]*>/gi)].map(match => match[0])
     .filter(tag => /rel=["']stylesheet["']/.test(tag) && /\/assets\/roulette\//.test(tag)).join('\n');
   const runtimeTags = [...source.html.matchAll(/<script\b[^>]*\bsrc=["']([^"']+)["'][^>]*><\/script>/gi)]
-    .filter(match => /\/assets\/roulette\/(?:turn-animation|turn-fire|turn-facing-guard|lamp-config|lamp|lamp-bootstrap|scene)\.js(?:\?|$)/.test(match[1]))
+    .filter(match => /\/assets\/roulette\/(?:motion-profile|audio-manager|spin-audio-policy|opening-spin-sync|audio-bindings|turn-animation|turn-fire|turn-facing-guard|lamp-config|lamp|lamp-bootstrap|scene)\.js(?:\?|$)/.test(match[1]))
     .map(match => match[0].replace(/\sdefer\b/gi, '')).join('\n');
   const localGlobals = source.deployed ? '' : "const rouletteAcceptedRevisionByGame=new Map(),rouletteDebugLines=[],rouletteHitMessages=['You lost this round.'];";
   const decor = productionDecorIds.map(id => scriptWithId(source.html, id)).join('\n');
@@ -252,7 +282,7 @@ createServer(async (request, response) => {
       response.end(Buffer.from(await deployed.arrayBuffer()));return;
     }
     const file = await readFile(new URL(`..${path}`, import.meta.url));
-    const type = path.endsWith('.png') ? 'image/png' : path.endsWith('.svg') ? 'image/svg+xml' : path.endsWith('.css') ? 'text/css' : path.endsWith('.wav') ? 'audio/wav' : 'text/javascript';
+    const type = path.endsWith('.png') ? 'image/png' : path.endsWith('.webp') ? 'image/webp' : path.endsWith('.mp3') ? 'audio/mpeg' : path.endsWith('.svg') ? 'image/svg+xml' : path.endsWith('.css') ? 'text/css' : path.endsWith('.wav') ? 'audio/wav' : 'text/javascript';
     response.writeHead(200, { 'Content-Type': type });response.end(file);
   } catch (error) {
     response.writeHead(400, { 'Content-Type': 'application/json' });response.end(JSON.stringify({ error: String(error.message) }));

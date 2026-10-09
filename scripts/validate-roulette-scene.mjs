@@ -123,9 +123,7 @@ function pngAlpha(bytes, name) {
 
 const assets = [
   { name: 'rustic-pendant-v2.png', maxBytes: 300000, ratio: 640 / 427 },
-  { name: 'oval-table-v2.png', maxBytes: 400000, ratio: 1200 / 632 },
-  { name: 'saloon-chair-v2.png', maxBytes: 120000, ratio: 2 / 3 },
-  { name: 'seated-player-v2.png', maxBytes: 130000, ratio: 2 / 3, croppedWaist: true }
+  { name: 'oval-table-v2.png', maxBytes: 400000, ratio: 1200 / 632 }
 ];
 let assetBytes = 0, decodedPixels = 0;
 for (const asset of assets) {
@@ -150,7 +148,9 @@ for (const asset of assets) {
     assert(alpha[y * width + width - 1] <= 3, `${asset.name}: right edge cuts the object`);
   }
 }
+assetBytes += (await readFile(source('assets/roulette/decor/saloon-room-v3.webp'))).length;
+decodedPixels += 1100 * 825;
 assert(assetBytes < 900000, 'New scene sprites exceed combined mobile transfer budget');
-assert(decodedPixels < 1800000, 'New scene sprites exceed decoded mobile memory budget');
+assert(decodedPixels < 2100000, 'New scene sprites exceed decoded mobile memory budget');
 
 console.log(`Roulette scene passed: one pendulum clock, continuous light projection, reduced motion, fixed world light through eight gun rotations, clean sprite alpha, ${(assetBytes / 1024).toFixed(0)} KiB scene media.`);

@@ -13,7 +13,7 @@ for (const required of [
   'return rouletteChamberPosition(state.remaining??state.bulletPosition??6);',
   'const {bulletPosition:_hidden,remaining:_hiddenRemaining,chamberCycleId:_hiddenCycle',
   'if(s.spinUsed?.[id])throw new Error("You already used your spin.");',
-  'if(!rouletteSpinAllowed({...g,rouletteState:s},id))throw new Error("Spin unlocks after your first shot, on your turn.");',
+  'if(!rouletteSpinAllowed({...g,rouletteState:s},id))throw new Error("Spin is available once, on your turn.");',
   'const remaining=rouletteRemaining(s);',
   'const live=remaining===1;',
   'const nextRemaining=rouletteChamberPosition(remaining-1);'

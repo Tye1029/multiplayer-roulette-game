@@ -5,19 +5,25 @@ import { rouletteTestRuntime } from './roulette-test-runtime.mjs';
 
 const test = await rouletteTestRuntime();
 test.reset();
+assert.equal(test.public().rouletteState.canSpin, true, 'Spin must be available before the first shot');
+assert.equal(test.rules.roulettePublicState(test.get(), 'bob').canSpin, false, 'Off-turn spin became available');
+await test.act('roulette:spin', 'alice', { actionId: 'first-spin' });
 assert.equal(test.public().rouletteState.canSpin, false);
-await assert.rejects(test.act('roulette:spin'), /first shot/);
+await test.act('roulette:spin', 'alice', { actionId: 'first-spin' });
+assert.equal(test.get().rouletteState.shotsFired, 0, 'Spin fired a shot');
+await assert.rejects(test.act('roulette:spin'), /already used/);
+test.reset();
 await test.act('roulette:shoot', 'alice', { actionId: 'shot-one' });
 assert.equal(test.public().rouletteState.canSpin, true);
 assert.equal(test.public().rouletteState.canPass, true);
 await test.act('roulette:shoot', 'alice', { actionId: 'shot-one' });
 assert.equal(test.get().rouletteState.shotsByPlayer.alice, 1, 'Duplicate shot counted twice');
 await test.act('roulette:pass');
-assert.equal(test.rules.roulettePublicState(test.get(), 'bob').canSpin, false, 'Opponent shot unlocked bot spin');
-await assert.rejects(test.act('roulette:spin', 'bob'), /first shot/);
+assert.equal(test.rules.roulettePublicState(test.get(), 'bob').canSpin, true, 'Opponent must have its own unused spin');
+await test.act('roulette:spin', 'bob');
 await test.act('roulette:shoot', 'bob');
 await test.act('roulette:pass', 'bob');
-assert.equal(test.public().rouletteState.canSpin, true, 'Pass removed first-shot eligibility');
+assert.equal(test.public().rouletteState.canSpin, true, 'Pass removed unused spin eligibility');
 await test.act('roulette:spin');
 assert.equal(test.get().rouletteState.remaining, 6);
 assert.equal(test.public().rouletteState.canSpin, false);
@@ -39,10 +45,10 @@ for (let position = 1; position <= 6; position++) {
 }
 test.reset();
 test.get().rouletteState.turnId = 'bob';
-test.get().rouletteState.remaining = 3;
+test.get().rouletteState.remaining = 6;
 test.get().npcActionAt = new Date(Date.now() - 1).toISOString();
 test.set(await test.rules.rouletteAdvance(test.get()));
-assert.equal(test.get().rouletteState.lastAction, 'shoot', 'NPC spun before its first shot');
+assert.equal(test.get().rouletteState.lastAction, 'shoot', 'NPC should preserve its spin on a fresh cylinder');
 assert.equal(test.get().rouletteState.shotsByPlayer.bob, 1);
 
 // Real guard, pending animation promise, and repeated mutation/poll reconciliation.
@@ -83,6 +89,21 @@ assert.equal(context.RouletteFacingGuard.diagnostics().completedRotations, 1);
 await context.RouletteFacingGuard.reconcile();
 assert.equal(rotations, 1, 'Repeated poll replayed a rotation');
 
+// A bot can shoot and pass before the local shot feedback has finished. Queue
+// the authoritative handoff while busy, then animate it exactly once afterward.
+game.revision++; game.rouletteState.revision++; game.rouletteState.turnId = 'alice';
+context.rouletteVisualRuntime.busy = true;
+await context.RouletteFacingGuard.reconcile();
+assert.equal(rotations, 1);
+assert(context.RouletteFacingGuard.diagnostics().pendingTransition);
+for (let i = 0; i < 4; i++) await context.RouletteFacingGuard.reconcile();
+context.rouletteVisualRuntime.busy = false;
+const returning = context.RouletteFacingGuard.reconcile();
+assert.equal(rotations, 2);
+resolveRotation(); await returning;
+assert.equal(context.RouletteFacingGuard.diagnostics().completedRotations, 2);
+assert(!context.RouletteFacingGuard.diagnostics().recent.some(event => event.reason === 'mismatch-without-transition-token'));
+
 const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 const preloads = html.match(/<template id="rouletteImagePreloads">([\s\S]*?)<\/template>/)[1];
 const paths = [...preloads.matchAll(/href="([^"]+)"/g)].map(m => m[1]);
@@ -98,4 +119,4 @@ env.window.DuelAssetLoader.warm('roulette'); env.window.DuelAssetLoader.warm('ro
 assert.deepEqual(requests, paths, 'Roulette selection must load each scene image once');
 for (const path of paths) await stat(new URL(`..${path}`, import.meta.url));
 assert((await stat(new URL('../assets/roulette/decor/rustic-pendant-v2.png', import.meta.url))).size < 300000);
-console.log('Roulette repair passed: first-shot unlock, one-use spin across passes, duplicates, six chamber outcomes, bot eligibility, private fields, live animation hold, and scoped image preloads.');
+console.log('Roulette repair passed: first-turn spin, one-use across passes, duplicates, six chamber outcomes, bot eligibility, private fields, uninterrupted handoffs after shot feedback, and scoped image preloads.');

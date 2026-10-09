@@ -17,12 +17,16 @@ for (const required of [
 const reconcileStart = guard.indexOf("  async function reconcile(reason = 'poll') {");
 const completeLock = guard.indexOf("if (game.status === 'complete')", reconcileStart);
 const defaultLeft = guard.indexOf("const defaultTurnId = String(game?.creator?.userId || turnId);", completeLock);
-const playingBranch = guard.indexOf("\n\n    if (openingIsActive(root, lock)) return;", defaultLeft);
+const playingBranch = guard.indexOf("if (openingIsActive(root, lock)) return;", defaultLeft);
 if (reconcileStart < 0 || completeLock < 0 || defaultLeft < 0 || playingBranch < 0) {
   throw new Error('Could not verify the ordered reconcile branches for final locking, pre-opening left facing, and protected opening-spin ownership.');
 }
 if (!(reconcileStart < completeLock && completeLock < defaultLeft && defaultLeft < playingBranch)) {
   throw new Error('The opening-facing branches are not in the required order.');
+}
+const queuedTransition = guard.indexOf('state.pendingTransition = transition;', defaultLeft);
+if (!(queuedTransition > defaultLeft && queuedTransition < playingBranch)) {
+  throw new Error('A transition seen during opening feedback must be retained before the opening ownership check.');
 }
 
 console.log('Roulette opening-facing validation passed: neutral left before the opening spin, protected spin ownership during countdown, reliable turn sound cache version, and final direction retained after completion.');

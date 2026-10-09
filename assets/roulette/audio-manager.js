@@ -87,8 +87,8 @@
     const milliseconds = Math.max(16, Number(duration) || 16);
     const step = now => {
       if (audio.__rrAudioFadeToken !== token) return;
-      const progress = Math.min(1, (now - began) / milliseconds);
-      audio.volume = start + (end - start) * progress;
+      const progress = Math.max(0, Math.min(1, (now - began) / milliseconds));
+      audio.volume = Math.max(0, Math.min(1, start + (end - start) * progress));
       if (progress < 1) requestAnimationFrame(step);
     };
     requestAnimationFrame(step);
@@ -472,18 +472,8 @@
     if (roomWanted && !roomTimer) scheduleRoomDetail();
     if (!roomWanted) clearRoomDetail();
 
-    if (sameGame && !previous.joinerId && joinerId) {
-      play('chair', { group: 'join', replaceGroup: true, volume: 0.1, duration: 2.4, fadeOut: 0.55 });
-    }
-
-    if (sameGame && previous.turnId && turnId && previous.turnId !== turnId && status === 'playing') {
-      turnRotate(1020);
-      scheduleAction('turn-cue', () => play('tap', {
-        group: 'turn-cue',
-        replaceGroup: true,
-        volume: 0.11
-      }), 850);
-    }
+    // Handoff audio starts at the approved facing animation, not a poll. The
+    // scene no longer has chairs, so joining does not play a chair scrape.
 
     if (
       sameGame &&
@@ -542,6 +532,7 @@
       for (const name of Object.keys(FILES)) template(name).load();
     }
     global.RouletteReactionAudio?.preload('roulette');
+    global.RouletteAudioBindings?.preloadOpening?.();
   }
 
   function unlock(event) {

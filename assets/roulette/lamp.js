@@ -3,7 +3,7 @@
   const configApi = global.RouletteLampConfig;
   if (!configApi) throw new Error('lamp-config.js must load before lamp.js');
   const lampAsset = '/assets/roulette/decor/rustic-pendant-v2.png';
-  const styleAsset = '/assets/roulette/lamp.css?v=18&scene=rustic-v2';
+  const styleAsset = '/assets/roulette/lamp.css?v=18&scene=rustic-v2&warm=3';
   const phaseEpoch = Number(global.__rrLampPhaseEpoch) || Date.now();
   global.__rrLampPhaseEpoch = phaseEpoch;
   const drivers = new WeakMap();
@@ -11,7 +11,7 @@
   function ensureStyles(doc) {
     let link = doc.getElementById('rrLampExternalStyles');
     if (!link) { link = doc.createElement('link'); link.id = 'rrLampExternalStyles'; link.rel = 'stylesheet'; doc.head.append(link); }
-    if (!link.href.includes('scene=rustic-v2')) link.href = styleAsset;
+    if (!link.href.includes('warm=3')) link.href = styleAsset;
     return link;
   }
   function queryScene(doc) {
@@ -51,6 +51,7 @@
   }
   function ensureProbes(doc, glint) {
     if (!glint) return null;
+    if (glint._rrLightField) return glint._rrLightField;
     for (const suffix of ['a','b','c']) {
       if (!glint.querySelector('.rr-light-probe-' + suffix)) {
         const probe = doc.createElement('i'); probe.className = 'rr-light-probe rr-light-probe-' + suffix; glint.append(probe);
@@ -58,6 +59,8 @@
     }
     let field = glint.querySelector('.rr-gun-light-field');
     if (!field) { field = doc.createElement('span'); field.className = 'rr-gun-light-field'; glint.append(field); }
+    glint._rrLightProbes = ['a','b','c'].map(suffix => glint.querySelector('.rr-light-probe-' + suffix));
+    glint._rrLightField = field;
     return field;
   }
   function point(element) {
@@ -83,24 +86,14 @@
     let projected = null;
     if (field && scene.gunGlint.clientWidth && scene.gunGlint.clientHeight) {
       projected = projectLightToSurface({
-        a:point(scene.gunGlint.querySelector('.rr-light-probe-a')),
-        b:point(scene.gunGlint.querySelector('.rr-light-probe-b')),
-        c:point(scene.gunGlint.querySelector('.rr-light-probe-c')),
+        a:point(scene.gunGlint._rrLightProbes[0]),
+        b:point(scene.gunGlint._rrLightProbes[1]),
+        c:point(scene.gunGlint._rrLightProbes[2]),
         width:scene.gunGlint.clientWidth,height:scene.gunGlint.clientHeight
       }, box.left+light.poolX,box.top+light.poolY);
     }
     // Perform all geometry reads before writing style to avoid layout thrashing.
-    scene.swing.style.setProperty('left',cfg.lampX+'%','important');
-    scene.swing.style.setProperty('top',cfg.lampY+'px','important');
     scene.swing.style.setProperty('transform','translateX(-50%) rotate('+light.angle+'deg)','important');
-    scene.swing.style.setProperty('--rr-lamp-image-top',artTop+'px');
-    scene.chain.style.setProperty('height',chainLength+'px','important');
-    scene.chain.style.setProperty('width',cfg.chainWidth+'px','important');
-    scene.chain.style.setProperty('transform','translateX(-50%) scaleX('+cfg.chainStretch+')','important');
-    scene.image.style.setProperty('width',cfg.lampWidth+'%','important');
-    scene.image.style.setProperty('left',(50+cfg.lampArtX)+'%','important');
-    scene.image.style.setProperty('transform','translateX(-50%) scale('+cfg.lampScale+')','important');
-    scene.image.style.setProperty('filter','brightness('+(1+cfg.lampGlow*.06)+')','important');
     const localX = light.poolX-(table.left-box.left), localY=light.poolY-(table.top-box.top);
     const strength=Math.min(1,cfg.strength);
     scene.sceneLight.style.setProperty('--rr-surface-light','radial-gradient(ellipse '+light.radiusX+'px '+light.radiusY+'px at '+localX+'px '+localY+'px,rgba(0,0,0,'+strength+') 0%,rgba(0,0,0,'+(strength*.75)+') 30%,rgba(0,0,0,'+(strength*.32)+') 60%,transparent 100%)');
@@ -108,20 +101,11 @@
       const a=projected.a*light.radiusX/50,b=projected.b*light.radiusX/50;
       const c=projected.c*light.radiusY/50,d=projected.d*light.radiusY/50;
       field.style.setProperty('transform','matrix('+[a,b,c,d,projected.x-50*a-50*c,projected.y-50*b-50*d].join(',')+')');
-      field.style.setProperty('--rr-gun-light-strength',String(strength*(.65+cfg.gunGleam)));
-      field.style.setProperty('background','radial-gradient(circle,hsla('+cfg.lightHue+','+cfg.lightSaturation+'%,86%,.52),hsla('+cfg.lightHue+','+cfg.lightSaturation+'%,70%,.24) 35%,hsla('+cfg.lightHue+','+cfg.lightSaturation+'%,60%,.08) 62%,transparent 100%)');
       scene.game.style.setProperty('--rr-shadow-x',((box.width*.5-light.poolX)*.035)+'px');
     }
-    scene.game.style.setProperty('--rr-wall-dark',cfg.wallDark);
     if(scene.volume) {
-      const left=Math.min(light.bulbX,light.poolX-light.radiusX);
-      const right=Math.max(light.bulbX,light.poolX+light.radiusX);
-      const width=Math.max(1,right-left);
-      scene.volume.style.setProperty('left',left+'px');
+      scene.volume.style.setProperty('left',light.bulbX+'px');
       scene.volume.style.setProperty('top',light.bulbY+'px');
-      scene.volume.style.setProperty('width',width+'px');
-      scene.volume.style.setProperty('height',Math.max(0,light.poolY-light.bulbY)+'px');
-      scene.volume.style.setProperty('clip-path','polygon('+((light.bulbX-left)/width*100)+'% 0, '+((light.poolX+light.radiusX-left)/width*100)+'% 100%, '+((light.poolX-light.radiusX-left)/width*100)+'% 100%)');
     }
     scene.game.dataset.lampAngle=light.angle.toFixed(3);
     scene.game.dataset.lightX=light.poolX.toFixed(2);
@@ -137,11 +121,40 @@
       scene.image=doc.createElement('img');scene.image.id='rrLampPng';scene.image.alt='';scene.image.src=lampAsset;scene.swing.append(scene.image);
     }
     if(!scene.chain) {scene.chain=doc.createElement('div');scene.chain.className='rr126-chain';scene.swing.prepend(scene.chain);}
+    if(!scene.swing.querySelector('.rr-bulb-bloom')) {
+      const bloom=doc.createElement('span');bloom.className='rr-bulb-bloom';scene.swing.append(bloom);
+    }
+    // Calibration/size values change only when mounted or resized. Keep them
+    // out of the animation loop, which owns only moving transforms and light.
+    const chainLength=scene.swing.clientHeight*cfg.chainHeight/100*(cfg.chainLeftLength+cfg.chainRightLength)/200;
+    const artTop=chainLength+(cfg.lampArtY-50);
+    const artWidth=scene.swing.clientWidth*cfg.lampWidth/100*cfg.lampScale;
+    scene.swing.style.setProperty('left',cfg.lampX+'%','important');
+    scene.swing.style.setProperty('top',cfg.lampY+'px','important');
+    scene.swing.style.setProperty('--rr-lamp-image-top',artTop+'px');
+    scene.swing.style.setProperty('--rr-bulb-local-y',(artTop+artWidth*427/640*.84)+'px');
+    scene.chain.style.setProperty('height',chainLength+'px','important');
+    scene.chain.style.setProperty('width',cfg.chainWidth+'px','important');
+    scene.chain.style.setProperty('transform','translateX(-50%) scaleX('+cfg.chainStretch+')','important');
+    scene.image.style.setProperty('width',cfg.lampWidth+'%','important');
+    scene.image.style.setProperty('left',(50+cfg.lampArtX)+'%','important');
+    scene.image.style.setProperty('transform','translateX(-50%) scale('+cfg.lampScale+')','important');
+    scene.image.style.setProperty('filter','brightness('+(1+cfg.lampGlow*.06)+')','important');
+    scene.game.style.setProperty('--rr-wall-dark',cfg.wallDark);
+    if(scene.volume) {
+      scene.volume.style.width=Math.round(scene.game.clientWidth*.72)+'px';
+      scene.volume.style.height=Math.round(scene.game.clientHeight*.51)+'px';
+    }
+    const field=ensureProbes(doc,scene.gunGlint);
+    if(field) {
+      field.style.setProperty('--rr-gun-light-strength',String(Math.min(1,cfg.strength)*(.65+cfg.gunGleam)));
+      field.style.background='radial-gradient(circle,hsla('+cfg.lightHue+','+cfg.lightSaturation+'%,82%,.48),hsla('+cfg.lightHue+','+cfg.lightSaturation+'%,66%,.22) 35%,hsla('+cfg.lightHue+','+cfg.lightSaturation+'%,58%,.06) 65%,transparent 100%)';
+    }
     let driver=drivers.get(doc);
     if(!driver) {driver={scene,cfg,frame:0,lastTime:0};drivers.set(doc,driver);}
     driver.scene=scene;driver.cfg=cfg;
     draw(doc,scene,cfg);
-    scene.sceneLight?.querySelector('img')?.style.setProperty('filter','brightness(1.5) saturate(.92) sepia(.12) hue-rotate('+(cfg.lightHue-39)+'deg)');
+    scene.sceneLight?.querySelector('img')?.style.setProperty('filter','brightness(1.65) saturate(1.08) sepia(.32) hue-rotate('+(cfg.lightHue-34)+'deg)');
     const targetExists={lampImage:!!scene.image,swingAndChains:!!scene.swing&&!!scene.chain,swing:!!scene.swing,
       chains:!!scene.chain,leftChain:!!scene.chain,rightChain:!!scene.chain,
       trackedLight:!!scene.sceneLight,roomOverlay:!!scene.game,gunGlint:!!scene.gunGlint};
@@ -183,21 +196,5 @@
     view.addEventListener('resize',run,{passive:true});doc.addEventListener('visibilitychange',visibility);run();
     return ()=>{stopped=true;observer.disconnect();intersection?.disconnect();view.cancelAnimationFrame(frame);view.removeEventListener('resize',run);doc.removeEventListener('visibilitychange',visibility);};
   }
-  function fall(game,state) {
-    const root=global.document.querySelector('[data-roulette-game]');
-    if(String(root?.dataset.gameId)!==String(game?.gameId))return Promise.resolve();
-    const loser=String(state?.loserId||game?.loserUserId||'');
-    const seat=[...root.querySelectorAll('[data-seat-player]')].find(el=>el.dataset.seatPlayer===loser);
-    if(!seat||seat.classList.contains('rr-seat-fallen')||seat._rrFallPromise)return seat?._rrFallPromise||Promise.resolve();
-    seat.classList.add('rr-seat-falling');
-    seat._rrFallPromise=new Promise(resolve=>{
-      const finish=()=>{seat.classList.remove('rr-seat-falling');seat.classList.add('rr-seat-fallen');resolve();};
-      seat.querySelector('.rr-seated-body')?.addEventListener('animationend',finish,{once:true});
-      viewTimeout(finish,1250);
-    });
-    return seat._rrFallPromise;
-  }
-  function viewTimeout(callback,ms){return global.setTimeout(callback,ms);}
-  global.RouletteScene=Object.freeze({fall});
   global.RouletteLamp=Object.freeze({lampAsset,styleAsset,ensureStyles,queryScene,samplePendulum,projectLightToSurface,apply,watch});
 })(window);

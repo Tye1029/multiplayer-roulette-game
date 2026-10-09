@@ -1,7 +1,7 @@
 (function (global) {
   'use strict';
 
-  const storageKey = 'rrLampCalibrationV11';
+  const storageKey = 'rrLampCalibrationV12';
   const legacyStorageKey = 'rrLampCalibration';
 
   const groups = [
@@ -26,19 +26,19 @@
       ['speed', 'Swing duration (sec)', [6.8, 1.2, 14, 0.1]]
     ]],
     ['Light', [
-      ['lightHue', 'Light color / hue', [39, 0, 360, 1]],
-      ['lightSaturation', 'Light saturation', [70, 0, 100, 1]],
+      ['lightHue', 'Light color / hue', [34, 0, 360, 1]],
+      ['lightSaturation', 'Light saturation', [82, 0, 100, 1]],
       ['lightX', 'Light horizontal', [50, 10, 90, 0.5]],
       ['lightY', 'Light vertical', [46, 10, 90, 0.5]],
-      ['spreadX', 'Light width', [80, 20, 120, 1]],
-      ['spreadY', 'Light depth', [92, 20, 140, 1]],
-      ['strength', 'Light strength', [0.83, 0.05, 1.25, 0.01]],
+      ['spreadX', 'Light width', [112, 20, 120, 1]],
+      ['spreadY', 'Light depth', [132, 20, 140, 1]],
+      ['strength', 'Light strength', [0.94, 0.05, 1.25, 0.01]],
       ['track', 'Tracking distance', [7.5, 0, 20, 0.25]],
       ['trackSpeed', 'Projection reach', [5.6, 1.2, 14, 0.1]]
     ]],
     ['Room and gun', [
       ['wallDark', 'Room darkness', [0.25, 0, 0.92, 0.01]],
-      ['gunGleam', 'Gun glint', [0.45, 0, 1.5, 0.01]]
+      ['gunGleam', 'Gun glint', [0.22, 0, 1.5, 0.01]]
     ]]
   ];
 

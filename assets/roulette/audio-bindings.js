@@ -31,6 +31,7 @@
   let openingWoodStarted = false;
   let openingWoodFrame = 0;
   let activeOpeningWoodClip = null;
+  let preparedOpeningClip = null;
   let activeSpinButtonClip = null;
   let activeResultClip = null;
   let resultFadeFrame = 0;
@@ -70,13 +71,23 @@
     openingWoodFrame = 0;
   }
 
+  function preloadOpening() {
+    if (!preparedOpeningClip) {
+      preparedOpeningClip = new Audio(BASE + OPENING_SPIN);
+      preparedOpeningClip.preload = 'auto';
+      preparedOpeningClip.load();
+    }
+    return preparedOpeningClip;
+  }
+
   function playOpeningSpinSound() {
     cancelOpeningWoodFrame();
     stopClip(activeOpeningWoodClip);
 
     // Play the approved 5.30-second who-goes-first recording exactly once.
     // Its acceleration, slowdown, fade-in, and fade-out are baked into the file.
-    const clip = new Audio(BASE + OPENING_SPIN);
+    const clip = preloadOpening();
+    preparedOpeningClip = null;
     clip.__rrAuthorizedOpeningSpin = true;
     clip.preload = 'auto';
     clip.playsInline = true;
@@ -96,16 +107,29 @@
     const play = nativeMediaPlay || HTMLMediaElement.prototype.__rrOriginalPlay;
     if (typeof play !== 'function') {
       cleanup();
-      return;
+      return Promise.resolve(false);
     }
 
-    const begin = () => {
-      try { clip.currentTime = 0; } catch {}
-      Promise.resolve(play.call(clip)).catch(cleanup);
-    };
-
-    if (clip.readyState >= 1) begin();
-    else clip.addEventListener('loadedmetadata', begin, { once: true });
+    // Start the animation at the media's actual playback boundary. A cold audio
+    // fetch must not leave the gun half a second ahead of its recording.
+    return new Promise(resolve => {
+      let settled = false;
+      const finish = success => {
+        if (settled) return;
+        settled = true; clearTimeout(timeout);
+        if (!success) { stopClip(clip); cleanup(); }
+        resolve(success);
+      };
+      const timeout = setTimeout(() => finish(false), 1200);
+      const begin = () => {
+        if (settled) return;
+        try { clip.currentTime = 0; } catch {}
+        Promise.resolve(play.call(clip)).then(() => finish(true), () => finish(false));
+      };
+      clip.addEventListener('error', () => finish(false), { once: true });
+      if (clip.readyState >= 1) begin();
+      else clip.addEventListener('loadedmetadata', begin, { once: true });
+    });
   }
 
   function fadeOutOpeningWood(duration = 170) {
@@ -117,8 +141,8 @@
     const started = performance.now();
     const startVolume = Math.max(0, Number(clip.volume) || 0);
     const step = now => {
-      const progress = Math.min(1, (now - started) / Math.max(50, duration));
-      clip.volume = startVolume * (1 - progress);
+      const progress = Math.max(0, Math.min(1, (now - started) / Math.max(50, duration)));
+      clip.volume = Math.max(0, Math.min(1, startVolume * (1 - progress)));
       if (progress < 1) {
         openingWoodFrame = requestAnimationFrame(step);
         return;
@@ -162,7 +186,7 @@
     fadeOutOpeningWood(90);
     openingWoodUntil = performance.now() + OPENING_WOOD_SOUND_MS;
     openingWoodStarted = false;
-    playOpeningSpinSound();
+    return playOpeningSpinSound();
   }
 
   function stopClip(clip) {
@@ -625,8 +649,8 @@
   const originalOpeningSequence = rouletteOpeningSequence;
   if (!originalOpeningSequence.__rrUploadedAudioBound) {
     const boundOpeningSequence = async function (game, state, gameId) {
-      beginOpeningWoodSound();
-      audio.openingSpin(game, state, gameId);
+      await global.RouletteTurnLock?.prepareMedia?.(gameId);
+      await beginOpeningWoodSound();
       silenceLegacy();
       return originalOpeningSequence.apply(this, arguments);
     };
@@ -653,6 +677,7 @@
   clearTimeout(resultPollTimer);
 
   global.RouletteAudioBindings = Object.freeze({
+    preloadOpening,
     playSpinButtonChamber,
 
     playResult(cue, resultId = '') {
@@ -713,6 +738,7 @@
     cancelOpeningWoodFrame();
     cancelResultFade();
     stopClip(activeOpeningWoodClip);
+    stopClip(preparedOpeningClip);
     stopClip(activeResultClip);
     stopClip(activeSpinButtonClip);
     activeOpeningWoodClip = null;

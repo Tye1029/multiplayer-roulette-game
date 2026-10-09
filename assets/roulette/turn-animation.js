@@ -139,7 +139,18 @@
       ) recoil.append(element);
     }
 
+    if (!motion._rrMediaReady) {
+      motion._rrMediaReady = Promise.all(Array.from(motion.querySelectorAll('img')).map(image =>
+        typeof image.decode === 'function' ? image.decode().catch(() => {}) : Promise.resolve()
+      )).then(() => { motion.classList.add('rr-media-ready'); });
+    }
     return { root, motion, facing, recoil };
+  }
+
+  async function prepareMedia(gameId) {
+    const layers = ensureLayers(currentRoot(gameId));
+    if (layers) await layers.motion._rrMediaReady;
+    return layers;
   }
 
   function latestGameFor(gameId, fallback) {
@@ -249,7 +260,6 @@
       ? normalizeAngle(mountedAngle)
       : (lock.gameId === String(gameId || '') ? lock.angle : target);
     const delta = shortestDelta(from, target);
-    const sign = delta >= 0 ? 1 : -1;
     const epoch = ++lock.epoch;
 
     lock.gameId = String(gameId || '');
@@ -268,13 +278,11 @@
             layers.facing,
             [
               { transform: `rotate(${from}deg)`, offset: 0 },
-              { transform: `rotate(${from + delta * 0.72}deg)`, offset: 0.72 },
-              { transform: `rotate(${from + delta - 9 * sign}deg)`, offset: 0.94 },
               { transform: `rotate(${from + delta}deg)`, offset: 1 }
             ],
             {
               duration,
-              easing: 'cubic-bezier(.22,.58,.12,1)',
+              easing: 'cubic-bezier(.32,0,.18,1)',
               fill: 'forwards'
             }
           ),
@@ -391,7 +399,7 @@
   };
 
   rouletteOpeningSequence = async function (game, state, gameId) {
-    const layers = ensureLayers(currentRoot(gameId));
+    const layers = await prepareMedia(gameId);
     if (!layers) throw new Error('Opening spin scene was not mounted.');
 
     const epoch = ++lock.epoch;
@@ -417,24 +425,17 @@
 
     const finalTurnId = lock.pendingTurnId;
     const finalAngle = lock.pendingAngle;
-    const duration = 5300;
+    const duration = window.RouletteMotion.openingDuration;
     applyFacing(layers, -4, '', true);
     rouletteSpinSound(1.35);
 
     await Promise.all([
       rouletteAnimate(
         layers.facing,
-        [
-          { transform: 'rotate(-4deg)', offset: 0 },
-          { transform: 'rotate(116deg)', offset: 0.24 },
-          { transform: 'rotate(386deg)', offset: 0.55 },
-          { transform: `rotate(${finalAngle + 720}deg)`, offset: 0.88 },
-          { transform: `rotate(${finalAngle + 711}deg)`, offset: 0.955 },
-          { transform: `rotate(${finalAngle + 720}deg)`, offset: 1 }
-        ],
+        window.RouletteMotion.openingFrames(-4, finalAngle),
         {
           duration,
-          easing: 'cubic-bezier(.22,.58,.12,1)',
+          easing: 'linear',
           fill: 'forwards'
         }
       ),
@@ -468,6 +469,7 @@
 
   window.RouletteTurnLock = {
     lock,
+    prepareMedia,
     ensureLayers,
     latestGameFor,
     applyFacing,

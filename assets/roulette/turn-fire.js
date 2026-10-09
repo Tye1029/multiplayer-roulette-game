@@ -128,13 +128,9 @@
     layers.root.classList.remove('rr-animation-lock');
     mounted?.root.classList.remove('rr-animation-lock');
 
-    const newest = latestGameFor(gameId, null);
-    const newestTurnId = String(newest?.rouletteState?.turnId || '');
-    if (newest?.status === 'playing' && newestTurnId && newestTurnId !== lockedTurnId) {
-      await rotateToLockedTurn(newest, gameId, newestTurnId, 1020);
-    } else {
-      enforceLockedFacing(gameId);
-    }
+    // The facing guard owns every handoff. A shot must never consume the new
+    // turn by attempting a second, unauthorized rotation while its queue is busy.
+    enforceLockedFacing(gameId);
   };
 
 })();

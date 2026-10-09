@@ -44,8 +44,10 @@ for (const required of [
 ]) if (!safeCracker.includes(required)) throw new Error(`Safe Cracker runtime is missing ${required}`);
 
 const protectedHashes = new Map([
-  ['assets/roulette/turn-animation.js', new Set(['24358e84c147d99e7297089e69ed1abd0802379f', '6e3c3e20d5b30b1bdecb95959a0f28a88d43232d'])],
-  ['assets/roulette/turn-fire.js', new Set(['940e824eae39ddc40dda6200f893f97fc365949b', '7ed8f3c480620ba21ae7d60f6bc6e3d5f45951ee'])]
+  // User-authorized warm-v3 Roulette repair: continuous opening curve, decoded
+  // first frame, and guard-owned handoffs. Pin both Git LF and Windows CRLF.
+  ['assets/roulette/turn-animation.js', new Set(['b661e2c714b7781a76956047ea58e6b16177198f', '36d5f8dfd7a707d6c4ded6417499dcae9db7c372'])],
+  ['assets/roulette/turn-fire.js', new Set(['8c28fee69cf38122bc1010363c7680ac228cc6f1', '4c93ac83255fb7e483765b3e6e3bb58e676ac425'])]
 ]);
 for (const [path, expected] of protectedHashes) {
   const actual = gitBlobHash(await read(path));
@@ -56,5 +58,6 @@ await import('./validate-safe-cracker-restored-release.mjs');
 await import('./validate-site-asset-loading.mjs');
 await import('./validate-roulette-repair.mjs');
 await import('./validate-roulette-scene.mjs');
+await import('./validate-roulette-motion.mjs');
 await import('./validate-idle-debug-rendering.mjs');
 console.log('Protected Roulette, Safe Cracker, and shared multiplayer current baseline validated.');
