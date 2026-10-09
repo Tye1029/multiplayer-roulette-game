@@ -98,4 +98,26 @@ function botCommand(h) {
   }
   return null;
 }
-module.exports = { shapes, colors, create, apply, tier, publicView, nextWire, botCommand };
+// Timings are recorded only by the authoritative action path, never predictions.
+function record(metrics, before, after, now, correct) {
+  if (!metrics) return undefined; // Do not invent timing for pre-release rounds.
+  const next = {...metrics, finished:[...metrics.finished], mistakes:[...metrics.mistakes]};
+  if (before && after && before.phase !== after.phase) next.finished[before.phase] = now;
+  if (after?.lastAction?.effect === 'strip' && before !== after) next.mistakes[0]++;
+  if (after) next.mistakes[1] = after.mistakes;
+  if (correct === false) next.mistakes[2]++;
+  return next;
+}
+function report(player, endMs) {
+  const metrics = player?.heistMetrics;
+  if (!metrics) return null;
+  const ends = [...metrics.finished];
+  if (player.completedAt) ends[2] = Date.parse(player.completedAt);
+  return ['Panel','Wires','Dial'].map((label,index)=> {
+    const start = index ? ends[index-1] : metrics.startedAt;
+    const end = ends[index];
+    return {label, milliseconds:start == null ? null : Math.max(0,Math.min(end ?? endMs,endMs)-start),
+      complete:end != null, started:start != null, mistakes:Number(metrics.mistakes[index]) || 0};
+  });
+}
+module.exports = { record, report, shapes, colors, create, apply, tier, publicView, nextWire, botCommand };

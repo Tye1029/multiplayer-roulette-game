@@ -5742,10 +5742,11 @@ function safeCrackerGenerateCode() {
   return digits.slice(0, SAFE_CRACKER_STAGES).join('');
 }
 
-function safeCrackerInitialPlayer(code) {
+function safeCrackerInitialPlayer(code, startMs = Date.now()) {
   return {
     code,
     heist: SAFE_CRACKER_HEIST.create(),
+    heistMetrics: { startedAt:startMs, finished:[null,null,null], mistakes:[0,0,0] },
     stage: 0,
     attempts: [],
     lastResult: null,
@@ -5762,7 +5763,7 @@ function safeCrackerInitialState(game, startMs = Date.now()) {
     let code = safeCrackerGenerateCode();
     while (usedCodes.has(code)) code = safeCrackerGenerateCode();
     usedCodes.add(code);
-    players[id] = safeCrackerInitialPlayer(code);
+    players[id] = safeCrackerInitialPlayer(code, startMs);
   }
   return {
     version: 2,
@@ -5789,6 +5790,7 @@ function safeCrackerEnsureState(game) {
     players[id] = {
       code,
       heist: current.heist || undefined,
+      heistMetrics: current.heistMetrics || undefined,
       stage: Math.max(0, Math.min(SAFE_CRACKER_STAGES, int(current.stage, 0))),
       attempts: Array.isArray(current.attempts) ? current.attempts.slice(-80) : [],
       lastResult: current.lastResult && typeof current.lastResult === 'object' ? current.lastResult : null,
@@ -5888,6 +5890,10 @@ function safeCrackerPublicState(game, viewerUserId) {
     stagesTotal: SAFE_CRACKER_STAGES,
     me: safeCrackerPublicPlayer(me, true),
     opponent: safeCrackerPublicPlayer(opponent, false),
+    report: complete ? {
+      me: SAFE_CRACKER_HEIST.report(me, Math.min(endMs, Date.parse(game.completedAt || '') || now)),
+      opponent: SAFE_CRACKER_HEIST.report(opponent, Math.min(endMs, Date.parse(game.completedAt || '') || now))
+    } : undefined,
     revealedCodes: complete ? { my: String(me.code || ''), opponent: String(opponent.code || '') } : undefined
   };
 }
@@ -6028,6 +6034,7 @@ async function safeCrackerApplyGuess(game, actorId, guess, actionId = '', isBot 
       if (!cleanActionId) throw new Error('Tool actions require a request ID.');
       const nextHeist = SAFE_CRACKER_HEIST.apply(player.heist, toolCommand, now);
       if (nextHeist === player.heist) return latest;
+      player.heistMetrics = SAFE_CRACKER_HEIST.record(player.heistMetrics, player.heist, nextHeist, now);
       player.heist = nextHeist;
       player.heist.lastAction.actionId = cleanActionId;
     } else {
@@ -6037,6 +6044,7 @@ async function safeCrackerApplyGuess(game, actorId, guess, actionId = '', isBot 
       const distance = safeCrackerCircularDistance(target, guess);
       const tier = safeCrackerTier(distance);
       const correct = tier === 'green';
+      player.heistMetrics = SAFE_CRACKER_HEIST.record(player.heistMetrics, null, null, now, correct);
       const result = { stage, guess, distance, tier, correct, at };
       player.attempts = [...(Array.isArray(player.attempts) ? player.attempts : []), result].slice(-80);
       player.lastResult = result;

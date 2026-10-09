@@ -115,3 +115,45 @@ await sandbox.safeCrackerAdvanceAndSave(stored);
 assert.equal(JSON.stringify(stored),completed,'Polling cannot reopen a failed vault');
 assert.throws(()=>rules.apply(stored.safecrackerState.players.me.heist,'cut:red'),/lockdown/);
 console.log('Five-fault loss, terminal idempotency, result record, private preloaded note and 12-wire compatibility validated.');
+
+// Authoritative stage report: retries must not inflate mistakes or reset times.
+now=500000;stored={gameId:'report',mode:'safecracker',status:'playing',creator:{userId:'me'},joiner:{userId:'other'},revision:1};
+stored.safecrackerState=sandbox.safeCrackerInitialState(stored,now);
+const reportStart=now;
+let mine=stored.safecrackerState.players.me;
+const wrongTool=mine.heist.kit.find(t=>t!==mine.heist.screws[0].type);
+now+=1000;
+await sandbox.safeCrackerAction({id:'me'},'report','safecracker:screw:0:'+wrongTool,{actionId:'strip-report'});
+await sandbox.safeCrackerAction({id:'me'},'report','safecracker:screw:0:'+wrongTool,{actionId:'strip-report'});
+assert.equal(stored.safecrackerState.players.me.heistMetrics.mistakes[0],1);
+let reportAction=0;
+while(stored.safecrackerState.players.me.heist.phase===0){
+  now+=1000;
+  await sandbox.safeCrackerAction({id:'me'},'report','safecracker:'+rules.botCommand(stored.safecrackerState.players.me.heist),{actionId:'report-'+(++reportAction)});
+}
+const panelEnd=now;
+assert.equal(stored.safecrackerState.players.me.heistMetrics.finished[0],panelEnd);
+assert.equal(sandbox.safeCrackerPublicState(stored,'me').report,undefined);
+while(stored.safecrackerState.players.me.heist.phase===1){
+  now+=1000;
+  await sandbox.safeCrackerAction({id:'me'},'report','safecracker:'+rules.botCommand(stored.safecrackerState.players.me.heist),{actionId:'report-'+(++reportAction)});
+}
+const wireEnd=now;
+now+=1000;
+const code=stored.safecrackerState.players.me.code;
+await sandbox.safeCrackerAction({id:'me'},'report','safecracker:guess:'+((Number(code[0])+1)%10),{actionId:'miss-report'});
+await sandbox.safeCrackerAction({id:'me'},'report','safecracker:guess:'+((Number(code[0])+1)%10),{actionId:'miss-report'});
+for(const digit of code){now+=1000;await sandbox.safeCrackerAction({id:'me'},'report','safecracker:guess:'+digit,{actionId:'report-'+(++reportAction)});}
+assert.equal(stored.status,'complete');
+const stats=sandbox.safeCrackerPublicState(stored,'me').report;
+assert.deepEqual(Array.from(stats.me,s=>s.milliseconds),[panelEnd-reportStart,wireEnd-panelEnd,now-wireEnd]);
+assert.deepEqual(Array.from(stats.me,s=>s.mistakes),[1,0,1]);
+assert.ok(stats.me.every(s=>s.complete));
+assert.equal(stats.opponent[0].complete,false);assert.equal(stats.opponent[1].milliseconds,null);
+const frozen=JSON.stringify(stats);now+=30000;
+assert.equal(JSON.stringify(sandbox.safeCrackerPublicState(stored,'me').report),frozen,'Result timings stay fixed after completion');
+const swapped=sandbox.safeCrackerPublicState(stored,'other').report;
+assert.equal(JSON.stringify(swapped.opponent),JSON.stringify(stats.me));
+const oldPlayer=structuredClone(stored.safecrackerState.players.me);delete oldPlayer.heistMetrics;
+assert.equal(rules.report(oldPlayer,now),null,'No made-up times for older games');
+console.log('Stage reports validated: authoritative intervals, wrong-tool/dial deduplication, private live stats, unfinished and unreached stages, viewer mapping and stable terminal timings.');

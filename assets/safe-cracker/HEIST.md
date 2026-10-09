@@ -88,9 +88,32 @@ to choose what they can distinguish. Wire-name labels remain visible in all
 modes, following https://www.w3.org/WAI/WCAG22/Understanding/use-of-color.html .
 The option never changes wire identities, order, penalties, or note ink.
 
-The canvas roll, stitching, straps, pockets, head marks, and colored wire-guide
-strips are lightweight live CSS/SVG. No new bitmap media is required. Replaced
+The solid metal case, fitted tool recesses, head marks, and colored wire-guide
+strips are lightweight live CSS/SVG. The old roll, straps, stitching, and
+transparent disabled-tool treatment have been removed. No new bitmap media is required. Replaced
 six-head artwork, rigid parallel-wire generator, and old kit styles were removed;
 existing texture/audio files remain referenced runtime or validation inputs.
 
 Additional validation: `node scripts/validate-safe-cracker-kit.mjs`.
+
+## Stage flow and result report
+
+The cutter ghost anchors its jaw opening at the pointer, including while rotated.
+Only cable strokes accept cuts; labels, sockets and off-wire drops do not. Outer
+wire bundles have asymmetric crossings while the central cutting lanes stay clear.
+
+The countdown restores the rotating vault mechanism and six staggered locking
+bolts. Panel removal tilts the plate away; wiring completion rotates the back out
+and the front in. Polls do not restart these transitions, round changes cancel
+pending transitions, and reduced-motion users get a short static handoff.
+
+Server-owned per-player metrics record stage completion timestamps and wrong
+screwdriver/wire/dial actions through the existing idempotent write path. Timing
+includes the short stage handoffs and server confirmation, equally for both
+players. Results compare both players' stage times and misses, explicitly label
+unfinished/unreached stages, and freeze elapsed time at completion. Older rounds
+without metrics retain their legacy report rather than inventing stage times.
+The dial-only result renderer remains necessary for those persisted rounds.
+
+No media files became unused: this pass reuses existing textures and removes
+superseded kit styles and markup directly, without adding bitmap downloads.

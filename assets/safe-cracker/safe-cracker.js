@@ -761,7 +761,7 @@
         '<div class="sc-result-code" aria-label="' + label + ' code ' + escapeHtml(code || 'unavailable') + '">' + digits.map(digit => '<b>' + digit + '</b>').join('') + '</div>' +
         '<dl><div><dt>Locks opened</dt><dd>' + stage + ' / ' + STAGES + '</dd></div><div><dt>Attempts</dt><dd>' + attempts + '</dd></div></dl></section>';
     };
-    const codes = '<div class="sc-code-reveal">' +
+    const codes = (typeof window !== 'undefined' && window.SafeCrackerHeist?.resultReport?.(game)) || '<div class="sc-code-reveal">' +
       comparisonCard('YOUR SAFE', me, state.me, reveal.my, won && !tied) +
       comparisonCard('OPPONENT', opponent, state.opponent, reveal.opponent, !won && !tied && Boolean(game.winnerUserId)) + '</div>';
     return '<div class="sc-result-overlay ' + resultClass + '" data-sc-result-sequence>' +

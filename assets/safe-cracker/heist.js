@@ -20,7 +20,7 @@
   });
   const heist = () => queue.view();
   const root = () => document.querySelector('[data-sc-heist]');
-  const canUse = () => game?.status === 'playing' && !heist()?.failed && queue.length < 32;
+  const canUse = () => game?.status === 'playing' && !heist()?.failed && (!transition || transition.ready) && queue.length < 32;
   const phaseName = p => ['Panel', 'Wires', 'Dial'][p] || 'Panel';
   function progress(p, stage) {
     if (!p) return 'Not started';
@@ -45,7 +45,7 @@
     const menu=root()?.querySelector('.sh-color-menu');if(menu)menu.dataset.enabled=String(colorMode!=='off');
   }
   function toolBag() {
-    return `<aside class="sh-bag" data-sh-kit="${kit().join(',')}" aria-label="Tool roll"><span class="sh-kit-strap sh-strap-left" aria-hidden="true"></span><span class="sh-kit-strap sh-strap-right" aria-hidden="true"></span><div class="sh-bag-label"><b>VAULT SERVICE KIT</b><span class="sh-drag-hint">Drag tools to use</span>${colorMenu()}</div><div class="sh-tools">${kit().map(type => `<button type="button" class="sh-tool sh-driver" data-sh-tool="${type}" aria-label="${heads[type][0]} screwdriver" draggable="false"><span class="sh-shaft"></span><span class="sh-handle">${icon(type)}</span><small>${heads[type][0]}</small></button>`).join('')}<button type="button" class="sh-tool sh-cutters" data-sh-tool="cutters" aria-label="Wire cutters" draggable="false"><svg viewBox="0 0 60 80" aria-hidden="true"><path class="sh-jaws" d="M15 4l14 15-5 14-8-9z M45 4L31 19l5 14 8-9z"/><path class="sh-bevel" d="M16 5l13 15-5 7 M44 5L31 20l5 7"/><path class="sh-grip-core" d="M26 28C25 42 12 48 14 69 M34 28C35 42 48 48 46 69"/><path class="sh-grips" d="M21 43C16 52 13 58 14 69 M39 43C44 52 47 58 46 69"/><path class="sh-grip-light" d="M19 45Q12 60 14 67 M40 45Q47 60 46 67"/><circle class="sh-pivot" cx="30" cy="29" r="7"/><path class="sh-pivot-slot" d="M27 32l6-6"/></svg><small>Wire cutters</small></button><button type="button" class="sh-tool sh-note" data-sh-card aria-label="Wire Cutting Instructions"><span class="sh-paper"><b>WIRE GUIDE</b><i style="--strip:#e66b62"></i><i style="--strip:#75b3d3"></i><i style="--strip:#d5b95d"></i><i style="--strip:#78ad89"></i></span><small>Wire Cutting<br>Instructions</small></button></div></aside>`;
+    return `<aside class="sh-bag" data-sh-kit="${kit().join(',')}" aria-label="Metal tool case"><div class="sh-bag-label"><b>VAULT SERVICE KIT</b><span class="sh-drag-hint">Drag tools to use</span>${colorMenu()}</div><div class="sh-tools">${kit().map(type => `<button type="button" class="sh-tool sh-driver" data-sh-tool="${type}" aria-label="${heads[type][0]} screwdriver" draggable="false"><span class="sh-shaft"></span><span class="sh-handle">${icon(type)}</span><small>${heads[type][0]}</small></button>`).join('')}<button type="button" class="sh-tool sh-cutters" data-sh-tool="cutters" aria-label="Wire cutters" draggable="false"><svg viewBox="0 0 60 80" aria-hidden="true"><path class="sh-jaws" d="M27 7l2 12-5 14-8-9 4-15z M33 7L31 19l5 14 8-9-4-15z"/><path class="sh-bevel" d="M27 8l2 12-5 7 M33 8L31 20l5 7"/><path class="sh-grip-core" d="M26 28C25 42 12 48 14 69 M34 28C35 42 48 48 46 69"/><path class="sh-grips" d="M21 43C16 52 13 58 14 69 M39 43C44 52 47 58 46 69"/><path class="sh-grip-light" d="M19 45Q12 60 14 67 M40 45Q47 60 46 67"/><circle class="sh-pivot" cx="30" cy="29" r="7"/><path class="sh-pivot-slot" d="M27 32l6-6"/></svg><small>Wire cutters</small></button><button type="button" class="sh-tool sh-note" data-sh-card aria-label="Wire Cutting Instructions"><span class="sh-paper"><b>WIRE GUIDE</b><i style="--strip:#e66b62"></i><i style="--strip:#75b3d3"></i><i style="--strip:#d5b95d"></i><i style="--strip:#78ad89"></i></span><small>Wire Cutting<br>Instructions</small></button></div></aside>`;
   }
   function screws(h) {
     const list = h?.screws || shapes.slice(0,6).concat(['slot','star']).map(type => ({type}));
@@ -82,6 +82,13 @@
       if (selected !== 'cutters') return message('Pick up the wire cutters first.');
       send(`cut:${target.dataset.shWire}`);
     }
+  }
+  // The jaw opening is fixed at (30,7) in the 60px ghost; rotation pivots there.
+  // Only the actual cable strokes accept cutters, not labels or terminal sockets.
+  function dropTarget(x,y) {
+    const hit = document.elementFromPoint(x,y);
+    if (selected !== 'cutters') return hit?.closest('[data-sh-screw]');
+    return hit?.matches('.sh-wire-hit,.sh-cable,.sh-wire-bridge') ? hit.closest('[data-sh-wire]:not(.cut)') : null;
   }
   function stopDrag() {
     if (!drag) return;
@@ -137,7 +144,7 @@
         if (!drag?.ghost) return;
         drag.frame = 0;
         drag.ghost.style.transform = `translate3d(${drag.x-30}px,${drag.y-7}px,0) rotate(-18deg)`;
-        const target = document.elementFromPoint(drag.x,drag.y)?.closest('[data-sh-screw],[data-sh-wire]');
+        const target = dropTarget(drag.x,drag.y);
         board.querySelectorAll('.sh-drop-target').forEach(n=>n.classList.toggle('sh-drop-target',n===target));
         target?.classList.add('sh-drop-target');
       });
@@ -145,7 +152,7 @@
     board.addEventListener('pointerup', event => {
       if (!drag || drag.id !== event.pointerId) return;
       const moved = Boolean(drag.ghost);
-      const target = moved ? document.elementFromPoint(event.clientX,event.clientY)?.closest('[data-sh-screw],[data-sh-wire]') : null;
+      const target = moved ? dropTarget(event.clientX,event.clientY) : null;
       stopDrag();
       if (target) activate(target);
     });
@@ -229,20 +236,26 @@
   function renderTools(g,mount,helpers) {
     if (g.safecrackerState?.version !== 2 && !g.safecrackerState?.me?.heist) return false;
     if (game?.gameId !== g.gameId) {selected='';lastEffect='';clearTimeout(transition?.timer);transition=null;stopDrag();}
+    if (transition && (g.status !== 'playing' || (!root() && !transition.ready))) {clearTimeout(transition.timer);transition=null;}
     game = g; api = helpers; queue.receive(g);
     const phase = heist()?.phase === 2 && queue.length ? 1 : (heist()?.phase || 0);
-    if (phase === 2) {stopDrag();return false;}
     const key = `${g.gameId}:${phase}`;
-    if (g.status === 'playing' && phase === 1 && root()?.dataset.shKey === `${g.gameId}:0` && !transition?.ready) {
-      if (!transition) {
+    const previous = root()?.dataset.shKey;
+    if (g.status === 'playing' && phase > 0 && previous === `${g.gameId}:${phase-1}` && !(transition?.key === key && transition.ready)) {
+      if (transition?.key !== key) {
+        clearTimeout(transition?.timer);
+        stopDrag();
         const board = root();
-        board.classList.add('sh-panel-release');
+        board.classList.add(phase === 1 ? 'sh-panel-release' : 'sh-turn-to-front');
         board.querySelectorAll('button').forEach(button=>button.disabled=true);
-        const job = transition = {ready:false,timer:0};
-        job.timer = setTimeout(()=>{if(transition!==job || !board.isConnected)return;job.ready=true;api.accept(game);},360);
+        if (phase === 2) board.insertAdjacentHTML('beforeend','<div class="sh-turn-caption" role="status"><small>WIRING DISARMED</small><b>Moving to the vault door</b><span>BACK → FRONT</span></div>');
+        const job = transition = {key,ready:false,arrived:false,timer:0};
+        const duration = matchMedia('(prefers-reduced-motion: reduce)').matches ? 80 : phase === 1 ? 440 : 520;
+        job.timer = setTimeout(()=>{if(transition!==job || !board.isConnected || game.gameId!==g.gameId)return;job.ready=true;api.accept(game);},duration);
       }
       return true;
     }
+    if (phase === 2) {stopDrag();return false;}
     if (root()?.dataset.shKey !== key) {
       stopDrag();
       selected = phase === 1 ? 'cutters' : '';
@@ -250,7 +263,10 @@
       bind(root());
     }
     patch();
-    if (g.status === 'countdown' && !root().querySelector('[data-sc-start-countdown]')) root().insertAdjacentHTML('afterbegin',`<div class="sc-start-countdown-overlay" data-sc-start-countdown><div class="sc-countdown-copy"><small>BREAK-IN STARTS IN</small><span data-sc-countdown-value>${esc(helpers.countdown())}</span><b data-sc-countdown-status>TOOLS READY</b></div></div>`);
+    if (g.status === 'countdown' && !root().querySelector('[data-sc-start-countdown]')) {
+      const label = esc(helpers.countdown());
+      root().insertAdjacentHTML('afterbegin',`<div class="sc-start-countdown-overlay" data-sc-start-countdown data-sh-locking data-sc-countdown-label="${label}"><div class="sc-countdown-vault" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><div class="sc-countdown-ring"></div></div><div class="sc-countdown-copy"><small>VAULT SEQUENCE</small><span data-sc-countdown-value>${label}</span><b data-sc-countdown-status>LOCKS ENGAGING</b></div></div>`);
+    }
     if(g.status === 'complete' && !document.querySelector('[data-sc-result-sequence],[data-sc-result-portal]')) root().insertAdjacentHTML('beforeend',helpers.result(g));
     return true;
   }
@@ -260,6 +276,10 @@
     const board = mount.querySelector('.safe-cracker-game');
     if(!board) return;
     board.classList.add('sh-dial-stage');
+    if (g.status === 'playing' && transition?.key === `${g.gameId}:2` && transition.ready && !transition.arrived) {
+      transition.arrived = true;
+      board.classList.add('sh-front-arrival');
+    }
     board.classList.toggle('sh-number-off',h.mistakes>=1);
     board.classList.toggle('sh-yellow-lost',h.mistakes>=2);
     board.classList.toggle('sh-heat-off',h.mistakes>=3);
@@ -273,6 +293,19 @@
     const glass = board.querySelector('.sc-display-glass');
     if(glass) glass.setAttribute('aria-hidden',String(h.mistakes>=3));
   }
+  function resultReport(g) {
+    const report = g.safecrackerState?.report;
+    if (!report?.me && !report?.opponent) return '';
+    const myPlayer = g.isCreator ? g.creator : g.joiner;
+    const otherPlayer = g.isCreator ? g.joiner : g.creator;
+    const card = (label,player,stages) => {
+      const winner = g.winnerUserId === player?.userId && !g.tie;
+      const total = stages?.reduce((n,s)=>n+s.mistakes,0);
+      const clean = stages?.every(s=>s.complete && !s.mistakes);
+      return `<section class="sh-report-player ${winner?'winner':''}"><div class="sh-report-label">${label}${winner?'<em>WINNER</em>':''}</div><h3>${esc(player?.name || 'Player')}</h3><div class="sh-report-columns"><span>STAGE</span><span>TIME</span><span>MISSES</span></div>${stages ? stages.map((s,i)=>`<div class="sh-report-stage"><span><i>${i+1}</i>${esc(s.label)}<small>${s.complete?'Complete':s.started?'Unfinished':'Not reached'}</small></span><b>${s.milliseconds == null ? '—' : (s.milliseconds/1000).toFixed(1)+'s'}</b><b>${s.started?s.mistakes:'—'}</b></div>`).join('') : '<p>Stage times unavailable for this older round.</p>'}<div class="sh-report-tidbit">${clean?'Flawless break-in':total===0?'No mistakes so far':total===1?'One wrong move':total!=null?total+' wrong moves':'Earlier vault record'}</div></section>`;
+    };
+    return '<div class="sh-heist-report">'+card('YOU',myPlayer,report.me)+card('RIVAL',otherPlayer,report.opponent)+'</div><p class="sh-report-key">Misses: wrong driver · wrong wire · incorrect dial check</p>';
+  }
   document.addEventListener('visibilitychange',()=>{if(document.hidden)stopDrag();});
-  window.SafeCrackerHeist = {renderTools,decorateDial};
+  window.SafeCrackerHeist = {renderTools,decorateDial,resultReport};
 })();

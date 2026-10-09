@@ -42,13 +42,13 @@
     // Scramble the outer terminals in small bundles. Every cable passes through
     // its own unobstructed 80-unit center span, including on the narrow board.
     const permute = (i,size,shift) => {const base=Math.floor(i/size)*size,n=Math.min(size,count-base);return base+(i-base+shift)%n;};
-    const left = row(permute(index,variant%2?3:2,1));
-    const right = row(permute(index,variant===2?4:3,variant%3+1));
+    const left = row(permute(index,variant%2?4:3,1));
+    const right = row(permute(index,variant===2?5:3,variant%3+1));
     const y = row(index) + (layout?.jitter?.[index] || 0);
-    const bow = (index%2 ? 1 : -1)*(12+variant*4);
+    const bow = (index%2 ? 1 : -1)*(22+variant*5+(index%3)*5);
     return { y,left,right,
-      before:`M32 ${left} C100 ${left},108 ${y+bow},176 ${y+bow} S230 ${y},260 ${y} L290 ${y}`,
-      after:`M310 ${y} L340 ${y} C384 ${y},388 ${y-bow},432 ${y-bow} S502 ${right},568 ${right}`
+      before:`M32 ${left} C${72+index%3*18} ${left},${120+variant*8} ${Math.max(12,Math.min(308,y+bow))},${184-index%3*9} ${Math.max(12,Math.min(308,y+bow))} S230 ${y},260 ${y} L290 ${y}`,
+      after:`M310 ${y} L340 ${y} C${374+index%3*7} ${y},${396-variant*6} ${Math.max(12,Math.min(308,y-bow))},${438+index%3*11} ${Math.max(12,Math.min(308,y-bow))} S502 ${right},568 ${right}`
     };
   }
   const catalog={heads,colors,palettes,wireGeometry};
