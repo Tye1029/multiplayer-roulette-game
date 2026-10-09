@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { CAST, pickCast } from '../assets/roulette-four/cast.mjs';
 import { readFile } from 'node:fs/promises';
 import { TURN_MS, REMATCH_MS, Round, splitPot, relativeSeat, createPersonality, botDecision, VERSION } from '../assets/roulette-four/model.mjs';
 
@@ -156,3 +157,14 @@ try {
   assert.equal((await loadProfile()).profile.name, 'Fresh'); assert.equal(requests, 1, 'Future-dated profile caches are rejected');
 } finally { Object.assign(globalThis, saved); }
 console.log('Four-player readiness validated: bounded rotation timings, normalized cached profiles and cache expiry.');
+
+// Every cosmetic table has unique designs and a smoker; all designs are reachable.
+const seenCast = new Set(), castRandom = rng(741938);
+for (let seed = 1; seed <= 1000; seed++) {
+ const cast = pickCast(castRandom);
+ assert.equal(new Set(cast.map(c => c.id)).size, 3);
+ assert.equal(cast.filter(c => c.smoker).length, 1);
+ cast.forEach(c => seenCast.add(c.id));
+}
+assert.equal(seenCast.size, CAST.length);
+console.log('Unique cast selection: 1,000 seeded tables passed');

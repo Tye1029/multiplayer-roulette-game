@@ -1225,22 +1225,6 @@ dialog li {
   width: 275px;
   top: 145px;
 }
-.seat[data-gender="female"] {
-  --screen-x: 37.7%;
-}
-.seat[data-pose="1"] {
-  --screen-x: 35.3%;
-  --screen-y: 5.7%;
-}
-.seat[data-pose="1"][data-gender="female"] {
-  --screen-x: 37%;
-  --screen-y: 5.3%;
-}
-.seat[data-pose="2"] {
-  --screen-x: 37.2%;
-  --screen-y: 6.5%;
-  --screen-w: 21.8%;
-}
 .seat::before {
   content: "";
   position: absolute;
@@ -1265,7 +1249,7 @@ dialog li {
   height: 100%;
   background: url("/assets/roulette-four/images/tv-gamblers-v6.png") no-repeat;
   background-size: 200% 300%;
-  background-position: calc(var(--model) * 100%) calc(var(--pose) * 50%);
+  background-position: var(--atlas-x) var(--atlas-y);
   filter: brightness(0.7) saturate(0.72) drop-shadow(8px 7px 4px #0008);
 }
 .seat.active .character-art {
@@ -2121,135 +2105,132 @@ h1 {
 #roulette-four[data-phase="opening"] .pot-display {
   opacity: 0.7;
 }
-.seat {
-  --screen-x: 39.2%;
-  --screen-y: 6.3%;
-  --screen-w: 21.2%;
-  --screen-h: 15.3%;
-  --tip-x: 86.8%;
-  --tip-y: 43.5%;
+/* Living room V7: independent joints and foreground cigarette effects. */
+.rig-clips {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
 }
-.seat[data-gender="female"] {
-  --screen-x: 38.2%;
-  --tip-x: 84.4%;
-  --tip-y: 42.8%;
+.seat,
+.seat.eliminated,
+.seat-figure {
+  filter: none;
+  transition: none;
 }
-.seat[data-pose="1"] {
-  --screen-x: 35.9%;
-  --screen-y: 6.3%;
-  --screen-w: 22.1%;
-  --screen-h: 15.5%;
+.seat-figure,
+.seat.eliminated .seat-figure {
+  transform: none;
 }
-.seat[data-pose="1"][data-gender="female"] {
-  --screen-x: 38%;
-  --screen-y: 6.3%;
+.character-art,
+.seat.active .character-art,
+.seat[data-direction="up"] .character-art,
+.seat.eliminated .character-art {
+  filter: none;
+  transition: none;
+  background-image: var(--atlas);
+  background-size: 200% var(--atlas-rows);
+  background-position: var(--atlas-x) var(--atlas-y);
 }
-.seat[data-pose="2"] {
-  --screen-x: 37.7%;
-  --screen-y: 6.9%;
-  --screen-w: 21.8%;
-  --screen-h: 15.5%;
+.seat.eliminated .character-art {
+  opacity: 0.45;
 }
-.seat[data-pose="0"] .seat-figure > .character-art {
-  clip-path: polygon(
-    0 23%,
-    100% 23%,
-    100% 41%,
-    76% 41%,
-    76% 52%,
-    100% 52%,
-    100% 100%,
-    0 100%
-  );
-}
-.wrist-motion {
+.hand-motion,
+.foot-motion {
   position: absolute;
   inset: 0;
-  transform-origin: 77% 47%;
   pointer-events: none;
 }
-.character-hand {
-  clip-path: inset(41% 0 48% 76%);
+.hand-motion {
+  transform-origin: var(--hand-origin);
+}
+.foot-motion {
+  transform-origin: var(--foot-origin);
+}
+.head-motion {
+  transform-origin: 50% var(--head-cut);
+}
+.character-head {
+  clip-path: inset(0.6% 16% var(--head-bottom));
+}
+.tv-screen {
+  transform: rotate(var(--screen-tilt));
+}
+.table-art img,
+.gun-body #gun-photo {
+  filter: none;
+}
+.table-art img {
+  opacity: 0.86;
+}
+dialog::backdrop {
+  backdrop-filter: none;
+}
+.scene-effects {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  pointer-events: none;
+  overflow: hidden;
+}
+.cigarette-tip {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
 }
 .cigarette-effects {
   position: absolute;
-  left: var(--tip-x);
-  top: var(--tip-y);
   width: 1px;
   height: 1px;
   pointer-events: none;
 }
 .cigarette-ember {
   position: absolute;
-  left: -1px;
-  top: -1px;
-  width: 2px;
-  height: 2px;
+  left: -1.5px;
+  top: -1.5px;
+  width: 3px;
+  height: 3px;
   border-radius: 50%;
-  background: #e4a04d;
-  box-shadow: 0 0 4px 2px #ce6b263d;
-  opacity: 0.85;
+  background: #ffc77c;
+  box-shadow: 0 0 4px 2px #ef752c88;
+  opacity: 0.95;
 }
-.cigarette-smoke {
+.smoke-plume {
   position: absolute;
-  bottom: 0;
-  left: -16px;
-  width: 35px;
-  height: 62px;
-}
-.cigarette-smoke i {
-  position: absolute;
-  left: 16px;
-  bottom: 0;
-  width: 8px;
-  height: 22px;
-  border-left: 1.5px solid #c6cbd570;
-  border-radius: 50%;
-  filter: blur(0.7px);
+  left: -18px;
+  top: -80px;
+  width: 44px;
+  height: 82px;
   opacity: 0;
-  animation: cigarette-drift 5.5s linear infinite;
-  transform-origin: bottom center;
-}
-.cigarette-smoke i:nth-child(2) {
-  animation-delay: -1.8s;
-  animation-duration: 6.3s;
-}
-.cigarette-smoke i:nth-child(3) {
-  animation-delay: -3.7s;
-  animation-duration: 5.8s;
+  overflow: visible;
+  fill: none;
+  filter: blur(0.65px);
+  stroke-width: 2.4;
+  stroke-linecap: round;
 }
 .cigarette-ash {
   position: absolute;
   width: 2px;
   height: 2px;
-  background: #a49a88;
   border-radius: 50%;
+  background: #c8bcaa;
   opacity: 0;
 }
-@keyframes cigarette-drift {
-  0% {
-    opacity: 0;
-    transform: translate(0, 0) scale(0.35);
-  }
-  15% {
-    opacity: 0.35;
-  }
-  55% {
-    opacity: 0.22;
-    transform: translate(-5px, -22px) scale(0.85) rotate(-14deg);
-  }
-  100% {
-    opacity: 0;
-    transform: translate(7px, -48px) scale(1.5) rotate(17deg);
-  }
-}
-.seat.eliminated .cigarette-smoke,
-.seat.eliminated .cigarette-ember,
-.seat.eliminated .cigarette-ash {
-  display: none;
-}
-.scene.is-hidden .cigarette-smoke i {
-  animation-play-state: paused;
+.tv-interference {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background:
+    repeating-linear-gradient(0deg, #c9e1e899 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(
+      112deg,
+      transparent 0 2px,
+      #ffffff99 2px 3px,
+      #0b182a88 3px 5px
+    );
+  mix-blend-mode: screen;
 }
 @media (max-width: 440px) {
   .opening {
@@ -2262,14 +2243,22 @@ h1 {
   .opening span {
     font-size: 8px;
   }
-  .cigarette-smoke {
-    transform: scale(0.8);
-    transform-origin: bottom center;
-  }
 }
 @media (prefers-reduced-motion: reduce) {
-  .cigarette-smoke,
-  .cigarette-ash {
+  .smoke-plume,
+  .cigarette-ash,
+  .tv-interference {
     display: none;
+  }
+}
+
+@media (max-width: 650px) {
+  .seat[data-direction="right"][data-smoker="true"] {
+    left: calc(100% - 110px);
+  }
+}
+@media (max-width: 440px) {
+  .seat[data-direction="right"][data-smoker="true"] {
+    left: calc(100% - 95px);
   }
 }
