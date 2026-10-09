@@ -1,6 +1,6 @@
 # Four-player Roulette bot table
 
-Entry: `/games/multiplayer/roulette-four/`. Release marker: `four-player-roulette-v1`.
+Entry: `/games/multiplayer/roulette-four/`. Release marker: `four-player-roulette-debug-v2`.
 
 This is a separate, browser-local practice game with one human and three bots. It uses the existing Roulette room, table, gun and recorded sounds. It does not call account, wager or duel endpoints. Four-human network play is not part of this bot prototype.
 
@@ -9,6 +9,10 @@ Each player contributes $100 of practice money. Safe-shot awards start at $20 an
 The initial order is shuffled every round, with the local viewer always down and the next player clockwise at left. The same `relativeSeat` function supports every player's perspective. Bot decisions receive only public state. A randomized personality and independent action/timing draws are generated each round; bots occasionally decline a rematch. A rematch requires all four votes before a ten-second wall-clock deadline. Stale callbacks are invalidated when starting or leaving a table.
 
 Validation: `node scripts/validate-roulette-four.mjs` and `npm run build`. The validator covers money conservation, ties, chamber rules, bot termination, all 24 orders, viewer-relative seats and rematch deadlines. Existing game assets are retained because they are directly reused and remain referenced by the original games.
+
+## Debug panel
+
+Use Debug in the header, or Debug this round from the result dialog. Copy or download a JSON report with public game state, viewer-relative seats, money totals, control state, bot personalities/decisions, rematch votes and browser errors. The latest 160 session events survive rematches and new tables; reload clears them. Hidden panels do not render reports. Debugging never samples randomness or exposes the private bullet location. Profile image data and account storage are excluded.
 
 ## Mannequin asset
 

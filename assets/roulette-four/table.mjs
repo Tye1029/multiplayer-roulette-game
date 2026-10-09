@@ -1,4 +1,5 @@
-import { Round, VERSION, ENTRY, DIRECTIONS, relativeSeat, random, shuffle, createPersonality, botDecision, botDelay } from './model.mjs?v=four-player-roulette-v1';
+import { Round, VERSION, ENTRY, DIRECTIONS, relativeSeat, random, shuffle, createPersonality, botDecision, botDelay } from './model.mjs?v=four-player-roulette-debug-v2';
+import { installDebug } from './debug.mjs?v=four-player-roulette-debug-v2';
 
 const $ = id => document.getElementById(id);
 const money = cents => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: cents % 100 ? 2 : 0 }).format(cents / 100);
@@ -8,6 +9,7 @@ const names = ['Marlow', 'Vega', 'Rook', 'Jules', 'Ash', 'Knox', 'Indigo', 'Remy
 const profiles = ['amber.svg', 'mint.svg', 'rose.svg', 'violet.svg'];
 let roster = [], personalities = {}, game = null, roundNumber = 0, generation = 0, busy = false, muted = false;
 let angle = 270, phase = 'lobby', uploadUrl = '', messageTimer, tick, resumeResults = false;
+let tableNumber = 0;
 const timers = new Set(), audio = new Map();
 const sounds = {
   opening: '/assets/roulette/audio/revolver-spinning-on-wood-v4.mp3',
@@ -15,10 +17,23 @@ const sounds = {
   dry: '/assets/roulette/audio/freesound_community-gun-dry-firing-3-39820.mp3',
   live: '/assets/roulette/audio/freesound_community-single-pistol-gunshot-33-37187.mp3'
 };
+const diagnostics = installDebug(() => {
+  const state = game?.snapshot() || null;
+  if (state) state.players = state.players.map(({ avatar, ...p }) => ({ ...p,
+    direction: DIRECTIONS[relativeSeat(state.order, p.id, 'you')] }));
+  return { version: VERSION, table: tableNumber, state, bots: personalities,
+    ui: { phase: $('roulette-four').dataset.phase, busy, muted, gunAngle: angle,
+      pendingTimers: timers.size, resultOpen: $('result-dialog').open,
+      controls: Object.fromEntries(['shoot', 'spin', 'pass'].map(id => [id, { disabled: $(id).disabled, text: $(id).textContent.trim() }])) },
+    moneyCheck: state ? { totalCents: state.pot + state.players.reduce((sum, p) => sum + p.bank, 0), expectedCents: ENTRY * 4 } : null };
+});
+function trace(type, details = {}) {
+  diagnostics.record(type, { table: tableNumber, round: roundNumber, ...details });
+}
 function sound(key) {
   if (muted) return;
   if (!audio.has(key)) { const clip = new Audio(sounds[key]); clip.volume = key === 'live' ? 0.3 : 0.45; audio.set(key, clip); }
-  const clip = audio.get(key); clip.currentTime = 0; clip.play().catch(() => {});
+  const clip = audio.get(key); clip.currentTime = 0; clip.play().catch(error => trace('audio-unavailable', { sound: key, message: error.message }));
 }
 function stopTimers() {
   generation++; for (const timer of timers) clearTimeout(timer); timers.clear();
@@ -43,6 +58,7 @@ function rotateTo(id, opening = false) {
   angle += difference + (opening ? 1080 : 0);
   $('gun').style.transitionDuration = opening ? '3.7s' : '0.65s';
   $('gun').style.transform = `rotate(${angle}deg)`;
+  trace('gun-target', { player: id, direction: DIRECTIONS[relativeSeat(s.order, id, 'you')], angle, opening });
 }
 function buildRoster() {
   const botNames = shuffle(names).slice(0, 3), botProfiles = shuffle(profiles.filter(name => uploadUrl || name !== 'amber.svg')).slice(0, 3);
@@ -98,11 +114,13 @@ function render() {
   });
   $('activity').innerHTML = descriptions.map(text => `<li>${esc(text)}</li>`).join('');
   $('last-action').textContent = descriptions.at(-1) || 'The opening draw';
+  diagnostics.refresh();
 }
 function startRound() {
   stopTimers(); busy = true; roundNumber++;
   personalities = Object.fromEntries(roster.filter(p => p.isBot).map(p => [p.id, createPersonality()]));
   game = new Round(roster, random, roundNumber);
+  trace('round-start', { order: game.snapshot().order, bots: structuredClone(personalities) });
   $('result-dialog').close(); $('welcome').close(); $('scene').classList.remove('is-fatal');
   $('scene-message').textContent = ''; $('turn-hint').classList.remove('result-reopen');
   $('opening').hidden = false; $('opening-name').textContent = 'Four seats. One chamber.';
@@ -112,23 +130,31 @@ function startRound() {
   later(() => {
     const s = game.snapshot(); $('opening-name').textContent = `${player(s.activeId).name} goes first`;
   }, 3700);
-  later(() => { $('opening').hidden = true; busy = false; game.begin(); render(); scheduleBot(); }, 4500);
+  later(() => { $('opening').hidden = true; busy = false; game.begin(); trace('round-playing'); render(); scheduleBot(); }, 4500);
 }
 function scheduleBot() {
   const s = game.snapshot();
   if (s.phase !== 'playing' || s.activeId === 'you' || busy) return;
   const id = s.activeId, personality = personalities[id];
+  const delay = botDelay(personality);
+  trace('bot-thinking', { player: id, delayMs: delay });
   later(() => {
     const snapshot = game.snapshot();
     if (snapshot.activeId !== id || snapshot.phase !== 'playing' || busy) return;
     const choice = botDecision(snapshot, id, personality);
+    trace('bot-decision', { player: id, style: personality.kind, choice,
+      risk: snapshot.fatalRisk, awardCents: snapshot.award, canPass: snapshot.canPass });
     if (choice) act(id, choice);
-  }, botDelay(personality));
+  }, delay);
 }
 function act(id, action) {
-  if (busy) return;
+  if (busy) { trace('action-rejected', { player: id, action, reason: 'UI busy' }); return; }
   const event = game.act(id, action);
-  if (!event.ok) { toast(event.reason); return; }
+  if (!event.ok) { trace('action-rejected', event); toast(event.reason); return; }
+  const after = game.snapshot();
+  trace('action', { ...event, phase: after.phase, activePlayer: after.activeId,
+    potCents: after.pot, nextAwardCents: after.award,
+    banks: after.players.map(p => ({ id: p.id, bankCents: p.bank, shots: p.shots, spinUsed: p.spinUsed })) });
   busy = true;
   if (action === 'pass') { rotateTo(game.snapshot().activeId); }
   if (action === 'spin') { sound('spin'); toast(`${player(id).name} spun · next shot $20`); }
@@ -146,6 +172,7 @@ function act(id, action) {
 function showResults() {
   busy = false; game.openRematch();
   const s = game.snapshot(), me = s.players.find(p => p.id === 'you');
+  trace('results', { result: s.result, players: s.players.map(({ avatar, ...p }) => p), deadline: s.rematchDeadline });
   $('result-kicker').textContent = `ROUND ${s.round} COMPLETE`;
   $('result-title').textContent = s.result.reason === 'empty' ? 'The pot is empty.' : `${player(s.result.eliminatedId).name} is out.`;
   $('result-description').textContent = s.result.reason === 'empty' ? 'All $400 has been claimed. Everyone keeps their bank.' : `${money(s.result.splitTotal)} split by surviving shot counts. You finish with ${money(me.bank)}.`;
@@ -158,12 +185,15 @@ function showResults() {
   render(); updateRematch();
   tick = setInterval(updateRematch, 100);
   for (const bot of roster.filter(p => p.isBot)) {
-    if (random() < personalities[bot.id].rematch) later(() => vote(bot.id), 800 + random() * 5500);
+    const accepts = random() < personalities[bot.id].rematch;
+    trace('bot-rematch-plan', { player: bot.id, accepts });
+    if (accepts) later(() => vote(bot.id), 800 + random() * 5500);
   }
 }
 function updateRematch() {
   if (!game) return;
-  game.expire(); const s = game.snapshot();
+  if (game.expire()) trace('rematch-expired', { ready: game.snapshot().ready });
+  const s = game.snapshot();
   if (!['rematch', 'expired'].includes(s.phase)) return;
   $('roulette-four').dataset.phase = s.phase;
   const seconds = Math.max(0, Math.ceil((s.rematchDeadline - Date.now()) / 1000));
@@ -180,10 +210,11 @@ function updateRematch() {
 function vote(id) {
   if (!game) return;
   const allReady = game.vote(id); updateRematch();
+  trace('rematch-vote', { player: id, ready: game.snapshot().ready, phase: game.snapshot().phase, allReady });
   if (game.snapshot().ready.includes('you')) { $('rematch').disabled = true; $('rematch').textContent = 'You’re in · waiting for everyone'; }
   if (allReady) startRound();
 }
-function newTable() { stopTimers(); buildRoster(); roundNumber = 0; startRound(); }
+function newTable() { stopTimers(); buildRoster(); roundNumber = 0; tableNumber++; startRound(); }
 
 $('join-form').addEventListener('submit', event => { event.preventDefault(); newTable(); });
 $('shoot').addEventListener('click', () => act('you', 'shoot'));

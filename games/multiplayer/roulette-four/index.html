@@ -4,14 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#15120f">
-  <meta name="roulette-four-version" content="four-player-roulette-v1">
+  <meta name="roulette-four-version" content="four-player-roulette-debug-v2">
   <title>Four-player Roulette · XAN DUELS</title>
-  <link rel="stylesheet" href="/assets/roulette-four/table.css?v=four-player-roulette-v1">
-  <script type="module" src="/assets/roulette-four/table.mjs?v=four-player-roulette-v1"></script>
+  <link rel="stylesheet" href="/assets/roulette-four/table.css?v=four-player-roulette-debug-v2">
+  <script type="module" src="/assets/roulette-four/table.mjs?v=four-player-roulette-debug-v2"></script>
 </head>
 <body>
-  <main id="roulette-four" data-version="four-player-roulette-v1">
-    <header class="page-header"><div><a class="brand" href="/?game=roulette">XAN DUELS</a><h1>Four-player Roulette</h1></div><nav aria-label="Table options"><button id="sound" type="button" aria-pressed="true">Sound on</button><button id="rules" type="button">Rules</button><a href="/?game=roulette">Leave table</a></nav></header>
+  <main id="roulette-four" data-version="four-player-roulette-debug-v2">
+    <header class="page-header"><div><a class="brand" href="/?game=roulette">XAN DUELS</a><h1>Four-player Roulette</h1></div><nav aria-label="Table options"><button id="sound" type="button" aria-pressed="true">Sound on</button><button id="debug" type="button" aria-expanded="false" aria-controls="debug-panel">Debug</button><button id="rules" type="button">Rules</button><a href="/?game=roulette">Leave table</a></nav></header>
     <div class="table-meta"><span><i class="live-dot"></i> BOT TABLE <span class="practice">· Practice money</span></span><span id="round-label">$100 each · $400 pot</span></div>
     <section id="players" class="player-bars" aria-label="Players, turn order and banks"></section>
     <section id="scene" class="scene" aria-label="Four-player Roulette table">
@@ -31,10 +31,17 @@
       <div class="chamber-line"><span id="chambers" aria-label="Chambers since last spin"></span><span id="risk-label">1 in 6 · 16.7% risk</span><span id="your-count">0 safe shots</span></div>
     </section>
     <details class="round-log"><summary>Round activity <span id="last-action">Waiting for players</span></summary><ol id="activity"></ol></details>
+    <section id="debug-panel" class="debug-panel" aria-labelledby="debug-title" hidden>
+      <div class="debug-heading"><h2 id="debug-title">Table debug</h2><button id="close-debug" type="button">Close debug</button></div>
+      <p>Current state, bot choices, payouts, rematch votes and browser errors. Keeps the latest 160 events across rounds until you reload. The game keeps running while this panel is open.</p>
+      <div class="debug-actions"><button id="copy-debug" type="button">Copy debug report</button><button id="download-debug" type="button">Download JSON</button><button id="refresh-debug" type="button">Refresh</button></div>
+      <p id="debug-status" role="status">Copy a report when something goes wrong and share it with a description.</p>
+      <label for="debug-report">Live report · amounts in cents</label><textarea id="debug-report" readonly spellcheck="false" wrap="off"></textarea>
+    </section>
     <footer><span>Bot personalities and turn order change every round.</span><button id="reopen-results" type="button" hidden>Results &amp; rematch</button><button id="new-table" type="button">New table</button></footer>
   </main>
   <dialog id="welcome"><form id="join-form"><p class="eyebrow">FOUR SEATS · ONE POT</p><h2>Take your chances.</h2><p>Join three bots with their own changing play styles. Everyone puts in $100 of practice money.</p><label>Your name<input id="player-name" maxlength="24" autocomplete="nickname" value="You"></label><label class="photo-upload">Profile picture <input id="player-photo" type="file" accept="image/png,image/jpeg,image/webp"></label><button class="primary" type="submit">Take a seat · $100</button><p class="fine">Survive to earn $20, then $40, then $60…</p></form></dialog>
   <dialog id="rules-dialog"><h2>The table rules</h2><ol><li>Everyone contributes $100. The opening spin picks the first player; turns move clockwise.</li><li>You must shoot at least once on your turn. After a safe shot, shoot again or pass.</li><li>The next shot starts at $20 and rises by $20 after every safe shot, even across passes.</li><li>Each player has one spin per round. It randomizes the bullet and resets the next shot to $20. Shoot before passing after a spin.</li><li>The first elimination ends the round. The eliminated bank returns to the pot. Survivors keep their banks and split what remains by safe-shot rank: 25:30:35 weights (27.78%, 33.33%, 38.89%). Ties share their ranks equally.</li><li>An empty pot also ends the round. Every cent is paid out; there is no house deduction.</li><li>All four players must accept the rematch within 10 seconds. A rematch resets banks, spins and shot counts, with a fresh turn order and bot personalities.</li></ol><button id="close-rules" class="primary" type="button">Back to the table</button></dialog>
-  <dialog id="result-dialog" aria-labelledby="result-title"><p class="eyebrow" id="result-kicker">ROUND COMPLETE</p><h2 id="result-title"></h2><p id="result-description"></p><div id="result-rows" class="result-rows"></div><div class="rematch"><div class="rematch-title"><strong>Run it back?</strong><span id="countdown" role="timer" aria-label="Rematch time remaining">10s</span></div><div id="ready-bubbles" class="ready-bubbles" aria-label="Rematch votes"></div><p id="ready-label" aria-live="polite">Waiting for all four players</p><button id="rematch" class="primary" type="button">I'm in · Rematch</button><button id="result-new-table" type="button">Find a new table</button></div><button id="view-table" class="text-button" type="button">View the table</button></dialog>
+  <dialog id="result-dialog" aria-labelledby="result-title"><p class="eyebrow" id="result-kicker">ROUND COMPLETE</p><h2 id="result-title"></h2><p id="result-description"></p><div id="result-rows" class="result-rows"></div><div class="rematch"><div class="rematch-title"><strong>Run it back?</strong><span id="countdown" role="timer" aria-label="Rematch time remaining">10s</span></div><div id="ready-bubbles" class="ready-bubbles" aria-label="Rematch votes"></div><p id="ready-label" aria-live="polite">Waiting for all four players</p><button id="rematch" class="primary" type="button">I'm in · Rematch</button><button id="result-new-table" type="button">Find a new table</button></div><button id="result-debug" class="text-button" type="button">Debug this round</button><button id="view-table" class="text-button" type="button">View the table</button></dialog>
 </body>
 </html>
