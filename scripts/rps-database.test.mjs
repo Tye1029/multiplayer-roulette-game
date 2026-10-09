@@ -2,6 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
+import { readFileSync } from 'node:fs';
 import { PGlite } from '@electric-sql/pglite';
 const require = createRequire(import.meta.url);
 const { createStore } = require('../netlify/functions/rps/database.js');
@@ -15,6 +16,8 @@ test('transactional sessions, concurrent picks, exactly-once results and consens
   }};
   const db=createStore(pool);
   try {
+    const migration=readFileSync(new URL('../netlify/database/migrations/004_rps_arena.sql',import.meta.url),'utf8');
+    await pg.exec(migration); await pg.exec(migration);
     const token=await db.session(a); assert.equal(token.length,64);
     assert.deepEqual(await db.authenticate(token),a); assert.equal(await db.authenticate('b'.repeat(64)),null);
     const stored=await pg.query('SELECT token_hash FROM rps_sessions'); assert.notEqual(stored.rows[0].token_hash,token);

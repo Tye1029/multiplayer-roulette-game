@@ -21,8 +21,10 @@ a client-supplied visitor alias or display name. Existing site keys can be reuse
 by the page. Sessions and active game IDs are kept in sessionStorage.
 
 `rps/database.js` uses the existing `NETLIFY_DB_URL` PostgreSQL pool, lazy schema
-initialization, row locks and transactions. Completed human matches insert one
-result per match ID in the same transaction as completion. Rivalries aggregate
+initialization, row locks and transactions. Migrations and cold starts share a
+transaction-scoped schema advisory lock to prevent concurrent table/type creation.
+Completed human matches insert one result per match ID in the same transaction
+as the decisive pick, with visibility delayed until the finale ends. Rivalries aggregate
 these immutable results, sorted by completed matches, then latest match, then
 opponent ID. The first is the arch rival. Displayed head-to-head wins count
 matches, not individual hands. Bot/exhibition/abandoned matches never count.
