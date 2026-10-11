@@ -56,11 +56,11 @@ function occurrences(source, fragment) {
 }
 
 assert(MOUNTAIN_RACE_DEFAULT_STEPS === 30, 'authoritative course length changed');
-assert(MOUNTAIN_RACE_DURATION_MS === 30_000, 'authoritative race duration changed');
+assert(MOUNTAIN_RACE_DURATION_MS === 60_000, 'authoritative race duration changed');
 assert(MOUNTAIN_RACE_COUNTDOWN_MS === 3_000, 'authoritative countdown duration changed');
 assert(MOUNTAIN_RACE_BOT_ERROR_RATE === 0.08, 'testing bot error rate changed');
 assert(MOUNTAIN_RACE_BOT_CATCH_UP_LIMIT === 1, 'testing bot must execute at most one move per server wake');
-assert(JSON.stringify(MOUNTAIN_RACE_CONTROLS) === JSON.stringify(['up', 'left', 'right', 'down']), 'control set changed');
+assert(JSON.stringify(MOUNTAIN_RACE_CONTROLS) === JSON.stringify(['up', 'left', 'right', 'down', 'up+left', 'up+right', 'down+left', 'down+right']), 'control set changed');
 
 for (const fragment of [
   'MOUNTAIN_RACE_SERVER_START',
@@ -114,7 +114,7 @@ for (const fragment of [
   'async function applyActionUnlocked(user, game, rawChoice, details = {}, options = {})',
   'async function action(user, gameId, rawChoice, details = {})',
   'async function advance(game)',
-  'const match = /^mountainrace:input:(up|left|right|down)$/',
+  'const match = /^mountainrace:input:(up|left|right|down|(?:up|down)\\+(?:left|right))$/',
   'expectedPromptIndex !== actualPromptIndex',
   'processedActionIds.includes(actionId)',
   'processed < MOUNTAIN_RACE_BOT_CATCH_UP_LIMIT',

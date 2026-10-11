@@ -281,7 +281,7 @@ function createMountainRaceIntegration(host = {}) {
         revision: 0,
         startAt: game?.startAt || null,
         endAt: null,
-        secondsLeft: 30,
+        secondsLeft: MOUNTAIN_RACE_DURATION_MS / 1000,
         stepsTotal: MOUNTAIN_RACE_DEFAULT_STEPS,
         canSubmit: false,
         prompts: [],
@@ -307,8 +307,8 @@ function createMountainRaceIntegration(host = {}) {
       secondsLeft: complete || state.completedAt
         ? 0
         : Number.isFinite(endAtMs)
-          ? Math.max(0, Math.ceil((endAtMs - Date.now()) / 1000))
-          : 30,
+          ? Math.min(MOUNTAIN_RACE_DURATION_MS / 1000, Math.max(0, Math.ceil((endAtMs - Date.now()) / 1000)))
+          : MOUNTAIN_RACE_DURATION_MS / 1000,
       stepsTotal: state.sequence.length,
       canSubmit:
         String(game?.status || '') === 'playing'
@@ -453,7 +453,7 @@ function createMountainRaceIntegration(host = {}) {
     if (game.mode !== 'mountainrace') throw new Error('That duel is not Summit Sprint.');
     if (!playerIds(game).includes(viewer)) throw new Error('You are not in this Summit Sprint race.');
 
-    const chargeCommand = /^mountainrace:(charge|release|cancel):(?:(2|3|4):)?(up|left|right|down)$/.exec(String(rawChoice || '').toLowerCase());
+    const chargeCommand = /^mountainrace:(charge|release|cancel):(?:(2|3|4):)?(up|left|right|down|(?:up|down)\+(?:left|right))$/.exec(String(rawChoice || '').toLowerCase());
     if (chargeCommand) {
       const key = String(details.actionId || '').replace(/[^A-Za-z0-9._:-]/g, '').slice(0, 110);
       const receipt = `${chargeCommand[1]}:${key}`;
@@ -478,7 +478,7 @@ function createMountainRaceIntegration(host = {}) {
       throw new Error('That charged jump could not be confirmed. Refresh to reconnect.');
     }
 
-    const match = /^mountainrace:input:(up|left|right|down)$/.exec(String(rawChoice || '').toLowerCase());
+    const match = /^mountainrace:input:(up|left|right|down|(?:up|down)\+(?:left|right))$/.exec(String(rawChoice || '').toLowerCase());
     if (!match) throw new Error('Choose one valid climbing direction.');
 
     const submittedControl = match[1];

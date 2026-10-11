@@ -23,14 +23,14 @@
   // MOUNTAIN_RACE_INPUT_REBASE_V8
 
   const MODE = 'mountainrace';
-  window.__mountainRaceBuild = 'SUMMIT_SPRINT_V74';
+  window.__mountainRaceBuild = 'SUMMIT_SPRINT_V75';
   function traceInput(type, details = {}) {
     const entries = window.__mountainRaceInputDiagnostics ||= [];
     entries.push({type, at:new Date().toISOString(), ...details});
     if (entries.length > 40) entries.shift();
   }
   const STATE_EVENT = 'mountainrace:state';
-  const CONTROLS = Object.freeze(['up', 'left', 'right', 'down']);
+  const CONTROLS = Object.freeze(['up', 'left', 'right', 'down', 'up+left', 'up+right', 'down+left', 'down+right']);
   const KEY_MAP = Object.freeze({
     ArrowUp: 'up', ArrowLeft: 'left', ArrowRight: 'right', ArrowDown: 'down',
     w: 'up', W: 'up', a: 'left', A: 'left', d: 'right', D: 'right', s: 'down', S: 'down'
@@ -63,6 +63,8 @@
   const JUMP_WINDOWS = {2:[260,440],3:[380,510],4:[500,590]};
   let heldInput = null, directionHold = null, chargeFrame = 0, recoveryTimer = 0, localRecoveryUntil = 0;
   let keyboardGameId = '';
+  const pressedDirections = new Map();
+  let holdDeadline = 0;
   function recovering() { return Math.max(localRecoveryUntil - performance.now(), (Date.parse(state().me?.recoverUntil || '') || 0) - serverNowMs()) > 0; }
 
   function escapeHtml(value) {
@@ -204,7 +206,7 @@
     const publicState = state();
     if (runtime.game?.status === 'complete' || publicState.completedAt) return 0;
     const endAt = Date.parse(String(publicState.endAt || ''));
-    return Number.isFinite(endAt) ? Math.max(0, Math.ceil((endAt - serverNowMs()) / 1000)) : 30;
+    return Number.isFinite(endAt) ? Math.min(60, Math.max(0, Math.ceil((endAt - serverNowMs()) / 1000))) : 60;
   }
 
   function countdownValue() {
@@ -1665,32 +1667,62 @@
   }
 
   function beginDirection(token, displayed, source) {
-    if (directionHold || heldInput || recovering() || runtime.inputQueueBlocked || !state().canSubmit || runtime.game?.status !== 'playing') return;
-    const gesture = {token, displayed, source};
+    // A fresh press of the same source proves its previous release was lost.
+    if (pressedDirections.has(source)) cancelGestures();
+    if (heldInput || recovering() || runtime.inputQueueBlocked || !state().canSubmit || runtime.game?.status !== 'playing') return;
+    pressedDirections.set(source, token);
+    const gesture = directionHold || {token, displayed, source, sources:new Set(), startedAt:performance.now()};
+    gesture.sources.add(source);
+    const parts = [...new Set([...gesture.sources].map(key => pressedDirections.get(key)))];
+    gesture.token = ['up','down','left','right'].filter(part => parts.includes(part)).join('+');
+    window.clearTimeout(gesture.timer);
     directionHold = gesture;
-    // Quick taps resolve on release. Holding selects the nearest matching ledge
-    // beyond the next one, without first submitting it as a wrong single step.
+    window.clearTimeout(holdDeadline);
+    holdDeadline = window.setTimeout(() => {
+      traceInput('gesture-timeout');
+      cancelGestures();
+    }, 2000);
+    // Merge simultaneous keys/fingers before choosing the single or paired target.
     gesture.timer = window.setTimeout(() => {
       if (directionHold !== gesture) return;
-      gesture.held = true;
+      if (!CONTROLS.includes(gesture.token)) {
+        runtime.syncNotice = 'Use one arrow, or an up/down + left/right pair.';
+        render();
+        return;
+      }
       const pub = state(), view = optimisticPresentation(pub, pub.inputPrompts || pub.prompts || [], Number(pub.stepsTotal) || 30);
-      const offset = view.prompts.slice(0,4).findIndex((t,i) => i > 0 && t === token);
-      traceInput('direction-hold', {token, distance:offset > 0 ? offset+1 : null});
-      if (offset > 0) beginHold(offset + 1, source);
-      else {
-        runtime.syncNotice = `No farther ${token.toUpperCase()} ledge in the next four. Tap the next arrow or hold a jump card.`;
+      const offset = view.prompts.slice(0,4).findIndex((t,i) => i > 0 && t === gesture.token);
+      traceInput('direction-hold', {token:gesture.token, distance:offset > 0 ? offset+1 : null});
+      if (offset > 0) {
+        gesture.held = true;
+        beginHold(offset + 1, gesture.source);
+      } else if (view.prompts[0] !== gesture.token) {
+        gesture.held = true;
+        runtime.syncNotice = 'That command is not a farther target. Follow the next four move cards.';
         render();
       }
     }, 120);
   }
 
-  function finishDirection(cancel = false, source = directionHold?.source) {
+  function finishDirection(cancel = false, source) {
     const gesture = directionHold;
-    if (!gesture || gesture.source !== source) return;
+    if (source) pressedDirections.delete(source);
+    if (!gesture || (source && !gesture.sources.has(source))) return;
     window.clearTimeout(gesture.timer);
+    window.clearTimeout(holdDeadline);
     directionHold = null;
-    if (heldInput?.source === source) finishHold(cancel);
-    else if (!cancel && !gesture.held) submit(gesture.token, gesture.displayed);
+    // The first release commits the chord once. Remaining releases are inert;
+    // a missing second release must never block the next fresh press.
+    pressedDirections.clear();
+    if (heldInput?.source === gesture.source) finishHold(cancel);
+    else if (!cancel && !gesture.held && CONTROLS.includes(gesture.token)) submit(gesture.token, gesture.displayed);
+  }
+
+  function cancelGestures() {
+    finishDirection(true);
+    finishHold(true);
+    pressedDirections.clear();
+    window.clearTimeout(holdDeadline);
   }
 
   function beginHold(distance, source) {
@@ -1706,6 +1738,11 @@
       released: false, visualAge: 0, lastFrame: performance.now() };
     hold.releasePromise = new Promise(resolve => { hold.resolveRelease = resolve; });
     heldInput = hold;
+    window.clearTimeout(holdDeadline);
+    holdDeadline = window.setTimeout(() => {
+      traceInput('gesture-timeout');
+      cancelGestures();
+    }, 2000);
     runtime.syncNotice = '';
     traceInput('charge-start', {token, distance, fromIndex:hold.fromIndex});
     runtime.inputQueue.push(hold);
@@ -1754,7 +1791,7 @@
     hold.lastFrame = now;
     window.SummitSceneV68?.setCharge?.(runtime.root, {distance:hold.distance,fromIndex:hold.fromIndex,
       token:hold.token, directional:directionHold?.source===hold.source, age, window:JUMP_WINDOWS[hold.distance]});
-    if (age > 850) { finishHold(false, hold); return; }
+    if (age > 850) { finishHold(false, hold); finishDirection(true); pressedDirections.clear(); return; }
     chargeFrame = window.requestAnimationFrame(animateCharge);
   }
 
@@ -1778,6 +1815,7 @@
     hold.resolveRelease();
     if (heldInput === hold) {
       heldInput = null;
+      window.clearTimeout(holdDeadline);
       window.cancelAnimationFrame(chargeFrame);
       window.SummitSceneV68?.setCharge?.(runtime.root, null);
     }
@@ -1789,7 +1827,7 @@
     const card = event.target.closest('[data-mr-jump]');
     if (card && runtime.root?.contains(card) && !card.disabled && event.button === 0) {
       event.preventDefault();
-      card.setPointerCapture?.(event.pointerId);
+      runtime.root.setPointerCapture?.(event.pointerId);
       const distance = Number(card.dataset.mrJump);
       if (distance === 1) submit(card.dataset.token);
       else beginHold(distance, `pointer:${event.pointerId}`);
@@ -1799,7 +1837,7 @@
     if (input && runtime.root?.contains(input) && !input.disabled) {
       event.preventDefault();
       if (event.button !== 0) return;
-      input.setPointerCapture?.(event.pointerId);
+      runtime.root.setPointerCapture?.(event.pointerId);
       beginDirection(input.dataset.mrNetworkInput, {
         expected: input.dataset.mrDisplayedExpected || '',
         promptIndex: input.dataset.mrDisplayedIndex,
@@ -1819,8 +1857,13 @@
   }
 
   function onKeyDown(event) {
-    if (runtime.game?.status !== 'playing' || !runtime.root?.isConnected || runtime.root.closest('[hidden]')) return;
-    if (/^(INPUT|TEXTAREA|SELECT)$/.test(event.target?.tagName) || event.target?.isContentEditable) return;
+    if (!['countdown','playing'].includes(runtime.game?.status) || !runtime.root?.isConnected || runtime.root.closest('[hidden]')) return;
+    // The wager field may retain focus after a shared-site render. Game controls
+    // own arrows then; visible text fields in menus retain normal editing.
+    const editing = /^(INPUT|TEXTAREA|SELECT)$/.test(event.target?.tagName) || event.target?.isContentEditable;
+    if (editing && event.target.id !== 'duelWagerInput' && event.target.getClientRects().length) return;
+    if (KEY_MAP[event.key] || ['2','3','4'].includes(event.key)) event.preventDefault();
+    if (runtime.game.status !== 'playing') return;
     const distance = Number(event.key);
     const card = event.target.closest?.('[data-mr-jump]');
     if ([2,3,4].includes(distance) || (card && [' ', 'Enter'].includes(event.key))) {
@@ -1834,7 +1877,6 @@
     }
     const token = KEY_MAP[event.key];
     if (!token || runtime.game?.status !== 'playing') return;
-    if (/^(INPUT|TEXTAREA|SELECT)$/.test(event.target?.tagName) || event.target?.isContentEditable) return;
     event.preventDefault();
     // Held arrow keys still emit repeats. Consume them before returning so the
     // browser cannot scroll the course or accidentally submit extra moves.
@@ -1878,8 +1920,7 @@
     }
 
     if (gameChanged) {
-      finishDirection(true);
-      finishHold(true);
+      cancelGestures();
       localRecoveryUntil = 0;
       clearInputQueue();
       runtime.syncNotice = '';
@@ -1903,7 +1944,10 @@
     updateServerClock(mergedGame);
     scheduleResultReveal(previousGame, mergedGame);
     if (String(mergedGame.status || '') === 'complete') window.__mountainRacePauseCompletedPolling?.(mergedGame);
-    if (String(mergedGame.status || '') !== 'playing' && runtime.inputQueue.length) clearInputQueue();
+    if (String(mergedGame.status || '') !== 'playing') {
+      cancelGestures();
+      if (runtime.inputQueue.length) clearInputQueue();
+    }
 
     if (resolvingPending) {
       finishPendingAction(options.actionId || '');
@@ -1927,13 +1971,19 @@
 
   window.addEventListener(STATE_EVENT, event => adopt(event?.detail?.game, { source: 'state-event' }));
   document.addEventListener('pointerdown', onPointerDown, { passive: false });
-  document.addEventListener('pointerup', event => { const source=`pointer:${event.pointerId}`;finishDirection(false,source);if (heldInput?.source === source) finishHold(); });
-  document.addEventListener('pointercancel', event => { const source=`pointer:${event.pointerId}`;finishDirection(true,source);if (heldInput?.source === source) finishHold(true); });
+  function releasePointer(event, cancel = false) {
+    const source = `pointer:${event.pointerId}`;
+    finishDirection(cancel, source);
+    if (heldInput?.source === source) finishHold(cancel);
+  }
+  document.addEventListener('pointerup', event => releasePointer(event), true);
+  document.addEventListener('pointercancel', event => releasePointer(event, true), true);
+  document.addEventListener('lostpointercapture', event => releasePointer(event, true), true);
   window.addEventListener('keydown', onKeyDown, { passive: false, capture: true });
-  window.addEventListener('keyup', event => { const source=`key:${event.code || event.key}`;if(directionHold?.source===source||heldInput?.source===source){event.preventDefault();finishDirection(false,source);if(heldInput?.source===source)finishHold();} });
-  window.addEventListener('blur', () => { finishDirection(true);finishHold(true); });
+  window.addEventListener('keyup', event => { const source=`key:${event.code || event.key}`;if(pressedDirections.has(source)||heldInput?.source===source){event.preventDefault();finishDirection(false,source);if(heldInput?.source===source)finishHold();} }, true);
+  window.addEventListener('blur', cancelGestures);
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) { finishDirection(true);finishHold(true); }
+    if (document.hidden) cancelGestures();
     if (!document.hidden && runtime.game) window.__mountainRaceBridge?.refresh?.();
   });
 

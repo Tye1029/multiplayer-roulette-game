@@ -25,9 +25,9 @@ function assert(condition, message) {
 }
 
 assert(MOUNTAIN_RACE_MODE === 'mountainrace', 'internal mode id changed');
-assert(JSON.stringify(MOUNTAIN_RACE_CONTROLS) === JSON.stringify(['up', 'left', 'right', 'down']), 'control set changed');
+assert(JSON.stringify(MOUNTAIN_RACE_CONTROLS) === JSON.stringify(['up', 'left', 'right', 'down', 'up+left', 'up+right', 'down+left', 'down+right']), 'control set changed');
 assert(MOUNTAIN_RACE_DEFAULT_STEPS === 30, 'race no longer uses 30 holds');
-assert(MOUNTAIN_RACE_DURATION_MS === 30_000, 'race clock is no longer 30 seconds');
+assert(MOUNTAIN_RACE_DURATION_MS === 60_000, 'race clock is no longer 60 seconds');
 assert(readme.includes('Standalone prototype'), 'front-end README does not document the prototype');
 assert(readme.includes('/mountain-race-preview.html'), 'prototype route is not documented');
 assert(readme.includes('Multiplayer testing'), 'shared multiplayer registration is not documented');
@@ -36,7 +36,7 @@ assert(serverReadme.includes('shared duel create/join lifecycle'), 'server integ
 for (const fragment of [
   "window.MountainRaceGame = Object.freeze",
   "const MODE = 'mountainrace';",
-  'const TOTAL_HOLDS = 24;',
+  'const TOTAL_HOLDS = 30;',
   'const RACE_DURATION_MS = 30_000;',
   'const BOT_ERROR_RATE = 0.08;',
   'function createSequence(length = TOTAL_HOLDS)',
@@ -71,7 +71,7 @@ assert(!preview.includes('/assets/roulette/'), 'preview loads Roulette assets');
 const state = createMountainRaceState({ playerIds: ['player-a', 'player-b'], now: 1_800_000_000_000, sequenceLength: 8 });
 assert(state.sequence.length === 8, 'authoritative sequence length is incorrect');
 assert(Object.keys(state.players).length === 2, 'authoritative state does not contain exactly two players');
-assert(Date.parse(state.endAt) - Date.parse(state.startAt) === 30_000, 'authoritative race duration is incorrect');
+assert(Date.parse(state.endAt) - Date.parse(state.startAt) === 60_000, 'authoritative race duration is incorrect');
 assert(!state.sequence.some((control, index) => index >= 2 && control === state.sequence[index - 1] && control === state.sequence[index - 2]), 'sequence contains a three-control repeat');
 
 const expected = state.sequence[0];
@@ -92,4 +92,4 @@ assert(publicState.prompts.length <= 4, 'public state exposes too many future pr
 assert(!('sequence' in publicState), 'public state exposes the full private sequence');
 assert(!('expected' in (publicState.players['player-a'].lastInput || {})), 'public player state exposes the expected answer');
 
-console.log('Summit Sprint prototype validation passed: the standalone 24-hold race retains countdown, scrolling lanes, keyboard/touch input, a Normal bot, one-hold slip penalties, a 30-second clock, replay states, isolated assets, and the shared multiplayer-compatible state model.');
+console.log('Summit Sprint prototype validation passed: the standalone 30-hold race retains countdown, scrolling lanes, keyboard/touch input, a Normal bot, one-hold slip penalties, a 30-second clock, replay states, isolated assets, and the shared multiplayer-compatible state model.');

@@ -3,9 +3,9 @@
 const { randomInt, randomUUID } = require('node:crypto');
 
 const MOUNTAIN_RACE_MODE = 'mountainrace';
-const MOUNTAIN_RACE_CONTROLS = Object.freeze(['up', 'left', 'right', 'down']);
+const MOUNTAIN_RACE_CONTROLS = Object.freeze(['up', 'left', 'right', 'down', 'up+left', 'up+right', 'down+left', 'down+right']);
 const MOUNTAIN_RACE_DEFAULT_STEPS = 30;
-const MOUNTAIN_RACE_DURATION_MS = 30_000;
+const MOUNTAIN_RACE_DURATION_MS = 60_000;
 const MOUNTAIN_RACE_COUNTDOWN_MS = 3_000;
 const MOUNTAIN_RACE_RECOVERY_MS = 500;
 const MOUNTAIN_RACE_CHARGE_GREEN_MS = 900;
@@ -32,14 +32,10 @@ function createMountainRaceSequence(length = MOUNTAIN_RACE_DEFAULT_STEPS) {
   const total = clampInteger(length, 8, 80);
   const sequence = [];
   for (let index = 0; index < total; index += 1) {
-    const previous = sequence[index - 1] || '';
-    const beforePrevious = sequence[index - 2] || '';
-    let control = MOUNTAIN_RACE_CONTROLS[randomInt(0, MOUNTAIN_RACE_CONTROLS.length)];
-    if (control === previous && control === beforePrevious) {
-      const alternatives = MOUNTAIN_RACE_CONTROLS.filter(candidate => candidate !== control);
-      control = alternatives[randomInt(0, alternatives.length)];
-    }
-    sequence.push(control);
+    // Every visible four-command window has one unambiguous target per command.
+    const recent = sequence.slice(-3);
+    const choices = MOUNTAIN_RACE_CONTROLS.filter(control => !recent.includes(control));
+    sequence.push(choices[randomInt(0, choices.length)]);
   }
   return sequence;
 }
