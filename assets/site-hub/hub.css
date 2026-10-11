@@ -62,3 +62,7 @@ body:has(#duelScreen:not([hidden])){background:var(--hub-bg)!important}#duelScre
 .four-online .hub-create-controls{width:340px;max-width:100%}.four-online #join-form>label{display:grid;gap:7px;margin:0;flex:1;font:600 11px system-ui;color:var(--hub-muted)}.four-online #join-form>button[type=submit]{width:auto;flex:none}.four-online #join-form #profile-status{color:var(--hub-muted)}
 .hub-game-preview.hub-summit-preview{height:auto;max-width:1100px;box-shadow:none}.hub-summit-preview .m68-queue{display:none}
 .hub-game-preview[hidden]{display:none!important}
+#duelScreen.hub-has-game>.hub-game-entry{display:none}
+#duelScreen .m68-header{display:flex!important}
+#duelScreen.hub-has-game .m68-lane{height:clamp(260px,calc(100dvh - 370px),500px)}
+@media(max-width:600px){#duelScreen.hub-has-game .m68-lane{height:clamp(220px,calc(100dvh - 540px),350px)}}
