@@ -83,6 +83,11 @@
     const mode=button.dataset.mode,g=games[mode];if(!g)continue;const tile=element('article',undefined,'hub-tile');button.before(tile);tile.append(button);button.replaceChildren();const img=element('img');img.src='/assets/site-hub/images/'+mode+'.webp';img.alt='';img.width=360;img.height=360;img.loading='lazy';button.append(img);if(['safecracker','blackjackduel','rps'].includes(mode)){const fg=element('img',undefined,'hub-foreground');fg.src='/assets/site-hub/images/'+mode+'-foreground.webp';fg.alt='';fg.loading='lazy';button.append(fg);}
     const label=element('span',undefined,'hub-title');label.append(element('small',g[1]),document.createTextNode(g[0]));button.append(label);const info=element('button','i','hub-info');info.setAttribute('aria-label','Rules for '+g[0]);info.onclick=()=>showRules(mode);tile.append(info);
   }
+  const yahtzeeTile=element('article',undefined,'hub-tile');
+  const yahtzeeLink=element('a',undefined,'sth-game');yahtzeeLink.href='/games/multiplayer/yahtzee/';
+  const yahtzeeArt=element('img');yahtzeeArt.src='/assets/yahtzee/dice.svg';yahtzeeArt.alt='';yahtzeeArt.width=360;yahtzeeArt.height=360;yahtzeeArt.loading='lazy';
+  const yahtzeeLabel=element('span',undefined,'hub-title');yahtzeeLabel.append(element('small','2–4 FRIENDS · FREE TO PLAY'),document.createTextNode('Yahtzee'));
+  yahtzeeLink.append(yahtzeeArt,yahtzeeLabel);yahtzeeTile.append(yahtzeeLink);grid.append(yahtzeeTile);
   const section=element('section',undefined,'hub-open');section.innerHTML='<div class="hub-heading"><h2>Open Games</h2><span>Join the next game</span></div><div id="hub-games" data-hub-games aria-live="polite"><p class="hub-empty">Connect your public API key to see open games and wagers.</p></div><p id="hub-lobby-status" class="hub-status" role="status"></p>';card.append(section);
   const syncKey=()=>{const ok=storage.get('tornKeyConfirmed')==='true'&&Boolean(storage.get('tornVisitorApiKey'));keyBox.hidden=ok;grid.querySelectorAll('.sth-game').forEach(b=>b.disabled=!ok);updateHeader();};
   new MutationObserver(syncKey).observe($('simpleApiStatus'),{childList:true,attributes:true});syncKey();
