@@ -33,7 +33,7 @@ body:has(#simpleTestHome:not([hidden])) #rnbDock{display:none!important}
 #simpleTestHome .hub-title{z-index:1}
 body>header.xan-bar .xan-brand{font-weight:900!important}
 @media(max-width:800px){body>header.xan-bar{padding:10px 12px;gap:7px}}
-/* XAN_HUB_V2_20261011: one create-and-join format across game routes. */
+/* XAN_HUB_V4_20261011: one create-and-join format across game routes. */
 .hub-game-entry,.hub-game-open{font-family:Inter,ui-sans-serif,system-ui,sans-serif!important;color:var(--hub-text);max-width:1180px;margin:0 auto 24px;text-align:left}
 .hub-game-entry{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:20px;padding:24px 0;border-bottom:1px solid var(--hub-line)}
 .hub-game-entry h1{margin:5px 0 0!important;font:750 clamp(24px,4vw,36px)/1.15 Inter,system-ui!important;letter-spacing:-.03em!important;text-transform:none!important;text-shadow:none!important;color:var(--hub-text)!important}
