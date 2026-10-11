@@ -1,4 +1,4 @@
-/* YAHTZEE_DUEL_V2_20261011 — shared, deterministic scoring. */
+/* YAHTZEE_DUEL_V3_20261011 — shared, deterministic scoring. */
 (function(root, factory) {
   const rules = factory();
   if (typeof module === 'object' && module.exports) module.exports = rules;
@@ -50,5 +50,12 @@
     const bonus = upper >= 63 ? 35 : 0;
     return {upper, bonus, total: Object.values(player.card).reduce((a,b) => a+b, 0) + bonus + player.bonus};
   }
-  return {categories, keys, score, options, totals};
+  function breakdown(card,yahtzeeBonus=0){
+    const entries=categories.map(([key,label])=>({key,label,points:card[key]||0}));
+    const upper=keys.slice(0,6).reduce((sum,key)=>sum+(card[key]||0),0);
+    entries.splice(6,0,{key:'upper-bonus',label:'Upper bonus',points:upper>=63?35:0});
+    entries.push({key:'yahtzee-bonus',label:'Yahtzee bonuses',points:yahtzeeBonus});
+    return entries;
+  }
+  return {categories, keys, score, options, totals, breakdown};
 });

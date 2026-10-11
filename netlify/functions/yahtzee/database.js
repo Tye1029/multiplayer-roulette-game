@@ -12,7 +12,7 @@ function createStore(injected,roll,clock=Date.now){
   async function run(b,identity,ip='local'){
     if(!identity||!/^\d+$/.test(String(identity.id)))model.fail('Connect your API key on the main site.',401);
     const id=String(identity.id),now=clock();
-    if(!['create','get','join','start','bot','roll','hold','score','rematch','leave'].includes(b.action))model.fail('Unknown action.',400);
+    if(!['create','get','join','start','bot','roll','hold','score','rematch','leave','cancel'].includes(b.action))model.fail('Unknown action.',400);
     if(b.action!=='get'&&!/^[a-zA-Z0-9-]{16,64}$/.test(b.requestId||''))model.fail('Missing request ID.',400);
     const code=b.action==='create'?hash(id+':'+b.requestId).slice(0,8).toUpperCase():String(b.room||'').toUpperCase();
     if(!/^[A-F0-9]{8}$/.test(code))model.fail('Enter the 8-character room code.',400);
@@ -50,6 +50,12 @@ function createStore(injected,roll,clock=Date.now){
       await c.query('COMMIT');return model.publicState(s,id,now);
     }catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}
   }
-  return {run};
+  async function lobby(identity){
+    if(!identity||!/^\d+$/.test(String(identity.id)))model.fail('Connect your API key on the main site.',401);
+    await ready();
+    const rows=(await db().query("SELECT id, state->'players'->0->>'id' AS owner, state->'players'->0->>'name' AS creator, state->>'expiresAt' AS expires FROM yahtzee_rooms WHERE state->>'version'='2' AND state->>'phase'='waiting' AND jsonb_array_length(state->'players')=1 AND (state->>'expiresAt')::bigint>$1 ORDER BY created_at DESC LIMIT 50",[clock()])).rows;
+    return rows.map(r=>({id:r.id,mode:'yahtzee',name:'Yahtzee',creator:r.creator,mine:r.owner===String(identity.id),wager:0,count:1,capacity:2,expiresAt:Number(r.expires)}));
+  }
+  return {run,lobby};
 }
 module.exports={createStore};

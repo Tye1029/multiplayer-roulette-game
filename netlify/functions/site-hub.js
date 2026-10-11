@@ -15,7 +15,7 @@ function diagnostic(input={}){
 }
 const redact=text=>String(text||'').replace(/\b[A-Za-z0-9]{16,64}\b/g,'[redacted]').slice(0,4000);
 function createHandler(deps={}){
- const storage=deps.store||store, arena=deps.rps||rps, runtime=deps.data||data, chips=deps.wallet||wallet;
+ const storage=deps.store||store, arena=deps.rps||rps, runtime=deps.data||data, chips=deps.wallet||wallet, dice=deps.yahtzee||require('./yahtzee/database').createStore();
  return async request=>{
   const reply=(status,value)=>new Response(JSON.stringify(value),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store','X-Xan-Build':'XAN_HUB_V1_20261011'}});
   if(request.method!=='POST')return reply(405,{error:'Use POST.'});
@@ -47,6 +47,7 @@ function createHandler(deps={}){
     for(const g of duels.games||[]){if(g.isCreator&&g.joiner&&!g.joiner.isNpc&&!g.npcTest&&Date.parse(g.updatedAt)>Date.now()-86400000)joined.push({id:g.gameId,mode:g.mode,name:g.joiner.name,joiner:g.joiner.userId,href:'/?game='+encodeURIComponent(g.mode)+'&room='+encodeURIComponent(g.gameId)});}
     const four=deps.four||require('./roulette-four/database');
     const tables=await four.lobby(identity);games.push(...tables.games);joined.push(...tables.joined);
+    games.push(...await dice.lobby(identity));
     for(const g of joined)await storage.notify(identity.id,g,String(body.focus||''));
     return reply(200,{ok:true,player:identity,balance:await chips.balance(identity),games,notifications:await storage.notifications(identity.id)});
   }catch(error){return reply(error.status||503,{error:error.status?error.message:'The service is temporarily unavailable. Please retry.'});}

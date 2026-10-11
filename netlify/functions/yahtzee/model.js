@@ -1,7 +1,7 @@
 'use strict';
 const {randomInt}=require('node:crypto');
 const rules=require('../../../assets/yahtzee/rules');
-const ROUND_MS=30000, BREAK_MS=1800;
+const ROUND_MS=30000, BREAK_MS=1800, COUNTDOWN_MS=3000;
 const randomDie=()=>randomInt(1,7);
 function fail(message,status=409){throw Object.assign(new Error(message),{status});}
 function player(id,name,bot=false){
@@ -13,6 +13,9 @@ function fresh(id,who,now=Date.now()){
 function begin(s,now){
   s.phase='playing';s.deadline=now+ROUND_MS;s.nextAt=0;s.botAt=now+1300;s.botStep=0;
   for(const p of s.players){p.dice=[];p.held.fill(false);p.rolls=0;p.locked=false;p.last=null;p.inputVersion++;}
+}
+function countdown(s,now){
+  begin(s,now+COUNTDOWN_MS);s.phase='countdown';s.startAt=now+COUNTDOWN_MS;s.finishedAt=0;
 }
 function rollDice(p,roll){
   p.lastRollHeld=[...p.held];p.dice=Array.from({length:5},(_,i)=>p.held[i]?p.dice[i]:roll());p.rolls++;p.rollSerial++;p.inputVersion++;
@@ -27,7 +30,7 @@ function bank(p,key,automatic=false){
 function best(p){return Object.entries(rules.options(p.dice,p.card)).sort((a,b)=>b[1]-a[1])[0][0];}
 function finishRound(s,now){
   if(!s.players.every(p=>p.locked))return;
-  if(s.round===13){s.phase='complete';s.deadline=0;s.botAt=0;}
+  if(s.round===13){s.phase='complete';s.deadline=0;s.botAt=0;s.finishedAt=now;}
   else{s.phase='between';s.nextAt=now+BREAK_MS;s.deadline=0;}
 }
 function botHold(p){
@@ -40,6 +43,10 @@ function botHold(p){
 function advance(s,now=Date.now(),roll=randomDie){
   // Fixed timestamps let sleeping browsers catch up without extending turns.
   for(let transitions=0;transitions<150;transitions++){
+    if(s.phase==='countdown'){
+      if(now<s.startAt)break;
+      s.phase='playing';continue;
+    }
     if(s.phase==='between'){
       if(now<s.nextAt)break;
       const at=s.nextAt;s.round++;begin(s,at);continue;
@@ -59,13 +66,17 @@ function advance(s,now=Date.now(),roll=randomDie){
 }
 function act(s,id,b,roll=randomDie,now=Date.now()){
   const p=s.players.find(p=>p.id===id&&!p.bot);if(!p)fail('Join this room first.',403);
+  if(b.action==='cancel'){
+    if(s.phase!=='waiting'||s.players.length!==1||s.players[0].id!==id)fail('Only an empty waiting room can be cancelled.');
+    s.phase='closed';return;
+  }
   if(b.action==='start'||b.action==='bot'){
     if(s.phase!=='waiting'||s.players[0].id!==id)fail('Only the host can start this room.');
     if(b.action==='bot'){
       if(s.players.length!==1)fail('The opponent seat is already taken.');
       s.players.push(player('bot:'+s.id,'House Bot',true));
     }
-    if(s.players.length!==2)fail('Invite a friend or add a test bot.');begin(s,now);return;
+    if(s.players.length!==2)fail('Invite a friend or add a test bot.');countdown(s,now);return;
   }
   if(b.action==='leave'){s.phase='closed';return;}
   if(b.game!==s.game)fail('This game has changed. Refresh the table.');
@@ -73,7 +84,7 @@ function act(s,id,b,roll=randomDie,now=Date.now()){
     if(s.phase!=='complete')fail('Finish this game first.');
     if(!s.rematch.includes(id))s.rematch.push(id);
     if(s.players.filter(p=>!p.bot).every(p=>s.rematch.includes(p.id))){
-      for(const p of s.players){p.card={};p.bonus=0;}s.game++;s.round=1;s.rematch=[];begin(s,now);
+      for(const p of s.players){p.card={};p.bonus=0;}s.game++;s.round=1;s.rematch=[];countdown(s,now);
     }
     return;
   }
@@ -97,4 +108,4 @@ function publicState(s,id,now=Date.now()){
   const {requests,botStep,botAt,...view}=s;
   return {...view,you:id,serverNow:now,players:s.players.map(p=>({...p,yahtzeeBonus:p.bonus,...rules.totals(p)}))};
 }
-module.exports={fail,player,fresh,begin,act,advance,publicState,ROUND_MS,BREAK_MS};
+module.exports={fail,player,fresh,begin,act,advance,publicState,ROUND_MS,BREAK_MS,COUNTDOWN_MS};

@@ -11,6 +11,7 @@ export async function startTestServer(){
   const login=require('../netlify/functions/rps-action').createHandler(auth,async url=>({ok:true,json:async()=>({player_id:new URL(url).searchParams.get('key').endsWith('2')?202:101,name:new URL(url).searchParams.get('key').endsWith('2')?'Clementine':'Juniper'})}));
   const database=require('../netlify/functions/yahtzee/database').createStore(pool,undefined,()=>Date.now()+timeOffset);
   const handler=require('../netlify/functions/yahtzee-action').createHandler(database,auth);
+  const hub=require('../netlify/functions/site-hub').createHandler({rps:auth,yahtzee:database,wallet:{account:async p=>p.id,balance:async()=>100000},data:{duelListGames:async()=>({games:[]})},four:{lobby:async()=>({games:[],joined:[]})},store:{notifications:async()=>[],notify:async()=>{}}});
   const root=path.resolve('dist'),mime={'.html':'text/html','.js':'application/javascript','.css':'text/css','.svg':'image/svg+xml','.png':'image/png','.webp':'image/webp'};
   const server=http.createServer(async(req,res)=>{
     try{
@@ -19,7 +20,7 @@ export async function startTestServer(){
         let response;
         if(req.url.endsWith('yahtzee-action'))response=await handler(new Request('http://local'+req.url,{method:req.method,body:raw}));
         else if(req.url.endsWith('rps-action')){const r=await login({httpMethod:req.method,body:raw});response=new Response(r.body,{status:r.statusCode,headers:r.headers});}
-        else if(req.url.endsWith('site-hub')){const b=JSON.parse(raw),player=await auth.authenticate(b.token);response=new Response(JSON.stringify({ok:true,player,balance:100000,games:[],notifications:[]}),{headers:{'Content-Type':'application/json'}});}
+        else if(req.url.endsWith('site-hub'))response=await hub(new Request('http://local'+req.url,{method:req.method,body:raw}));
         else throw Error('Unknown endpoint');
         res.writeHead(response.status,Object.fromEntries(response.headers));res.end(await response.text());return;
       }

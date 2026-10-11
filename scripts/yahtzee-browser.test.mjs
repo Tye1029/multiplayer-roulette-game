@@ -14,10 +14,16 @@ try{
   const a=await ca.newPage(),b=await cb.newPage();
   for(const p of [a,b]){p.on('pageerror',e=>errors.push(e.message));await p.goto(origin+'/games/multiplayer/yahtzee/');await p.waitForFunction(()=>!document.querySelector('#create').disabled);}
   assert.equal(await a.locator('html').getAttribute('data-theme'),'dark');assert.equal(await a.locator('.xan-brand').innerText(),'XAN DUELS');assert.equal(await a.locator('#name').count(),0);
+  assert.equal(await a.locator('#show-scores,.yd-live,#opponent-total').count(),0);assert.equal(await a.getByRole('heading',{name:'Open Games',exact:true}).isVisible(),true);
+  const opponentColor=await a.locator('#opponent-dice .yd-face').first().evaluate(e=>getComputedStyle(e).backgroundImage);
+  await a.locator('#dice-color').click();await a.getByRole('button',{name:'Violet dice',exact:true}).click();await a.locator('#color-done').click();
+  assert.equal(await a.locator('#dice').getAttribute('data-color'),'violet');assert.equal(await a.locator('#opponent-dice .yd-face').first().evaluate(e=>getComputedStyle(e).backgroundImage),opponentColor);
+  await a.reload();await a.waitForFunction(()=>!document.querySelector('#create').disabled);assert.equal(await a.locator('#dice').getAttribute('data-color'),'violet');assert.equal(await b.locator('#dice').getAttribute('data-color'),'ivory');
   await a.locator('#hub-menu').click();await a.locator('#hub-dark').uncheck();assert.equal(await a.locator('html').getAttribute('data-theme'),'light');await a.locator('#hub-dark').check();await a.locator('#hub-sound').check();await a.locator('#hub-sound').uncheck();await a.locator('#hub-menu').click();
   assert.equal(await a.locator('#me-name').textContent(),'Juniper (you)');await a.screenshot({path:path.join(output,'desktop-lobby.png'),fullPage:true});await b.screenshot({path:path.join(output,'mobile-lobby.png'),fullPage:true});
   await a.locator('#create').click();await a.locator('#waiting').waitFor({state:'visible'});const code=await a.locator('#copy-code').textContent();
-  await b.locator('#join-code').fill(code);await b.locator('#join').click();await a.waitForFunction(()=>!document.querySelector('#start').disabled);await a.locator('#start').click();
+  await b.reload();await b.locator('.hub-row').filter({hasText:'Yahtzee'}).getByRole('button',{name:'Join',exact:true}).click();await a.waitForFunction(()=>!document.querySelector('#start').disabled);await a.locator('#start').click();
+  await a.locator('#countdown').waitFor({state:'visible'});assert.equal(await a.locator('#roll').isDisabled(),true);assert.equal(await a.locator('#my-rolls').textContent(),'0 / 3 rolls');await b.locator('#countdown').waitFor({state:'visible'});
   for(const p of [a,b])await p.waitForFunction(()=>!document.querySelector('#roll').disabled);
   // Independent simultaneous rolls must not conflict. Lose one successful response.
   const lose=async route=>{if(route.request().postDataJSON().action==='roll'){await route.fetch();await route.abort();await a.unroute('**/yahtzee-action',lose);}else await route.continue();};
@@ -43,6 +49,9 @@ try{
     await Promise.all([bank(a),bank(b)]);
   }
   for(const p of [a,b])await p.locator('#result-dialog').waitFor({state:'visible'});
+  assert.equal(await a.locator('#result-title').textContent(),'The final count');assert.equal(await a.locator('#result-actions').isVisible(),false);
+  await a.waitForFunction(()=>document.querySelectorAll('.yd-tally-row.is-counted').length>=6);await a.screenshot({path:path.join(output,'final-tally-desktop.png'),fullPage:true});await b.screenshot({path:path.join(output,'final-tally-mobile.png'),fullPage:true});
+  for(const p of [a,b]){await p.locator('#result-actions').waitFor({state:'visible'});assert.equal(await p.locator('.yd-tally-row.is-counted').count(),15);const sums=await p.locator('.yd-tally-row').evaluateAll(es=>[0,1].map(n=>es.reduce((sum,e)=>sum+Number(e.children[n+1].textContent),0)));assert.deepEqual(await p.locator('.yd-tally-player strong').allTextContents(),sums.map(String));}
   assert.equal(await a.locator('#standings').textContent(),await b.locator('#standings').textContent());
   await b.screenshot({path:path.join(output,'mobile-result.png'),fullPage:true});
   await Promise.all([a.locator('#rematch').click(),b.locator('#rematch').click()]);
@@ -55,7 +64,8 @@ try{
   await a.locator('#practice').click();await a.waitForFunction(()=>document.querySelector('#opponent-name').textContent==='House Bot');
   await a.waitForFunction(()=>document.querySelector('#opponent-rolls').textContent!=='0 / 3 rolls');
   await a.screenshot({path:path.join(output,'desktop-bot.png'),fullPage:true});
-  fixture.advance(32*1000*13);await a.locator('#result-dialog').waitFor({state:'visible'});assert.match(await a.locator('#standings').textContent(),/House Bot/);
+  fixture.advance(32*1000*13);await a.locator('#result-dialog').waitFor({state:'visible'});
+  await a.locator('#skip-tally').click();await a.locator('#result-actions').waitFor({state:'visible'});assert.match(await a.locator('#standings').textContent(),/House Bot/);
   await a.locator('#rematch').click();await a.locator('#result-dialog').waitFor({state:'hidden'});
   await b.emulateMedia({reducedMotion:'reduce'});assert.equal(await b.locator('.cube').first().evaluate(e=>getComputedStyle(e).transitionDuration),'1e-05s');
   for(const width of [320,390,760,1440]){await a.setViewportSize({width,height:900});const layout=await a.evaluate(()=>({overflow:document.documentElement.scrollWidth>innerWidth,elements:[...document.querySelectorAll('body *')].filter(e=>e.getBoundingClientRect().right>innerWidth).map(e=>e.id||e.className).slice(0,20)}));assert.equal(layout.overflow,false,'No overflow at '+width+': '+JSON.stringify(layout.elements));}
