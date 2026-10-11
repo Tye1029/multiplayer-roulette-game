@@ -21,8 +21,27 @@
 .duel-arena.summit-clean{padding:0!important;border:0!important;background:none!important}.m68-stakes{display:block;margin-top:6px;font:600 9px system-ui;color:#d3b891;letter-spacing:.03em}.m68-stakes[hidden]{display:none}
 /* SUMMIT_SPRINT_V70 — pose atlas, grounded feet, clear runway and cloud cover. */
 .m68-header{position:relative;display:grid!important;grid-template-columns:1fr auto 1fr;min-height:92px}.m68-header>div:first-child{grid-column:2;text-align:center}.m68-clock{grid-column:3;justify-self:end}.m68-header h2{font-size:28px!important}.m68-climber{width:78px;height:156px}.m68-sprite{inset:auto 0 -9px;height:156px;overflow:hidden;background-image:url('/assets/mountain-race/images/summit-climbers-v70.png');background-size:800% 200%;background-repeat:no-repeat}.m68-climber.celebrating .m68-sprite{animation:none}.m68-climber.slipping .m68-sprite{animation:m70-fall .65s ease-out}.m68-summit{transform:translate(-50%,30px) scale(var(--m68-inverse-zoom));font-size:9px;padding:4px 10px}
-@keyframes m70-fall{0%{transform:translateY(-25px) rotate(-5deg)}45%{transform:translateY(12px) rotate(10deg)}72%{transform:translateY(3px) rotate(-4deg)}100%{transform:none}}
+@keyframes m71-fall{0%{transform:rotate(-5deg)}55%{transform:translateY(9px) rotate(7deg)}82%{transform:translateY(3px) rotate(2deg)}100%{transform:none}}
 .m68-queue{display:flex;min-height:48px;align-items:center}.m68-queue span{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}.m68-queue span small{font:700 7px system-ui;text-transform:uppercase;letter-spacing:.04em}.m70-queue-note{font:12px/1.4 system-ui;color:#e5ceb0;margin:0}.m70-personal-best{font:600 11px/1.5 system-ui!important;color:#dbeebc;margin:4px 0 0!important}.m68-overlays .m70-personal-best{font-size:11px!important}.m70-clouds{position:absolute;top:20px;left:0;right:0;height:250px;pointer-events:none;z-index:1;overflow:hidden}.m70-clouds i{position:absolute;width:340px;height:100px;background:url('/assets/mountain-race/images/summit-cloud-v70.png') center/contain no-repeat;animation:m70-cloud-drift 18s ease-in-out infinite alternate}.m70-clouds i:nth-child(1){left:-80px;top:5px}.m70-clouds i:nth-child(2){right:-50px;top:95px;animation-delay:-9s}.m70-clouds i:nth-child(3){left:10%;top:145px;width:260px;opacity:.7;animation-delay:-5s}@keyframes m70-cloud-drift{to{transform:translateX(28px)}}
 @media(max-width:600px){.m68-header{grid-template-columns:50px 1fr 50px;padding:12px 8px;min-height:78px}.m68-header h2{font-size:23px!important}.m68-clock small{font-size:7px}.m68-climber{width:72px;height:144px}.m68-sprite{height:144px;bottom:-8px}.m68-stakes{font-size:8px}.m70-clouds i{width:220px}}
 @media(prefers-reduced-motion:reduce){.m68-world,.m68-climber{transition:none!important}.m70-clouds i,.m68-sprite{animation:none!important}}
 @media(max-width:600px){.m68-clock{padding-left:8px}.m68-clock small{font-size:6px;letter-spacing:.08em;white-space:nowrap}}
+/* SUMMIT_SPRINT_V71: feet return to the same painted peak after every hop. */
+.m68-climber.celebrating .m68-sprite{animation:m71-victory 1.35s ease-in-out infinite;transform-origin:50% 94%}
+.m68-climber.slipping{transition:bottom .44s cubic-bezier(.42,0,.78,1),left .44s ease,transform .48s ease}
+.m68-climber.slipping .m68-sprite{animation:m71-fall .5s ease-out;transform-origin:50% 90%}
+.m68-climber.charged-jump{transition:bottom .5s cubic-bezier(.12,.68,.32,1),left .5s ease,transform .48s ease}
+.m68-climber.charged-jump:not(.celebrating) .m68-sprite{animation:m71-leap .5s ease-out}
+@keyframes m71-victory{0%,20%,75%,100%{transform:none}30%{transform:scaleY(.96)}48%{transform:translateY(-14px)}70%{transform:scaleY(.97)}}
+@keyframes m71-leap{0%,100%{transform:none}45%{transform:translateY(-18px) rotate(-4deg)}}
+.m71-hint{margin:7px 0 0;font:10px/1.4 system-ui;color:#cbb794;max-width:320px}
+.m71-charge{display:flex;align-items:center;gap:12px;min-height:54px;margin-top:5px}.m71-charge[hidden],.m71-hint[hidden]{display:none}
+.m71-ring{flex:none;position:relative;display:grid;place-items:center;width:50px;height:50px;border-radius:50%;background:conic-gradient(#73553a 0deg 202.5deg,#75e099 202.5deg 265.5deg,#73553a 265.5deg);box-shadow:0 0 0 1px #d4b282,0 3px 12px #0004}
+.m71-ring:before{content:'';position:absolute;inset:6px;background:#292119;border-radius:50%}.m71-ring b{position:relative;color:#eddbb9;font:800 13px system-ui}
+.m71-ring i{position:absolute;inset:0;transform:rotate(var(--charge-angle,0deg));z-index:2}.m71-ring i:before{content:'';position:absolute;width:5px;height:12px;background:#fff2ce;top:-2px;left:calc(50% - 2.5px);border-radius:3px;box-shadow:0 0 5px #fff8}
+.m71-charge-copy{font:700 12px system-ui;color:#ebd1a6}.m71-charge[data-green=true] .m71-charge-copy{color:#8aefad}.m71-charge[data-green=true] .m71-ring{box-shadow:0 0 0 2px #83eaa7,0 0 18px #68db8050}
+.m68-hold.jump-target b{border-color:#a5f2b2;background:#356342;color:white;box-shadow:0 0 0 4px #81e89755}.m68-key.charging{border-color:#89e2aa!important;opacity:1;background:#355d44!important}
+@media(max-width:600px){.m71-hint{margin:6px auto 0;font-size:9px}.m71-charge{justify-content:center}.m71-charge-copy{font-size:10px}.m71-ring{width:42px;height:42px}.m71-charge{min-height:44px}}
+.m68-pad{position:relative}.m71-charge{position:absolute;inset:0 0 auto;min-height:0;height:51px;margin:0;pointer-events:none;justify-content:space-between}.m71-charge-copy{width:60px;text-align:center;font-size:10px}.m71-ring{margin-left:4px}.m71-hint{min-height:28px}
+@media(max-width:600px){.m71-charge{height:46px}.m71-ring{margin-left:11px}.m71-charge-copy{width:64px}.m71-hint{min-height:13px}}
+@media(max-width:600px){.m68-deck{gap:8px;padding-block:12px}}

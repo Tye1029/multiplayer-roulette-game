@@ -53,6 +53,9 @@
     inputBatchInFlight: [],
     inputQueueBlocked: false
   };
+  // SUMMIT_SPRINT_V71: hold/release input and server-enforced recovery.
+  let heldInput = null, chargeFrame = 0, recoveryTimer = 0, localRecoveryUntil = 0;
+  function recovering() { return Math.max(localRecoveryUntil - performance.now(), (Date.parse(state().me?.recoverUntil || '') || 0) - serverNowMs()) > 0; }
 
   function escapeHtml(value) {
     return String(value ?? '')
@@ -1366,11 +1369,12 @@
     const opponentAnimation = animationClass(opponent, runtime.lastOpponentInputAt, !publicState.viewerWon && !publicState.tie && runtime.game.status === 'complete');
     if (authoritativeMe.lastInput?.at) runtime.lastMyInputAt = authoritativeMe.lastInput.at;
     if (opponent.lastInput?.at) runtime.lastOpponentInputAt = opponent.lastInput.at;
-    const controlsEnabled = runtime.game.status === 'playing' && publicState.canSubmit && prompts.length > 0 && !presentation.blocked && !runtime.inputQueueBlocked;
+    const controlsEnabled = runtime.game.status === 'playing' && publicState.canSubmit && prompts.length > 0 && !presentation.blocked && !runtime.inputQueueBlocked && !recovering() && !heldInput?.charging;
     const tone = presentation.tone || (authoritativeMe.lastInput ? (authoritativeMe.lastInput.correct ? 'correct' : 'wrong') : 'neutral');
 
     if (window.SummitSceneV68) {
-      window.SummitSceneV68.render(root, {game:runtime.game,total,me,opponent,prompts,enabled:controlsEnabled,tone,status:statusText(publicState),overlays:countdownOverlay()+resultOverlay(publicState,me,total),seconds:secondsLeft()});
+      window.SummitSceneV68.render(root, {game:runtime.game,total,me,opponent,prompts,enabled:controlsEnabled,tone,status:recovering()?'Regain your grip · 0.5s recovery':statusText(publicState),overlays:countdownOverlay()+resultOverlay(publicState,me,total),seconds:secondsLeft()});
+      if (recovering()) { window.clearTimeout(recoveryTimer); recoveryTimer = window.setTimeout(render, 50); }
       return;
     }
     ensureMountainRaceWorld(root);
@@ -1576,7 +1580,7 @@
   async function submit(rawToken, displayed = null) {
     const publicState = state();
     const bridge = window.__mountainRaceBridge;
-    if (!bridge?.submit || runtime.game?.status !== 'playing' || !publicState.canSubmit || runtime.inputQueueBlocked) return;
+    if (!bridge?.submit || runtime.game?.status !== 'playing' || !publicState.canSubmit || runtime.inputQueueBlocked || recovering() || heldInput?.charging) return;
     // MOUNTAIN_RACE_CONFIRMED_LIGHTWEIGHT_V43
     // Correct moves remain bufferable while earlier actions are in flight.
 
@@ -1625,6 +1629,7 @@
     };
     runtime.inputQueue.push(item);
     runtime.inputQueueBlocked = !item.correct;
+    if (!item.correct) localRecoveryUntil = performance.now() + 500;
     runtime.syncNotice = '';
     syncPendingCompatibility();
     if (navigator.vibrate) navigator.vibrate(item.correct ? 12 : [22, 30, 22]);
@@ -1634,15 +1639,80 @@
     scheduleInputFlush(true);
   }
 
+  function beginHold(token, displayed, source) {
+    if (heldInput || recovering() || runtime.inputQueueBlocked || !state().canSubmit || runtime.game?.status !== 'playing') return;
+    const hold = { token, displayed, source, gameId: runtime.game.gameId, bridge: window.__mountainRaceBridge,
+      id: `mrcharge-${Date.now()}-${++runtime.inputSequence}`, charging: false, released: false };
+    heldInput = hold;
+    hold.timer = window.setTimeout(async () => {
+      // A hold only starts once previous taps are acknowledged; its target cannot drift.
+      if (heldInput !== hold || runtime.inputQueue.length || (state().inputPrompts || state().prompts || []).length < 2) return;
+      hold.charging = true;
+      hold.sentAt = performance.now();
+      render();
+      animateCharge();
+      try {
+        const data = await hold.bridge.submit({choice:`mountainrace:charge:${token}`,actionId:hold.id,expectedPromptIndex:state().me.promptIndex});
+        if (runtime.game?.gameId !== hold.gameId) { resetHold(hold); return; }
+        if (data.game) adopt(data.game);
+        const charge = data.game?.mountainraceState?.me?.charge;
+        if (charge?.id !== hold.id) { resetHold(hold); return; }
+        // Predict arrival at the server from measured round-trip time. No client duration is trusted.
+        hold.roundTrip = performance.now() - hold.sentAt;
+        hold.ackAt = performance.now();
+        hold.ready = true;
+        if (hold.released || hold.roundTrip > 1000) await finishHold(true, hold);
+      } catch (error) { runtime.syncNotice=String(error?.message||'Could not start jump. Try again.'); resetHold(hold); }
+    }, 160);
+  }
+
+  function animateCharge() {
+    window.cancelAnimationFrame(chargeFrame);
+    const hold = heldInput;
+    if (!hold?.charging) { window.SummitSceneV68?.setCharge?.(runtime.root, null); return; }
+    if (runtime.game?.status !== 'playing' || !runtime.root?.isConnected) { finishHold(true, hold); return; }
+    const age = hold.ready ? performance.now() - hold.ackAt + hold.roundTrip : 0;
+    window.SummitSceneV68?.setCharge?.(runtime.root, {token:hold.token,age,ready:hold.ready,releasing:hold.releasing});
+    if (age > 1600 && !hold.releasing) { finishHold(false, hold); return; }
+    chargeFrame = window.requestAnimationFrame(animateCharge);
+  }
+
+  function resetHold(hold) {
+    window.clearTimeout(hold.timer);
+    if (heldInput !== hold) return;
+    heldInput = null;
+    window.cancelAnimationFrame(chargeFrame);
+    window.SummitSceneV68?.setCharge?.(runtime.root, null);
+    render();
+  }
+
+  async function finishHold(cancel = false, hold = heldInput) {
+    if (!hold || hold.releasing) return;
+    window.clearTimeout(hold.timer);
+    hold.released = true;
+    if (!hold.charging) { resetHold(hold); if (!cancel) submit(hold.token, hold.displayed); return; }
+    if (!hold.ready) return; // The begin response cancels a hold released before acknowledgement.
+    hold.releasing = true;
+    try {
+      const data = await hold.bridge.submit({choice:`mountainrace:${cancel?'cancel':'release'}:${hold.token}`,actionId:hold.id});
+      if (runtime.game?.gameId === hold.gameId && data.game) adopt(data.game);
+    } catch (error) {
+      runtime.syncNotice = String(error?.message || 'Jump connection interrupted. Reconnecting…');
+      hold.bridge.refresh?.();
+    } finally { resetHold(hold); }
+  }
+
   function onPointerDown(event) {
     const input = event.target.closest('[data-mr-network-input]');
     if (input && runtime.root?.contains(input) && !input.disabled) {
       event.preventDefault();
-      submit(input.dataset.mrNetworkInput, {
+      if (event.button !== 0) return;
+      input.setPointerCapture?.(event.pointerId);
+      beginHold(input.dataset.mrNetworkInput, {
         expected: input.dataset.mrDisplayedExpected || '',
         promptIndex: input.dataset.mrDisplayedIndex,
         roundId: input.dataset.mrDisplayedRound || ''
-      });
+      }, `pointer:${event.pointerId}`);
       return;
     }
     if (event.target.closest('[data-mr-rematch]')) {
@@ -1659,8 +1729,9 @@
   function onKeyDown(event) {
     const token = KEY_MAP[event.key];
     if (!token || event.repeat || runtime.game?.status !== 'playing') return;
+    if (/^(INPUT|TEXTAREA|SELECT)$/.test(event.target?.tagName) || event.target?.isContentEditable) return;
     event.preventDefault();
-    submit(token);
+    beginHold(token, null, `key:${event.code || event.key}`);
   }
 
   function updateClock() {
@@ -1699,6 +1770,8 @@
     }
 
     if (gameChanged) {
+      finishHold(true);
+      localRecoveryUntil = 0;
       clearInputQueue();
       runtime.syncNotice = '';
       runtime.renderKey = '';
@@ -1745,8 +1818,13 @@
 
   window.addEventListener(STATE_EVENT, event => adopt(event?.detail?.game, { source: 'state-event' }));
   document.addEventListener('pointerdown', onPointerDown, { passive: false });
+  document.addEventListener('pointerup', event => { if (heldInput?.source === `pointer:${event.pointerId}`) finishHold(); });
+  document.addEventListener('pointercancel', event => { if (heldInput?.source === `pointer:${event.pointerId}`) finishHold(true); });
   window.addEventListener('keydown', onKeyDown, { passive: false });
+  window.addEventListener('keyup', event => { if (heldInput?.source === `key:${event.code || event.key}`) { event.preventDefault(); finishHold(); } });
+  window.addEventListener('blur', () => finishHold(true));
   document.addEventListener('visibilitychange', () => {
+    if (document.hidden) finishHold(true);
     if (!document.hidden && runtime.game) window.__mountainRaceBridge?.refresh?.();
   });
 

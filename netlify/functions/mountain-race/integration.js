@@ -6,7 +6,9 @@ const {
   MOUNTAIN_RACE_DURATION_MS,
   normalizeMountainRaceControl,
   createMountainRaceState,
-  applyMountainRaceInput
+  applyMountainRaceInput,
+  applyMountainRaceCharge,
+  MOUNTAIN_RACE_CHARGE_EXPIRE_MS
 } = require('./state-model');
 
 const MOUNTAIN_RACE_BOT_ERROR_RATE = 0.08;
@@ -194,11 +196,14 @@ function createMountainRaceIntegration(host = {}) {
         acceptedInputs: int(raw.acceptedInputs, 0),
         rejectedInputs: int(raw.rejectedInputs, 0),
         progress: sequence.length ? promptIndex / sequence.length : 0,
+        recoverUntil: raw.recoverUntil || null,
+        charge: raw.charge || null,
         lastInput: raw.lastInput && typeof raw.lastInput === 'object'
           ? {
               control: normalizeMountainRaceControl(raw.lastInput.control),
               expected: normalizeMountainRaceControl(raw.lastInput.expected),
               correct: Boolean(raw.lastInput.correct),
+              charged: Boolean(raw.lastInput.charged),
               at: raw.lastInput.at || null
             }
           : null,
@@ -250,10 +255,13 @@ function createMountainRaceIntegration(host = {}) {
       acceptedInputs: int(source.acceptedInputs, 0),
       rejectedInputs: int(source.rejectedInputs, 0),
       progress: Math.max(0, Math.min(1, Number(source.progress) || 0)),
+      recoverUntil: source.recoverUntil || null,
+      charge: id === viewerId ? source.charge || null : null,
       lastInput: source.lastInput
         ? {
             control: normalizeMountainRaceControl(source.lastInput.control),
             correct: Boolean(source.lastInput.correct),
+            charged: Boolean(source.lastInput.charged),
             at: source.lastInput.at || null
           }
         : null,
@@ -444,6 +452,29 @@ function createMountainRaceIntegration(host = {}) {
     if (!game) throw new Error('That Summit Sprint race was not found.');
     if (game.mode !== 'mountainrace') throw new Error('That duel is not Summit Sprint.');
     if (!playerIds(game).includes(viewer)) throw new Error('You are not in this Summit Sprint race.');
+
+    const chargeCommand = /^mountainrace:(charge|release|cancel):(up|left|right|down)$/.exec(String(rawChoice || '').toLowerCase());
+    if (chargeCommand) {
+      const key = String(details.actionId || '').replace(/[^A-Za-z0-9._:-]/g, '').slice(0, 110);
+      const receipt = `${chargeCommand[1]}:${key}`;
+      let latest = game;
+      for (let attempt = 0; attempt < MOUNTAIN_RACE_ACTION_CONFIRM_ATTEMPTS; attempt += 1) {
+        if (attempt) latest = await strongRead(game.gameId) || latest;
+        if (latest.status !== 'playing') return { game: latest };
+        const state = ensureState(latest), now = Date.now();
+        if (now >= Date.parse(state.endAt)) return { game: await resolveTimeout(latest, state) };
+        if (state.processedActionIds.includes(receipt)) return { game: latest, replayedAction: true };
+        const next = applyMountainRaceCharge(state, viewer, chargeCommand[1], chargeCommand[2], key, details, now);
+        if (next === state) return { game: latest, ignoredAction: true, ignoreReason: 'charge-unavailable' };
+        const saved = await saveGame({ ...latest, mountainraceState: next });
+        const confirmed = await strongRead(game.gameId) || saved;
+        if (!confirmed.mountainraceState?.processedActionIds.includes(receipt)) continue;
+        if (confirmed.mountainraceState.winnerId) return { game: await complete(confirmed,
+          confirmed.mountainraceState, confirmed.mountainraceState.winnerId, 'A charged jump reached the summit first.') };
+        return { game: confirmed, skipBalanceLookup: true };
+      }
+      throw new Error('That charged jump could not be confirmed. Refresh to reconnect.');
+    }
 
     const match = /^mountainrace:input:(up|left|right|down)$/.exec(String(rawChoice || '').toLowerCase());
     if (!match) throw new Error('Choose one valid climbing direction.');
@@ -817,6 +848,13 @@ function createMountainRaceIntegration(host = {}) {
         state = ensureState(workingGame);
         if (!state) break;
         if (state.processedActionIds.includes(item.actionId)) continue;
+
+        const player = state.players[viewer];
+        if (now < Date.parse(player.recoverUntil || '')
+          || (player.charge && now < player.charge.startedAt + MOUNTAIN_RACE_CHARGE_EXPIRE_MS)) {
+          staleFrom = index;
+          break;
+        }
 
         const actualPromptIndex = int(state.players?.[viewer]?.promptIndex, 0);
         const currentExpectedControl = normalizeMountainRaceControl(state.sequence[actualPromptIndex]);

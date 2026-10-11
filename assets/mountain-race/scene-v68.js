@@ -1,4 +1,4 @@
-/* SUMMIT_SPRINT_V70: retained cameras and handholds mapped directly to painted rock. */
+/* SUMMIT_SPRINT_V71: charged jumps, grounded celebration and smooth recovery. */
 (() => {
  'use strict';
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),layouts=new WeakMap();
@@ -11,6 +11,8 @@
  function build(root,total){
   root.dataset.mrScene='68';delete root.dataset.mrApprovedScene;
   root.innerHTML=`<div class="mountain-race-game m68-game" data-authoritative="1"><header class="m68-header"><div><h2>Summit Sprint</h2><span class="m68-stakes" hidden></span></div><div class="m68-clock"><small>TIME LEFT</small><b data-mr-clock>30</b></div></header><div class="m68-racers"></div><div class="m68-stage"></div><section class="m68-deck" aria-label="Climbing controls"><div><small>NEXT FOUR MOVES</small><div class="m68-queue"></div><p class="m68-status" role="status"></p></div><div class="m68-pad">${['up','left','down','right'].map(t=>`<button type="button" class="m68-key m68-${t}" data-mr-network-input="${t}"><b>${arrow(t)}</b><small>${t}</small></button>`).join('')}</div></section><div class="m68-overlays"></div></div>`;
+  root.querySelector('.m68-deck>div').insertAdjacentHTML('beforeend','<div class="m71-charge" hidden><span class="m71-ring" aria-hidden="true"><i></i><b>2×</b></span><span class="m71-charge-copy" role="status"></span></div><p class="m71-hint">Tap: next ledge · Hold the second arrow, release in green: jump two</p>');
+  root.querySelector('.m68-pad').append(root.querySelector('.m71-charge'));
   const v={total,height:3400,width:3400/3,overlay:'',gameId:'',lanes:[]};
   v.lanes=['me','opponent'].map((side,i)=>{
    const card=document.createElement('div');card.className='m68-player '+side;card.innerHTML='<div><strong></strong><span></span></div><div class="m68-progress"><i></i></div>';root.querySelector('.m68-racers').append(card);
@@ -18,7 +20,7 @@
    const world=lane.firstElementChild,trail=lane.querySelector('.m68-trail');
    const holds=Array.from({length:total},(_,j)=>{const hold=document.createElement('div');hold.className='m68-hold';hold.dataset.mrHoldIndex=j;place(hold,point(v,j+1));hold.innerHTML='<b></b>';trail.append(hold);return hold;});
    const top=point(v,total);place(lane.querySelector('.m68-summit'),{...top,y:top.y+8});place(lane.querySelector('.m68-confetti'),{...top,y:top.y+180});
-   return{lane,world,card,holds,climber:lane.querySelector('.m68-climber'),sprite:lane.querySelector('.m68-sprite'),lastIndex:-1,lastInput:'',side,zoom:1};
+   return{lane,world,card,holds,climber:lane.querySelector('.m68-climber'),sprite:lane.querySelector('.m68-sprite'),lastIndex:-1,lastInput:'',lastRejected:0,side,zoom:1};
   });layouts.set(root,v);return v;
  }
  function camera(v,l,index,instant=false){
@@ -34,13 +36,15 @@
  function render(root,data){
   const {game,total,me,opponent,prompts,enabled,tone,status,overlays,seconds}=data;
   let v=layouts.get(root);if(!v||v.total!==total||!root.querySelector('.m68-game'))v=build(root,total);
-  const fresh=v.gameId!==String(game.gameId||'preview');if(fresh){v.gameId=String(game.gameId||'preview');for(const l of v.lanes){l.lastIndex=-1;l.lastInput='';}}
+  const fresh=v.gameId!==String(game.gameId||'preview');if(fresh){v.gameId=String(game.gameId||'preview');for(const l of v.lanes){l.lastIndex=-1;l.lastInput='';l.lastRejected=0;l.slipUntil=0;}}
   delete root.dataset.mrApprovedScene;root.dataset.mrScene='68';root.querySelector('.m68-game').dataset.status=game.status;root.querySelector('[data-mr-clock]').textContent=seconds;const stakes=root.querySelector('.m68-stakes');stakes.hidden=!Number(game.wager);stakes.textContent=Number(game.wager).toLocaleString()+' Chips stake · '+Number(game.pot||game.wager*2).toLocaleString()+' Chips pot';
   for(const [i,p] of [me,opponent].entries()){
    const l=v.lanes[i],index=clamp(p.promptIndex,0,total),won=game.status==='complete'&&!game.mountainraceState.tie&&(i===0?game.mountainraceState.viewerWon:!game.mountainraceState.viewerWon);
    l.card.querySelector('strong').textContent=(i===0?'You · ':'')+p.name;l.card.querySelector('span').textContent=`${index} / ${total} holds`;l.card.querySelector('.m68-progress i').style.transform=`scaleX(${index/total})`;
-   const slip=p.lastInput?.correct===false&&p.lastInput?.at!==l.lastInput;
-   if(slip){l.slipUntil=performance.now()+650;l.climber.classList.remove('slipping');void l.climber.offsetWidth;l.climber.classList.add('slipping');}
+   const slip=p.lastInput?.correct===false&&p.rejectedInputs>l.lastRejected;
+   if(slip){l.slipUntil=performance.now()+500;l.climber.classList.remove('slipping');void l.climber.offsetWidth;l.climber.classList.add('slipping');window.clearTimeout(l.fallTimer);l.fallTimer=window.setTimeout(()=>{l.climber.classList.remove('slipping');if(l.climber.dataset.pose==='6'){l.sprite.style.backgroundPosition='0% '+i*100+'%';l.climber.dataset.pose='0';}},500);}
+   l.lastRejected=p.rejectedInputs||0;
+   l.climber.classList.toggle('charged-jump',Boolean(p.lastInput?.charged&&p.lastInput.correct));
    if(index!==l.lastIndex){const first=l.lastIndex<0;if(first)l.climber.style.transition='none';place(l.climber,point(v,index));camera(v,l,index,first);if(first){void l.climber.offsetWidth;l.climber.style.removeProperty('transition');}l.lastIndex=index;}
    const falling=performance.now()<(l.slipUntil||0),direction=p.lastInput?.control;
    const pose=index===total?7:falling?6:index===0?0:direction==='down'?5:direction==='left'?(index%2?1:2):direction==='right'?(index%2?3:4):[1,2,3,4][index%4];
@@ -52,6 +56,16 @@
   root.querySelector('.m68-status').textContent=status;root.querySelector('.m68-status').dataset.tone=tone;
   root.querySelectorAll('[data-mr-network-input]').forEach(b=>{b.disabled=!enabled;b.dataset.mrDisplayedExpected=prompts[0]||'';b.dataset.mrDisplayedIndex=me.promptIndex;b.dataset.mrDisplayedRound=game.mountainraceState.roundId||'';});
   if(v.overlay!==overlays){v.overlay=overlays;root.querySelector('.m68-overlays').innerHTML=overlays;}
+ }
+ function setCharge(root,charge){
+  if(!root)return;const panel=root.querySelector('.m71-charge');if(!panel)return;
+  panel.hidden=!charge;root.querySelector('.m71-hint').hidden=false;
+  root.querySelectorAll('.m68-key').forEach(b=>b.classList.toggle('charging',Boolean(charge&&b.dataset.mrNetworkInput===charge.token)));
+  const v=layouts.get(root);if(v)v.lanes[0].holds.forEach((h,j)=>h.classList.toggle('jump-target',Boolean(charge&&j===v.lanes[0].lastIndex+1)));
+  if(!charge)return;
+  const green=charge.age>=900&&charge.age<=1180;
+  panel.dataset.green=String(green);panel.style.setProperty('--charge-angle',Math.min(360,charge.age/1600*360)+'deg');
+  panel.querySelector('.m71-charge-copy').textContent=charge.releasing?'Landing…':!charge.ready?'Get ready…':green?'RELEASE!':charge.age>1180?'Too late!':'Hold '+charge.token.toUpperCase();
  }
  function resultOverlay(game,state,total){
   const outcome=state.tie?'tie':state.viewerWon?'win':'loss',title=state.tie?'A DEAD HEAT':state.viewerWon?'YOU WIN!':'YOU LOST THE RACE';
@@ -65,5 +79,5 @@
  }
  window.addEventListener('resize',()=>{for(const root of document.querySelectorAll('[data-mr-scene="68"]')){const v=layouts.get(root);if(v)for(const l of v.lanes)camera(v,l,Math.max(0,l.lastIndex));}});
  function preview(root){render(root,{game:{status:'waiting',mountainraceState:{}},total:30,me:{promptIndex:0,name:'Climber'},opponent:{promptIndex:0,name:'Your opponent'},prompts:[],enabled:false,tone:'waiting',status:'Create Game to open your race, or join an Open Game below.',overlays:'',seconds:'—'});}
- window.SummitSceneV68={render,preview,resultOverlay};
+ window.SummitSceneV68={render,preview,resultOverlay,setCharge};
 })();
