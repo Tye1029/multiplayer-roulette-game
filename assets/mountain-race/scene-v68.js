@@ -11,7 +11,7 @@
  function build(root,total){
   root.dataset.mrScene='68';delete root.dataset.mrApprovedScene;
   root.innerHTML=`<div class="mountain-race-game m68-game" data-authoritative="1"><header class="m68-header"><div><h2>Summit Sprint</h2><span class="m68-stakes" hidden></span></div><div class="m68-clock"><small>TIME LEFT</small><b data-mr-clock>30</b></div></header><div class="m68-racers"></div><div class="m68-stage"></div><section class="m68-deck" aria-label="Climbing controls"><div><small>NEXT FOUR MOVES</small><div class="m68-queue"></div><p class="m68-status" role="status"></p></div><div class="m68-pad">${['up','left','down','right'].map(t=>`<button type="button" class="m68-key m68-${t}" data-mr-network-input="${t}"><b>${arrow(t)}</b><small>${t}</small></button>`).join('')}</div></section><div class="m68-overlays"></div></div>`;
-  root.querySelector('.m68-deck>div').insertAdjacentHTML('beforeend','<div class="m71-charge" hidden><span class="m71-ring" aria-hidden="true"><i></i><b>2×</b></span><span class="m71-charge-copy" role="status"></span></div><p class="m71-hint">Tap: next ledge · Hold the second arrow, release in green: jump two</p>');
+  root.querySelector('.m68-deck>div').insertAdjacentHTML('beforeend','<div class="m71-charge" hidden><span class="m71-ring" aria-hidden="true"><i></i><b>2×</b></span><span class="m71-charge-copy" role="status"></span></div><p class="m71-hint">Tap: climb · Hold 2nd arrow, release in green: jump two</p>');
   root.querySelector('.m68-pad').append(root.querySelector('.m71-charge'));
   const v={total,height:3400,width:3400/3,overlay:'',gameId:'',lanes:[]};
   v.lanes=['me','opponent'].map((side,i)=>{

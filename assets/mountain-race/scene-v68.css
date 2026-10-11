@@ -45,3 +45,5 @@
 .m68-pad{position:relative}.m71-charge{position:absolute;inset:0 0 auto;min-height:0;height:51px;margin:0;pointer-events:none;justify-content:space-between}.m71-charge-copy{width:60px;text-align:center;font-size:10px}.m71-ring{margin-left:4px}.m71-hint{min-height:28px}
 @media(max-width:600px){.m71-charge{height:46px}.m71-ring{margin-left:11px}.m71-charge-copy{width:64px}.m71-hint{min-height:13px}}
 @media(max-width:600px){.m68-deck{gap:8px;padding-block:12px}}
+
+@media(max-width:600px){#duelScreen.hub-has-game [data-mr-scene="68"] .m68-lane{height:clamp(220px,calc(100dvh - 568px),350px)}}
