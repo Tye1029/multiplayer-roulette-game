@@ -83,4 +83,4 @@ try{
  r=await act('release:4:'+end,{actionId:'win',chargeMs:540});assert.equal(r.ignoreReason,'charge-warming');
  now+=1200;r=await act('release:4:'+end,{actionId:'win',chargeMs:540});assert.equal(r.game.status,'complete');assert.equal(r.game.mountainraceState.viewerWon,true);
 }finally{Date.now=realNow;}
-console.log('Summit charge/recovery passed: timing boundaries, server-only clock, replay/stale/foreign protection, batch cooldown, cancellation, public state and charged finish.');
+console.log('Summit charge/recovery passed: timing windows, server minimums, network jitter, repeated arrows, replay/stale/foreign protection, batch cooldown, cancellation, public state and charged finish.');
