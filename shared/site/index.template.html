@@ -6724,7 +6724,7 @@ body.duel-mode.blackjack-duel-focus .duel-side-stack {display:grid!important;}
 #duelJoinNotice[hidden]{display:none;}
 #duelJoinNotice>div{display:flex;align-items:center;gap:10px;}
 #duelJoinNotice button{min-height:36px;padding:6px 12px;font-size:12px;}
-</style></head>
+</style><link rel="stylesheet" href="/assets/site-hub/hub.css?v=1"><script src="/assets/site-hub/preferences.js?v=1"></script><script defer src="/assets/site-hub/hub.js?v=1"></script></head>
 <body class="test-shell-loading">
 
   <main class="page">
@@ -6801,7 +6801,7 @@ body.duel-mode.blackjack-duel-focus .duel-side-stack {display:grid!important;}
             <button class="secondary duel-main-btn" id="duelNpcBtn" type="button">Add NPC</button>
             </div>
             <p class="duel-status" id="duelStatus">Save your Torn API key first, then create or join a duel.</p>
-            <p class="duel-status"><a href="/games/multiplayer/roulette-four/" style="color:#e5bd77">Four-player Roulette · Play with 3 bots</a><br><small>$100 practice entry · shared pot · no account balance used</small></p>
+            <p class="duel-status"><a href="/games/multiplayer/roulette-four/" style="color:#e5bd77">Four-player Roulette · Join an online table</a><br><small>Choose your wager · four players · shared Chip pot</small></p>
           </div>
           <div class="duel-card duel-join-card">
             <div class="duel-card-heading"><span>Open matches</span><small>Waiting for a player to join</small></div>
@@ -10268,7 +10268,7 @@ function createSparkle(x, y) {
 
     function duelRenderLobby(games = []) {
       if (!duelLobby) return;
-      const waiting = games.filter(g => g.status === "waiting");
+      const waiting = games.filter(g => g.status === "waiting" && !g.joiner);
       if (!waiting.length) {
         duelLobby.innerHTML = `<p class="duel-status">No open duels yet. Create one.</p>`;
         return;
@@ -10276,7 +10276,7 @@ function createSparkle(x, y) {
       duelLobby.innerHTML = waiting.map(game => `<div class="duel-row">
         <div>
           <div class="duel-row-title">${escapeHtml(game.mode === "fishing" ? "Fishing Duel" : game.modeName || "Duel")}</div>
-          <div class="duel-row-meta">${escapeHtml(game.creator?.name || "Creator")} • ${money(game.wager)}</div>
+          <div class="duel-row-meta">${escapeHtml(game.creator?.name || "Creator")} • ${money(game.wager)} • 1/2 players</div>
         </div>
         ${game.canJoin ? `<button class="gold" data-duel-join="${escapeHtml(game.gameId)}" type="button">Join</button>` : `<button class="secondary" data-duel-return="${escapeHtml(game.gameId)}" type="button">Return</button>`}
       </div>`).join("");
@@ -10337,7 +10337,7 @@ function createSparkle(x, y) {
       } catch(_) { /* Keep the last lobby visible during transient network failures. */ }
       finally {duelBackgroundLobbyBusy=false;}
     }
-    setInterval(duelRefreshBackgroundLobby,12000);
+    // Shared notification polling replaces the duplicate background lobby scan.
 
     function duelCardHtml(card) {
       return `<span class="bj-card ${card === "??" ? "hidden" : ""}">${escapeHtml(card || "?")}</span>`;
@@ -13077,19 +13077,20 @@ function createSparkle(x, y) {
   // game from another mode to reclaim the screen. Server escrow remains intact.
   if(typeof duelStartNewGame==='function')duelStartNewGame(mode);
   else if(typeof duelRememberCurrentGame==='function')duelRememberCurrentGame('');
-  home.hidden=true;
+  home.hidden=true;window.dispatchEvent(new Event('xan-navigation'));
   if(typeof showDuelGames==='function')showDuelGames();else document.getElementById('duelGameMenuBtn')?.click();
   const sel=document.getElementById('duelModeSelect');
   if(sel){[...sel.options].forEach(option=>{if(!testModes.includes(option.value))option.remove()});sel.value=mode;sel.dispatchEvent(new Event('change',{bubbles:true}));}
   if(typeof duelSetStatus==='function')duelSetStatus(`Selected ${sel?.selectedOptions?.[0]?.textContent||mode}. Choose a wager and create the game.`,'good');
   document.querySelectorAll('#duelNpcBtn,#duelNpcActiveBtn,#duelRecoverNpcBtn').forEach(e=>e.remove());
  }
+ window.XanOpenGame=openGame;
  save.addEventListener('click',verify);keyInput.addEventListener('keydown',e=>{if(e.key==='Enter')verify()});games.forEach(b=>b.addEventListener('click',()=>openGame(b.dataset.mode)));
  const ob=new MutationObserver(()=>document.querySelectorAll('#duelNpcBtn,#duelNpcActiveBtn,#duelRecoverNpcBtn').forEach(e=>e.remove()));ob.observe(document.body,{subtree:true,childList:true});
  document.title='XAN DUELS';sync();
  const requestedMode=new URLSearchParams(location.search).get('game');
  if(requestedMode==='rps')location.replace('/games/multiplayer/rps/');
- if(requestedMode&&confirmed())setTimeout(()=>openGame(requestedMode),0);
+ if(requestedMode&&confirmed())setTimeout(()=>{openGame(requestedMode);const room=new URLSearchParams(location.search).get('room');if(room&&/^[a-zA-Z0-9_-]{1,100}$/.test(room))duelReturnToGame(room);},0);
 })();
 </script>
 
@@ -13547,6 +13548,13 @@ body.roulette-viewport-lock .page,body.roulette-viewport-lock .duel-screen{heigh
 <!-- MOUNTAIN_RACE_DAYLIGHT_TERRAIN_V15 -->
 <!-- MOUNTAIN_RACE_RASTER_CLIFF_V16 -->
 <!-- MOUNTAIN_RACE_ENVIRONMENT_POLISH_V17 -->
+<script>
+window.XanSiteAdapter={
+ current(){const home=document.getElementById('simpleTestHome');return {mode:home&&!home.hidden?'':String(duelModeSelect?.value||''),id:home&&!home.hidden?'':String(duelCurrentGameId||''),phase:duelLastActiveGame?.status||''};},
+ async open(mode,id,join){window.XanOpenGame(mode);if(join)await duelJoin(id);else await duelReturnToGame(id);window.dispatchEvent(new Event('xan-navigation'));},
+ async cancel(id){await duelRequest('cancel',{gameId:id});}
+};
+</script>
 </body>
 
 <style id="rr-v78-clean-scene-and-upright-gun">

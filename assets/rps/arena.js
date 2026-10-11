@@ -8,9 +8,9 @@
     set(k,v) { try { if (v == null) sessionStorage.removeItem(k); else sessionStorage.setItem(k,v); } catch {} } };
   let token = storage.get('rps-token') || '', player = null, game = null, practice = null;
   let busy = false, epoch = 0, pollTimer, polling = false, serverAnchor = Date.now(), perfAnchor = performance.now();
-  let lastShot = '', lastReveal = '', lastRound = '', historyKey = '', lastRivalMatch = '';
+  let lastTick = '', lastShot = '', lastReveal = '', lastRound = '', historyKey = '', lastRivalMatch = '';
   const inviteId = new URLSearchParams(location.search).get('arena') || '';
-  let gameId = storage.get('rps-match') || '';
+  let gameId = /^[a-f0-9]{12}$/i.test(inviteId) ? inviteId.toUpperCase() : storage.get('rps-match') || '';
   let rival = null, inboxKey = '', inboxBusy = false;
   let joinQuote = null;
   const chips = value => Number(value||0).toLocaleString()+' Chips';
@@ -39,7 +39,7 @@
   }
   for (const c of rules.CHARACTERS) {
     const b = document.createElement('button'); b.type = 'button'; b.dataset.character = c.id; b.title = c.title;
-    const img = document.createElement('img'); img.src = imagePath(c); img.alt = ''; img.width = 60; img.height = 74;
+    const img = document.createElement('img'); img.src = '/assets/rps/images/portraits/'+c.id+'.webp'; img.alt = ''; img.width = 60; img.height = 74;
     const name = document.createElement('span'); name.textContent = c.name; b.append(img,name);
     b.onclick = () => { selectedCharacter = c.id; preference.set('rps-character',c.id); showCharacters(); }; $('characters').append(b);
   }
@@ -48,7 +48,7 @@
   function status(text, error = false) { for (const id of ['status','lobbyStatus']) { $(id).textContent = text; $(id).classList.toggle('error',error); } }
   function soundLabel() { $('sound').textContent = audio.enabled && audio.unlocked ? 'Sound on' : 'Sound off'; $('sound').setAttribute('aria-pressed', String(audio.enabled && audio.unlocked)); }
   function unlock() { try { audio.unlock(); soundLabel(); } catch {} }
-  $('sound').onclick = () => { if (!audio.unlocked && audio.enabled) audio.unlock(); else audio.toggle(); soundLabel(); };
+  $('sound').onclick = () => { if (!audio.unlocked && audio.enabled) audio.unlock(); else audio.toggle(); window.XanPreferences?.sound(audio.enabled); soundLabel(); };
   let calm = preference.get('rps-calm') === '1' || matchMedia('(prefers-reduced-motion: reduce)').matches;
   function motionLabel() { document.body.classList.toggle('calm', calm); $('motion').setAttribute('aria-pressed', String(calm)); $('motion').textContent = calm ? 'Calm camera on' : 'Calm camera'; }
   $('motion').onclick = () => { calm = !calm; preference.set('rps-calm', calm ? '1' : '0'); motionLabel(); }; motionLabel();
@@ -66,6 +66,7 @@
     if (data.game) data.localServerNow = data.game.serverNow + (performance.now() - started) / 2;
     return data;
   }
+  window.XanSiteAdapter={current:()=>({mode:'rps',id:game?.id||'',phase:game?.phase||''}),diagnostics:()=>({frames:frameStats.frames,slowFrames:frameStats.slowFrames,longestFrameMs:frameStats.longestMs,revision:game?.revision||0,round:game?.round||0})};
   function connected(yes) {
     const occupied = Boolean(active());
     for (const id of ['create','join']) $(id).disabled = busy || occupied;
@@ -148,16 +149,16 @@
     finally { inboxBusy = false; }
   }
   setInterval(loadInvitations,5000);
-  function resetPresentation() { cinema.reset(); lastShot = ''; lastRound = ''; lastReveal = ''; historyKey = ''; $('confetti').replaceChildren(); }
+  function resetPresentation() { lastTick=''; cinema.reset(); lastShot = ''; lastRound = ''; lastReveal = ''; historyKey = ''; $('confetti').replaceChildren(); }
   function accept(data) {
-    const s = data.game;
+    const s = data.game, previousPhase=game?.phase;
     if (game?.id === s.id && (s.revision < game.revision || (s.revision === game.revision && s.serverNow < game.serverNow))) return;
     if (game?.id !== s.id) resetPresentation();
     game = s; gameId = s.id; player = data.player || player;
     serverAnchor = data.localServerNow || s.serverNow; perfAnchor = performance.now();
     if (!practice) storage.set('rps-match', gameId);
     if (s.nextMatch && !practice) { resume(s.nextMatch).catch(e => status(e.message,true)); return; }
-    render();
+    render();if(window.__xanRpsFocus!==s.id||(s.phase==='complete'&&previousPhase!=='complete')){window.__xanRpsFocus=s.id;window.dispatchEvent(new Event('xan-navigation'));}
   }
   async function resume(id) { const guard = epoch; const data = await request('get',{gameId:id}); if (guard === epoch) { accept(data); schedulePoll(); } }
   async function perform(action, extra = {}) {
@@ -297,7 +298,8 @@
   }
   function tick() {
     if (!game || document.hidden) return;
-    const g = game, now = serverAnchor + performance.now() - perfAnchor;
+    const g=game, key=[g.id,g.revision,g.phase,Boolean(g.picks),calm].join(':');
+    if(key===lastTick)return;lastTick=key;
 
     $('arena').dataset.variant = String(g.variant);
     const finished = g.phase === 'complete';
@@ -358,7 +360,7 @@
       practice = rules.advance(practice); const s = rules.publicState(practice,'you');
       if (s.revision !== game?.revision || Boolean(s.picks) !== Boolean(game?.picks)) accept({game:s});
     }
-    tick();
+    if(!document.hidden)tick();
   },100);
   window.addEventListener('pagehide',()=>{epoch++;clearTimeout(pollTimer);});
   document.addEventListener('visibilitychange',()=>{if(!document.hidden && gameId && !practice) schedulePoll();});

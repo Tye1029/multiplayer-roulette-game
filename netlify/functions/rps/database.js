@@ -97,7 +97,7 @@ async function prepareAction(gameId, player, action, body = {}) {
       await c.query('SELECT pg_advisory_xact_lock(hashtext($1))', ['rps:' + player.id]);
       const active = await c.query(`SELECT state FROM rps_matches WHERE id<>$1 AND updated_at>NOW()-INTERVAL '20 minutes'
         AND state->'players' @> $2::jsonb`,[gameId,JSON.stringify([{id:player.id}])]);
-      if (active.rows.some(r => ['waiting','choosing','reveal'].includes(rules.advance(r.state).phase))) error('Leave your current duel before joining another.');
+      if (active.rows.some(r => ['choosing','reveal'].includes(rules.advance(r.state).phase))) error('Leave your current duel before joining another.');
     }
     const row = (await c.query('SELECT state FROM rps_matches WHERE id=$1 FOR UPDATE', [gameId])).rows[0];
     if (!row) error('Arena not found. Check the invite code.', 404);
@@ -141,7 +141,7 @@ async function prepareAction(gameId, player, action, body = {}) {
         if(!s.rematchVoteUntil || s.rematchVoteUntil<=now){s.rematchVotes=[];s.rematchVoteUntil=now+120000;}
         const other=await c.query(`SELECT state FROM rps_matches WHERE id<>$1 AND updated_at>NOW()-INTERVAL '20 minutes'
           AND (state->'players' @> $2::jsonb OR state->'players' @> $3::jsonb)`,[s.id,JSON.stringify([{id:s.players[0].id}]),JSON.stringify([{id:s.players[1].id}])]);
-        if(other.rows.some(r=>['waiting','choosing','reveal'].includes(rules.advance(r.state).phase)))error('An opponent already has an active duel.');
+        if(other.rows.some(r=>['choosing','reveal'].includes(rules.advance(r.state).phase)))error('An opponent already has an active duel.');
       }
       if (!s.rematchVotes.includes(player.id)) { s.rematchVotes.push(player.id); s.revision++; }
       if (s.players[1].bot && !s.rematchVotes.includes(s.players[1].id)) s.rematchVotes.push(s.players[1].id);
@@ -162,7 +162,12 @@ async function lobby(player) {
   const { rows } = await db().query(`SELECT state FROM rps_matches WHERE state->>'phase'='waiting' AND COALESCE(state->'finance'->>'pending','')=''
     AND (state->>'deadline')::bigint>$1 ORDER BY updated_at DESC LIMIT 30`, [Date.now()]);
   return rows.filter(({state:s}) => !s.invitedId || s.players[0].id === player.id)
-    .map(({state:s}) => ({ id:s.id, name:s.players[0].name, wager:s.wager||0, mine:s.players[0].id === player.id }));
+    .map(({state:s}) => ({ id:s.id, name:s.players[0].name, wager:s.wager||0, mine:s.players[0].id === player.id, expiresAt:s.deadline }));
+}
+async function ownedJoined(player) {
+  await ready();
+  const {rows}=await db().query(`SELECT state FROM rps_matches WHERE state->'players'->0->>'id'=$1 AND updated_at>NOW()-INTERVAL '1 day'`,[player.id]);
+  return rows.filter(({state:s})=>s.players[1]&&!s.players[1].bot).map(({state:s})=>({id:s.id,mode:'rps',name:s.players[1].name,joiner:s.players[1].id,href:'/games/multiplayer/rps/?arena='+s.id}));
 }
 async function invitations(player) {
   await ready();
@@ -259,6 +264,6 @@ async function quote(gameId,player) {
   if(s.invitedId && s.invitedId!==player.id && s.players[0].id!==player.id)error('This challenge is reserved for its recipient.',403);
   return {id:s.id,name:s.players[0].name,wager:s.wager||0,houseCutPercent:s.finance?.rate||0};
 }
-return { session, authenticate, create, act, lobby, rivals, invitations, balance, sweep, quote, rate:()=>wallet().rate() };
+return { session, authenticate, create, act, lobby, ownedJoined, rivals, invitations, balance, sweep, quote, rate:()=>wallet().rate() };
 }
 module.exports = { ...createStore(), createStore };

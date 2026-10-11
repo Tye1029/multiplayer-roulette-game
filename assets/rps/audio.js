@@ -2,7 +2,7 @@
 (() => {
   'use strict';
   let enabled=true,unlocked=false,silent=false,active=false,loopStarted=false,voice=null,effort=null;
-  try { enabled=localStorage.getItem('rps-muted')!=='1'; } catch {}
+  try { enabled=(localStorage.getItem('xan-muted')??localStorage.getItem('rps-muted'))!=='1'; } catch {}
   const clips=new Map(), failures=new Set();
   function clip(name,loop=false) {
     if(!clips.has(name)) {
@@ -45,10 +45,11 @@
     result({tie,won,youWon,flawless,round}){say(tie?(round%2?'tie':'tie-breaker'):won?(youWon?(flawless?'flawless-victory':'you-win'):'you-lose'):'winner');},
     effort(character,round,kind){
       const underCall=voice&&!voice.paused&&!voice.ended;
-      effort?.pause();effort=clip((['lyra','bryn'].includes(character)?character:'male')+'-'+kind+'-'+(round%3+1));play(effort,underCall?.35:.68,true);
+      effort?.pause();effort=clip(({lyra:'lyra',bryn:'bryn',sora:'lyra',nyx:'bryn'}[character]||'male')+'-'+kind+'-'+(round%3+1));play(effort,underCall?.35:.68,true);
     },
     diagnostics(){return {enabled,unlocked,active,hushed:silent,playing:[...clips].filter(([,a])=>!a.paused).map(([n])=>n),failed:[...failures]};},stop
   };
+  window.addEventListener('xan-preferences',e=>{if(enabled===e.detail.muted)window.RPSAudio.toggle();});
   document.addEventListener('visibilitychange',()=>{document.body.classList.toggle('page-hidden',document.hidden);if(document.hidden){for(const a of clips.values())a.pause();voice=null;effort=null;}else ambience();});
   window.addEventListener('pagehide',stop);
 })();

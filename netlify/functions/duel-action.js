@@ -34,7 +34,9 @@ exports.default = async (request) => {
       return new Response(null, { status: 503, headers: { "Cache-Control": "no-store" } });
     }
   }
-  const result = await duelActionHandler({ httpMethod: request.method, body: request.method === "POST" ? await request.text() : "" });
+  const raw=request.method==='POST'?await request.text():'';
+  if(raw.length>16384)return new Response(JSON.stringify({error:'Request too large.'}),{status:413,headers:{'Content-Type':'application/json'}});
+  const result=await duelActionHandler({httpMethod:request.method,body:raw});
   return new Response(result.statusCode === 204 ? null : result.body, { status: result.statusCode, headers: { ...result.headers, "X-Duel-Storage": "native-v1" } });
 };
 
@@ -94,10 +96,12 @@ const duelActionHandler = async (event) => {
       avatarUrl: visitor.avatarUrl || null
     };
 
+    if(!['list','get','create','cancel','recover-npc','join','npc','remote-bot','create-remote-bot','act'].includes(action))return json(headers,400,{ok:false,error:'Unknown Multiplayer Arcade action.'});
     let result;
+    const update=async()=>{
     if (action === "list") result = await duelListGames(user);
     else if (action === "get") result = await duelGetGame(user, body.gameId, { asTestPlayer: Boolean(body.controlTestPlayer), knownRevision: body.knownRevision });
-    else if (action === "create") result = await duelCreateGame(user, { mode: body.mode, wager: body.wager, lastWithdrawal: body.lastWithdrawal });
+    else if (action === "create") result = await duelCreateGame(user, { mode: body.mode, wager: body.wager, lastWithdrawal: body.lastWithdrawal, clientGameId: body.gameId });
     else if (action === "cancel") result = await duelCancelGame(user, body.gameId);
     else if (action === "recover-npc") result = await duelAbandonNpcGame(user, body.gameId);
     else if (action === "join") result = await duelJoinGame(user, body.gameId);
@@ -107,6 +111,9 @@ const duelActionHandler = async (event) => {
     else if (action === "act") result = await duelActionGame(user, body.gameId, { choice: body.choice, hand: body.hand, clickedAt: body.clickedAt, actionId: body.actionId, chargeMs: body.chargeMs, flightId: body.flightId, visualOffsetMs: body.visualOffsetMs, estimatedOneWayMs: body.estimatedOneWayMs, expectedPhase: body.expectedPhase, expectedRevision: body.expectedRevision, expectedTurnId: body.expectedTurnId, expectedVisualKey: body.expectedVisualKey, expectedPromptIndex: body.expectedPromptIndex, expectedControl: body.expectedControl, inputBatch: body.inputBatch, asTestPlayer: Boolean(body.controlTestPlayer) });
     else return json(headers, 400, { ok: false, error: "Unknown Multiplayer Arcade action." });
 
+    };
+    if(['create','join','cancel','npc','remote-bot','create-remote-bot'].includes(action))await require('./site-hub/lifecycle-lock').withLifecycleLock(update);
+    else await update();
     // Unchanged DRAW sync responses intentionally skip the balance lookup and
     // large game payload. This keeps active polling small and inexpensive.
     if (result?.unchanged || result?.databaseAuthoritative || result?.skipBalanceLookup) {

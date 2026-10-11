@@ -55,10 +55,7 @@ exports.handler = async (event) => {
 
 function getPassword(event) {
   const headers = event.headers || {};
-  const headerValue = headers["x-admin-password"] || headers["X-Admin-Password"];
-  if (headerValue) return String(headerValue);
-  try { return new URLSearchParams(event.rawQuery || "").get("password") || ""; }
-  catch { return ""; }
+  return String(headers['x-admin-password'] || headers['X-Admin-Password'] || '');
 }
 
 function json(headers, statusCode, payload) {

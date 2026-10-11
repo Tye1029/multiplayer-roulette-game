@@ -10,7 +10,11 @@
     { id:'maximus', name:'Maximus', title:'The dramatic one', image:'gladiator.png' },
     { id:'voss', name:'Voss', title:'The iron veteran', image:'voss.png' },
     { id:'lyra', name:'Lyra', title:'The knowing smirk', image:'lyra.png' },
-    { id:'bryn', name:'Bryn', title:'The crowd favorite', image:'bryn.png' }
+    { id:'bryn', name:'Bryn', title:'The crowd favorite', image:'bryn.png' },
+    { id:'kael', name:'Kael', title:'The moonbreaker', image:'kael.png' },
+    { id:'ren', name:'Ren', title:'The scarlet blade', image:'ren.png' },
+    { id:'sora', name:'Sora', title:'The silver storm', image:'sora.png' },
+    { id:'nyx', name:'Nyx', title:'The copper menace', image:'nyx.png' }
   ];
   const character = value => CHARACTERS.some(c => c.id === value) ? value : 'maximus';
   const REVEAL_MS = 1800, NEXT_MS = 4000, PICK_MS = 90000;

@@ -44,7 +44,6 @@ const MAX_ADJUSTMENTS = 180;
 const MAX_WITHDRAWALS = 260;
 const MAX_ACTIVE_TICKETS = 3;
 const MAX_TICKET_IDS = 1800;
-const MAX_LEDGER = 3000;
 const TICKETS_PER_XAN = 1000;
 const BALANCE_UNIT = "tickets";
 
@@ -435,25 +434,8 @@ async function resolveSiteUser(tornUser, visitorId = "") {
   const cleanVisitor = cleanVisitorId(visitorId);
   if (!tornId) return { id: tornUser?.id, name: tornUser?.name || "Unknown" };
 
-  if (cleanVisitor) {
-    const existingLink = await getVisitorLink(cleanVisitor);
-    if (existingLink?.userId) {
-      const linkedRecord = await getUserRecord(existingLink.userId);
-      if (linkedRecord?.userId) {
-        await saveVisitorLink(cleanVisitor, linkedRecord.userId, tornUser);
-        await saveTornUserLink(tornId, linkedRecord.userId, tornUser, cleanVisitor);
-        return {
-          id: linkedRecord.userId,
-          name: tornUser?.name || linkedRecord.name || "Unknown",
-          tornId: tornUser?.id || tornId,
-          tornName: tornUser?.name || linkedRecord.name || "Unknown",
-          visitorId: cleanVisitor,
-          linkedFromVisitor: true
-        };
-      }
-    }
-  }
-
+  // Browser visitor IDs are not proof of account ownership. Resolve only through
+  // the verified Torn principal; visitor mappings are display metadata.
   const tornLink = await getTornUserLink(tornId);
   if (tornLink?.userId) {
     const linkedRecord = await getUserRecord(tornLink.userId);
@@ -658,22 +640,24 @@ async function getUserRecord(userId) {
 }
 
 async function saveUserRecord(record) {
-  let sanitized = sanitizeRecord(record || {});
-  const store = getUsersStore();
-
-  // Merge with the latest stored record before saving. This reduces lost updates
-  // when a user reveals a winning ticket and immediately buys again while Netlify
-  // Blobs is still catching up. The incoming record still controls activeTickets,
-  // so completed tickets can be cleared correctly.
-  try {
-    const latest = await store.get(userKey(sanitized.userId), { type: "json" });
-    if (latest && String(latest.userId) === String(sanitized.userId)) {
-      sanitized = mergeRecordsForSave(latest, sanitized);
+  const incoming=sanitizeRecord(record||{}),store=getUsersStore(),key=userKey(incoming.userId);
+  for(let attempt=0;attempt<8;attempt++){
+    let read;
+    try{read=await store.getWithMetadata(key,{type:'json',consistency:'strong'});}
+    catch(error){
+      // Older Lambda endpoints lack the uncached URL. Their ETag still guards
+      // the conditional write: a stale read fails closed and cannot overwrite.
+      if(error?.name!=='BlobsConsistencyError')throw error;
+      read=await store.getWithMetadata(key,{type:'json'});
     }
-  } catch {}
-
-  await store.setJSON(userKey(sanitized.userId), sanitized);
-  return sanitized;
+    if(read&&!read.etag)throw new Error('Wallet revision unavailable. Please retry.');
+    const next=read?.data?mergeRecordsForSave(read.data,incoming):incoming;
+    const signed=Number(next.balanceBaseline||0)+(next.financialLedger||[]).reduce((n,e)=>n+Number(e.delta||0),0);
+    if(next.ledgerStartedAt&&signed<0)throw new Error('Your balance changed. Refresh before placing another wager.');
+    const result=await store.set(key,JSON.stringify(next),read?{onlyIfMatch:read.etag}:{onlyIfNew:true});
+    if(result.modified)return next;
+  }
+  throw new Error('Wallet busy. Please retry.');
 }
 
 function uniqueByKey(items, keyFn, limit) {
@@ -699,7 +683,7 @@ function mergeRecordsForSave(existingRaw, incomingRaw) {
     issuedTicketIds: [...new Set([...(existing.issuedTicketIds || []), ...(incoming.issuedTicketIds || [])])].slice(-MAX_TICKET_IDS),
     completedTicketIds: [...new Set([...(existing.completedTicketIds || []), ...(incoming.completedTicketIds || [])])].slice(-MAX_TICKET_IDS),
     linkedTornUsers: mergeLinkedTornUsers(existing.linkedTornUsers, incoming.linkedTornUsers),
-    financialLedger: uniqueByKey([...(existing.financialLedger || []), ...(incoming.financialLedger || [])], (entry) => entry?.id, MAX_LEDGER),
+    financialLedger: uniqueByKey([...(existing.financialLedger || []), ...(incoming.financialLedger || [])], (entry) => entry?.id, Number.MAX_SAFE_INTEGER),
     recentBets: uniqueByKey([...(existing.recentBets || []), ...(incoming.recentBets || [])], (bet) => bet?.ticketId || `${bet?.at}:${bet?.ticketCost}:${bet?.winAmount}`, MAX_BETS),
     recentAdjustments: uniqueByKey([...(existing.recentAdjustments || []), ...(incoming.recentAdjustments || [])], (adj) => adj?.adjustmentId || `${adj?.at}:${adj?.amount}:${adj?.action}`, MAX_ADJUSTMENTS),
     recentWithdrawals: uniqueByKey([...(existing.recentWithdrawals || []), ...(incoming.recentWithdrawals || [])], (w) => w?.withdrawalId || `${w?.at}:${w?.amount}`, MAX_WITHDRAWALS),
@@ -789,7 +773,7 @@ function addLedgerEntry(record, entry) {
   const normalized = sanitizeLedgerEntry({ ...entry, at: entry.at || nowIso() });
   if (!normalized.id) normalized.id = `${normalized.type || "entry"}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   if (ledgerEntryIdExists(clean, normalized.id)) return { record: clean, entry: normalized, added: false };
-  const nextLedger = [...(clean.financialLedger || []), normalized].map(sanitizeLedgerEntry).slice(-MAX_LEDGER);
+  const nextLedger = [...(clean.financialLedger || []), normalized].map(sanitizeLedgerEntry);
   const next = sanitizeRecord({ ...clean, financialLedger: nextLedger });
   return { record: next, entry: normalized, added: true };
 }
@@ -1870,7 +1854,7 @@ function sanitizeRecord(record) {
     claimedLogIds: Array.isArray(record.claimedLogIds) ? record.claimedLogIds.map(String).slice(-MAX_CLAIMED_LOG_IDS) : [],
     issuedTicketIds: Array.isArray(record.issuedTicketIds) ? record.issuedTicketIds.map(String).slice(-MAX_TICKET_IDS) : [],
     completedTicketIds: Array.isArray(record.completedTicketIds) ? record.completedTicketIds.map(String).slice(-MAX_TICKET_IDS) : [],
-    financialLedger: Array.isArray(record.financialLedger) ? record.financialLedger.map(sanitizeLedgerEntry).slice(-MAX_LEDGER) : [],
+    financialLedger: Array.isArray(record.financialLedger) ? record.financialLedger.map(sanitizeLedgerEntry) : [],
     recentBets: Array.isArray(record.recentBets) ? record.recentBets.map(sanitizeBet).slice(-MAX_BETS) : [],
     recentAdjustments: Array.isArray(record.recentAdjustments) ? record.recentAdjustments.map(sanitizeAdjustment).slice(-MAX_ADJUSTMENTS) : [],
     recentWithdrawals: Array.isArray(record.recentWithdrawals) ? record.recentWithdrawals.map(sanitizeWithdrawal).slice(-MAX_WITHDRAWALS) : [],
@@ -4122,7 +4106,7 @@ const {
 const DUEL_GAME_PREFIX = "duel-game/";
 const DUEL_ACTIVE_PREFIX = "duel-active/";
 const DUEL_SCHEMA_VERSION = 3;
-const DUEL_WAITING_TTL_MS = 30 * 60 * 1000;
+const DUEL_WAITING_TTL_MS = 15 * 60 * 1000;
 const DUEL_ACTIVE_TTL_MS = 2 * 60 * 60 * 1000;
 const DUEL_VALID_WAGER_MIN = 1000;
 const DUEL_VALID_WAGER_MAX = 50000;
@@ -4132,7 +4116,7 @@ function duelActiveKey(userId) { return `${DUEL_ACTIVE_PREFIX}${cleanUserId(user
 function duelIsActiveStatus(status) { return ["waiting","ready","countdown","playing"].includes(String(status||"")); }
 function duelIsExpired(game, nowMs = Date.now()) {
   if (!duelIsActiveStatus(game?.status)) return false;
-  const stamp = Date.parse(game.updatedAt || game.createdAt || "");
+  const stamp = Date.parse((game.status === "waiting" ? game.createdAt : game.updatedAt) || game.createdAt || "");
   if (!Number.isFinite(stamp)) return true;
   const ttl = game.status === "waiting" ? DUEL_WAITING_TTL_MS : DUEL_ACTIVE_TTL_MS;
   return nowMs - stamp > ttl;
@@ -4506,7 +4490,7 @@ async function duelListGames(user) {
     }
   } catch {}
   games.sort((a, b) => String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")));
-  return { games: games.slice(0, 40), record: await recordPromise };
+  return { games: games.filter(g=>g.status==="waiting"||g.isPlayer).slice(0, 200), record: await recordPromise };
 }
 
 async function duelFindActiveFishingGameForUser(userId, excludeGameId = "") {
@@ -4569,6 +4553,7 @@ async function duelCreateGame(user, details = {}) {
   }
 
   let activeGame = await duelFindActiveGameForUser(user.id,"",{scanFallback:false});
+  if (activeGame?.status === "waiting") activeGame = null;
   if (activeGame && activeGame.mode !== mode) {
     const syntheticOpponent = [activeGame.creator, activeGame.joiner].find(player => player?.isNpc || player?.isRemoteBot || String(player?.userId || "").startsWith("npc-") || String(player?.userId || "").startsWith("remote-bot-"));
     if (syntheticOpponent) {
@@ -4639,7 +4624,7 @@ async function duelCreateGame(user, details = {}) {
 }
 
 async function duelCancelGame(user, gameId) {
-  let game = await duelGetRaw(gameId);
+  let game = await duelGetRawStrong(gameId);
   if (!game) throw new Error("That duel was not found.");
   const viewer = cleanUserId(user.id);
   if (game.creator.userId !== viewer || game.status !== "waiting" || game.joiner) throw new Error("Only the creator can cancel a waiting duel.");
@@ -4713,7 +4698,7 @@ async function duelJoinGame(user, gameId) {
   let game = await duelGetRawStrong(gameId);
   if (!game) throw new Error("That duel was not found.");
   const viewer = cleanUserId(user.id);
-  if (game.status !== "waiting") throw new Error("That duel is no longer joinable.");
+  if (game.status !== "waiting" || game.joiner || duelIsExpired(game)) throw new Error("That duel is no longer joinable.");
   if (game.creator.userId === viewer) throw new Error("You cannot join your own duel.");
   // Joining another game preserves the existing duel and its separate escrow.
   const wager = int(game.wager, 0);

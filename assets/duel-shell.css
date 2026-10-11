@@ -489,8 +489,6 @@ body::before { display: none; }
 .duel-wager-control:focus-within { border-color: #a1c4d4; }
 .duel-wager-control button:focus-visible { outline: 2px solid #a1c4d4; outline-offset: -3px; }
 /* These games remain registered and playable via existing matches, not listed. */
-.sth-game[data-mode="draw"], .sth-game[data-mode="mountainrace"],
-[data-rnb-game="draw"], [data-rnb-game="mountainrace"],
 #duelModeSelect option[hidden] { display: none !important; }
 @media (max-width: 680px) {
   .duel-create-fields { grid-template-columns: minmax(0, 1fr) minmax(150px, 1fr); }

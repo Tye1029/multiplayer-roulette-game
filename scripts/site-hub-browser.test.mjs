@@ -1,0 +1,42 @@
+import assert from 'node:assert/strict';
+import http from 'node:http';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import os from 'node:os';
+import {createRequire} from 'node:module';
+import {PGlite} from '@electric-sql/pglite';
+const require=createRequire(import.meta.url),{chromium}=require(process.env.RPS_PLAYWRIGHT_MODULE||'playwright');
+const pg=new PGlite();let tail=Promise.resolve();const pool={query:(s,a)=>pg.query(s,a),connect:async()=>{let release;const prior=tail;tail=new Promise(r=>release=r);await prior;return {query:(s,a)=>pg.query(s,a),release};}};
+const balances=new Map(['1','2','3','4'].map(id=>[id,100000])),ledger=new Set();
+const wallet={account:async p=>p.id,balance:async p=>balances.get(p.id),rate:async()=>3.3,apply:async(id,e)=>{if(ledger.has(e.id))return;assert.ok(balances.get(id)+e.delta>=0);balances.set(id,balances.get(id)+e.delta);ledger.add(e.id);}};
+const rps=require('../netlify/functions/rps/database').createStore(pool,wallet),four=require('../netlify/functions/roulette-four/database').createStore(pool,wallet),store=require('../netlify/functions/site-hub/store').createStore(pool);
+const rpsHandler=require('../netlify/functions/rps-action').createHandler(rps,async url=>({ok:true,json:async()=>({player_id:new URL(url).searchParams.get('key').slice(-1),name:'Player '+new URL(url).searchParams.get('key').slice(-1)})}));
+const hub=require('../netlify/functions/site-hub').createHandler({rps,four,store,wallet,data:{resolveSiteUser:async p=>p,duelListGames:async()=>({games:[]})}});
+const fourHandler=require('../netlify/functions/roulette-four-action').createHandler(four,rps);
+const root=path.resolve('dist'),errors=[],out=path.join(os.tmpdir(),'codex-xan-hub-qa');await fs.mkdir(out,{recursive:true});
+const server=http.createServer(async(req,res)=>{try{
+ const pathname=new URL(req.url,'http://localhost').pathname;let raw='';if(req.method==='POST')for await(const chunk of req)raw+=chunk;
+ if(pathname.startsWith('/.netlify/functions/')){
+  let response;
+  if(pathname.endsWith('rps-action')){const r=await rpsHandler({httpMethod:req.method,body:raw});response=new Response(r.body,{status:r.statusCode,headers:r.headers});}
+  else if(pathname.endsWith('site-hub')||pathname.endsWith('roulette-four-action'))response=await (pathname.endsWith('site-hub')?hub:fourHandler)(new Request('http://site.test'+req.url,{method:req.method,headers:req.headers,body:raw||undefined}));
+  else response=new Response(JSON.stringify({ok:true,games:[],serverBalance:100000,user:{id:'1',name:'Player 1'},siteUserId:'1'}),{headers:{'Content-Type':'application/json'}});
+  res.writeHead(response.status,Object.fromEntries(response.headers));res.end(await response.text());return;
+ }
+ const file=path.resolve(root,'.'+decodeURIComponent(pathname)+(pathname.endsWith('/')?'index.html':''));if(!file.startsWith(root+path.sep))throw Error('path');const bytes=await fs.readFile(file);res.writeHead(200,{'Content-Type':({'.html':'text/html','.js':'application/javascript','.mjs':'application/javascript','.css':'text/css','.png':'image/png','.webp':'image/webp','.mp3':'audio/mpeg','.svg':'image/svg+xml'})[path.extname(file)]||'application/octet-stream'});res.end(bytes);
+}catch{res.writeHead(404);res.end('Not found');}});
+await new Promise(r=>server.listen(0,'127.0.0.1',r));const origin=`http://127.0.0.1:${server.address().port}`;
+const browser=await chromium.launch({headless:true,executablePath:process.env.RPS_BROWSER||undefined});
+try{
+ const guest=await browser.newPage({viewport:{width:390,height:844}});guest.on('pageerror',e=>errors.push(e.message));await guest.goto(origin);await guest.waitForSelector('.hub-tile');assert.equal(await guest.locator('.sth-game:disabled').count(),8);await guest.getByRole('button',{name:'Rules for Rock Paper Scissors',exact:true}).click();await guest.getByRole('button',{name:'Got it',exact:true}).click();
+ await guest.getByRole('button',{name:'Open menu',exact:true}).click();await guest.locator('#hub-sound').uncheck();await guest.locator('#hub-dark').uncheck();assert.equal(await guest.locator('html').getAttribute('data-theme'),'light');await guest.locator('#hub-report').click();await guest.locator('#hub-message').fill('Mobile test report');await guest.locator('#hub-debug').click();await guest.getByText('Sent to the admin inbox. Thank you!',{exact:true}).waitFor();await guest.locator('#hub-close').click();assert.equal(await guest.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await guest.locator('#simpleTestHome').evaluate(e=>e.scrollTop=0);await guest.screenshot({path:path.join(out,'home-mobile.png')});await guest.close();
+ const pages=[];for(let i=1;i<=4;i++){const context=await browser.newContext({viewport:{width:i===2?390:1280,height:900}});await context.addInitScript(id=>{localStorage.setItem('tornVisitorApiKey','TESTPUBLICKEY00'+id);localStorage.setItem('tornKeyConfirmed','true');localStorage.setItem('xan-muted','1');},i);const p=await context.newPage();p.on('pageerror',e=>errors.push(e.message));pages.push(p);}
+ const a=pages[0];await a.goto(origin);await a.locator('#hub-balance').filter({hasText:'100,000'}).waitFor();assert.equal(await a.locator('.sth-game:visible').count(),8);await a.screenshot({path:path.join(out,'home-desktop.png')});await a.locator('.sth-game[data-mode="fishing"]').click();await a.screenshot({path:path.join(out,'shared-fishing-header.png')});const headerCheck=await a.locator('#duelScreen').evaluate(e=>({top:e.getBoundingClientRect().top,mode:document.getElementById('duelModeSelect').value,accent:document.documentElement.style.getPropertyValue('--xan-accent')}));assert.ok(headerCheck.top>=70);assert.equal(headerCheck.mode,'fishing');assert.equal(headerCheck.accent,'#61b8ed');await a.locator('.hub-all').click();await a.locator('.sth-game[data-mode="roulette-four"]').click();await a.locator('#four-wager').fill('1000');await a.getByRole('button',{name:'Create public table',exact:true}).click();await a.getByText('Waiting for players · 1/4',{exact:true}).waitFor();const room=new URL(a.url()).searchParams.get('room');assert.ok(room);
+ // Creator leaves the table; a join notification must survive navigation.
+ await a.goto(origin);for(const p of pages.slice(1)){await p.goto(origin+'/games/multiplayer/roulette-four/?room='+room);await p.getByRole('button',{name:'Accept wager & join',exact:true}).click();}
+ await a.reload();await a.locator('#hub-bell[data-unread="true"]').waitFor();assert.equal(await a.locator('#hub-games .hub-row').count(),0);await a.locator('#hub-bell').click();await a.locator('#hub-inbox a').first().click();await a.locator('#welcome').waitFor({state:'hidden'});
+ await pg.query("UPDATE roulette_four_matches SET state=jsonb_set(jsonb_set(jsonb_set(state,'{startAt}','0'),'{bullet}','1'),'{deadline}',to_jsonb($2::bigint)) WHERE id=$1",[room,Date.now()+60000]);
+ const state=await four.recover(room),actor=pages[Number(state.order[state.turn])-1];await actor.locator('#shoot:enabled').waitFor();await actor.locator('#shoot').click();for(const p of pages)await p.locator('#result-dialog[open]').waitFor();await a.screenshot({path:path.join(out,'four-online-results.png')});
+ const settled=await four.recover(room);assert.equal(settled.settled,true);assert.equal(settled.paid.length,4);assert.equal(new Set(settled.players.map(p=>p.id)).size,4);
+ for(const p of pages)await p.context().close();assert.deepEqual(errors,[]);console.log('Site hub browser passed: mobile onboarding, 8 gated cards, rules, persistent settings, guest debug report, desktop balance, four real clients, room persistence, bell, full-room removal and settled game. Screenshots: '+out);
+}finally{await browser.close();await new Promise(r=>server.close(r));await pg.close();}
