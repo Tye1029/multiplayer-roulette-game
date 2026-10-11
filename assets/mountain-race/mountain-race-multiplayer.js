@@ -486,6 +486,7 @@
 
   function resultOverlay(publicState, me, total) {
     if (runtime.game?.status !== 'complete' || !runtime.resultRevealReady) return '';
+    if (window.SummitSceneV68?.resultOverlay) return window.SummitSceneV68.resultOverlay(runtime.game, publicState, total);
     const winnerText = publicState.tie
       ? 'THE RACE ENDED IN A TIE'
       : publicState.viewerWon

@@ -6632,8 +6632,8 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
 <!-- MOUNTAIN_RACE_MULTIPLAYER_ASSETS_START -->
 <link id="mountainRaceStyles" rel="stylesheet" href="/assets/mountain-race/mountain-race.css?v=3&multiplayer=1&gameplay=3">
   <link id="mountainRaceSceneStyles" rel="stylesheet" href="/assets/mountain-race/mountain-race-scene-v65.css?v=1">
-  <link rel="stylesheet" href="/assets/mountain-race/scene-v68.css?v=1"><script src="/assets/mountain-race/scene-v68.js?v=2" defer></script>
-  <script id="mountainRaceMultiplayerRuntime" src="/assets/mountain-race/mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=11&scene=65&holds=30&presentation=68" defer></script>
+  <link rel="stylesheet" href="/assets/mountain-race/scene-v68.css?v=3"><script src="/assets/mountain-race/scene-v68.js?v=3" defer></script>
+  <script id="mountainRaceMultiplayerRuntime" src="/assets/mountain-race/mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=11&scene=65&holds=30&presentation=69" defer></script>
 <!-- MOUNTAIN_RACE_MULTIPLAYER_ASSETS_END -->
 <!-- BLACKJACK_DUEL_ASSETS_START -->
   <link id="blackjackDuelStyles" rel="stylesheet" href="/assets/blackjack-duel/blackjack-duel.css?v=blackjack-duel-v17">
@@ -6647,9 +6647,8 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
 
 <!-- Game artwork is prewarmed when its game is chosen, before the Ready screen. -->
 <template id="mountainRaceImagePreloads">
-  <link rel="preload" as="image" href="/assets/mountain-race/images/summit-world-v68.png">
+  <link rel="preload" as="image" href="/assets/mountain-race/images/summit-brown-world-v69.png">
   <link rel="preload" as="image" href="/assets/mountain-race/images/summit-climbers-v68.png">
-  <link rel="preload" as="image" href="/assets/mountain-race/images/summit-sprint-jagged-ledges-v65.png">
 </template>
 <!-- Retained for the validated historical renderer; not prewarmed by V68. -->
 <template id="mountainRaceHistoricalPreloads">
@@ -11665,6 +11664,18 @@ function createSparkle(x, y) {
         return;
       }
       if(game?.mode==='roulette'&&roulettePatchMountedRuntime(game)){duelSetPollRate(game);return;}
+      // SUMMIT_SPRINT_V69: polls and input acknowledgements must retain the camera DOM.
+      if (game?.mode === 'mountainrace'
+        && ['countdown','playing','complete'].includes(String(game.status || ''))
+        && duelActive.querySelector('[data-mountain-race-mount] > .m68-game')
+        && duelGenericMountedGameMatches(game)) {
+        duelLastActiveGame = game;
+        duelLastRenderKey = nextKey;
+        duelSetSharedCountdown(game);
+        window.dispatchEvent(new CustomEvent('mountainrace:state', {detail:{game}}));
+        duelSetPollRate(game);
+        return;
+      }
       const mountedBlackjackDuel = duelActive.querySelector('.duel-arena.blackjack-duel-clean[data-duel-generic-game="1"]');
       const canPatchMountedBlackjackDuel = game?.mode === "blackjackduel"
         && ["countdown", "playing", "complete"].includes(String(game.status || ""))
@@ -11806,6 +11817,12 @@ function createSparkle(x, y) {
       } else if (game.mode === "roulette") {
         rouletteLatestGame = game;
         duelActive.innerHTML = `<div class="duel-arena roulette-clean"><div class="duel-status"><b>${escapeHtml(game.modeName || "Russian Roulette")}</b> • Pot ${money(game.pot || game.wager || 0)}</div><div data-duel-roulette-art>${duelModeArt(game)}</div>${testControlHtml}${body}${npcRecoveryHtml}</div>`;
+      } else if (game.mode === "mountainrace" && ["countdown", "playing", "complete"].includes(String(game.status || ""))) {
+        duelGenericMountId += 1;
+        duelActive.innerHTML = `<div class="duel-arena summit-clean" data-duel-generic-game="1" data-duel-game-id="${escapeHtml(String(game.gameId || ""))}" data-duel-mode="mountainrace" data-duel-epoch="${genericEpoch}">
+          ${duelModeArt(game)}
+          ${npcRecoveryHtml}
+        </div>`;
       } else if (game.mode === "blackjackduel" && ["countdown", "playing", "complete"].includes(String(game.status || ""))) {
         duelGenericMountId += 1;
         duelActive.innerHTML = `<div class="duel-arena blackjack-duel-clean" data-duel-generic-game="1" data-duel-game-id="${escapeHtml(String(game.gameId || ""))}" data-duel-mode="blackjackduel" data-duel-epoch="${genericEpoch}">

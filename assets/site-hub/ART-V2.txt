@@ -3,7 +3,7 @@ XAN DUELS V2 / SUMMIT SPRINT V68 — 2026-10-11
 Generated with the built-in imagegen tool. Final project assets:
 - assets/site-hub/images/roulette.webp
 - assets/site-hub/images/roulette-four.webp
-- assets/mountain-race/images/summit-world-v68.png
+- assets/mountain-race/images/summit-world-v68.png (superseded and removed in V69; see ../mountain-race/ART-V69.txt)
 - assets/mountain-race/images/summit-climbers-v68.png
 
 Prompt set:
