@@ -45,3 +45,4 @@
 .xg-tools{flex-wrap:wrap;min-width:0}.xg-heading{min-width:0}.xg-heading>*{min-width:0}
 
 .xg-art>.xg-safe-dial{position:absolute;width:43%;max-width:215px;height:auto;left:50%;top:50%;transform:translate(-50%,-50%);border-radius:0;filter:drop-shadow(0 12px 14px #0009)}
+.xan-unified .xg-heading:not([hidden]){display:grid!important}

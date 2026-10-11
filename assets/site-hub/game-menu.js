@@ -47,6 +47,7 @@
     function update(){
       const a=adapter(),c=a?.current?.();const nextMode=c?.mode||Object.keys(paths).find(m=>location.pathname.includes('/'+paths[m]+'/'));if(!games[nextMode]){heading.hidden=menu.hidden=waiting.hidden=open.hidden=true;return;}heading.hidden=open.hidden=false;
       const view=a?.view?.()||{id:c?.id,phase:c?.phase},active=!!view.id;mode=nextMode;
+      heading.hidden=legacy&&['countdown','playing'].includes(view.phase);
       host.classList.toggle('hub-has-game',active);document.body.dataset.xanMode=mode;host.dataset.xanActive=String(active);host.dataset.xanPhase=view.phase||'lobby';
       menu.hidden=active;practice.hidden=!a?.practice;stake.min=['bluff','yahtzee'].includes(mode)?'0':'1000';
       const key=JSON.stringify([mode,view.id,view.phase,view.wager,view.private,view.players?.length]);
