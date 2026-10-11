@@ -46,3 +46,5 @@
 
 .xg-art>.xg-safe-dial{position:absolute;width:43%;max-width:215px;height:auto;left:50%;top:50%;transform:translate(-50%,-50%);border-radius:0;filter:drop-shadow(0 12px 14px #0009)}
 .xan-unified .xg-heading:not([hidden]){display:grid!important}
+
+.xg-art>.xg-foreground{position:absolute;left:50%;bottom:7%;transform:translateX(-50%);width:78%;max-width:390px;max-height:88%;height:auto;border-radius:0;object-fit:contain;filter:drop-shadow(0 15px 18px #0009)}.xg-art[data-mode=rps]>.xg-foreground{height:88%;width:auto}
