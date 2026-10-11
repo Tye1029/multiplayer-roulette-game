@@ -29,6 +29,10 @@
  window.XanHub={authenticate,post,api,cancelTable,refresh:()=>refresh(),games,get profile(){return window.XanPlayerProfile;}};
  const bar=element('header',undefined,'xan-bar');bar.innerHTML='<div class="xan-account"><span id="hub-player">WELCOME TO THE ARENA</span><strong id="hub-balance">Connect to play</strong></div><a href="/" class="xan-brand" aria-label="Xan Duels home"><b>XAN</b> DUELS</a><nav class="xan-tools" aria-label="Site controls"><a class="hub-all" href="/">All games</a><button id="hub-bell" aria-label="Notifications" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M9 21h6"/></svg></button><button id="hub-menu" aria-label="Open menu" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button></nav>';
  document.body.prepend(bar);
+ // Account controls can wrap on phones; launcher and menus follow the actual bar.
+ let headerHeight=0;
+ const measureHeader=()=>{const next=Math.ceil(bar.getBoundingClientRect().height);if(next!==headerHeight){headerHeight=next;document.documentElement.style.setProperty('--xan-header-height',next+'px');}};
+ new ResizeObserver(measureHeader).observe(bar);measureHeader();
  const menu=element('section',undefined,'xan-popover');menu.id='hub-menu-panel';menu.hidden=true;menu.innerHTML='<h2>Your settings</h2><label>Sound<input id="hub-sound" type="checkbox"></label><label>Dark mode<input id="hub-dark" type="checkbox"></label><button id="hub-add-bot">Add bot</button><button id="hub-diagnostics">Debug</button><button id="hub-remove">Remove API key</button><button id="hub-report">Report bug / Suggestions</button>';document.body.append(menu);
  const inbox=element('section',undefined,'xan-popover');inbox.id='hub-inbox';inbox.hidden=true;document.body.append(inbox);
  const dialog=element('dialog',undefined,'xan-dialog');dialog.id='hub-dialog';document.body.append(dialog);

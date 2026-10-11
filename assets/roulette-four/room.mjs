@@ -246,8 +246,10 @@ export function animateRoom() {
     const eligible = living.filter(
       (a) => now >= a.next && a.rig.status().ready,
     );
-    if (now >= nextStatic && living.length && now >= nextGesture) {
-      const repairers = living.filter(
+    // Human characters have no television layer to animate.
+    const televisions = living.filter((a) => a.noise);
+    if (now >= nextStatic && televisions.length && now >= nextGesture) {
+      const repairers = televisions.filter(
         (a) =>
           a.node.dataset.repair === "true" &&
           a.rig.status().ready &&
@@ -259,7 +261,7 @@ export function animateRoom() {
           now,
           "tv-repair",
         );
-      else interference(living[Math.floor(Math.random() * living.length)]);
+      else interference(televisions[Math.floor(Math.random() * televisions.length)]);
       nextStatic = now + between(20000, 40000);
     } else if (now >= nextGesture && eligible.length) {
       gesture(eligible[Math.floor(Math.random() * eligible.length)], now);
