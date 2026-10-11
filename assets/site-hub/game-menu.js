@@ -7,6 +7,8 @@
   const paths={rps:'rps','roulette-four':'roulette-four',bluff:'bluff',yahtzee:'yahtzee'};
   const href=(mode,id='')=>paths[mode]?'/games/multiplayer/'+paths[mode]+'/'+(id?'?'+(mode==='rps'?'arena':'room')+'='+encodeURIComponent(id):''):'/?game='+encodeURIComponent(mode)+(id?'&room='+encodeURIComponent(id):'');
   window.XanGameMenu={href,install({games,showRules}){
+    // The isolated four-bot harness owns its setup dialog and has no online adapter.
+    if(location.pathname.includes('/roulette-four/')&&new URLSearchParams(location.search).get('practice')==='1')return;
     const host=document.getElementById('duelScreen')||document.querySelector('main');if(!host)return;
     const legacy=host.id==='duelScreen';let mode='',last='',pending=false,quote=null;
     document.body.classList.add('xan-unified');
