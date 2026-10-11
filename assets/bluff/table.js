@@ -1,0 +1,198 @@
+/* BLUFF_OR_BUST_V1 */
+(() => {
+  'use strict';
+  const rules = window.BluffRules, $ = id => document.getElementById(id);
+  const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const suitName = { crown: 'Crowns', coin: 'Coins', skull: 'Skulls' }, pip = { crown: '♛', coin: '◆', skull: '✦' };
+  const storage = { get(k) { try { return sessionStorage.getItem(k); } catch { return null; } }, set(k, v) { try { sessionStorage.setItem(k, v); } catch {} }, remove(k) { try { sessionStorage.removeItem(k); } catch {} } };
+  let state, local, room = '', token = '', busy = false, polling = false, selected = new Set(), key = '', clockOffset = 0, audio, lastCue = '', createId = '', noticeTimer;
+  let sound = false;
+  function notice(message, persistent = false) {
+    clearTimeout(noticeTimer); $('notice').textContent = message;
+    if (!persistent) noticeTimer = setTimeout(() => { $('notice').textContent = ''; }, 6000);
+  }
+  function tone(kind) {
+    if (!sound || window.XanPreferences?.muted) return;
+    try {
+      audio ||= new AudioContext(); audio.resume().catch(() => {});
+      const notes = kind === 'win' ? [392, 494, 587, 784] : kind === 'reveal' ? [220, 330, 440] : kind === 'lock' ? [330, 494] : [640];
+      notes.forEach((frequency, i) => { const o = audio.createOscillator(), g = audio.createGain(), at = audio.currentTime + i * .13;
+        o.type = 'sine'; o.frequency.value = frequency; g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(.065, at + .015); g.gain.exponentialRampToValueAtTime(.001, at + .25); o.connect(g); g.connect(audio.destination); o.start(at); o.stop(at + .26);
+      });
+    } catch {}
+  }
+  $('sound').onclick = () => { sound = !sound; window.XanPreferences?.sound(sound); $('sound').textContent = sound ? 'Sound on' : 'Sound off'; $('sound').setAttribute('aria-pressed', String(sound)); tone('pick'); };
+  $('rules').onclick = () => $('rules-dialog').showModal();
+  $('close-rules').onclick = () => $('rules-dialog').close();
+  $('rules-dialog').addEventListener('click', e => { if (e.target === $('rules-dialog')) { const r = e.target.getBoundingClientRect(); if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) e.target.close(); } });
+  function card(c, i = 0, mini = false, target = '') {
+    return `<${mini ? 'div' : 'button'} class="card ${mini ? `mini face${c.suit !== target ? ' fake' : ''}` : ''}" ${mini ? '' : `data-card="${esc(c.id)}" aria-label="${esc(c.suit)} card ${i + 1}" aria-pressed="${selected.has(c.id)}" ${state?.phase !== 'select' || state?.locked[state.me] ? 'disabled' : ''}`} style="--i:${i}"><span class="card-name">${c.suit.toUpperCase()}</span><img src="/assets/bluff/images/${c.suit}.svg" alt=""><span class="pip">${pip[c.suit]}</span></${mini ? 'div' : 'button'}>`;
+  }
+  function backs(count, locked) {
+    if (!count) return '<div class="ghost-slot">◇</div>';
+    return Array.from({ length: Math.min(count, 7) }, (_, i) => `<div class="mini back" style="--i:${i};--angle:${(i - Math.min(count, 7) / 2) * 3}" aria-hidden="true"></div>`).join('');
+  }
+  async function post(endpoint, body) {
+    const response = await fetch('/.netlify/functions/' + endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(10000) });
+    const data = await response.json();
+    if (!response.ok || !data.ok) { const e = new Error(data.error || 'Connection interrupted. Please retry.'); e.status = response.status; throw e; }
+    return data;
+  }
+  async function authenticate() {
+    if (token) return token;
+    let visitorKey; try { visitorKey = localStorage.getItem('tornVisitorApiKey'); } catch {}
+    if (!visitorKey) throw new Error('Connect your public Torn API key on the home page to play online. Bot practice is available now.');
+    token = (await post('rps-action', { action: 'login', visitorKey })).token; return token;
+  }
+  function accept(next, elapsed = 0) {
+    if (state?.id === next.id && state.revision > next.revision) return;
+    clockOffset = next.serverNow + elapsed / 2 - Date.now();
+    const reset = !state || state.id !== next.id || state.match !== next.match || state.round !== next.round;
+    if (reset) selected.clear();
+    state = next; room = next.id;
+    selected = new Set([...selected].filter(id => state.hand.some(c => c.id === id)));
+    render();
+  }
+  function persistLocal() { storage.set('bluff-practice', JSON.stringify(local)); }
+  async function request(action, extra = {}) {
+    if (busy) return;
+    busy = true;
+    try {
+      if (local) {
+        rules.bot(local);
+        rules.act(local, 'practice:you', { action, match: state?.match, round: state?.round, ...extra });
+        persistLocal(); accept(rules.publicState(local, 'practice:you'));
+      } else {
+        const session = await authenticate(), began = Date.now();
+        const data = await post('bluff-action', { action, token: session, gameId: room, match: state?.match, round: state?.round, ...extra });
+        storage.set('bluff-room', data.game.id); accept(data.game, Date.now() - began);
+      }
+      notice('');
+    } catch (e) {
+      if (e.status === 401) token = '';
+      notice(e.message || 'Connection interrupted. Your locked choices are preserved.', true);
+      if (local) { persistLocal(); accept(rules.publicState(local, 'practice:you')); }
+    } finally { busy = false; updateSelection(); }
+  }
+  async function poll() {
+    if (!state || local || polling || busy || document.hidden) return;
+    if (state.phase === 'complete' && !state.rematch.includes(state.players[state.me].id)) return;
+    polling = true;
+    try { const session = await authenticate(), began = Date.now(); const data = await post('bluff-action', { action: 'get', gameId: room, token: session }); accept(data.game, Date.now() - began); if ($('notice').dataset.network) { notice(''); delete $('notice').dataset.network; } }
+    catch (e) { if (e.status === 401) token = ''; $('notice').dataset.network = '1'; notice('Reconnecting… the table clock continues. ' + e.message, true); }
+    finally { polling = false; }
+  }
+  async function startOnline(bot = false, join = '') {
+    if (busy) return;
+    busy = true;
+    try {
+      const session = await authenticate();
+      if (!createId) createId = crypto.randomUUID();
+      const began = Date.now(), data = await post('bluff-action', { action: join ? 'join' : 'create', gameId: join, bot, requestId: createId, token: session });
+      local = null; state = null; key = ''; createId = ''; storage.remove('bluff-practice'); storage.set('bluff-room', data.game.id);
+      history.replaceState(null, '', '?room=' + data.game.id); accept(data.game, Date.now() - began); notice('');
+    } catch (e) { notice(e.message, true); }
+    finally { busy = false; }
+  }
+  $('practice').onclick = async () => {
+    let connected; try { connected = localStorage.getItem('tornVisitorApiKey'); } catch {}
+    if (connected) return startOnline(true);
+    local = rules.create('PRACTICE', { id: 'practice:you', name: 'You' });
+    rules.join(local, { id: 'bot:velvet', name: 'The Velvet Fox', bot: true });
+    state = null; key = ''; storage.remove('bluff-room'); persistLocal(); history.replaceState(null, '', location.pathname); accept(rules.publicState(local, 'practice:you'));
+  };
+  $('create').onclick = () => startOnline();
+  $('join').onclick = () => { const code = $('room').value.trim().toUpperCase(); if (!/^[A-F0-9]{12}$/.test(code)) return notice('Enter the 12-character code from your friend’s invitation.'); startOnline(false, code); };
+  async function copyInvite() {
+    const url = new URL(location.pathname, location.origin); url.searchParams.set('room', room);
+    try { await navigator.clipboard.writeText(url.href); notice('Invitation link copied. Send it to your opponent.'); }
+    catch { notice('Your invitation code: ' + room, true); }
+  }
+  async function leave() {
+    if (busy) return;
+    if (state && !['complete'].includes(state.phase)) {
+      // Leaving is explicitly labeled as forfeiting while a match is active.
+      await request('leave');
+      if (state.phase !== 'complete') return;
+    }
+    state = null; local = null; room = ''; key = ''; selected.clear(); storage.remove('bluff-room'); storage.remove('bluff-practice');
+    history.replaceState(null, '', location.pathname); $('game').hidden = true; $('lobby').hidden = false; notice('');
+  }
+  $('exit').onclick = async e => { if (state && state.phase !== 'complete') { e.preventDefault(); notice('Use “Leave & forfeit” at the table to end this match before returning home.'); } };
+  function outcome(e) {
+    const own = e.player === state.me, who = own ? 'You' : esc(state.players[e.player].name), n = e.cards.length;
+    if (e.result === 'caught') return `<b>CAUGHT BLUFFING.</b>${who} take${own ? '' : 's'} ${n} cards back.`;
+    if (e.result === 'false-call') return `<b>ALL GENUINE.</b>${own ? 'Your rival takes' : 'You take'} all ${n} cards. A costly accusation.`;
+    return `<b>${e.fake ? 'GOT AWAY WITH IT.' : 'TRUST WELL PLACED.'}</b>${n} cards discarded.${e.fake ? ` ${e.cards.filter(c => c.suit !== state.target).length} fake.` : ''}`;
+  }
+  function render() {
+    if (!state) return;
+    $('lobby').hidden = true; $('game').hidden = false;
+    const s = state, me = s.me, other = 1 - me, rival = s.players[other];
+    const nextKey = [s.id, s.revision, local ? 'local' : 'online'].join(':');
+    if (nextKey === key) return;
+    const oldPhase = $('game').dataset.phase;
+    const focus = document.activeElement?.dataset.card;
+    key = nextKey; $('game').dataset.phase = s.phase;
+    const heading = `<div class="game-heading"><div><h1>Bluff <i>or</i> Bust.</h1><span class="eyebrow">${local ? 'LOCAL BOT PRACTICE' : rival?.bot ? 'NETWORK BOT · FREE PLAY' : 'FRIEND DUEL · FREE PLAY'}</span></div><div class="table-options">${!local && s.phase === 'waiting' ? '<button data-action="invite">Copy invite</button>' : ''}<button data-action="leave">${['waiting', 'complete'].includes(s.phase) ? 'Leave table' : 'Leave & forfeit'}</button></div></div>`;
+    let content;
+    if (s.phase === 'waiting') {
+      const ready = s.ready.includes(s.players[me].id);
+      content = `<section class="table waiting"><span class="eyebrow">${rival ? 'YOUR OPPONENT IS HERE' : 'SAVE A SEAT FOR A GOOD LIAR'}</span><h2>${rival ? `You vs. ${esc(rival.name)}` : 'Your table is ready.'}</h2>${!local ? `<div class="room-code">${s.id}</div>` : '<img class="result-icon" src="/assets/bluff/images/back.svg" alt="Ornate card back">'}<p>${rival ? 'Ten random cards each. Lock your play within 30 seconds or lose. The clock starts when both players are ready.' : 'Copy the invitation link and send it to a friend. Both players must press Ready before the clock starts.'}</p>${rival ? `<button class="primary" data-action="ready" ${ready ? 'disabled' : ''}>${ready ? 'Ready · waiting for your rival…' : 'I’m ready. Deal me in →'}</button>` : '<button class="primary" data-action="invite">Copy invitation link ↗</button>'}<p>No hearts. No wagers. Just your poker face.</p></section>`;
+    } else if (s.phase === 'complete') {
+      const draw = s.winner === 'draw', won = s.winner === me;
+      content = `<section class="table result">${won ? Array.from({length:28},(_,i)=>`<i class="confetti" style="--x:${i*3.7}%;--delay:${i%7*.11}s;--color:${['#eace91','#b98ac0','#83c5b6'][i%3]}"></i>`).join('') : ''}<img class="result-icon" src="/assets/bluff/images/${won ? 'crown' : draw ? 'coin' : 'skull'}.svg" alt=""><span class="eyebrow">${draw ? 'EVENLY MATCHED' : won ? 'A MASTERCLASS IN MISDIRECTION' : 'THE TABLE HAS TURNED'}</span><h2>${draw ? 'An honest draw.' : won ? 'You played them.' : 'Outbluffed.'}</h2><p>${esc(s.reason)}<br>${draw ? 'Nobody takes the win.' : `${won ? 'You win' : esc(rival?.name || 'Opponent') + ' wins'}.`}<br>You: ${s.counts[me]} cards · ${esc(rival?.name || 'Opponent')}: ${s.counts[other]} cards</p><div class="result-actions">${s.players.length === 2 ? `<button class="primary" data-action="rematch" ${s.rematch.includes(s.players[me].id) ? 'disabled' : ''}>${s.rematch.includes(s.players[me].id) ? 'Waiting for rematch…' : 'One more hand ↗'}</button>` : ''}<button data-action="leave">Back to lobby</button></div></section>`;
+    } else {
+      const reveal = s.phase === 'reveal';
+      let message = s.phase === 'select' ? s.locked[me] ? 'Your cards are locked. Keep that poker face.' : 'Every card you play claims to be <b>' + suitName[s.target].toLowerCase() + '</b>.' : reveal ? 'The choices are locked. <b>Let’s see the truth.</b>' : s.decisionLocked[me] ? 'Decision locked. Your rival can’t see your answer.' : `Your rival claims <b>${s.playCounts[other]} ${suitName[s.target].toLowerCase()}</b>. Do you buy it?`;
+      content = `<section class="table ${reveal ? 'reveal-table' : ''}"><div class="table-top"><div class="player"><span class="avatar">${rival?.bot ? '♜' : esc(rival?.name?.[0] || '?')}</span><div><strong>${esc(rival?.name || 'Opponent')}</strong><small>${reveal ? 'The truth is out' : s.locked[other] ? 'Cards locked · poker face on' : 'Choosing their story…'}</small></div></div><span class="count-pill">${s.counts[other]} cards</span><span class="round-badge">ROUND ${String(s.round).padStart(2, '0')}</span></div><div class="target"><img src="/assets/bluff/images/${s.target}.svg" alt=""><div><small>THE TABLE CALLS FOR</small><b>${suitName[s.target].toUpperCase()}</b></div><div class="timer" id="timer" role="timer" aria-label="Seconds remaining"><strong id="seconds">—</strong></div></div><p class="table-message" aria-live="polite">${message}</p><div class="plays">${[other, me].map(p => {
+        const e = s.reveal?.entries[p];
+        return `<div class="play-zone"><p class="play-label">${p === me ? 'YOUR STORY' : 'THEIR STORY'}${reveal ? ` · ${e.challenged ? 'CHALLENGED' : 'BELIEVED'}` : ''}</p>${reveal ? `<div class="reveal-pile">${e.cards.map((c,i)=>card(c,i,true,s.target)).join('')}</div><p class="outcome" style="--max:${e.cards.length}">${outcome(e)}</p>` : `<div class="card-pile">${backs(s.locked[p] ? s.playCounts[p] || 3 : p === me ? selected.size : 0, s.locked[p])}</div><span class="pile-count">${s.locked[p] ? s.phase === 'select' && p !== me ? 'Locked · count hidden' : `${s.playCounts[p]} cards committed` : p === me ? 'Your secret selection' : 'Waiting for their play'}</span>`}</div>`;
+      }).join('')}</div><div class="action-area">${s.phase === 'select' ? `<button class="primary" id="lock" ${s.locked[me] || !selected.size ? 'disabled' : ''}>${s.locked[me] ? '✓ Cards locked' : `Lock ${selected.size || 'your'} card${selected.size === 1 ? '' : 's'} →`}</button><p>${s.locked[me] ? 'Your rival still has to meet the play deadline.' : 'Play any number. Miss the 30-second deadline and you lose.'}</p>` : s.phase === 'decide' ? s.decisionLocked[me] ? `<span class="decision-tag">✓ ${s.myDecision === 'call' ? 'CALL BLUFF' : 'BELIEVE'} LOCKED</span><p>Waiting for the other decision. Then everything flips.</p>` : '<div class="decisions"><button class="secondary" data-choice="believe">Believe them ✓</button><button class="call" data-choice="call">Call bluff !</button></div><p>Wrong accusation? You take their entire play. No answer defaults to Believe.</p>' : '<p>Both plays resolve together. Returned cards count before a win.</p>'}</div></section><section class="hand-panel"><div class="hand-head"><h2>Your hand <small>${s.counts[me]} cards</small></h2><div class="hand-tools"><button id="matching" ${s.phase !== 'select' || s.locked[me] ? 'disabled' : ''}>Pick genuine</button><button id="all" ${s.phase !== 'select' || s.locked[me] ? 'disabled' : ''}>Select all</button><button id="clear" ${s.phase !== 'select' || s.locked[me] ? 'disabled' : ''}>Clear</button></div></div><div class="hand ${s.locked[me] ? 'locked' : ''}">${s.hand.map((c,i)=>card(c,i)).join('')}</div><p class="hand-hint">${reveal ? 'Remember what came back. A familiar card can make a convincing lie.' : '<b>Tap cards to select.</b> Genuine, fake, or a little of both. Only you can see your hand.'}</p></section>`;
+    }
+    $('game').innerHTML = heading + content + '<p class="table-note">PLAY TOGETHER · DECIDE IN SECRET · REVEAL EVERYTHING</p>';
+    $('game').querySelectorAll('[data-action]').forEach(b => b.onclick = () => b.dataset.action === 'invite' ? copyInvite() : b.dataset.action === 'leave' ? leave() : request(b.dataset.action));
+    $('game').querySelectorAll('[data-card]').forEach(b => b.onclick = () => { if (busy || state.phase !== 'select' || state.locked[me]) return; selected.has(b.dataset.card) ? selected.delete(b.dataset.card) : selected.add(b.dataset.card); tone('pick'); updateSelection(); });
+    $('game').querySelectorAll('[data-choice]').forEach(b => b.onclick = () => { tone('lock'); request('decide', { choice: b.dataset.choice }); });
+    if ($('lock')) $('lock').onclick = () => { if (!selected.size) return; tone('lock'); request('play', { cards: [...selected] }); };
+    if ($('matching')) $('matching').onclick = () => { selected = new Set(s.hand.filter(c=>c.suit===s.target).map(c=>c.id)); updateSelection(); };
+    if ($('all')) $('all').onclick = () => { selected = new Set(s.hand.map(c=>c.id)); updateSelection(); };
+    if ($('clear')) $('clear').onclick = () => { selected.clear(); updateSelection(); };
+    if (focus) [...$('game').querySelectorAll('[data-card]')].find(b=>b.dataset.card===focus)?.focus({preventScroll:true});
+    const cue = `${s.id}:${s.match}:${s.round}:${s.phase}`;
+    if (cue !== lastCue) { lastCue = cue; if (s.phase === 'reveal') tone('reveal'); if (s.phase === 'complete' && s.winner === me) tone('win'); }
+    if (oldPhase && oldPhase !== s.phase && ['reveal', 'complete', 'select'].includes(s.phase)) $('game').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    tick();
+  }
+  function updateSelection() {
+    if (!state) return;
+    $('game').querySelectorAll('[data-card]').forEach(b=>b.setAttribute('aria-pressed',String(selected.has(b.dataset.card))));
+    const lock = $('lock');
+    if (lock && !state.locked[state.me]) { lock.disabled = busy || !selected.size; lock.textContent = `Lock ${selected.size || 'your'} card${selected.size === 1 ? '' : 's'} →`; }
+    if (state.phase === 'select' && !state.locked[state.me]) {
+      const pile = $('game').querySelectorAll('.card-pile')[1]; if (pile) pile.innerHTML = backs(selected.size);
+    }
+  }
+  function tick() {
+    if (!state) return;
+    if (local && !busy) {
+      const revision = local.revision; rules.bot(local);
+      if (revision !== local.revision) { persistLocal(); accept(rules.publicState(local, 'practice:you')); return; }
+    }
+    if (!$('seconds')) return;
+    const seconds = Math.max(0, Math.ceil((state.deadline - Date.now() - clockOffset) / 1000));
+    $('seconds').textContent = seconds;
+    $('timer').classList.toggle('urgent', seconds <= 5 && state.phase !== 'reveal');
+    $('timer').style.setProperty('--progress', Math.min(100, seconds / (state.phase === 'select' ? 30 : state.phase === 'decide' ? 20 : 12) * 100) + '%');
+  }
+  setInterval(tick, 100); setInterval(poll, 900);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { tick(); poll(); } });
+  const invite = new URLSearchParams(location.search).get('room');
+  if (invite && /^[A-F0-9]{12}$/.test(invite)) { $('room').value = invite; notice('Your invitation is ready. Press Join table to take your seat.', true); }
+  const savedRoom = storage.get('bluff-room');
+  if (savedRoom && (!invite || invite === savedRoom)) {
+    room = savedRoom; request('get');
+  } else if (!invite) {
+    try { const saved = JSON.parse(storage.get('bluff-practice')); if (saved?.version === 'BLUFF_OR_BUST_V1') { local = saved; rules.bot(local); accept(rules.publicState(local, 'practice:you')); } } catch { storage.remove('bluff-practice'); }
+  }
+})();

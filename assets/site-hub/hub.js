@@ -3,6 +3,7 @@
  'use strict';
  const $=id=>document.getElementById(id), storage={get(k){try{return localStorage.getItem(k);}catch{return null;}},set(k,v){try{localStorage.setItem(k,v);}catch{}}};
  const games={
+  bluff:['Bluff or Bust','2 PLAYERS · FREE PLAY','/assets/bluff/images/cover.svg','Both players secretly play cards claiming the required symbol. Believe or challenge, then reveal everything. A caught bluffer takes their cards back; a false accuser takes the genuine play. Empty your hand after all transfers to win. Lock cards within 30 seconds or lose.','#e9c68a'],
   roulette:['Russian Roulette','2 PLAYERS','/assets/roulette/decor/saloon-room-v3.webp','Take turns with a six-chamber revolver. Follow the table’s shoot, spin and pass controls. Survive your opponent to win the pot, less the displayed house fee.','#e6bf51'],
   rps:['Rock Paper Scissors','2 PLAYERS','/assets/rps/images/coliseum.png','Both players secretly choose rock, paper or scissors. Rock beats scissors, scissors beats paper, and paper beats rock. First to two round wins takes the pot; ties replay. Leaving a funded duel forfeits your stake.','#e55360'],
   fishing:['Fishing Duel','2 PLAYERS','/assets/fishing/images/v2/lake-bg-v2.png','Cast and follow the on-screen bite and pull prompts. Time your inputs to land fish. The highest total catch score at the end of the duel wins.','#61b8ed'],
@@ -78,9 +79,9 @@
   for(const node of [card.querySelector('.sth-label'),card.querySelector('.sth-row'),$('simpleApiStatus')])if(node)keyBox.append(node);
   keyBox.querySelector('label').textContent='Connect with your public Torn API key';
   const grid=card.querySelector('.sth-games');grid.querySelector('a')?.remove();grid.querySelector('[data-mode=draw]')?.remove();
-  for(const mode of ['rps','roulette-four']){const b=element('button',games[mode][0],'sth-game');b.dataset.mode=mode;b.disabled=true;b.onclick=()=>{if(storage.get('tornKeyConfirmed')==='true')location.assign('/games/multiplayer/'+mode+'/');};grid.append(b);}
+  for(const mode of ['rps','roulette-four','bluff']){const b=element('button',games[mode][0],'sth-game');b.dataset.mode=mode;b.disabled=true;b.onclick=()=>{if(mode==='bluff'||storage.get('tornKeyConfirmed')==='true')location.assign('/games/multiplayer/'+mode+'/');};grid.append(b);}
   for(const button of [...grid.children]){
-    const mode=button.dataset.mode,g=games[mode];if(!g)continue;const tile=element('article',undefined,'hub-tile');button.before(tile);tile.append(button);button.replaceChildren();const img=element('img');img.src='/assets/site-hub/images/'+mode+'.webp';img.alt='';img.width=360;img.height=360;img.loading='lazy';button.append(img);if(['safecracker','blackjackduel','rps'].includes(mode)){const fg=element('img',undefined,'hub-foreground');fg.src='/assets/site-hub/images/'+mode+'-foreground.webp';fg.alt='';fg.loading='lazy';button.append(fg);}
+    const mode=button.dataset.mode,g=games[mode];if(!g)continue;const tile=element('article',undefined,'hub-tile');button.before(tile);tile.append(button);button.replaceChildren();const img=element('img');img.src=mode==='bluff'?'/assets/bluff/images/cover.svg':'/assets/site-hub/images/'+mode+'.webp';img.alt='';img.width=360;img.height=360;img.loading='lazy';button.append(img);if(['safecracker','blackjackduel','rps'].includes(mode)){const fg=element('img',undefined,'hub-foreground');fg.src='/assets/site-hub/images/'+mode+'-foreground.webp';fg.alt='';fg.loading='lazy';button.append(fg);}
     const label=element('span',undefined,'hub-title');label.append(element('small',g[1]),document.createTextNode(g[0]));button.append(label);const info=element('button','i','hub-info');info.setAttribute('aria-label','Rules for '+g[0]);info.onclick=()=>showRules(mode);tile.append(info);
   }
   const yahtzeeTile=element('article',undefined,'hub-tile');
@@ -89,7 +90,7 @@
   const yahtzeeLabel=element('span',undefined,'hub-title');yahtzeeLabel.append(element('small','2–4 FRIENDS · FREE TO PLAY'),document.createTextNode('Yahtzee'));
   yahtzeeLink.append(yahtzeeArt,yahtzeeLabel);yahtzeeTile.append(yahtzeeLink);grid.append(yahtzeeTile);
   const section=element('section',undefined,'hub-open');section.innerHTML='<div class="hub-heading"><h2>Open Games</h2><span>Join the next game</span></div><div id="hub-games" data-hub-games aria-live="polite"><p class="hub-empty">Connect your public API key to see open games and wagers.</p></div><p id="hub-lobby-status" class="hub-status" role="status"></p>';card.append(section);
-  const syncKey=()=>{const ok=storage.get('tornKeyConfirmed')==='true'&&Boolean(storage.get('tornVisitorApiKey'));keyBox.hidden=ok;grid.querySelectorAll('.sth-game').forEach(b=>b.disabled=!ok);updateHeader();};
+  const syncKey=()=>{const ok=storage.get('tornKeyConfirmed')==='true'&&Boolean(storage.get('tornVisitorApiKey'));keyBox.hidden=ok;grid.querySelectorAll('.sth-game').forEach(b=>b.disabled=b.dataset.mode==='bluff'?false:!ok);updateHeader();};
   new MutationObserver(syncKey).observe($('simpleApiStatus'),{childList:true,attributes:true});syncKey();
   new MutationObserver(()=>{updateHeader();if(!home.hidden)refresh();}).observe(home,{attributes:true,attributeFilter:['hidden']});
  }
