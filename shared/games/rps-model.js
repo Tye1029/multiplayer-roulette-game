@@ -31,19 +31,19 @@
     if (s.phase !== 'waiting' || now >= s.deadline) fail('This arena is no longer open.');
     if (s.invitedId && s.invitedId !== player.id) fail('This challenge is reserved for the invited opponent.');
     let avatar = character(player.character);
-    if (avatar === character(s.players[0].character)) avatar = CHARACTERS[(CHARACTERS.findIndex(c => c.id === avatar)+1)%CHARACTERS.length].id;
     s.players.push({...player, character:avatar}); s.phase = 'choosing'; s.deadline = now + PICK_MS; s.revision++;
     return s;
   }
   function advance(state, now = Date.now()) {
     const s = clone(state);
+    if(s.phase==='ready'&&s.readyDeadline&&now>=s.readyDeadline){s.ready=[];s.readyDeadline=null;s.revision++;}
     if(s.phase==='complete' && s.rematchVoteUntil && now>=s.rematchVoteUntil && s.rematchVotes.length && !s.nextMatch){s.rematchVotes=[];s.rematchVoteUntil=null;s.revision++;}
     if (s.phase === 'reveal' && now >= s.nextAt) {
       if (s.winner !== null) { s.phase = 'complete'; s.completedAt = s.nextAt; }
       else { s.phase = 'choosing'; s.round++; s.picks = [null, null]; s.deadline = now + PICK_MS; }
       s.revision++;
     }
-    if (['waiting', 'choosing'].includes(s.phase) && now >= s.deadline) {
+    if (['waiting', 'ready', 'choosing'].includes(s.phase) && now >= s.deadline) {
       if (s.phase === 'choosing' && s.wager && s.finance?.paid.length === 2 && s.picks.filter(Boolean).length === 1)
         return forfeit(s, s.picks[0] ? 0 : 1, 'The opponent did not lock a hand in time.', now);
       s.phase = 'cancelled'; s.reason = 'The arena timed out. No rivalry result was recorded.'; s.revision++;
@@ -82,7 +82,7 @@
     if (seat < 0) fail('You are not a player in this duel.');
     const visible = state.phase === 'complete' || (state.phase === 'reveal' && now >= state.revealAt);
     // Explicit allowlist: never spread private state into a response.
-    return { id: state.id, players: state.players, phase: state.phase, seat, round: state.round,
+    return { id: state.id, ready:state.ready||[],readyDeadline:state.readyDeadline||null, players: state.players, phase: state.phase, seat, round: state.round,
       revision: state.revision, scores: state.phase === 'reveal' && !visible ? state.beforeScores : state.scores,
       locked: state.picks.map(Boolean), myChoice: state.picks[seat],
       picks: visible && !state.forfeit ? state.picks : null, winner: visible ? state.winner : null,

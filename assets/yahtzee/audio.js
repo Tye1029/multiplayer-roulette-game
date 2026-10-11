@@ -1,13 +1,13 @@
-/* Small, original synthesized effects. No media downloads or background loop. */
+/* Recorded CC0 dice foley; original score and result cues. */
 (function(root,factory){
   const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.YahtzeeAudio=api;
 })(typeof globalThis==='object'?globalThis:this,()=>{
   'use strict';
   function create(makeContext,isMuted){
-    let context,noise;
+    let context;const recordings=new Map();
     function unlock(){
       if(isMuted())return;
-      try{context ||= makeContext();context.resume().catch(()=>{});}catch{}
+      try{context ||= makeContext();context.resume().catch(()=>{});for(const name of [1,2,3])if(!recordings.has(name))recordings.set(name,fetch("/assets/site-hub/audio/dice-throw-"+name+".ogg").then(r=>r.arrayBuffer()).then(b=>context.decodeAudioData(b)).catch(()=>null));}catch{}
     }
     function play(kind,delay=0){
       if(isMuted()||!context||context.state!=='running')return;
@@ -18,15 +18,8 @@
         o.connect(g).connect(context.destination);o.start(start);o.stop(start+duration+.02);o.onended=()=>{o.disconnect();g.disconnect();};
       }
       if(kind==='roll'){
-        if(!noise){noise=context.createBuffer(1,Math.ceil(context.sampleRate*.12),context.sampleRate);const samples=noise.getChannelData(0);for(let i=0;i<samples.length;i++)samples[i]=(Math.random()*2-1)*Math.exp(-i/(context.sampleRate*.02));}
-        // Short filtered impacts, with a few softer bounces as the dice settle.
-        for(let i=0;i<9;i++){
-          const start=at+i*.048+Math.random()*.012,source=context.createBufferSource(),filter=context.createBiquadFilter(),gain=context.createGain();
-          source.buffer=noise;filter.type='bandpass';filter.frequency.value=950+Math.random()*2000;filter.Q.value=.7;gain.gain.value=.28*(1-i*.065);
-          source.connect(filter).connect(gain).connect(context.destination);source.start(start);
-          source.onended=()=>{source.disconnect();filter.disconnect();gain.disconnect();};
-          note(190+Math.random()*220,start,.065,.024*(1-i*.07),'triangle');
-        }
+        const current=context;
+        recordings.get(1+Math.floor(Math.random()*3))?.then(buffer=>{if(!buffer||isMuted()||current!==context||context.state!=='running')return;const source=context.createBufferSource(),gain=context.createGain();source.buffer=buffer;gain.gain.value=.65;source.connect(gain).connect(context.destination);source.start(Math.max(at,context.currentTime));source.onended=()=>{source.disconnect();gain.disconnect();};});
       }else if(kind==='yahtzee'){
         [523.25,659.25,783.99,1046.5].forEach((hz,i)=>note(hz,at+i*.11,.45,.045,'triangle'));
         [523.25,659.25,783.99].forEach(hz=>note(hz,at+.55,.65,.025));
@@ -41,7 +34,7 @@
       else if(kind==='tally')note(600,at,.055,.018);
       else if(kind==='hold')note(330,at,.045,.022,'triangle');
     }
-    return {unlock,play,pause:()=>context?.suspend().catch(()=>{}),close:()=>{context?.close().catch(()=>{});context=undefined;noise=undefined;}};
+    return {unlock,play,pause:()=>context?.suspend().catch(()=>{}),close:()=>{context?.close().catch(()=>{});context=undefined;recordings.clear();}};
   }
   return {create};
 });

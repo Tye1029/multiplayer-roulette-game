@@ -68,3 +68,12 @@ Removed the unused `textures/dial-reference-face.svg`, `textures/dial-reference-
 `netlify.toml` publishes the repository root and serves functions from `netlify/functions`. `admin.html` calls the existing `admin-odds`, `admin-users`, `admin-multiplayer`, and `admin-adjust` endpoints. No backend, admin page, API support file, gameplay source, or validator was removed by the asset cleanup.
 
 The public entry point, game previews, and calibration page were included when checking references. A file may be used by a preview even when the main launcher does not load it. Subsequent cleanup should check these roots, dynamic URLs, stylesheets, manifests, build inputs, and validators before removing files; then verify the affected browser flows and production build.
+
+
+## October 11 public polish cleanup
+
+Removed the six retired body/chair-fall audio chunks after checking runtime, dynamically assembled paths, scripts, and validation references. Fatal Roulette reactions now use the shared glass recording. Removed Bluff's superseded synthesized pick/place/reveal WAVs and their generator outputs; cards use the CC0 recordings under `assets/site-hub/audio/`. The win/loss cues remain active.
+
+The new fish use a shared transparent PNG atlas with explicit per-species crops in the catalog. Gameplay, the collection, and the visual preview resolve the same crops. Source provenance is recorded alongside the PNG.
+
+Historical Blackjack and other reconstruction assets remain for their existing regression/rebuild dependencies, as listed above. Blackjack is removed from public navigation; backend cancellation and historical-record readers remain so old records stay recoverable. No unrelated security-audit files were changed.

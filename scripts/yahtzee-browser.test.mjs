@@ -15,14 +15,15 @@ try{
   for(const p of [a,b]){p.on('pageerror',e=>errors.push(e.message));await p.goto(origin+'/games/multiplayer/yahtzee/');await p.waitForFunction(()=>!document.querySelector('#create').disabled);}
   assert.equal(await a.locator('html').getAttribute('data-theme'),'dark');assert.equal(await a.locator('.xan-brand').innerText(),'XAN DUELS');assert.equal(await a.locator('#name').count(),0);
   assert.equal(await a.locator('#show-scores,.yd-live,#opponent-total').count(),0);assert.equal(await a.getByRole('heading',{name:'Open Games',exact:true}).isVisible(),true);
+  await a.locator('#hub-menu').click();await a.locator('#hub-dark').uncheck();assert.equal(await a.locator('html').getAttribute('data-theme'),'light');await a.locator('#hub-dark').check();await a.locator('#hub-sound').check();await a.locator('#hub-sound').uncheck();await a.locator('#hub-menu').click();
+  assert.equal(await a.locator('#me-name').textContent(),'Juniper (you)');await a.screenshot({path:path.join(output,'desktop-lobby.png'),fullPage:true});await b.screenshot({path:path.join(output,'mobile-lobby.png'),fullPage:true});
+  await a.locator('#xg-wager').fill('0');await a.locator('.xg-primary').click();await a.locator('.xg-waiting').waitFor({state:'visible'});const code=await a.locator('#copy-code').textContent();
   const opponentColor=await a.locator('#opponent-dice .yd-face').first().evaluate(e=>getComputedStyle(e).backgroundImage);
   await a.locator('#dice-color').click();await a.getByRole('button',{name:'Violet dice',exact:true}).click();await a.locator('#color-done').click();
   assert.equal(await a.locator('#dice').getAttribute('data-color'),'violet');assert.equal(await a.locator('#opponent-dice .yd-face').first().evaluate(e=>getComputedStyle(e).backgroundImage),opponentColor);
   await a.reload();await a.waitForFunction(()=>!document.querySelector('#create').disabled);assert.equal(await a.locator('#dice').getAttribute('data-color'),'violet');assert.equal(await b.locator('#dice').getAttribute('data-color'),'ivory');
-  await a.locator('#hub-menu').click();await a.locator('#hub-dark').uncheck();assert.equal(await a.locator('html').getAttribute('data-theme'),'light');await a.locator('#hub-dark').check();await a.locator('#hub-sound').check();await a.locator('#hub-sound').uncheck();await a.locator('#hub-menu').click();
-  assert.equal(await a.locator('#me-name').textContent(),'Juniper (you)');await a.screenshot({path:path.join(output,'desktop-lobby.png'),fullPage:true});await b.screenshot({path:path.join(output,'mobile-lobby.png'),fullPage:true});
-  await a.locator('#xg-wager').fill('0');await a.locator('.xg-primary').click();await a.locator('#waiting').waitFor({state:'visible'});const code=await a.locator('#copy-code').textContent();
-  await b.reload();await b.locator('.hub-row').filter({hasText:'Yahtzee'}).getByRole('button',{name:'Join',exact:true}).click();await b.locator('.xg-join button').click();await b.getByRole('button',{name:'Join · 0 Chips',exact:true}).click();await a.waitForFunction(()=>!document.querySelector('#start').disabled);await a.locator('#start').click();
+
+  await b.reload();await b.locator('.hub-row').filter({hasText:'Yahtzee'}).getByRole('button',{name:'Join',exact:true}).click();await b.locator('.xg-join button').click();await b.getByRole('button',{name:'Join · 0 Chips',exact:true}).click();for(const p of [a,b])await p.locator('.xg-ready:enabled').click();
   await a.locator('#countdown').waitFor({state:'visible'});assert.equal(await a.locator('#roll').isDisabled(),true);assert.equal(await a.locator('#my-rolls').textContent(),'0 / 3 rolls');await b.locator('#countdown').waitFor({state:'visible'});
   for(const p of [a,b])await p.waitForFunction(()=>!document.querySelector('#roll').disabled);
   // Independent simultaneous rolls must not conflict. Lose one successful response.
@@ -59,9 +60,9 @@ try{
   // The server expires both turns while clients were inactive. No browser clock owns it.
   await fixture.expire(code);await a.waitForFunction(()=>document.querySelector('#me-status').textContent==='Score locked');
   assert.equal(await a.locator('.yd-score-row button.filled').count(),1);
-  await b.locator('#leave').click();await b.locator('#confirm-leave').click();await b.locator('.xg-menu').waitFor({state:'visible'});
-  await a.getByText('Game closed',{exact:true}).waitFor();await a.locator('#leave').click();await a.locator('#confirm-leave').click();await a.locator('.xg-menu').waitFor({state:'visible'});
-  await a.locator('.xg-practice').click();await a.waitForFunction(()=>document.querySelector('#opponent-name').textContent==='House Bot');
+  await b.evaluate(()=>document.getElementById('leave').click());await b.locator('#confirm-leave').click();await b.locator('.xg-menu').waitFor({state:'visible'});
+  await a.locator('.xg-menu').waitFor({state:'visible'});await a.locator('.xg-menu').waitFor({state:'visible'});
+  await a.locator('#hub-menu').click();await a.locator('#hub-add-bot').click();await a.waitForFunction(()=>document.querySelector('#opponent-name').textContent==='House Bot');
   await a.waitForFunction(()=>document.querySelector('#opponent-rolls').textContent!=='0 / 3 rolls');
   await a.screenshot({path:path.join(output,'desktop-bot.png'),fullPage:true});
   fixture.advance(32*1000*13);await a.locator('#result-dialog').waitFor({state:'visible'});

@@ -85,11 +85,11 @@ test('game media is isolated and public package includes the new route',()=>{
   assert.ok(shell.includes('href="/games/multiplayer/rps/"')); assert.ok(!shell.includes('/assets/rps/'));
   assert.ok(readFileSync(new URL('../assets/rps/audio.js',import.meta.url),'utf8').includes("visibilitychange"));
 });
-test('eight distinct characters persist publicly and same-character duels receive unique designs',()=>{
+test('eight distinct characters persist publicly and same-character duels preserve both players’ chosen designs',()=>{
   assert.equal(rules.CHARACTERS.length,8);
   assert.equal(new Set(rules.CHARACTERS.map(c=>c.image)).size,8);
   const s=rules.join(rules.create('ABCDEF123456',{...a,character:'lyra'}),{...b,character:'lyra'});
-  assert.equal(s.players[0].character,'lyra'); assert.equal(s.players[1].character,'bryn');
+  assert.equal(s.players[0].character,'lyra'); assert.equal(s.players[1].character,'lyra');
   assert.deepEqual(rules.publicState(s,a.id).players,s.players);
   assert.equal(rules.character('../../secret'),'maximus');
 });

@@ -8,10 +8,10 @@
   const reduced=matchMedia('(prefers-reduced-motion: reduce)');
   const el=(tag,text,cls)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e;};
   window.XanSiteAdapter={current:()=>({mode:'yahtzee',id:room?.id||'',phase:room?.phase||'lobby'}),
-    view:()=>room?{id:room.id,match:room.game,phase:room.phase,private:room.private,wager:room.wager,players:room.players,votes:room.rematch,finished:room.phase==='complete',settlement:room.settlement,payout:room.payouts?.[room.you]||0}:{},
-    create:options=>send('create',options,failed?.action==='create'?failed:undefined),practice:()=>send('create',{bot:true,wager:0}),
+    view:()=>room?{id:room.id,match:room.game,phase:room.phase,canCancel:room.phase==='waiting'&&room.players.length===1&&room.players[0].id===room.you,readyDeadline:room.readyDeadline,ready:room.ready?.includes(room.you),canReady:room.phase==='waiting'&&room.players.length===2&&!room.ready?.includes(room.you),private:room.private,wager:room.wager,players:room.players,votes:room.rematch,finished:room.phase==='complete',settlement:room.settlement,payout:room.payouts?.[room.you]||0}:{},
+    create:options=>send('create',options,failed?.action==='create'?failed:undefined),practice:()=>send('create',{bot:true,wager:0}),ready:()=>send('start'),addBot:async()=>{if(room?.wager)await window.XanHub.cancelTable('yahtzee',room.id);return room?send('bot'):send('create',{bot:true,wager:0});},dismissCancelled:id=>{if(room?.id===id){room=null;storage.set('room','');$('result-dialog').close();render();}},
     quote:async id=>(await request({action:'quote',room:id.toUpperCase()})).quote,
-    join:(id,wager)=>send('join',{room:id.toUpperCase(),wager}),help:()=>$('help').click(),controls:()=>[$('leave'),$('dice-color')],resultRoot:()=>$('result-actions'),diagnostics:()=>({build:'YAHTZEE_DUEL_V3_20261011',round:room?.round})};
+    join:(id,wager)=>send('join',{room:id.toUpperCase(),wager}),help:()=>$('help').click(),controls:()=>[],resultRoot:()=>$('result-actions'),diagnostics:()=>({build:'YAHTZEE_DUEL_V3_20261011',round:room?.round})};
   window.dispatchEvent(new Event('xan-navigation'));
   const me=()=>room?.players.find(p=>p.id===room.you);
   const opponent=()=>room?.players.find(p=>p.id!==room.you);
@@ -50,7 +50,7 @@
   const palettes=[
     ['ivory','Ivory','#fff7e9','#cfbd9d','#3a2829'],['ruby','Ruby','#ffb4b7','#bb414e','#401621'],
     ['ocean','Ocean','#b6e6ff','#4c91ca','#142f50'],['jade','Jade','#bbf0d6','#479e80','#163c32'],
-    ['violet','Violet','#e2caff','#9564c2','#3a2055'],['amber','Amber','#ffeab2','#d6a853','#513311']
+    ['violet','Violet','#e2caff','#9564c2','#3a2055'],['amber','Gold','#ffeab2','#d6a853','#513311']
   ];
   function selectColor(key){
     const selected=palettes.find(p=>p[0]===key)||palettes[0],root=$('dice');
@@ -60,7 +60,7 @@
   }
   for(const [key,label,light,dark] of palettes){const b=el('button',undefined,'yd-color');b.type='button';b.dataset.color=key;b.setAttribute('aria-label',label+' dice');const swatch=el('i');swatch.style.background='linear-gradient(145deg,'+light+','+dark+')';b.append(swatch,el('span',label));b.onclick=()=>{selectColor(key);sound('hold');};$('dice-colors').append(b);}
   selectColor(storage.get('dice-color'));
-  $('dice-color').onclick=()=>$('color-dialog').showModal();$('color-done').onclick=()=>$('color-dialog').close();
+  $('score-panel').querySelector('header').append($('dice-color'));$('dice-color').onclick=()=>$('color-dialog').showModal();$('color-done').onclick=()=>$('color-dialog').close();
   function paintDice(side,p){
     const board=boards[side],initial=board.serial<0||board.game!==(room?.game||0),rolled=!initial&&p.rollSerial>board.serial;
     board.buttons.forEach((b,i)=>{
@@ -80,9 +80,9 @@
   }
   function labelPlayer(side,p){
     const mine=side==='me',name=p?.name||(mine?identity?.name||'You':'Opponent');
-    $(side+'-name').textContent=name+(mine&&identity?' (you)':'');$(side+'-avatar').textContent=name.slice(0,1).toUpperCase();
+    $(side+'-name').textContent=name+(mine&&identity?' (you)':'');const av=$(side+'-avatar');if(p?.avatar&&/^https:\/\//.test(p.avatar)){if(av.dataset.src!==p.avatar){const pic=el('img');pic.src=p.avatar;pic.alt='';av.replaceChildren(pic);av.dataset.src=p.avatar;}}else av.textContent=name.slice(0,1).toUpperCase();
     if(mine)$('me-total').textContent=p?.total||0;
-    $(side+'-status').textContent=!p?(mine?'Ready to play':'Open seat'):room.phase==='waiting'?(mine?'Host':'Ready'):room.phase==='countdown'?'Get ready':p.locked?'Score locked':room.phase==='playing'?(p.bot?'Test bot · rolling':'Choosing score'):room.phase==='complete'?'Final score':'Match closed';
+    $(side+'-status').textContent=!p?(mine?'Ready to play':'Open seat'):room.phase==='waiting'?(mine?'Host':'Ready'):room.phase==='countdown'?'Get ready':p.locked?'Score locked':room.phase==='playing'?(p.bot?'Rolling':'Choosing score'):room.phase==='complete'?'Final score':'Match closed';
     $(side+'-player').classList.toggle('is-locked',!!p?.locked);
   }
   function paintScores(){
@@ -182,7 +182,7 @@
     const last=other?.last;
     $('opponent-move').textContent=last?(last.automatic?'Auto-banked ':'Banked ')+last.score+' · '+rules.categories.find(c=>c[0]===last.category)[1]:other?.rolls?'Watching '+other.name+' roll':other?'Waiting for their first roll':'Waiting for opponent';
     $('hold-hint').textContent=p?.locked?'Score locked':p?.rolls?'Click dice to hold or release':'Roll to begin';
-    $('prompt').textContent=!room?'Roll. Hold. Score.':room.phase==='waiting'?'Invite a friend or add a bot':room.phase==='countdown'?'Get ready':room.phase==='complete'?'Match complete':room.phase==='closed'?'Game closed':p.locked?'Waiting for opponent':p.rolls===3?'Choose your score':p.rolls?'Keep your best dice':'Round '+room.round;
+    $('prompt').textContent=!room?'Roll. Hold. Score.':room.phase==='waiting'?'Waiting for another player':room.phase==='countdown'?'Get ready':room.phase==='complete'?'Match complete':room.phase==='closed'?'Game closed':p.locked?'Waiting for opponent':p.rolls===3?'Choose your score':p.rolls?'Keep your best dice':'Round '+room.round;
     $('hint').textContent=!room?'Both players play each round together.':room.phase==='closed'?'Leave this game to start a new one.':room.phase==='complete'?'Open the results to rematch.':p.locked?'The next round starts when both scores are locked.':p.rolls?'Click a scorecard category to bank it.':'Roll, hold, and score before the timer ends.';
     $('roll').replaceChildren(document.createTextNode(room?.phase==='complete'?'View results':p?.rolls>=3?'Choose score':p?.rolls?'Reroll':'Roll dice'),el('span','↻'));
     $('round-banner').hidden=room?.phase!=='between';$('round-banner').textContent='Round '+(room?.round||1)+' complete';
@@ -210,6 +210,7 @@
   function adopt(next){
     if(room&&room.id===next.id&&next.revision<room.revision)return;
     const changed=!room||room.id!==next.id||room.revision!==next.revision;
+    if(next.phase==='closed'){room=null;storage.set('room','');$('result-dialog').close();history.replaceState(null,'',location.pathname);render();window.XanGameMenu?.update?.();return;}
     room=next;storage.set('room',room.id);history.replaceState({},'','?room='+room.id);
     if(changed)render();
   }
@@ -247,7 +248,7 @@
   $('retry').onclick=()=>{if(failed)send(failed.action,{},failed);};
   $('help').onclick=()=>$('help-dialog').showModal();document.querySelectorAll('.yd-close,.yd-done').forEach(b=>b.onclick=()=>$('help-dialog').close());
   $('leave').onclick=()=>$('leave-dialog').showModal();$('stay').onclick=()=>$('leave-dialog').close();$('confirm-leave').onclick=()=>{$('leave-dialog').close();send('leave');};
-  $('rematch').onclick=()=>send('rematch',{wager:room.wager||0});$('review').onclick=()=>$('result-dialog').close();
+  $('rematch').onclick=()=>send('rematch',{wager:room.wager||0});$('review').onclick=()=>$('result-dialog').close();$('result-new').onclick=()=>{if(room?.phase!=='complete')return;$('result-dialog').close();room=null;storage.set('room','');history.replaceState({},'',location.pathname);render();window.dispatchEvent(new Event('xan-navigation'));};
   $('skip-tally').onclick=()=>{if(tally){tally.skip=true;tickTally();controls();}};
   $('replay-tally').onclick=()=>setupTally(true);
   async function copy(value){try{await navigator.clipboard.writeText(value);notice('Invite copied.');}catch{$('invite-link').hidden=false;$('invite-link').value=value;$('invite-link').select();}}
@@ -261,7 +262,7 @@
     try{
       token=await window.XanHub.authenticate();if(!token)throw new Error('Connect your API key on the home page to play.');
       await request({action:'profile'});$('connection').textContent='Connected';render();controls();
-      const code=new URLSearchParams(location.search).get('room')||storage.get('room');
+      const code=new URLSearchParams(location.search).get('room');
       if(code){$('join-code').value=code;try{adopt((await request({action:'get',room:code})).room);schedule();}
         catch(e){if(e.status===410||e.status===404){storage.set('room','');history.replaceState({},'',location.pathname);notice(e.message);}else if(e.status===403)notice('Invitation loaded. Review the table wager to join.');else if(e.status!==403)notice(e.message);}}
     }catch(e){$('identity-status').textContent=e.message;$('connect').hidden=false;$('connection').textContent='Not connected';}

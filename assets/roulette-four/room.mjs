@@ -48,7 +48,7 @@ export function animateRoom() {
       a.rig.destroy();
     });
     effects.replaceChildren();
-    actors = [...seats.querySelectorAll(".seat")].map((node) => {
+    actors = [...seats.querySelectorAll(".seat:not(.empty-seat)")].map((node) => {
       const tip = node.querySelector(".cigarette-tip");
       let emitter = null;
       if (tip) {

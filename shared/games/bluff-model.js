@@ -26,7 +26,7 @@
   }
   function start(s, now, rng) {
     s.hands = [0, 1].map(p => Array.from({ length: 10 }, (_, i) => ({ id: `${s.match}-${p}-${i}`, suit: SUITS[rng(3)] })));
-    s.winner = null; s.reason = ''; s.reveal = null; s.rematch = []; s.discards = 0; s.round = 0;
+    s.stats=[{bluffs:0,catches:0},{bluffs:0,catches:0}];s.winner = null; s.reason = ''; s.reveal = null; s.rematch = []; s.discards = 0; s.round = 0;
     nextRound(s, now, rng);
   }
   function nextRound(s, now, rng) {
@@ -49,13 +49,15 @@
       if (e.destination === 'discard') s.discards += e.cards.length;
       else s.hands[e.destination].push(...e.cards);
     }
+    s.stats||=[{bluffs:0,catches:0},{bluffs:0,catches:0}];for(const e of entries){if(e.result==='got-away')s.stats[e.player].bluffs++;if(e.result==='caught')s.stats[1-e.player].catches++;}
     s.reveal = { round: s.round, target: s.target, entries, at: now };
     const empty = s.hands.map(h => h.length === 0);
     s.pendingWinner = empty[0] && empty[1] ? 'draw' : empty[0] ? 0 : empty[1] ? 1 : null;
     s.phase = 'reveal'; s.deadline = now + 6000 + Math.max(...entries.map(e => e.cards.length)) * 260; s.revision++;
   }
   function advance(s, now = Date.now(), rng = random) {
-    if (s.phase === 'waiting' && now >= s.deadline) finish(s, 'draw', 'The invitation expired.', now);
+    if(s.phase==='waiting'&&s.readyDeadline&&now>=s.readyDeadline){s.ready=[];s.readyDeadline=null;s.revision++;}
+    if (s.phase === 'waiting' && now >= s.deadline) {s.cancelled=true;finish(s, 'draw', 'The invitation expired.', now);}
     else if (s.phase === 'select' && now >= s.deadline) {
       const missing = s.plays.map(p => !p);
       finish(s, missing[0] && missing[1] ? 'draw' : missing[0] ? 1 : 0, missing[0] && missing[1] ? 'Both players missed the 30-second play deadline.' : 'The 30-second play deadline was missed.', now);
@@ -71,6 +73,7 @@
     const p = s.players.findIndex(p => p.id === id);
     if (p < 0) fail('This table belongs to its players.', 403);
     advance(s, now, rng);
+    if(body.action==='cancel'){if(p!==0||s.phase!=='waiting'||s.players.length!==1)fail('Only an empty waiting table can be cancelled.');s.cancelled=true;finish(s,'draw','The table was closed.',now);return s;}
     if (body.action === 'add-bot') {
       if (p !== 0) fail('Only the table creator can add a bot.', 403);
       if (s.phase !== 'waiting') fail('Bots can only join a waiting table.');
@@ -79,7 +82,7 @@
       join(s, { id: 'bot:velvet', name: 'The Velvet Fox', bot: true }, now);
     } else if (body.action === 'ready') {
       if (s.phase !== 'waiting' || s.players.length !== 2) fail('Wait for your opponent to join.');
-      if (!s.ready.includes(id)) { s.ready.push(id); s.revision++; }
+      if (!s.ready.includes(id)) { s.ready.push(id); s.readyDeadline||=now+60000;s.revision++; }
       if (s.players.every(p => p.bot || s.ready.includes(p.id))) start(s, now, rng);
     } else if (body.action === 'rematch') {
       if (s.phase !== 'complete' || body.match !== s.match) fail('This match has changed.');
@@ -88,7 +91,7 @@
     } else if (body.action === 'leave') {
       if (s.phase === 'reveal' && s.pendingWinner !== null) finish(s, s.pendingWinner, s.pendingWinner === 'draw' ? 'Both hands are empty.' : 'Every last card is gone.', now);
       else if (!['complete', 'waiting'].includes(s.phase)) finish(s, 1 - p, 'A player left the table.', now);
-      else if (s.phase === 'waiting') finish(s, 'draw', 'The table was closed.', now);
+      else if (s.phase === 'waiting') {s.cancelled=true;finish(s, 'draw', 'The table was closed.', now);}
     } else if (body.action === 'play' || body.action === 'decide') {
       if (body.match !== s.match || body.round !== s.round) fail('The round has changed. Your hand has been refreshed.');
       if (body.action === 'play') {
@@ -135,7 +138,7 @@
     const revealed = ['reveal', 'complete'].includes(s.phase), showCounts = s.phase !== 'select';
     return { id: s.id, version: s.version, revision: s.revision, match: s.match, round: s.round, phase: s.phase, target: s.target,
       wager:s.wager||0, private:!!s.private, houseCutPercent:s.finance?.rate||0, settlement:s.finance?.status||'free', funding:!!s.finance?.pending?.length, payouts:s.finance?.status==='settled'?s.finance.payouts:{},
-      deadline: s.deadline, serverNow: now, me: p, players: s.players, ready: s.ready, hand: s.hands[p], counts: s.hands.map(h => h.length),
+      cancelled:!!s.cancelled,readyDeadline:s.readyDeadline||null,deadline: s.deadline, serverNow: now, me: p, players: s.players, ready: s.ready, hand: s.hands[p], counts: s.hands.map(h => h.length),
       locked: s.plays.map(Boolean), playCounts: s.plays.map((v, i) => showCounts || i === p ? v?.length || 0 : null),
       decisionLocked: s.decisions.map(Boolean), myDecision: s.decisions[p], reveal: revealed ? s.reveal : null,
       winner: s.winner, reason: s.reason, rematch: s.rematch, discards: s.discards };

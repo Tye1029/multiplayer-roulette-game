@@ -333,7 +333,7 @@
       ctx.globalCompositeOperation="screen";
       const rows=w<680?9:12;
       for(let row=0;row<rows;row++){
-        const y=horizon+14+row*((h-horizon-20)/rows),amp=1.8+row*.2,freq=.0112+row*.0004;
+        const y=horizon+14+row*((h-horizon-20)/rows),amp=2.5+row*.27,freq=.0112+row*.0004;
         ctx.beginPath();
         for(let x=-12;x<=w+12;x+=20){const wave=Math.sin(x*freq+phase*(1.6+row*.034)+row*.73)*amp+Math.sin(x*.0041-phase*.9)*1.05; if(x===-12)ctx.moveTo(x,y+wave);else ctx.lineTo(x,y+wave);}
         ctx.strokeStyle=`rgba(${row%3===0?"221,254,255":"92,231,235"},${.09+(row%4)*.018})`;ctx.lineWidth=row%4===0?1.25:.75;ctx.stroke();
@@ -341,7 +341,7 @@
       for(let band=0;band<3;band++){
         const y=horizon+(band+1)*(h-horizon)/4;
         ctx.beginPath();
-        for(let x=-40;x<=w+40;x+=20){const wave=Math.sin(x*.0078+phase*.58+band*1.8)*(4+band*.65);if(x===-40)ctx.moveTo(x,y+wave);else ctx.lineTo(x,y+wave);}
+        for(let x=-40;x<=w+40;x+=20){const wave=Math.sin(x*.0078+phase*.58+band*1.8)*(5.2+band*.8);if(x===-40)ctx.moveTo(x,y+wave);else ctx.lineTo(x,y+wave);}
         ctx.strokeStyle="rgba(214,252,255,.08)";ctx.lineWidth=3.5+band;ctx.stroke();
       }
       ctx.globalCompositeOperation="source-over";

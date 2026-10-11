@@ -1,6 +1,7 @@
 /* Human performances and symphonic metal. Media starts only after a gesture. */
 (() => {
   'use strict';
+  let fadeFrame=0,crossfade=false,spare=null;
   let enabled=true,unlocked=false,silent=false,active=false,loopStarted=false,voice=null,effort=null;
   try { enabled=(localStorage.getItem('xan-muted')??localStorage.getItem('rps-muted'))!=='1'; } catch {}
   const clips=new Map(), failures=new Set();
@@ -17,19 +18,23 @@
     // Cuts, new calls and hidden tabs intentionally interrupt pending playback.
     a.play().catch(error=>{if(error.name!=='AbortError')failures.add(a.src.split('/').pop().split('?')[0]+' ('+error.name+')');});
   }
-  function mix() {
-    const duck=voice&&!voice.paused&&!voice.ended;
-    for(const name of ['battle-intro','battle-loop']) if(clips.has(name)) clips.get(name).volume=duck?.12:.32;
+  function musicVolume(){return voice&&!voice.paused&&!voice.ended?.07:.18;}
+  function mix() {if(!crossfade)for(const name of ['battle-intro','battle-loop'])if(clips.has(name))clips.get(name).volume=musicVolume();}
+  function watchMusic(a,name){
+    a.loop=false;
+    a.ontimeupdate=()=>{
+      if(crossfade||!active||!enabled||silent||document.hidden||!Number.isFinite(a.duration)||a.duration-a.currentTime>1.5)return;
+      crossfade=true;const next=new Audio('/assets/rps/audio/battle-loop.mp3?v=4');next.preload='auto';spare=next;next.volume=0;
+      next.play().then(()=>{const began=performance.now();const step=now=>{if(!active||document.hidden||!enabled||silent){a.pause();next.pause();crossfade=false;spare=null;return;}const t=Math.min(1,(now-began)/1400);a.volume=musicVolume()*(1-t);next.volume=musicVolume()*t;if(t<1)fadeFrame=requestAnimationFrame(step);else{a.pause();a.ontimeupdate=null;clips.delete(name);clips.set('battle-loop',next);loopStarted=true;crossfade=false;spare=null;watchMusic(next,'battle-loop');}};fadeFrame=requestAnimationFrame(step);}).catch(()=>{crossfade=false;spare=null;});
+    };
+    a.onended=()=>{if(crossfade)return;loopStarted=true;const n=clip('battle-loop');n.currentTime=0;ambience();};
   }
   function ambience() {
-    if(!active||!enabled||!unlocked||document.hidden) {
-      for(const n of ['battle-intro','battle-loop','crowd']) clips.get(n)?.pause();return;
-    }
-    const music=clip(loopStarted?'battle-loop':'battle-intro',loopStarted);
-    if(!loopStarted)music.onended=()=>{loopStarted=true;ambience();};
-    if(silent)music.pause();else play(music,.32);play(clip('crowd',true),silent?.055:.16);mix();
+    if(!active||!enabled||!unlocked||document.hidden){for(const n of ['battle-intro','battle-loop','crowd'])clips.get(n)?.pause();spare?.pause();return;}
+    const name=loopStarted?'battle-loop':'battle-intro',music=clip(name);watchMusic(music,name);
+    if(silent){music.pause();spare?.pause();}else play(music,musicVolume());play(clip('crowd',true),silent?.035:.075);mix();
   }
-  function stop() { active=false;for(const a of clips.values())a.pause();voice=null;effort=null; }
+  function stop(){active=false;cancelAnimationFrame(fadeFrame);crossfade=false;spare?.pause();spare=null;for(const a of clips.values())a.pause();voice=null;effort=null;}
   function say(name) {
     if(!active||!enabled||!unlocked||document.hidden)return;
     voice?.pause();effort?.pause();voice=clip('call-'+name);
@@ -50,6 +55,6 @@
     diagnostics(){return {enabled,unlocked,active,hushed:silent,playing:[...clips].filter(([,a])=>!a.paused).map(([n])=>n),failed:[...failures]};},stop
   };
   window.addEventListener('xan-preferences',e=>{if(enabled===e.detail.muted)window.RPSAudio.toggle();});
-  document.addEventListener('visibilitychange',()=>{document.body.classList.toggle('page-hidden',document.hidden);if(document.hidden){for(const a of clips.values())a.pause();voice=null;effort=null;}else ambience();});
+  document.addEventListener('visibilitychange',()=>{document.body.classList.toggle('page-hidden',document.hidden);if(document.hidden){cancelAnimationFrame(fadeFrame);crossfade=false;spare?.pause();spare=null;for(const a of clips.values())a.pause();voice=null;effort=null;}else ambience();});
   window.addEventListener('pagehide',stop);
 })();

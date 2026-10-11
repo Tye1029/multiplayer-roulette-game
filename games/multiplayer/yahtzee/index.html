@@ -8,11 +8,12 @@
 <link rel="stylesheet" href="/assets/site-hub/hub.css?v=5">
 <link rel="stylesheet" href="/assets/yahtzee/game.css?v=5">
 <script src="/assets/site-hub/preferences.js?v=2"></script>
-<script defer src="/assets/site-hub/game-menu.js?v=XAN_UNIFIED_TABLES_V1"></script><script defer src="/assets/site-hub/hub.js?v=XAN_UNIFIED_TABLES_V1"></script>
+<script defer src="/assets/site-hub/public-polish.js?v=XAN_PUBLIC_POLISH_V2"></script><script defer src="/assets/site-hub/progression.js?v=XAN_PUBLIC_POLISH_V2"></script><script defer src="/assets/site-hub/game-menu.js?v=XAN_PUBLIC_POLISH_V2"></script><script defer src="/assets/site-hub/hub.js?v=XAN_PUBLIC_POLISH_V2"></script>
 <script defer src="/assets/yahtzee/rules.js?v=3"></script>
 <script defer src="/assets/yahtzee/audio.js?v=1"></script>
 <script defer src="/assets/yahtzee/game.js?v=3&unified=1"></script>
-<link rel="stylesheet" href="/assets/site-hub/game-menu.css?v=XAN_UNIFIED_TABLES_V1"></head>
+<link rel="stylesheet" href="/assets/site-hub/game-menu.css?v=XAN_PUBLIC_POLISH_V2"><link rel="stylesheet" href="/assets/site-hub/public-polish.css?v=XAN_PUBLIC_POLISH_V2">
+</head>
 <body class="yahtzee-page">
 <main id="yahtzee">
   <header class="yd-heading"><div class="yd-title"><span class="yd-mark" aria-hidden="true">⚄</span><h1>Yahtzee</h1></div><div class="yd-heading-actions"><span id="connection" role="status">Connecting…</span><button id="dice-color" class="yd-quiet">Dice color</button><button id="help" class="yd-quiet">How to play</button><button id="leave" class="yd-quiet" hidden>Leave game</button></div></header>
@@ -56,5 +57,5 @@
 <dialog id="zero-dialog" class="yd-dialog"><h2>Use this category for zero?</h2><p id="zero-text"></p><button class="yd-primary" id="confirm-zero">Bank zero</button><button class="yd-quiet" id="cancel-zero">Keep rolling</button></dialog>
 <dialog id="leave-dialog" class="yd-dialog"><h2>Leave this game?</h2><p>This closes the match for both players. Reloading the page keeps your place.</p><button id="confirm-leave" class="yd-primary">Leave game</button><button id="stay" class="yd-quiet">Keep playing</button></dialog>
 <dialog id="color-dialog" class="yd-dialog"><h2>Your dice</h2><p>Pick a color. Saved on this device, just for your dice.</p><div id="dice-colors" class="yd-colors" aria-label="Dice colors"></div><button id="color-done" class="yd-primary">Done</button></dialog>
-<dialog id="result-dialog" class="yd-dialog yd-results"><h2 id="result-title">The final count</h2><p id="result-subtitle">Every category. Every point.</p><div id="tally-totals" class="yd-tally-totals"></div><div id="tally-columns" class="yd-tally-columns"></div><div id="tally-rows" class="yd-tally-rows" aria-label="Final score breakdown"></div><p id="tally-announcement" class="sr-only" aria-live="polite"></p><div id="standings" hidden></div><button id="skip-tally" class="yd-quiet">Show totals</button><div id="result-actions" hidden><button id="rematch" class="yd-primary">Rematch</button><p id="rematch-status"></p><button id="replay-tally" class="yd-quiet">Replay tally</button><button id="review" class="yd-quiet">View scorecards</button></div></dialog>
+<dialog id="result-dialog" class="yd-dialog yd-results"><h2 id="result-title">The final count</h2><p id="result-subtitle">Every category. Every point.</p><div id="tally-totals" class="yd-tally-totals"></div><div id="tally-columns" class="yd-tally-columns"></div><div id="tally-rows" class="yd-tally-rows" aria-label="Final score breakdown"></div><p id="tally-announcement" class="sr-only" aria-live="polite"></p><div id="standings" hidden></div><button id="skip-tally" class="yd-quiet">Show totals</button><div id="result-actions" hidden><button id="rematch" class="yd-primary">Rematch</button><p id="rematch-status"></p><button id="replay-tally" class="yd-quiet">Replay tally</button><button id="review" class="yd-quiet">View scorecards</button><button id="result-new" class="yd-quiet">Create a new game</button></div></dialog>
 </body></html>

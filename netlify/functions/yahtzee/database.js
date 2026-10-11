@@ -85,11 +85,12 @@ function createStore(injected,roll,clock=Date.now,injectedWallet){
       await finance.recover(s,wallet,outcome);
       if(s.phase==='funding'&&s.finance.status==='reserved'){s.phase='countdown';s.startAt=clock()+model.COUNTDOWN_MS;s.deadline=s.startAt+model.ROUND_MS;s.botAt=s.startAt+1300;}
       if(JSON.stringify(s)!==before){s.revision++;await c.query('UPDATE yahtzee_rooms SET state=$2::jsonb WHERE id=$1',[code,JSON.stringify(s)]);}
-      await c.query('COMMIT');return s;
+      await c.query('COMMIT');if(!injected&&s.phase==='complete')try{await require('../site-hub/progression').observe('yahtzee',s);}catch(e){console.error('Progress receipt pending',e.name);}return s;
     }catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}
   }
+  async function readyOpponents(player){await ready();const rows=(await db().query("SELECT state FROM yahtzee_rooms WHERE state->'players'->0->>'id'=$1",[player.id])).rows;return rows.filter(({state:s})=>s.players[1]&&!s.players[1].bot&&s.ready?.includes(s.players[1].id)&&Number(s.createdAt||0)>Date.now()-86400000).map(({state:s})=>({id:s.id,mode:'yahtzee',name:s.players[1].name,joiner:s.players[1].id,href:'/games/multiplayer/yahtzee/?room='+s.id}));}
   async function quote(code){await ready();const s=(await db().query('SELECT state FROM yahtzee_rooms WHERE id=$1',[code])).rows[0]?.state;if(!s||s.phase!=='waiting'||s.players.length!==1||s.expiresAt<=clock())model.fail('This table is no longer open.');return {id:s.id,name:s.players[0].name,wager:s.wager||0,houseCutPercent:s.finance?.rate||0};}
   async function sweep(){await ready();const rows=(await db().query("SELECT state FROM yahtzee_rooms WHERE COALESCE(state->'finance'->>'status','free') NOT IN ('free','settled') AND (state->'finance'->>'status'='funding' OR state->>'phase' IN ('complete','closed') OR (state->>'expiresAt')::bigint<=$1 OR (state->>'deadline')::bigint BETWEEN 1 AND $1 OR (state->>'nextAt')::bigint BETWEEN 1 AND $1) ORDER BY created_at LIMIT 40", [clock()])).rows;for(const {state:s} of rows)try{await run({action:'get',room:s.id},s.players[0]);}catch{await recover(s.id).catch(()=>{});}}
-  return {run,lobby,recover,quote,sweep};
+  return {readyOpponents,run,lobby,recover,quote,sweep};
 }
 module.exports={createStore};

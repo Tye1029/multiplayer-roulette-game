@@ -17,7 +17,7 @@ function createHandler(store = database, identity = auth) {
       const player = await identity.authenticate(b.token);
       if (!player) return reply(401, { error: 'Connect your public Torn API key on the home page to play online. Practice needs no account.' });
       if (b.action === 'quote') { if (!/^[A-F0-9]{12}$/.test(b.gameId||'')) return reply(400,{error:'Invalid table code.'}); return reply(200,{ok:true,quote:await store.quote(b.gameId)}); }
-      if (!['create', 'join', 'get', 'add-bot', 'ready', 'play', 'decide', 'rematch', 'leave'].includes(b.action)) return reply(400, { error: 'Unknown action.' });
+      if (!['create', 'join', 'get', 'add-bot', 'ready', 'play', 'decide', 'rematch', 'leave','cancel'].includes(b.action)) return reply(400, { error: 'Unknown action.' });
       if (b.action !== 'create' && !/^[A-F0-9]{12}$/.test(b.gameId || '')) return reply(400, { error: 'Invalid invitation code.' });
       const state = b.action === 'create' ? await store.create(player, b) : await store.action(b.gameId, player, b);
       return reply(200, { ok: true, game: model.publicState(state, player.id) });

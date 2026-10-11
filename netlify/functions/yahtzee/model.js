@@ -41,6 +41,7 @@ function botHold(p){
   p.inputVersion++;
 }
 function advance(s,now=Date.now(),roll=randomDie){
+  if(s.phase==='waiting'&&s.readyDeadline&&now>=s.readyDeadline){s.ready=[];s.readyDeadline=null;s.revision++;}
   // Fixed timestamps let sleeping browsers catch up without extending turns.
   for(let transitions=0;transitions<150;transitions++){
     if(s.phase==='countdown'){
@@ -71,12 +72,12 @@ function act(s,id,b,roll=randomDie,now=Date.now()){
     s.phase='closed';return;
   }
   if(b.action==='start'||b.action==='bot'){
-    if(s.phase!=='waiting'||s.players[0].id!==id)fail('Only the host can start this room.');
+    if(s.phase!=='waiting')fail('Wait for the next game.');if(b.action==='bot'&&s.players[0].id!==id)fail('Only the host can add a bot.');
     if(b.action==='bot'){
       if(s.players.length!==1)fail('The opponent seat is already taken.');
       s.players.push(player('bot:'+s.id,'House Bot',true));
     }
-    if(s.players.length!==2)fail('Invite a friend or add a test bot.');countdown(s,now);return;
+    if(s.players.length!==2)fail('Wait for another player.');s.ready||=[];if(!s.ready.includes(id))s.ready.push(id);s.readyDeadline||=now+60000;if(s.players.every(p=>p.bot||s.ready.includes(p.id)))countdown(s,now);return;
   }
   if(b.action==='leave'){s.phase='closed';return;}
   if(b.game!==s.game)fail('This game has changed. Refresh the table.');

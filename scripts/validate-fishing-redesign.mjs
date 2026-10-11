@@ -26,13 +26,13 @@ for(const cloud of ['cloud-puff-v1.png']){
 }
 assert(html.includes('function duelFishingEnsureController(root)'), "Fishing controller recovery loader is missing");
 assert(!html.includes('cloud-wisps-v1.png')&&!preview.includes('cloud-wisps-v1.png'), "retired pointed cloud still loads");
-assert(html.includes('class="fishing-command-bar"'), "game-owned Fishing header is missing");
-assert(html.includes('class="fishing-instructions" aria-label="How to play"'), "visible game instructions are missing");
-assert(html.includes("Bigger ripple = Bigger Fish!"), "clear ripple-size instruction is missing");
+assert(!html.includes('<header class="fishing-command-bar">'), 'Duplicate Fishing title/pot header returned');
+assert(fs.readFileSync(new URL('../assets/site-hub/public-polish.js',import.meta.url),'utf8').includes('You get one cast.'), 'Numbered How to Play must explain the one-cast rule');
+assert(fs.readFileSync(new URL('../assets/site-hub/public-polish.js',import.meta.url),'utf8').includes('Bigger ripples mean bigger fish'), 'How to Play must explain ripple size');
 assert(html.includes("One catch is all you get"), "one-catch rule is missing");
 assert(html.includes('const FISHING_TIPS=['), "rotating Fishing tip catalog is missing");
 assert(html.includes("Sometimes being patient can give you an opportunity for a bigger fish!"), "patience tip is missing");
-assert(html.includes("Did you see that strange glow? Maybe there's a special fish in there!"), "special-fish glow tip is missing");
+assert(html.includes("Rarity stays a surprise until you land the fish."), "rarity privacy tip is missing");
 assert(html.includes("If you think you see a BIG fish, catch it first—first come, first served!"), "first-come big-fish tip is missing");
 assert(!html.includes("A huge ripple hints at size, while an unusual glow may hint at rarity."), "removed size-and-rarity tip is still present");
 assert(!html.includes("special catches are first come, first served"), "big-fish tip still implies the catch is special");
@@ -47,7 +47,7 @@ assert(html.includes("const picture=duelFishSvg"), "logbook pictures are not spe
 assert(html.includes('const FISHING_SPECIES=FISHING_CATALOG.entries.map'), "the complete shared Fishing species catalog is missing");
 assert(html.includes('fishing-log-entry locked'), "uncaught logbook species are not represented by locked entries");
 assert(html.includes('fishing-log-question">?</span>'), "uncaught fish do not show question marks");
-assert(html.includes('data-fishing-log-unlock'), "temporary unlock-all-fish testing control is missing");
+assert(!html.includes('data-fishing-log-unlock aria-pressed'), 'Unlock-all testing button must not be rendered');
 assert(html.includes('/shared/games/fishing-catalog.js'), "shared rarity catalog is not loaded by the game");
 assert(!html.includes('<b>${totalWins}</b>Wins'), "the removed Wins logbook statistic is still rendered");
 assert(html.includes('/assets/fishing/images/v2/fisherman-v2.png'), "PNG fisherman characters are missing");
@@ -57,9 +57,9 @@ assert(html.includes('class="fishing-cloud-bank"'), "moving PNG cloud bank is mi
 assert(!html.includes('function duelFishingAtmosphere(game)'), "seasonal atmosphere generator is still present");
 assert(!html.includes('class="fishing-season-layer"'), "seasonal particles are still rendered");
 assert(!html.includes('fishing-water season-${'), "seasonal Fishing scene classes are still rendered");
-assert(html.includes('Waiting for an opponent — add a Remote Bot or another player to start'), "waiting Fishing duel does not explain how gameplay starts");
+assert(html.includes('Waiting for another player.'), "waiting Fishing duel does not explain how gameplay starts");
 assert(html.includes('function duelFishingAlignLines(root)'), "responsive rod-line attachment is missing");
-assert(html.includes('class="fishing-debug-panel"'), "Fishing debug panel is missing");
+assert(!html.includes('${duelFishingDebugPanel(game,state,active,game.status==='), 'Debug panel must not appear in the live Fishing scene');
 assert(html.includes('data-fishing-debug-copy>Copy Debug Report'), "copyable Fishing debug report is missing");
 assert(html.includes('class="fishing-hook-node left"'), "connected left fishing rig is missing");
 assert(html.includes('class="fishing-hook-node right"'), "connected right fishing rig is missing");
@@ -67,7 +67,7 @@ assert(html.includes('style="--fish-cm:${cm};${FISHING_CATALOG.hookStyle(fish)}"
 assert(html.includes('function duelFishingClockHtml(seconds,status="waiting")'), "Fishing timer does not use the shared structured clock component");
 assert(html.includes('function duelFishingUpdateClock(root,seconds,status="playing")'), "Fishing timer cannot update without replacing the scene");
 assert(html.includes('data-fishing-clock-progress'), "Fishing timer progress indicator is missing");
-assert(html.includes('<div class="fishing-player-strip">${duelFishingPlayerChip(game.creator,"PLAYER 1")}${duelFishingClockHtml('), "timer is not between the two players");
+assert(html.includes('<div class="fishing-player-strip">${duelFishingClockHtml('), "timer must lead the player strip");
 assert(!html.includes('<span class="fishing-versus">VS</span>'), "old VS still occupies the round timer position");
 assert(!html.includes('Keep watching the ripples')&&!preview.includes('Keep watching the ripples'), "removed logbook filler text returned");
 assert(css.includes('.fishing-compare-art .fishing-fish.fishing-fish-png {'), "measuring art does not own its centered positioning");
@@ -166,4 +166,4 @@ for(const file of ["approved-preview-clean-v1.png","lake-bg-v2.png","dock-v2.png
 const regularFish=fs.readdirSync(new URL("fish/",imageRoot)).filter(name=>name.endsWith("-v2.png"));
 assert(regularFish.length===53,`expected 53 unique regular fish PNGs, found ${regularFish.length}`);
 
-console.log("Fishing mechanics validation passed: player-row clock, centered measuring art, four-tier 62-design logbook, size-faithful ripples, moving water/clouds, connected rigs, bot timing, and diagnostics.");
+console.log("Fishing mechanics validation passed: player-row clock, centered measuring art, four-tier 73-design logbook, size-faithful ripples, moving water/clouds, connected rigs, bot timing, and diagnostics.");

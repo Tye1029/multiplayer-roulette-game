@@ -30,9 +30,10 @@ function createStore(injected) {
     const payload={gameId:game.id,mode:game.mode,name:game.name,href:game.href};
     await db().query(`INSERT INTO site_notifications(id,owner,payload,seen) VALUES($1,$2,$3::jsonb,$4) ON CONFLICT(id) DO NOTHING`,['joined:'+game.id+':'+game.joiner,owner,JSON.stringify(payload),focus===game.id]);
   }
+  async function announceMany(owner,notices){await ready();if(!notices.length)return;await db().query("INSERT INTO site_notifications(id,owner,payload) SELECT x.id,$1,x.payload FROM jsonb_to_recordset($2::jsonb) AS x(id text,payload jsonb) ON CONFLICT(id) DO NOTHING",[owner,JSON.stringify(notices)]);}
   async function notifications(owner){await ready();return (await db().query('SELECT id,payload,seen,created_at FROM site_notifications WHERE owner=$1 AND created_at>NOW()-INTERVAL \'7 days\' ORDER BY created_at DESC LIMIT 50',[owner])).rows;}
   async function read(owner, ids){await ready();await db().query('UPDATE site_notifications SET seen=TRUE WHERE owner=$1 AND id=ANY($2::text[])',[owner,ids.slice(0,50)]);}
   async function reports(before){await ready();return (await db().query('SELECT * FROM site_reports WHERE created_at<$1 ORDER BY created_at DESC LIMIT 50',[before||new Date(Date.now()+1000).toISOString()])).rows;}
-  return {ready,report,notify,notifications,read,reports};
+  return {ready,report,notify,announceMany,notifications,read,reports};
 }
 module.exports={...createStore(),createStore};

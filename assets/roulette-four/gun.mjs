@@ -23,7 +23,7 @@ export function createGun(trace) {
   }
   async function select(id) {
     const next = arsenal.choices.find((c) => c.id === id);
-    if (!next) return;
+    if (!next||(id!=='classic'&&!window.XanProgress?.unlocked(id))) return;
     const token = ++request,
       photo = new Image(),
       part = new Image();
@@ -48,12 +48,13 @@ export function createGun(trace) {
     if (token !== request) return;
     stop();
     choice = next;
-    picture.src = photo.src;
+    picture.src = photo.src;picture.style.filter=next.photoFilter||'none';
     hammer.src = part.src;
     document.getElementById("gun-glint").style.maskImage =
       'url("' + photo.src + '")';
     root.dataset.finish = id;
     root.dataset.laser = String(!!choice.laser);
+    document.getElementById("gun-charge").style.transform="scaleX(1)";
     hammer.style.filter = choice.hammerFilter;
     document.getElementById("gun-options").value = id;
     try {
@@ -148,12 +149,11 @@ export function createGun(trace) {
       ],
       { duration: live ? 420 : 160 },
     );
-    if (choice.laser)
-      animate(
-        document.getElementById("gun-charge"),
-        [{ opacity: 1 }, { opacity: 0.1, offset: 0.2 }, { opacity: 1 }],
-        { duration: 500 },
-      );
+    if (choice.laser) {
+      const charge=document.getElementById("gun-charge");
+      if(live)charge.style.transform="scaleX(0)";
+      else animate(charge,[{filter:"brightness(1)"},{filter:"brightness(3)",offset:.08},{filter:"brightness(.12)",offset:.3},{filter:"brightness(2.5)",offset:.48},{filter:"brightness(.2)",offset:.72},{filter:"brightness(1)"}],{duration:1000});
+    }
     if (live)
       animate(
         document.getElementById("muzzle-flash"),

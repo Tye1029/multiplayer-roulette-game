@@ -10,16 +10,16 @@
   let busy = false, epoch = 0, pollTimer, polling = false, serverAnchor = Date.now(), perfAnchor = performance.now();
   let lastTick = '', lastShot = '', lastReveal = '', lastRound = '', historyKey = '', lastRivalMatch = '';
   const inviteId = new URLSearchParams(location.search).get('arena') || '';
-  let gameId = /^[a-f0-9]{12}$/i.test(inviteId) ? inviteId.toUpperCase() : storage.get('rps-match') || '';
+  let gameId = /^[a-f0-9]{12}$/i.test(inviteId) ? inviteId.toUpperCase() : '';
   let rival = null, inboxKey = '', inboxBusy = false;
   let joinQuote = null;
   window.XanSiteAdapter={
     current:()=>({mode:'rps',id:game?.id||'',phase:game?.phase||'lobby'}),
-    view:()=>game?{id:game.id,phase:game.phase,private:game.private,wager:game.wager,players:game.players.map(p=>({...p,avatar:p.avatar||'/assets/rps/images/portraits/'+(p.character||'maximus')+'.webp'})),votes:game.rematchVotes,finished:game.phase==='complete',settlement:game.settlement,payout:game.winner===game.seat?game.payout||0:0}:{},
-    create:options=>perform('create',options),practice:()=>startPractice(),
+    view:()=>game?{id:game.id,phase:game.phase,canCancel:!practice&&game.phase==='waiting'&&game.players.length===1&&game.seat===0,readyDeadline:game.readyDeadline,ready:game.ready?.includes(player?.id),canReady:game.phase==='ready'&&!game.ready?.includes(player?.id),private:game.private,wager:game.wager,players:game.players.map(p=>({...p,avatar:p.avatar||'/assets/rps/images/portraits/'+(p.character||'maximus')+'.webp'})),votes:game.rematchVotes,finished:game.phase==='complete',settlement:game.settlement,payout:game.winner===game.seat?game.payout||0:0}:{},
+    create:options=>perform('create',options),practice:()=>startPractice(),addBot:async()=>{if(game?.wager)await window.XanHub.cancelTable('rps',game.id);return startPractice();},ready:()=>perform('ready'),dismissCancelled:id=>{if(gameId===id)exit();},
     quote:async id=>(await request('quote',{gameId:id.toUpperCase()})).quote,
     join:(id,wager)=>perform('join',{gameId:id.toUpperCase(),wager}),
-    resultRoot:()=>$('matchActions'),controls:()=>[$('leave'),$('sound'),$('motion'),$('debug')]
+    resultRoot:()=>$('matchActions'),controls:()=>[]
   };
   const chips = value => Number(value||0).toLocaleString()+' Chips';
   function selectedWager() {const input=$('wager');if(!input.reportValidity())return null;return Number(input.value);}
@@ -43,14 +43,19 @@
     });
     for (const b of $('characters').children) { b.setAttribute('aria-pressed',String(b.dataset.character === selectedCharacter)); b.disabled = Boolean(active()) || busy; }
     cinema.setCharacters([0,1].map(i=>rules.character(characters[i]?.character || (i?'voss':selectedCharacter))));
-    $('characterHint').textContent = active() ? 'Gladiators are locked for this duel.' : 'If both choose the same fighter, the guest gets the next one.';
+    $('characterHint').textContent = active() ? 'Gladiators are locked for this duel.' : 'Your fighter is saved to your Torn profile.';
   }
   for (const c of rules.CHARACTERS) {
     const b = document.createElement('button'); b.type = 'button'; b.dataset.character = c.id; b.title = c.title;
     const img = document.createElement('img'); img.src = '/assets/rps/images/portraits/'+c.id+'.webp'; img.alt = ''; img.width = 60; img.height = 74;
     const name = document.createElement('span'); name.textContent = c.name; b.append(img,name);
-    b.onclick = () => { selectedCharacter = c.id; preference.set('rps-character',c.id); showCharacters(); }; $('characters').append(b);
+    b.onclick = async () => {try{if(preference.get('tornVisitorApiKey'))await window.XanProgress.character(c.id);selectedCharacter=c.id;preference.set('rps-character',c.id);showCharacters();characterDialog.close();}catch(e){$('characterHint').textContent=e.message;}}; $('characters').append(b);
   }
+  const characterDialog=document.createElement('dialog');characterDialog.className='xan-dialog rps-character-dialog';characterDialog.append($('characters').closest('.character-picker'));const closeCharacter=document.createElement('button');closeCharacter.textContent='Done';closeCharacter.onclick=()=>characterDialog.close();characterDialog.append(closeCharacter);document.body.append(characterDialog);
+  const characterButton=document.createElement('button');characterButton.className='rps-pick-character';characterButton.textContent='Choose character';characterButton.onclick=()=>{unlock();showCharacters();characterDialog.showModal();};(document.querySelector('.xan-account')||$('nameA').parentNode).append(characterButton);
+  document.addEventListener('DOMContentLoaded',()=>{if(!game)document.querySelector('.xan-account')?.append(characterButton);});
+  window.addEventListener('xan-progress',e=>{if(!active()&&e.detail.settings.character){selectedCharacter=rules.character(e.detail.settings.character);preference.set('rps-character',selectedCharacter);showCharacters();}});
+  document.addEventListener('pointerdown',()=>{if(window.XanSiteAdapter?.current().mode==='rps')unlock();},{passive:true});
   showCharacters();
   $('joinCode').value = /^[a-f0-9]{12}$/i.test(inviteId) ? inviteId.toUpperCase() : '';
   function status(text, error = false) { for (const id of ['status','lobbyStatus']) { $(id).textContent = text; $(id).classList.toggle('error',error); } }
@@ -108,7 +113,7 @@
     if (!token) return;
     const data = await request('lobby'); player = data.player; connected(true); $('openGames').replaceChildren();
     $('balance').textContent='Available: '+chips(data.balance);
-    $('wagerHint').textContent=`1,000–50,000 Chips per player · ${data.houseCutPercent}% house cut. Leaving a funded duel forfeits your stake. A locked hand wins if the opponent times out. Bot practice is free.`;
+    $('wagerHint').textContent='';
     if (!game && !$('lobbyStatus').classList.contains('error')) status('Challenge an opponent or warm up with a bot.');
     if (!data.games.length) $('openGames').textContent = 'The sand is yours. Create the first challenge.';
     for (const item of data.games) {
@@ -162,7 +167,7 @@
     const s = data.game, previousPhase=game?.phase;
     if (game?.id === s.id && (s.revision < game.revision || (s.revision === game.revision && s.serverNow < game.serverNow))) return;
     if (game?.id !== s.id) resetPresentation();
-    game = s; gameId = s.id; player = data.player || player;
+    if(s.phase==='cancelled'){exit();return;}game = s; gameId = s.id; player = data.player || player;
     serverAnchor = data.localServerNow || s.serverNow; perfAnchor = performance.now();
     if (!practice) storage.set('rps-match', gameId);
     if (s.nextMatch && !practice) { resume(s.nextMatch).catch(e => status(e.message,true)); return; }
@@ -254,8 +259,10 @@
     $('callout').textContent = 'THE ARENA AWAITS.'; $('subcallout').textContent = 'A new grudge is only three hand gestures away.';
     $('pickTitle').textContent = 'Choose your weapon.'; $('scoreA').textContent = '0'; $('scoreB').textContent = '0'; $('roundHistory').replaceChildren(); $('sealsA').replaceChildren(); $('sealsB').replaceChildren();
     $('announcer').textContent = '“Bring me another unreasonable rivalry!”'; $('practice').disabled = false; buttons.forEach(b => { b.disabled=true; b.classList.remove('selected'); });
+    (document.querySelector('.xan-account')||$('nameA').parentNode).append(characterButton);
     $('modeLabel').textContent = 'THE COLOSSEUM'; $('nameA').textContent = player?.name || 'You'; $('nameB').textContent = 'Your opponent';
     $('lockA').textContent = $('lockB').textContent = 'HAND CONCEALED';
+    history.replaceState(null,'',location.pathname);window.dispatchEvent(new Event('xan-navigation'));
     audio.hush(false); connected(Boolean(token)); status('Challenge an opponent or warm up with Quick practice.');
     if (token) { loadLobby().catch(e=>status(e.message,true)); loadRivals(); }
   }
@@ -278,8 +285,9 @@
     $('payout').textContent=!g.wager?'Free practice · No Chips wagered':g.settlement!=='settled'?'Confirming payout…':g.winner===g.seat?`${chips(g.payout)} won · includes your ${chips(g.wager)} stake`:`${chips(g.wager)} wagered · Better luck next duel.`;
     $('payout').classList.toggle('loss',g.wager>0 && g.winner!==g.seat);
     $('modeLabel').textContent = exhibition ? 'LOCAL PRACTICE' : bot ? 'REMOTE NETWORK BOT' : 'LIVE 1V1';
-    $('nameA').textContent = g.players[0].name + (g.seat === 0 ? ' · YOU' : '');
+    $('name'+(g.seat===0?'A':'B')).after(characterButton);$('nameA').textContent = g.players[0].name + (g.seat === 0 ? ' · YOU' : '');
     $('nameB').textContent = (g.players[1]?.name || 'Awaiting challenger') + (g.seat === 1 ? ' · YOU' : '');
+    for(const [i,seat] of ['A','B'].entries()){const name=$('name'+seat),source=g.players[i]?.avatar;let portrait=name.parentNode.querySelector('.rps-profile-avatar');if(source&&/^https:\/\//.test(source)){if(!portrait){portrait=document.createElement('img');portrait.className='rps-profile-avatar';portrait.alt='';name.before(portrait);}if(portrait.src!==source)portrait.src=source;}else portrait?.remove();}
     $('scoreA').textContent = g.scores[0]; $('scoreB').textContent = g.scores[1];
     for(const [i,seat] of ['A','B'].entries()) $('seals'+seat).innerHTML = [0,1].map(n=>`<i class="${g.scores[i]>n?'earned':''}" aria-label="${g.scores[i]>n?'Won':'Needed'}">◆</i>`).join('');
     $('lockA').textContent = g.locked[0] ? 'HAND LOCKED' : 'HAND CONCEALED'; $('lockB').textContent = g.locked[1] ? 'HAND LOCKED' : 'HAND CONCEALED';

@@ -233,7 +233,7 @@ for (const mode of ['safecracker', 'fishing', 'blackjackduel', 'mountainrace', '
   assert.equal(test.loaded.length, 19, 'Mobile Roulette gesture did not prime its full sound library');
   test.fire('pointerdown');
   assert.equal(test.loaded.length, 19, 'Repeated Roulette gestures reloaded sound templates');
-  assert.equal(test.fetched.length, 13, 'Reaction chunks should load once, only for Roulette');
+  assert.equal(test.fetched.length, 7, 'Only the retained relief recordings should preload once for Roulette');
   assert.equal(vm.runInContext('resultAudioPrimed', test.context), true,
     'Roulette pointer gesture must still silently unlock both result clips');
   assert(test.played.filter(src => /impact-strike|dramatic-sting/.test(src)).length === 2);
@@ -275,6 +275,6 @@ const reactionTimer = [...ready.timeouts.values()].find(timer => timer.delay ===
 assert(reactionTimer && ready.timeouts.size > reactionTimersBefore, 'Fatal-shot reaction was not scheduled');
 reactionTimer.callback();
 for (let tick = 0; tick < 10; tick += 1) await Promise.resolve();
-assert(ready.played.some(src => src.startsWith('data:audio/mpeg;base64,')), 'The actual chair-fall reaction did not play');
+assert(ready.played.some(src => src.includes('/assets/site-hub/audio/glass-break.ogg')), 'The recorded glass-break reaction did not play');
 
 console.log(`Site asset loading validated: ${imagePaths.length} Summit images (${deferredBytes.toLocaleString()} bytes) and Draw music load only for their game; URL/selection/restored Ready, duplicate guards, scoped Roulette/reaction/result audio, mobile unlock, and shot cues passed.`);

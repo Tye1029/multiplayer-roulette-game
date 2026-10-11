@@ -12,7 +12,7 @@
     [data-preview-state]{display:none}[data-preview-state].active{display:block}.fishing-water{position:relative;min-height:0;aspect-ratio:1620/883;overflow:hidden}.fishing-sky{position:absolute;inset:0 0 64%}.fishing-dock{position:absolute}.fishing-center-status{position:absolute;z-index:15;left:50%;bottom:14px;transform:translateX(-50%)}
     .fishing-fish{position:absolute;left:50%;top:22%}.fishing-result-fish-art .fishing-fish,.fishing-log-thumb .fishing-fish{position:relative;left:auto;top:auto}.preview-result-link{position:absolute;z-index:24;left:50%;bottom:52px;translate:-50% 0;padding:9px 13px;border-radius:9px;color:#04212a;background:#67eadd;font-size:.75rem;font-weight:900;text-decoration:none;box-shadow:0 7px 20px rgba(0,0,0,.28)}
   </style>
-</head>
+<link rel="stylesheet" href="/assets/site-hub/public-polish.css?v=2"></head>
 <body>
   <main class="preview duel-arena fishing-clean">
     <section data-preview-state="live">
@@ -38,9 +38,9 @@
     const PREVIEW_NORMAL_SPECIES=FISHING_CATALOG.entries.filter(f=>!f.special).map(f=>f.name);
     function previewFishAsset(fish){return FISHING_CATALOG.resolve(fish).asset;}
     function previewFishArt(value){
-      const fish={...value,...FISHING_CATALOG.identity(value)};
+      const fish={...value,...FISHING_CATALOG.resolve(value)};
       const variantClass=fish.variant==='standard'?'':` variant-${fish.variant}`;
-      return `<div class="fishing-fish fishing-fish-png${variantClass} rarity-${fish.rarity}" style="--fish-cm:${fish.size||48};${FISHING_CATALOG.hookStyle(fish)}"><img src="${previewFishAsset(fish)}" alt=""><span class="fishing-fish-eye-blink"></span><span class="fishing-fish-shimmer"></span></div>`;
+      return `<div class="fishing-fish fishing-fish-png ${fish.long?"is-long":""}${variantClass} rarity-${fish.rarity}" style="--fish-cm:${fish.size||48};${FISHING_CATALOG.hookStyle(fish)}">${fish.atlas?`<svg class="fishing-atlas-fish" viewBox="${fish.atlas.x} ${fish.atlas.y} ${fish.atlas.w} ${fish.atlas.h}" aria-hidden="true"><image href="${fish.asset}" width="1086" height="1448"/></svg>`:`<img src="${previewFishAsset(fish)}" alt="">`}<span class="fishing-fish-eye-blink"></span><span class="fishing-fish-shimmer"></span></div>`;
     }
     function previewRandomFish(size=Number((12+Math.random()*88).toFixed(1)),forceSpecial=false){
       const specialPool=FISHING_CATALOG.entries.filter(f=>f.special);

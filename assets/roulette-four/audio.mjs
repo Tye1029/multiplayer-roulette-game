@@ -4,7 +4,11 @@ const FILES = {
   spin: 'freesound_community-revolver-chamber-spin-ratchet-sound-90521.mp3',
   hammer: 'freesound_community-pistol-hammer-cocking-back-4-39887.mp3',
   dry: 'freesound_community-gun-dry-firing-3-39820.mp3',
-  live: 'freesound_community-single-pistol-gunshot-33-37187.mp3'
+  live: 'freesound_community-single-pistol-gunshot-33-37187.mp3',
+  'laser-fire':'/assets/site-hub/audio/laser-fire.wav',
+  'laser-error':'/assets/site-hub/audio/laser-error.wav',
+  'laser-charge':'/assets/site-hub/audio/laser-charge.wav',
+  'laser-cycle':'/assets/site-hub/audio/laser-cycle.wav'
 };
 export function createTableAudio(trace) {
   let ctx, loading, muted = false, epoch = 0;
@@ -15,7 +19,7 @@ export function createTableAudio(trace) {
       await ctx.resume();
       loading ||= Promise.all(Object.entries(FILES).map(async ([key, file]) => {
         try {
-          const response = await fetch(BASE + file, { signal: AbortSignal.timeout(6000) });
+          const response = await fetch(file.startsWith('/')?file:BASE + file, { signal: AbortSignal.timeout(6000) });
           if (!response.ok) throw Error('Audio request failed');
           const buffer = await ctx.decodeAudioData(await response.arrayBuffer());
           const samples = buffer.getChannelData(0); let first = 0;
@@ -45,14 +49,7 @@ export function createTableAudio(trace) {
     trace('audio-cue', { sound: key, delayMs: delay, durationMs: Math.round(length * 1000) });
   }
   function tone(live, delay = 255) {
-    if (muted || document.hidden || ctx?.state !== 'running') return;
-    const source = ctx.createOscillator(), gain = ctx.createGain(), at = ctx.currentTime + delay / 1000;
-    source.type = 'sawtooth'; source.frequency.setValueAtTime(live ? 1100 : 250, at);
-    source.frequency.exponentialRampToValueAtTime(live ? 70 : 110, at + .25);
-    gain.gain.setValueAtTime(.055, at); gain.gain.exponentialRampToValueAtTime(.001, at + .28);
-    source.connect(gain); gain.connect(ctx.destination); source.start(at); source.stop(at + .3);
-    active.add(source); source.onended = () => { active.delete(source); source.disconnect(); gain.disconnect(); };
-    trace('audio-cue', { sound: live ? 'laser-fire' : 'laser-dry', delayMs: delay });
+    play(live?'laser-fire':'laser-error',{delay,duration:live?820:1000,volume:.55});
   }
   return { unlock, stop, play, tone, mute(value) { muted = value; if (value) stop(); },
     status: () => ({ state: ctx?.state || 'uninitialized', loaded: [...buffers.keys()], active: active.size, muted, epoch }) };

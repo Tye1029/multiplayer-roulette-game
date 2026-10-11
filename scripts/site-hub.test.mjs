@@ -21,7 +21,7 @@ test('four-player seats, full lobby exclusion, wrong principal, cancellation, po
   await assert.rejects(db.action(kept,players[1],{action:'cancel'}),/not seated/);
   await db.action(second.id,players[0],{action:'cancel'});assert.equal(balances.get('1'),19000);await db.action(second.id,players[0],{action:'get'});assert.equal(balances.get('1'),19000);
   for(const p of players.slice(1,4))s=await db.action(kept,p,{action:'join',wager:1000});
-  assert.equal(s.players.length,4);assert.equal(s.phase,'opening');assert.equal(s.paid.length,4);
+  assert.equal(s.players.length,4);assert.equal(s.phase,'waiting');for(const p of players.slice(0,3)){s=await db.action(kept,p,{action:'ready'});assert.equal(s.phase,'waiting');}s=await db.action(kept,players[3],{action:'ready'});assert.equal(s.phase,'opening');assert.equal(s.paid.length,4);
   assert.equal((await db.lobby(players[4])).games.length,0);await assert.rejects(db.action(kept,players[4],{action:'join',wager:1000}),/no longer joinable/);
   await assert.rejects(db.action(kept,players[0],{action:'cancel'}),/empty table/);
   await assert.rejects(db.action(kept,players[4],{action:'get'}),/belongs/);

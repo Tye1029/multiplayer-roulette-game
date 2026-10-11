@@ -25,12 +25,13 @@ exports.handler = async (event) => {
     return json(headers, 400, { ok: false, error: "Invalid Torn API key format." });
   }
 
-  const amount = Math.floor(Number(body.amount || 0));
-  if (!Number.isFinite(amount) || amount <= 0) {
-    return json(headers, 400, { ok: false, error: "Enter a withdrawal amount of at least 1,000 Tickets." });
+  if(!/^[A-Za-z0-9_-]{8,100}$/.test(String(body.withdrawalId||"")))return json(headers,400,{ok:false,error:"Invalid withdrawal receipt ID."});
+  const amount = Number(body.amount || 0);
+  if (!Number.isSafeInteger(amount) || amount <= 0) {
+    return json(headers, 400, { ok: false, error: "Enter a withdrawal amount of at least 800,000 Chips." });
   }
-  if (amount % 1000 !== 0) {
-    return json(headers, 400, { ok: false, error: "Withdrawals must be in 1,000 Ticket increments." });
+  if (amount % 800000 !== 0) {
+    return json(headers, 400, { ok: false, error: "Withdrawals must be in 800,000 Chip increments." });
   }
 
   try {
@@ -53,7 +54,7 @@ exports.handler = async (event) => {
       withdrawal,
       serverBalance: record.currentBalance,
       siteUserId: record.userId,
-      message: `Withdrawal request submitted for ${amount.toLocaleString()} Tickets. You will receive the matching Xanax within 24 hours.`
+      message: `Withdrawal request submitted for ${amount.toLocaleString()} Chips. The admin will review your request.`
     });
   } catch (error) {
     console.error("[request-withdraw] Error:", error.message || error);

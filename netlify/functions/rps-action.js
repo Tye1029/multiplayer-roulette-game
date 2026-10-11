@@ -45,7 +45,7 @@ function createHandler(database = db, request = fetch) {
         if (!rival) return reply(409,{error:'Complete a human duel to establish your arch rival.'});
         state = await database.create(player,false,rival,body.wager);
       }
-      else if (['join','get','pick','rematch','leave','decline'].includes(body.action)) {
+      else if (['join','get','pick','rematch','leave','decline','ready','cancel'].includes(body.action)) {
         const gameId = String(body.gameId || '').toUpperCase();
         if (!/^[A-F0-9]{12}$/.test(gameId)) return reply(400, { error:'Enter the 12-character arena code.' });
         state = await database.act(gameId, player, body.action, body);

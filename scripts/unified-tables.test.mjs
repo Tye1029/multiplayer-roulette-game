@@ -77,7 +77,7 @@ test('RPS and four-player private rooms stay off discovery; four-player rematche
     await rps.act(duel.id,people[0],'leave');
     let s=await four.create(people[0],{wager:1000,private:true,requestId:'abcd'.repeat(6)});
     assert.equal((await four.lobby(people[1])).games.length,0);
-    for(const p of players.slice(1))s=await four.action(s.id,p,{action:'join',wager:1000});
+    for(const p of players.slice(1))s=await four.action(s.id,p,{action:'join',wager:1000});assert.equal(s.phase,'waiting');for(const p of players)s=await four.action(s.id,p,{action:'ready'});
     const finish=async state=>{
       state.startAt=0;state.deadline=Date.now()+60000;state.bullet=1;
       await f.pg.query('UPDATE roulette_four_matches SET state=$2::jsonb WHERE id=$1',[state.id,JSON.stringify(state)]);
@@ -92,4 +92,18 @@ test('RPS and four-player private rooms stay off discovery; four-player rematche
     s=await finish(s);assert.equal(s.settled,true);const paid=new Map(f.balances);await four.recover(s.id);assert.deepEqual(f.balances,paid);
     assert.equal([...f.ledger.keys()].filter(id=>id.startsWith('four:')&&id.includes(':stake:')).length,8);
   }finally{await f.pg.close();}
+});
+
+test('four-player practice refunds the waiting stake, never pays simulated banks, and rematches without a debit',async()=>{
+ const f=fixture(),four=require('../netlify/functions/roulette-four/database').createStore(f.pool,f.wallet);
+ try{
+  let s=await four.create(people[0],{wager:1000,requestId:'abcdef'.repeat(4)});assert.equal(f.balances.get('11'),9000);
+  s=await four.action(s.id,people[0],{action:'bot'});assert.equal(s.practice,true);assert.equal(f.balances.get('11'),10000);assert.equal(s.players.length,4);
+  await assert.rejects(four.action(s.id,people[0],{action:'cancel'}),/cancel|waiting|empty/i);
+  s=await four.action(s.id,people[0],{action:'ready'});
+  s.phase='playing';s.bullet=1;s.turn=s.order.indexOf('11');s.actionAfter=0;s.deadline=Date.now()+60000;
+  await f.pg.query('UPDATE roulette_four_matches SET state=$2::jsonb WHERE id=$1',[s.id,JSON.stringify(s)]);
+  s=await four.action(s.id,people[0],{action:'act',choice:'shoot',revision:s.revision,actionId:'practice-final'});assert.equal(s.phase,'complete');assert.equal(f.balances.get('11'),10000);
+  s=await four.action(s.id,people[0],{action:'rematch',wager:1000});assert.ok(s.nextMatch);const next=await four.recover(s.nextMatch);assert.equal(next.practice,true);assert.equal(next.players.length,4);assert.equal(f.balances.get('11'),10000);assert.equal(f.ledger.size,2);
+ }finally{await f.pg.close();}
 });

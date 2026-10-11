@@ -1,0 +1,6 @@
+{
+  "asset": "long-fish-atlas.png",
+  "generator": "OpenAI imagegen",
+  "layout": "3 columns x 4 rows; custom crop bounds in shared/games/fishing-catalog.js preserve each fish's complete silhouette; final cell empty",
+  "description": "Original painted long-fish collection: Brown River Eel, Silver Needlefish, Sand Lance, Green Pipefish, Bronze Loach, Ribbon Eel, Blue Cornetfish, Spotted Moray, Ruby Oarfish, Starlight Gulper Eel, Jerry Dose. Jerry Dose is an original blue water serpent with ivory fins and a coiling body. Transparent background; no text or frames."
+}

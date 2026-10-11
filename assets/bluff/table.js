@@ -8,8 +8,8 @@
   let state, local, room = '', token = '', busy = false, polling = false, selected = new Set(), key = '', clockOffset = 0, lastCue = '', createId = '', noticeTimer;
   window.XanSiteAdapter = {
     current: () => ({mode:'bluff',id:state?.id||'',phase:state?.phase||'lobby'}),
-    view: () => state ? {id:state.id,match:state.match,phase:state.phase,wager:state.wager||0,private:state.private,players:state.players,me:state.players[state.me].id,votes:state.rematch,finished:state.phase==='complete',settlement:state.settlement,payout:state.payouts?.[state.players[state.me].id]||0} : {},
-    create: options => startOnline(false,'',options), practice: () => $('practice').onclick(),
+    view: () => state ? {id:state.id,match:state.match,phase:state.phase,canCancel:!local&&state.phase==='waiting'&&state.players.length===1&&state.me===0,readyDeadline:state.readyDeadline,ready:state.ready.includes(state.players[state.me].id),canReady:state.phase==='waiting'&&state.players.length===2&&!state.ready.includes(state.players[state.me].id),wager:state.wager||0,private:state.private,players:state.players,me:state.players[state.me].id,votes:state.rematch,finished:state.phase==='complete',settlement:state.settlement,payout:state.payouts?.[state.players[state.me].id]||0} : {},
+    ready:()=>request('ready'),dismissCancelled:()=>resetTable(),addBot:async()=>{if(state?.wager)await window.XanHub.cancelTable('bluff',state.id);return state?request('add-bot'):$('practice').onclick();},create: options => startOnline(false,'',options), practice: () => $('practice').onclick(),
     quote: async id => (await post('bluff-action',{action:'quote',gameId:id.toUpperCase(),token:await authenticate()})).quote,
     join: (id,wager) => startOnline(false,id.toUpperCase(),{wager}),
     help: () => $('rules-dialog').showModal(), controls: () => $('table-controls'), resultRoot: () => $('game').querySelector('.result-actions')
@@ -22,7 +22,7 @@
   function tone(kind) {
     if (window.XanPreferences?.muted || document.hidden) return;
     const name = kind === 'lock' ? 'place' : kind;
-    if (!foley.has(name)) foley.set(name, new Audio('/assets/bluff/audio/' + name + '.wav'));
+    if (!foley.has(name)) foley.set(name, new Audio(({place:'/assets/site-hub/audio/card-place-1.ogg',pick:'/assets/site-hub/audio/card-slide-1.ogg',reveal:'/assets/site-hub/audio/card-fan-1.ogg'})[name]||'/assets/bluff/audio/'+name+'.wav'));
     const sound = foley.get(name); sound.currentTime = 0; sound.volume = name === 'win' || name === 'lose' ? .55 : .7;
     sound.play().catch(() => {});
   }
@@ -51,6 +51,7 @@
   }
   function accept(next, elapsed = 0) {
     if (state?.id === next.id && state.revision > next.revision) return;
+    if(next.cancelled){resetTable();return;}
     clockOffset = next.serverNow + elapsed / 2 - Date.now();
     const reset = !state || state.id !== next.id || state.match !== next.match || state.round !== next.round;
     if (reset) selected.clear();
@@ -118,12 +119,14 @@
     if (state && !['complete'].includes(state.phase)) {
       // Leaving is explicitly labeled as forfeiting while a match is active.
       await request('leave');
-      if (state.phase !== 'complete') return;
+      if (state&&state.phase !== 'complete') return;
     }
-    state = null; local = null; room = ''; key = ''; selected.clear(); storage.remove('bluff-room'); storage.remove('bluff-practice');
-    history.replaceState(null, '', location.pathname); $('game').hidden = true; $('lobby').hidden = false; $('table-controls').replaceChildren(); notice('');
+    resetTable();
   }
-  document.addEventListener('click', e => { if (e.target.closest('.xan-bar a[href="/"]') && state && ['select', 'decide', 'reveal'].includes(state.phase)) { e.preventDefault(); notice('Use “Leave & forfeit” at the table before returning home.'); } });
+  function resetTable(){
+    state = null; local = null; room = ''; key = ''; selected.clear(); storage.remove('bluff-room'); storage.remove('bluff-practice');
+    history.replaceState(null, '', location.pathname); $('game').hidden = true; $('lobby').hidden = false; $('table-controls').replaceChildren(); notice('');window.XanGameMenu?.update?.();
+  }
   function outcome(e) {
     const own = e.player === state.me, who = own ? 'You' : esc(state.players[e.player].name), n = e.cards.length;
     if (e.result === 'caught') return `<b>CAUGHT BLUFFING.</b>${who} take${own ? '' : 's'} ${n} cards back.`;
@@ -164,14 +167,14 @@
     let content;
     if (s.phase === 'waiting') {
       const ready = s.ready.includes(s.players[me].id);
-      content = `<section class="table waiting"><span class="eyebrow">${rival ? 'YOUR OPPONENT IS HERE' : 'SAVE A SEAT FOR A GOOD LIAR'}</span><h2>${rival ? `You vs. ${esc(rival.name)}` : 'Your table is ready.'}</h2>${!local ? `<div class="room-code">${s.id}</div>` : '<img class="result-icon" src="/assets/bluff/images/back.svg" alt="Ornate card back">'}<p>${rival ? 'Ten random cards each. Lock your play within 30 seconds or lose. The clock starts when both players are ready.' : (s.wager?'Waiting for another player. Both players must be ready before the clock starts.':'Invite a friend or add a bot to test your bluff. The clock starts when both players are ready.')}</p>${rival ? `<button class="primary" data-action="ready" ${ready ? 'disabled' : ''}>${ready ? 'Ready · waiting for your rival…' : 'I’m ready. Deal me in →'}</button>` : `<div class="waiting-actions"><button class="primary" data-action="invite">Copy invitation link ↗</button>${me === 0 && !s.wager ? '<button class="secondary" data-action="add-bot">Add bot</button>' : ''}</div>`}</section>`;
+      content = `<section class="table waiting"><div class="waiting-card-fan">${backs(5,false)}</div><h2>${rival?esc(rival.name)+' has joined':'A seat for a good liar'}</h2><p>${rival?'Both players must be ready before the cards are dealt.':'Waiting for another player.'}</p><div class="ghost-slot">♛</div></section>`;
     } else if (s.phase === 'complete') {
       const draw = s.winner === 'draw', won = s.winner === me;
-      content = `<section class="table result">${won ? Array.from({length:28},(_,i)=>`<i class="confetti" style="--x:${i*3.7}%;--delay:${i%7*.11}s;--color:${['#eace91','#b98ac0','#83c5b6'][i%3]}"></i>`).join('') : ''}<img class="result-icon" src="/assets/bluff/images/${won ? 'crown' : draw ? 'coin' : 'skull'}.svg" alt=""><span class="eyebrow">${draw ? 'EVENLY MATCHED' : won ? 'A MASTERCLASS IN MISDIRECTION' : 'THE TABLE HAS TURNED'}</span><h2>${draw ? 'An honest draw.' : won ? 'You played them.' : 'Outbluffed.'}</h2><p>${esc(s.reason)}<br>${draw ? 'Nobody takes the win.' : `${won ? 'You win' : esc(rival?.name || 'Opponent') + ' wins'}.`}<br>You: ${s.counts[me]} cards · ${esc(rival?.name || 'Opponent')}: ${s.counts[other]} cards</p><div class="result-actions">${s.players.length === 2 ? `<button class="primary" data-action="rematch" ${s.rematch.includes(s.players[me].id) ? 'disabled' : ''}>${s.rematch.includes(s.players[me].id) ? 'Waiting for rematch…' : 'One more hand ↗'}</button>` : ''}<button data-action="leave">Back to lobby</button></div></section>`;
+      content = `<section class="table result">${won ? Array.from({length:28},(_,i)=>`<i class="confetti" style="--x:${i*3.7}%;--delay:${i%7*.11}s;--color:${['#eace91','#b98ac0','#83c5b6'][i%3]}"></i>`).join('') : ''}<img class="result-icon" src="/assets/bluff/images/${won ? 'crown' : draw ? 'coin' : 'skull'}.svg" alt=""><span class="eyebrow">${draw ? 'EVENLY MATCHED' : won ? 'A MASTERCLASS IN MISDIRECTION' : 'THE TABLE HAS TURNED'}</span><h2>${draw ? 'An honest draw.' : won ? 'You played them.' : 'Outbluffed.'}</h2><p>${esc(s.reason)}<br>${draw ? 'Nobody takes the win.' : `${won ? 'You win' : esc(rival?.name || 'Opponent') + ' wins'}.`}<br>You: ${s.counts[me]} cards · ${esc(rival?.name || 'Opponent')}: ${s.counts[other]} cards</p><div class="result-actions">${s.players.length === 2 ? `<button class="primary" data-action="rematch" ${s.rematch.includes(s.players[me].id) ? 'disabled' : ''}>${s.rematch.includes(s.players[me].id) ? 'Waiting for rematch…' : 'Rematch ↗'}</button>` : ''}<button data-action="leave">Create a new game</button></div></section>`;
     } else {
       const reveal = s.phase === 'reveal';
       let message = s.phase === 'select' ? s.locked[me] ? 'Your cards are locked. Keep that poker face.' : 'Every card you play claims to be <b>' + suitName[s.target].toLowerCase() + '</b>.' : reveal ? 'The choices are locked. <b>Let’s see the truth.</b>' : s.decisionLocked[me] ? 'Decision locked. Your rival can’t see your answer.' : `Your rival claims <b>${s.playCounts[other]} ${suitName[s.target].toLowerCase()}</b>. Do you buy it?`;
-      content = `<section class="table ${reveal ? 'reveal-table' : ''}"><div class="table-top"><div class="player"><span class="avatar">${rival?.bot ? '♜' : esc(rival?.name?.[0] || '?')}</span><div><strong>${esc(rival?.name || 'Opponent')}</strong><small>${reveal ? 'The truth is out' : s.locked[other] ? 'Cards locked · poker face on' : 'Choosing their story…'}</small></div></div><span class="count-pill">${s.counts[other]} cards</span><span class="round-badge">ROUND ${String(s.round).padStart(2, '0')}</span></div><div class="target"><img src="/assets/bluff/images/${s.target}.svg" alt=""><div><small>THE TABLE CALLS FOR</small><b>${suitName[s.target].toUpperCase()}</b></div><div class="timer" id="timer" role="timer" aria-label="Seconds remaining"><strong id="seconds">—</strong></div></div><p class="table-message" aria-live="polite">${message}</p><div class="plays">${[other, me].map(p => {
+      content = `<section class="table ${reveal ? 'reveal-table' : ''}"><div class="table-top"><div class="player"><span class="avatar">${rival?.avatar&&/^https:\/\//.test(rival.avatar)?'<img src="'+esc(rival.avatar)+'" alt="">':rival?.bot ? '♜' : esc(rival?.name?.[0] || '?')}</span><div><strong>${esc(rival?.name || 'Opponent')}</strong><small>${reveal ? 'The truth is out' : s.locked[other] ? 'Cards locked · poker face on' : 'Choosing their story…'}</small></div></div><span class="count-pill">${s.counts[other]} cards</span><span class="round-badge">ROUND ${String(s.round).padStart(2, '0')}</span></div><div class="target"><img src="/assets/bluff/images/${s.target}.svg" alt=""><div><small>THE TABLE CALLS FOR</small><b>${suitName[s.target].toUpperCase()}</b></div><div class="timer" id="timer" role="timer" aria-label="Seconds remaining"><strong id="seconds">—</strong></div></div><p class="table-message" aria-live="polite">${message}</p><div class="plays">${[other, me].map(p => {
         const e = s.reveal?.entries[p];
         return `<div class="play-zone"><p class="play-label">${p === me ? 'YOUR STORY' : 'THEIR STORY'}${reveal ? ` · ${e.challenged ? 'CHALLENGED' : 'BELIEVED'}` : ''}</p>${reveal ? `<div class="reveal-pile">${e.cards.map((c,i)=>card(c,i,true,s.target)).join('')}</div><p class="outcome" style="--max:${e.cards.length}">${outcome(e)}</p>` : `<div class="card-pile">${backs(s.locked[p] ? s.playCounts[p] || 3 : p === me ? selected.size : 0, s.locked[p])}</div><span class="pile-count">${s.locked[p] ? s.phase === 'select' && p !== me ? 'Locked · count hidden' : `${s.playCounts[p]} cards committed` : p === me ? 'Your secret selection' : 'Waiting for their play'}</span>`}</div>`;
       }).join('')}</div><div class="action-area">${s.phase === 'select' ? `<button class="primary" id="lock" ${s.locked[me] || !selected.size ? 'disabled' : ''}>${s.locked[me] ? '✓ Cards locked' : `Lock ${selected.size || 'your'} card${selected.size === 1 ? '' : 's'} →`}</button><p>${s.locked[me] ? 'Your rival still has to meet the play deadline.' : 'Play any number. Miss the 30-second deadline and you lose.'}</p>` : s.phase === 'decide' ? s.decisionLocked[me] ? `<span class="decision-tag">✓ ${s.myDecision === 'call' ? 'CALL BLUFF' : 'BELIEVE'} LOCKED</span><p>Waiting for the other decision. Then everything flips.</p>` : '<div class="decisions"><button class="secondary" data-choice="believe">Believe them ✓</button><button class="call" data-choice="call">Call bluff !</button></div><p>Wrong accusation? You take their entire play. No answer defaults to Believe.</p>' : '<p>Both plays resolve together. Returned cards count before a win.</p>'}</div></section><section class="hand-panel"><div class="hand-head"><h2>Your hand <small>${s.counts[me]} cards</small></h2><div class="hand-tools"><button id="matching" ${s.phase !== 'select' || s.locked[me] ? 'disabled' : ''}>Pick genuine</button><button id="all" ${s.phase !== 'select' || s.locked[me] ? 'disabled' : ''}>Select all</button><button id="clear" ${s.phase !== 'select' || s.locked[me] ? 'disabled' : ''}>Clear</button></div></div><div class="hand ${s.locked[me] ? 'locked' : ''}">${s.hand.map((c,i)=>card(c,i)).join('')}</div><p class="hand-hint">${reveal ? 'Remember what came back. A familiar card can make a convincing lie.' : '<b>Tap cards to select.</b> Genuine, fake, or a little of both. Only you can see your hand.'}</p></section>`;
@@ -179,7 +182,7 @@
     const next = document.createElement('template'); next.innerHTML = content;
     const votes=$('game').querySelector('.xg-rematch');if(votes)votes.remove();
     reconcile($('game'), next.content);
-    if(votes&&s.phase==='complete')$('game').querySelector('.result-actions')?.prepend(votes);
+    if(votes&&s.phase==='complete')$('game').querySelector('.result-actions')?.append(votes);
     $('app').querySelectorAll('[data-action]').forEach(b => b.onclick = () => b.dataset.action === 'invite' ? copyInvite() : b.dataset.action === 'leave' ? leave() : request(b.dataset.action,{wager:state.wager||0}));
     $('game').querySelectorAll('[data-card]').forEach(b => b.onclick = () => { if (busy || state.phase !== 'select' || state.locked[me]) return; selected.has(b.dataset.card) ? selected.delete(b.dataset.card) : selected.add(b.dataset.card); tone('pick'); updateSelection(); });
     $('game').querySelectorAll('[data-choice]').forEach(b => b.onclick = () => { tone('lock'); request('decide', { choice: b.dataset.choice }); });

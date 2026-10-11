@@ -90,7 +90,8 @@ const {createWallet}=require('../netlify/functions/rps/wallet.js');
 function fixtureWallet() {
   const rows=new Map(), versions=new Map();let collide=false, crash=false;
   for(const p of [a,b,c])rows.set(`user/${p.id}.json`,{userId:p.id,balanceUnit:'tickets',ledgerStartedAt:'2026-01-01',balanceBaseline:10000,financialLedger:[],activeTickets:{keep:'untouched'}});
-  const store={get:async key=>structuredClone(rows.get(key)||null),getWithMetadata:async key=>({data:structuredClone(rows.get(key)),etag:String(versions.get(key)||0)}),setJSON:async(key,data,options)=>{
+  const store={get:async key=>structuredClone(rows.get(key)||null),getWithMetadata:async key=>({data:structuredClone(rows.get(key)),etag:String(versions.get(key)||0)}),set:async(key,value,options)=>{
+    const data=JSON.parse(value);
     if(collide){collide=false;versions.set(key,(versions.get(key)||0)+1);return {modified:false};}
     if(options.onlyIfMatch!==String(versions.get(key)||0))return {modified:false};
     rows.set(key,structuredClone(data));versions.set(key,(versions.get(key)||0)+1);
@@ -127,7 +128,7 @@ test('wager funding, crash recovery, payouts, refunds, forfeits and rematch cons
     f.rows.set('torn-link/200.json',{userId:'100'});
     await assert.rejects(db.act(s.id,b,'join',{wager:1000}),/different Chip accounts/);f.rows.delete('torn-link/200.json');
     f.crash();await assert.rejects(db.act(s.id,b,'join',{wager:1000}),/Response lost/);
-    s=await db.act(s.id,b,'join',{wager:1000});assert.equal(s.phase,'choosing');assert.equal(await w.balance(b),9000);
+    s=await db.act(s.id,b,'join',{wager:1000});assert.equal(s.phase,'ready');await db.act(s.id,a,'ready');s=await db.act(s.id,b,'ready');assert.equal(s.phase,'choosing');assert.equal(await w.balance(b),9000);
     await db.act(s.id,a,'pick',{choice:'rock',round:1});await db.act(s.id,b,'pick',{choice:'scissors',round:1});
     await expire(s.id,'nextAt');await db.act(s.id,a,'get');
     await db.act(s.id,a,'pick',{choice:'paper',round:2});await db.act(s.id,b,'pick',{choice:'rock',round:2});
@@ -146,7 +147,7 @@ test('wager funding, crash recovery, payouts, refunds, forfeits and rematch cons
     const forfeited=await db.act(next,a,'leave');assert.equal(forfeited.winner,1);assert.equal(forfeited.forfeit,true);assert.equal(await w.balance(b),9934);
     const invite=await db.create(a,false,b,1000);await db.act(invite.id,b,'decline');assert.equal(await w.balance(a),9934);
     const abandoned=await db.create(a,false,null,1000);await expire(abandoned.id,'deadline');await db.sweep();assert.equal(await w.balance(a),9934,'unjoined stake refunded');
-    const timeout=await db.create(a,false,null,1000);await db.act(timeout.id,b,'join',{wager:1000});await db.act(timeout.id,a,'pick',{choice:'rock',round:1});await expire(timeout.id,'deadline');await db.sweep();
+    const timeout=await db.create(a,false,null,1000);await db.act(timeout.id,b,'join',{wager:1000});await db.act(timeout.id,a,'ready');await db.act(timeout.id,b,'ready');await db.act(timeout.id,a,'pick',{choice:'rock',round:1});await expire(timeout.id,'deadline');await db.sweep();
     assert.equal((await db.act(timeout.id,b,'get')).winner,0,'locked player wins opponent timeout');
     assert.equal(await w.balance(a),10868);
     // Both idle is a refund, not an invented winner.

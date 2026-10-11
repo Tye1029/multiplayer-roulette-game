@@ -5,9 +5,9 @@ import catalog from '../shared/games/fishing-catalog.js';
 
 assert.deepEqual(catalog.tiers.map(t=>t.id),['common','uncommon','rare','mythical']);
 assert.deepEqual(catalog.tiers.map(t=>t.chance),[.70,.24,.05,.01]);
-assert.equal(catalog.entries.length,62);
-assert.equal(new Set(catalog.entries.map(f=>f.name)).size,62,'Every design has a distinct name');
-assert.deepEqual(catalog.entries.filter(f=>f.rarity==='mythical').map(f=>f.name),['Nemo','Aurora Koi','Celestial Anglerfish']);
+assert.equal(catalog.entries.length,73);
+assert.equal(new Set(catalog.entries.map(f=>f.name)).size,73,'Every design has a distinct name');
+assert.deepEqual(catalog.entries.filter(f=>f.rarity==='mythical').map(f=>f.name),['Nemo','Aurora Koi','Celestial Anglerfish','Jerry Dose']);
 const reclassified={Oscar:'uncommon','Blue Tang':'uncommon','Zebra Pleco':'rare',Moonfish:'rare',Lionfish:'rare',Pufferfish:'common','Koi Carp':'uncommon','Neon Tetra':'uncommon'};
 for(const [name,rarity] of Object.entries(reclassified)){
   assert.equal(catalog.resolve(name).rarity,rarity,`${name} must use the requested rarity`);
@@ -17,7 +17,7 @@ for(const [name,rarity] of Object.entries(reclassified)){
   const record=catalog.records({species:{fish:{...legacyCatch,bestVariant:'standard',bestSize:42,count:2}}}).get(name);
   assert.equal(record.count,2);assert.equal(record.bestSize,42,'Reclassification preserves discoveries and records');
 }
-assert.deepEqual(catalog.tiers.map(t=>catalog.entries.filter(f=>f.rarity===t.id).length),[32,18,9,3]);
+assert.deepEqual(catalog.tiers.map(t=>catalog.entries.filter(f=>f.rarity===t.id).length),[37,21,11,4]);
 for(const fish of catalog.entries){
   const pin=catalog.hookAnchors[fish.name];
   assert(pin && pin.length===2, `${fish.name} needs its own image attachment`);
@@ -46,16 +46,16 @@ for(const size of [12,28,48,70,100]){
 }
 let seed=71303;
 const random=()=>((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296);
-const named={Nemo:0,'Aurora Koi':0,'Celestial Anglerfish':0};
+const named={Nemo:0,'Aurora Koi':0,'Celestial Anglerfish':0,'Jerry Dose':0};
 for(let i=0;i<300000;i++){const fish=catalog.pick(12+random()*88,random);if(fish.rarity==='mythical')named[fish.name]++;}
-for(const count of Object.values(named))assert(count>800&&count<1200,'Mythical shares must be evenly distributed');
-const exactMythicalNames={Nemo:0,'Aurora Koi':0,'Celestial Anglerfish':0};
-for(let i=0;i<300;i++){
+for(const count of Object.values(named))assert(count>600&&count<900,'Mythical shares must be evenly distributed');
+const exactMythicalNames={Nemo:0,'Aurora Koi':0,'Celestial Anglerfish':0,'Jerry Dose':0};
+for(let i=0;i<400;i++){
   let call=0;
-  const fish=catalog.pick(50,()=>call++===0?(i+.5)/300:((i%3)+.5)/3);
+  const fish=catalog.pick(50,()=>call++===0?(i+.5)/400:((i%4)+.5)/4);
   if(fish.rarity==='mythical')exactMythicalNames[fish.name]++;
 }
-assert.deepEqual(exactMythicalNames,{Nemo:1,'Aurora Koi':1,'Celestial Anglerfish':1},'Each named Mythical must occupy exactly 1/300 of the full roll space');
+assert.deepEqual(exactMythicalNames,{Nemo:1,'Aurora Koi':1,'Celestial Anglerfish':1,'Jerry Dose':1},'Each named Mythical must occupy exactly 1/400 of the full roll space');
 const legacy={species:{bass:{name:'Largemouth Bass',bestVariant:'golden',bestSize:68,count:1,rareCount:1},nemo:{name:'Nemo',bestVariant:'nemo',bestSize:20,count:1}}};
 const original=JSON.stringify(legacy),mapped=catalog.records(legacy);
 assert(mapped.has('Gilded Sovereign')&&mapped.has('Nemo'));
@@ -90,10 +90,10 @@ assert(state.events.every(e=>catalog.tiers.some(t=>t.id===e.rarity)));
 assert(state.events.every(e=>e.special===(e.rarity==='rare'||e.rarity==='mythical')));
 assert.equal(new Set(state.events.map(e=>e.size)).size,state.events.length);
 const privateView=vm.runInContext("fishingPublicState(game,'one')",roundContext);
-assert(privateView.events.every(e=>e.size===undefined&&e.name===undefined&&e.rarity===undefined),'Future fish identities and lengths must remain private');
+assert(privateView.events.every(e=>e.size===undefined&&e.name===undefined&&e.rarity===undefined&&!e.special),'Future fish identities and lengths must remain private');
 vm.runInContext("state.catches={one:{eventId:state.events[0].id,at:state.events[0].at},two:{eventId:state.events[1].id,at:state.events[1].at}};game=fishingNormalizeClaims(game);",roundContext);
 const normalized=vm.runInContext('game.fishingState',roundContext);
 assert.equal(normalized.catches.one.size,state.events[0].size,'Rarity cannot alter the winning length');
 assert.equal(normalized.catches.two.size,state.events[1].size);
 assert.equal(normalized.catches.one.name,catalog.resolve(state.events[0]).name);
-console.log('Fishing catalog validated: 62 unique designs, four ordered tiers, exact 70/24/5/1 odds at every size, three equally likely Mythicals, and legacy record compatibility.');
+console.log('Fishing catalog validated: 73 unique designs, four ordered tiers, exact 70/24/5/1 odds at every size, four equally likely Mythicals, and legacy record compatibility.');

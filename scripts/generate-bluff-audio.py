@@ -1,4 +1,4 @@
-"""Original procedural foley: layered paper friction, table impacts and result stings."""
+"""Original result stings. Card foley now uses the CC0 recordings in assets/site-hub/audio."""
 import math
 import pathlib
 import random
@@ -41,9 +41,6 @@ def save(name, seconds, events, chord=None):
         file.setparams((1, 2, RATE, 0, 'NONE', 'not compressed'))
         file.writeframes(b''.join(struct.pack('<h', int(max(-1, min(1, v / peak)) * 32767)) for v in samples))
 
-save('pick', .16, [(0, .11, .28, 260)])
-save('place', .35, [(0, .16, .50, 170), (.055, .12, .24, 320)])
-save('reveal', .65, [(i * .065, .18, .34, 180 + i * 27) for i in range(6)])
 save('win', 2.1, [(i * .065, .10, .07, 400) for i in range(6)],
      [(i * .11, f, 1.5, .14) for i, f in enumerate([261.63, 329.63, 392, 523.25])])
 save('lose', 1.6, [(0, .3, .27, 95)],

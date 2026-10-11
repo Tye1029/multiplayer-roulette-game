@@ -8,15 +8,16 @@
     {id:'jade',name:'Desert Relic',color:'#baa274',file:'desert-relic.webp',hammerFilter:'sepia(.25)'},
     {id:'violet',name:'Cobalt Ranger',color:'#617fa6',file:'cobalt-ranger.webp',hammerFilter:'grayscale(1)'},
     {id:'cyber',name:'Neon Frontier',color:'#39c8cf',file:'neon-frontier.webp',cyber:true,hammerFilter:'none'},
+    {id:'royal',name:'Royal Patina',color:'#c49bfa',file:'steel-walnut.png',photoFilter:'hue-rotate(220deg) saturate(.65)',hammerFilter:'hue-rotate(220deg)'},
     {id:'laser',name:'Redshift Ranger',color:'#ff464b',file:'redshift-ranger.webp',laser:true,hammerFilter:'none'}
   ]);
-  function selected(){try{return choices.find(c=>c.id===localStorage.getItem(key))||choices[0];}catch{return choices[0];}}
+  function selected(){try{return choices.find(c=>c.id===localStorage.getItem(key)&&(c.id==='classic'||global.XanProgress?.unlocked(c.id)))||choices[0];}catch{return choices[0];}}
   function asset(choice=selected()){return base+'revolver-'+choice.file;}
   function hammerAsset(choice=selected()){return base+(choice.cyber?'revolver-neon-frontier-hammer.webp':'revolver-steel-walnut-hammer.png');}
   function current(root){return choices.find(c=>c.id===root?.querySelector('.rr-revolver')?.dataset.finish)||selected();}
   function decorate(root,choice=selected()){
     const gun=root.querySelector('.rr-revolver');if(!gun)return;
-    gun.dataset.finish=choice.id;gun.dataset.revolverModel=choice.laser?'redshift-ranger':choice.cyber?'neon-frontier':'steel-walnut';
+    gun.querySelector('.rr-gun-photo')?.style.setProperty('filter',choice.photoFilter||'none');gun.dataset.finish=choice.id;gun.dataset.revolverModel=choice.laser?'redshift-ranger':choice.cyber?'neon-frontier':'steel-walnut';
     gun.setAttribute('aria-label',choice.name+(choice.laser?' laser sidearm':' revolver'));
     root.dataset.gunType=choice.laser?'laser':'revolver';
     gun.style.setProperty('--rr-hammer-finish',choice.hammerFilter);
@@ -53,24 +54,28 @@
       {filter:'brightness(1)',boxShadow:'0 0 0 #ff123800'}
     ],{duration:1000,easing:'ease-in-out'});
   }
-  async function choose(root,id){
-    const choice=choices.find(c=>c.id===id);if(!choice)return;
+  async function choose(root,id,persist=true){
+    const choice=choices.find(c=>c.id===id);if(!choice||!available(choice.id))return;
     if(rouletteVisualRuntime.busy||root.classList.contains('rr-animation-lock')||global.RouletteTurnLock?.lock?.opening)return;
     const request=root._rrGunChoice=(root._rrGunChoice||0)+1;
     const picture=new Image(),hammer=new Image();picture.src=asset(choice);hammer.src=hammerAsset(choice);await Promise.all([picture.decode(),hammer.decode()]);
     if(!root.isConnected||rouletteVisualRuntime.busy||request!==root._rrGunChoice)return;
+    if(persist&&global.XanProgress)await global.XanProgress.selectGun(id);
     try{localStorage.setItem(key,id);}catch{}
     root.querySelector('.rr-gun-photo').src=picture.src;root.querySelector('.rr-hammer-photo').src=hammer.src;
     decorate(root,choice);
     root.querySelectorAll('[data-gun-choice]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.gunChoice===id)));
     root.querySelector('[data-gun-menu]').hidden=true;root.querySelector('[data-gun-toggle]').setAttribute('aria-expanded','false');
   }
-  function menu(){return '<button type="button" class="rr-gun-toggle" data-gun-toggle aria-expanded="false" aria-label="Choose your gun">YOUR GUN</button><div class="rr-gun-menu" data-gun-menu hidden><b>YOUR SIDEARM</b><small>Only you see this choice · saved on this device</small>'+choices.map(c=>'<button type="button" data-gun-choice="'+c.id+'" aria-pressed="'+(c.id===selected().id)+'"><i style="background:'+c.color+'"></i>'+c.name+'</button>').join('')+'</div>';}
-  function bind(root){
-    decorate(root);
-    root.querySelector('[data-gun-toggle]')?.addEventListener('click',()=>{const menu=root.querySelector('[data-gun-menu]');menu.hidden=!menu.hidden;root.querySelector('[data-gun-toggle]').setAttribute('aria-expanded',String(!menu.hidden));});
-    root.querySelectorAll('[data-gun-choice]').forEach(button=>button.addEventListener('click',()=>choose(root,button.dataset.gunChoice).catch(()=>{})));
+  function available(id){return id==='classic'||!!global.XanProgress?.unlocked(id);}
+  function menu(){return '<button type="button" class="rr-gun-toggle" data-gun-toggle aria-expanded="false">Select Your Gun</button><div class="rr-gun-menu" data-gun-menu hidden></div>';}
+  function refreshMenu(root){const host=root.querySelector('[data-gun-menu]');if(!host)return;host.innerHTML='<b>YOUR SIDEARM</b><small>'+Number(global.XanProgress?.profile?.roulette.wins||0).toLocaleString()+' games won</small>'+choices.map((c,i)=>'<button type="button" data-gun-choice="'+c.id+'" aria-pressed="'+(c.id===selected().id)+'" '+(available(c.id)?'':'disabled')+'><i style="background:'+c.color+'"></i><span>'+c.name+'<small>'+(available(c.id)?'Unlocked':global.XanProgress?.challenges[i]||'Complete the challenge to unlock')+'</small></span></button>').join('');}
+  function bind(root,onSelect){
+    if(!onSelect)decorate(root);refreshMenu(root);
+    root.querySelector('[data-gun-toggle]')?.addEventListener('click',()=>{refreshMenu(root);const panel=root.querySelector('[data-gun-menu]');panel.hidden=!panel.hidden;root.querySelector('[data-gun-toggle]').setAttribute('aria-expanded',String(!panel.hidden));});
+    root.querySelector('[data-gun-menu]')?.addEventListener('click',async e=>{const b=e.target.closest('[data-gun-choice]');if(!b||b.disabled)return;try{if(onSelect){await global.XanProgress?.selectGun(b.dataset.gunChoice);await onSelect(b.dataset.gunChoice);root.querySelector('[data-gun-menu]').hidden=true;}else await choose(root,b.dataset.gunChoice);refreshMenu(root);}catch(error){const label=root.querySelector('[data-gun-menu]>small');if(label)label.textContent=error.message;}});
   }
+  global.addEventListener('xan-progress',()=>document.querySelectorAll('[data-roulette-game]').forEach(root=>{refreshMenu(root);if(!global.rouletteVisualRuntime?.busy&&current(root).id!==selected().id)choose(root,selected().id,false).catch(()=>{});}));
   // Project the rotating texture onto a fixed side-view cylinder. Whole turns
   // restore the exact source rows, avoiding a fade and a mismatched final frame.
   function cylinderRow(y,phase){return (Math.sin(Math.asin(Math.max(-1,Math.min(1,y*2-1)))+phase)+1)/2;}

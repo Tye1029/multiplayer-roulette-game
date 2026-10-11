@@ -59,8 +59,8 @@ function duelFishingStartOcean() {
       const lfoGain = ctx.createGain();
       lfo.type = "sine";
       lfo.frequency.value = 0.13;
-      lfoGain.gain.value = 0.010;
-      gain.gain.value = 0.030;
+      lfoGain.gain.value = 0.003;
+      gain.gain.value = 0.008;
       lfo.connect(lfoGain);
       lfoGain.connect(gain.gain);
       source.connect(low);
@@ -325,7 +325,7 @@ function duelFishingCatchSlot(c,side,animate=false,showCaption=true){
 // SITE_FRAGMENT_START: duelFishingStatus_215918
 function duelFishingStatus(game,state,active){
       const both=Boolean(state.creatorCatch&&state.joinerCatch),myRole=game.isCreator?"creator":"joiner",winner=game.result?.winnerRole||game.resolved?.winnerRole||"";
-      if(game.status==="waiting")return"Waiting for an opponent — add a Remote Bot or another player to start";
+      if(game.status==="waiting")return"Waiting for another player.";
       if(game.status==="ready")return"Both players are here — press Ready to begin";
       if(game.status==="countdown")return"Get ready...";
       if(both)return winner?(winner===myRole?"YOU WIN!":"YOU LOST"):"TIE GAME";
@@ -627,7 +627,7 @@ function duelFishingLogbookHtml(logbook, newSpecies=false) {
         }).join("");
         return `<h3 class="fishing-log-section ${tier.id}" data-rarity-section="${tier.id}"><span>${tier.label}</span></h3>${rows}`;
       }).join("");
-      return `<details class="fishing-logbook" data-fishing-logbook open><summary><span class="fishing-logbook-title"><i aria-hidden="true">▱</i><span>Angler's field log<small>Your personal fish collection</small></span></span>${newSpecies?'<span class="fishing-new-species">NEW SPECIES</span>':`<span class="fishing-logbook-count">${discovered} / ${FISHING_SPECIES.length}</span>`}</summary><div class="fishing-logbook-body"><div class="fishing-logbook-tools"><button type="button" class="fishing-log-unlock" data-fishing-log-unlock aria-pressed="false">Unlock all fish (testing)</button><small>Temporary collection preview</small></div><div class="fishing-logbook-stats"><div class="fishing-logbook-stat"><b>${discovered} / ${FISHING_SPECIES.length}</b>Discovered</div><div class="fishing-logbook-stat"><b>${totalCaught}</b>Total catches</div><div class="fishing-logbook-stat"><b>${rareCaught}</b>Special catches</div></div><div class="fishing-logbook-grid">${speciesHtml}</div></div></details>`;
+      return `<details class="fishing-logbook" data-fishing-logbook open><summary><span class="fishing-logbook-title"><i aria-hidden="true">▱</i><span>Angler's field log<small>Your personal fish collection</small></span></span>${newSpecies?'<span class="fishing-new-species">NEW SPECIES</span>':`<span class="fishing-logbook-count">${discovered} / ${FISHING_SPECIES.length}</span>`}</summary><div class="fishing-logbook-body"><div class="fishing-logbook-stats"><div class="fishing-logbook-stat"><b>${discovered} / ${FISHING_SPECIES.length}</b>Discovered</div><div class="fishing-logbook-stat"><b>${totalCaught}</b>Total catches</div><div class="fishing-logbook-stat"><b>${rareCaught}</b>Special catches</div></div><div class="fishing-logbook-grid">${speciesHtml}</div></div></details>`;
     }
 // SITE_FRAGMENT_END: duelFishingLogbookHtml_303736
 

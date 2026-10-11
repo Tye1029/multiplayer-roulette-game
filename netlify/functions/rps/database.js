@@ -128,6 +128,13 @@ async function prepareAction(gameId, player, action, body = {}) {
         s = rules.pick(s, s.players[1].id, rules.CHOICES[crypto.randomInt(3)], s.round, now);
       s = rules.pick(s, player.id, body.choice, body.round, now, crypto.randomInt(3));
     }
+    if(action==='cancel'){if(s.phase!=='waiting'||s.players.length!==1||s.players[0].id!==player.id)error('Only an empty waiting table can be cancelled.');s.phase='cancelled';s.reason='Table cancelled.';s.revision++;}
+    if(action==='ready'){
+      if(s.phase!=='ready'||!s.players.some(p=>p.id===player.id))error('Wait for both players to join.');
+      s.ready||=[];if(!s.ready.includes(player.id))s.ready.push(player.id);
+      s.readyDeadline||=now+60000;s.revision++;
+      if(s.players.every(p=>p.bot||s.ready.includes(p.id))){s.phase='choosing';s.deadline=now+rules.PICK_MS;s.readyDeadline=null;}
+    }
     if (row.state.winner === null && s.winner !== null) await record(c, s);
     if (action === 'leave' && !['complete','cancelled'].includes(s.phase) && s.winner === null) {
       if(s.wager && ['choosing','reveal'].includes(s.phase) && s.finance.paid.length===2) {
@@ -167,7 +174,7 @@ async function lobby(player) {
 async function ownedJoined(player) {
   await ready();
   const {rows}=await db().query(`SELECT state FROM rps_matches WHERE state->'players'->0->>'id'=$1 AND updated_at>NOW()-INTERVAL '1 day'`,[player.id]);
-  return rows.filter(({state:s})=>s.players[1]&&!s.players[1].bot).map(({state:s})=>({id:s.id,mode:'rps',name:s.players[1].name,joiner:s.players[1].id,href:'/games/multiplayer/rps/?arena='+s.id}));
+  return rows.filter(({state:s})=>s.players[1]&&!s.players[1].bot&&(s.ready||[]).includes(s.players[1].id)).map(({state:s})=>({id:s.id,mode:'rps',name:s.players[1].name,joiner:s.players[1].id,href:'/games/multiplayer/rps/?arena='+s.id}));
 }
 async function invitations(player) {
   await ready();
@@ -190,7 +197,7 @@ async function rivals(player) {
 // Committed matches are durable payment intents. A wallet write may succeed
 // before a DB commit fails; stable ledger IDs make recovery repeat-safe.
 async function recover(gameId) {
-  return transaction(async c=>{
+  const result=await transaction(async c=>{
     const row=(await c.query('SELECT state FROM rps_matches WHERE id=$1 FOR UPDATE',[gameId])).rows[0];
     if(!row)return null;
     let s=rules.advance(row.state);const f=s.finance;
@@ -211,7 +218,7 @@ async function recover(gameId) {
       s.revision++;
     }
     delete f.waitingDeadline;
-    if(s.phase==='waiting' && s.players.length===2 && f.paid.length===2){s.phase='choosing';s.deadline=Date.now()+rules.PICK_MS;s.revision++;}
+    if(s.phase==='waiting' && s.players.length===2 && f.paid.length===2){s.phase=f.rematch?'choosing':'ready';s.ready=f.rematch?s.players.map(p=>p.id):[];s.deadline=Date.now()+(f.rematch?rules.PICK_MS:900000);s.revision++;}
     if(f.status==='funding')f.status='reserved';
     if(['cancelled','complete'].includes(s.phase) && f.status!=='settled') {
       if(s.phase==='complete' && s.winner!==null) {
@@ -227,9 +234,12 @@ async function recover(gameId) {
       f.status='settled';s.revision++;
     }
     if(s.winner!==null && row.state.winner===null)await record(c,s);
+
     if(JSON.stringify(s)!==JSON.stringify(row.state))await c.query('UPDATE rps_matches SET state=$2::jsonb,updated_at=NOW() WHERE id=$1',[s.id,JSON.stringify(s)]);
     return s;
   });
+ if(!injectedPool&&result.phase==='complete')try{await require('../site-hub/progression').observe('rps',result);}catch(e){console.error('Progress receipt pending',e.name);}
+ return result;
 }
 async function create(player,bot=false,invited=null,wager=0,isPrivate=false) {
   await sweep(player.id);
@@ -250,7 +260,7 @@ async function sweep(playerId=null) {
     AND ($1::text IS NULL OR state->'players' @> jsonb_build_array(jsonb_build_object('id',$1::text)))
     AND (state->'finance'->>'pending' IS NOT NULL OR state->>'phase' IN ('complete','cancelled')
       OR (state->>'phase'='reveal' AND (state->>'nextAt')::bigint<$2)
-      OR (state->>'phase' IN ('choosing','waiting') AND (state->>'deadline')::bigint<$2))
+      OR (state->>'phase' IN ('choosing','waiting','ready') AND (state->>'deadline')::bigint<$2))
     ORDER BY updated_at LIMIT 40`,[playerId,Date.now()]);
   let recovered=0,failed=0;
   for(const {id} of rows)try{await recover(id);recovered++;}catch{failed++;}

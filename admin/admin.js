@@ -66,12 +66,12 @@ const password = document.getElementById('password');
 
     function xans(value) {
       const n = Math.max(0, Math.floor(Number(value || 0)));
-      return `${n.toLocaleString()} ${n === 1 ? 'Ticket' : 'Tickets'}`;
+      return `${n.toLocaleString()} ${n === 1 ? 'Chip' : 'Chips'}`;
     }
 
     function xanaxEquivalent(value) {
       const tickets = Math.max(0, Math.floor(Number(value || 0)));
-      const wholeXans = Math.floor(tickets / 1000);
+      const wholeXans = Math.floor(tickets / 800000);
       return `${wholeXans.toLocaleString()} ${wholeXans === 1 ? 'Xanax' : 'Xanax'}`;
     }
 
@@ -134,7 +134,8 @@ const password = document.getElementById('password');
       const user = latestUsers.find(u => String(u.userId) === String(userId));
       if (!user) {
         userDetailContent.innerHTML = '<div class="detail-muted">Select a connected user to inspect.</div>';
-        detailUpdated.textContent = latestUsers.length ? `${latestUsers.length.toLocaleString()} user(s) loaded` : 'Load admin data first';
+        let before;const more=document.getElementById('ledger-more');more.onclick=async()=>{more.disabled=true;try{const response=await fetch('/.netlify/functions/admin-users',{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Password':password.value},body:JSON.stringify({action:'ledger',userId:user.userId,...(before===undefined?{}:{before})})});const data=await response.json();if(!response.ok)throw Error(data.error);const host=document.getElementById('full-ledger');if(before===undefined)host.replaceChildren();host.insertAdjacentHTML('beforeend',data.entries.map(e=>`<div class="detail-item"><strong>${escapeHtml(fmtDate(e.at))}</strong><br>${escapeHtml(e.type)} · ${signed(e.delta)}<small>Balance: ${xans(e.balanceAfter)}</small><small>Receipt: ${escapeHtml(e.id)}</small><small>${escapeHtml(e.reason||'')}</small></div>`).join(''));before=data.next;more.hidden=!before;more.textContent='Load older transactions';}catch(e){more.textContent=e.message;}finally{more.disabled=false;}};
+      detailUpdated.textContent = latestUsers.length ? `${latestUsers.length.toLocaleString()} user(s) loaded` : 'Load admin data first';
         return;
       }
 
@@ -173,7 +174,7 @@ const password = document.getElementById('password');
         return `<div class="detail-item"><strong>${escapeHtml(fmtDate(bet.at))}</strong><br>Cost: ${xans(bet.ticketCost)} · Won: ${xans(bet.winAmount)} · Net: ${signed(bet.net)}<small>Balance: ${xans(bet.balanceBefore)} → ${xans(bet.balanceAfter)}</small><small>Ticket: ${escapeHtml(bet.ticketId || '—')}</small><small>Spots: ${escapeHtml(prizes)}</small></div>`;
       }, 'No completed bets recorded for this user.');
 
-      const withdrawals = renderMiniRows((user.recentWithdrawals || []).slice(0, 40), w => `<div class="detail-item"><strong>${escapeHtml(fmtDate(w.at))}</strong><br>Withdraw: ${xans(w.amount)} · Status: <span class="pill">${escapeHtml(w.status || 'pending')}</span><small>Balance: ${xans(w.balanceBefore)} → ${xans(w.balanceAfter)}</small><small>${escapeHtml(w.note || 'User withdrawal request')}</small></div>`, 'No withdrawals recorded for this user.');
+      const withdrawals = renderMiniRows((user.recentWithdrawals || []).filter((w,i)=>w.status==='pending'||i<40), w => `<div class="detail-item"><strong>${escapeHtml(fmtDate(w.at))}</strong><br>Withdraw: ${xans(w.amount)} · Status: <span class="pill">${escapeHtml(w.status || 'pending')}</span><small>Balance: ${xans(w.balanceBefore)} → ${xans(w.balanceAfter)}</small><small>${escapeHtml(w.note || 'User withdrawal request')}</small></div>`, 'No withdrawals recorded for this user.');
 
       const adjustments = renderMiniRows((user.recentAdjustments || []).slice(0, 40), adj => `<div class="detail-item"><strong>${escapeHtml(fmtDate(adj.at))}</strong><br>${escapeHtml(adj.action === 'decrease' ? 'Decrease' : 'Increase')}: ${xans(adj.amount)} · Delta: ${signed(adj.delta)}<small>Balance: ${xans(adj.balanceBefore)} → ${xans(adj.balanceAfter)}</small><small>Reason: ${escapeHtml(adj.reason || '—')}</small></div>`, 'No admin adjustments recorded for this user.');
 
@@ -190,9 +191,10 @@ const password = document.getElementById('password');
           <div class="detail-box"><h3>Recent Bets</h3>${bets}</div>
           <div class="detail-box"><h3>Withdrawals</h3>${withdrawals}</div>
           <div class="detail-box"><h3>Admin Adjustments</h3>${adjustments}</div>
-          <div class="detail-box"><h3>Financial Ledger</h3>${ledger}</div>
+          <div class="detail-box"><h3>Financial Ledger</h3><div id="full-ledger">${ledger}</div><button id="ledger-more">Open complete record book</button></div>
         </div>
       `;
+      let before;const more=document.getElementById('ledger-more');more.onclick=async()=>{more.disabled=true;try{const response=await fetch('/.netlify/functions/admin-users',{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Password':password.value},body:JSON.stringify({action:'ledger',userId:user.userId,...(before===undefined?{}:{before})})});const data=await response.json();if(!response.ok)throw Error(data.error);const host=document.getElementById('full-ledger');if(before===undefined)host.replaceChildren();host.insertAdjacentHTML('beforeend',data.entries.map(e=>`<div class="detail-item"><strong>${escapeHtml(fmtDate(e.at))}</strong><br>${escapeHtml(e.type)} · ${signed(e.delta)}<small>Balance: ${xans(e.balanceAfter)}</small><small>Receipt: ${escapeHtml(e.id)}</small><small>${escapeHtml(e.reason||'')}</small></div>`).join(''));before=data.next;more.hidden=!before;more.textContent='Load older transactions';}catch(e){more.textContent=e.message;}finally{more.disabled=false;}};
       detailUpdated.textContent = `Viewing ${user.name} [${user.userId}]`;
     }
 
@@ -411,7 +413,7 @@ const password = document.getElementById('password');
         }).join('');
 
 
-        withdrawalRows.innerHTML = allWithdrawals.slice(0, 150).map(w => `<tr>
+        withdrawalRows.innerHTML = allWithdrawals.filter((w,i)=>w.status==='pending'||i<150).map(w => `<tr>
           <td>${escapeHtml(fmtDate(w.at))}</td>
           <td><strong>${escapeHtml(w.userName)}</strong><br><span class="pill">[${escapeHtml(w.userId)}]</span></td>
           <td><strong>${xans(w.amount)}</strong></td>

@@ -55,8 +55,10 @@ assert.equal(contenders.filter(x=>x.status==='fulfilled').length,1);assert.equal
 await assert.rejects(env.duelSaveGame({gameId:'cas',mode:'roulette',revision:1}),/state changed/);
 
 const arsenal=await readFile(new URL('../assets/roulette/arsenal.js',import.meta.url),'utf8');
-const storage=new Map();const ui={localStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v)}};ui.window=ui;
-vm.runInNewContext(arsenal,ui);assert.equal(ui.RouletteArsenal.choices.length,7);
+const storage=new Map();const ui={addEventListener(){},XanProgress:{unlocked:()=>false},localStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v)}};ui.window=ui;
+vm.runInNewContext(arsenal,ui);assert.equal(ui.RouletteArsenal.choices.length,8);
+for(const option of ui.RouletteArsenal.choices){storage.set('rouletteGunPreferenceV1',option.id);assert.equal(ui.RouletteArsenal.selected().id,'classic','Local storage cannot unlock a challenge gun');}
+ui.XanProgress.unlocked=()=>true;
 for(const option of ui.RouletteArsenal.choices){storage.set('rouletteGunPreferenceV1',option.id);assert.equal(ui.RouletteArsenal.selected().id,option.id);}
 storage.set('rouletteGunPreferenceV1','invalid');assert.equal(ui.RouletteArsenal.selected().id,'classic');
 assert(!arsenal.includes('duelRequest('),'Gun selection must never send player preferences to other players');
@@ -74,9 +76,9 @@ for(const choice of ui.RouletteArsenal.choices){
   assert(!canvas.isConnected,'Cylinder canvas must be removed after returning to its original texture');
   assert(draws>2000,'Cylinder must render continuous intermediate frames');draws=0;
 }
-assert.equal(sounds,6,'All six mechanical guns retain synchronized cylinder sound');
+assert.equal(sounds,7,'All seven mechanical guns retain synchronized cylinder sound');
 for(let y=0;y<=1;y+=.01){assert(Math.abs(ui.RouletteArsenal.cylinderRow(y,Math.PI*8)-y)<1e-10);for(const phase of [0,.2,1,3,8])assert(ui.RouletteArsenal.cylinderRow(y,phase)>=0&&ui.RouletteArsenal.cylinderRow(y,phase)<=1);}
-assert.equal(new Set(ui.RouletteArsenal.choices.map(c=>ui.RouletteArsenal.asset(c))).size,7,'Each finish needs its own art');
+assert.equal(new Set(ui.RouletteArsenal.choices.map(c=>ui.RouletteArsenal.asset(c)+'|'+(c.photoFilter||'none'))).size,8,'Each finish needs distinct art or a distinct material tint');
 const cues=[],fill={style:{},getAnimations:()=>[]},bar={firstElementChild:fill};ui.RouletteAudio={laserCue:cue=>cues.push(cue)};
 await ui.RouletteArsenal.laserFeedback({querySelector:()=>bar},false);assert.equal(fill.style.transform,undefined,'A malfunction must not spend the charge');
 assert.equal(rolls.at(-1).options.duration,1000,'Blank indicator should visibly blink for a second');
@@ -110,4 +112,4 @@ const mount=motion.slice(motion.indexOf('  function mountCurrentScene()'),motion
 let resets=0;const facing={};const scene={facing,root:{classList:{contains:()=>true}}};
 const hold=vm.createContext({rouletteLatestGame:{gameId:'opponent-first',rouletteState:{turnId:'bob'}},lock:{gameId:'opponent-first',opening:true,animatingFacing:facing,pendingTurnId:''},ensureLayers:()=>scene,currentRoot:()=>scene.root,openingIsDone:()=>false,applyFacing:()=>resets++});
 vm.runInContext(mount,hold);for(let i=0;i<20;i++)hold.mountCurrentScene();assert.equal(resets,0,'Polls reset the chooser during the announcement');
-console.log('Roulette Frontier passed: six chamber paths, same-position respin, deadlines, timeout idempotency, opening delay, CAS, seven unique guns, continuous cylinders and laser charge outcomes.');
+console.log('Roulette Frontier passed: six chamber paths, same-position respin, deadlines, timeout idempotency, opening delay, CAS, eight distinct challenge-locked guns, continuous cylinders and laser charge outcomes.');

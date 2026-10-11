@@ -40,7 +40,14 @@
     name, baseName:name, variant, rarity, special:true, band:-1,
     asset:"/assets/fishing/images/v2/rare/"+asset+"-v2.png"
   }));
-  const entries = Object.freeze([...ordinary,...specials].map(Object.freeze));
+  const longFish = [
+    ["Brown River Eel","common",2],["Silver Needlefish","common",3],["Sand Lance","common",4],
+    ["Green Pipefish","common",3],["Bronze Loach","common",4],["Ribbon Eel","uncommon",2],
+    ["Blue Cornetfish","uncommon",1],["Spotted Moray","uncommon",0],["Ruby Oarfish","rare",-1],
+    ["Starlight Gulper Eel","rare",-1],["Jerry Dose","mythical",-1]
+  ].map(([name,rarity,band],i)=>({name,baseName:name,variant:slug(name),rarity,band,special:band===-1,
+    asset:"/assets/fishing/images/v3/long-fish-atlas.png",atlas:{x:[0,362,724,0,362,724,0,362,724,0,362][i],y:[0,0,0,350,350,350,670,670,660,1018,998][i],w:i===10?390:362,h:[345,345,345,310,310,310,348,348,365,430,450][i]},long:true}));
+  const entries = Object.freeze([...ordinary,...specials,...longFish].map(Object.freeze));
   const byName = new Map(entries.map(f=>[f.name.toLowerCase(),f]));
   const byVariant = new Map(specials.map(f=>[f.variant,f]));
   const rank = rarity => Math.max(0,tiers.findIndex(t=>t.id===rarity));
@@ -65,7 +72,7 @@
     return {name:fish.name,baseName:fish.name,variant:fish.variant,rarity:fish.rarity,special:fish.special};
   }
   function pick(size, random=Math.random) {
-    // One unconditional tier roll: the three Mythical fish SHARE exactly 1%.
+    // One unconditional tier roll: all Mythical fish SHARE exactly 1%.
     // The size was rolled separately; rarity cannot guarantee a winning fish.
     const roll=Math.min(1-Number.EPSILON,Math.max(0,random()));
     let tier="mythical", edge=0;
@@ -103,6 +110,18 @@
   // Coordinates are relative to rendered width in the .68-aspect fish box;
   // transparent padding is included, and the outer tail tips are excluded.
   const hookAnchors = Object.freeze({
+    "Brown River Eel":Object.freeze([.65,0.08]),
+    "Silver Needlefish":Object.freeze([.65,0.12]),
+    "Sand Lance":Object.freeze([.65,0.1]),
+    "Green Pipefish":Object.freeze([.65,0.12]),
+    "Bronze Loach":Object.freeze([.65,0.1]),
+    "Ribbon Eel":Object.freeze([.65,0.13]),
+    "Blue Cornetfish":Object.freeze([.65,0.07]),
+    "Spotted Moray":Object.freeze([.65,0.08]),
+    "Ruby Oarfish":Object.freeze([.65,0.22]),
+    "Starlight Gulper Eel":Object.freeze([.65,0.17]),
+    "Jerry Dose":Object.freeze([.65,0.22]),
+
     "Titan Sturgeon":Object.freeze([0.421875,0.24625]),
     "Grand Marlin":Object.freeze([0.515625,0.066563]),
     "Giant Bluefin Tuna":Object.freeze([0.597656,0.1525]),

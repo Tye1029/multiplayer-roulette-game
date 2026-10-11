@@ -44,7 +44,8 @@ const MAX_ADJUSTMENTS = 180;
 const MAX_WITHDRAWALS = 260;
 const MAX_ACTIVE_TICKETS = 3;
 const MAX_TICKET_IDS = 1800;
-const TICKETS_PER_XAN = 1000;
+const TICKETS_PER_XAN = 1000; // Historical migration unit; never rescale old balances.
+const CHIPS_PER_XAN = 800000;
 const BALANCE_UNIT = "tickets";
 
 const VALID_TICKET_COSTS = [1000, 5000, 10000, 25000];
@@ -192,9 +193,9 @@ function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 function toNumber(value, fallback = 0) { const n = Number(value); return Number.isFinite(n) ? n : fallback; }
 function int(value, fallback = 0) { return Math.max(0, Math.floor(toNumber(value, fallback))); }
 function signedInt(value, fallback = 0) { const n = Number(value); return Number.isFinite(n) ? Math.floor(n) : fallback; }
-function ticketsFromXans(value) { return int(value, 0) * TICKETS_PER_XAN; }
+function ticketsFromXans(value) { return int(value, 0) * CHIPS_PER_XAN; }
 function formatTickets(value) { const n = int(value, 0); return `${n.toLocaleString()} ${n === 1 ? "Ticket" : "Tickets"}`; }
-function formatXanaxEquivalent(value) { const tickets = int(value, 0); const xans = Math.floor(tickets / TICKETS_PER_XAN); return `${xans.toLocaleString()} ${xans === 1 ? "Xanax" : "Xanax"}`; }
+function formatXanaxEquivalent(value) { const tickets = int(value, 0); const xans = Math.floor(tickets / CHIPS_PER_XAN); return `${xans.toLocaleString()} ${xans === 1 ? "Xanax" : "Xanax"}`; }
 function isTicketUnitObject(obj = {}) { return obj && typeof obj === "object" && (obj.balanceUnit === BALANCE_UNIT || obj.unit === BALANCE_UNIT); }
 function scaleMoneyValue(value) { return signedInt(value, 0) * TICKETS_PER_XAN; }
 function scalePositiveMoneyValue(value) { return int(value, 0) * TICKETS_PER_XAN; }
@@ -268,7 +269,7 @@ function migrateRecordToTickets(record) {
     if (out[field] !== undefined && out[field] !== null) out[field] = scalePositiveMoneyValue(out[field]);
   }
   if (out.netProfit !== undefined && out.netProfit !== null) out.netProfit = scaleMoneyValue(out.netProfit);
-  out.totalTicketsDeposited = out.totalTicketsDeposited !== undefined ? int(out.totalTicketsDeposited, 0) : ticketsFromXans(out.totalXansDetected || 0);
+  out.totalTicketsDeposited = out.totalTicketsDeposited !== undefined ? int(out.totalTicketsDeposited, 0) : int(out.totalXansDetected || 0,0)*TICKETS_PER_XAN;
   if (Array.isArray(out.financialLedger)) out.financialLedger = out.financialLedger.map(migrateLedgerEntryToTickets);
   if (Array.isArray(out.recentBets)) out.recentBets = out.recentBets.map(migrateBetToTickets);
   if (Array.isArray(out.recentAdjustments)) out.recentAdjustments = out.recentAdjustments.map(migrateAdjustmentToTickets);
@@ -373,7 +374,7 @@ async function getTornUserLink(tornUserId) {
   const id = cleanUserId(tornUserId);
   if (!id) return null;
   try {
-    const link = await getUsersStore().get(tornUserLinkKey(id), { type: "json" });
+    const link = await getUsersStore().get(tornUserLinkKey(id), { type: "json", consistency:"strong" });
     if (!link || !link.userId) return null;
     return {
       tornUserId: id,
@@ -383,8 +384,9 @@ async function getTornUserLink(tornUserId) {
       lastSeenAt: link.lastSeenAt || null,
       linkedByVisitorId: cleanVisitorId(link.linkedByVisitorId || "") || null
     };
-  } catch {
-    return null;
+  } catch(error) {
+    if(error?.name!=="BlobsConsistencyError")throw error;
+    const link=await getUsersStore().get(tornUserLinkKey(id),{type:"json"});return link||null;
   }
 }
 
@@ -630,13 +632,9 @@ function publicOddsSettings(settings) {
 }
 
 async function getUserRecord(userId) {
-  if (!userId) return null;
-  try {
-    const record = await getUsersStore().get(userKey(userId), { type: "json" });
-    return record ? sanitizeRecord(record) : null;
-  } catch {
-    return null;
-  }
+  if(!userId)return null;const store=getUsersStore();let record;
+  try{record=await store.get(userKey(userId),{type:'json',consistency:'strong'});}catch(error){if(error?.name!=='BlobsConsistencyError')throw error;record=await store.get(userKey(userId),{type:'json'});}
+  return record?sanitizeRecord(record):null;
 }
 
 async function saveUserRecord(record) {
@@ -653,6 +651,7 @@ async function saveUserRecord(record) {
     if(read&&!read.etag)throw new Error('Wallet revision unavailable. Please retry.');
     const next=read?.data?mergeRecordsForSave(read.data,incoming):incoming;
     const signed=Number(next.balanceBaseline||0)+(next.financialLedger||[]).reduce((n,e)=>n+Number(e.delta||0),0);
+    if(!Number.isSafeInteger(signed))throw new Error('Balance exceeds the supported limit.');
     if(next.ledgerStartedAt&&signed<0)throw new Error('Your balance changed. Refresh before placing another wager.');
     const result=await store.set(key,JSON.stringify(next),read?{onlyIfMatch:read.etag}:{onlyIfNew:true});
     if(result.modified)return next;
@@ -673,9 +672,17 @@ function uniqueByKey(items, keyFn, limit) {
 function mergeRecordsForSave(existingRaw, incomingRaw) {
   const existing = sanitizeRecord(existingRaw || {});
   const incoming = sanitizeRecord(incomingRaw || {});
+  const priorLedger=new Map(existing.financialLedger.map(e=>[e.id,e]));
+  for(const e of incoming.financialLedger){const old=priorLedger.get(e.id);if(old&&old.delta!==e.delta)throw new Error('A transaction receipt cannot be changed.');}
+  const freshEntries=incoming.financialLedger.filter(e=>!priorLedger.has(e.id));
+  const deposits=freshEntries.filter(e=>e.type==='deposit'),withdrawals=freshEntries.filter(e=>e.type==='withdrawal');
   const merged = {
     ...existing,
     ...incoming,
+    totalTicketsDeposited:existing.totalTicketsDeposited+deposits.reduce((n,e)=>n+e.delta,0),
+    totalXansDetected:existing.totalXansDetected+deposits.reduce((n,e)=>n+Number(e.meta?.addedXans||0),0),
+    totalWithdrawRequested:existing.totalWithdrawRequested+withdrawals.reduce((n,e)=>n+e.amount,0),
+    withdrawalCount:existing.withdrawalCount+withdrawals.length,
     firstConnectedAt: existing.firstConnectedAt || incoming.firstConnectedAt || null,
     firstTicketBonusUsedAt: existing.firstTicketBonusUsedAt || incoming.firstTicketBonusUsedAt || null,
     firstTicketBonusTicketId: existing.firstTicketBonusTicketId || incoming.firstTicketBonusTicketId || null,
@@ -686,7 +693,7 @@ function mergeRecordsForSave(existingRaw, incomingRaw) {
     financialLedger: uniqueByKey([...(existing.financialLedger || []), ...(incoming.financialLedger || [])], (entry) => entry?.id, Number.MAX_SAFE_INTEGER),
     recentBets: uniqueByKey([...(existing.recentBets || []), ...(incoming.recentBets || [])], (bet) => bet?.ticketId || `${bet?.at}:${bet?.ticketCost}:${bet?.winAmount}`, MAX_BETS),
     recentAdjustments: uniqueByKey([...(existing.recentAdjustments || []), ...(incoming.recentAdjustments || [])], (adj) => adj?.adjustmentId || `${adj?.at}:${adj?.amount}:${adj?.action}`, MAX_ADJUSTMENTS),
-    recentWithdrawals: uniqueByKey([...(existing.recentWithdrawals || []), ...(incoming.recentWithdrawals || [])], (w) => w?.withdrawalId || `${w?.at}:${w?.amount}`, MAX_WITHDRAWALS),
+    recentWithdrawals: uniqueByKey([...(existing.recentWithdrawals || []), ...(incoming.recentWithdrawals || [])], (w) => w?.withdrawalId || `${w?.at}:${w?.amount}`, Number.MAX_SAFE_INTEGER),
     fishingRecord: Number(incoming.fishingRecord?.size || 0) >= Number(existing.fishingRecord?.size || 0) ? incoming.fishingRecord : existing.fishingRecord,
     fishingLogbook: mergeFishingLogbooks(existing.fishingLogbook, incoming.fishingLogbook),
     recentEvents: [...(existing.recentEvents || []), ...(incoming.recentEvents || [])].slice(-MAX_EVENTS),
@@ -714,7 +721,7 @@ async function listUserRecords() {
 function legacyAggregateBalance(record) {
   if (!record) return 0;
   const baseline = int(record.balanceBaseline, 0);
-  const detected = isTicketUnitObject(record) ? int(record.totalTicketsDeposited, ticketsFromXans(record.totalXansDetected || 0)) : int(record.totalXansDetected, 0);
+  const detected = isTicketUnitObject(record) ? int(record.totalTicketsDeposited, (int(record.totalXansDetected || 0, 0) * TICKETS_PER_XAN)) : int(record.totalXansDetected, 0);
   const won = int(record.totalWon, 0);
   const wagered = int(record.totalWagered, 0);
   const adminAdded = int(record.totalAdminAdded, 0);
@@ -822,6 +829,9 @@ function recoverPreviousWithdrawal(record, details = {}) {
   if (!recovery) return { record: existing, recovered: false };
 
   const ledgerId = `withdraw:${recovery.withdrawalId}`;
+  const confirmed=(existing.financialLedger||[]).find(e=>e.id===ledgerId&&e.type==='withdrawal');
+  if(!confirmed)return {record:existing,recovered:false};
+  recovery.amount=confirmed.amount;recovery.at=confirmed.at;
   const existingWithdrawal = Array.isArray(existing.recentWithdrawals)
     ? existing.recentWithdrawals.find((w) => String(w.withdrawalId || "") === recovery.withdrawalId)
     : null;
@@ -905,7 +915,7 @@ async function recordConnect(user, source = "save-key", details = {}) {
     balanceUnit: BALANCE_UNIT,
     ticketsPerXan: TICKETS_PER_XAN,
     balanceBaseline: 0,
-    financialLedger: [],
+    financialLedger: [{id:`starter:${String(user.tornId || user.id)}`,type:"starter_bonus",delta:500000,amount:500000,at,reason:"One-time welcome gift for verified Torn player"}],
     connectCount: 1,
     checkCount: 0,
     betCount: 0,
@@ -913,7 +923,7 @@ async function recordConnect(user, source = "save-key", details = {}) {
     totalTicketsDeposited: 0,
     totalWagered: 0,
     totalWon: 0,
-    currentBalance: 0,
+    currentBalance: 500000,
     claimedLogIds: [],
     recentBets: [],
     recentEvents: addEvent([], {
@@ -949,21 +959,18 @@ async function recordCheck(user, details = {}) {
     lastCheckedAt: at,
     checkCount: int(existing.checkCount, 0) + 1,
     totalXansDetected: int(existing.totalXansDetected, 0) + addedXans,
-    totalTicketsDeposited: int(existing.totalTicketsDeposited, ticketsFromXans(existing.totalXansDetected || 0)) + addedTickets,
+    totalTicketsDeposited: int(existing.totalTicketsDeposited, (int(existing.totalXansDetected || 0, 0) * TICKETS_PER_XAN)) + addedTickets,
     claimedLogIds: combinedIds
   });
 
-  if (addedTickets > 0) {
-    const depositId = `deposit:${newIds.length ? newIds.join("|") : `${user.id}:${at}`}`;
-    record = addLedgerEntry(record, makeLedgerEntry({
-      id: depositId,
-      type: "deposit",
-      delta: addedTickets,
-      amount: addedTickets,
-      at,
-      reason: "Detected Xanax sent to CowBoyCookie and converted to Tickets",
-      meta: { newLogIds: newIds, addedXans, addedTickets, ticketsPerXan: TICKETS_PER_XAN }
-    })).record;
+  // One immutable credit per owner-side Torn log, even when concurrent checks overlap.
+  for(const deposit of details.deposits || []) {
+    const logId=String(deposit.id||'');const quantity=Number(deposit.amount);
+    if(!/^[A-Za-z0-9_-]{1,100}$/.test(logId)||!Number.isSafeInteger(quantity)||quantity<=0)throw new Error('Invalid verified deposit.');
+    const previouslyClaimed=(existing.claimedLogIds||[]).includes(logId)||(existing.financialLedger||[]).some(e=>e.id===`deposit:${logId}`||e.meta?.newLogIds?.includes(logId));
+    if(previouslyClaimed)continue;
+    const delta=quantity*CHIPS_PER_XAN;if(!Number.isSafeInteger(delta))throw new Error('Deposit too large.');
+    record=addLedgerEntry(record,makeLedgerEntry({id:`deposit:${logId}`,type:'deposit',delta,amount:delta,at,reason:'Verified XanDuel item transfer',meta:{newLogIds:[logId],addedXans:quantity,ticketsPerXan:CHIPS_PER_XAN}})).record;
   }
 
   const balanceAfter = getRecordBalance(record);
@@ -1714,14 +1721,17 @@ async function recordWithdrawal(user, details = {}) {
   }
 
   const at = nowIso();
-  const amount = int(details.amount, 0);
-  if (amount <= 0) throw new Error("Withdrawal amount must be at least 1,000 Tickets.");
-  if (amount % TICKETS_PER_XAN !== 0) throw new Error("Withdrawals must be in 1,000 Ticket increments.");
+  const amount = Number(details.amount);
+  if (!Number.isSafeInteger(amount)||amount <= 0) throw new Error("Withdrawal amount must be at least 800,000 Chips.");
+  if (amount % CHIPS_PER_XAN !== 0) throw new Error("Withdrawals must be in 800,000 Chip increments.");
   const balanceBefore = getRecordBalance(existing);
-  if (balanceBefore < amount) throw new Error(`Server balance is only ${formatTickets(balanceBefore)}, so you cannot withdraw ${formatTickets(amount)}.`);
-  const withdrawalId = String(details.withdrawalId || `${existing.userId}-withdraw-${Date.now()}`).slice(0, 100);
+
+  const withdrawalId = String(details.withdrawalId || "");
+  if(!/^[A-Za-z0-9_-]{8,100}$/.test(withdrawalId))throw new Error("Invalid withdrawal receipt ID.");
   const existingWithdrawal = Array.isArray(existing.recentWithdrawals) ? existing.recentWithdrawals.find((w) => String(w.withdrawalId || "") === withdrawalId) : null;
-  if (existingWithdrawal) return { record: existing, withdrawal: sanitizeWithdrawal(existingWithdrawal), duplicate: true };
+  if (existingWithdrawal) {if(existingWithdrawal.amount!==amount)throw new Error('Withdrawal ID was already used for a different amount.');return { record: existing, withdrawal: sanitizeWithdrawal(existingWithdrawal), duplicate: true };}
+  const receipt=existing.financialLedger.find(e=>e.id===`withdraw:${withdrawalId}`);if(receipt){if(receipt.amount!==amount)throw new Error('Withdrawal ID was already used for a different amount.');return {record:existing,withdrawal:{withdrawalId,amount,status:'pending'},duplicate:true};}
+  if (balanceBefore < amount) throw new Error(`Server balance is only ${formatTickets(balanceBefore)}, so you cannot withdraw ${formatTickets(amount)}.`);
 
   const ledgerResult = addLedgerEntry(existing, makeLedgerEntry({
     id: `withdraw:${withdrawalId}`,
@@ -1753,7 +1763,8 @@ async function recordWithdrawal(user, details = {}) {
 function addEvent(events, event) { return [...(Array.isArray(events) ? events : []), event].slice(-MAX_EVENTS); }
 function addBet(bets, bet) { return [...(Array.isArray(bets) ? bets : []), bet].slice(-MAX_BETS); }
 function addAdjustment(adjustments, adjustment) { return [...(Array.isArray(adjustments) ? adjustments : []), adjustment].slice(-MAX_ADJUSTMENTS); }
-function addWithdrawal(withdrawals, withdrawal) { return [...(Array.isArray(withdrawals) ? withdrawals : []), withdrawal].slice(-MAX_WITHDRAWALS); }
+function retainWithdrawals(items){return items.filter((w,i)=>w.status==='pending'||i>=items.length-MAX_WITHDRAWALS);}
+function addWithdrawal(withdrawals, withdrawal) { return retainWithdrawals([...(Array.isArray(withdrawals) ? withdrawals : []), withdrawal]); }
 
 function fishingSpeciesKey(value) {
   if(["silver minnow","minnow"].includes(String(value||"").toLowerCase()))return "silver-minnow";
@@ -1844,7 +1855,7 @@ function sanitizeRecord(record) {
     migratedToTicketsAt: record.migratedToTicketsAt || null,
     balanceBaseline: int(record.balanceBaseline, 0),
     totalXansDetected: int(record.totalXansDetected, 0),
-    totalTicketsDeposited: int(record.totalTicketsDeposited, ticketsFromXans(record.totalXansDetected || 0)),
+    totalTicketsDeposited: int(record.totalTicketsDeposited, (int(record.totalXansDetected || 0, 0) * TICKETS_PER_XAN)),
     totalWagered,
     totalWon,
     totalAdminAdded: int(record.totalAdminAdded, 0),
@@ -1857,7 +1868,7 @@ function sanitizeRecord(record) {
     financialLedger: Array.isArray(record.financialLedger) ? record.financialLedger.map(sanitizeLedgerEntry) : [],
     recentBets: Array.isArray(record.recentBets) ? record.recentBets.map(sanitizeBet).slice(-MAX_BETS) : [],
     recentAdjustments: Array.isArray(record.recentAdjustments) ? record.recentAdjustments.map(sanitizeAdjustment).slice(-MAX_ADJUSTMENTS) : [],
-    recentWithdrawals: Array.isArray(record.recentWithdrawals) ? record.recentWithdrawals.map(sanitizeWithdrawal).slice(-MAX_WITHDRAWALS) : [],
+    recentWithdrawals: Array.isArray(record.recentWithdrawals) ? retainWithdrawals(record.recentWithdrawals.map(sanitizeWithdrawal)) : [],
     activeTickets: sanitizeActiveTickets(record.activeTickets),
     activeRunnerGame: sanitizeRunnerGame(record.activeRunnerGame),
     recentRunnerGames: Array.isArray(record.recentRunnerGames) ? record.recentRunnerGames.map(sanitizeRunnerGame).filter(Boolean).slice(-80) : [],
@@ -4306,7 +4317,7 @@ function duelPublicGame(game = {}, viewerUserId = "") {
     controlPerspective: testPlayerId && viewer === testPlayerId ? "test" : "human",
     canJoin: clean.status === "waiting" && viewer && clean.creator.userId !== viewer,
     canReady: clean.status === "ready" && isPlayer && !Boolean(clean.ready?.[viewer]),
-    readySecondsLeft: readyDeadlineMs ? Math.max(0, Math.ceil((readyDeadlineMs - Date.now()) / 1000)) : 10,
+    readySecondsLeft: readyDeadlineMs ? Math.max(0, Math.ceil((readyDeadlineMs - Date.now()) / 1000)) : 60,
     countdownSeconds: clean.status === "countdown" && startMs ? Math.max(0, Math.ceil((startMs - Date.now()) / 1000)) : 0,
     canCancel: clean.status === "waiting" && viewer && clean.creator.userId === viewer && !clean.joiner,
     canAdvanceRound: blackjackCanAdvance,
@@ -4404,6 +4415,7 @@ async function duelSaveGame(game) {
   } else await getUsersStore().setJSON(duelGameKey(clean.gameId), clean);
   if (duelIsActiveStatus(clean.status)) await Promise.all([clean.creator?.userId,clean.joiner?.userId].filter(Boolean).map(id=>duelSetActivePointer(id,clean)));
   else await duelClearPointers(clean);
+  if(clean.status==='complete'&&process.env.NETLIFY_DB_URL)try{await require('./site-hub/progression').observe(clean.mode,clean);}catch(e){console.error('Progress receipt pending',e.name);}
   return clean;
 }
 
@@ -6269,7 +6281,7 @@ async function blackjackDuelAction(user, gameId, rawChoice, details) { return aw
 
 // Shared duel ready lifecycle. This is the only code allowed to move a duel
 // from ready -> countdown -> playing. The server owns all timestamps.
-const DUEL_READY_WINDOW_MS = 10000;
+const DUEL_READY_WINDOW_MS = 60000;
 const DUEL_COUNTDOWN_MS = 5000; // network buffer + smooth 3, 2, 1, GO on both clients
 const DUEL_READY_LOCKS = globalThis.__DUEL_READY_LOCKS || (globalThis.__DUEL_READY_LOCKS = new Map());
 
@@ -6990,6 +7002,8 @@ async function duelGetGame(user, gameId, options = {}) {
     if (JSON.stringify(auto) !== JSON.stringify(game)) game = await duelSaveGame(auto);
     game = await duelMaybeComplete(game, user.id);
   }
+  // Replaying the immutable result retries a progression receipt after a transient database outage.
+  if(game.status==='complete'&&process.env.NETLIFY_DB_URL)try{await require('./site-hub/progression').observe(game.mode,game);}catch(e){console.error('Progress receipt pending',e.name);}
   return { game: duelPublicGame(game, controlledActor.id), skipBalanceLookup: true, contractVersion: MULTIPLAYER_CONTRACT_VERSION };
 }
 
@@ -7089,7 +7103,7 @@ async function rouletteAdvance(game){
   let nextActionAt=null;
   if(rouletteSpinAllowed({...g,rouletteState:s},npcId)&&Number(s.remaining||6)<=3&&Math.random()<.7){
     const chamber=rouletteNewChamberCycle();
-    s={...s,revolverModel:ROULETTE_REVOLVER_MODEL,...chamber,blankStreak:0,spinUsed:{...(s.spinUsed||{}),[npcId]:true},lastAction:"spin",lastActorId:npcId,lastOutcome:"spun",revision:Number(s.revision||0)+1};
+    s={...s,noSpinStreak:{...(s.noSpinStreak||{}),[id]:0},revolverModel:ROULETTE_REVOLVER_MODEL,...chamber,blankStreak:0,spinUsed:{...(s.spinUsed||{}),[npcId]:true},lastAction:"spin",lastActorId:npcId,lastOutcome:"spun",revision:Number(s.revision||0)+1};
     nextActionAt=new Date(now+2400+Math.floor(Math.random()*1201)).toISOString();
     return {...g,rouletteState:s,npcActionAt:nextActionAt};
   }
@@ -7171,12 +7185,13 @@ async function rouletteAction(user,gameId,choice,details={}){return await withRo
     if(s.spinUsed?.[id])throw new Error("You already used your spin.");
     if(!rouletteSpinAllowed({...g,rouletteState:s},id))throw new Error("Spin is available once, on your turn.");
     const chamber=rouletteNewChamberCycle();
-    s={...s,revolverModel:ROULETTE_REVOLVER_MODEL,...chamber,blankStreak:0,spinUsed:{...(s.spinUsed||{}),[id]:true},lastAction:"spin",lastActorId:id,lastOutcome:"spun",revision:Number(s.revision||0)+1};
+    s={...s,noSpinStreak:{...(s.noSpinStreak||{}),[id]:0},revolverModel:ROULETTE_REVOLVER_MODEL,...chamber,blankStreak:0,spinUsed:{...(s.spinUsed||{}),[id]:true},lastAction:"spin",lastActorId:id,lastOutcome:"spun",revision:Number(s.revision||0)+1};
   }else if(choice==="roulette:shoot"){
     if(!["turn","press_luck"].includes(s.phase))throw new Error("You cannot pull the trigger right now.");
     const remaining=rouletteRemaining(s);
     const live=remaining===1;
     if(live){const winner=rouletteOther(g,id);if(!winner||winner===id)throw new Error("Russian Roulette could not identify the surviving opponent.");s={...s,phase:"complete",lastAction:"shoot",lastActorId:id,lastOutcome:"live",lastShotNumber:Number(s.shotsFired||0)+1,shotsFired:Number(s.shotsFired||0)+1,shotsByPlayer:rouletteRecordShot(s,id),winnerId:winner,loserId:id,revision:Number(s.revision||0)+1};s=markProcessed(s);g=await duelSaveGame({...g,rouletteState:s});g=await duelSaveGame(await roulettePayComplete(g,winner,id));return {game:duelPublicGame(g,id),record:await getUserRecord(id)};}
+    s.safeShots={...(s.safeShots||{}),[id]:Number(s.safeShots?.[id]||0)+1};s.noSpinStreak={...(s.noSpinStreak||{}),[id]:Number(s.noSpinStreak?.[id]||0)+1};s.maxNoSpinStreak={...(s.maxNoSpinStreak||{}),[id]:Math.max(s.maxNoSpinStreak?.[id]||0,s.noSpinStreak[id])};
     const nextRemaining=rouletteChamberPosition(remaining-1);
     s={...s,revolverModel:ROULETTE_REVOLVER_MODEL,phase:"press_luck",remaining:nextRemaining,shotsFired:Number(s.shotsFired||0)+1,shotsByPlayer:rouletteRecordShot(s,id),blankStreak:Number(s.blankStreak||0)+1,lastAction:"shoot",lastActorId:id,lastOutcome:"blank",lastShotNumber:Number(s.shotsFired||0)+1,revision:Number(s.revision||0)+1};
   }else if(choice==="roulette:pass"){
@@ -7330,7 +7345,7 @@ function fishingPublicState(game,viewer){
     startEpochMs:Number.isFinite(startEpochMs)?startEpochMs:0,
     endEpochMs:Number.isFinite(endEpochMs)?endEpochMs:0,
     remainingMs,
-    events:(state.events||[]).map(e=>({id:e.id,at:e.at,endAt:e.endAt,atMs:Date.parse(e.at||"")||0,endAtMs:Date.parse(e.endAt||"")||0,ripple:e.ripple,rippleSpeed:e.rippleSpeed,rippleThickness:e.rippleThickness,rippleWobble:e.rippleWobble,rumble:e.rumble,special:fishingCatalog.resolve(e).special,claimedBy:e.claimedBy||"",claimedAt:e.claimedAt||null,size:e.claimedBy?e.size:undefined,name:e.claimedBy?e.name:undefined,baseName:e.claimedBy?e.baseName:undefined,variant:e.claimedBy?e.variant:undefined,rarity:e.claimedBy?e.rarity:undefined})),
+    events:(state.events||[]).map(e=>({id:e.id,at:e.at,endAt:e.endAt,atMs:Date.parse(e.at||"")||0,endAtMs:Date.parse(e.endAt||"")||0,ripple:e.ripple,rippleSpeed:e.rippleSpeed,rippleThickness:e.rippleThickness,rippleWobble:e.rippleWobble,rumble:e.rumble,special:!!e.claimedBy&&fishingCatalog.resolve(e).special,claimedBy:e.claimedBy||"",claimedAt:e.claimedAt||null,size:e.claimedBy?e.size:undefined,name:e.claimedBy?e.name:undefined,baseName:e.claimedBy?e.baseName:undefined,variant:e.claimedBy?e.variant:undefined,rarity:e.claimedBy?e.rarity:undefined})),
     myCatch:state.catches?.[viewer]||null,creatorCatch:state.catches?.[game.creator?.userId]||null,joinerCatch:state.catches?.[game.joiner?.userId]||null,
     secondsLeft:Math.max(0,Math.ceil(remainingMs/1000))};
 }

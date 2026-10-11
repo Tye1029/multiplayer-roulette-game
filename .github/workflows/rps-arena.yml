@@ -18,7 +18,7 @@ jobs:
       - run: npm install --no-package-lock
       - run: npm install --no-save --no-package-lock @electric-sql/pglite@0.3.14 playwright@1.61.1
       - run: npx playwright install --with-deps chromium
-      - run: node --test scripts/rps.test.mjs scripts/rps-database.test.mjs scripts/site-hub.test.mjs scripts/unified-tables.test.mjs
+      - run: node --test scripts/rps.test.mjs scripts/rps-database.test.mjs scripts/site-hub.test.mjs scripts/unified-tables.test.mjs scripts/public-polish.test.mjs
       - run: npm run build
       - run: node scripts/rps-browser.test.mjs
       - run: node scripts/site-hub-browser.test.mjs
