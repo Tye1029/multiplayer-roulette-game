@@ -1,41 +1,50 @@
-# Yahtzee online
+# Yahtzee duel V2
 
-Entry: `/games/multiplayer/yahtzee/`. Build marker: `YAHTZEE_ONLINE_V1_20261011`.
+Route: `/games/multiplayer/yahtzee/`. Marker: `YAHTZEE_DUEL_V2_20261011`.
 
-Free private games for 2–4 friends. No Torn account or wallet is involved. The
-host starts after friends join with an eight-character code or invite link.
-Classic turns, 13 categories, 3 rolls, a 35-point upper bonus, repeated Yahtzee
-bonuses and forced Joker placement follow Hasbro's scoring rules:
-https://hasbro-apac-eng.custhelp.com/app/answers/detail/a_id/975/
+Two authenticated players play each of 13 rounds simultaneously. Both receive
+30 seconds and up to three rolls, can hold/release individual dice, and bank
+one category each. The original category scoring, 35-point upper bonus and
+repeat-Yahtzee/Joker rules remain. Available zero scores render blank; banked
+zeros show a check and cannot be reused. The scorecard is visible from entry,
+with both players' totals above the table and both dice sets visible live.
 
-The dedicated `yahtzee-action` function uses the existing Netlify Database
-connection and creates its own `yahtzee_rooms` table. All dice come from server
-crypto RNG; PostgreSQL row locks, revisions and request IDs prevent concurrent
-or replayed moves. A browser retains a 256-bit random bearer secret; only a
-derived player ID is persisted. Room codes invite new seats only before play.
-Rooms expire after 24 hours; old rows are removed on room creation. Creation
-is limited to ten rooms per IP per hour. No public lobby, wagers or chat.
+The page uses the shared Xan Duels header, settings, default dark theme and
+saved light/sound preferences. Identity is verified through the existing RPS
+session service and comes from the connected Torn API key. Client-submitted
+names and IDs are ignored. No wagers or wallet changes are involved.
 
-Refresh recovers the current room and held dice on the same browser. Failed
-moves expose a retry button using the original request ID. Rematches require
-every player. A confirmed leave during play closes the table; closing a tab
-does not forfeit, so friends can reconnect. There is intentionally no turn
-timer; a disconnected friend must return or the group can start a new room.
+The host may start with a friend or attach House Bot. Test with bot creates and
+starts a room in one click. The server bot rolls, holds and banks on timed
+steps, visible to the human; it never receives privileged dice outcomes.
+Rematches require both humans, while the bot automatically accepts.
 
-Dice use CSS 3D faces, native transforms and short Web Audio cues, with a
-reduced-motion mode. The only image is the small reusable SVG launcher icon.
-Game code and sound load only on the Yahtzee route. Existing games and media
-are retained because their routes and validation still reference them.
+PostgreSQL locks serialize room updates; each player has an independent input
+version so concurrent opponent actions do not reject a move. Request IDs make
+retries safe. Game and round IDs reject late actions, including at the exact
+deadline. On expiry the server banks the best legal score from existing dice,
+or zero in the first empty category if no roll occurred. Between-round pauses
+last 1.8 seconds. Timers are anchored to server timestamps, including when all
+browsers sleep. Polls advance and persist elapsed rounds and bot steps.
 
-Validation:
+Rooms last 24 hours and can be resumed by the same authenticated account.
+Version-1 anonymous rooms are not migrated into authenticated identities;
+the page explains that a new game is needed. Confirmed leave closes a match.
+The previous layout, copy and anonymous identity implementation were replaced
+in their original files, leaving no superseded assets. The reusable SVG icon,
+CSS dice faces and short Web Audio effects load only with this game.
 
+Checks:
 ```
 node --test scripts/yahtzee.test.mjs
 npm run build
 node scripts/yahtzee-browser.test.mjs
 ```
 
-The browser test uses PGlite and two independent browser contexts. To exercise
-the deployed function instead, set `YAHTZEE_ORIGIN` to the preview origin.
-`YAHTZEE_PLAYWRIGHT_MODULE`, `YAHTZEE_BROWSER`, and `YAHTZEE_SCREENSHOTS` can
-override the browser runtime and screenshot directory.
+The browser check uses two independent contexts, real PostgreSQL semantics via
+PGlite, and fixture Torn identities passing through the real session
+authentication implementation. It covers both live scorecards, independent
+rolls, holds, retries, reload, 13 rounds, rematches, authoritative timeouts, bot
+completion, theme/settings and 320–1440px viewports. The fixture server is
+test-only and excluded from the published site. Deployed testing requires an
+existing authenticated preview session; no production auth bypass is provided.

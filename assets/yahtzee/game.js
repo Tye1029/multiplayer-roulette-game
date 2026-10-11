@@ -1,167 +1,204 @@
-/* YAHTZEE_ONLINE_V1_20261011 */
+/* YAHTZEE_DUEL_V2_20261011 */
 (() => {
   'use strict';
-  const $=id=>document.getElementById(id), rules=window.YahtzeeRules;
-  const store={get(k){try{return localStorage.getItem('yahtzee:'+k);}catch{return null;}},set(k,v){try{localStorage.setItem('yahtzee:'+k,v);}catch{}}};
-  let token=store.get('token');
-  if(!/^[a-f0-9]{64}$/.test(token||'')){token=Array.from(crypto.getRandomValues(new Uint8Array(32)),n=>n.toString(16).padStart(2,'0')).join('');store.set('token',token);}
-  let room=null, busy=false, selected=null, viewed=null, failed=null, timer, messageTimer, audio, muted=store.get('sound')!=='on', completeKey='', spin=0;
+  const $=id=>document.getElementById(id),rules=window.YahtzeeRules;
+  const storage={get(k){try{return localStorage.getItem('yahtzee:v2:'+k);}catch{return null;}},set(k,v){try{localStorage.setItem('yahtzee:v2:'+k,v);}catch{}}};
+  let identity=null,token='',room=null,busy=false,failed=null,pollTimer,offset=0,zeroCategory=null,resultKey='',audio,animationUntil=0,roundKey='';
   const reduced=matchMedia('(prefers-reduced-motion: reduce)');
-  const spots={1:[5],2:[1,9],3:[1,5,9],4:[1,3,7,9],5:[1,3,5,7,9],6:[1,3,4,6,7,9]};
-  const rotations=[[0,0],[0,-90],[-90,0],[90,0],[0,90],[0,180]];
-  const dice=Array.from({length:5},(_,i)=>{
-    const button=document.createElement('button');button.className='die';button.type='button';button.disabled=true;
-    button.innerHTML='<span class="cube">'+Array.from({length:6},(_,f)=>'<span class="face">'+spots[f+1].map(n=>`<i class="pip" style="grid-area:${Math.ceil(n/3)}/${(n-1)%3+1}"></i>`).join('')+'</span>').join('')+'</span>';
-    button.setAttribute('aria-label','Die '+(i+1));button.setAttribute('aria-pressed','false');
-    button.onclick=()=>send('hold',{index:i,held:!room.held[i]});$('dice').append(button);return button;
+  const el=(tag,text,cls)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e;};
+  window.XanSiteAdapter={current:()=>({mode:'yahtzee',id:room?.id||'',phase:room?.phase||'lobby'}),diagnostics:()=>({build:'YAHTZEE_DUEL_V2_20261011',round:room?.round})};
+  window.dispatchEvent(new Event('xan-navigation'));
+  const me=()=>room?.players.find(p=>p.id===room.you);
+  const opponent=()=>room?.players.find(p=>p.id!==room.you);
+  const serverNow=()=>Date.now()+offset;
+  const canPlay=()=>room?.phase==='playing'&&!me()?.locked&&serverNow()<room.deadline;
+  const emptyPlayer={card:{},dice:[],held:Array(5).fill(false),rolls:0,rollSerial:0,upper:0,bonus:0,yahtzeeBonus:0,total:0};
+  const spots={1:[5],2:[1,9],3:[1,5,9],4:[1,3,7,9],5:[1,3,5,7,9],6:[1,3,4,6,7,9]},rotations=[[0,0],[0,-90],[-90,0],[90,0],[0,90],[0,180]];
+  const boards={};
+  for(const side of ['me','opponent']){
+    const root=$(side==='me'?'dice':'opponent-dice'),buttons=[];
+    for(let i=0;i<5;i++){
+      const b=el(side==='me'?'button':'div',undefined,'yd-die is-empty');
+      if(side==='me'){b.type='button';b.disabled=true;b.onclick=()=>send('hold',{index:i,held:!me().held[i]});}
+      else b.setAttribute('role','img');
+      const cube=el('span',undefined,'cube');
+      for(let f=1;f<=6;f++){const face=el('span',undefined,'yd-face');for(const n of spots[f]){const pip=el('i',undefined,'yd-pip');pip.style.gridArea=Math.ceil(n/3)+'/'+((n-1)%3+1);face.append(pip);}cube.append(face);}
+      b.append(cube);b.setAttribute('aria-pressed','false');root.append(b);buttons.push(b);
+    }
+    boards[side]={buttons,serial:-1,game:0};
+  }
+  const categoryIcons=['⚀','⚁','⚂','⚃','⚄','⚅','Ⅲ','Ⅳ','⌂','↗','⇗','★','∑'];
+  const rows=rules.categories.map(([key,label,description],i)=>{
+    const row=el('div',undefined,'yd-score-row');row.dataset.category=key;
+    const name=el('span');name.append(el('i',categoryIcons[i],'yd-category-icon'),document.createTextNode(label));name.title=description;
+    const button=el('button','');button.type='button';button.dataset.category=key;button.disabled=true;
+    const rival=el('b','');row.append(name,button,rival);$('scores').append(row);
+    button.onclick=()=>{
+      const points=rules.options(me().dice,me().card)[key];
+      if(points===0){zeroCategory=key;$('zero-text').textContent=label+' will be used for this game, worth 0 points.';$('zero-dialog').showModal();}
+      else send('score',{category:key});
+    };
+    return {key,label,description,button,rival};
   });
-  function notice(text){clearTimeout(messageTimer);$('notice').textContent=text;messageTimer=setTimeout(()=>$('notice').textContent='',6500);}
+  function notice(text){$('notice').textContent=text;}
   function sound(kind){
-    if(muted||document.hidden)return;
+    if(window.XanPreferences.muted||document.hidden)return;
     try{audio ||= new (window.AudioContext||window.webkitAudioContext)();audio.resume().catch(()=>{});
-      const notes=kind==='roll'?[220,320,180,400]:kind==='score'?[440,554,660]:[540];
-      notes.forEach((hz,i)=>{const o=audio.createOscillator(),g=audio.createGain(),t=audio.currentTime+i*.055;o.type='sine';o.frequency.setValueAtTime(hz,t);g.gain.setValueAtTime(.045,t);g.gain.exponentialRampToValueAtTime(.001,t+.1);o.connect(g).connect(audio.destination);o.start(t);o.stop(t+.12);});
+      (kind==='roll'?[180,290,210]:kind==='score'?[440,554,660]:[420]).forEach((hz,i)=>{const o=audio.createOscillator(),g=audio.createGain(),t=audio.currentTime+i*.05;o.frequency.setValueAtTime(hz,t);g.gain.setValueAtTime(.032,t);g.gain.exponentialRampToValueAtTime(.001,t+.1);o.connect(g).connect(audio.destination);o.start(t);o.stop(t+.12);});
     }catch{}
   }
-  function updateSound(){$('sound').textContent=muted?'Sound off':'Sound on';$('sound').setAttribute('aria-pressed',String(!muted));$('sound').setAttribute('aria-label',muted?'Turn sound on':'Turn sound off');}
-  $('sound').onclick=()=>{muted=!muted;store.set('sound',muted?'off':'on');updateSound();sound('hold');};updateSound();
-  const me=()=>room?.players.find(p=>p.id===room.you);
-  const myTurn=()=>room?.phase==='playing'&&room.players[room.active].id===room.you;
-  function setDice(values, held, animate=false, previousHeld=held){
-    if(animate)spin++;
-    dice.forEach((button,i)=>{
-      const value=values[i]||[2,5,1,6,3][i], [x,y]=rotations[value-1];
-      // Each die owns its cumulative rotation: kept dice never move during a reroll.
-      if((animate&&!previousHeld[i])||button.dataset.value!==String(value)){const cube=button.firstElementChild;cube.style.setProperty('--rx',(x+spin*720)+'deg');cube.style.setProperty('--ry',(y+spin*360)+'deg');button.dataset.value=String(value);}
-      button.setAttribute('aria-label',`Die ${i+1}: ${value}${held[i]?', held':', tap to hold'}`);button.setAttribute('aria-pressed',String(held[i]));
-      if(animate&&!previousHeld[i]&&!reduced.matches){button.classList.remove('is-rolling');void button.offsetWidth;button.classList.add('is-rolling');setTimeout(()=>button.classList.remove('is-rolling'),750);}
+  function paintDice(side,p){
+    const board=boards[side],initial=board.serial<0||board.game!==(room?.game||0),rolled=!initial&&p.rollSerial>board.serial;
+    board.buttons.forEach((b,i)=>{
+      const value=p.dice[i]||[1,3,5,2,6][i],held=p.held[i],cube=b.firstElementChild;
+      const spin=rolled&&!p.lastRollHeld[i];
+      if(spin||b.dataset.value!==String(value)||initial){const [x,y]=rotations[value-1],turns=Number(cube.dataset.turns||0)+(spin?1:0);cube.dataset.turns=turns;cube.style.setProperty('--rx',(x+turns*720)+'deg');cube.style.setProperty('--ry',(y+turns*360)+'deg');b.dataset.value=value;}
+      b.classList.toggle('is-empty',!p.dice.length);b.setAttribute('aria-pressed',String(held));
+      b.setAttribute('aria-label',(side==='me'?'Your':'Opponent')+' die '+(i+1)+': '+(p.dice.length?value:'not rolled')+(held?', held':''));
+      if(spin&&!reduced.matches){b.classList.remove('is-rolling');void b.offsetWidth;b.classList.add('is-rolling');setTimeout(()=>b.classList.remove('is-rolling'),620);}
     });
+    if(rolled&&side==='me')animationUntil=Date.now()+(reduced.matches?0:620);
+    board.serial=p.rollSerial;board.game=room?.game||0;
+    if(rolled&&p.dice.length&&p.dice.every(n=>n===p.dice[0]))celebrate();
+  }
+  function labelPlayer(side,p){
+    const mine=side==='me',name=p?.name||(mine?identity?.name||'You':'Opponent');
+    $(side+'-name').textContent=name+(mine&&identity?' (you)':'');$(side+'-avatar').textContent=name.slice(0,1).toUpperCase();
+    $(side+'-total').textContent=p?.total||0;
+    $(side+'-status').textContent=!p?(mine?'Ready to play':'Open seat'):room.phase==='waiting'?(mine?'Host':'Ready'):p.locked?'Score locked':room.phase==='playing'?(p.bot?'Test bot · rolling':'Choosing score'):room.phase==='complete'?'Final score':'Match closed';
+    $(side+'-player').classList.toggle('is-locked',!!p?.locked);
+  }
+  function paintScores(){
+    const mine=me()||emptyPlayer,theirs=opponent()||emptyPlayer;
+    const myOptions=mine.rolls&&!mine.locked?rules.options(mine.dice,mine.card):{},theirOptions=theirs.rolls&&!theirs.locked?rules.options(theirs.dice,theirs.card):{};
+    for(const {key,label,description,button,rival} of rows){
+      const filled=Object.hasOwn(mine.card,key),value=filled?mine.card[key]:myOptions[key];
+      button.textContent=filled?String(value):value>0?String(value):'';
+      button.dataset.available=String(!filled&&Object.hasOwn(myOptions,key));button.classList.toggle('filled',filled);button.classList.toggle('preview',!filled&&Object.hasOwn(myOptions,key));
+      button.title=filled?label+': '+value+' points already banked':description;
+      button.setAttribute('aria-label',filled?label+', banked '+value:label+', score '+(value||0)+' points');
+      const rivalFilled=Object.hasOwn(theirs.card,key),rivalValue=rivalFilled?theirs.card[key]:theirOptions[key];
+      rival.textContent=rivalFilled?String(rivalValue):rivalValue>0?String(rivalValue):'';rival.classList.toggle('preview',!rivalFilled);
+      rival.setAttribute('aria-label','Opponent '+label+': '+(rivalFilled?'banked '+rivalValue:rivalValue>0?'possible '+rivalValue:'not scored'));
+    }
+    for(const [prefix,p] of [['my',mine],['their',theirs]]){$(prefix+'-upper').textContent=p.upper+' / 63';$(prefix+'-bonuses').textContent=p.bonus+p.yahtzeeBonus;$(prefix+'-card-total').textContent=p.total;}
   }
   function controls(){
-    dice.forEach(b=>b.disabled=busy||!!failed||!myTurn()||!room.rolls||room.rolls>=3);
-    $('roll').disabled=room?.phase==='complete'?false:busy||!!failed||!myTurn()||room.rolls>=3||room.held.every(Boolean);
-    $('start').disabled=busy||!!failed||room?.players[0]?.id!==room?.you||room?.players.length<2;
-    for(const id of ['create','join','bank','confirm-leave'])$(id).disabled=busy||!!failed;
-    $('retry').hidden=!failed;$('rematch').disabled=busy||!!failed||!!room?.rematch.includes(room?.you);
-    document.querySelectorAll('.score-row').forEach(b=>b.disabled=busy||!!failed||b.dataset.available!=='true');
+    const p=me(),blocked=busy||!!failed||Date.now()<animationUntil,play=canPlay();
+    for(const b of boards.me.buttons)b.disabled=blocked||!play||!p?.rolls||p.rolls>=3;
+    $('roll').disabled=room?.phase==='complete'?false:blocked||!play||p.rolls>=3||p.held.every(Boolean);
+    $('show-scores').hidden=!p?.rolls;
+    for(const row of rows)row.button.disabled=blocked||!play||row.button.dataset.available!=='true';
+    for(const id of ['create','join','practice'])$(id).disabled=busy||!!failed||!identity;
+    $('start').disabled=busy||!room||room.phase!=='waiting'||room.players[0].id!==room.you||room.players.length!==2;
+    $('add-bot').hidden=room?.players.length!==1||room?.players[0].id!==room?.you;$('add-bot').disabled=busy||!!failed;
+    $('rematch').disabled=busy||!!failed||!!room?.rematch.includes(room?.you);$('retry').hidden=!failed;
+    $('confirm-zero').disabled=blocked||!play;
   }
-  function node(tag,text,cls){const e=document.createElement(tag);e.textContent=text;if(cls)e.className=cls;return e;}
-  function renderPlayers(){
-    $('players').replaceChildren();$('seats').replaceChildren();
-    for(const [i,p] of room.players.entries()){
-      const card=node('div','','player'+(room.phase==='playing'&&i===room.active?' active':''));
-      card.append(node('span',p.name.slice(0,1).toUpperCase(),'avatar'));const label=node('div',p.name+(p.id===room.you?' (you)':''),'name');
-      label.append(node('small',room.phase==='waiting'?(i===0?'HOST':'READY'):i===room.active&&room.phase==='playing'?'ROLLING NOW':Object.keys(p.card).length+' / 13 SCORED'));card.append(label,node('strong',String(p.total)));$('players').append(card);
-      const seat=node('div',p.name,'seat');seat.append(node('small',i===0?'Host':'Ready'));$('seats').append(seat);
-    }
-    for(let i=room.players.length;i<4;i++){const seat=node('div','Open seat','seat');seat.append(node('small','Invite a friend'));$('seats').append(seat);}
+  function clock(){
+    const remaining=room?.phase==='playing'?Math.max(0,Math.ceil((room.deadline-serverNow())/1000)):room?.phase==='between'?Math.max(0,Math.ceil((room.nextAt-serverNow())/1000)):30;
+    const text=room?.phase==='complete'?'END':room?.phase==='closed'?'—':String(remaining);
+    if($('clock').dataset.text!==text){$('clock').dataset.text=text;$('clock').replaceChildren(document.createTextNode(text));if(/^[0-9]+$/.test(text))$('clock').append(el('span','s'));}
+    $('clock').parentElement.classList.toggle('urgent',room?.phase==='playing'&&remaining<=7);
+    $('time-bar').style.width=(room?.phase==='playing'?Math.max(0,(room.deadline-serverNow())/30000)*100:room?.phase==='complete'?0:100)+'%';
+    controls();
   }
-  function renderScore(){
-    const player=room.players.find(p=>p.id===viewed)||me();viewed=player.id;
-    const select=$('view-player');select.replaceChildren(...room.players.map(p=>{const o=node('option',p.name+(p.id===room.you?' · Your card':''));o.value=p.id;return o;}));select.value=viewed;
-    $('total').replaceChildren(document.createTextNode(player.total),node('small','POINTS'));
-    $('bonus-label').textContent=player.upper+' / 63';$('bonus-progress').value=Math.min(63,player.upper);
-    $('bonus-hint').textContent=player.bonus?'+35 upper bonus earned!':`${Math.max(0,63-player.upper)} more upper points for +35.`;
-    // Public totals uses bonus for the upper bonus; repeated Yahtzees are sent separately.
-    const available=myTurn()&&viewed===room.you&&room.rolls?rules.options(room.dice,player.card):{};
-    $('scores').replaceChildren();
-    for(const [key,label,description] of rules.categories){
-      const filled=player.card[key]!=null,allowed=Object.hasOwn(available,key);
-      const button=node('button','','score-row'+(filled?' filled':allowed?' available':'')+(allowed&&!available[key]?' zero':'')+(selected===key?' selected':''));button.type='button';button.dataset.category=key;button.dataset.available=String(allowed);button.setAttribute('aria-pressed',String(selected===key));
-      const title=node('span',label);title.append(node('small',description));button.append(title,node('b',filled?String(player.card[key]):allowed?String(available[key]):'—'));
-      button.onclick=()=>{selected=key;renderScore();controls();$('bank').focus({preventScroll:true});};$('scores').append(button);
-    }
-    if(selected&&!Object.hasOwn(available,selected))selected=null;
-    $('score-confirm').hidden=!selected;
-    if(selected)$('score-choice').textContent=`${available[selected]===0?'Take a zero in':'Bank '+available[selected]+' points in'} ${rules.categories.find(c=>c[0]===selected)[1]}?`;
-    $('score-note').textContent=player.yahtzeeBonus?`Includes +${player.yahtzeeBonus} in extra Yahtzee bonuses.`:myTurn()?'Tap a category to preview, then bank your score.':'You can browse everyone’s scorecard.';
+  function result(){
+    const sorted=[...room.players].sort((a,b)=>b.total-a.total),tie=sorted[0].total===sorted[1].total;
+    $('result-title').textContent=tie?'Draw':sorted[0].id===room.you?'You win!':sorted[0].name+' wins';
+    $('result-subtitle').textContent='13 rounds complete';
+    $('standings').replaceChildren(...sorted.map(p=>{const row=el('div',undefined,'yd-standing');row.append(el('span',p.name),el('b',p.total+' points'));return row;}));
+    $('rematch-status').textContent=room.rematch.includes(room.you)?'Waiting for your opponent…':'';
+    const key=room.id+':'+room.game;if(resultKey!==key){resultKey=key;$('result-dialog').showModal();celebrate();sound('score');}
+  }
+  function render(){
+    const p=me(),other=opponent(),joined=!!room;
+    $('lobby').hidden=joined;$('waiting').hidden=!joined||room.phase!=='waiting';$('leave').hidden=!joined;
+    if(joined){$('copy-code').textContent=room.id;$('waiting-text').textContent=other?other.name+' joined':'Waiting for an opponent';}
+    labelPlayer('me',p);labelPlayer('opponent',other);paintDice('me',p||emptyPlayer);paintDice('opponent',other||emptyPlayer);paintScores();
+    $('round').textContent='ROUND '+(room?.round||1)+' / 13';
+    $('my-rolls').textContent=(p?.rolls||0)+' / 3 rolls';$('opponent-rolls').textContent=(other?.rolls||0)+' / 3 rolls';
+    const last=other?.last;
+    $('opponent-move').textContent=last?(last.automatic?'Auto-banked ':'Banked ')+last.score+' · '+rules.categories.find(c=>c[0]===last.category)[1]:other?.rolls?'Watching '+other.name+' roll':other?'Waiting for their first roll':'Waiting for opponent';
+    $('hold-hint').textContent=p?.locked?'Score locked':p?.rolls?'Click dice to hold or release':'Roll to begin';
+    $('prompt').textContent=!room?'Roll. Hold. Score.':room.phase==='waiting'?'Invite a friend or add a bot':room.phase==='complete'?'Match complete':room.phase==='closed'?'Game closed':p.locked?'Waiting for opponent':p.rolls===3?'Choose your score':p.rolls?'Keep your best dice':'Round '+room.round;
+    $('hint').textContent=!room?'Both players play each round together.':room.phase==='closed'?'Leave this game to start a new one.':room.phase==='complete'?'Open the results to rematch.':p.locked?'The next round starts when both scores are locked.':p.rolls?'Click a scorecard category to bank it.':'Roll, hold, and score before the timer ends.';
+    $('roll').replaceChildren(document.createTextNode(room?.phase==='complete'?'View results':p?.rolls>=3?'Choose score':p?.rolls?'Reroll':'Roll dice'),el('span','↻'));
+    $('round-banner').hidden=room?.phase!=='between';$('round-banner').textContent='Round '+(room?.round||1)+' complete';
+    $('score-instruction').textContent=p?.locked?'Your score is locked for this round.':'Click a category to bank your points.';
+    const key=room?.game+':'+room?.round+':'+room?.phase;
+    if(roundKey!==key){if($('zero-dialog').open)$('zero-dialog').close();zeroCategory=null;roundKey=key;}
+    if(room?.phase==='complete')result();else if($('result-dialog').open)$('result-dialog').close();
+    clock();
   }
   function celebrate(){
-    if(reduced.matches)return;
-    const burst=$('burst');burst.replaceChildren();
-    for(let i=0;i<30;i++){const e=node('i','','confetti');e.style.setProperty('--x',`${(Math.random()-.5)*600}px`);e.style.setProperty('--y',`${Math.random()*300-130}px`);e.style.setProperty('--r',`${Math.random()*700}deg`);e.style.background=['#d9eda8','#efb08a','#fffbed'][i%3];burst.append(e);}setTimeout(()=>burst.replaceChildren(),1700);
+    if(reduced.matches)return;const root=$('burst');root.replaceChildren();
+    for(let i=0;i<24;i++){const c=el('i',undefined,'yd-confetti');c.style.background=['#e4bf73','#e85c68','#b9d3e8'][i%3];c.style.setProperty('--x',(Math.random()-.5)*500+'px');c.style.setProperty('--y',(Math.random()-.4)*450+'px');c.style.setProperty('--r',Math.random()*650+'deg');root.append(c);}setTimeout(()=>root.replaceChildren(),1450);
   }
-  function results(){
-    const sorted=[...room.players].sort((a,b)=>b.total-a.total),winners=sorted.filter(p=>p.total===sorted[0].total);
-    $('result-title').textContent=winners.length>1?'It’s a tie!':winners[0].id===room.you?'That’s how you roll.':winners[0].name+' wins!';
-    $('result-subtitle').textContent=winners.length>1?winners.map(p=>p.name).join(' & ')+' share the win.':`${sorted[0].total} points. A game well rolled.`;
-    $('standings').replaceChildren(...sorted.map((p,i)=>{const row=node('div',`${i+1}. ${p.name}`,'standing');row.append(node('b',p.total+' pts'));return row;}));
-    $('rematch-status').textContent=`${room.rematch.length} / ${room.players.length} ready for another game`;
-    $('rematch').textContent=room.rematch.includes(room.you)?'Waiting for your friends…':'Play again ↗';
-    const key=room.id+':'+room.game;if(completeKey!==key){completeKey=key;$('result-dialog').showModal();celebrate();sound('score');}
-  }
-  function render(animate=false,oldHeld=room?.held){
-    const joined=!!room;$('lobby').hidden=joined;$('players').hidden=!joined;$('room-badge').hidden=!joined;$('edition').hidden=joined;$('leave').hidden=!joined;
-    $('waiting').hidden=!joined||room.phase!=='waiting';$('score-panel').hidden=!joined||!['playing','complete'].includes(room.phase);$('steps').hidden=joined;$('roll').hidden=!joined||!['playing','complete'].includes(room.phase);
-    if(!joined){setDice([],Array(5).fill(false));controls();return;}
-    $('copy-code').textContent=room.id;renderPlayers();
-    if(['playing','complete'].includes(room.phase))renderScore();
-    setDice(room.dice,room.held,animate,oldHeld);
-    const active=room.players[room.active];
-    $('round').textContent=room.phase==='waiting'?'YOUR PRIVATE TABLE':room.phase==='complete'?'ALL 13 ROUNDS · COMPLETE':`ROUND ${room.round.toString().padStart(2,'0')} / 13`;
-    $('turn-label').textContent=room.phase==='playing'?(myTurn()?'Your turn — make it count.':active.name+' is rolling.'):'2–4 friends. One great game.';
-    $('prompt').textContent=room.phase==='waiting'?'The gang’s almost here.':room.phase==='complete'?'A game well rolled.':room.phase==='closed'?'This table has closed.':myTurn()?(room.rolls===0?'Your turn. Let’s roll.':room.rolls===3?'Make it count.':'Keep the good ones.'):`${active.name}’s turn.`;
-    $('hint').textContent=room.phase==='waiting'?'Invite your friends, then start when you’re ready.':room.phase==='complete'?'Review the scores or play again with your friends.':room.phase==='closed'?'Leave this room to start a fresh game.':myTurn()?(room.rolls===0?'Roll five dice to get started.':room.rolls===3?'Choose a category below and bank your score.':'Tap dice to hold. Roll again, or bank a score.'):'Follow their rolls live. You’re up soon.';
-    $('roll').textContent=room.phase==='complete'?'View results':room.rolls===0?'Roll dice ↗':room.rolls===3?'Choose a score ↓':`Roll again · ${3-room.rolls} left`;
-    $('table-caption').textContent=room.phase==='waiting'?'Your lucky seat is waiting.':room.phase==='complete'?'Same time, one more game?':room.rolls?room.dice.every(n=>n===room.dice[0])?'YAHTZEE! Five of a kind.':myTurn()?'TAP A DIE TO HOLD IT':'LIVE FROM THE TABLE':'A fresh roll. A fresh chance.';
-    $('last-move').textContent=room.last?.text||'STANDARD SCORING · NO TURN TIMER';
-    $('roll-dots').querySelectorAll('i').forEach((e,i)=>e.classList.toggle('used',i<room.rolls));
-    $('start').textContent=room.players[0].id===room.you?'Start game →':'Waiting for the host…';
-    if(room.phase==='complete')results();else if($('result-dialog').open)$('result-dialog').close();
-    controls();if(room.phase==='complete')$('roll').disabled=false;
-  }
-  async function request(body){
-    const response=await fetch('/.netlify/functions/yahtzee-action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(12000)});
+  async function request(body,refresh=true){
+    const started=Date.now();
+    const response=await fetch('/.netlify/functions/yahtzee-action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...body,token}),signal:AbortSignal.timeout(12000)});
     let data;try{data=await response.json();}catch{throw new Error('Connection interrupted. Retry your move.');}
-    if(!response.ok){const e=new Error(data.error||'Please try again.');e.status=response.status;throw e;}return data.room;
+    if(response.status===401&&refresh){
+      const key=localStorage.getItem('tornVisitorApiKey');if(key){const login=await window.XanHub.post('rps-action',{action:'login',visitorKey:key});token=login.token;return request(body,false);}
+    }
+    if(!response.ok){const e=new Error(data.error||'Please try again.');e.status=response.status;throw e;}
+    if(data.room)offset=data.room.serverNow-(started+Date.now())/2;
+    identity=data.player||identity;return data;
   }
-  function adopt(next,animate=false,oldHeld){
+  function adopt(next){
     if(room&&room.id===next.id&&next.revision<room.revision)return;
-    room=next;store.set('room',room.id);history.replaceState({},'',`?room=${room.id}`);render(animate,oldHeld);
+    const changed=!room||room.id!==next.id||room.revision!==next.revision;
+    room=next;storage.set('room',room.id);history.replaceState({},'','?room='+room.id);
+    if(changed)render();
+  }
+  function schedule(delay){clearTimeout(pollTimer);if(room&&!document.hidden)pollTimer=setTimeout(poll,delay||(room.phase==='playing'||room.phase==='between'?700:1600));}
+  async function poll(){
+    if(busy||!room||document.hidden){schedule();return;}const id=room.id;
+    try{const data=await request({action:'get',room:id});if(!busy&&room?.id===id){adopt(data.room);$('connection').textContent='Connected';}}
+    catch(e){$('connection').textContent='Reconnecting…';if(e.status===404||e.status===410){notice(e.message);return;}schedule(2500);return;}
+    schedule();
   }
   async function send(action,extra={},retryBody){
-    if(busy)return;busy=true;clearTimeout(timer);controls();
-    if(action==='roll')$('roll').textContent='Rolling…';
-    const body=retryBody||{action,room:room?.id,token,requestId:crypto.randomUUID(),revision:room?.revision,game:room?.game,...extra};
-    const oldHeld=room?.held?[...room.held]:Array(5).fill(false);failed=null;
+    if(busy)return;busy=true;clearTimeout(pollTimer);
+    const p=me(),body=retryBody||{action,room:room?.id,game:room?.game,round:room?.round,inputVersion:p?.inputVersion,requestId:crypto.randomUUID(),...extra};
+    failed=null;controls();notice('');if(action==='roll')$('roll').textContent='Rolling…';
     try{
-      const next=await request(body),rolling=body.action==='roll';
-      selected=null;viewed=next.you;
-      if(body.action==='leave'){room=null;store.set('room','');location.assign(location.pathname);return;}
-      adopt(next,rolling,oldHeld);
-      if(rolling){sound('roll');if(next.dice.every(n=>n===next.dice[0]))celebrate();await new Promise(r=>setTimeout(r,reduced.matches?20:740));}
-      else sound(body.action==='score'?'score':'hold');
+      const data=await request(body);
+      if(action==='leave'){storage.set('room','');room=null;history.replaceState({},'',location.pathname);render();window.dispatchEvent(new Event('xan-navigation'));return;}
+      adopt(data.room);
+      if(action==='roll')sound('roll');else if(action==='score')sound('score');else if(action==='hold')sound('hold');
       $('connection').textContent='Connected';
     }catch(e){
       notice(e.message);
-      if(!e.status||e.status>=500){failed=body;$('connection').textContent='Reconnecting · retry your move';}
-      else if(e.status===409&&room){try{adopt(await request({action:'get',room:room.id,token}));}catch{}}
+      if(!e.status||e.status>=500){failed=body;$('connection').textContent='Connection interrupted';}
+      else if(e.status===409&&room){try{adopt((await request({action:'get',room:room.id})).room);}catch{}}
+      else if(e.status===401){identity=null;$('connect').hidden=false;}
     }finally{busy=false;controls();schedule();}
   }
-  function schedule(){clearTimeout(timer);if(room&&!document.hidden)timer=setTimeout(poll,room.phase==='waiting'?1800:1400);}
-  async function poll(){
-    if(busy||!room||document.hidden){schedule();return;}
-    const code=room.id;
-    try{const next=await request({action:'get',room:code,token});if(!busy&&room?.id===code){if(next.revision>room.revision){const animate=next.game===room.game&&next.active===room.active&&next.rolls>room.rolls;adopt(next,animate,[...room.held]);}if(!failed)$('connection').textContent='Connected';}}
-    catch(e){$('connection').textContent='Reconnecting…';if(e.status===404){notice(e.message);clearTimeout(timer);return;}}
-    schedule();
-  }
-  $('retry').onclick=()=>{const body=failed;if(body)send(body.action,{},body);};
-  $('create-form').onsubmit=e=>{e.preventDefault();store.set('name',$('name').value.trim());send('create',{name:$('name').value});};
-  $('join-form').onsubmit=e=>{e.preventDefault();if(!$('name').reportValidity())return;store.set('name',$('name').value.trim());send('join',{name:$('name').value,room:$('join-code').value.trim().toUpperCase()});};
-  $('start').onclick=()=>send('start');$('roll').onclick=()=>room.phase==='complete'?$('result-dialog').showModal():send('roll');
-  $('bank').onclick=()=>{if(selected)send('score',{category:selected});};$('cancel-score').onclick=()=>{selected=null;renderScore();controls();};
-  $('view-player').onchange=e=>{viewed=e.target.value;selected=null;renderScore();controls();};
+  $('create').onclick=()=>send('create');$('practice').onclick=()=>send('create',{bot:true});
+  $('join-form').onsubmit=e=>{e.preventDefault();send('join',{room:$('join-code').value.trim().toUpperCase()});};
+  $('start').onclick=()=>send('start');$('add-bot').onclick=()=>send('bot');$('roll').onclick=()=>room?.phase==='complete'?$('result-dialog').showModal():send('roll');
+  $('show-scores').onclick=()=>$('score-panel').scrollIntoView({behavior:reduced.matches?'instant':'smooth',block:'start'});
+  $('confirm-zero').onclick=()=>{const key=zeroCategory;$('zero-dialog').close();if(key)send('score',{category:key});};
+  $('cancel-zero').onclick=()=>$('zero-dialog').close();
+  $('retry').onclick=()=>{if(failed)send(failed.action,{},failed);};
+  $('help').onclick=()=>$('help-dialog').showModal();document.querySelectorAll('.yd-close,.yd-done').forEach(b=>b.onclick=()=>$('help-dialog').close());
+  $('leave').onclick=()=>$('leave-dialog').showModal();$('stay').onclick=()=>$('leave-dialog').close();$('confirm-leave').onclick=()=>{$('leave-dialog').close();send('leave');};
   $('rematch').onclick=()=>send('rematch');$('review').onclick=()=>$('result-dialog').close();
-  $('leave').onclick=()=>{$('leave-description').textContent=room.phase==='playing'?'This ends the current game for everyone. You can reconnect by reloading instead.':'You can create a new room or join another friend.';$('leave-dialog').showModal();};
-  $('confirm-leave').onclick=()=>{$('leave-dialog').close();send('leave');};$('stay').onclick=()=>$('leave-dialog').close();
-  async function copy(text){try{await navigator.clipboard.writeText(text);notice('Copied. Send it to your friends!');}catch{$('invite-link').hidden=false;$('invite-link').value=text;$('invite-link').select();notice('Select and copy the invite above.');}}
-  $('invite').onclick=()=>copy(`${location.origin}${location.pathname}?room=${room.id}`);$('copy-code').onclick=()=>copy(room.id);
-  $('help').onclick=()=>$('help-dialog').showModal();document.querySelectorAll('.dialog-close,.dialog-done').forEach(b=>b.onclick=()=>$('help-dialog').close());
-  document.addEventListener('visibilitychange',()=>{clearTimeout(timer);if(!document.hidden)poll();else audio?.suspend();});
-  $('name').value=store.get('name')||'';
-  const code=new URLSearchParams(location.search).get('room')||store.get('room');
-  if(code)$('join-code').value=code;
-  render();
-  if(code){busy=true;controls();request({action:'get',room:code,token}).then(next=>{adopt(next);schedule();}).catch(e=>{if(e.status!==403&&e.status!==404)notice(e.message);if(e.status===404)store.set('room','');}).finally(()=>{busy=false;controls();});}
+  async function copy(value){try{await navigator.clipboard.writeText(value);notice('Invite copied.');}catch{$('invite-link').hidden=false;$('invite-link').value=value;$('invite-link').select();}}
+  $('copy-code').onclick=()=>copy(room.id);$('invite').onclick=()=>copy(location.origin+location.pathname+'?room='+room.id);
+  document.addEventListener('visibilitychange',()=>{clearTimeout(pollTimer);if(!document.hidden)poll();else audio?.suspend();});
+  window.addEventListener('pagehide',()=>{clearTimeout(pollTimer);clearInterval(ticker);audio?.close();});
+  const ticker=setInterval(clock,100);render();
+  (async()=>{
+    try{
+      token=await window.XanHub.authenticate();if(!token)throw new Error('Connect your API key on the home page to play.');
+      await request({action:'profile'});$('connection').textContent='Connected';render();controls();
+      const code=new URLSearchParams(location.search).get('room')||storage.get('room');
+      if(code){$('join-code').value=code;try{adopt((await request({action:'get',room:code})).room);schedule();}
+        catch(e){if(e.status===410||e.status===404){storage.set('room','');history.replaceState({},'',location.pathname);notice(e.message);}else if(e.status!==403)notice(e.message);}}
+    }catch(e){$('identity-status').textContent=e.message;$('connect').hidden=false;$('connection').textContent='Not connected';}
+    controls();
+  })();
 })();

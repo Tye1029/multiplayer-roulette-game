@@ -1,4 +1,4 @@
-/* YAHTZEE_ONLINE_V1_20261011 — shared, deterministic scoring. */
+/* YAHTZEE_DUEL_V2_20261011 — shared, deterministic scoring. */
 (function(root, factory) {
   const rules = factory();
   if (typeof module === 'object' && module.exports) module.exports = rules;

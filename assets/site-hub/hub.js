@@ -3,6 +3,7 @@
  'use strict';
  const $=id=>document.getElementById(id), storage={get(k){try{return localStorage.getItem(k);}catch{return null;}},set(k,v){try{localStorage.setItem(k,v);}catch{}}};
  const games={
+  yahtzee:['Yahtzee','2 PLAYERS','/assets/yahtzee/dice.svg','Both players get 30 seconds per round to roll, hold dice, and choose one category. Roll up to three times. Highest score after 13 rounds wins.','#ed555d'],
   bluff:['Bluff or Bust','2 PLAYERS · FREE PLAY','/assets/bluff/images/cover.svg','Both players secretly play cards claiming the required symbol. Believe or challenge, then reveal everything. A caught bluffer takes their cards back; a false accuser takes the genuine play. Empty your hand after all transfers to win. Lock cards within 30 seconds or lose.','#e9c68a'],
   roulette:['Russian Roulette','2 PLAYERS','/assets/roulette/decor/saloon-room-v3.webp','Take turns with a six-chamber revolver. Follow the table’s shoot, spin and pass controls. Survive your opponent to win the pot, less the displayed house fee.','#e6bf51'],
   rps:['Rock Paper Scissors','2 PLAYERS','/assets/rps/images/coliseum.png','Both players secretly choose rock, paper or scissors. Rock beats scissors, scissors beats paper, and paper beats rock. First to two round wins takes the pot; ties replay. Leaving a funded duel forfeits your stake.','#e55360'],
@@ -87,7 +88,7 @@
   const yahtzeeTile=element('article',undefined,'hub-tile');
   const yahtzeeLink=element('a',undefined,'sth-game');yahtzeeLink.href='/games/multiplayer/yahtzee/';
   const yahtzeeArt=element('img');yahtzeeArt.src='/assets/yahtzee/dice.svg';yahtzeeArt.alt='';yahtzeeArt.width=360;yahtzeeArt.height=360;yahtzeeArt.loading='lazy';
-  const yahtzeeLabel=element('span',undefined,'hub-title');yahtzeeLabel.append(element('small','2–4 FRIENDS · FREE TO PLAY'),document.createTextNode('Yahtzee'));
+  const yahtzeeLabel=element('span',undefined,'hub-title');yahtzeeLabel.append(element('small','2 PLAYERS · 30-SECOND ROUNDS'),document.createTextNode('Yahtzee'));
   yahtzeeLink.append(yahtzeeArt,yahtzeeLabel);yahtzeeTile.append(yahtzeeLink);grid.append(yahtzeeTile);
   const section=element('section',undefined,'hub-open');section.innerHTML='<div class="hub-heading"><h2>Open Games</h2><span>Join the next game</span></div><div id="hub-games" data-hub-games aria-live="polite"><p class="hub-empty">Connect your public API key to see open games and wagers.</p></div><p id="hub-lobby-status" class="hub-status" role="status"></p>';card.append(section);
   const syncKey=()=>{const ok=storage.get('tornKeyConfirmed')==='true'&&Boolean(storage.get('tornVisitorApiKey'));keyBox.hidden=ok;grid.querySelectorAll('.sth-game').forEach(b=>b.disabled=b.dataset.mode==='bluff'?false:!ok);updateHeader();};
