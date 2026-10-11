@@ -86,3 +86,5 @@ body:has(#duelScreen:not([hidden])){background:var(--hub-bg)!important}#duelScre
 @media(max-width:480px){body>header.xan-bar{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);padding:10px;gap:6px}.xan-brand{font-size:14px;letter-spacing:.035em}.xan-account{min-width:0;overflow-wrap:anywhere}.xan-account>button{max-width:100%;white-space:normal}.xan-tools .hub-all{display:none}.xan-tools button{width:34px;min-width:34px;padding:6px}.xan-account strong{font-size:11px}}
 
 @media(max-width:480px){.xan-account .hub-wallet{padding:4px 3px;font-size:9px;letter-spacing:-.02em;white-space:nowrap}.xan-account .rps-pick-character{margin:3px 0;padding:4px 5px!important;font-size:9px!important;min-height:0}}
+
+.xan-dialog .hub-debug-data{display:block;width:100%;min-height:260px;max-height:45dvh;resize:vertical;box-sizing:border-box;font:12px/1.6 ui-monospace,monospace;white-space:pre;overflow:auto}.xan-dialog .hub-actions{flex-wrap:wrap}

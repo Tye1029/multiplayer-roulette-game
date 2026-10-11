@@ -22,6 +22,7 @@ jobs:
       - run: npm run build
       - run: node scripts/rps-browser.test.mjs
       - run: node scripts/site-hub-browser.test.mjs
+      - run: node scripts/bluff-browser.test.mjs
       - run: node scripts/summit-v68-browser.test.mjs
       - run: node scripts/summit-records.test.mjs
       - run: node scripts/summit-charge.test.mjs

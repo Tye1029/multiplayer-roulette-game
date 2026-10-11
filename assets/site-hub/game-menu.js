@@ -49,7 +49,7 @@
       const view=a?.view?.()||{id:c?.id,phase:c?.phase},active=!!view.id;mode=nextMode;
       heading.hidden=legacy&&['countdown','playing'].includes(view.phase);
       host.classList.toggle('hub-has-game',active);document.body.dataset.xanMode=mode;host.dataset.xanActive=String(active);host.dataset.xanPhase=view.phase||'lobby';
-      menu.hidden=active;practice.hidden=true;window.XanGameMenu.addBot=async()=>{if(active&&!(view.phase==='waiting'&&(view.players?.length||0)<2))throw Error('Add a bot before another player joins.');return a?.addBot?a.addBot():a?.practice?.();};window.XanGameMenu.canAddBot=!!(a?.addBot||a?.practice)&&(!active||(view.phase==='waiting'&&(view.players?.length||0)<2));stake.min=['bluff','yahtzee'].includes(mode)?'0':'1000';
+      menu.hidden=active;practice.hidden=true;window.XanGameMenu.addBot=async()=>{if(active&&!(view.phase==='waiting'&&(view.players?.length||0)<2))throw Error('Add a bot before another player joins.');return a?.addBot?a.addBot():a?.practice?.();};window.XanGameMenu.canAddBot=!view.connecting&&!!(a?.addBot||a?.practice)&&(!active||(view.phase==='waiting'&&(view.players?.length||0)<2));stake.min=['bluff','yahtzee'].includes(mode)?'0':'1000';
       const key=JSON.stringify([mode,view.id,view.phase,view.wager,view.private,view.players?.length]);
       if(key!==last){last=key;title.textContent=games[mode][0];description.textContent=summaries[mode]||games[mode][3];host.style.setProperty('--game-accent',games[mode][4]);
         if(art.dataset.mode!==mode){art.dataset.mode=mode;art.replaceChildren();if(mode==='bluff'){const hero=document.querySelector('#lobby .hero-art');if(hero)art.append(hero);}else window.XanMenuArt?.mount(art,mode);}

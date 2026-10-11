@@ -6,7 +6,7 @@
 })(typeof globalThis === 'object' ? globalThis : this, () => {
   'use strict';
   const SUITS = ['crown', 'coin', 'skull'];
-  const PLAY_MS = 30000, DECIDE_MS = 20000;
+  const PLAY_MS = 30000, DECIDE_MS = 20000, REVEAL_MS = 11000;
   function random(n) {
     const a = new Uint32Array(1), limit = 4294967296 - (4294967296 % n);
     do { globalThis.crypto.getRandomValues(a); } while (a[0] >= limit);
@@ -53,7 +53,7 @@
     s.reveal = { round: s.round, target: s.target, entries, at: now };
     const empty = s.hands.map(h => h.length === 0);
     s.pendingWinner = empty[0] && empty[1] ? 'draw' : empty[0] ? 0 : empty[1] ? 1 : null;
-    s.phase = 'reveal'; s.deadline = now + 6000 + Math.max(...entries.map(e => e.cards.length)) * 260; s.revision++;
+    s.phase = 'reveal'; s.deadline = now + REVEAL_MS; s.revision++;
   }
   function advance(s, now = Date.now(), rng = random) {
     if(s.phase==='waiting'&&s.readyDeadline&&now>=s.readyDeadline){s.ready=[];s.readyDeadline=null;s.revision++;}

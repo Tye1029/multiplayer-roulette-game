@@ -1,4 +1,4 @@
-/* XAN_HUB_V3_20261011 */
+/* XAN_HUB_V4_SHARED_DEBUG */
 (() => {
  'use strict';
  const $=id=>document.getElementById(id), storage={get(k){try{return localStorage.getItem(k);}catch{return null;}},set(k,v){try{localStorage.setItem(k,v);}catch{}}};
@@ -29,7 +29,7 @@
  window.XanHub={authenticate,post,api,cancelTable,refresh:()=>refresh(),games,get profile(){return window.XanPlayerProfile;}};
  const bar=element('header',undefined,'xan-bar');bar.innerHTML='<div class="xan-account"><span id="hub-player">WELCOME TO THE ARENA</span><strong id="hub-balance">Connect to play</strong></div><a href="/" class="xan-brand" aria-label="Xan Duels home"><b>XAN</b> DUELS</a><nav class="xan-tools" aria-label="Site controls"><a class="hub-all" href="/">All games</a><button id="hub-bell" aria-label="Notifications" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M9 21h6"/></svg></button><button id="hub-menu" aria-label="Open menu" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button></nav>';
  document.body.prepend(bar);
- const menu=element('section',undefined,'xan-popover');menu.id='hub-menu-panel';menu.hidden=true;menu.innerHTML='<h2>Your settings</h2><label>Sound<input id="hub-sound" type="checkbox"></label><label>Dark mode<input id="hub-dark" type="checkbox"></label><button id="hub-add-bot">Add bot</button><button id="hub-remove">Remove API key</button><button id="hub-report">Report bug / Suggestions</button>';document.body.append(menu);
+ const menu=element('section',undefined,'xan-popover');menu.id='hub-menu-panel';menu.hidden=true;menu.innerHTML='<h2>Your settings</h2><label>Sound<input id="hub-sound" type="checkbox"></label><label>Dark mode<input id="hub-dark" type="checkbox"></label><button id="hub-add-bot">Add bot</button><button id="hub-diagnostics">Debug</button><button id="hub-remove">Remove API key</button><button id="hub-report">Report bug / Suggestions</button>';document.body.append(menu);
  const inbox=element('section',undefined,'xan-popover');inbox.id='hub-inbox';inbox.hidden=true;document.body.append(inbox);
  const dialog=element('dialog',undefined,'xan-dialog');dialog.id='hub-dialog';document.body.append(dialog);
  const home=$('simpleTestHome');
@@ -54,17 +54,37 @@
   token='';location.assign('/');
  };
  function closeDialog(){dialog.close();$('hub-menu').focus();}
+ function diagnosticSnapshot(){
+  const a=window.XanSiteAdapter,c=current(),v=a?.view?.()||{},d=a?.diagnostics?.()||{};
+  const numeric=n=>Number.isFinite(Number(n))?Math.max(0,Math.min(1e9,Number(n))):0;
+  const word=s=>String(s||'').replace(/[^a-zA-Z0-9_./ -]/g,'').slice(0,100);
+  // Explicit fields only: never copy adapter state, storage, URLs with invite codes, or card choices.
+  return {build:'XAN_HUB_V4_SHARED_DEBUG',gameBuild:word(d.build),page:location.pathname,mode:word(c.mode||'home'),phase:word(c.phase||v.phase||'lobby'),
+   capturedAt:new Date().toISOString(),online:navigator.onLine,visibility:document.visibilityState,
+   viewport:{width:innerWidth,height:innerHeight,pixelRatio:devicePixelRatio},
+   active:Boolean(c.id||v.id),players:v.players?.length||0,match:numeric(v.match),round:numeric(d.round),revision:numeric(d.revision),
+   busy:Boolean(d.busy),polling:Boolean(d.polling),connecting:Boolean(v.connecting||d.connecting),lastResponseMs:numeric(d.lastResponseMs),
+   errors,networkErrors:networkErrors+numeric(d.networkErrors),frames:numeric(d.frames),slowFrames:numeric(d.slowFrames),longestFrameMs:numeric(d.longestFrameMs)};
+ }
+ function showDebug(){
+  menu.hidden=true;$('hub-menu').setAttribute('aria-expanded','false');
+  dialog.innerHTML='<h2>Game debug</h2><p>Current game, connection, screen size, and error counts. Refresh after an issue, then copy the details to help diagnose it. Your API key and hidden choices are excluded.</p><label for="hub-debug-data">Diagnostic details</label><textarea id="hub-debug-data" class="hub-debug-data" readonly spellcheck="false"></textarea><div class="hub-actions"><button id="hub-debug-refresh">Refresh details</button><button id="hub-debug-copy">Copy debug</button><button id="hub-close">Close</button></div><p id="hub-debug-status" class="hub-status" role="status"></p>';
+  const capture=()=>{$('hub-debug-data').value=JSON.stringify(diagnosticSnapshot(),null,2);$('hub-debug-status').textContent='Details updated. The game clock continues while this panel is open.';};
+  $('hub-debug-refresh').onclick=capture;$('hub-close').onclick=closeDialog;
+  $('hub-debug-copy').onclick=async()=>{try{await navigator.clipboard.writeText($('hub-debug-data').value);$('hub-debug-status').textContent='Debug details copied.';}catch{$('hub-debug-data').focus();$('hub-debug-data').select();$('hub-debug-status').textContent='Details selected. Use your device’s Copy command.';}};
+  capture();dialog.showModal();$('hub-debug-refresh').focus();$('hub-debug-data').scrollTop=0;
+ }
  function showRules(mode){const g=games[mode];const list=element('ol');for(const step of (window.XanRules?.[mode]||[g[3]]))list.append(element('li',step));dialog.replaceChildren(element('h2',g[0]),list);const close=element('button','Got it');close.onclick=closeDialog;dialog.append(close);dialog.showModal();}
  function showReport(){
   menu.hidden=true;dialog.innerHTML='<h2>Report a bug or share an idea</h2><p>Your report goes to the site admin. Debug sends a small diagnostic summary without API keys, request bodies, or hidden game choices.</p><label for="hub-message">What happened?</label><textarea id="hub-message" maxlength="4000" placeholder="What were you doing, and what happened next?"></textarea><div class="hub-actions"><button class="primary" id="hub-send">Send report</button><button id="hub-debug">Send debug</button><button id="hub-close">Close</button></div><p id="hub-report-status" class="hub-status" role="status"></p>';
   $('hub-close').onclick=closeDialog;
   async function send(debug){
    const buttons=[...dialog.querySelectorAll('button')];buttons.forEach(b=>b.disabled=true);
-   try{const c=current();const d=await api('report',{message:$('hub-message').value,debug:debug?{build:'XAN_HUB_V3_20261011',page:location.pathname,mode:c.mode,phase:c.phase,online:navigator.onLine,visibility:document.visibilityState,viewport:{width:innerWidth,height:innerHeight,pixelRatio:devicePixelRatio},errors,networkErrors,...window.XanSiteAdapter?.diagnostics?.()}:undefined});$('hub-report-status').textContent='Sent to the admin inbox. Thank you!';$('hub-message').value='';}catch(e){$('hub-report-status').textContent=e.message;}finally{buttons.forEach(b=>b.disabled=false);}
+   try{await api('report',{message:$('hub-message').value,debug:debug?diagnosticSnapshot():undefined});$('hub-report-status').textContent='Sent to the admin inbox. Thank you!';$('hub-message').value='';}catch(e){$('hub-report-status').textContent=e.message;}finally{buttons.forEach(b=>b.disabled=false);}
   }
   $('hub-send').onclick=()=>send(false);$('hub-debug').onclick=()=>send(true);dialog.showModal();
  }
- $('hub-report').onclick=showReport;$('hub-add-bot').onclick=async()=>{menu.hidden=true;try{await window.XanGameMenu?.addBot?.();}catch(e){lobbyStatus(e.message);}};
+ $('hub-diagnostics').onclick=showDebug;$('hub-report').onclick=showReport;$('hub-add-bot').onclick=async()=>{menu.hidden=true;try{await window.XanGameMenu?.addBot?.();}catch(e){lobbyStatus(e.message);}};
  function renderNotifications(){
   inbox.replaceChildren(element('h2','Notifications'));
   if(!notifications.length)inbox.append(element('p','No notifications yet.'));
