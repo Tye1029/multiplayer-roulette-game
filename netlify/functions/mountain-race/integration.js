@@ -257,7 +257,8 @@ function createMountainRaceIntegration(host = {}) {
             at: source.lastInput.at || null
           }
         : null,
-      finishedAt: source.finishedAt || null
+      finishedAt: source.finishedAt || null,
+      performance: game.mountainraceState?.records?.[id] || null
     };
   }
 
@@ -378,6 +379,7 @@ function createMountainRaceIntegration(host = {}) {
       npcActionAt: null,
       revision: int(state.revision, 0) + 1
     };
+    if (host.recordRace) finalState.records = await host.recordRace(game, finalState);
     return await completeResolved(
       { ...game, mountainraceState: finalState, npcActionAt: null },
       summary(game, finalState, cleanWinner, !cleanWinner, reason)

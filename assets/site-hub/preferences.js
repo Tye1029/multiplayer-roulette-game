@@ -16,7 +16,7 @@
     window.AudioContext=SiteAudioContext;if(window.webkitAudioContext)window.webkitAudioContext=SiteAudioContext;
   }
   function apply(){
-    document.documentElement.dataset.theme=read('xan-theme','dark');
+    document.documentElement.dataset.theme=read('xan-theme','dark')==='light'?'light':'dark';
     for(const a of media)a.muted=muted;
     document.querySelectorAll('audio,video').forEach(a=>a.muted=muted);
     for(const c of contexts)if(c.state!=='closed')(muted?c.suspend():c.resume()).catch(()=>{});

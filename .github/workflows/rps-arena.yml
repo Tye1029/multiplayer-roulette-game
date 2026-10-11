@@ -23,5 +23,6 @@ jobs:
       - run: node scripts/rps-browser.test.mjs
       - run: node scripts/site-hub-browser.test.mjs
       - run: node scripts/summit-v68-browser.test.mjs
+      - run: node scripts/summit-records.test.mjs
       - run: npm run validate:protected-current
       - run: npm run validate:mountain-race

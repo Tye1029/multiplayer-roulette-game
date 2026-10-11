@@ -6235,6 +6235,7 @@ const mountainRaceIntegration = createMountainRaceIntegration({
   saveGame: mountainRaceFastSaveGame,
   publicGame: duelPublicGame,
   completeResolved: duelCompleteWithResolved,
+  recordRace: require('./mountain-race/records').recordRace,
   getUserRecord
 });
 function mountainRaceInitialState(game, startMs) { return mountainRaceIntegration.initialState(game, startMs); }

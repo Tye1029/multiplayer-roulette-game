@@ -60,9 +60,23 @@ body:has(#duelScreen:not([hidden])){background:var(--hub-bg)!important}#duelScre
 .hub-game-heading h1::after{content:none!important}.hub-game-entry~.masthead{display:none!important}
 .four-online:has(#welcome[open]){background:var(--hub-bg)!important}
 .four-online .hub-create-controls{width:340px;max-width:100%}.four-online #join-form>label{display:grid;gap:7px;margin:0;flex:1;font:600 11px system-ui;color:var(--hub-muted)}.four-online #join-form>button[type=submit]{width:auto;flex:none}.four-online #join-form #profile-status{color:var(--hub-muted)}
-.hub-game-preview.hub-summit-preview{height:auto;max-width:1100px;box-shadow:none}.hub-summit-preview .m68-queue{display:none}
+.hub-game-preview.hub-summit-preview{height:auto;max-width:1100px;box-shadow:none}
 .hub-game-preview[hidden]{display:none!important}
 #duelScreen.hub-has-game>.hub-game-entry{display:none}
-#duelScreen .m68-header{display:flex!important}
+#duelScreen .m68-header{display:grid!important}
 #duelScreen.hub-has-game .m68-lane{height:clamp(260px,calc(100dvh - 370px),500px)}
 @media(max-width:600px){#duelScreen.hub-has-game .m68-lane{height:clamp(220px,calc(100dvh - 540px),350px)}}
+/* LIGHT_PALETTE_V2: slate-blue surfaces, warm ivory cards and distinct accents. */
+:root[data-theme=light]{--hub-bg:#e3eaf0;--hub-panel:#f7f1e7;--hub-line:#b0bdc9;--hub-text:#23384b;--hub-muted:#526679}
+:root[data-theme=light] body,:root[data-theme=light] #simpleTestHome{background:radial-gradient(ellipse at top left,#c7dce7,transparent 65%),linear-gradient(140deg,#e8edf1,#dbdfe9 65%,#e8ded1)!important}
+:root[data-theme=light] body>header.xan-bar{background:#d1dfe8;border-bottom:1px solid #96afc0;box-shadow:0 4px 20px #314c6118}
+:root[data-theme=light] .xan-brand b,:root[data-theme=light] .hub-kicker{color:color-mix(in srgb,var(--xan-accent) 65%,#23384b)}
+:root[data-theme=light] .hub-key,:root[data-theme=light] .hub-game-entry{background:linear-gradient(120deg,#f6ebdc,#e2edf0);border:1px solid #b6c6cf;border-radius:14px;padding:22px}
+:root[data-theme=light] .hub-open,:root[data-theme=light] .hub-game-open{padding:22px;background:#f3eddfb8;border:1px solid #c2c8c7;border-radius:16px}
+:root[data-theme=light] .hub-tile{border-color:#8d9fac;box-shadow:0 7px 18px #30445422}
+:root[data-theme=light] .xan-tools button,:root[data-theme=light] .xan-tools a,:root[data-theme=light] .hub-row button{background:#e4edf1;border-color:#9eb6c6;color:#243f53}
+:root[data-theme=light] .xan-popover,:root[data-theme=light] .xan-dialog{background:linear-gradient(150deg,#f7efdf,#e1edf1);box-shadow:0 18px 55px #243c4f33}
+:root[data-theme=light] .hub-row{background:#e2eaf066;margin-top:8px;border-radius:9px;padding:15px 10px}
+:root[data-theme=light] .hub-game-heading h1,:root[data-theme=light] .hub-heading h2{color:#23384b!important}
+:root[data-theme=light] #duelScreen{background:transparent!important}
+@media(max-width:600px){:root[data-theme=light] .hub-game-entry,:root[data-theme=light] .hub-open,:root[data-theme=light] .hub-game-open{padding:15px}}

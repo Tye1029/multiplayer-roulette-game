@@ -9,7 +9,7 @@ assert(template, 'Summit image preload template is missing');
 const script = html.match(/<script id="game-asset-loading-v1">([\s\S]*?)<\/script>/)?.[1];
 assert(script, 'Game asset selection loader is missing');
 const imagePaths = [...template[1].matchAll(/href="([^"]+)"/g)].map(match => match[1]);
-assert.deepEqual(imagePaths, ['/assets/mountain-race/images/summit-brown-world-v69.png','/assets/mountain-race/images/summit-climbers-v68.png'], 'V69 must preload exactly its two scene assets');
+assert.deepEqual(imagePaths, ['/assets/mountain-race/images/summit-brown-world-v69.png','/assets/mountain-race/images/summit-climbers-v70.png','/assets/mountain-race/images/summit-cloud-v70.png'], 'V70 must preload exactly its three scene assets');
 const historical = html.match(/<template id="mountainRaceHistoricalPreloads">([\s\S]*?)<\/template>/);
 assert(historical && [...historical[1].matchAll(/href="([^"]+)"/g)].length === 10, 'Validated fallback assets must remain available');
 assert.equal(new Set(imagePaths).size, imagePaths.length, 'Preload template duplicates an image');

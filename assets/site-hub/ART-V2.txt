@@ -4,7 +4,7 @@ Generated with the built-in imagegen tool. Final project assets:
 - assets/site-hub/images/roulette.webp
 - assets/site-hub/images/roulette-four.webp
 - assets/mountain-race/images/summit-world-v68.png (superseded and removed in V69; see ../mountain-race/ART-V69.txt)
-- assets/mountain-race/images/summit-climbers-v68.png
+- assets/mountain-race/images/summit-climbers-v68.png (superseded and removed in V70; see assets/mountain-race/ART-V70.txt)
 
 Prompt set:
 1. Square cinematic saloon game card: one complete oval wooden table, exactly two empty wooden chairs (left/right), one steel-and-walnut revolver resting centrally, warm pendant light, worn wood and charcoal shadows, polished painterly 3D art, no text or people.
