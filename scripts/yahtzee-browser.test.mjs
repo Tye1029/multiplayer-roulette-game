@@ -58,7 +58,7 @@ try{
   fixture.advance(32*1000*13);await a.locator('#result-dialog').waitFor({state:'visible'});assert.match(await a.locator('#standings').textContent(),/House Bot/);
   await a.locator('#rematch').click();await a.locator('#result-dialog').waitFor({state:'hidden'});
   await b.emulateMedia({reducedMotion:'reduce'});assert.equal(await b.locator('.cube').first().evaluate(e=>getComputedStyle(e).transitionDuration),'1e-05s');
-  for(const width of [320,390,760,1440]){await a.setViewportSize({width,height:900});assert.equal(await a.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,'No overflow at '+width);}
+  for(const width of [320,390,760,1440]){await a.setViewportSize({width,height:900});const layout=await a.evaluate(()=>({overflow:document.documentElement.scrollWidth>innerWidth,elements:[...document.querySelectorAll('body *')].filter(e=>e.getBoundingClientRect().right>innerWidth).map(e=>e.id||e.className).slice(0,20)}));assert.equal(layout.overflow,false,'No overflow at '+width+': '+JSON.stringify(layout.elements));}
   const guest=await browser.newPage();await guest.goto(origin+'/games/multiplayer/yahtzee/');await guest.locator('#connect').waitFor({state:'visible'});assert.equal(await guest.locator('#create').isDisabled(),true);await guest.close();
   assert.deepEqual(errors,[]);console.log('PASS: shared dark theme/settings, API identity, simultaneous human rounds, both live dice/cards, retry, holds, third-roll cap, zero previews, reload, 13 rounds, rematch, server timeout, full bot match, auth gate and mobile layouts. '+output);
 }finally{await browser.close();await fixture.close();}
