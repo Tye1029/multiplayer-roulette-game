@@ -35,15 +35,19 @@
 @keyframes m71-victory{0%,20%,75%,100%{transform:none}30%{transform:scaleY(.96)}48%{transform:translateY(-14px)}70%{transform:scaleY(.97)}}
 @keyframes m71-leap{0%,100%{transform:none}45%{transform:translateY(-18px) rotate(-4deg)}}
 .m71-hint{margin:7px 0 0;font:10px/1.4 system-ui;color:#cbb794;max-width:320px}
-.m71-charge{display:flex;align-items:center;gap:12px;min-height:54px;margin-top:5px}.m71-charge[hidden],.m71-hint[hidden]{display:none}
-.m71-ring{flex:none;position:relative;display:grid;place-items:center;width:50px;height:50px;border-radius:50%;background:conic-gradient(#73553a 0deg 202.5deg,#75e099 202.5deg 265.5deg,#73553a 265.5deg);box-shadow:0 0 0 1px #d4b282,0 3px 12px #0004}
-.m71-ring:before{content:'';position:absolute;inset:6px;background:#292119;border-radius:50%}.m71-ring b{position:relative;color:#eddbb9;font:800 13px system-ui}
-.m71-ring i{position:absolute;inset:0;transform:rotate(var(--charge-angle,0deg));z-index:2}.m71-ring i:before{content:'';position:absolute;width:5px;height:12px;background:#fff2ce;top:-2px;left:calc(50% - 2.5px);border-radius:3px;box-shadow:0 0 5px #fff8}
-.m71-charge-copy{font:700 12px system-ui;color:#ebd1a6}.m71-charge[data-green=true] .m71-charge-copy{color:#8aefad}.m71-charge[data-green=true] .m71-ring{box-shadow:0 0 0 2px #83eaa7,0 0 18px #68db8050}
-.m68-hold.jump-target b{border-color:#a5f2b2;background:#356342;color:white;box-shadow:0 0 0 4px #81e89755}.m68-key.charging{border-color:#89e2aa!important;opacity:1;background:#355d44!important}
-@media(max-width:600px){.m71-hint{margin:6px auto 0;font-size:9px}.m71-charge{justify-content:center}.m71-charge-copy{font-size:10px}.m71-ring{width:42px;height:42px}.m71-charge{min-height:44px}}
-.m68-pad{position:relative}.m71-charge{position:absolute;inset:0 0 auto;min-height:0;height:51px;margin:0;pointer-events:none;justify-content:space-between}.m71-charge-copy{width:60px;text-align:center;font-size:10px}.m71-ring{margin-left:4px}.m71-hint{min-height:28px}
-@media(max-width:600px){.m71-charge{height:46px}.m71-ring{margin-left:11px}.m71-charge-copy{width:64px}.m71-hint{min-height:13px}}
+/* SUMMIT_SPRINT_V72: the selected landing card is the timing ring. */
+.m68-queue .m72-move{position:relative;display:grid;place-items:center;width:56px;height:56px;padding:3px!important;margin:0!important;min-height:0!important;border:1px solid #88704f!important;border-radius:50%!important;background:#423527!important;color:#e9d6b6!important;box-shadow:none!important;touch-action:none;user-select:none;flex:none}
+.m68-queue .m72-move>span{width:46px;height:46px;border:0;border-radius:50%;background:#423527;color:inherit}
+.m68-queue .m72-move.next>span{background:linear-gradient(145deg,#ffe6ad,#cc974c);color:#352314}
+.m68-queue .m72-move:disabled:not(.charging){opacity:.5}
+.m68-queue .m72-move:focus-visible{outline:2px solid #fff1ce;outline-offset:3px}
+.m68-queue .m72-move.charging{opacity:1;background:conic-gradient(#73553a 0deg var(--green-start),#75e099 var(--green-start) var(--green-end),#73553a var(--green-end))!important}
+.m72-move>i{display:none;position:absolute;inset:0;transform:rotate(var(--charge-angle,0deg));pointer-events:none}
+.m72-move.charging>i{display:block}.m72-move>i:before{content:'';position:absolute;width:4px;height:10px;background:#fff8dd;top:-2px;left:calc(50% - 2px);border-radius:3px;box-shadow:0 0 5px #fff8}
+.m68-queue .m72-move[data-green=true]{box-shadow:0 0 0 2px #83eaa7,0 0 18px #68db8050!important}
+.m68-hold.jump-target b{border-color:#a5f2b2;background:#356342;color:white;box-shadow:0 0 0 4px #81e89755}
+.m71-hint{min-height:28px}.m68-pad{position:relative}
+@media(max-width:600px){.m71-hint{margin:6px auto 0;font-size:9px;min-height:13px}.m68-queue{gap:10px}.m68-queue .m72-move{width:50px;height:50px}.m68-queue .m72-move>span{width:40px;height:40px}}
 @media(max-width:600px){.m68-deck{gap:8px;padding-block:12px}}
 
 @media(max-width:600px){#duelScreen.hub-has-game [data-mr-scene="68"] .m68-lane{height:clamp(220px,calc(100dvh - 568px),350px)}}

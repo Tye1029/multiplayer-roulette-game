@@ -10,7 +10,9 @@ const MOUNTAIN_RACE_COUNTDOWN_MS = 3_000;
 const MOUNTAIN_RACE_RECOVERY_MS = 500;
 const MOUNTAIN_RACE_CHARGE_GREEN_MS = 900;
 const MOUNTAIN_RACE_CHARGE_END_MS = 1_180;
-const MOUNTAIN_RACE_CHARGE_EXPIRE_MS = 1_700;
+const MOUNTAIN_RACE_CHARGE_EXPIRE_MS = 4_000;
+// Legacy two-step clients retain their original window during rolling deploys.
+const MOUNTAIN_RACE_JUMP_WINDOWS = Object.freeze({2:[260,440],3:[380,510],4:[500,590]});
 
 function cleanPlayerId(value) {
   return String(value || '').trim().replace(/[^A-Za-z0-9._:-]/g, '').slice(0, 120);
@@ -101,12 +103,13 @@ function applyMountainRaceInput(state, playerId, rawControl, actionId = '', now 
   if (Number(now) < Date.parse(player.recoverUntil || '')) return state;
   if (!jump && player.charge && Number(now) < player.charge.startedAt + MOUNTAIN_RACE_CHARGE_EXPIRE_MS) return state;
   const promptIndex = clampInteger(player.promptIndex, 0, state.sequence.length);
-  const expected = normalizeMountainRaceControl(state.sequence[promptIndex + (jump ? 1 : 0)]);
+  const distance = jump ? (jump.distance || 2) : 1;
+  const expected = normalizeMountainRaceControl(state.sequence[promptIndex + distance - 1]);
   const correct = expected === control && (!jump || jump.timed);
   const at = new Date(Number(now)).toISOString();
 
   if (correct) {
-    player.promptIndex = Math.min(state.sequence.length, promptIndex + (jump ? 2 : 1));
+    player.promptIndex = Math.min(state.sequence.length, promptIndex + distance);
     player.acceptedInputs = clampInteger(player.acceptedInputs, 0, 10_000) + 1;
   } else {
     player.promptIndex = Math.max(0, promptIndex - 1);
@@ -134,7 +137,8 @@ function applyMountainRaceInput(state, playerId, rawControl, actionId = '', now 
   };
 }
 
-// The server measures the hold. Client-supplied durations/timestamps never award a jump.
+// Timing is measured locally, but a jump cannot advance before the server's
+// minimum duration. A bounded transit allowance avoids penalizing network jitter.
 function applyMountainRaceCharge(state, playerId, phase, rawControl, actionId, details = {}, now = Date.now()) {
   const id = cleanPlayerId(playerId), player = state?.players?.[id];
   const control = normalizeMountainRaceControl(rawControl);
@@ -145,11 +149,13 @@ function applyMountainRaceCharge(state, playerId, phase, rawControl, actionId, d
     || state.processedActionIds.includes(receipt)) return state;
   const charge = player.charge;
   if (phase === 'charge') {
-    if (now < Date.parse(player.recoverUntil || '') || player.promptIndex + 1 >= state.sequence.length
+    const distance = details.distance === undefined ? 2 : Number(details.distance);
+    if (![2,3,4].includes(distance)) return state;
+    if (now < Date.parse(player.recoverUntil || '') || player.promptIndex + distance > state.sequence.length
       || Number(details.expectedPromptIndex) !== player.promptIndex
       || (charge && now < charge.startedAt + MOUNTAIN_RACE_CHARGE_EXPIRE_MS)) return state;
     return { ...state, revision: state.revision + 1,
-      players: { ...state.players, [id]: { ...player, charge: { id: key, control, fromIndex: player.promptIndex, startedAt: now } } },
+      players: { ...state.players, [id]: { ...player, charge: { id: key, control, distance, fast: details.distance !== undefined, fromIndex: player.promptIndex, startedAt: now } } },
       processedActionIds: [...state.processedActionIds, receipt].slice(-120) };
   }
   if (!charge || charge.id !== key || charge.control !== control || charge.fromIndex !== player.promptIndex) return state;
@@ -157,8 +163,13 @@ function applyMountainRaceCharge(state, playerId, phase, rawControl, actionId, d
     players: { ...state.players, [id]: { ...player, charge: null } },
     processedActionIds: [...state.processedActionIds, receipt].slice(-120) };
   const age = now - charge.startedAt;
+  const elapsed = details.chargeMs === undefined ? age : Number(details.chargeMs);
+  const [min,max] = charge.fast ? MOUNTAIN_RACE_JUMP_WINDOWS[charge.distance] : [MOUNTAIN_RACE_CHARGE_GREEN_MS,MOUNTAIN_RACE_CHARGE_END_MS];
+  const inGreen = Number.isFinite(elapsed) && elapsed >= min && elapsed <= max;
+  if (inGreen && age < min) return state; // Retry after the minimum; never award an instant jump.
+  const timed = inGreen && age >= min && age <= elapsed + 2000;
   return applyMountainRaceInput(state, id, control, receipt, now,
-    { timed: age >= MOUNTAIN_RACE_CHARGE_GREEN_MS && age <= MOUNTAIN_RACE_CHARGE_END_MS });
+    { timed, distance: charge.distance || 2 });
 }
 
 function publicMountainRaceState(state, viewerId) {
@@ -206,6 +217,7 @@ module.exports = {
   MOUNTAIN_RACE_CHARGE_GREEN_MS,
   MOUNTAIN_RACE_CHARGE_END_MS,
   MOUNTAIN_RACE_CHARGE_EXPIRE_MS,
+  MOUNTAIN_RACE_JUMP_WINDOWS,
   normalizeMountainRaceControl,
   createMountainRaceSequence,
   createMountainRacePlayerState,

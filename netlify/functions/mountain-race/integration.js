@@ -453,7 +453,7 @@ function createMountainRaceIntegration(host = {}) {
     if (game.mode !== 'mountainrace') throw new Error('That duel is not Summit Sprint.');
     if (!playerIds(game).includes(viewer)) throw new Error('You are not in this Summit Sprint race.');
 
-    const chargeCommand = /^mountainrace:(charge|release|cancel):(up|left|right|down)$/.exec(String(rawChoice || '').toLowerCase());
+    const chargeCommand = /^mountainrace:(charge|release|cancel):(?:(2|3|4):)?(up|left|right|down)$/.exec(String(rawChoice || '').toLowerCase());
     if (chargeCommand) {
       const key = String(details.actionId || '').replace(/[^A-Za-z0-9._:-]/g, '').slice(0, 110);
       const receipt = `${chargeCommand[1]}:${key}`;
@@ -464,8 +464,10 @@ function createMountainRaceIntegration(host = {}) {
         const state = ensureState(latest), now = Date.now();
         if (now >= Date.parse(state.endAt)) return { game: await resolveTimeout(latest, state) };
         if (state.processedActionIds.includes(receipt)) return { game: latest, replayedAction: true };
-        const next = applyMountainRaceCharge(state, viewer, chargeCommand[1], chargeCommand[2], key, details, now);
-        if (next === state) return { game: latest, ignoredAction: true, ignoreReason: 'charge-unavailable' };
+        const next = applyMountainRaceCharge(state, viewer, chargeCommand[1], chargeCommand[3], key,
+          {...details, distance: chargeCommand[2] === undefined ? undefined : Number(chargeCommand[2])}, now);
+        if (next === state) return { game: latest, ignoredAction: true,
+          ignoreReason: chargeCommand[1] === 'release' && state.players[viewer]?.charge?.id === key ? 'charge-warming' : 'charge-unavailable' };
         const saved = await saveGame({ ...latest, mountainraceState: next });
         const confirmed = await strongRead(game.gameId) || saved;
         if (!confirmed.mountainraceState?.processedActionIds.includes(receipt)) continue;

@@ -18,10 +18,27 @@ assert.equal(model.applyMountainRaceCharge(charged,'a','release','right','foreig
 assert.equal(model.applyMountainRaceCharge(charged,'b','release','right','jump',{},start+1600),charged);
 assert.equal(model.applyMountainRaceCharge(charged,'a','charge','right','replacement',{expectedPromptIndex:1},start+800),charged);
 for(const age of [0,899,1181,9000]){
- const miss=model.applyMountainRaceCharge(charged,'a','release','right','jump',{chargeMs:1000,clickedAt:start+1600},start+600+age);
+ const miss=model.applyMountainRaceCharge(charged,'a','release','right','jump',{},start+600+age);
  assert.equal(miss.players.a.promptIndex,0);assert.equal(miss.players.a.rejectedInputs,2);
  assert.equal(Date.parse(miss.players.a.recoverUntil),start+600+age+500);
 }
+for(const distance of [2,3,4]){
+ const fresh=make();fresh.sequence.fill('up'); // Repeated arrows still identify distinct landings.
+ const [min,max]=model.MOUNTAIN_RACE_JUMP_WINDOWS[distance];
+ const charged=model.applyMountainRaceCharge(fresh,'a','charge','up','card',{distance,expectedPromptIndex:0},start);
+ for(const elapsed of [min,max]){
+  const success=model.applyMountainRaceCharge(charged,'a','release','up','card',{chargeMs:elapsed},start+elapsed+900);
+  assert.equal(success.players.a.promptIndex,distance,'Network jitter cannot turn a green release into a miss');
+  assert.equal(success.players.a.acceptedInputs,1);
+ }
+ assert.equal(model.applyMountainRaceCharge(charged,'a','release','up','card',{chargeMs:min},start+min-1),charged,'Client timing cannot bypass minimum server duration');
+ for(const elapsed of [min-1,max+1,NaN,Infinity]){
+  const miss=model.applyMountainRaceCharge(charged,'a','release','up','card',{chargeMs:elapsed},start+1000);
+  assert.equal(miss.players.a.rejectedInputs,1);
+ }
+ assert.equal(model.applyMountainRaceCharge(charged,'a','release','up','card',{chargeMs:min},start+min+2001).players.a.rejectedInputs,1);
+}
+assert.equal(model.applyMountainRaceCharge(s,'a','charge','right','bad-distance',{distance:5,expectedPromptIndex:1},start+600),s);
 for(const age of [900,1050,1180]){
  const success=model.applyMountainRaceCharge(charged,'a','release','right','jump',{},start+600+age);
  assert.equal(success.players.a.promptIndex,3);assert.equal(success.players.a.lastInput.charged,true);
@@ -61,8 +78,9 @@ try{
  const input={control:stored.mountainraceState.sequence[1],expectedControl:stored.mountainraceState.sequence[1],expectedPromptIndex:1,actionId:'resume'};
  now+=499;r=await act('batch',{inputBatch:[input]});assert.deepEqual(r.ignoredActionIds,['resume']);
  now++;r=await act('batch',{inputBatch:[input]});assert.deepEqual(r.confirmedActionIds,['resume']);assert.equal(r.game.mountainraceState.me.promptIndex,2);
- stored.mountainraceState.players.a.promptIndex=28;
- const end=stored.mountainraceState.sequence[29];await act('charge:'+end,{actionId:'win',expectedPromptIndex:28});now+=1000;
- r=await act('release:'+end,{actionId:'win'});assert.equal(r.game.status,'complete');assert.equal(r.game.mountainraceState.viewerWon,true);
+ stored.mountainraceState.players.a.promptIndex=26;
+ const end=stored.mountainraceState.sequence[29];await act('charge:4:'+end,{actionId:'win',expectedPromptIndex:26});
+ r=await act('release:4:'+end,{actionId:'win',chargeMs:540});assert.equal(r.ignoreReason,'charge-warming');
+ now+=1200;r=await act('release:4:'+end,{actionId:'win',chargeMs:540});assert.equal(r.game.status,'complete');assert.equal(r.game.mountainraceState.viewerWon,true);
 }finally{Date.now=realNow;}
 console.log('Summit charge/recovery passed: timing boundaries, server-only clock, replay/stale/foreign protection, batch cooldown, cancellation, public state and charged finish.');

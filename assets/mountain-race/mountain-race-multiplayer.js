@@ -53,7 +53,8 @@
     inputBatchInFlight: [],
     inputQueueBlocked: false
   };
-  // SUMMIT_SPRINT_V71: hold/release input and server-enforced recovery.
+  // SUMMIT_SPRINT_V72: immediate queue-card jumps, ordered confirmation and recovery.
+  const JUMP_WINDOWS = {2:[260,440],3:[380,510],4:[500,590]};
   let heldInput = null, chargeFrame = 0, recoveryTimer = 0, localRecoveryUntil = 0;
   function recovering() { return Math.max(localRecoveryUntil - performance.now(), (Date.parse(state().me?.recoverUntil || '') || 0) - serverNowMs()) > 0; }
 
@@ -339,18 +340,21 @@
     let last = null;
     let blocked = false;
     for (const item of pending) {
+      if (item.canceled) continue;
       if (item.fromIndex !== me.promptIndex) break;
-      const currentExpected = prompts[consumedPrompts] || '';
+      if (item.distance && !item.released) break;
+      const distance = item.distance || 1;
+      const currentExpected = prompts[consumedPrompts + distance - 1] || '';
       if (!currentExpected || item.expected !== currentExpected) {
         blocked = true;
         break;
       }
-      const correct = item.token === item.expected;
+      const correct = item.correct;
       last = item;
-      me.lastInput = { control: item.token, correct, at: item.at };
+      me.lastInput = { control: item.token, correct, at: item.at, charged: Boolean(item.distance) };
       if (correct) {
-        me.promptIndex = Math.min(Math.max(0, total - 1), me.promptIndex + 1);
-        consumedPrompts += 1;
+        me.promptIndex = Math.min(Math.max(0, total - 1), me.promptIndex + distance);
+        consumedPrompts += distance;
       } else {
         me.promptIndex = Math.max(0, me.promptIndex - 1);
         me.rejectedInputs += 1;
@@ -473,7 +477,7 @@
     if (runtime.syncNotice) return runtime.syncNotice;
     if (runtime.game?.status === 'complete' && !runtime.resultRevealReady) return 'Summit confirmed — finishing the climb!';
     if (runtime.inputQueue.length) {
-      if (runtime.inputQueueBlocked) return 'Wrong direction queued — confirming the slip before the next arrow.';
+      if (runtime.inputQueueBlocked) return 'Regain your grip — confirming the slip before the next arrow.';
       const count = runtime.inputQueue.length;
       return `${count} ${count === 1 ? 'move' : 'moves'} queued — keep pressing the highlighted arrows!`;
     }
@@ -484,6 +488,7 @@
     }
     const last = publicState.me?.lastInput;
     if (!last) return 'Follow the highlighted direction. Wrong inputs cost one hold.';
+    if (last.charged && !last.correct) return 'Missed the green window. You slipped back one hold.';
     return last.correct ? 'Correct move. Keep climbing!' : 'Wrong direction. You slipped back one hold.';
   }
 
@@ -1497,7 +1502,8 @@
     let dropped = 0;
 
     for (const item of ordered) {
-      const expected = runway[expectedIndex - startIndex] || '';
+      if (item.canceled) { kept.push(item); continue; }
+      const expected = runway[expectedIndex - startIndex + (item.distance || 1) - 1] || '';
       const valid = !blocked
         && item.roundId === roundId
         && item.fromIndex === expectedIndex
@@ -1509,7 +1515,7 @@
       }
 
       kept.push(item);
-      if (item.token === expected) expectedIndex += 1;
+      if (item.correct) expectedIndex += item.distance || 1;
       else blocked = true;
     }
 
@@ -1522,17 +1528,20 @@
 
   async function flushInputQueue() {
     if (runtime.inputBatchInFlight.length || runtime.game?.status !== 'playing') return;
-    const batch = runtime.inputQueue.filter(item => item.status === 'queued').slice(0, 8);
+    const queued = runtime.inputQueue.filter(item => item.status === 'queued');
+    const chargeIndex = queued.findIndex(item => item.distance);
+    const batch = chargeIndex === 0 ? queued.slice(0, 1) : queued.slice(0, chargeIndex < 0 ? 8 : Math.min(8, chargeIndex));
     if (!batch.length) return;
     const bridge = window.__mountainRaceBridge;
     if (!bridge?.submit) return;
 
     batch.forEach(item => { item.status = 'sending'; });
     runtime.inputBatchInFlight = batch.map(item => item.actionId);
+    const gameId = runtime.game.gameId;
     syncPendingCompatibility();
 
     try {
-      const data = await bridge.submit({
+      const data = batch[0].distance ? await transmitCharge(batch[0], bridge) : await bridge.submit({
         choice: 'mountainrace:batch',
         inputBatch: batch.map(item => ({
           control: item.token,
@@ -1541,6 +1550,7 @@
           actionId: item.actionId
         }))
       });
+      if (runtime.game?.gameId !== gameId) return;
 
       const confirmed = new Set(Array.isArray(data?.confirmedActionIds) ? data.confirmedActionIds.map(String) : []);
       const ignored = new Set(Array.isArray(data?.ignoredActionIds) ? data.ignoredActionIds.map(String) : []);
@@ -1566,6 +1576,7 @@
       if (runtime.inputQueue.some(item => item.status === 'queued')) scheduleInputFlush(true);
       else render();
     } catch (error) {
+      if (runtime.game?.gameId !== gameId) return;
       for (const item of runtime.inputQueue) {
         if (runtime.inputBatchInFlight.includes(item.actionId)) item.status = 'queued';
       }
@@ -1639,80 +1650,115 @@
     scheduleInputFlush(true);
   }
 
-  function beginHold(token, displayed, source) {
+  function beginHold(distance, source) {
     if (heldInput || recovering() || runtime.inputQueueBlocked || !state().canSubmit || runtime.game?.status !== 'playing') return;
-    const hold = { token, displayed, source, gameId: runtime.game.gameId, bridge: window.__mountainRaceBridge,
-      id: `mrcharge-${Date.now()}-${++runtime.inputSequence}`, charging: false, released: false };
+    const pub = state(), total = Number(pub.stepsTotal) || 30;
+    const view = optimisticPresentation(pub, pub.inputPrompts || pub.prompts || [], total);
+    if (!JUMP_WINDOWS[distance] || view.blocked || view.prompts.length < distance) return;
+    const actionId = `mrcharge-${Date.now()}-${++runtime.inputSequence}`;
+    const token = view.prompts[distance - 1];
+    const hold = { token, expected: token, distance, source, gameId: runtime.game.gameId,
+      fromIndex: view.me.promptIndex, roundId: pub.roundId, actionId, at: `pending-${actionId}`,
+      order: runtime.inputSequence, status: 'queued', correct: true, charging: true,
+      released: false, visualAge: 0, lastFrame: performance.now() };
+    hold.releasePromise = new Promise(resolve => { hold.resolveRelease = resolve; });
     heldInput = hold;
-    hold.timer = window.setTimeout(async () => {
-      // A hold only starts once previous taps are acknowledged; its target cannot drift.
-      if (heldInput !== hold || runtime.inputQueue.length || (state().inputPrompts || state().prompts || []).length < 2) return;
-      hold.charging = true;
-      hold.sentAt = performance.now();
-      render();
-      animateCharge();
-      try {
-        const data = await hold.bridge.submit({choice:`mountainrace:charge:${token}`,actionId:hold.id,expectedPromptIndex:state().me.promptIndex});
-        if (runtime.game?.gameId !== hold.gameId) { resetHold(hold); return; }
-        if (data.game) adopt(data.game);
-        const charge = data.game?.mountainraceState?.me?.charge;
-        if (charge?.id !== hold.id) { resetHold(hold); return; }
-        // Predict arrival at the server from measured round-trip time. No client duration is trusted.
-        hold.roundTrip = performance.now() - hold.sentAt;
-        hold.ackAt = performance.now();
-        hold.ready = true;
-        if (hold.released || hold.roundTrip > 1000) await finishHold(true, hold);
-      } catch (error) { runtime.syncNotice=String(error?.message||'Could not start jump. Try again.'); resetHold(hold); }
-    }, 160);
+    runtime.inputQueue.push(hold);
+    syncPendingCompatibility();
+    render();
+    animateCharge();
+    scheduleInputFlush(true);
+  }
+
+  // Charges share the ordered input queue. Later taps/jumps can animate immediately,
+  // but cannot reach the server before their landing has been confirmed.
+  async function transmitCharge(item, bridge) {
+    const command = phase => ({choice:`mountainrace:${phase}:${item.distance}:${item.token}`,
+      actionId:item.actionId, expectedPromptIndex:item.fromIndex, chargeMs:item.chargeMs});
+    let data;
+    if (!item.beginConfirmed) {
+      data = await bridge.submit(command('charge'));
+      if (runtime.game?.gameId !== item.gameId) return data;
+      if (data.ignoredAction || data.game?.status !== 'playing') {
+        if (heldInput === item) finishHold(true, item);
+        return {...data, ignoredActionIds:[item.actionId]};
+      }
+      item.beginConfirmed = true;
+      if (data.game) adopt(data.game);
+    }
+    await item.releasePromise;
+    if (runtime.game?.gameId !== item.gameId) return {};
+    for (let attempt=0; attempt<12; attempt++) {
+      data = await bridge.submit(command(item.canceled ? 'cancel' : 'release'));
+      if (data.ignoreReason !== 'charge-warming') break;
+      await new Promise(resolve => window.setTimeout(resolve, 60));
+      if (runtime.game?.gameId !== item.gameId) return {};
+    }
+    return {...data, [data.ignoredAction || item.canceled ? 'ignoredActionIds' : 'confirmedActionIds']:[item.actionId]};
   }
 
   function animateCharge() {
     window.cancelAnimationFrame(chargeFrame);
     const hold = heldInput;
-    if (!hold?.charging) { window.SummitSceneV68?.setCharge?.(runtime.root, null); return; }
+    if (!hold) { window.SummitSceneV68?.setCharge?.(runtime.root, null); return; }
     if (runtime.game?.status !== 'playing' || !runtime.root?.isConnected) { finishHold(true, hold); return; }
-    const age = hold.ready ? performance.now() - hold.ackAt + hold.roundTrip : 0;
-    window.SummitSceneV68?.setCharge?.(runtime.root, {token:hold.token,age,ready:hold.ready,releasing:hold.releasing});
-    if (age > 1600 && !hold.releasing) { finishHold(false, hold); return; }
+    const now = performance.now();
+    // A busy frame must not skip the visible green target. Judge the displayed
+    // dial on release; the server separately enforces real elapsed minimums.
+    const age = hold.visualAge += Math.min(50, now - hold.lastFrame);
+    hold.lastFrame = now;
+    window.SummitSceneV68?.setCharge?.(runtime.root, {distance:hold.distance,fromIndex:hold.fromIndex,
+      token:hold.token, age, window:JUMP_WINDOWS[hold.distance]});
+    if (age > 850) { finishHold(false, hold); return; }
     chargeFrame = window.requestAnimationFrame(animateCharge);
   }
 
-  function resetHold(hold) {
-    window.clearTimeout(hold.timer);
-    if (heldInput !== hold) return;
-    heldInput = null;
-    window.cancelAnimationFrame(chargeFrame);
-    window.SummitSceneV68?.setCharge?.(runtime.root, null);
+  function finishHold(cancel = false, hold = heldInput) {
+    if (!hold || hold.released) return;
+    hold.chargeMs = hold.visualAge;
+    const [min,max] = JUMP_WINDOWS[hold.distance];
+    hold.correct = hold.chargeMs >= min && hold.chargeMs <= max;
+    hold.canceled = cancel;
+    hold.released = true;
+    hold.charging = false;
+    if (cancel) {
+      // A canceled gesture has no optimistic movement or mistake.
+      hold.correct = true;
+      if (hold.status !== 'sending' && !hold.beginConfirmed) runtime.inputQueue = runtime.inputQueue.filter(item => item !== hold);
+    } else if (!hold.correct) {
+      localRecoveryUntil = performance.now() + 500;
+      runtime.inputQueueBlocked = true;
+    }
+    hold.resolveRelease();
+    if (heldInput === hold) {
+      heldInput = null;
+      window.cancelAnimationFrame(chargeFrame);
+      window.SummitSceneV68?.setCharge?.(runtime.root, null);
+    }
+    syncPendingCompatibility();
     render();
   }
 
-  async function finishHold(cancel = false, hold = heldInput) {
-    if (!hold || hold.releasing) return;
-    window.clearTimeout(hold.timer);
-    hold.released = true;
-    if (!hold.charging) { resetHold(hold); if (!cancel) submit(hold.token, hold.displayed); return; }
-    if (!hold.ready) return; // The begin response cancels a hold released before acknowledgement.
-    hold.releasing = true;
-    try {
-      const data = await hold.bridge.submit({choice:`mountainrace:${cancel?'cancel':'release'}:${hold.token}`,actionId:hold.id});
-      if (runtime.game?.gameId === hold.gameId && data.game) adopt(data.game);
-    } catch (error) {
-      runtime.syncNotice = String(error?.message || 'Jump connection interrupted. Reconnecting…');
-      hold.bridge.refresh?.();
-    } finally { resetHold(hold); }
-  }
-
   function onPointerDown(event) {
+    const card = event.target.closest('[data-mr-jump]');
+    if (card && runtime.root?.contains(card) && !card.disabled && event.button === 0) {
+      event.preventDefault();
+      card.setPointerCapture?.(event.pointerId);
+      const distance = Number(card.dataset.mrJump);
+      if (distance === 1) submit(card.dataset.token);
+      else beginHold(distance, `pointer:${event.pointerId}`);
+      return;
+    }
     const input = event.target.closest('[data-mr-network-input]');
     if (input && runtime.root?.contains(input) && !input.disabled) {
       event.preventDefault();
       if (event.button !== 0) return;
       input.setPointerCapture?.(event.pointerId);
-      beginHold(input.dataset.mrNetworkInput, {
+      submit(input.dataset.mrNetworkInput, {
         expected: input.dataset.mrDisplayedExpected || '',
         promptIndex: input.dataset.mrDisplayedIndex,
         roundId: input.dataset.mrDisplayedRound || ''
-      }, `pointer:${event.pointerId}`);
+      });
       return;
     }
     if (event.target.closest('[data-mr-rematch]')) {
@@ -1727,11 +1773,23 @@
   }
 
   function onKeyDown(event) {
+    if (/^(INPUT|TEXTAREA|SELECT)$/.test(event.target?.tagName) || event.target?.isContentEditable) return;
+    const distance = Number(event.key);
+    const card = event.target.closest?.('[data-mr-jump]');
+    if ([2,3,4].includes(distance) || (card && [' ', 'Enter'].includes(event.key))) {
+      event.preventDefault();
+      if (!event.repeat && !card?.disabled) {
+        const selected = card && [' ', 'Enter'].includes(event.key) ? Number(card.dataset.mrJump) : distance;
+        if (selected === 1) submit(card.dataset.token);
+        else beginHold(selected, `key:${event.code || event.key}`);
+      }
+      return;
+    }
     const token = KEY_MAP[event.key];
     if (!token || event.repeat || runtime.game?.status !== 'playing') return;
     if (/^(INPUT|TEXTAREA|SELECT)$/.test(event.target?.tagName) || event.target?.isContentEditable) return;
     event.preventDefault();
-    beginHold(token, null, `key:${event.code || event.key}`);
+    submit(token);
   }
 
   function updateClock() {

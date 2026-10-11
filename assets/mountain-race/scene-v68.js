@@ -1,4 +1,4 @@
-/* SUMMIT_SPRINT_V71: charged jumps, grounded celebration and smooth recovery. */
+/* SUMMIT_SPRINT_V72: target-card jumps with immediate timing feedback. */
 (() => {
  'use strict';
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),layouts=new WeakMap();
@@ -11,8 +11,7 @@
  function build(root,total){
   root.dataset.mrScene='68';delete root.dataset.mrApprovedScene;
   root.innerHTML=`<div class="mountain-race-game m68-game" data-authoritative="1"><header class="m68-header"><div><h2>Summit Sprint</h2><span class="m68-stakes" hidden></span></div><div class="m68-clock"><small>TIME LEFT</small><b data-mr-clock>30</b></div></header><div class="m68-racers"></div><div class="m68-stage"></div><section class="m68-deck" aria-label="Climbing controls"><div><small>NEXT FOUR MOVES</small><div class="m68-queue"></div><p class="m68-status" role="status"></p></div><div class="m68-pad">${['up','left','down','right'].map(t=>`<button type="button" class="m68-key m68-${t}" data-mr-network-input="${t}"><b>${arrow(t)}</b><small>${t}</small></button>`).join('')}</div></section><div class="m68-overlays"></div></div>`;
-  root.querySelector('.m68-deck>div').insertAdjacentHTML('beforeend','<div class="m71-charge" hidden><span class="m71-ring" aria-hidden="true"><i></i><b>2×</b></span><span class="m71-charge-copy" role="status"></span></div><p class="m71-hint">Tap: climb · Hold 2nd arrow, release in green: jump two</p>');
-  root.querySelector('.m68-pad').append(root.querySelector('.m71-charge'));
+  root.querySelector('.m68-deck>div').insertAdjacentHTML('beforeend','<p class="m71-hint" role="status">Tap arrows · Hold a 2ז4× move; release in green</p>');
   const v={total,height:3400,width:3400/3,overlay:'',gameId:'',lanes:[]};
   v.lanes=['me','opponent'].map((side,i)=>{
    const card=document.createElement('div');card.className='m68-player '+side;card.innerHTML='<div><strong></strong><span></span></div><div class="m68-progress"><i></i></div>';root.querySelector('.m68-racers').append(card);
@@ -52,20 +51,23 @@
    l.sprite.style.backgroundPosition=`${pose*100/7}% ${i*100}%`;l.climber.classList.toggle('celebrating',won);l.lane.querySelector('.m68-confetti').hidden=!won;l.lastInput=p.lastInput?.at||'';
    l.holds.forEach((hold,j)=>{hold.classList.toggle('current',j===index);hold.classList.toggle('passed',j<index);const token=i===0&&j>=index&&j<index+prompts.length?prompts[j-index]:j<index?'passed':'';if(hold.dataset.token!==token){hold.dataset.token=token;hold.querySelector('b').innerHTML=token==='passed'?'✓':token?arrow(token):'';}hold.hidden=j<index-3||j>index+4;});
   }
-  const q=root.querySelector('.m68-queue'),key=game.status+':'+prompts.join(':');if(q.dataset.key!==key){q.dataset.key=key;q.innerHTML=prompts.map((t,i)=>`<span class="${i===0?'next':''}" aria-label="${t}">${arrow(t)}<small>${t}</small></span>`).join('') || `<p class="m70-queue-note">${game.status==='complete'?'Race complete':game.status==='playing'?'Syncing next moves…':'Moves appear when the race starts'}</p>`;}
+  const q=root.querySelector('.m68-queue'),key=game.status+':'+me.promptIndex+':'+prompts.join(':');
+  if(q.dataset.key!==key){q.dataset.key=key;q.innerHTML=prompts.map((t,i)=>`<button type="button" class="m72-move ${i===0?'next':''}" data-mr-jump="${i+1}" data-token="${t}" aria-label="${i===0?'Tap to climb '+t:'Hold to jump '+(i+1)+' ledges '+t+'; release in green'}"><span>${arrow(t)}<small>${i===0?t:(i+1)+'×'}</small></span><i aria-hidden="true"></i></button>`).join('') || `<p class="m70-queue-note">${game.status==='complete'?'Race complete':game.status==='playing'?'Syncing next moves…':'Moves appear when the race starts'}</p>`;}
+  q.querySelectorAll('button').forEach(b=>{b.disabled=!enabled&&!b.classList.contains('charging');});
   root.querySelector('.m68-status').textContent=status;root.querySelector('.m68-status').dataset.tone=tone;
   root.querySelectorAll('[data-mr-network-input]').forEach(b=>{b.disabled=!enabled;b.dataset.mrDisplayedExpected=prompts[0]||'';b.dataset.mrDisplayedIndex=me.promptIndex;b.dataset.mrDisplayedRound=game.mountainraceState.roundId||'';});
   if(v.overlay!==overlays){v.overlay=overlays;root.querySelector('.m68-overlays').innerHTML=overlays;}
  }
  function setCharge(root,charge){
-  if(!root)return;const panel=root.querySelector('.m71-charge');if(!panel)return;
-  panel.hidden=!charge;root.querySelector('.m71-hint').hidden=false;
-  root.querySelectorAll('.m68-key').forEach(b=>b.classList.toggle('charging',Boolean(charge&&b.dataset.mrNetworkInput===charge.token)));
-  const v=layouts.get(root);if(v)v.lanes[0].holds.forEach((h,j)=>h.classList.toggle('jump-target',Boolean(charge&&j===v.lanes[0].lastIndex+1)));
-  if(!charge)return;
-  const green=charge.age>=900&&charge.age<=1180;
-  panel.dataset.green=String(green);panel.style.setProperty('--charge-angle',Math.min(360,charge.age/1600*360)+'deg');
-  panel.querySelector('.m71-charge-copy').textContent=charge.releasing?'Landing…':!charge.ready?'Get ready…':green?'RELEASE!':charge.age>1180?'Too late!':'Hold '+charge.token.toUpperCase();
+  if(!root)return;
+  const [min,max]=charge?.window||[0,0],green=Boolean(charge&&charge.age>=min&&charge.age<=max);
+  root.querySelectorAll('[data-mr-jump]').forEach(b=>{
+   const active=Boolean(charge&&Number(b.dataset.mrJump)===charge.distance);
+   b.classList.toggle('charging',active);b.dataset.green=String(active&&green);
+   if(active){b.disabled=false;b.style.setProperty('--charge-angle',Math.min(360,charge.age/850*360)+'deg');b.style.setProperty('--green-start',min/850*360+'deg');b.style.setProperty('--green-end',max/850*360+'deg');}
+  });
+  const v=layouts.get(root);if(v)v.lanes[0].holds.forEach((h,j)=>h.classList.toggle('jump-target',Boolean(charge&&j===charge.fromIndex+charge.distance-1)));
+  const hint=root.querySelector('.m71-hint');if(hint)hint.textContent=!charge?'Tap arrows · Hold a 2ז4× move; release in green':green?'RELEASE!':charge.age>max?'Too late!':`Hold for ${charge.distance} ledges…`;
  }
  function resultOverlay(game,state,total){
   const outcome=state.tie?'tie':state.viewerWon?'win':'loss',title=state.tie?'A DEAD HEAT':state.viewerWon?'YOU WIN!':'YOU LOST THE RACE';
