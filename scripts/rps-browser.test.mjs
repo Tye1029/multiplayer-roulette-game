@@ -150,7 +150,7 @@ try {
   const g=await guest.newPage();g.on('pageerror',e=>errors.push(e.message));await g.goto(origin+'/games/multiplayer/rps/');
   await g.evaluate(()=>document.getElementById('remoteBot').click());assert.match(await g.locator('#lobbyStatus').textContent(),/Sign in on the main site/);
   await g.locator('#hub-menu').click();await g.locator('#hub-add-bot').click();await g.locator('[data-choice="paper"]').click();await g.waitForFunction(()=>document.querySelector('#arena').dataset.shot==='hands');
-  for(const p of [a,b,returning,g]) assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+  for(const p of [a,b,returning,g]){const layout=await p.evaluate(()=>({overflow:document.documentElement.scrollWidth>innerWidth,elements:[...document.querySelectorAll('body *')].filter(e=>e.getBoundingClientRect().right>innerWidth).map(e=>e.tagName+'#'+e.id+'.'+e.className).slice(0,20)}));assert.equal(layout.overflow,false,'No overflow: '+JSON.stringify(layout.elements));}
   const audioFiles=(await fs.readdir(path.join(root,'assets/rps/audio'))).filter(f=>f.endsWith('.mp3'));
   const decoded=await g.evaluate(async files=>Promise.all(files.map(name=>new Promise((resolve,reject)=>{const clip=new Audio('/assets/rps/audio/'+name);clip.onloadedmetadata=()=>resolve({name,duration:clip.duration});clip.onerror=()=>reject(new Error(name));clip.load();}))),audioFiles);
   assert.ok(decoded.every(c=>Number.isFinite(c.duration)&&c.duration>0));

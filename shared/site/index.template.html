@@ -11226,7 +11226,7 @@ function createSparkle(x, y) {
       if(duelCreateBtn)duelCreateBtn.disabled=false;
       duelWagerInput?.focus();
       duelCreateBtn?.scrollIntoView({behavior:"smooth",block:"center"});
-      duelSetStatus("Choose your wager and create the next duel.","good");
+      duelSetStatus("","");
     }
 
     async function duelLeaveBlackjackResultForNewGame() {
@@ -13121,7 +13121,11 @@ function createSparkle(x, y) {
  document.title='XAN DUELS';sync();
  const requestedMode=new URLSearchParams(location.search).get('game');
  if(requestedMode==='rps')location.replace('/games/multiplayer/rps/');
- if(requestedMode&&confirmed())setTimeout(()=>{openGame(requestedMode);const params=new URLSearchParams(location.search),room=params.get('room');if(room&&/^[a-zA-Z0-9_-]{1,100}$/.test(room)){history.replaceState(null,'','?game='+encodeURIComponent(requestedMode));if(params.get('join')==='1')duelJoin(room);else duelReturnToGame(room);}},0);
+ if(requestedMode&&confirmed()){
+  // Deferred renderers and the Summit option bootstrap must finish before routing.
+  const route=()=>setTimeout(()=>{openGame(requestedMode);const params=new URLSearchParams(location.search),room=params.get('room');if(room&&/^[a-zA-Z0-9_-]{1,100}$/.test(room)){history.replaceState(null,'','?game='+encodeURIComponent(requestedMode));if(params.get('join')==='1')duelJoin(room);else duelReturnToGame(room);}},0);
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',route,{once:true});else route();
+ }
 })();
 </script>
 
@@ -13501,8 +13505,6 @@ body.roulette-viewport-lock .page,body.roulette-viewport-lock .duel-screen{heigh
 /* Create remains responsive and visibly pending without blanking the current board. */
 #duelCreateBtn:disabled{cursor:wait!important;opacity:.72!important}
 </style>
-\n
-\n
 <!-- MOUNTAIN_RACE_REMOTE_BOT_ATTACH_V2 -->
 <!-- MOUNTAIN_RACE_START_STABILITY_V1 -->
 <!-- MOUNTAIN_RACE_NETWORK_BOT_LOG_V2 -->

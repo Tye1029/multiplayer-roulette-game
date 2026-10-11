@@ -25,7 +25,7 @@
     a.ontimeupdate=()=>{
       if(crossfade||!active||!enabled||silent||document.hidden||!Number.isFinite(a.duration)||a.duration-a.currentTime>1.5)return;
       crossfade=true;const next=new Audio('/assets/rps/audio/battle-loop.mp3?v=4');next.preload='auto';spare=next;next.volume=0;
-      next.play().then(()=>{const began=performance.now();const step=now=>{if(!active||document.hidden||!enabled||silent){a.pause();next.pause();crossfade=false;spare=null;return;}const t=Math.min(1,(now-began)/1400);a.volume=musicVolume()*(1-t);next.volume=musicVolume()*t;if(t<1)fadeFrame=requestAnimationFrame(step);else{a.pause();a.ontimeupdate=null;clips.delete(name);clips.set('battle-loop',next);loopStarted=true;crossfade=false;spare=null;watchMusic(next,'battle-loop');}};fadeFrame=requestAnimationFrame(step);}).catch(()=>{crossfade=false;spare=null;});
+      next.play().then(()=>{const began=performance.now();const step=now=>{if(!active||document.hidden||!enabled||silent){a.pause();next.pause();crossfade=false;spare=null;return;}const t=Math.max(0,Math.min(1,(now-began)/1400));a.volume=musicVolume()*(1-t);next.volume=musicVolume()*t;if(t<1)fadeFrame=requestAnimationFrame(step);else{a.pause();a.ontimeupdate=null;clips.delete(name);clips.set('battle-loop',next);loopStarted=true;crossfade=false;spare=null;watchMusic(next,'battle-loop');}};fadeFrame=requestAnimationFrame(step);}).catch(()=>{crossfade=false;spare=null;});
     };
     a.onended=()=>{if(crossfade)return;loopStarted=true;const n=clip('battle-loop');n.currentTime=0;ambience();};
   }
