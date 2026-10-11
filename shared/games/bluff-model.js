@@ -105,21 +105,23 @@
     return s;
   }
   function bot(s, now = Date.now(), rng = random) {
-    advance(s, now, rng);
     const p = s.players.findIndex(p => p.bot);
-    if (p < 0 || now < s.botAt) return s;
+    // Materialize a scheduled bot choice at its due time before expiring clocks.
+    // Closing/backgrounding the human tab must not also make the bot time out.
+    if (p < 0 || !Number.isFinite(s.botAt) || now < s.botAt || s.botAt >= s.deadline) return advance(s, now, rng);
+    const due = s.botAt;
     const body = { match: s.match, round: s.round };
     if (s.phase === 'select' && !s.plays[p]) {
       // The bot uses only its own hand, never the opponent's secret hand or play.
       const real = s.hands[p].filter(c => c.suit === s.target), fake = s.hands[p].filter(c => c.suit !== s.target);
       const cards = real.slice(0, 1 + rng(Math.max(1, real.length)));
       if (!cards.length || (fake.length && rng(100) < 50)) cards.push(...fake.slice(0, 1 + rng(Math.min(2, fake.length) || 1)));
-      act(s, s.players[p].id, { ...body, action: 'play', cards: cards.map(c => c.id) }, now, rng);
+      act(s, s.players[p].id, { ...body, action: 'play', cards: cards.map(c => c.id) }, due, rng);
     } else if (s.phase === 'decide' && !s.decisions[p]) {
       const count = s.plays[1 - p].length;
-      act(s, s.players[p].id, { ...body, action: 'decide', choice: rng(100) < Math.min(85, 20 + count * 10) ? 'call' : 'believe' }, now, rng);
+      act(s, s.players[p].id, { ...body, action: 'decide', choice: rng(100) < Math.min(85, 20 + count * 10) ? 'call' : 'believe' }, due, rng);
     }
-    return s;
+    return advance(s, now, rng);
   }
   function publicState(s, id, now = Date.now()) {
     const p = s.players.findIndex(p => p.id === id);

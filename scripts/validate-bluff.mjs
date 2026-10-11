@@ -33,6 +33,7 @@ await test('invalid identities, card theft, empty and duplicate plays are reject
 await test('leaving a live match forfeits, rematches require mutual consent',()=>{const s=game();action(s,'a','leave');assert.equal(s.winner,1);action(s,'a','rematch');assert.equal(s.phase,'complete');action(s,'b','rematch');assert.equal(s.phase,'select');});
 await test('leaving during the final reveal cannot overwrite the resolved winner',()=>{const s=game();play(s,0);play(s,1);decide(s,'call','believe');assert.equal(s.pendingWinner,1);action(s,'b','leave');assert.equal(s.winner,1);});
 await test('bot action never uses the opponent secret cards',()=>{const s=game();s.players[1].bot=true;const t=structuredClone(s);t.hands[0].forEach(c=>c.suit='skull');M.bot(s,5000,rng);M.bot(t,5000,rng);assert.deepEqual(s.plays[1],t.plays[1]);play(s,0);play(t,0);M.bot(s,6000,rng);M.bot(t,6000,rng);assert.deepEqual(s.decisions,t.decisions);});
+await test('backgrounding the client does not make the scheduled bot miss its deadline',()=>{const s=game();s.players[1].bot=true;M.bot(s,60000,rng);assert.equal(s.winner,1);assert.equal(s.phase,'complete');assert.ok(s.plays[1]);});
 await test('randomized matches preserve all 20 cards through hundreds of resolutions',()=>{
   for(let run=0;run<40;run++) {const s=game();s.hands.flat().forEach(c=>c.suit=M.SUITS[M.random(3)]);let now=2;for(let round=0;round<30&&s.phase!=='complete';round++) {
     for(let p=0;p<2;p++){const n=1+M.random(s.hands[p].length);action(s,s.players[p].id,'play',{cards:s.hands[p].slice(0,n).map(c=>c.id)},now);}
