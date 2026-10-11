@@ -47,3 +47,9 @@ docs/rps-v3-art-prompts.txt. Audio transformations: docs/rps-v3-audio-sources.js
 
 All media loads only on this game's page. Audio starts after a user gesture.
 Superseded synthesized voice clips and the old background music were removed.
+
+V4 reveal gasp: HowardV - small crowd gasp shock surprise (CC0).
+https://freesound.org/people/HowardV/sounds/264376/
+Public HQ preview: https://cdn.freesound.org/previews/264/264376_1654262-hq.mp3
+Adaptation: first 1.85 seconds, reduced gain, short attack and 650ms fade.
+V4 swish/cut: existing licensed recordings slowed to 68% with softened tails.

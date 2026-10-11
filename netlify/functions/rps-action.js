@@ -1,7 +1,7 @@
 'use strict';
 const db = require('./rps/database');
 const rules = require('../../shared/games/rps-model');
-const BUILD = 'HAND_OF_DOOM_V3_20261009';
+const BUILD = 'HAND_OF_DOOM_V4_20261010';
 function createHandler(database = db, request = fetch) {
   return async event => {
     const headers = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'X-RPS-Build': BUILD };
@@ -26,16 +26,23 @@ function createHandler(database = db, request = fetch) {
       }
       const identity = await database.authenticate(body.token);
       const player = identity && {...identity, character:rules.character(body.character)};
-      if (!player) return reply(401, { error:'Connect your Torn key to enter a live duel.' });
-      if (body.action === 'lobby') return reply(200, { ok:true, player, games:await database.lobby(player) });
+      if (!player) return reply(401, { error:'Sign in on the main site to enter a live duel.' });
+      if (body.action === 'lobby') return reply(200, { ok:true, player, games:await database.lobby(player), balance:await database.balance(player), houseCutPercent:await database.rate() });
       if (body.action === 'rivals') return reply(200, { ok:true, ...await database.rivals(player) });
       if (body.action === 'invitations') return reply(200, { ok:true, invitations:await database.invitations(player) });
       let state;
-      if (body.action === 'create') state = await database.create(player, body.bot === true);
+      if (['create','challenge'].includes(body.action) && !(body.action==='create' && body.bot===true) && (!Number.isSafeInteger(body.wager)||body.wager<1000||body.wager>50000||body.wager%1000))
+        return reply(400,{error:'Choose 1,000–50,000 Chips in 1,000-Chip steps.'});
+      if(body.action==='quote') {
+        const id=String(body.gameId||'').toUpperCase();
+        if(!/^[A-F0-9]{12}$/.test(id))return reply(400,{error:'Enter the 12-character arena code.'});
+        return reply(200,{ok:true,quote:await database.quote(id,player)});
+      }
+      if (body.action === 'create') state = await database.create(player, body.bot === true,null,body.bot===true?0:body.wager);
       else if (body.action === 'challenge') {
         const rival = (await database.rivals(player)).archRival;
         if (!rival) return reply(409,{error:'Complete a human duel to establish your arch rival.'});
-        state = await database.create(player,false,rival);
+        state = await database.create(player,false,rival,body.wager);
       }
       else if (['join','get','pick','rematch','leave','decline'].includes(body.action)) {
         const gameId = String(body.gameId || '').toUpperCase();
@@ -50,5 +57,10 @@ function createHandler(database = db, request = fetch) {
     }
   };
 }
-exports.handler = createHandler();
+// Native Functions provide the strong-consistency Blobs context used by Chips.
+const handler=createHandler();
+exports.default=async request=>{
+  const result=await handler({httpMethod:request.method,body:request.method==='POST'?await request.text():''});
+  return new Response(result.body,{status:result.statusCode,headers:result.headers});
+};
 exports.createHandler = createHandler;

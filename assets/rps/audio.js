@@ -6,7 +6,7 @@
   const clips=new Map(), failures=new Set();
   function clip(name,loop=false) {
     if(!clips.has(name)) {
-      const a=new Audio('/assets/rps/audio/'+name+'.mp3?v=3');a.preload='none';a.loop=loop;
+      const a=new Audio('/assets/rps/audio/'+name+'.mp3?v=4');a.preload='none';a.loop=loop;
       a.addEventListener('error',()=>failures.add(name));clips.set(name,a);
     }
     return clips.get(name);
@@ -22,12 +22,12 @@
     for(const name of ['battle-intro','battle-loop']) if(clips.has(name)) clips.get(name).volume=duck?.12:.32;
   }
   function ambience() {
-    if(silent||!active||!enabled||!unlocked||document.hidden) {
+    if(!active||!enabled||!unlocked||document.hidden) {
       for(const n of ['battle-intro','battle-loop','crowd']) clips.get(n)?.pause();return;
     }
     const music=clip(loopStarted?'battle-loop':'battle-intro',loopStarted);
     if(!loopStarted)music.onended=()=>{loopStarted=true;ambience();};
-    play(music,.32);play(clip('crowd',true),.12);mix();
+    if(silent)music.pause();else play(music,.32);play(clip('crowd',true),silent?.055:.16);mix();
   }
   function stop() { active=false;for(const a of clips.values())a.pause();voice=null;effort=null; }
   function say(name) {
@@ -37,10 +37,10 @@
   }
   window.RPSAudio={
     get enabled(){return enabled;},get unlocked(){return unlocked;},
-    unlock(){unlocked=true;active=true;ambience();},
+    unlock(){const first=!unlocked;unlocked=true;active=true;if(first)for(const n of ['swish','cut','impact','gasp','cheer']){const a=clip(n);a.preload='auto';a.load();}ambience();},
     toggle(){enabled=!enabled;try{localStorage.setItem('rps-muted',enabled?'0':'1');}catch{}if(enabled){unlocked=true;active=true;ambience();}else stop();return enabled;},
     hush(value){if(silent===value)return;silent=value;ambience();if(value)clips.get('cheer')?.pause();},
-    cue(name){if(['swish','cut','impact','cheer'].includes(name))play(clip(name),name==='cheer'?.5:.58,true);},
+    cue(name){if(['swish','cut','impact','cheer','gasp'].includes(name))play(clip(name),name==='cheer'?.5:.58,true);},
     round(number,final){say(final?'final-round':number<=3?'round-'+number:['prepare-yourself','ready','fight'][(number-4)%3]);},
     result({tie,won,youWon,flawless,round}){say(tie?(round%2?'tie':'tie-breaker'):won?(youWon?(flawless?'flawless-victory':'you-win'):'you-lose'):'winner');},
     effort(character,round,kind){

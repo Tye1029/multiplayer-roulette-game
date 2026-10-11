@@ -2,7 +2,8 @@
 const { getDatabase } = require('@netlify/database');
 const crypto = require('node:crypto');
 const rules = require('../../../shared/games/rps-model');
-function createStore(injectedPool) {
+function createStore(injectedPool, injectedWallet) {
+const wallet = () => injectedWallet || require('./wallet');
 let pool = injectedPool, schema;
 function db() {
   if (!pool) {
@@ -53,15 +54,17 @@ function error(message, status = 409) { const e = new Error(message); e.status =
 async function insert(c, state) {
   await c.query('INSERT INTO rps_matches(id,state) VALUES($1,$2::jsonb)', [state.id, JSON.stringify(state)]);
 }
-async function create(player, bot = false, invited = null) {
+async function prepareCreate(player, bot = false, invited = null, wager = 0) {
   return transaction(async c => {
     // Serialize creates per verified identity, so request retries reuse an active arena.
     await c.query('SELECT pg_advisory_xact_lock(hashtext($1))', ['rps:' + player.id]);
     const { rows } = await c.query(`SELECT state FROM rps_matches WHERE updated_at>NOW()-INTERVAL '20 minutes'
       AND state->'players' @> $1::jsonb ORDER BY updated_at DESC LIMIT 20 FOR UPDATE`, [JSON.stringify([{ id: player.id }])]);
+    if(rows.some(r=>r.state.finance?.pending))error('A previous stake is still being confirmed. Retry shortly.');
     const active = rows.map(r => rules.advance(r.state)).find(s => ['waiting','choosing','reveal'].includes(s.phase));
     if (active) {
       if (active.phase === 'waiting' && bot && !active.invitedId) {
+        if(active.wager) error('Leave your wagered duel before starting free bot practice.');
         const next = rules.join(active, { id:'bot:emperor', name:'Network Bot', character:'voss', bot:true });
         await c.query('UPDATE rps_matches SET state=$2::jsonb,updated_at=NOW() WHERE id=$1', [next.id,JSON.stringify(next)]);
         return next;
@@ -71,6 +74,10 @@ async function create(player, bot = false, invited = null) {
       return active;
     }
     let s = rules.create(id(), player);
+    if(!bot && wager) {
+      if(!Number.isSafeInteger(wager)||wager<1000||wager>50000||wager%1000)error('Choose 1,000–50,000 Chips in 1,000-Chip steps.');
+      s.wager=wager;s.finance={accounts:{[player.id]:await wallet().account(player)},paid:[],pending:player.id,status:'funding',rate:await wallet().rate()};
+    }
     if (invited) { s.invitedId = invited.id; s.invitedName = invited.name; }
     if (bot) s = rules.join(s, { id: 'bot:emperor', name: 'Network Bot', character:'voss', bot: true });
     await insert(c, s); return s;
@@ -84,7 +91,7 @@ async function record(c, s) {
     VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(game_id) DO NOTHING`,
   [s.id, s.players[0].id, s.players[1].id, s.players[0].name, s.players[1].name, s.players[s.winner].id, new Date(s.nextAt)]);
 }
-async function act(gameId, player, action, body = {}) {
+async function prepareAction(gameId, player, action, body = {}) {
   return transaction(async c => {
     if (action === 'join') {
       await c.query('SELECT pg_advisory_xact_lock(hashtext($1))', ['rps:' + player.id]);
@@ -103,9 +110,19 @@ async function act(gameId, player, action, body = {}) {
       }
       return null;
     }
-    if (action === 'join') s = rules.join(s, player, now);
+    if (action === 'join') {
+      if(s.wager && body.wager !== s.wager && !s.players.some(p=>p.id===player.id))error('Review and accept this arena’s wager first.');
+      if(s.finance?.pending && !s.players.some(p=>p.id===player.id))error('The arena is funding a stake. Try again shortly.');
+      const joining=!s.players.some(p=>p.id===player.id), waitingDeadline=s.deadline;s=rules.join(s,player,now);
+      if(joining && s.wager){
+        const account=await wallet().account(player);
+        if(Object.values(s.finance.accounts).includes(account))error('Both opponents must use different Chip accounts.');
+        s.phase='waiting';s.finance.pending=player.id;s.finance.accounts[player.id]=account;s.finance.status='funding';s.finance.waitingDeadline=waitingDeadline;
+      }
+    }
     if (!s.players.some(p => p.id === player.id)) error('This duel belongs to its two players.', 403);
     if (action === 'pick') {
+      if(s.finance?.pending)error('The stakes are still being confirmed.');
       // Bot locks a cryptographically random choice before processing the human pick.
       if (s.players[1]?.bot && s.phase === 'choosing' && !s.picks[1])
         s = rules.pick(s, s.players[1].id, rules.CHOICES[crypto.randomInt(3)], s.round, now);
@@ -113,14 +130,24 @@ async function act(gameId, player, action, body = {}) {
     }
     if (row.state.winner === null && s.winner !== null) await record(c, s);
     if (action === 'leave' && !['complete','cancelled'].includes(s.phase) && s.winner === null) {
-      s.phase = 'cancelled'; s.reason = 'A challenger left the arena. No rivalry result was recorded.'; s.revision++;
+      if(s.wager && ['choosing','reveal'].includes(s.phase) && s.finance.paid.length===2) {
+        s=rules.forfeit(s,1-s.players.findIndex(p=>p.id===player.id),'A challenger left the duel.',now);await record(c,s);
+      } else {s.phase='cancelled';s.reason='A challenger left the arena. Any reserved Chips are returned.';s.revision++;}
     }
     if (action === 'rematch') {
       if (s.phase !== 'complete') error('Finish this match first.');
+      if(s.wager && body.wager!==s.wager)error('Review and accept the rematch wager first.');
+      if(s.wager && !s.nextMatch) {
+        if(!s.rematchVoteUntil || s.rematchVoteUntil<=now){s.rematchVotes=[];s.rematchVoteUntil=now+120000;}
+        const other=await c.query(`SELECT state FROM rps_matches WHERE id<>$1 AND updated_at>NOW()-INTERVAL '20 minutes'
+          AND (state->'players' @> $2::jsonb OR state->'players' @> $3::jsonb)`,[s.id,JSON.stringify([{id:s.players[0].id}]),JSON.stringify([{id:s.players[1].id}])]);
+        if(other.rows.some(r=>['waiting','choosing','reveal'].includes(rules.advance(r.state).phase)))error('An opponent already has an active duel.');
+      }
       if (!s.rematchVotes.includes(player.id)) { s.rematchVotes.push(player.id); s.revision++; }
       if (s.players[1].bot && !s.rematchVotes.includes(s.players[1].id)) s.rematchVotes.push(s.players[1].id);
       if (s.rematchVotes.length === 2 && !s.nextMatch) {
         const next = rules.join(rules.create(id(), s.players[0], now), s.players[1], now);
+        if(s.wager){next.wager=s.wager;next.phase='waiting';next.finance={accounts:{...s.finance.accounts},paid:[],pending:next.players[0].id,status:'funding',rate:await wallet().rate(),rematch:true};}
         await insert(c, next); s.nextMatch = next.id; s.revision++;
       }
     }
@@ -130,17 +157,19 @@ async function act(gameId, player, action, body = {}) {
   });
 }
 async function lobby(player) {
+  await sweep(player.id);
   await ready();
-  const { rows } = await db().query(`SELECT state FROM rps_matches WHERE state->>'phase'='waiting'
+  const { rows } = await db().query(`SELECT state FROM rps_matches WHERE state->>'phase'='waiting' AND COALESCE(state->'finance'->>'pending','')=''
     AND (state->>'deadline')::bigint>$1 ORDER BY updated_at DESC LIMIT 30`, [Date.now()]);
   return rows.filter(({state:s}) => !s.invitedId || s.players[0].id === player.id)
-    .map(({state:s}) => ({ id:s.id, name:s.players[0].name, mine:s.players[0].id === player.id }));
+    .map(({state:s}) => ({ id:s.id, name:s.players[0].name, wager:s.wager||0, mine:s.players[0].id === player.id }));
 }
 async function invitations(player) {
   await ready();
   const {rows} = await db().query(`SELECT state FROM rps_matches WHERE state->>'phase'='waiting'
+    AND COALESCE(state->'finance'->>'pending','')=''
     AND state->>'invitedId'=$1 AND (state->>'deadline')::bigint>$2 ORDER BY updated_at DESC LIMIT 20`,[player.id,Date.now()]);
-  return rows.map(({state:s}) => ({id:s.id,name:s.players[0].name,expiresAt:s.deadline}));
+  return rows.map(({state:s}) => ({id:s.id,name:s.players[0].name,wager:s.wager||0,expiresAt:s.deadline}));
 }
 async function rivals(player) {
   await ready();
@@ -153,6 +182,83 @@ async function rivals(player) {
     ORDER BY matches DESC,last_played DESC,id ASC LIMIT 50`, [player.id]);
   return { archRival: rows[0] || null, opponents: rows };
 }
-return { session, authenticate, create, act, lobby, rivals, invitations };
+// Committed matches are durable payment intents. A wallet write may succeed
+// before a DB commit fails; stable ledger IDs make recovery repeat-safe.
+async function recover(gameId) {
+  return transaction(async c=>{
+    const row=(await c.query('SELECT state FROM rps_matches WHERE id=$1 FOR UPDATE',[gameId])).rows[0];
+    if(!row)return null;
+    let s=rules.advance(row.state);const f=s.finance;
+    if(!s.wager||!f)return s;
+    while(f.pending) {
+      const who=f.pending;
+      try {
+        await wallet().apply(f.accounts[who],{id:'rps:'+s.id+':stake:'+who,delta:-s.wager,reason:'Rock Paper Scissors stake',meta:{gameId:s.id}});
+        if(!f.paid.includes(who))f.paid.push(who);
+        f.pending=null;
+        if(f.rematch && f.paid.length===1)f.pending=s.players[1].id;
+      } catch(e) {
+        if(e.code!=='RPS_FUNDS')throw e;
+        if(s.players[0].id===who || f.rematch) {s.phase='cancelled';s.reason=e.message;}
+        else {s.players=s.players.filter(p=>p.id!==who);delete f.accounts[who];s.deadline=f.waitingDeadline||s.deadline;s.reason=e.message;}
+        f.pending=null;f.rematch=false;
+      }
+      s.revision++;
+    }
+    delete f.waitingDeadline;
+    if(s.phase==='waiting' && s.players.length===2 && f.paid.length===2){s.phase='choosing';s.deadline=Date.now()+rules.PICK_MS;s.revision++;}
+    if(f.status==='funding')f.status='reserved';
+    if(['cancelled','complete'].includes(s.phase) && f.status!=='settled') {
+      if(s.phase==='complete' && s.winner!==null) {
+        const pot=s.wager*2,cut=f.rate<=0?0:Math.max(1,Math.ceil(pot*f.rate/100));
+        const winner=s.players[s.winner];
+        if(f.paid.length!==2)throw new Error('Unfunded result.');
+        f.payout=pot-cut;f.houseCut=cut;
+        await wallet().apply(f.accounts[winner.id],{id:'rps:'+s.id+':payout:'+winner.id,delta:f.payout,reason:'Rock Paper Scissors win',meta:{gameId:s.id,houseCut:cut}});
+      } else {
+        for(const who of f.paid)await wallet().apply(f.accounts[who],{id:'rps:'+s.id+':refund:'+who,delta:s.wager,reason:'Rock Paper Scissors cancellation refund',meta:{gameId:s.id}});
+        f.payout=0;
+      }
+      f.status='settled';s.revision++;
+    }
+    if(s.winner!==null && row.state.winner===null)await record(c,s);
+    if(JSON.stringify(s)!==JSON.stringify(row.state))await c.query('UPDATE rps_matches SET state=$2::jsonb,updated_at=NOW() WHERE id=$1',[s.id,JSON.stringify(s)]);
+    return s;
+  });
+}
+async function create(player,bot=false,invited=null,wager=0) {
+  await sweep(player.id);
+  const s=await prepareCreate(player,bot,invited,wager);return await recover(s.id)||s;
+}
+async function act(gameId,player,action,body={}) {
+  if(action==='join')await sweep(player.id);
+  const s=await prepareAction(gameId,player,action,body);if(!s){await recover(gameId);return null;}
+  const result=await recover(s.id)||s;
+  if(action==='join' && !result.players.some(p=>p.id===player.id))error(result.reason||'Unable to reserve your wager.');
+  if(result.nextMatch)await recover(result.nextMatch);
+  return result;
+}
+async function sweep(playerId=null) {
+  await ready();
+  const {rows}=await db().query(`SELECT id FROM rps_matches WHERE COALESCE((state->>'wager')::int,0)>0
+    AND state->'finance'->>'status'<>'settled'
+    AND ($1::text IS NULL OR state->'players' @> jsonb_build_array(jsonb_build_object('id',$1::text)))
+    AND (state->'finance'->>'pending' IS NOT NULL OR state->>'phase' IN ('complete','cancelled')
+      OR (state->>'phase'='reveal' AND (state->>'nextAt')::bigint<$2)
+      OR (state->>'phase' IN ('choosing','waiting') AND (state->>'deadline')::bigint<$2))
+    ORDER BY updated_at LIMIT 40`,[playerId,Date.now()]);
+  let recovered=0,failed=0;
+  for(const {id} of rows)try{await recover(id);recovered++;}catch{failed++;}
+  return {recovered,failed};
+}
+async function balance(player){return wallet().balance(player);}
+async function quote(gameId,player) {
+  await ready();
+  const s=(await db().query('SELECT state FROM rps_matches WHERE id=$1',[gameId])).rows[0]?.state;
+  if(!s || s.phase!=='waiting' || s.deadline<=Date.now() || s.finance?.pending)error('This arena is no longer open.');
+  if(s.invitedId && s.invitedId!==player.id && s.players[0].id!==player.id)error('This challenge is reserved for its recipient.',403);
+  return {id:s.id,name:s.players[0].name,wager:s.wager||0,houseCutPercent:s.finance?.rate||0};
+}
+return { session, authenticate, create, act, lobby, rivals, invitations, balance, sweep, quote, rate:()=>wallet().rate() };
 }
 module.exports = { ...createStore(), createStore };

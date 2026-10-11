@@ -1,4 +1,4 @@
-/* HAND_OF_DOOM_V3_20261009. Presentation only: never owns picks or round timing. */
+/* HAND_OF_DOOM_V4_20261010. Presentation only: never owns picks or round timing. */
 (function(root, factory) {
   const api = factory();
   if (typeof module === 'object' && module.exports) module.exports = api;
@@ -8,26 +8,26 @@
   const frames = { lookback:0, eyes:1, rage:2, tears:3, rock:4, paper:5, scissors:6, victory:7, disbelief:8 };
   const edits = [['lookback','eyes','rage'],['eyes','lookback','rage'],['rage','eyes','lookback'],['lookback','rage','eyes'],['eyes','rage','lookback'],['rage','lookback','eyes']];
   function plan(g,now,calm=false) {
-    if (!g || !['reveal','complete'].includes(g.phase)) return {shot:'wide'};
+    if (!g || g.forfeit || !['reveal','complete'].includes(g.phase)) return {shot:'wide'};
     // A local clock alone cannot reveal a secret. Wait for the server's redacted picks.
     if (!g.picks) {
       if (calm) return {shot:'wide'};
       const elapsed = now - g.cutAt;
       const edit = edits[(g.round + g.variant) % edits.length];
-      return {shot:elapsed < 0 ? 'wide' : edit[elapsed < 400 ? 0 : elapsed < 850 ? 1 : 2]};
+      return {shot:elapsed < 0 ? 'wide' : edit[elapsed < 520 ? 0 : elapsed < 1070 ? 1 : 2]};
     }
     const age = now - g.revealAt;
-    return {shot:'hands',picks:g.picks, reactions:!calm && (g.phase==='complete' || age>=850),
+    return {shot:'hands',picks:g.picks, reactions:!calm && (g.phase==='complete' || age>=1250),
       reactionFrames:g.roundWinner===null ? [8,8] : [0,1].map(seat=>seat===g.roundWinner ? 7 : (g.round+g.variant)%2 ? 3 : 8)};
   }
   function mount(audio,record=()=>{}) {
     const $=id=>document.getElementById(id), arena=$('arena');
-    let last='',characters=['maximus','voss'],ready=new Map();
+    let last='',images=new Map(),characters=['maximus','voss'],ready=new Map();
     const poseNames={lookback:'YOU DARE?',eyes:'ABSOLUTE FOCUS',rage:'LIMIT BREAK'};
     function atlas(id) { return `/assets/rps/images/${id}-cuts.png?v=3`; }
     function preload(id) {
       if (ready.has(id)) return;
-      ready.set(id,'loading');const image=new Image();image.src=atlas(id);
+      ready.set(id,'loading');const image=new Image();images.set(id,image);image.src=atlas(id);
       image.decode().then(()=>{ready.set(id,'ready');record('art-ready',{asset:id});}).catch(()=>{ready.set(id,'failed');record('art-failed',{asset:id});});
     }
     function cell(el,id,frame) {
@@ -39,6 +39,7 @@
     function setCharacters(ids) { characters=ids;ids.forEach(preload); }
     function draw(g,now,calm) {
       const p=plan(g,now,calm), key=`${g?.id}:${g?.round}:${p.shot}:${p.reactions}`;
+      if(key===last)return;
       arena.dataset.shot=p.shot;
       arena.classList.toggle('reaction-cut',Boolean(p.reactions));
       $('hands').setAttribute('aria-hidden',String(p.shot!=='hands'));

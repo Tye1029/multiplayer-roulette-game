@@ -1,4 +1,4 @@
-/* HAND_OF_DOOM_V3_20261009 — shared rules; only the server owns online state. */
+/* HAND_OF_DOOM_V4_20261010 — shared rules; only the server owns online state. */
 (function(root, factory) {
   const api = factory();
   if (typeof module === 'object' && module.exports) module.exports = api;
@@ -13,7 +13,7 @@
     { id:'bryn', name:'Bryn', title:'The crowd favorite', image:'bryn.png' }
   ];
   const character = value => CHARACTERS.some(c => c.id === value) ? value : 'maximus';
-  const REVEAL_MS = 1500, NEXT_MS = 2900, PICK_MS = 90000;
+  const REVEAL_MS = 1800, NEXT_MS = 4000, PICK_MS = 90000;
   const clone = value => JSON.parse(JSON.stringify(value));
   function fail(message) { const e = new Error(message); e.status = 409; throw e; }
   function create(id, player, now = Date.now()) {
@@ -33,14 +33,23 @@
   }
   function advance(state, now = Date.now()) {
     const s = clone(state);
+    if(s.phase==='complete' && s.rematchVoteUntil && now>=s.rematchVoteUntil && s.rematchVotes.length && !s.nextMatch){s.rematchVotes=[];s.rematchVoteUntil=null;s.revision++;}
     if (s.phase === 'reveal' && now >= s.nextAt) {
       if (s.winner !== null) { s.phase = 'complete'; s.completedAt = s.nextAt; }
       else { s.phase = 'choosing'; s.round++; s.picks = [null, null]; s.deadline = now + PICK_MS; }
       s.revision++;
     }
     if (['waiting', 'choosing'].includes(s.phase) && now >= s.deadline) {
+      if (s.phase === 'choosing' && s.wager && s.finance?.paid.length === 2 && s.picks.filter(Boolean).length === 1)
+        return forfeit(s, s.picks[0] ? 0 : 1, 'The opponent did not lock a hand in time.', now);
       s.phase = 'cancelled'; s.reason = 'The arena timed out. No rivalry result was recorded.'; s.revision++;
     }
+    return s;
+  }
+  function forfeit(state, winner, reason, now = Date.now()) {
+    const s = clone(state);
+    s.phase = 'complete'; s.winner = winner; s.forfeit = true; s.reason = reason;
+    s.completedAt = s.nextAt = now; s.picks = [null,null]; s.revision++;
     return s;
   }
   function pick(state, playerId, choice, round, now = Date.now(), variant = 0) {
@@ -72,14 +81,18 @@
     return { id: state.id, players: state.players, phase: state.phase, seat, round: state.round,
       revision: state.revision, scores: state.phase === 'reveal' && !visible ? state.beforeScores : state.scores,
       locked: state.picks.map(Boolean), myChoice: state.picks[seat],
-      picks: visible ? state.picks : null, winner: visible ? state.winner : null,
+      picks: visible && !state.forfeit ? state.picks : null, winner: visible ? state.winner : null,
       roundWinner: visible ? state.history.at(-1)?.winner : null,
       history: state.history.filter(h => h.revealAt <= now).slice(-12),
       cutAt: state.cutAt || null, revealAt: state.revealAt || null, nextAt: state.nextAt || null,
       deadline: state.deadline, variant: state.variant || 0, serverNow: now,
       rematchVotes: state.rematchVotes, nextMatch: state.nextMatch, reason: state.reason || '',
       invitedName: state.invitedName || '',
+      wager: state.wager || 0, houseCutPercent: state.finance?.rate || 0,
+      settlement: state.finance?.status || 'free', funding: Boolean(state.finance?.pending),
+      payout: state.phase === 'complete' && state.finance?.status === 'settled' ? state.finance.payout : null,
+      forfeit: Boolean(state.forfeit),
       suddenDeath: (state.phase === 'reveal' ? state.beforeScores : state.scores).every(n => n === 1) };
   }
-  return { CHOICES, CHARACTERS, character, REVEAL_MS, NEXT_MS, PICK_MS, create, join, advance, pick, publicState };
+  return { CHOICES, CHARACTERS, character, REVEAL_MS, NEXT_MS, PICK_MS, create, join, advance, forfeit, pick, publicState };
 });

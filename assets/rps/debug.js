@@ -1,11 +1,11 @@
 /* Session-only, allowlisted diagnostics. API keys, tokens and concealed picks are never captured. */
 (() => {
-  const $=id=>document.getElementById(id),events=[];let read=()=>({}),sequence=0;
-  function report(){return JSON.stringify({build:'HAND_OF_DOOM_V3_20261009',capturedAt:new Date().toISOString(),
+  const $=id=>document.getElementById(id),events=[],network={};let read=()=>({}),sequence=0;
+  function report(){return JSON.stringify({build:'HAND_OF_DOOM_V4_20261010',capturedAt:new Date().toISOString(),
     viewport:{width:innerWidth,height:innerHeight,pixelRatio:devicePixelRatio},online:navigator.onLine,visibility:document.visibilityState,
-    ...read(),events},null,2);}
+    ...read(),network,events},null,2);}
   function refresh(){if(!$('debug-panel').hidden && document.activeElement!==$('debug-report')) $('debug-report').value=report();}
-  function record(type,details={}){events.push({sequence:++sequence,at:new Date().toISOString(),type,...details});if(events.length>100)events.shift();refresh();}
+  function record(type,details={}){if(type==='request'){const n=network[details.action]||(network[details.action]={count:0,totalMs:0,maxMs:0,lastMs:0});n.count++;n.totalMs+=details.ms;n.maxMs=Math.max(n.maxMs,details.ms);n.lastMs=details.ms;refresh();return;}events.push({sequence:++sequence,at:new Date().toISOString(),type,...details});if(events.length>100)events.shift();refresh();}
   $('debug').onclick=()=>{const open=$('debug-panel').hidden;$('debug-panel').hidden=!open;$('debug').setAttribute('aria-expanded',String(open));if(open){refresh();$('debug-panel').scrollIntoView({block:'nearest'});}};
   $('close-debug').onclick=()=>{$('debug-panel').hidden=true;$('debug').setAttribute('aria-expanded','false');$('debug').focus();};
   $('refresh-debug').onclick=()=>{$('debug-report').value=report();$('debug-status').textContent='Report refreshed.';};

@@ -1,4 +1,4 @@
-/* HAND_OF_DOOM_V3_20261009 */
+/* HAND_OF_DOOM_V4_20261010 */
 (() => {
   'use strict';
   const $ = id => document.getElementById(id), rules = window.RPSRules, audio = window.RPSAudio;
@@ -12,6 +12,15 @@
   const inviteId = new URLSearchParams(location.search).get('arena') || '';
   let gameId = storage.get('rps-match') || '';
   let rival = null, inboxKey = '', inboxBusy = false;
+  let joinQuote = null;
+  const chips = value => Number(value||0).toLocaleString()+' Chips';
+  function selectedWager() {const input=$('wager');if(!input.reportValidity())return null;return Number(input.value);}
+  function updateWagerLabels() {
+    const cost=chips($('wager').value);
+    $('create').textContent='Challenge a random opponent · '+cost;
+    $('challengeRival').textContent='Challenge your rival · '+cost;
+  }
+  $('wager').oninput=updateWagerLabels;updateWagerLabels();
   const preference = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k,v) { try { localStorage.setItem(k,v); } catch {} } };
   let selectedCharacter = rules.character(preference.get('rps-character'));
   const active = () => game && !['complete','cancelled'].includes(game.phase);
@@ -60,15 +69,15 @@
   function connected(yes) {
     const occupied = Boolean(active());
     for (const id of ['create','join']) $(id).disabled = busy || occupied;
-    $('remoteBot').disabled = busy || (occupied && (game.phase !== 'waiting' || Boolean(game.invitedName)));
-    $('remoteBot').innerHTML = game?.phase === 'waiting' && !game.invitedName ? 'Add Remote Network Bot <small>Start this duel</small>' : 'Remote Network Bot <small>Server practice</small>';
+    $('remoteBot').disabled = busy || (occupied && (game.phase !== 'waiting' || Boolean(game.invitedName) || Boolean(game.wager)));
+    $('remoteBot').innerHTML = game?.phase === 'waiting' && !game.invitedName && !game.wager ? 'Add Remote Network Bot <small>Start this duel</small>' : 'Remote Network Bot <small>Free practice</small>';
     $('refresh').disabled = !yes || busy;
     $('practice').disabled = busy || occupied;
     $('challengeRival').disabled = busy || occupied || !yes || !rival;
     $('leave').disabled = busy;
     for (const b of $('openGames').querySelectorAll('button')) b.disabled = busy || occupied;
     for (const b of $('invitations').querySelectorAll('[data-accept]')) b.disabled = busy || occupied;
-    $('loginForm').hidden = yes;
+    $('siteLogin').hidden = yes; $('wager').disabled = busy || occupied;
     $('identity').textContent = yes ? `${player?.name || 'Player'} · Verified challenger` : 'Practice is ready. Connect for live 1v1.';
     if (!game) {
       $('nameA').textContent = player?.name || 'You'; $('nameB').textContent = 'Your opponent';
@@ -77,25 +86,26 @@
     showCharacters();
   }
   async function login(key) {
-    if (busy) return; busy = true; $('connect').disabled = true; $('identity').textContent = 'Verifying your Torn identity…';
+    if (busy) return; busy = true; $('identity').textContent = 'Verifying your Torn identity…';
     try {
       const data = await request('login', {visitorKey:key});
-      token = data.token; player = data.player; storage.set('rps-token', token); $('apiKey').value = ''; connected(true);
+      token = data.token; player = data.player; storage.set('rps-token', token); connected(true);
       await loadLobby(); await loadRivals();
       if (gameId && !practice) { try { await resume(gameId); } catch { gameId = ''; storage.set('rps-match',null); } }
     } catch (e) { connected(false); $('identity').textContent = e.message; status(e.message,true); }
-    finally { busy = false; $('connect').disabled = false; connected(Boolean(token)); renderControls(); loadInvitations(); }
+    finally { busy = false; connected(Boolean(token)); renderControls(); loadInvitations(); }
   }
-  $('loginForm').onsubmit = e => { e.preventDefault(); unlock(); login($('apiKey').value.trim()); };
   async function loadLobby() {
     if (!token) return;
     const data = await request('lobby'); player = data.player; connected(true); $('openGames').replaceChildren();
+    $('balance').textContent='Available: '+chips(data.balance);
+    $('wagerHint').textContent=`1,000–50,000 Chips per player · ${data.houseCutPercent}% house cut. Leaving a funded duel forfeits your stake. A locked hand wins if the opponent times out. Bot practice is free.`;
     if (!game && !$('lobbyStatus').classList.contains('error')) status('Challenge an opponent or warm up with a bot.');
     if (!data.games.length) $('openGames').textContent = 'The sand is yours. Create the first challenge.';
     for (const item of data.games) {
       const b = document.createElement('button'), name = document.createElement('span'), action = document.createElement('b');
-      name.textContent = item.name; action.textContent = item.mine ? 'Resume →' : 'Duel →'; b.append(name,action);
-      b.disabled = Boolean(game && !['complete','cancelled'].includes(game.phase)); b.onclick = () => perform('join', {gameId:item.id}); $('openGames').append(b);
+      name.textContent = item.name; action.textContent = item.mine ? 'Resume →' : 'Duel · '+chips(item.wager); b.append(name,action);
+      b.disabled = Boolean(game && !['complete','cancelled'].includes(game.phase)); b.onclick = () => perform('join', {gameId:item.id,wager:item.wager}); $('openGames').append(b);
     }
   }
   async function loadRivals() {
@@ -103,7 +113,7 @@
     try {
       const data = await request('rivals'); rival = data.archRival;
       $('archName').textContent = rival ? rival.name : 'No rival yet';
-      $('archStats').textContent = rival ? `${rival.matches} matches · You ${rival.wins} — ${rival.losses} ${rival.name}` : 'Finish a human duel to begin your rivalry.';
+      $('archStats').textContent = rival ? `${rival.matches} matches · You ${rival.wins} — ${rival.losses} ${rival.name}` : '';
       connected(Boolean(token));
       $('rivalList').replaceChildren();
       for (const rival of data.opponents.slice(0,8)) {
@@ -123,8 +133,8 @@
         for (const invite of data.invitations) {
           const row = document.createElement('div'), copy = document.createElement('span'), accept = document.createElement('button'), decline = document.createElement('button');
           copy.textContent = `${invite.name} challenges you. The crowd is waiting.`;
-          accept.textContent = 'Accept duel'; accept.dataset.accept = 'true';
-          accept.onclick = () => perform('join',{gameId:invite.id});
+          accept.textContent = 'Accept · '+chips(invite.wager); accept.dataset.accept = 'true';
+          accept.onclick = () => perform('join',{gameId:invite.id,wager:invite.wager});
           decline.textContent = 'Decline'; decline.onclick = async () => {
             decline.disabled = true;
             try { await request('decline',{gameId:invite.id}); await loadInvitations(); }
@@ -152,7 +162,7 @@
   async function resume(id) { const guard = epoch; const data = await request('get',{gameId:id}); if (guard === epoch) { accept(data); schedulePoll(); } }
   async function perform(action, extra = {}) {
     if (busy) return;
-    if (!token) { status('Connect your Torn API key for online duels, or choose Quick practice.',true); $('apiKey').scrollIntoView({block:'center'}); $('apiKey').focus(); return; }
+    if (!token) { status('Sign in on the main site for online duels, or choose Quick practice.',true); $('siteLogin').focus(); return; }
     busy = true; const guard = epoch; unlock();
     connected(Boolean(token)); renderControls();
     try {
@@ -162,11 +172,19 @@
       practice = null; accept(data); schedulePoll();
       if (['create','join','rematch','challenge'].includes(action)) document.querySelector('.game-column').scrollIntoView({block:'start',behavior:calm?'instant':'smooth'});
       if (action === 'leave') exit();
+      else if(action!=='pick')loadLobby().catch(e=>status(e.message,true));
       loadInvitations();
     } catch (e) { if (guard === epoch) status(e.message,true); }
     finally { busy = false; connected(Boolean(token)); renderControls(); }
   }
-  function schedulePoll() { clearTimeout(pollTimer); if (practice || !gameId || !token || game?.phase === 'cancelled') return; pollTimer = setTimeout(poll, ['waiting','complete'].includes(game?.phase) ? 1800 : 450); }
+  function schedulePoll() {
+    clearTimeout(pollTimer);pollTimer=null;
+    if (practice || !gameId || !token || game?.phase==='cancelled' || (game?.phase==='complete' && game.players.some(p=>p.bot))) return;
+    let delay=game?.phase==='complete' ? (game.rematchVotes.length?1800:8000) : game?.phase==='waiting'?1800:450;
+    const untilReveal=game?.revealAt-(serverAnchor+performance.now()-perfAnchor);
+    if(game?.phase==='reveal' && !game.picks && untilReveal>0)delay=Math.min(delay,Math.max(60,untilReveal+25));
+    pollTimer=setTimeout(poll,delay);
+  }
   async function poll() {
     if (polling || practice || !gameId || !token) return;
     if (document.hidden) { pollTimer = setTimeout(poll,2000); return; }
@@ -196,13 +214,24 @@
   document.addEventListener('keydown', e => { if (/INPUT|TEXTAREA|SELECT/.test(e.target.tagName) || e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
     if (['1','2','3'].includes(e.key)) { e.preventDefault(); choose(rules.CHOICES[Number(e.key)-1]); } });
   $('practice').onclick = startPractice;
-  $('create').onclick = () => perform('create'); $('remoteBot').onclick = () => perform('create',{bot:true});
-  $('challengeRival').onclick = () => perform('challenge');
-  $('joinForm').onsubmit = e => { e.preventDefault(); perform('join',{gameId:$('joinCode').value.trim().toUpperCase()}); };
+  $('create').onclick = () => {const wager=selectedWager();if(wager!==null)perform('create',{wager});}; $('remoteBot').onclick = () => perform('create',{bot:true});
+  $('challengeRival').onclick = () => {const wager=selectedWager();if(wager!==null)perform('challenge',{wager});};
+  $('joinCode').oninput=()=>{joinQuote=null;$('join').textContent='Review duel';};
+  $('join').textContent='Review duel';
+  $('joinForm').onsubmit = async e => {
+    e.preventDefault();if(busy)return;
+    const id=$('joinCode').value.trim().toUpperCase();
+    if(joinQuote?.id===id){perform('join',{gameId:id,wager:joinQuote.wager});return;}
+    try {
+      const data=await request('quote',{gameId:id});joinQuote=data.quote;
+      $('join').textContent='Join · '+chips(joinQuote.wager);
+      status(`${joinQuote.name} · ${chips(joinQuote.wager)} per player · ${joinQuote.houseCutPercent}% house cut. Press Join to reserve your stake.`);
+    }catch(e){status(e.message,true);}
+  };
   $('refresh').onclick = () => { loadLobby().catch(e => status(e.message,true)); loadRivals(); loadInvitations(); };
   $('leave').onclick = () => { if (practice) exit(); else perform('leave'); };
   $('backLobby').onclick = exit;
-  $('rematch').onclick = () => { if (practice) startPractice(); else perform('rematch'); };
+  $('rematch').onclick = () => { if (practice) startPractice(); else perform('rematch',{wager:game.wager}); };
   $('copy').onclick = async () => {
     const url = new URL(location.pathname,location.origin); url.searchParams.set('arena',gameId);
     try { await navigator.clipboard.writeText(url.href); $('copy').textContent = 'Copied!'; }
@@ -212,13 +241,13 @@
     epoch++; clearTimeout(pollTimer); practice = null; game = null; gameId = ''; storage.set('rps-match',null); resetPresentation();
     $('arena').dataset.shot = 'wide'; $('arena').classList.remove('celebrate','sudden'); $('invite').hidden = true; $('leave').hidden = true;
     $('hands').setAttribute('aria-hidden','true'); $('matchActions').hidden = true; $('choices').hidden = false;
+    $('payout').hidden=true; $('roundLabel').textContent='THE SMALLEST BATTLE. THE BIGGEST PRODUCTION.';
     $('callout').textContent = 'THE ARENA AWAITS.'; $('subcallout').textContent = 'A new grudge is only three hand gestures away.';
-    $('crowdLabel').textContent = 'THE CROWD DEMANDS HANDS'; $('roundLabel').textContent = 'FIRST TO TWO ROUND WINS';
     $('pickTitle').textContent = 'Choose your weapon.'; $('scoreA').textContent = '0'; $('scoreB').textContent = '0'; $('roundHistory').replaceChildren(); $('sealsA').replaceChildren(); $('sealsB').replaceChildren();
     $('announcer').textContent = '“Bring me another unreasonable rivalry!”'; $('practice').disabled = false; buttons.forEach(b => { b.disabled=true; b.classList.remove('selected'); });
     $('modeLabel').textContent = 'THE COLOSSEUM'; $('nameA').textContent = player?.name || 'You'; $('nameB').textContent = 'Your opponent';
     $('lockA').textContent = $('lockB').textContent = 'HAND CONCEALED';
-    audio.hush(false); audio.stop(); connected(Boolean(token)); status('Challenge an opponent or warm up with Quick practice.');
+    audio.hush(false); connected(Boolean(token)); status('Challenge an opponent or warm up with Quick practice.');
     if (token) { loadLobby().catch(e=>status(e.message,true)); loadRivals(); }
   }
   function renderControls() {
@@ -227,14 +256,18 @@
     buttons.forEach(b => { b.disabled = busy || (!practice && !token) || g.phase !== 'choosing' || g.locked[g.seat]; b.classList.toggle('selected',b.dataset.choice === g.myChoice); });
     $('choices').hidden = ended; $('matchActions').hidden = !ended;
     $('rematch').hidden = g.phase !== 'complete'; $('rematch').disabled = busy || g.rematchVotes.includes(player?.id);
-    $('rematch').textContent = g.rematchVotes.includes(player?.id) ? 'Opponent has been challenged…' : 'Demand a rematch';
+    $('rematch').textContent = g.rematchVotes.includes(player?.id) ? 'Opponent has been challenged…' : 'Demand a rematch'+(g.wager?' · '+chips(g.wager):'');
+    $('leave').textContent=g.wager && g.players.length===2?'Forfeit duel':'Leave duel';
     $('practice').disabled = !ended; $('leave').hidden = ended;
     $('pickTitle').textContent = ended ? (g.phase === 'complete' ? 'Settle this again?' : 'The duel ended.') : g.phase === 'waiting' ? 'Waiting for an opponent.' : g.locked[g.seat] ? 'Your hand is locked.' : 'Choose your weapon.';
-    $('roundHint').textContent = g.suddenDeath && !ended ? '1–1. One hand decides everything.' : 'First to two wins. Ties do not count.';
+    $('roundHint').textContent = g.wager ? `${chips(g.wager)} each · ${g.houseCutPercent}% house cut` : g.suddenDeath && !ended ? '1–1. One hand decides everything.' : 'Free practice · First to two wins.';
     connected(Boolean(token));
   }
   function render() {
     const g = game, exhibition = Boolean(practice), bot = g.players.some(p => p.bot);
+    $('payout').hidden=g.phase!=='complete';
+    $('payout').textContent=!g.wager?'Free practice · No Chips wagered':g.settlement!=='settled'?'Confirming payout…':g.winner===g.seat?`${chips(g.payout)} won · includes your ${chips(g.wager)} stake`:`${chips(g.wager)} wagered · Better luck next duel.`;
+    $('payout').classList.toggle('loss',g.wager>0 && g.winner!==g.seat);
     $('modeLabel').textContent = exhibition ? 'LOCAL PRACTICE' : bot ? 'REMOTE NETWORK BOT' : 'LIVE 1V1';
     $('nameA').textContent = g.players[0].name + (g.seat === 0 ? ' · YOU' : '');
     $('nameB').textContent = (g.players[1]?.name || 'Awaiting challenger') + (g.seat === 1 ? ' · YOU' : '');
@@ -245,15 +278,15 @@
     renderControls();
     const hKey = JSON.stringify(g.history);
     if (hKey !== historyKey) { historyKey = hKey; $('roundHistory').replaceChildren(); for (const r of g.history) {
-      const el = document.createElement('span'); el.textContent = `R${r.round} · ${r.picks.join(' / ')} · ${r.winner === null ? 'Tie' : r.winner === g.seat ? 'Win' : 'Loss'}`; $('roundHistory').append(el);
+      const el = document.createElement('span'); el.className = r.winner === null ? 'tie' : r.winner === g.seat ? 'win' : 'loss'; el.textContent = `R${r.round} · ${r.picks.join(' / ')} · ${r.winner === null ? 'Tie' : r.winner === g.seat ? 'Win' : 'Loss'}`; $('roundHistory').append(el);
     } }
-    if (g.phase === 'waiting') status(g.invitedName ? `Invitation sent to ${g.invitedName}. They can accept in this arena within 15 minutes.` : 'Waiting for an opponent. Share your code, or add the Network Bot to play now.');
+    if (g.phase === 'waiting') status(g.funding?'Confirming the stake…':g.invitedName ? `Invitation sent to ${g.invitedName}. They can accept in this arena within 15 minutes.` : 'Waiting for an opponent. Share your code to challenge them.');
     if (g.phase === 'choosing') status(g.locked[g.seat] ? 'Hand locked. Waiting for your opponent…' : 'Pick a hand. Your rival cannot see it until both hands are locked.');
     if (g.phase === 'reveal') status('Both hands locked. Prepare for a wildly excessive reveal.');
     if (g.phase === 'cancelled') status(g.reason);
     if (g.phase === 'complete') {
       status(exhibition || bot ? 'Exhibition complete. Bot matches never affect rivalry records.' : 'Match complete. Your rivalry record is saved.');
-      if (!exhibition && lastRivalMatch !== g.id) { lastRivalMatch = g.id; loadRivals(); }
+      if (!exhibition && lastRivalMatch !== g.id) { lastRivalMatch = g.id; loadRivals(); loadLobby().catch(()=>{}); }
     }
     tick();
   }
@@ -265,16 +298,20 @@
   function tick() {
     if (!game || document.hidden) return;
     const g = game, now = serverAnchor + performance.now() - perfAnchor;
-    cinema.draw(g,now,calm);
+
     $('arena').dataset.variant = String(g.variant);
     const finished = g.phase === 'complete';
     const revealed = Boolean(g.picks && (g.phase === 'reveal' || finished));
     const quiet = g.suddenDeath && !finished && !(revealed && g.winner !== null);
     $('arena').classList.toggle('sudden',quiet); audio.hush(quiet);
-    $('crowdLabel').textContent = quiet ? 'YOU COULD HEAR A SAND GRAIN DROP.' : finished ? 'THE COLOSSEUM HAS LOST ITS MIND' : 'THE CROWD DEMANDS HANDS';
     if (g.phase === 'waiting') { showShot('wide'); $('callout').textContent = 'THE CHALLENGE IS SET.'; $('subcallout').textContent = g.invitedName ? `${g.invitedName}, the arena calls.` : 'An opponent, a grudge, or just a quick warm-up.'; return; }
     if (g.phase === 'cancelled') { showShot('wide'); $('callout').textContent = 'THE CROWD WANTS A REFUND.'; $('subcallout').textContent = 'Nobody won. Start a fresh duel.'; return; }
     const roundKey = `${g.id}:${g.round}`;
+    if(g.forfeit && finished) {
+      showShot('wide');$('roundLabel').textContent='DUEL DECIDED BY FORFEIT';
+      $('callout').textContent=g.winner===g.seat?'YOU WIN.':`${g.players[g.winner].name.toUpperCase()} WINS.`;
+      $('subcallout').textContent=g.reason;$('confetti').replaceChildren();return;
+    }
     if (g.phase === 'choosing') {
       showShot('wide'); $('arena').classList.remove('celebrate'); $('confetti').replaceChildren();
       $('roundLabel').textContent = `ROUND ${g.round} · ${g.suddenDeath ? 'THE DECIDING HAND' : 'FIRST TO TWO'}`;
@@ -293,7 +330,7 @@
     if (lastReveal !== roundKey) {
       lastReveal = roundKey;
 
-      audio.cue('impact');
+      audio.cue('impact'); if ((g.round+g.variant)%3===0) audio.cue('gasp');
       const tie = g.roundWinner === null;
       if (!quiet) audio.cue('cheer');
       audio.result({tie,won:g.winner!==null,youWon:g.winner===g.seat,flawless:g.winner!==null && g.scores[1-g.winner]===0,round:g.round});
@@ -303,9 +340,19 @@
     $('roundLabel').textContent = won ? 'THE COLOSSEUM CROWNS ITS CHAMPION' : `ROUND ${g.round} · ${tie ? 'TIE — REPLAY' : 'A POINT OF GLORY'}`;
     $('callout').textContent = won ? (g.winner === g.seat ? 'YOU ARE THE HAND OF DOOM.' : `${g.players[g.winner].name.toUpperCase()} WINS.`) : tie ? 'IDENTICAL GENIUS. GO AGAIN.' : g.roundWinner === g.seat ? 'YOUR HAND. YOUR GLORY.' : 'A DEVASTATING HAND GESTURE.';
     $('subcallout').textContent = won ? `${g.scores[0]} — ${g.scores[1]} · ${g.winner === g.seat ? 'The crowd will never forget those fingers.' : 'Your revenge arc starts with a rematch.'}` : tie ? 'No point awarded. New hands in a moment.' : `${g.picks[g.roundWinner]} beats ${g.picks[1-g.roundWinner]}. Next hand coming right up.`;
-    $('arena').classList.toggle('celebrate',won);
-    if (won && !$('confetti').childElementCount) for (let i=0;i<24;i++) { const p = document.createElement('i'); p.style.setProperty('--x',`${(i*37)%100}%`); p.style.setProperty('--delay',`${(i%7)*.13}s`); $('confetti').append(p); }
+    const celebrate = won && g.winner === g.seat; $('arena').classList.toggle('celebrate',celebrate);
+    if (!celebrate) $('confetti').replaceChildren();
+    if (celebrate && !$('confetti').childElementCount) for (let i=0;i<24;i++) { const p = document.createElement('i'); p.style.setProperty('--x',`${(i*37)%100}%`); p.style.setProperty('--delay',`${(i%7)*.13}s`); $('confetti').append(p); }
   }
+  let frameAt=0, frameStats={frames:0,slowFrames:0,longestMs:0};
+  function animate(now) {
+    if (!document.hidden && game) {
+      if(game.phase==='reveal' && frameAt) {const gap=now-frameAt;frameStats.frames++;if(gap>50)frameStats.slowFrames++;frameStats.longestMs=Math.max(frameStats.longestMs,Math.round(gap));}
+      cinema.draw(game,serverAnchor+performance.now()-perfAnchor,calm);frameAt=now;
+    } else frameAt=0;
+    requestAnimationFrame(animate);
+  }
+  requestAnimationFrame(animate);
   setInterval(() => {
     if (practice && !document.hidden) {
       practice = rules.advance(practice); const s = rules.publicState(practice,'you');
@@ -323,6 +370,6 @@
     let savedKey = ''; try { savedKey = localStorage.getItem('tornVisitorApiKey') || ''; } catch {}
     if (savedKey) await login(savedKey);
   }
-  debug.install(()=>({session:{connected:Boolean(token),busy,polling,mode:practice?'local':'network'},match:game?{id:game.id,phase:game.phase,round:game.round,revision:game.revision,seat:game.seat,scores:game.scores,locked:game.locked,characters:game.players.map(p=>p.character),serverOffsetMs:Math.round(serverAnchor+performance.now()-perfAnchor-Date.now())}:null,media:{...cinema.diagnostics(),audio:audio.diagnostics()},calm}));
+  debug.install(()=>({session:{connected:Boolean(token),busy,polling,pollScheduled:Boolean(pollTimer),mode:practice?'local':'network'},match:game?{id:game.id,phase:game.phase,round:game.round,revision:game.revision,seat:game.seat,scores:game.scores,locked:game.locked,characters:game.players.map(p=>p.character),serverOffsetMs:Math.round(serverAnchor+performance.now()-perfAnchor-Date.now())}:null,performance:frameStats,media:{...cinema.diagnostics(),audio:audio.diagnostics()},calm}));
   boot();
 })();

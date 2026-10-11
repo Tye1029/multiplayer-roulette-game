@@ -29,14 +29,14 @@ test('locked picks and scores stay secret until authoritative reveal timestamp',
 });
 test('unlimited ties replay without points; 1–1 ends only at two wins',()=>{
   let s = start(), now = 2000;
-  for(let i=0;i<12;i++) { s=round(s,'rock','rock',now); assert.deepEqual(s.scores,[0,0]); now+=3000; s=rules.advance(s,now); }
+  for(let i=0;i<12;i++) { s=round(s,'rock','rock',now); assert.deepEqual(s.scores,[0,0]); now+=rules.NEXT_MS+100; s=rules.advance(s,now); }
   assert.equal(s.round,13);
-  s=round(s,'rock','scissors',now); now+=3000; s=rules.advance(s,now);
-  s=round(s,'rock','paper',now); now+=3000; s=rules.advance(s,now);
+  s=round(s,'rock','scissors',now); now+=rules.NEXT_MS+100; s=rules.advance(s,now);
+  s=round(s,'rock','paper',now); now+=rules.NEXT_MS+100; s=rules.advance(s,now);
   assert.equal(rules.publicState(s,a.id,now).suddenDeath,true);
   s=round(s,'scissors','paper',now); assert.equal(s.winner,0); assert.equal(s.phase,'reveal');
   const finalHidden=rules.publicState(s,b.id,now); assert.equal(finalHidden.winner,null); assert.deepEqual(finalHidden.scores,[1,1]);
-  s=rules.advance(s,now+3000); assert.equal(s.phase,'complete'); assert.deepEqual(s.scores,[2,1]);
+  s=rules.advance(s,now+rules.NEXT_MS+100); assert.equal(s.phase,'complete'); assert.deepEqual(s.scores,[2,1]);
 });
 test('retry cannot change choice, score twice, advance early or act on stale round',()=>{
   const s=rules.pick(start(),a.id,'rock',1,2000);
@@ -81,7 +81,7 @@ test('endpoint publishes only redacted state and rejects invalid actions and roo
 test('game media is isolated and public package includes the new route',()=>{
   const html=readFileSync(new URL('../games/multiplayer/rps/index.html',import.meta.url),'utf8');
   const shell=readFileSync(new URL('../shared/site/index.template.html',import.meta.url),'utf8');
-  assert.ok(html.includes('HAND_OF_DOOM_V3_20261009')); assert.ok(html.includes('aria-live="polite"'));
+  assert.ok(html.includes('HAND_OF_DOOM_V4_20261010')); assert.ok(html.includes('aria-live="polite"'));
   assert.ok(shell.includes('href="/games/multiplayer/rps/"')); assert.ok(!shell.includes('/assets/rps/'));
   assert.ok(readFileSync(new URL('../assets/rps/audio.js',import.meta.url),'utf8').includes("visibilitychange"));
 });
@@ -98,7 +98,7 @@ test('challenge target is the server-selected rival, never an arbitrary submitte
   const handler=createHandler({authenticate:async()=>a,rivals:async()=>({archRival:b}),create:async(p,bot,target)=>{
     invited=target;assert.equal(p.character,'maximus');return rules.create('ABCDEF123456',p);
   }});
-  const res=await handler({httpMethod:'POST',body:JSON.stringify({action:'challenge',invitedId:'999',character:'<script>'})});
+  const res=await handler({httpMethod:'POST',body:JSON.stringify({action:'challenge',wager:1000,invitedId:'999',character:'<script>'})});
   assert.equal(res.statusCode,200);assert.deepEqual(invited,b);
 });
 
@@ -107,14 +107,24 @@ test('cinema never reveals concealed hands, rotates all edits and respects calm 
  const game={id:'test',phase:'reveal',round:1,variant:0,cutAt:1000,revealAt:2500};
  const sequences=new Set();
  for(let round=1;round<=6;round++) {
-  const shots=[1100,1500,2000].map(now=>cinema.plan({...game,round},now));
+  const shots=[1100,1700,2200].map(now=>cinema.plan({...game,round},now));
   assert.ok(shots.every(p=>!p.picks&&p.shot!=='hands'));sequences.add(shots.map(p=>p.shot).join(','));
  }
  assert.equal(sequences.size,6);assert.equal(cinema.plan(game,99999).picks,undefined);
  assert.equal(cinema.plan(game,1600,true).shot,'wide');
  const revealed={...game,picks:['rock','paper'],roundWinner:1};
  assert.equal(cinema.plan(revealed,2600).reactions,false);
- assert.deepEqual(cinema.plan(revealed,3400).reactionFrames,[3,7]);
- assert.equal(cinema.plan(revealed,3400,true).reactions,false);
- assert.equal(cinema.plan({...revealed,phase:'choosing'},3400).shot,'wide');
+ assert.deepEqual(cinema.plan(revealed,3900).reactionFrames,[3,7]);
+ assert.equal(cinema.plan(revealed,3900,true).reactions,false);
+ assert.equal(cinema.plan({...revealed,phase:'choosing'},3900).shot,'wide');
+});
+
+test('human wagers are required and validated; bot flags cannot bypass rival wagers',async()=>{
+ const handler=createHandler({authenticate:async()=>a});
+ for(const wager of [undefined,0,999,1001,51000,'1000']) {
+  const result=await handler({httpMethod:'POST',body:JSON.stringify({action:'create',wager})});assert.equal(result.statusCode,400);
+ }
+ const bypass=await handler({httpMethod:'POST',body:JSON.stringify({action:'challenge',bot:true})});assert.equal(bypass.statusCode,400);
+ const native=require('../netlify/functions/rps-action.js').default;
+ const response=await native(new Request('https://example.test/rps-action'));assert.equal(response.status,405);assert.equal(response.headers.get('X-RPS-Build'),'HAND_OF_DOOM_V4_20261010');
 });
