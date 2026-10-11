@@ -12714,7 +12714,8 @@ function createSparkle(x, y) {
       } else {
         duelActive.innerHTML = `<p class="duel-status">Loading your current multiplayer game…</p>`;
       }
-      duelRefresh(false);
+      // Entry refresh is background work; never overwrite an invitation's join result.
+      duelRefresh(true);
       if (duelPollTimer) clearInterval(duelPollTimer);
       window.__duelPollRate = 0;
       duelSetPollRate(null);
