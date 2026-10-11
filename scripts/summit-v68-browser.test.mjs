@@ -27,11 +27,11 @@ try{
  // Immediate keyboard taps and selectable queue-card jumps, with jitter on releases.
  round++;state=model.createMountainRaceState({playerIds:['a','b'],countdownMs:0});state.sequence.fill('up');for(let i=0;i<pages.length;i++)await pages[i].evaluate(g=>{window.confirmedRevision=0;window.MountainRaceMultiplayer.adopt(g);},game(i?'b':'a'));
  await pages[0].keyboard.down('ArrowUp');
- assert.equal(Number(await pages[0].locator('.m68-key').first().getAttribute('data-mr-displayed-index')),1,'Ordinary arrows respond before keyup or server confirmation');
+ assert.equal(Number(await pages[0].locator('.m68-key').first().getAttribute('data-mr-displayed-index')),0,'Direction press waits to distinguish a tap from a hold');
  const repeat=await pages[0].evaluate(()=>{const e=new KeyboardEvent('keydown',{key:'ArrowUp',code:'ArrowUp',repeat:true,bubbles:true,cancelable:true});document.dispatchEvent(e);return e.defaultPrevented;});
  assert.equal(repeat,true,'Held arrows must suppress browser scrolling');
- assert.equal(Number(await pages[0].locator('.m68-key').first().getAttribute('data-mr-displayed-index')),1,'Auto-repeat must not create extra moves');
- await pages[0].keyboard.up('ArrowUp');await pages[0].waitForFunction(()=>window.confirmedRevision>0);
+ assert.equal(Number(await pages[0].locator('.m68-key').first().getAttribute('data-mr-displayed-index')),0,'Auto-repeat must not create extra moves');
+ await pages[0].keyboard.up('ArrowUp');assert.equal(Number(await pages[0].locator('.m68-key').first().getAttribute('data-mr-displayed-index')),1,'Quick taps animate on release before server confirmation');await pages[0].waitForFunction(()=>window.confirmedRevision>0);
  releaseDelay=600;
  async function jump(i,distance,keyboard=false,followup=false){
   const p=pages[i],id=i?'b':'a',from=state.players[id].promptIndex;
@@ -70,5 +70,15 @@ try{
  const beforeCancel=state.players.b.promptIndex,rejections=state.players.b.rejectedInputs;
  await pages[1].keyboard.down('3');await pages[1].evaluate(()=>window.dispatchEvent(new Event('blur')));await pages[1].keyboard.up('3');await pages[1].waitForTimeout(350);
  assert.equal(state.players.b.promptIndex,beforeCancel);assert.equal(state.players.b.rejectedInputs,rejections);
+ // Holding an actual directional key targets a farther ledge without first missing.
+ round++;state=model.createMountainRaceState({playerIds:['a','b'],countdownMs:0});state.sequence=['up','left','down','right',...state.sequence.slice(4)];
+ for(let i=0;i<pages.length;i++)await pages[i].evaluate(g=>{window.confirmedRevision=0;window.MountainRaceMultiplayer.adopt(g);},game(i?'b':'a'));
+ const scroll=await pages[0].evaluate(()=>scrollY);await pages[0].keyboard.down('ArrowLeft');await pages[0].keyboard.down('ArrowLeft');
+ await pages[0].waitForFunction(()=>document.querySelector('[data-mr-jump="2"]')?.dataset.green==='true',null,{polling:'raf'});await pages[0].keyboard.up('ArrowLeft');
+ await pages[0].waitForFunction(()=>window.confirmedRevision>=2);assert.equal(state.players.a.promptIndex,2);assert.equal(state.players.a.rejectedInputs,0);assert.equal(await pages[0].evaluate(()=>scrollY),scroll);
+ const touch=pages[1],pad=await touch.locator('[data-mr-network-input="right"]').boundingBox(),touchSession=await touch.context().newCDPSession(touch);
+ await touchSession.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:pad.x+pad.width/2,y:pad.y+pad.height/2}]});
+ await touch.waitForFunction(()=>document.querySelector('[data-mr-jump="4"]')?.dataset.green==='true',null,{polling:'raf'});await touchSession.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+ await touch.waitForFunction(()=>window.confirmedRevision>=4);assert.equal(state.players.b.promptIndex,4);assert.equal(state.players.b.rejectedInputs,0);
  round++;state=model.createMountainRaceState({playerIds:['a','b'],countdownMs:0});stamp=Date.now();for(let i=0;i<pages.length;i++)await pages[i].evaluate(g=>{window.confirmedRevision=0;window.MountainRaceMultiplayer.adopt(g);},game(i?'b':'a'));await tap(1);assert.equal(state.players.b.promptIndex,1);assert.deepEqual(errors,[]);console.log('Summit V72 passed: immediate arrows, selectable 2/3/4 ledges, repeated directions, keyboard/touch, 600 ms release jitter, buffered follow-up, cancellation, enforced recovery, desktop/mobile, two synchronized views, real authoritative inputs, wrong-input slip, complete race, correct result labels, confetti, rematch and responsive controls. '+out);
 }finally{await browser.close();await new Promise(r=>server.close(r));}

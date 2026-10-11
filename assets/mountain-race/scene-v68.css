@@ -51,3 +51,8 @@
 @media(max-width:600px){.m68-deck{gap:8px;padding-block:12px}}
 
 @media(max-width:600px){#duelScreen.hub-has-game [data-mr-scene="68"] .m68-lane{height:clamp(220px,calc(100dvh - 568px),350px)}}
+
+/* SUMMIT_SPRINT_V74: retain the mountain beneath waiting/Ready controls. */
+.summit-clean [data-summit-lobby]{padding:12px 16px;background:#30261e;border:1px solid #756149;border-radius:12px;margin-bottom:10px}
+.summit-clean [data-summit-lobby] .duel-ready-panel{margin-top:0}
+.m71-hint{font-size:11px;line-height:1.4}

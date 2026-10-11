@@ -23,6 +23,12 @@
   // MOUNTAIN_RACE_INPUT_REBASE_V8
 
   const MODE = 'mountainrace';
+  window.__mountainRaceBuild = 'SUMMIT_SPRINT_V74';
+  function traceInput(type, details = {}) {
+    const entries = window.__mountainRaceInputDiagnostics ||= [];
+    entries.push({type, at:new Date().toISOString(), ...details});
+    if (entries.length > 40) entries.shift();
+  }
   const STATE_EVENT = 'mountainrace:state';
   const CONTROLS = Object.freeze(['up', 'left', 'right', 'down']);
   const KEY_MAP = Object.freeze({
@@ -53,9 +59,10 @@
     inputBatchInFlight: [],
     inputQueueBlocked: false
   };
-  // SUMMIT_SPRINT_V72: immediate queue-card jumps, ordered confirmation and recovery.
+  // SUMMIT_SPRINT_V74: directional holds, queue-card jumps and ordered confirmation.
   const JUMP_WINDOWS = {2:[260,440],3:[380,510],4:[500,590]};
-  let heldInput = null, chargeFrame = 0, recoveryTimer = 0, localRecoveryUntil = 0;
+  let heldInput = null, directionHold = null, chargeFrame = 0, recoveryTimer = 0, localRecoveryUntil = 0;
+  let keyboardGameId = '';
   function recovering() { return Math.max(localRecoveryUntil - performance.now(), (Date.parse(state().me?.recoverUntil || '') || 0) - serverNowMs()) > 0; }
 
   function escapeHtml(value) {
@@ -475,6 +482,8 @@
 
   function statusText(publicState) {
     if (runtime.syncNotice) return runtime.syncNotice;
+    if (runtime.game?.status === 'waiting') return 'Your mountain is ready. Waiting for an opponent to join.';
+    if (runtime.game?.status === 'ready') return 'Both climbers are here. Press Ready above to start.';
     if (runtime.game?.status === 'complete' && !runtime.resultRevealReady) return 'Summit confirmed — finishing the climb!';
     if (runtime.inputQueue.length) {
       if (runtime.inputQueueBlocked) return 'Regain your grip — confirming the slip before the next arrow.';
@@ -1379,6 +1388,11 @@
 
     if (window.SummitSceneV68) {
       window.SummitSceneV68.render(root, {game:runtime.game,total,me,opponent,prompts,enabled:controlsEnabled,tone,status:recovering()?'Regain your grip · 0.5s recovery':statusText(publicState),overlays:countdownOverlay()+resultOverlay(publicState,me,total),seconds:secondsLeft()});
+      if (runtime.game.status === 'playing' && keyboardGameId !== runtime.game.gameId) {
+        keyboardGameId = runtime.game.gameId;
+        root.tabIndex = -1;
+        root.focus({preventScroll:true});
+      }
       if (recovering()) { window.clearTimeout(recoveryTimer); recoveryTimer = window.setTimeout(render, 50); }
       return;
     }
@@ -1650,6 +1664,35 @@
     scheduleInputFlush(true);
   }
 
+  function beginDirection(token, displayed, source) {
+    if (directionHold || heldInput || recovering() || runtime.inputQueueBlocked || !state().canSubmit || runtime.game?.status !== 'playing') return;
+    const gesture = {token, displayed, source};
+    directionHold = gesture;
+    // Quick taps resolve on release. Holding selects the nearest matching ledge
+    // beyond the next one, without first submitting it as a wrong single step.
+    gesture.timer = window.setTimeout(() => {
+      if (directionHold !== gesture) return;
+      gesture.held = true;
+      const pub = state(), view = optimisticPresentation(pub, pub.inputPrompts || pub.prompts || [], Number(pub.stepsTotal) || 30);
+      const offset = view.prompts.slice(0,4).findIndex((t,i) => i > 0 && t === token);
+      traceInput('direction-hold', {token, distance:offset > 0 ? offset+1 : null});
+      if (offset > 0) beginHold(offset + 1, source);
+      else {
+        runtime.syncNotice = `No farther ${token.toUpperCase()} ledge in the next four. Tap the next arrow or hold a jump card.`;
+        render();
+      }
+    }, 120);
+  }
+
+  function finishDirection(cancel = false, source = directionHold?.source) {
+    const gesture = directionHold;
+    if (!gesture || gesture.source !== source) return;
+    window.clearTimeout(gesture.timer);
+    directionHold = null;
+    if (heldInput?.source === source) finishHold(cancel);
+    else if (!cancel && !gesture.held) submit(gesture.token, gesture.displayed);
+  }
+
   function beginHold(distance, source) {
     if (heldInput || recovering() || runtime.inputQueueBlocked || !state().canSubmit || runtime.game?.status !== 'playing') return;
     const pub = state(), total = Number(pub.stepsTotal) || 30;
@@ -1663,6 +1706,8 @@
       released: false, visualAge: 0, lastFrame: performance.now() };
     hold.releasePromise = new Promise(resolve => { hold.resolveRelease = resolve; });
     heldInput = hold;
+    runtime.syncNotice = '';
+    traceInput('charge-start', {token, distance, fromIndex:hold.fromIndex});
     runtime.inputQueue.push(hold);
     syncPendingCompatibility();
     render();
@@ -1708,7 +1753,7 @@
     const age = hold.visualAge += Math.min(50, now - hold.lastFrame);
     hold.lastFrame = now;
     window.SummitSceneV68?.setCharge?.(runtime.root, {distance:hold.distance,fromIndex:hold.fromIndex,
-      token:hold.token, age, window:JUMP_WINDOWS[hold.distance]});
+      token:hold.token, directional:directionHold?.source===hold.source, age, window:JUMP_WINDOWS[hold.distance]});
     if (age > 850) { finishHold(false, hold); return; }
     chargeFrame = window.requestAnimationFrame(animateCharge);
   }
@@ -1718,6 +1763,7 @@
     hold.chargeMs = hold.visualAge;
     const [min,max] = JUMP_WINDOWS[hold.distance];
     hold.correct = hold.chargeMs >= min && hold.chargeMs <= max;
+    traceInput('charge-release', {distance:hold.distance, chargeMs:Math.round(hold.chargeMs), inGreen:hold.correct, canceled:cancel});
     hold.canceled = cancel;
     hold.released = true;
     hold.charging = false;
@@ -1754,11 +1800,11 @@
       event.preventDefault();
       if (event.button !== 0) return;
       input.setPointerCapture?.(event.pointerId);
-      submit(input.dataset.mrNetworkInput, {
+      beginDirection(input.dataset.mrNetworkInput, {
         expected: input.dataset.mrDisplayedExpected || '',
         promptIndex: input.dataset.mrDisplayedIndex,
         roundId: input.dataset.mrDisplayedRound || ''
-      });
+      }, `pointer:${event.pointerId}`);
       return;
     }
     if (event.target.closest('[data-mr-rematch]')) {
@@ -1773,6 +1819,7 @@
   }
 
   function onKeyDown(event) {
+    if (runtime.game?.status !== 'playing' || !runtime.root?.isConnected || runtime.root.closest('[hidden]')) return;
     if (/^(INPUT|TEXTAREA|SELECT)$/.test(event.target?.tagName) || event.target?.isContentEditable) return;
     const distance = Number(event.key);
     const card = event.target.closest?.('[data-mr-jump]');
@@ -1792,7 +1839,7 @@
     // Held arrow keys still emit repeats. Consume them before returning so the
     // browser cannot scroll the course or accidentally submit extra moves.
     if (event.repeat) return;
-    submit(token);
+    beginDirection(token, null, `key:${event.code || event.key}`);
   }
 
   function updateClock() {
@@ -1831,6 +1878,7 @@
     }
 
     if (gameChanged) {
+      finishDirection(true);
       finishHold(true);
       localRecoveryUntil = 0;
       clearInputQueue();
@@ -1879,13 +1927,13 @@
 
   window.addEventListener(STATE_EVENT, event => adopt(event?.detail?.game, { source: 'state-event' }));
   document.addEventListener('pointerdown', onPointerDown, { passive: false });
-  document.addEventListener('pointerup', event => { if (heldInput?.source === `pointer:${event.pointerId}`) finishHold(); });
-  document.addEventListener('pointercancel', event => { if (heldInput?.source === `pointer:${event.pointerId}`) finishHold(true); });
-  window.addEventListener('keydown', onKeyDown, { passive: false });
-  window.addEventListener('keyup', event => { if (heldInput?.source === `key:${event.code || event.key}`) { event.preventDefault(); finishHold(); } });
-  window.addEventListener('blur', () => finishHold(true));
+  document.addEventListener('pointerup', event => { const source=`pointer:${event.pointerId}`;finishDirection(false,source);if (heldInput?.source === source) finishHold(); });
+  document.addEventListener('pointercancel', event => { const source=`pointer:${event.pointerId}`;finishDirection(true,source);if (heldInput?.source === source) finishHold(true); });
+  window.addEventListener('keydown', onKeyDown, { passive: false, capture: true });
+  window.addEventListener('keyup', event => { const source=`key:${event.code || event.key}`;if(directionHold?.source===source||heldInput?.source===source){event.preventDefault();finishDirection(false,source);if(heldInput?.source===source)finishHold();} });
+  window.addEventListener('blur', () => { finishDirection(true);finishHold(true); });
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) finishHold(true);
+    if (document.hidden) { finishDirection(true);finishHold(true); }
     if (!document.hidden && runtime.game) window.__mountainRaceBridge?.refresh?.();
   });
 

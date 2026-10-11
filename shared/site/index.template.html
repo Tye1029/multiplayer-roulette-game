@@ -6632,8 +6632,8 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
 <!-- MOUNTAIN_RACE_MULTIPLAYER_ASSETS_START -->
 <link id="mountainRaceStyles" rel="stylesheet" href="/assets/mountain-race/mountain-race.css?v=3&multiplayer=1&gameplay=3">
   <link id="mountainRaceSceneStyles" rel="stylesheet" href="/assets/mountain-race/mountain-race-scene-v65.css?v=1">
-  <link rel="stylesheet" href="/assets/mountain-race/scene-v68.css?v=9"><script src="/assets/mountain-race/scene-v68.js?v=9" defer></script>
-  <script id="mountainRaceMultiplayerRuntime" src="/assets/mountain-race/mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=11&scene=65&holds=30&presentation=73" defer></script>
+  <link rel="stylesheet" href="/assets/mountain-race/scene-v68.css?v=10"><script src="/assets/mountain-race/scene-v68.js?v=10" defer></script>
+  <script id="mountainRaceMultiplayerRuntime" src="/assets/mountain-race/mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=11&scene=65&holds=30&presentation=74" defer></script>
 <!-- MOUNTAIN_RACE_MULTIPLAYER_ASSETS_END -->
 <!-- BLACKJACK_DUEL_ASSETS_START -->
   <link id="blackjackDuelStyles" rel="stylesheet" href="/assets/blackjack-duel/blackjack-duel.css?v=blackjack-duel-v17">
@@ -10876,7 +10876,7 @@ function createSparkle(x, y) {
       if (mode === "mines") return `<div class="duel-mode-art"><div class="duel-mines-preview"><span></span><span class="safe"></span><span></span><span class="safe"></span><span></span><span class="safe"></span><span></span><span></span><span class="safe"></span></div><div class="duel-simple">Each side runs a mine board. Most safe tiles wins.</div></div>`;
       if (mode === "memory") return `<div class="duel-mode-art"><div class="duel-memory-preview"><span>?</span><span>★</span><span>?</span><span>★</span><span>?</span><span>?</span></div><div class="duel-simple">Match as many symbols as you can.</div></div>`;
       if (mode === "safecracker") return `<div data-safe-cracker-mount></div>`;
-      if (mode === "mountainrace") return ["countdown","playing","complete"].includes(String(game?.status || "")) ? `<div data-mountain-race-mount></div>` : `<div class="duel-mode-art"><div class="duel-safe-preview">⛰️</div><div class="duel-simple">Hit the directional holds in order and climb to the summit before your opponent.</div></div>`;
+      if (mode === "mountainrace") return `<div data-mountain-race-mount></div>`;
       if (mode === "cardwar") return `<div class="duel-mode-art"><div class="duel-cardwar-preview"><span>2</span><span>5</span><span>8</span><span>11</span><span>14</span></div><div class="duel-simple">Play one hidden card. Highest card wins, but your opponent may save a higher card.</div></div>`;
       return `<div class="duel-mode-art"><div class="duel-simple-mode"><div class="duel-simple-icon">🎮</div><div class="duel-simple-title">${escapeHtml((DUEL_MODES_UI[mode] || DUEL_MODES_UI.coin).name)}</div></div></div>`;
     }
@@ -11669,6 +11669,7 @@ function createSparkle(x, y) {
       if (game?.mode === 'mountainrace'
         && ['countdown','playing','complete'].includes(String(game.status || ''))
         && duelActive.querySelector('[data-mountain-race-mount] > .m68-game')
+        && !duelActive.querySelector('[data-summit-lobby]')
         && duelGenericMountedGameMatches(game)) {
         duelLastActiveGame = game;
         duelLastRenderKey = nextKey;
@@ -11818,9 +11819,10 @@ function createSparkle(x, y) {
       } else if (game.mode === "roulette") {
         rouletteLatestGame = game;
         duelActive.innerHTML = `<div class="duel-arena roulette-clean"><div class="duel-status"><b>${escapeHtml(game.modeName || "Russian Roulette")}</b> • Pot ${money(game.pot || game.wager || 0)}</div><div data-duel-roulette-art>${duelModeArt(game)}</div>${testControlHtml}${body}${npcRecoveryHtml}</div>`;
-      } else if (game.mode === "mountainrace" && ["countdown", "playing", "complete"].includes(String(game.status || ""))) {
+      } else if (game.mode === "mountainrace" && ["waiting", "ready", "countdown", "playing", "complete"].includes(String(game.status || ""))) {
         duelGenericMountId += 1;
         duelActive.innerHTML = `<div class="duel-arena summit-clean" data-duel-generic-game="1" data-duel-game-id="${escapeHtml(String(game.gameId || ""))}" data-duel-mode="mountainrace" data-duel-epoch="${genericEpoch}">
+          ${["waiting", "ready"].includes(game.status) ? `<div data-summit-lobby>${body}</div>` : ""}
           ${duelModeArt(game)}
           ${npcRecoveryHtml}
         </div>`;
@@ -13360,7 +13362,7 @@ async function rnbFetchAuthoritativeGame(gameId){
    if(g.mode==='mountainrace'){
     const st=g.mountainraceState&&typeof g.mountainraceState==='object'?g.mountainraceState:{};
     const climber=value=>value&&typeof value==='object'?{playerId:String(value.playerId||''),name:String(value.name||''),badge:String(value.badge||''),isBot:Boolean(value.isBot),promptIndex:Number(value.promptIndex||0),acceptedInputs:Number(value.acceptedInputs||0),rejectedInputs:Number(value.rejectedInputs||0),lastInput:value.lastInput||null,finishedAt:value.finishedAt||null}:null;
-    return{roundId:String(st.roundId||''),revision:Number(st.revision||0),startAt:st.startAt||null,endAt:st.endAt||null,secondsLeft:Number(st.secondsLeft||0),stepsTotal:Number(st.stepsTotal||30),canSubmit:Boolean(st.canSubmit),prompts:Array.isArray(st.prompts)?st.prompts:[],me:climber(st.me),opponent:climber(st.opponent),winnerUserId:String(st.winnerUserId||''),viewerWon:Boolean(st.viewerWon),tie:Boolean(st.tie),networkBotLog:st.networkBotLog||null,completedAt:st.completedAt||null,rejectedSnapshots:Number(window.__mountainRaceRejectedSnapshots||0),sharedRejectedSnapshots:Number(window.__mountainRaceSharedRejectedSnapshots||0)};
+    return{roundId:String(st.roundId||''),revision:Number(st.revision||0),startAt:st.startAt||null,endAt:st.endAt||null,secondsLeft:Number(st.secondsLeft||0),stepsTotal:Number(st.stepsTotal||30),canSubmit:Boolean(st.canSubmit),prompts:Array.isArray(st.prompts)?st.prompts:[],me:climber(st.me),opponent:climber(st.opponent),winnerUserId:String(st.winnerUserId||''),viewerWon:Boolean(st.viewerWon),tie:Boolean(st.tie),networkBotLog:st.networkBotLog||null,completedAt:st.completedAt||null,rejectedSnapshots:Number(window.__mountainRaceRejectedSnapshots||0),sharedRejectedSnapshots:Number(window.__mountainRaceSharedRejectedSnapshots||0),clientBuild:window.__mountainRaceBuild||'unknown',inputDiagnostics:(window.__mountainRaceInputDiagnostics||[]).slice(-40)};
    }
    if(g.mode!=='safecracker')return g.rouletteState||g.drawState||g.fishingState||{};
    const st=g.safecrackerState&&typeof g.safecrackerState==='object'?g.safecrackerState:{};

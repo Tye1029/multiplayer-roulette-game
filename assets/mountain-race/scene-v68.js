@@ -11,7 +11,7 @@
  function build(root,total){
   root.dataset.mrScene='68';delete root.dataset.mrApprovedScene;
   root.innerHTML=`<div class="mountain-race-game m68-game" data-authoritative="1"><header class="m68-header"><div><h2>Summit Sprint</h2><span class="m68-stakes" hidden></span></div><div class="m68-clock"><small>TIME LEFT</small><b data-mr-clock>30</b></div></header><div class="m68-racers"></div><div class="m68-stage"></div><section class="m68-deck" aria-label="Climbing controls"><div><small>NEXT FOUR MOVES</small><div class="m68-queue"></div><p class="m68-status" role="status"></p></div><div class="m68-pad">${['up','left','down','right'].map(t=>`<button type="button" class="m68-key m68-${t}" data-mr-network-input="${t}"><b>${arrow(t)}</b><small>${t}</small></button>`).join('')}</div></section><div class="m68-overlays"></div></div>`;
-  root.querySelector('.m68-deck>div').insertAdjacentHTML('beforeend','<p class="m71-hint" role="status">Arrows: tap to climb. Jumps: hold 2, 3 or 4 (or a card), release in green.</p>');
+  root.querySelector('.m68-deck>div').insertAdjacentHTML('beforeend','<p class="m71-hint" role="status">Tap arrows to climb. Hold a farther direction or a 2×–4× card; release in green.</p>');
   const v={total,height:3400,width:3400/3,overlay:'',gameId:'',lanes:[]};
   v.lanes=['me','opponent'].map((side,i)=>{
    const card=document.createElement('div');card.className='m68-player '+side;card.innerHTML='<div><strong></strong><span></span></div><div class="m68-progress"><i></i></div>';root.querySelector('.m68-racers').append(card);
@@ -55,19 +55,20 @@
   if(q.dataset.key!==key){q.dataset.key=key;q.innerHTML=prompts.map((t,i)=>`<button type="button" class="m72-move ${i===0?'next':''}" data-mr-jump="${i+1}" data-token="${t}" aria-label="${i===0?'Tap to climb '+t:'Hold to jump '+(i+1)+' ledges '+t+'; release in green'}"><span>${arrow(t)}<small>${i===0?t:(i+1)+'×'}</small></span><i aria-hidden="true"></i></button>`).join('') || `<p class="m70-queue-note">${game.status==='complete'?'Race complete':game.status==='playing'?'Syncing next moves…':'Moves appear when the race starts'}</p>`;}
   q.querySelectorAll('button').forEach(b=>{b.disabled=!enabled&&!b.classList.contains('charging');});
   root.querySelector('.m68-status').textContent=status;root.querySelector('.m68-status').dataset.tone=tone;
-  root.querySelectorAll('[data-mr-network-input]').forEach(b=>{b.disabled=!enabled;b.dataset.mrDisplayedExpected=prompts[0]||'';b.dataset.mrDisplayedIndex=me.promptIndex;b.dataset.mrDisplayedRound=game.mountainraceState.roundId||'';});
+  root.querySelectorAll('[data-mr-network-input]').forEach(b=>{b.disabled=!enabled&&!b.classList.contains('charging');b.dataset.mrDisplayedExpected=prompts[0]||'';b.dataset.mrDisplayedIndex=me.promptIndex;b.dataset.mrDisplayedRound=game.mountainraceState.roundId||'';});
   if(v.overlay!==overlays){v.overlay=overlays;root.querySelector('.m68-overlays').innerHTML=overlays;}
  }
  function setCharge(root,charge){
   if(!root)return;
   const [min,max]=charge?.window||[0,0],green=Boolean(charge&&charge.age>=min&&charge.age<=max);
+  root.querySelectorAll('[data-mr-network-input]').forEach(b=>{const active=Boolean(charge?.directional&&b.dataset.mrNetworkInput===charge.token);b.classList.toggle('charging',active);if(active)b.disabled=false;});
   root.querySelectorAll('[data-mr-jump]').forEach(b=>{
    const active=Boolean(charge&&Number(b.dataset.mrJump)===charge.distance);
    b.classList.toggle('charging',active);b.dataset.green=String(active&&green);
    if(active){b.disabled=false;b.style.setProperty('--charge-angle',Math.min(360,charge.age/850*360)+'deg');b.style.setProperty('--green-start',min/850*360+'deg');b.style.setProperty('--green-end',max/850*360+'deg');}
   });
   const v=layouts.get(root);if(v)v.lanes[0].holds.forEach((h,j)=>h.classList.toggle('jump-target',Boolean(charge&&j===charge.fromIndex+charge.distance-1)));
-  const hint=root.querySelector('.m71-hint');if(hint)hint.textContent=!charge?'Arrows: tap to climb. Jumps: hold 2, 3 or 4 (or a card), release in green.':green?'RELEASE!':charge.age>max?'Too late!':`Hold for ${charge.distance} ledges…`;
+  const hint=root.querySelector('.m71-hint');if(hint)hint.textContent=!charge?'Tap arrows to climb. Hold a farther direction or a 2×–4× card; release in green.':green?'RELEASE!':charge.age>max?'Too late!':`Hold for ${charge.distance} ledges…`;
  }
  function resultOverlay(game,state,total){
   const outcome=state.tie?'tie':state.viewerWon?'win':'loss',title=state.tie?'A DEAD HEAT':state.viewerWon?'YOU WIN!':'YOU LOST THE RACE';
