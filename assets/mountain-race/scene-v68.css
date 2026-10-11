@@ -50,7 +50,7 @@
 @media(max-width:600px){.m71-hint{margin:6px auto 0;font-size:9px;min-height:13px}.m68-queue{gap:10px}.m68-queue .m72-move{width:50px;height:50px}.m68-queue .m72-move>span{width:40px;height:40px}}
 @media(max-width:600px){.m68-deck{gap:8px;padding-block:12px}}
 
-@media(max-width:600px){#duelScreen.hub-has-game [data-mr-scene="68"] .m68-lane{height:clamp(220px,calc(100dvh - 568px),350px)}}
+@media(max-width:600px){#duelScreen.hub-has-game [data-mr-scene="68"] .m68-lane{height:clamp(180px,calc(100dvh - 600px),350px)}}
 
 /* SUMMIT_SPRINT_V74: retain the mountain beneath waiting/Ready controls. */
 .summit-clean [data-summit-lobby]{padding:12px 16px;background:#30261e;border:1px solid #756149;border-radius:12px;margin-bottom:10px}
