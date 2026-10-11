@@ -105,7 +105,7 @@ function act(s,id,b,roll=randomDie,now=Date.now()){
   fail('Unknown action.',400);
 }
 function publicState(s,id,now=Date.now()){
-  const {requests,botStep,botAt,...view}=s;
-  return {...view,you:id,serverNow:now,players:s.players.map(p=>({...p,yahtzeeBonus:p.bonus,...rules.totals(p)}))};
+  const {requests,botStep,botAt,finance,...view}=s;
+  return {...view,...require('../shared/table-finance').publicState(s),you:id,serverNow:now,players:s.players.map(p=>({...p,yahtzeeBonus:p.bonus,...rules.totals(p)}))};
 }
 module.exports={fail,player,fresh,begin,act,advance,publicState,ROUND_MS,BREAK_MS,COUNTDOWN_MS};

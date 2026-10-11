@@ -101,7 +101,7 @@ const duelActionHandler = async (event) => {
     const update=async()=>{
     if (action === "list") result = await duelListGames(user);
     else if (action === "get") result = await duelGetGame(user, body.gameId, { asTestPlayer: Boolean(body.controlTestPlayer), knownRevision: body.knownRevision });
-    else if (action === "create") result = await duelCreateGame(user, { mode: body.mode, wager: body.wager, lastWithdrawal: body.lastWithdrawal, clientGameId: body.gameId });
+    else if (action === "create") result = await duelCreateGame(user, { mode: body.mode, wager: body.wager, private: body.private === true, lastWithdrawal: body.lastWithdrawal, clientGameId: body.gameId });
     else if (action === "cancel") result = await duelCancelGame(user, body.gameId);
     else if (action === "recover-npc") result = await duelAbandonNpcGame(user, body.gameId);
     else if (action === "join") result = await duelJoinGame(user, body.gameId);

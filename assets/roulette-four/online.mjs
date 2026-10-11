@@ -5,11 +5,17 @@ import {animateRoom} from './room.mjs';
 import {installDebug} from './debug.mjs';
 const $=id=>document.getElementById(id),chips=n=>Number(n||0).toLocaleString()+' Chips';
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let me=null,game=null,busy=false,timer,revision=-1,lastAction=0,seatsKey='',angle=270;
+let me=null,game=null,busy=false,timer,revision=-1,lastAction=0,seatsKey='',angle=270,resultAudio;
 let id=new URLSearchParams(location.search).get('room')||'',requestId=crypto.randomUUID().replace(/-/g,'').slice(0,24);
 const debug=installDebug(()=>({version:'XAN_FOUR_ONLINE_V1',gameId:id,phase:game?.phase,revision:game?.revision,players:game?.players.length,online:navigator.onLine}));
 const trace=(type,details)=>debug.record(type,details),audio=createTableAudio(trace),gun=createGun(trace),atmosphere=animateRoom();
-window.XanSiteAdapter={current:()=>({mode:'roulette-four',id:game?.seated?id:'',phase:game?.phase||'lobby'})};
+window.XanSiteAdapter={
+ current:()=>({mode:'roulette-four',id:game?.seated?id:'',phase:game?.phase||'lobby'}),
+ view:()=>game?.seated?{id:game.id,phase:game.phase,private:game.private,wager:game.wager,capacity:4,players:game.players.map(p=>({...p,avatar:p.avatar||'/assets/roulette-four/images/'+['amber','mint','rose','violet'][game.players.indexOf(p)]+'.svg'})),votes:game.rematchVotes,finished:game.phase==='complete',settlement:game.settled?'settled':'reserved',payout:game.payouts[me.id]||0}:{},
+ create:async options=>{id='';await api('create',{...options,requestId});requestId=crypto.randomUUID().replace(/-/g,'').slice(0,24);},
+ quote:async code=>{const token=await window.XanHub.authenticate(),d=await window.XanHub.post('roulette-four-action',{action:'get',gameId:code.toUpperCase(),token});return {id:d.game.id,name:d.game.players[0].name,wager:d.game.wager,houseCutPercent:d.game.rate};},
+ join:async(code,wager)=>{id=code.toUpperCase();await api('join',{wager});},help:()=>$('rules').click(),resultRoot:()=>$('result-dialog')
+};
 async function api(action,extra={}){
  const token=await window.XanHub.authenticate();const data=await window.XanHub.post('roulette-four-action',{action,token,gameId:id,...extra});me=data.player;accept(data.game);return data;
 }
@@ -49,7 +55,7 @@ function accept(s){
  if(s.activeId&&s.activeId!==prior?.activeId){angle=270+['down','left','up','right'].indexOf(direction(s.players.find(p=>p.id===s.activeId)))*90;const duration=s.phase==='opening'?2000:600;$('gun').style.transitionDuration=duration+'ms';$('gun').style.transform=`rotate(${angle+(s.phase==='opening'?720:0)}deg)`;audio.play('wood',{duration,volume:.2});}
  const e=s.lastAction;if(e&&e.number>lastAction){lastAction=e.number;if(e.action==='shoot'){gun.strike(e.fatal);audio.play(e.fatal?'live':'dry',{duration:900,volume:.3});$('scene').classList.toggle('is-fatal',!!e.fatal);}if(e.action==='spin'){gun.roll(850);audio.play('spin',{duration:850,volume:.2});}}
  render();if(s.phase==='complete'&&prior?.phase!=='complete')window.XanHub.refresh();
- if(s.phase==='complete'&&prior?.phase!=='complete')setTimeout(()=>{if(game?.id===s.id&&!$('result-dialog').open)$('result-dialog').showModal();},1200);
+ if(s.phase==='complete'&&prior?.phase!=='complete')setTimeout(()=>{if(game?.id!==s.id)return;if(!$('result-dialog').open)$('result-dialog').showModal();if(!document.hidden&&!window.XanPreferences.muted){resultAudio?.pause();resultAudio=new Audio('/assets/bluff/audio/'+(s.players.find(p=>p.id===me.id)?.eliminated?'lose':'win')+'.wav');resultAudio.volume=.38;resultAudio.play().catch(()=>{});}},1200);
  if(s.nextMatch&&s.nextMatch!==id){id=s.nextMatch;revision=-1;game=null;seatsKey='';$('result-dialog').close();poll();}
  if(!s.seated&&s.reason)status(s.reason);
 }
@@ -59,7 +65,7 @@ $('gun-options').onchange=e=>gun.select(e.target.value);
 for(const a of ['shoot','spin','pass'])$(a).onclick=()=>act(a);
 $('rules').onclick=()=>{$('rules-dialog').querySelectorAll('li')[2].textContent='Safe-shot rewards start at one fifth of the wager and increase by that amount with each safe shot.';$('rules-dialog').querySelectorAll('li')[3].textContent='Each player may spin once. Spinning randomizes the chamber and resets the award to one fifth of the wager.';$('rules-dialog').showModal();};$('close-rules').onclick=()=>$('rules-dialog').close();
 $('sound').onclick=()=>{window.XanPreferences.sound(window.XanPreferences.muted);audio.unlock();$('sound').textContent=window.XanPreferences.muted?'Sound off':'Sound on';};
-for(const name of ['new-table','result-new-table'])$(name).onclick=()=>location.assign('/');
+for(const name of ['new-table','result-new-table'])$(name).onclick=()=>location.assign(location.pathname);
 $('reopen-results').onclick=()=>$('result-dialog').showModal();$('view-table').onclick=()=>$('result-dialog').close();
 $('rematch').onclick=async()=>{busy=true;render();try{await api('rematch',{wager:game.wager});}catch(e){status(e.message);}finally{busy=false;render();}};
 document.querySelector('footer>span').textContent='Server-controlled turns · shared Chip wagers';
@@ -70,9 +76,9 @@ const label=document.createElement('label');label.textContent='Wager per player 
 form.onsubmit=async e=>{e.preventDefault();if(busy)return;busy=true;form.querySelector('button').disabled=true;try{await audio.unlock();await gun.ready();await api(id?'join':'create',{wager:Number(input.value),requestId});window.XanHub.refresh();}catch(e){status(e.message);}finally{busy=false;form.querySelector('button').disabled=false;render();}};
 async function init(){
  if(!window.XanHub){setTimeout(init,50);return;}
- document.querySelector('.hub-create-controls').append($('welcome'));$('welcome').setAttribute('open','');gun.ready().catch(()=>{});form.querySelector('button').textContent=id?'Accept wager & join':'Create Game';$('profile-name').textContent='Four-player Roulette';status('Connect on the main site before staking Chips.');
+ gun.ready().catch(()=>{});form.querySelector('button').textContent=id?'Accept wager & join':'Create Game';$('profile-name').textContent='Four-player Roulette';status('Connect on the main site before staking Chips.');
  try{await window.XanHub.authenticate();if(id){await api('get');input.value=game.wager;input.disabled=true;if(!game.seated)status(`${game.players.length}/4 seats · ${chips(game.wager)} each · ${game.rate}% fee`);}else status('Choose your stake. Your challenge appears on the main screen.');}catch(e){status(e.message);}
  timer=setInterval(poll,game?.phase==='waiting'?1800:1000);
 }
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)poll();else audio.stop();});window.addEventListener('pagehide',()=>{clearInterval(timer);audio.stop();});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)poll();else{audio.stop();resultAudio?.pause();}});window.addEventListener('pagehide',()=>{clearInterval(timer);audio.stop();resultAudio?.pause();});
 init();

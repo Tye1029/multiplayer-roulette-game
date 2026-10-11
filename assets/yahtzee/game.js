@@ -7,7 +7,11 @@
   const sounds=window.YahtzeeAudio.create(()=>new (window.AudioContext||window.webkitAudioContext)(),()=>window.XanPreferences.muted||document.hidden);
   const reduced=matchMedia('(prefers-reduced-motion: reduce)');
   const el=(tag,text,cls)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e;};
-  window.XanSiteAdapter={current:()=>({mode:'yahtzee',id:room?.id||'',phase:room?.phase||'lobby'}),diagnostics:()=>({build:'YAHTZEE_DUEL_V3_20261011',round:room?.round})};
+  window.XanSiteAdapter={current:()=>({mode:'yahtzee',id:room?.id||'',phase:room?.phase||'lobby'}),
+    view:()=>room?{id:room.id,match:room.game,phase:room.phase,private:room.private,wager:room.wager,players:room.players,votes:room.rematch,finished:room.phase==='complete',settlement:room.settlement,payout:room.payouts?.[room.you]||0}:{},
+    create:options=>send('create',options,failed?.action==='create'?failed:undefined),practice:()=>send('create',{bot:true,wager:0}),
+    quote:async id=>(await request({action:'quote',room:id.toUpperCase()})).quote,
+    join:(id,wager)=>send('join',{room:id.toUpperCase(),wager}),help:()=>$('help').click(),controls:()=>[$('leave'),$('dice-color')],resultRoot:()=>$('result-actions'),diagnostics:()=>({build:'YAHTZEE_DUEL_V3_20261011',round:room?.round})};
   window.dispatchEvent(new Event('xan-navigation'));
   const me=()=>room?.players.find(p=>p.id===room.you);
   const opponent=()=>room?.players.find(p=>p.id!==room.you);
@@ -103,7 +107,7 @@
     for(const row of rows)row.button.disabled=blocked||!play||row.button.dataset.available!=='true';
     for(const id of ['create','join','practice'])$(id).disabled=busy||!!failed||!identity;
     $('start').disabled=busy||!room||room.phase!=='waiting'||room.players[0].id!==room.you||room.players.length!==2;
-    $('add-bot').hidden=room?.players.length!==1||room?.players[0].id!==room?.you;$('add-bot').disabled=busy||!!failed;
+    $('add-bot').hidden=!!room?.wager||room?.players.length!==1||room?.players[0].id!==room?.you;$('add-bot').disabled=busy||!!failed;
     $('rematch').disabled=busy||!!failed||!tally?.done||!!room?.rematch.includes(room?.you);$('retry').hidden=!failed;
     $('confirm-zero').disabled=blocked||!play;
   }
@@ -153,14 +157,14 @@
     }
     if(step===count){
       tally.done=true;storage.set('tally:'+tally.key,'done');
-      const sorted=[...tally.players].sort((a,b)=>b.total-a.total),tie=sorted[0].total===sorted[1].total;
+      const sorted=[...tally.players].sort((a,b)=>room.forfeitWinner?(a.id===room.forfeitWinner?-1:1):b.total-a.total),tie=!room.forfeitWinner&&sorted[0].total===sorted[1].total;
       $('result-title').textContent=tie?'Draw':sorted[0].id===room.you?'You win!':sorted[0].name+' wins';
-      $('result-subtitle').textContent='13 rounds complete';
+      $('result-subtitle').textContent=room.forfeitWinner?'Opponent left the game.':'13 rounds complete';
       $('standings').replaceChildren(...sorted.map(p=>{const row=el('div',undefined,'yd-standing');row.append(el('span',p.name),el('b',p.total+' points'));return row;}));
       for(let i=0;i<2;i++)$('tally-totals').children[i].classList.toggle('is-winner',tie||tally.players[i].id===sorted[0].id);
       $('skip-tally').hidden=true;$('result-actions').hidden=false;$('their-card-total').textContent=opponent()?.total||0;
       $('tally-announcement').textContent=$('result-title').textContent+'. '+sorted.map(p=>p.name+' '+p.total+' points').join(', ');
-      if(!tally.skip){sound('win');celebrate();}
+      if(!tally.skip){sound(tie?'score':sorted[0].id===room.you?'win':'lose');if(tie||sorted[0].id===room.you)celebrate();}
     }
   }
   function result(){
@@ -232,6 +236,7 @@
       if(!e.status||e.status>=500){failed=body;$('connection').textContent='Connection interrupted';}
       else if(e.status===409&&room){try{adopt((await request({action:'get',room:room.id})).room);}catch{}}
       else if(e.status===401){identity=null;$('connect').hidden=false;}
+      return {error:e.message};
     }finally{busy=false;controls();schedule();}
   }
   $('create').onclick=()=>send('create');$('practice').onclick=()=>send('create',{bot:true});
@@ -242,7 +247,7 @@
   $('retry').onclick=()=>{if(failed)send(failed.action,{},failed);};
   $('help').onclick=()=>$('help-dialog').showModal();document.querySelectorAll('.yd-close,.yd-done').forEach(b=>b.onclick=()=>$('help-dialog').close());
   $('leave').onclick=()=>$('leave-dialog').showModal();$('stay').onclick=()=>$('leave-dialog').close();$('confirm-leave').onclick=()=>{$('leave-dialog').close();send('leave');};
-  $('rematch').onclick=()=>send('rematch');$('review').onclick=()=>$('result-dialog').close();
+  $('rematch').onclick=()=>send('rematch',{wager:room.wager||0});$('review').onclick=()=>$('result-dialog').close();
   $('skip-tally').onclick=()=>{if(tally){tally.skip=true;tickTally();controls();}};
   $('replay-tally').onclick=()=>setupTally(true);
   async function copy(value){try{await navigator.clipboard.writeText(value);notice('Invite copied.');}catch{$('invite-link').hidden=false;$('invite-link').value=value;$('invite-link').select();}}
@@ -258,7 +263,7 @@
       await request({action:'profile'});$('connection').textContent='Connected';render();controls();
       const code=new URLSearchParams(location.search).get('room')||storage.get('room');
       if(code){$('join-code').value=code;try{adopt((await request({action:'get',room:code})).room);schedule();}
-        catch(e){if(e.status===410||e.status===404){storage.set('room','');history.replaceState({},'',location.pathname);notice(e.message);}else if(e.status===403&&new URLSearchParams(location.search).get('join')==='1')await send('join',{room:code});else if(e.status!==403)notice(e.message);}}
+        catch(e){if(e.status===410||e.status===404){storage.set('room','');history.replaceState({},'',location.pathname);notice(e.message);}else if(e.status===403)notice('Invitation loaded. Review the table wager to join.');else if(e.status!==403)notice(e.message);}}
     }catch(e){$('identity-status').textContent=e.message;$('connect').hidden=false;$('connection').textContent='Not connected';}
     controls();
   })();

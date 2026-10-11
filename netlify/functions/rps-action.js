@@ -21,7 +21,8 @@ function createHandler(database = db, request = fetch) {
         const userId = String(profile.player_id || profile.id || '');
         if (result.error || !/^[1-9]\d*$/.test(userId)) return reply(401, { error: 'Torn could not verify this key.' });
         // Identity comes only from Torn; never trust submitted IDs, names or visitor aliases.
-        const player = { id:userId, name:String(profile.name || 'Gladiator').slice(0,40) };
+        let avatar;try{const url=new URL(profile.profile_image||profile.image||'');if(url.protocol==='https:')avatar=url.href;}catch{}
+        const player = { id:userId, name:String(profile.name || 'Gladiator').slice(0,40),...(avatar?{avatar}:{}) };
         return reply(200, { ok:true, player, token:await database.session(player) });
       }
       const identity = await database.authenticate(body.token);
@@ -38,7 +39,7 @@ function createHandler(database = db, request = fetch) {
         if(!/^[A-F0-9]{12}$/.test(id))return reply(400,{error:'Enter the 12-character arena code.'});
         return reply(200,{ok:true,quote:await database.quote(id,player)});
       }
-      if (body.action === 'create') state = await database.create(player, body.bot === true,null,body.bot===true?0:body.wager);
+      if (body.action === 'create') state = await database.create(player, body.bot === true,null,body.bot===true?0:body.wager,body.private===true);
       else if (body.action === 'challenge') {
         const rival = (await database.rivals(player)).archRival;
         if (!rival) return reply(409,{error:'Complete a human duel to establish your arch rival.'});

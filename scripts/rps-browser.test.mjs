@@ -47,11 +47,11 @@ try {
   await a.screenshot({path:path.join(output,'desktop-lobby.png'),fullPage:true});
   await b.screenshot({path:path.join(output,'mobile-lobby.png'),fullPage:true});
   for(const p of [a,b]) assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,'no horizontal overflow');
-  await a.locator('[data-character="lyra"]').click(); await b.locator('[data-character="bryn"]').click();
-  await a.locator('#create').click();await a.locator('#invite').waitFor({state:'visible'});const code=await a.locator('#arenaCode').inputValue();
-  await b.locator('#joinCode').fill(code);await b.locator('#join').click();
-  await b.waitForFunction(()=>document.querySelector('#join').textContent.includes('1,000 Chips'));
-  assert.equal(balances.get('200'),100000,'review code does not debit');await b.locator('#join').click();
+  for(const p of [a,b])await p.locator('.xg-custom summary').click();await a.locator('[data-character="lyra"]').click(); await b.locator('[data-character="bryn"]').click();
+  await a.locator('.xg-primary').click();await a.locator('.xg-waiting').waitFor({state:'visible'});const code=await a.locator('.xg-invite input').inputValue();
+  await b.locator('#xg-code').fill(code);await b.locator('.xg-join button').click();
+  await b.waitForFunction(()=>document.querySelector('.xg-join button').textContent.includes('1,000 Chips'));
+  assert.equal(balances.get('200'),100000,'review code does not debit');await b.locator('.xg-join button').click();
   assert.equal(await a.locator('#apiKey').count(),0);await a.locator('#sound').click();
   await a.waitForFunction(()=>document.querySelector('#fighterB').src.includes('bryn.png'));
   assert.match(await b.locator('#fighterA').getAttribute('src'),/lyra/);
@@ -115,7 +115,7 @@ try {
   await a.waitForFunction(()=>document.querySelector('#status').textContent.includes('declined'));
   await a.locator('#backLobby').click();
   // Wagered rooms cannot silently add a free bot. Cancel the unjoined stake first.
-  await a.locator('#create').click();await a.locator('#invite').waitFor({state:'visible'});
+  await a.locator('.xg-primary').click();await a.locator('.xg-waiting').waitFor({state:'visible'});
   assert.equal(await a.locator('#remoteBot').isEnabled(),false);await a.locator('#leave').click();
   await a.locator('#remoteBot').click();await a.waitForFunction(()=>!document.querySelector('[data-choice="rock"]').disabled);
   await a.reload();await a.waitForFunction(()=>!document.querySelector('[data-choice="rock"]').disabled);
@@ -129,7 +129,7 @@ try {
   }
   assert.equal(await a.locator('#matchActions').isVisible(),true,'network bot completes a match');
   await a.locator('#rematch').click();await a.waitForFunction(()=>!document.querySelector('[data-choice="rock"]').disabled);
-  await a.locator('#leave').click();await a.locator('#practice').click();await a.waitForFunction(()=>!document.querySelector('[data-choice="rock"]').disabled);
+  await a.locator('#leave').click();await a.locator('.xg-intro > .xg-practice').first().click();await a.waitForFunction(()=>!document.querySelector('[data-choice="rock"]').disabled);
   await a.locator('#motion').click();assert.equal(await a.locator('body').evaluate(el=>el.classList.contains('calm')),true);
   await a.locator('#sound').click();await a.locator('[data-choice="paper"]').click();await a.waitForFunction(()=>document.querySelector('#arena').dataset.shot==='hands');
   await a.waitForTimeout(500);
@@ -148,7 +148,7 @@ try {
   await guest.addInitScript(()=>{Storage.prototype.getItem=()=>{throw new Error('Storage unavailable');};Storage.prototype.setItem=()=>{throw new Error('Storage unavailable');};});
   const g=await guest.newPage();g.on('pageerror',e=>errors.push(e.message));await g.goto(origin+'/games/multiplayer/rps/');
   await g.locator('#remoteBot').click();assert.match(await g.locator('#lobbyStatus').textContent(),/Sign in on the main site/);
-  await g.locator('#practice').click();await g.locator('[data-choice="paper"]').click();await g.waitForFunction(()=>document.querySelector('#arena').dataset.shot==='hands');
+  await g.locator('.xg-intro > .xg-practice').first().click();await g.locator('[data-choice="paper"]').click();await g.waitForFunction(()=>document.querySelector('#arena').dataset.shot==='hands');
   for(const p of [a,b,returning,g]) assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
   const audioFiles=(await fs.readdir(path.join(root,'assets/rps/audio'))).filter(f=>f.endsWith('.mp3'));
   const decoded=await g.evaluate(async files=>Promise.all(files.map(name=>new Promise((resolve,reject)=>{const clip=new Audio('/assets/rps/audio/'+name);clip.onloadedmetadata=()=>resolve({name,duration:clip.duration});clip.onerror=()=>reject(new Error(name));clip.load();}))),audioFiles);

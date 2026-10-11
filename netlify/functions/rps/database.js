@@ -54,7 +54,7 @@ function error(message, status = 409) { const e = new Error(message); e.status =
 async function insert(c, state) {
   await c.query('INSERT INTO rps_matches(id,state) VALUES($1,$2::jsonb)', [state.id, JSON.stringify(state)]);
 }
-async function prepareCreate(player, bot = false, invited = null, wager = 0) {
+async function prepareCreate(player, bot = false, invited = null, wager = 0, isPrivate = false) {
   return transaction(async c => {
     // Serialize creates per verified identity, so request retries reuse an active arena.
     await c.query('SELECT pg_advisory_xact_lock(hashtext($1))', ['rps:' + player.id]);
@@ -73,7 +73,7 @@ async function prepareCreate(player, bot = false, invited = null, wager = 0) {
       if (bot && !active.players.some(p => p.bot)) error('Leave your current duel before starting network practice.');
       return active;
     }
-    let s = rules.create(id(), player);
+    let s = rules.create(id(), player); s.private = isPrivate === true || !!invited;
     if(!bot && wager) {
       if(!Number.isSafeInteger(wager)||wager<1000||wager>50000||wager%1000)error('Choose 1,000–50,000 Chips in 1,000-Chip steps.');
       s.wager=wager;s.finance={accounts:{[player.id]:await wallet().account(player)},paid:[],pending:player.id,status:'funding',rate:await wallet().rate()};
@@ -147,7 +147,7 @@ async function prepareAction(gameId, player, action, body = {}) {
       if (s.players[1].bot && !s.rematchVotes.includes(s.players[1].id)) s.rematchVotes.push(s.players[1].id);
       if (s.rematchVotes.length === 2 && !s.nextMatch) {
         const next = rules.join(rules.create(id(), s.players[0], now), s.players[1], now);
-        if(s.wager){next.wager=s.wager;next.phase='waiting';next.finance={accounts:{...s.finance.accounts},paid:[],pending:next.players[0].id,status:'funding',rate:await wallet().rate(),rematch:true};}
+        next.private=s.private;if(s.wager){next.wager=s.wager;next.phase='waiting';next.finance={accounts:{...s.finance.accounts},paid:[],pending:next.players[0].id,status:'funding',rate:await wallet().rate(),rematch:true};}
         await insert(c, next); s.nextMatch = next.id; s.revision++;
       }
     }
@@ -161,7 +161,7 @@ async function lobby(player) {
   await ready();
   const { rows } = await db().query(`SELECT state FROM rps_matches WHERE state->>'phase'='waiting' AND COALESCE(state->'finance'->>'pending','')=''
     AND (state->>'deadline')::bigint>$1 ORDER BY updated_at DESC LIMIT 30`, [Date.now()]);
-  return rows.filter(({state:s}) => !s.invitedId || s.players[0].id === player.id)
+  return rows.filter(({state:s}) => !s.private && !s.invitedId && s.players.length===1)
     .map(({state:s}) => ({ id:s.id, name:s.players[0].name, wager:s.wager||0, mine:s.players[0].id === player.id, expiresAt:s.deadline }));
 }
 async function ownedJoined(player) {
@@ -231,9 +231,9 @@ async function recover(gameId) {
     return s;
   });
 }
-async function create(player,bot=false,invited=null,wager=0) {
+async function create(player,bot=false,invited=null,wager=0,isPrivate=false) {
   await sweep(player.id);
-  const s=await prepareCreate(player,bot,invited,wager);return await recover(s.id)||s;
+  const s=await prepareCreate(player,bot,invited,wager,isPrivate);return await recover(s.id)||s;
 }
 async function act(gameId,player,action,body={}) {
   if(action==='join')await sweep(player.id);

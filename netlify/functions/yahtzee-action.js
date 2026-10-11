@@ -10,6 +10,7 @@ function createHandler(store=createStore(),identity=auth) {
     try{
       const player=await identity.authenticate(b.token);
       if(!player)return reply(401,{error:'Connect your public Torn API key on the main site to play.'});
+      if(b.action==='quote'){if(!/^[A-F0-9]{8}$/.test(b.room||''))return reply(400,{error:'Invalid table code.'});return reply(200,{ok:true,quote:await store.quote(b.room)});}
       if(b.action==='profile')return reply(200,{ok:true,player});
       return reply(200,{ok:true,player,room:await store.run(b,player,context.ip||'unknown')});
     }

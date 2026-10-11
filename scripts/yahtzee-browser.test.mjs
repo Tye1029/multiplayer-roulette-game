@@ -21,8 +21,8 @@ try{
   await a.reload();await a.waitForFunction(()=>!document.querySelector('#create').disabled);assert.equal(await a.locator('#dice').getAttribute('data-color'),'violet');assert.equal(await b.locator('#dice').getAttribute('data-color'),'ivory');
   await a.locator('#hub-menu').click();await a.locator('#hub-dark').uncheck();assert.equal(await a.locator('html').getAttribute('data-theme'),'light');await a.locator('#hub-dark').check();await a.locator('#hub-sound').check();await a.locator('#hub-sound').uncheck();await a.locator('#hub-menu').click();
   assert.equal(await a.locator('#me-name').textContent(),'Juniper (you)');await a.screenshot({path:path.join(output,'desktop-lobby.png'),fullPage:true});await b.screenshot({path:path.join(output,'mobile-lobby.png'),fullPage:true});
-  await a.locator('#create').click();await a.locator('#waiting').waitFor({state:'visible'});const code=await a.locator('#copy-code').textContent();
-  await b.reload();await b.locator('.hub-row').filter({hasText:'Yahtzee'}).getByRole('button',{name:'Join',exact:true}).click();await a.waitForFunction(()=>!document.querySelector('#start').disabled);await a.locator('#start').click();
+  await a.locator('#xg-wager').fill('0');await a.locator('.xg-primary').click();await a.locator('#waiting').waitFor({state:'visible'});const code=await a.locator('#copy-code').textContent();
+  await b.reload();await b.locator('.hub-row').filter({hasText:'Yahtzee'}).getByRole('button',{name:'Join',exact:true}).click();await b.locator('.xg-join button').click();await b.getByRole('button',{name:'Join · 0 Chips',exact:true}).click();await a.waitForFunction(()=>!document.querySelector('#start').disabled);await a.locator('#start').click();
   await a.locator('#countdown').waitFor({state:'visible'});assert.equal(await a.locator('#roll').isDisabled(),true);assert.equal(await a.locator('#my-rolls').textContent(),'0 / 3 rolls');await b.locator('#countdown').waitFor({state:'visible'});
   for(const p of [a,b])await p.waitForFunction(()=>!document.querySelector('#roll').disabled);
   // Independent simultaneous rolls must not conflict. Lose one successful response.
@@ -59,9 +59,9 @@ try{
   // The server expires both turns while clients were inactive. No browser clock owns it.
   await fixture.expire(code);await a.waitForFunction(()=>document.querySelector('#me-status').textContent==='Score locked');
   assert.equal(await a.locator('.yd-score-row button.filled').count(),1);
-  await b.locator('#leave').click();await b.locator('#confirm-leave').click();await b.locator('#lobby').waitFor({state:'visible'});
-  await a.getByText('Game closed',{exact:true}).waitFor();await a.locator('#leave').click();await a.locator('#confirm-leave').click();await a.locator('#lobby').waitFor({state:'visible'});
-  await a.locator('#practice').click();await a.waitForFunction(()=>document.querySelector('#opponent-name').textContent==='House Bot');
+  await b.locator('#leave').click();await b.locator('#confirm-leave').click();await b.locator('.xg-menu').waitFor({state:'visible'});
+  await a.getByText('Game closed',{exact:true}).waitFor();await a.locator('#leave').click();await a.locator('#confirm-leave').click();await a.locator('.xg-menu').waitFor({state:'visible'});
+  await a.locator('.xg-practice').click();await a.waitForFunction(()=>document.querySelector('#opponent-name').textContent==='House Bot');
   await a.waitForFunction(()=>document.querySelector('#opponent-rolls').textContent!=='0 / 3 rolls');
   await a.screenshot({path:path.join(output,'desktop-bot.png'),fullPage:true});
   fixture.advance(32*1000*13);await a.locator('#result-dialog').waitFor({state:'visible'});
@@ -69,6 +69,6 @@ try{
   await a.locator('#rematch').click();await a.locator('#result-dialog').waitFor({state:'hidden'});
   await b.emulateMedia({reducedMotion:'reduce'});assert.equal(await b.locator('.cube').first().evaluate(e=>getComputedStyle(e).transitionDuration),'1e-05s');
   for(const width of [320,390,760,1440]){await a.setViewportSize({width,height:900});const layout=await a.evaluate(()=>({overflow:document.documentElement.scrollWidth>innerWidth,elements:[...document.querySelectorAll('body *')].filter(e=>e.getBoundingClientRect().right>innerWidth).map(e=>e.id||e.className).slice(0,20)}));assert.equal(layout.overflow,false,'No overflow at '+width+': '+JSON.stringify(layout.elements));}
-  const guest=await browser.newPage();await guest.goto(origin+'/games/multiplayer/yahtzee/');await guest.locator('#connect').waitFor({state:'visible'});assert.equal(await guest.locator('#create').isDisabled(),true);await guest.close();
+  const guest=await browser.newPage();await guest.goto(origin+'/games/multiplayer/yahtzee/');await guest.locator('.xg-primary').click();await guest.locator('.xg-status').filter({hasText:/Connect|API key/}).waitFor();assert.equal(await guest.locator('#create').isDisabled(),true);await guest.close();
   assert.deepEqual(errors,[]);console.log('PASS: shared dark theme/settings, API identity, simultaneous human rounds, both live dice/cards, retry, holds, third-roll cap, zero previews, reload, 13 rounds, rematch, server timeout, full bot match, auth gate and mobile layouts. '+output);
 }finally{await browser.close();await fixture.close();}

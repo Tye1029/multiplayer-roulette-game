@@ -14,14 +14,14 @@
   }
   function fail(message, status = 409) { const e = new Error(message); e.status = status; throw e; }
   function create(id, player, now = Date.now()) {
-    return { id, version: 'BLUFF_OR_BUST_V1', phase: 'waiting', players: [{ id: player.id, name: player.name, bot: Boolean(player.bot) }],
+    return { id, version: 'BLUFF_OR_BUST_V1', phase: 'waiting', players: [{ id: player.id, name: player.name, ...(player.avatar?{avatar:player.avatar}:{}), bot: Boolean(player.bot) }],
       ready: [], revision: 1, match: 1, round: 0, deadline: now + 900000, hands: [[], []], plays: [null, null], decisions: [null, null],
       winner: null, rematch: [], reveal: null, discards: 0 };
   }
   function join(s, player, now = Date.now()) {
     if (s.players.some(p => p.id === player.id)) return s;
     if (s.phase !== 'waiting' || s.players.length !== 1 || now >= s.deadline) fail('This table is no longer available.');
-    s.players.push({ id: player.id, name: player.name, bot: Boolean(player.bot) });
+    s.players.push({ id: player.id, name: player.name, ...(player.avatar?{avatar:player.avatar}:{}), bot: Boolean(player.bot) });
     s.revision++; return s;
   }
   function start(s, now, rng) {
@@ -134,6 +134,7 @@
     if (p < 0) fail('Join this table to see its cards.', 403);
     const revealed = ['reveal', 'complete'].includes(s.phase), showCounts = s.phase !== 'select';
     return { id: s.id, version: s.version, revision: s.revision, match: s.match, round: s.round, phase: s.phase, target: s.target,
+      wager:s.wager||0, private:!!s.private, houseCutPercent:s.finance?.rate||0, settlement:s.finance?.status||'free', funding:!!s.finance?.pending?.length, payouts:s.finance?.status==='settled'?s.finance.payouts:{},
       deadline: s.deadline, serverNow: now, me: p, players: s.players, ready: s.ready, hand: s.hands[p], counts: s.hands.map(h => h.length),
       locked: s.plays.map(Boolean), playCounts: s.plays.map((v, i) => showCounts || i === p ? v?.length || 0 : null),
       decisionLocked: s.decisions.map(Boolean), myDecision: s.decisions[p], reveal: revealed ? s.reveal : null,

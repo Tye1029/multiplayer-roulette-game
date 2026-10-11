@@ -91,7 +91,7 @@
       cutAt: state.cutAt || null, revealAt: state.revealAt || null, nextAt: state.nextAt || null,
       deadline: state.deadline, variant: state.variant || 0, serverNow: now,
       rematchVotes: state.rematchVotes, nextMatch: state.nextMatch, reason: state.reason || '',
-      invitedName: state.invitedName || '',
+      private:!!state.private, invitedName: state.invitedName || '',
       wager: state.wager || 0, houseCutPercent: state.finance?.rate || 0,
       settlement: state.finance?.status || 'free', funding: Boolean(state.finance?.pending),
       payout: state.phase === 'complete' && state.finance?.status === 'settled' ? state.finance.payout : null,

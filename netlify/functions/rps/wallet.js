@@ -19,7 +19,7 @@ function createWallet(injectedStore, odds = getGameOddsSettings) {
     return getRecordBalance(await store().get(`user/${id}.json`,{type:'json',consistency:'strong'}));
   }
   async function apply(accountId, entry) {
-    if (!valid(accountId) || !/^(rps|four):[A-F0-9]{12}:(stake|refund|payout):[1-9]\d*$/.test(entry.id) || !Number.isSafeInteger(entry.delta)) throw new Error('Invalid wallet entry.');
+    if (!valid(accountId) || !/^(rps|four|bluff|yahtzee):[A-F0-9]{12}:(stake|refund|payout):[1-9]\d*$/.test(entry.id) || !Number.isSafeInteger(entry.delta)) throw new Error('Invalid wallet entry.');
     const key = `user/${accountId}.json`;
     for (let attempt=0;attempt<8;attempt++) {
       const read = await store().getWithMetadata(key,{type:'json',consistency:'strong'});

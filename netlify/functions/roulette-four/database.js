@@ -9,7 +9,7 @@ function createStore(injected,injectedWallet){
  async function ready(){schema ||= db().query(`DO $four$ BEGIN PERFORM pg_advisory_xact_lock(hashtext('xan-four-v1'));CREATE TABLE IF NOT EXISTS roulette_four_matches(id TEXT PRIMARY KEY,state JSONB NOT NULL,updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW());CREATE INDEX IF NOT EXISTS roulette_four_recent ON roulette_four_matches(updated_at DESC); END $four$;`).catch(e=>{schema=null;throw e;});return schema;}
  async function tx(fn){await ready();const c=await db().connect();try{await c.query('BEGIN');const v=await fn(c);await c.query('COMMIT');return v;}catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}}
  async function save(c,s){await c.query('UPDATE roulette_four_matches SET state=$2::jsonb,updated_at=NOW() WHERE id=$1',[s.id,JSON.stringify(s)]);}
- function fresh(id,player,wager,account,rate){return {id,phase:'waiting',players:[{id:player.id,name:player.name,account}],wager,rate,createdAt:Date.now(),deadline:Date.now()+900000,revision:1,actionNumber:0,paid:[],pending:player.id,requests:[]};}
+ function fresh(id,player,wager,account,rate){return {id,phase:'waiting',players:[{id:player.id,name:player.name,avatar:player.avatar||null,account}],wager,rate,createdAt:Date.now(),deadline:Date.now()+900000,revision:1,actionNumber:0,paid:[],pending:player.id,requests:[]};}
  async function recover(id){
   return tx(async c=>{
    let s=(await c.query('SELECT state FROM roulette_four_matches WHERE id=$1 FOR UPDATE',[id])).rows[0]?.state;if(!s)model.fail('Table not found.',404);
@@ -38,7 +38,7 @@ function createStore(injected,injectedWallet){
   const id=await tx(async c=>{await c.query('SELECT pg_advisory_xact_lock(hashtext($1))',['four-create:'+player.id]);const rows=(await c.query("SELECT state FROM roulette_four_matches WHERE state->'players'->0->>'id'=$1 AND updated_at>NOW()-INTERVAL '1 day'",[player.id])).rows;
    const duplicate=rows.find(r=>r.state.requestId===body.requestId);if(duplicate)return duplicate.state.id;
    if(rows.filter(r=>r.state.phase==='waiting'&&r.state.deadline>Date.now()).length>=5)model.fail('You already have five open tables.');
-   const id=crypto.randomBytes(6).toString('hex').toUpperCase(),s=fresh(id,player,wager,account,rate);s.requestId=body.requestId;await c.query('INSERT INTO roulette_four_matches(id,state) VALUES($1,$2::jsonb)',[id,JSON.stringify(s)]);return id;
+   const id=crypto.randomBytes(6).toString('hex').toUpperCase(),s=fresh(id,player,wager,account,rate);s.requestId=body.requestId;s.private=body.private===true;await c.query('INSERT INTO roulette_four_matches(id,state) VALUES($1,$2::jsonb)',[id,JSON.stringify(s)]);return id;
   });return recover(id);
  }
  async function action(id,player,body){
@@ -49,7 +49,7 @@ function createStore(injected,injectedWallet){
     if(s.phase!=='waiting'||s.pending||s.players.length>=4||s.deadline<=Date.now())model.fail('This table is no longer joinable.');
     if(body.wager!==s.wager)model.fail('Review and accept the wager before joining.');
     const account=await wallet.account(player);if(s.players.some(p=>p.account===account))model.fail('Each seat requires a different Chip account.');
-    s.players.push({id:player.id,name:player.name,account});s.pending=player.id;s.revision++;
+    s.players.push({id:player.id,name:player.name,avatar:player.avatar||null,account});s.pending=player.id;s.revision++;
    }else if(body.action!=='get'){
     if(!s.players.some(p=>p.id===player.id))model.fail('You are not seated at this table.',403);
     if(body.action==='cancel'){if(s.players[0].id!==player.id||s.players.length!==1||s.phase!=='waiting')model.fail('Only an empty table can be cancelled by its creator.');s.phase='cancelled';s.revision++;}
@@ -62,7 +62,7 @@ function createStore(injected,injectedWallet){
      if(s.phase!=='complete'||!s.settled)model.fail('Wait for settlement before rematching.');if(body.wager!==s.wager)model.fail('Accept the rematch stake.');
      if(!s.rematchUntil||s.rematchUntil<Date.now()){s.rematchVotes=[];s.rematchUntil=Date.now()+15000;}
      s.rematchVotes||=[];if(!s.rematchVotes.includes(player.id))s.rematchVotes.push(player.id);s.revision++;
-     if(s.rematchVotes.length===4&&!s.nextMatch){const next=crypto.randomBytes(6).toString('hex').toUpperCase(),n=fresh(next,s.players[0],s.wager,s.players[0].account,await wallet.rate());n.players=s.players.map(p=>({id:p.id,name:p.name,account:p.account}));n.rematchFunding=true;n.pending=n.players[0].id;await c.query('INSERT INTO roulette_four_matches(id,state) VALUES($1,$2::jsonb)',[next,JSON.stringify(n)]);s.nextMatch=next;}
+     if(s.rematchVotes.length===4&&!s.nextMatch){const next=crypto.randomBytes(6).toString('hex').toUpperCase(),n=fresh(next,s.players[0],s.wager,s.players[0].account,await wallet.rate());n.players=s.players.map(p=>({id:p.id,name:p.name,avatar:p.avatar||null,account:p.account}));n.private=s.private;n.rematchFunding=true;n.pending=n.players[0].id;await c.query('INSERT INTO roulette_four_matches(id,state) VALUES($1,$2::jsonb)',[next,JSON.stringify(n)]);s.nextMatch=next;}
     }else if(body.action!=='join')model.fail('Unknown action.',400);
    }else if(!s.players.some(p=>p.id===player.id)&&s.phase!=='waiting')model.fail('This table belongs to its players.',403);
    await save(c,s);return s;
@@ -71,7 +71,7 @@ function createStore(injected,injectedWallet){
  }
  async function lobby(player){
   await sweep();await ready();const rows=(await db().query("SELECT state FROM roulette_four_matches WHERE updated_at>NOW()-INTERVAL '1 day' ORDER BY updated_at DESC LIMIT 100")).rows;
-  return {games:rows.filter(({state:s})=>s.phase==='waiting'&&!s.pending&&s.players.length<4&&s.deadline>Date.now()).map(({state:s})=>({id:s.id,mode:'roulette-four',name:'Four-player Roulette',creator:s.players[0].name,wager:s.wager,mine:s.players[0].id===player.id,count:s.players.length,capacity:4,expiresAt:s.deadline})),
+  return {games:rows.filter(({state:s})=>s.phase==='waiting'&&!s.private&&!s.pending&&s.players.length<4&&s.deadline>Date.now()).map(({state:s})=>({id:s.id,mode:'roulette-four',name:'Four-player Roulette',creator:s.players[0].name,wager:s.wager,mine:s.players[0].id===player.id,count:s.players.length,capacity:4,expiresAt:s.deadline})),
    joined:rows.filter(({state:s})=>s.players[0].id===player.id&&s.players.length>1).flatMap(({state:s})=>s.players.slice(1).map(p=>({id:s.id,mode:'roulette-four',name:p.name,joiner:p.id,href:'/games/multiplayer/roulette-four/?room='+s.id})))};
  }
  async function sweep(){await ready();const rows=(await db().query("SELECT id FROM roulette_four_matches WHERE COALESCE(state->>'settled','false')<>'true' ORDER BY updated_at LIMIT 30")).rows;for(const {id} of rows)try{await recover(id);}catch{}return {checked:rows.length};}

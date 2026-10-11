@@ -4,7 +4,7 @@
  const $=id=>document.getElementById(id), storage={get(k){try{return localStorage.getItem(k);}catch{return null;}},set(k,v){try{localStorage.setItem(k,v);}catch{}}};
  const games={
   yahtzee:['Yahtzee','2 PLAYERS','/assets/yahtzee/dice.svg','Both players get 30 seconds per round to roll, hold dice, and choose one category. Roll up to three times. Highest score after 13 rounds wins.','#ed555d'],
-  bluff:['Bluff or Bust','2 PLAYERS · FREE PLAY','/assets/bluff/images/cover.svg','Both players secretly play cards claiming the required symbol. Believe or challenge, then reveal everything. A caught bluffer takes their cards back; a false accuser takes the genuine play. Empty your hand after all transfers to win. Lock cards within 30 seconds or lose.','#e9c68a'],
+  bluff:['Bluff or Bust','2 PLAYERS','/assets/bluff/images/cover.svg','Both players secretly play cards claiming the required symbol. Believe or challenge, then reveal everything. A caught bluffer takes their cards back; a false accuser takes the genuine play. Empty your hand after all transfers to win. Lock cards within 30 seconds or lose.','#e9c68a'],
   roulette:['Russian Roulette','2 PLAYERS','/assets/roulette/decor/saloon-room-v3.webp','Take turns with a six-chamber revolver. Follow the table’s shoot, spin and pass controls. Survive your opponent to win the pot, less the displayed house fee.','#e6bf51'],
   rps:['Rock Paper Scissors','2 PLAYERS','/assets/rps/images/coliseum.png','Both players secretly choose rock, paper or scissors. Rock beats scissors, scissors beats paper, and paper beats rock. First to two round wins takes the pot; ties replay. Leaving a funded duel forfeits your stake.','#e55360'],
   fishing:['Fishing Duel','2 PLAYERS','/assets/fishing/images/v2/lake-bg-v2.png','Cast and follow the on-screen bite and pull prompts. Time your inputs to land fish. The highest total catch score at the end of the duel wins.','#61b8ed'],
@@ -98,22 +98,23 @@
  function lobbyStatus(text){document.querySelectorAll('#hub-lobby-status,[data-hub-lobby-status]').forEach(e=>e.textContent=text);}
  function renderGames(list){
   for(const root of document.querySelectorAll('[data-hub-games]')){root.replaceChildren();
-  const open=list.filter(g=>g.mode!=='draw'&&g.count<g.capacity&&(!g.expiresAt||g.expiresAt>Date.now()));
+  const open=list.filter(g=>g.count<g.capacity&&(!g.expiresAt||g.expiresAt>Date.now()));
   if(!open.length){root.append(element('p','No open games yet.','hub-empty'));continue;}
   for(const g of open){
    const row=element('div',undefined,'hub-row'),label=element('div');label.append(element('strong',games[g.mode]?.[0]||g.name),element('small',`${g.creator||'Player'} · ${g.count}/${g.capacity} players${g.mine?' · Your game':''}`));row.append(label,element('div',chips(g.wager),'hub-wager'));const actions=element('div',undefined,'hub-buttons'),join=element('button',g.mine?'Return':'Join');
    join.onclick=async()=>{join.disabled=true;try{
-    if(g.mode==='yahtzee'){location.assign('/games/multiplayer/yahtzee/?room='+encodeURIComponent(g.id)+(g.mine?'':'&join=1'));}
-    else if(g.mode==='rps'||g.mode==='roulette-four'){location.assign(`/games/multiplayer/${g.mode}/?${g.mode==='rps'?'arena':'room'}=${encodeURIComponent(g.id)}`);}
-    else if(window.XanSiteAdapter?.open)await window.XanSiteAdapter.open(g.mode,g.id,!g.mine);else location.assign('/?game='+encodeURIComponent(g.mode)+'&room='+encodeURIComponent(g.id)+(g.mine?'':'&join=1'));
+    if(g.mode==='yahtzee'){location.assign('/games/multiplayer/yahtzee/?room='+encodeURIComponent(g.id));}
+    else if(g.mode==='rps'||g.mode==='roulette-four'||g.mode==='bluff'){location.assign(`/games/multiplayer/${g.mode}/?${g.mode==='rps'?'arena':'room'}=${encodeURIComponent(g.id)}`);}
+    else location.assign(window.XanGameMenu.href(g.mode,g.id));
    }catch(e){lobbyStatus(e.message);join.disabled=false;}};actions.append(join);
-   if(g.mine&&g.count===1){const cancel=element('button','×','hub-cancel');cancel.setAttribute('aria-label','Cancel '+(games[g.mode]?.[0]||g.name));cancel.onclick=async()=>{cancel.disabled=true;try{if(g.mode==='yahtzee')await post('yahtzee-action',{action:'cancel',room:g.id,requestId:crypto.randomUUID(),token:await authenticate()});else if(g.mode==='rps')await post('rps-action',{action:'leave',gameId:g.id,token:await authenticate()});else if(g.mode==='roulette-four')await post('roulette-four-action',{action:'cancel',gameId:g.id,token:await authenticate()});else if(window.XanSiteAdapter?.cancel)await window.XanSiteAdapter.cancel(g.id);else await post('duel-action',{action:'cancel',gameId:g.id,visitorKey:storage.get('tornVisitorApiKey')});await refresh();}catch(e){lobbyStatus(e.message);cancel.disabled=false;}};actions.append(cancel);}
+   if(g.mine&&g.count===1){const cancel=element('button','×','hub-cancel');cancel.setAttribute('aria-label','Cancel '+(games[g.mode]?.[0]||g.name));cancel.onclick=async()=>{cancel.disabled=true;try{if(g.mode==='yahtzee')await post('yahtzee-action',{action:'cancel',room:g.id,requestId:crypto.randomUUID(),token:await authenticate()});else if(g.mode==='rps')await post('rps-action',{action:'leave',gameId:g.id,token:await authenticate()});else if(g.mode==='roulette-four')await post('roulette-four-action',{action:'cancel',gameId:g.id,token:await authenticate()});else if(g.mode==='bluff')await post('bluff-action',{action:'leave',gameId:g.id,token:await authenticate()});else if(window.XanSiteAdapter?.cancel)await window.XanSiteAdapter.cancel(g.id);else await post('duel-action',{action:'cancel',gameId:g.id,visitorKey:storage.get('tornVisitorApiKey')});await refresh();}catch(e){lobbyStatus(e.message);cancel.disabled=false;}};actions.append(cancel);}
    row.append(actions);root.append(row);
   }
   }
  }
 
  function setupGameEntry(){
+  if(window.XanGameMenu){window.XanGameMenu.install({games,showRules});return;}
   const legacy=$('duelScreen'),rps=document.querySelector('.lobby-card'),four=$('roulette-four');
   const target=legacy||document.querySelector('main');if(!target||(!legacy&&!rps&&!four))return;
   const heading=element('section',undefined,'hub-game-entry');heading.innerHTML='<div class="hub-game-heading"><span class="hub-kicker">XAN DUELS</span><h1 id="hub-game-title"></h1></div><div class="hub-create-controls"></div>';target.prepend(heading);

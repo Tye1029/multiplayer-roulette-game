@@ -41,8 +41,8 @@ function act(s,id,action,now=Date.now()){
 }
 function publicState(s,viewer){
  const seated=s.players.some(p=>p.id===viewer);
- return {id:s.id,phase:s.phase,wager:s.wager,rate:s.rate,revision:s.revision,createdAt:s.createdAt,deadline:s.deadline,startAt:s.startAt,serverNow:Date.now(),
-  players:s.players.map(({id,name,bank,shots,spinUsed,eliminated})=>({id,name,bank:bank||0,shots:shots||0,spinUsed:!!spinUsed,eliminated:!!eliminated})),
+ return {id:s.id,private:!!s.private,phase:s.phase,wager:s.wager,rate:s.rate,revision:s.revision,createdAt:s.createdAt,deadline:s.deadline,startAt:s.startAt,serverNow:Date.now(),
+  players:s.players.map(({id,name,avatar,bank,shots,spinUsed,eliminated})=>({id,name,avatar,bank:bank||0,shots:shots||0,spinUsed:!!spinUsed,eliminated:!!eliminated})),
   order:s.order||s.players.map(p=>p.id),activeId:s.order?.[s.turn],turnShots:s.turnShots||0,safeSinceSpin:s.safeSinceSpin||0,pot:s.pot||0,nextPayout:s.nextPayout||s.wager/5,
   actionAfter:s.actionAfter||0,lastAction:s.lastAction||null,reason:s.reason||'',settled:!!s.settled,payouts:s.payouts||{},mine:s.players[0].id===viewer,seated,
   rematchUntil:s.rematchUntil||null,rematchVotes:s.rematchVotes||[],nextMatch:s.nextMatch||null};

@@ -4205,6 +4205,7 @@ function duelSanitizeGame(game = {}) {
     modeName: DUEL_MODES[mode] || DUEL_MODES.coin,
     status: ["waiting", "ready", "countdown", "playing", "complete", "cancelled"].includes(String(game.status || "")) ? String(game.status) : "waiting",
     wager: int(game.wager, 0),
+    private: game.private === true,
     pot: int(game.pot, 0),
     createdAt: game.createdAt || nowIso(),
     updatedAt: game.updatedAt || nowIso(),
@@ -4461,6 +4462,7 @@ async function duelListGames(user) {
           }
           if (!["waiting", "ready", "countdown", "playing", "complete"].includes(clean.status)) return null;
           const viewerIsPlayer = clean.creator?.userId === viewer || clean.joiner?.userId === viewer;
+          if (clean.private && !viewerIsPlayer) return null;
           if (clean.mode === "draw" && clean.status === "playing" && viewerIsPlayer) {
             try {
               const databaseState = await drawDatabaseState(clean, { runNpc: true });
@@ -4611,6 +4613,7 @@ async function duelCreateGame(user, details = {}) {
     mode,
     modeName: DUEL_MODES[mode],
     status: "waiting",
+    private: details.private === true,
     wager,
     pot: wager,
     createdAt: at,
@@ -6796,7 +6799,7 @@ async function duelActionGame(user, gameId, details = {}) {
           const humanId = playerIds.find(id => id !== cleanUserId(syntheticPlayer.userId));
           const human = playerFor(humanId);
           creatorForCleanup = human;
-          created = await duelCreateGame(human, { mode: latest.mode, wager: nextWager, [DUEL_DOUBLE_OR_NOTHING_CREATE]: isDoubleOrNothing });
+          created = await duelCreateGame(human, { mode: latest.mode, wager: nextWager, private: latest.private, [DUEL_DOUBLE_OR_NOTHING_CREATE]: isDoubleOrNothing });
           const rebuiltWaitingGame = duelRebuildWaitingGameFromCreateResult(human, latest.mode, nextWager, created.game);
           let attached;
           if (syntheticPlayer.isRemoteBot || String(syntheticPlayer.userId || "").startsWith("remote-bot-")) {
@@ -6808,7 +6811,7 @@ async function duelActionGame(user, gameId, details = {}) {
           }
           rematchGame = attached.game;
         } else {
-          created = await duelCreateGame(playerFor(firstId), { mode: latest.mode, wager: nextWager, [DUEL_DOUBLE_OR_NOTHING_CREATE]: isDoubleOrNothing });
+          created = await duelCreateGame(playerFor(firstId), { mode: latest.mode, wager: nextWager, private: latest.private, [DUEL_DOUBLE_OR_NOTHING_CREATE]: isDoubleOrNothing });
           const joined = await duelJoinGame(playerFor(secondId), created.game.gameId);
           rematchGame = joined.game;
         }

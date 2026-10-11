@@ -13,6 +13,14 @@
   let gameId = /^[a-f0-9]{12}$/i.test(inviteId) ? inviteId.toUpperCase() : storage.get('rps-match') || '';
   let rival = null, inboxKey = '', inboxBusy = false;
   let joinQuote = null;
+  window.XanSiteAdapter={
+    current:()=>({mode:'rps',id:game?.id||'',phase:game?.phase||'lobby'}),
+    view:()=>game?{id:game.id,phase:game.phase,private:game.private,wager:game.wager,players:game.players.map(p=>({...p,avatar:p.avatar||'/assets/rps/images/portraits/'+(p.character||'maximus')+'.webp'})),votes:game.rematchVotes,finished:game.phase==='complete',settlement:game.settlement,payout:game.winner===game.seat?game.payout||0:0}:{},
+    create:options=>perform('create',options),practice:()=>startPractice(),
+    quote:async id=>(await request('quote',{gameId:id.toUpperCase()})).quote,
+    join:(id,wager)=>perform('join',{gameId:id.toUpperCase(),wager}),
+    resultRoot:()=>$('matchActions'),controls:()=>[$('leave'),$('sound'),$('motion'),$('debug')]
+  };
   const chips = value => Number(value||0).toLocaleString()+' Chips';
   function selectedWager() {const input=$('wager');if(!input.reportValidity())return null;return Number(input.value);}
   function updateWagerLabels() {
@@ -66,7 +74,7 @@
     if (data.game) data.localServerNow = data.game.serverNow + (performance.now() - started) / 2;
     return data;
   }
-  window.XanSiteAdapter={current:()=>({mode:'rps',id:game?.id||'',phase:game?.phase||''}),diagnostics:()=>({frames:frameStats.frames,slowFrames:frameStats.slowFrames,longestFrameMs:frameStats.longestMs,revision:game?.revision||0,round:game?.round||0})};
+  window.XanSiteAdapter.diagnostics=()=>({frames:frameStats.frames,slowFrames:frameStats.slowFrames,longestFrameMs:frameStats.longestMs,revision:game?.revision||0,round:game?.round||0});
   function connected(yes) {
     const occupied = Boolean(active());
     for (const id of ['create','join']) $(id).disabled = busy || occupied;
@@ -163,7 +171,7 @@
   async function resume(id) { const guard = epoch; const data = await request('get',{gameId:id}); if (guard === epoch) { accept(data); schedulePoll(); } }
   async function perform(action, extra = {}) {
     if (busy) return;
-    if (!token) { status('Sign in on the main site for online duels, or choose Quick practice.',true); $('siteLogin').focus(); return; }
+    if (!token) { status('Sign in on the main site for online duels, or choose Quick practice.',true); $('siteLogin').focus(); return {error:'Connect your API key on the home page.'}; }
     busy = true; const guard = epoch; unlock();
     connected(Boolean(token)); renderControls();
     try {
@@ -175,7 +183,7 @@
       if (action === 'leave') exit();
       else if(action!=='pick')loadLobby().catch(e=>status(e.message,true));
       loadInvitations();
-    } catch (e) { if (guard === epoch) status(e.message,true); }
+    } catch (e) { if (guard === epoch) status(e.message,true); return {error:e.message}; }
     finally { busy = false; connected(Boolean(token)); renderControls(); }
   }
   function schedulePoll() {

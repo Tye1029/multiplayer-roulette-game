@@ -6731,8 +6731,8 @@ body.duel-mode.blackjack-duel-focus .duel-side-stack {display:grid!important;}
 #duelJoinNotice[hidden]{display:none;}
 #duelJoinNotice>div{display:flex;align-items:center;gap:10px;}
 #duelJoinNotice button{min-height:36px;padding:6px 12px;font-size:12px;}
-</style><link rel="stylesheet" href="/assets/site-hub/hub.css?v=5"><script src="/assets/site-hub/preferences.js?v=2"></script><script defer src="/assets/site-hub/hub.js?v=6&yahtzee=3&bluff=1"></script><link rel="stylesheet" href="/assets/roulette/duel-cast.css?v=1"><script type="module" src="/assets/roulette/duel-cast.mjs?v=1"></script>
-</head>
+</style><link rel="stylesheet" href="/assets/site-hub/hub.css?v=5"><script src="/assets/site-hub/preferences.js?v=2"></script><script defer src="/assets/site-hub/game-menu.js?v=XAN_UNIFIED_TABLES_V1"></script><script defer src="/assets/site-hub/hub.js?v=XAN_UNIFIED_TABLES_V1"></script><link rel="stylesheet" href="/assets/roulette/duel-cast.css?v=1"><script type="module" src="/assets/roulette/duel-cast.mjs?v=1"></script>
+<link rel="stylesheet" href="/assets/site-hub/game-menu.css?v=XAN_UNIFIED_TABLES_V1"></head>
 <body class="test-shell-loading">
 
   <main class="page">
@@ -12211,6 +12211,7 @@ function createSparkle(x, y) {
     }
 
     async function duelCreate() {
+      const options = arguments[0] || {};
       if (duelBusy) return;
       duelBusy = true;
       if (duelCreateBtn) duelCreateBtn.disabled = true;
@@ -12229,6 +12230,7 @@ function createSparkle(x, y) {
         pending = duelReadPendingCreate(mode, wager) || duelStorePendingCreate({
           mode,
           wager,
+          private: options.private === true,
           createdAt: Date.now(),
           gameId: `duel-${mode}-${Date.now()}-${duelCreateRandomHex(6)}`
         });
@@ -12236,7 +12238,7 @@ function createSparkle(x, y) {
         duelSetStatus("Creating duel… Please wait for the server response.");
         let result;
         try {
-          result = await duelRequest("create", { mode, wager, clientGameId: pending.gameId });
+          result = await duelRequest("create", { mode, wager, private: pending.private === true, clientGameId: pending.gameId });
         } catch (error) {
           if (createEpoch !== Number(window.__duelNavigationEpoch || 0)) return;
           if (error?.code !== "DUEL_TIMEOUT") throw error;
@@ -12255,6 +12257,7 @@ function createSparkle(x, y) {
         if (createEpoch !== Number(window.__duelNavigationEpoch || 0)) return;
         if (error?.code !== "DUEL_TIMEOUT" && !/still processing/i.test(String(error?.message || ""))) duelClearPendingCreate();
         duelSetStatus(error.message || "Unable to create duel.", "bad");
+        return {error:error.message};
       } finally {
         duelBusy = false;
         if (duelCreateBtn) { duelCreateBtn.disabled = false; duelCreateBtn.textContent = createLabel; duelCreateBtn.removeAttribute("aria-busy"); }
@@ -12352,6 +12355,7 @@ function createSparkle(x, y) {
         duelSetStatus("Joined. Both players must click Ready.", "good");
       } catch (error) {
         duelSetStatus(error.message || "Unable to join duel.", "bad");
+        return {error:error.message || "Unable to join duel."};
       }
     }
 
@@ -13579,7 +13583,13 @@ body.roulette-viewport-lock .page,body.roulette-viewport-lock .duel-screen{heigh
 window.XanSiteAdapter={
  current(){const home=document.getElementById('simpleTestHome');return {mode:home&&!home.hidden?'':String(duelModeSelect?.value||''),id:home&&!home.hidden?'':(duelLastActiveGame?.mode===duelModeSelect?.value?String(duelCurrentGameId||''):''),phase:duelLastActiveGame?.status||''};},
  async open(mode,id,join){window.XanOpenGame(mode);if(join)await duelJoin(id);else await duelReturnToGame(id);window.dispatchEvent(new Event('xan-navigation'));},
- async cancel(id){await duelRequest('cancel',{gameId:id});}
+ async cancel(id){await duelRequest('cancel',{gameId:id});},
+ create:async options=>{duelWagerInput.value=options.wager;return duelCreate(options);},
+ quote:async id=>{const d=await duelRequest('get',{gameId:id});return {id:d.game.gameId,name:d.game.creator.name,wager:d.game.wager,houseCutPercent:null};},
+ join:async id=>{const result=await duelJoin(id);window.dispatchEvent(new Event('xan-navigation'));return result;},
+ view(){const g=duelLastActiveGame;if(!g||g.mode!==duelModeSelect.value)return {};return {id:g.gameId,phase:g.status,private:g.private,wager:g.wager,players:[g.creator,g.joiner].filter(Boolean).map(p=>({id:p.userId,name:p.name,avatar:p.avatarUrl,bot:p.isNpc||p.isRemoteBot})),votes:Date.parse(g.rematch?.expiresAt||'')<=Date.now()?[]:Object.keys(g.rematch?.requestedBy||{}).filter(id=>g.rematch.requestedBy[id]),finished:g.status==='complete',settlement:'settled',payout:g.tie?g.wager:(g.winnerUserId===(g.isCreator?g.creator.userId:g.joiner?.userId)?g.payout:0)};},
+ resultRoot(){return [...document.querySelectorAll('[data-sc-rematch], [data-mr-rematch], #duelRematchBtn')].find(button=>button.getClientRects().length&&getComputedStyle(button).visibility!=='hidden')?.parentElement;}
+
 };
 </script>
 </body>

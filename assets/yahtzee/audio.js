@@ -32,6 +32,8 @@
         [523.25,659.25,783.99].forEach(hz=>note(hz,at+.55,.65,.025));
       }else if(kind==='win'){
         [392,523.25,659.25,783.99,1046.5].forEach((hz,i)=>note(hz,at+i*.1,.5,.035,'triangle'));
+      }else if(kind==='lose'){
+        [293.66,261.63,220,146.83].forEach((hz,i)=>note(hz,at+i*.17,.7,.035,'triangle'));
       }else if(kind==='score'){
         [440,554.37,659.25].forEach((hz,i)=>note(hz,at+i*.06,.16));
       }else if(kind==='go')note(880,at,.22,.045,'triangle');
