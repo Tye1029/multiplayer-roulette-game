@@ -1,4 +1,4 @@
-/* XAN_HUB_V2_20261011 */
+/* XAN_HUB_V3_20261011 */
 (() => {
  'use strict';
  const $=id=>document.getElementById(id), storage={get(k){try{return localStorage.getItem(k);}catch{return null;}},set(k,v){try{localStorage.setItem(k,v);}catch{}}};
@@ -33,7 +33,7 @@
  function updateHeader(){
   const c=current(),isHome=home&&!home.hidden;
   const title=$('hub-game-title');if(title)title.textContent=games[c.mode]?.[0]||'Choose a game';
-  const preview=$('hub-game-preview');if(preview){preview.style.backgroundImage=c.mode?'url(/assets/site-hub/images/'+c.mode+'.webp)':'';preview.hidden=Boolean(c.id);}
+  const preview=$('hub-game-preview');if(preview){const summit=c.mode==='mountainrace'&&window.SummitSceneV68;preview.classList.toggle('hub-summit-preview',Boolean(summit));if(summit){preview.style.backgroundImage='none';window.SummitSceneV68.preview(preview);}else{if(preview.dataset.mrScene){preview.replaceChildren();delete preview.dataset.mrScene;}preview.style.backgroundImage=c.mode?'url(/assets/site-hub/images/'+c.mode+'.webp)':'';}preview.hidden=Boolean(c.id);}
   if($('duelScreen'))$('duelScreen').classList.toggle('hub-has-game',Boolean(c.id));document.documentElement.style.setProperty('--xan-accent',games[c.mode]?.[4]||'#ed555d');
   bar.querySelector('.hub-all').hidden=Boolean(isHome||(!home&&!c.mode));
   $('hub-bell').hidden=!storage.get('tornVisitorApiKey');
@@ -57,7 +57,7 @@
   $('hub-close').onclick=closeDialog;
   async function send(debug){
    const buttons=[...dialog.querySelectorAll('button')];buttons.forEach(b=>b.disabled=true);
-   try{const c=current();const d=await api('report',{message:$('hub-message').value,debug:debug?{build:'XAN_HUB_V2_20261011',page:location.pathname,mode:c.mode,phase:c.phase,online:navigator.onLine,visibility:document.visibilityState,viewport:{width:innerWidth,height:innerHeight,pixelRatio:devicePixelRatio},errors,networkErrors,...window.XanSiteAdapter?.diagnostics?.()}:undefined});$('hub-report-status').textContent='Sent to the admin inbox. Thank you!';$('hub-message').value='';}catch(e){$('hub-report-status').textContent=e.message;}finally{buttons.forEach(b=>b.disabled=false);}
+   try{const c=current();const d=await api('report',{message:$('hub-message').value,debug:debug?{build:'XAN_HUB_V3_20261011',page:location.pathname,mode:c.mode,phase:c.phase,online:navigator.onLine,visibility:document.visibilityState,viewport:{width:innerWidth,height:innerHeight,pixelRatio:devicePixelRatio},errors,networkErrors,...window.XanSiteAdapter?.diagnostics?.()}:undefined});$('hub-report-status').textContent='Sent to the admin inbox. Thank you!';$('hub-message').value='';}catch(e){$('hub-report-status').textContent=e.message;}finally{buttons.forEach(b=>b.disabled=false);}
   }
   $('hub-send').onclick=()=>send(false);$('hub-debug').onclick=()=>send(true);dialog.showModal();
  }

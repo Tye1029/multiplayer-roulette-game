@@ -41,5 +41,9 @@
   if(v.overlay!==overlays){v.overlay=overlays;root.querySelector('.m68-overlays').innerHTML=overlays;}
  }
  window.addEventListener('resize',()=>{for(const root of document.querySelectorAll('[data-mr-scene="68"]')){const v=layouts.get(root);if(v)for(const l of v.lanes)camera(v,l,Math.max(0,l.lastIndex));}});
- window.SummitSceneV68={render};
+ function preview(root){
+  const player={promptIndex:0,name:'Climber'},opponent={promptIndex:0,name:'Your opponent'};
+  render(root,{game:{status:'waiting',mountainraceState:{}},total:30,me:player,opponent,prompts:[],enabled:false,tone:'waiting',status:'Create Game to open your race, or join an Open Game below.',overlays:'',seconds:'—'});
+ }
+ window.SummitSceneV68={render,preview};
 })();
