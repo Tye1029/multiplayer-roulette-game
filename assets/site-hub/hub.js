@@ -1,4 +1,4 @@
-/* XAN_HUB_V1_20261011 */
+/* XAN_HUB_V2_20261011 */
 (() => {
  'use strict';
  const $=id=>document.getElementById(id), storage={get(k){try{return localStorage.getItem(k);}catch{return null;}},set(k,v){try{localStorage.setItem(k,v);}catch{}}};
@@ -31,7 +31,10 @@
  const dialog=element('dialog',undefined,'xan-dialog');dialog.id='hub-dialog';document.body.append(dialog);
  const home=$('simpleTestHome');
  function updateHeader(){
-  const c=current(),isHome=home&&!home.hidden;document.documentElement.style.setProperty('--xan-accent',games[c.mode]?.[4]||'#ed555d');
+  const c=current(),isHome=home&&!home.hidden;
+  const title=$('hub-game-title');if(title)title.textContent=games[c.mode]?.[0]||'Choose a game';
+  const preview=$('hub-game-preview');if(preview){preview.style.backgroundImage=c.mode?'url(/assets/site-hub/images/'+c.mode+'.webp)':'';preview.hidden=Boolean(c.id);}
+  if($('duelScreen'))$('duelScreen').classList.toggle('hub-has-game',Boolean(c.id));document.documentElement.style.setProperty('--xan-accent',games[c.mode]?.[4]||'#ed555d');
   bar.querySelector('.hub-all').hidden=Boolean(isHome||(!home&&!c.mode));
   $('hub-bell').hidden=!storage.get('tornVisitorApiKey');
   $('hub-sound').checked=!window.XanPreferences.muted;$('hub-dark').checked=document.documentElement.dataset.theme!=='light';
@@ -54,7 +57,7 @@
   $('hub-close').onclick=closeDialog;
   async function send(debug){
    const buttons=[...dialog.querySelectorAll('button')];buttons.forEach(b=>b.disabled=true);
-   try{const c=current();const d=await api('report',{message:$('hub-message').value,debug:debug?{build:'XAN_HUB_V1_20261011',page:location.pathname,mode:c.mode,phase:c.phase,online:navigator.onLine,visibility:document.visibilityState,viewport:{width:innerWidth,height:innerHeight,pixelRatio:devicePixelRatio},errors,networkErrors,...window.XanSiteAdapter?.diagnostics?.()}:undefined});$('hub-report-status').textContent='Sent to the admin inbox. Thank you!';$('hub-message').value='';}catch(e){$('hub-report-status').textContent=e.message;}finally{buttons.forEach(b=>b.disabled=false);}
+   try{const c=current();const d=await api('report',{message:$('hub-message').value,debug:debug?{build:'XAN_HUB_V2_20261011',page:location.pathname,mode:c.mode,phase:c.phase,online:navigator.onLine,visibility:document.visibilityState,viewport:{width:innerWidth,height:innerHeight,pixelRatio:devicePixelRatio},errors,networkErrors,...window.XanSiteAdapter?.diagnostics?.()}:undefined});$('hub-report-status').textContent='Sent to the admin inbox. Thank you!';$('hub-message').value='';}catch(e){$('hub-report-status').textContent=e.message;}finally{buttons.forEach(b=>b.disabled=false);}
   }
   $('hub-send').onclick=()=>send(false);$('hub-debug').onclick=()=>send(true);dialog.showModal();
  }
@@ -70,43 +73,61 @@
  document.addEventListener('keydown',e=>{if(e.key==='Escape'){menu.hidden=inbox.hidden=true;}});
  function setupHome(){
   if(!home)return;
-  const card=home.querySelector('.sth-card'),title=card.querySelector('h1');title.textContent='Pick your next showdown.';card.querySelector('p').textContent='Quick games. Real opponents. A little friendly competition.';card.insertBefore(element('div','THE GAMES ROOM','hub-kicker'),title);
-  const keyBox=element('section',undefined,'hub-key');title.nextElementSibling.after(keyBox);
+  const card=home.querySelector('.sth-card'),title=card.querySelector('h1');title.textContent='Pick Your Next Duel!';card.querySelector('p').remove();card.insertBefore(element('div','THE GAMES ROOM','hub-kicker'),title);
+  const keyBox=element('section',undefined,'hub-key');title.after(keyBox);
   for(const node of [card.querySelector('.sth-label'),card.querySelector('.sth-row'),$('simpleApiStatus')])if(node)keyBox.append(node);
   keyBox.querySelector('label').textContent='Connect with your public Torn API key';
-  const grid=card.querySelector('.sth-games');grid.querySelector('a')?.remove();
+  const grid=card.querySelector('.sth-games');grid.querySelector('a')?.remove();grid.querySelector('[data-mode=draw]')?.remove();
   for(const mode of ['rps','roulette-four']){const b=element('button',games[mode][0],'sth-game');b.dataset.mode=mode;b.disabled=true;b.onclick=()=>{if(storage.get('tornKeyConfirmed')==='true')location.assign('/games/multiplayer/'+mode+'/');};grid.append(b);}
   for(const button of [...grid.children]){
-    const mode=button.dataset.mode,g=games[mode];if(!g)continue;const tile=element('article',undefined,'hub-tile');button.before(tile);tile.append(button);button.replaceChildren();const img=element('img');img.src='/assets/site-hub/images/'+mode+'.webp';img.alt='';img.width=360;img.height=360;img.loading='lazy';button.append(img);if(['roulette','safecracker','blackjackduel','rps'].includes(mode)){const fg=element('img',undefined,'hub-foreground');fg.src='/assets/site-hub/images/'+mode+'-foreground.webp';fg.alt='';fg.loading='lazy';button.append(fg);}
+    const mode=button.dataset.mode,g=games[mode];if(!g)continue;const tile=element('article',undefined,'hub-tile');button.before(tile);tile.append(button);button.replaceChildren();const img=element('img');img.src='/assets/site-hub/images/'+mode+'.webp';img.alt='';img.width=360;img.height=360;img.loading='lazy';button.append(img);if(['safecracker','blackjackduel','rps'].includes(mode)){const fg=element('img',undefined,'hub-foreground');fg.src='/assets/site-hub/images/'+mode+'-foreground.webp';fg.alt='';fg.loading='lazy';button.append(fg);}
     const label=element('span',undefined,'hub-title');label.append(element('small',g[1]),document.createTextNode(g[0]));button.append(label);const info=element('button','i','hub-info');info.setAttribute('aria-label','Rules for '+g[0]);info.onclick=()=>showRules(mode);tile.append(info);
   }
-  const section=element('section',undefined,'hub-open');section.innerHTML='<div class="hub-heading"><h2>Open challenges</h2><span>Join the next game</span></div><div id="hub-games" aria-live="polite"><p class="hub-empty">Connect your public API key to see open games and wagers.</p></div><p id="hub-lobby-status" class="hub-status" role="status"></p>';card.append(section);
+  const section=element('section',undefined,'hub-open');section.innerHTML='<div class="hub-heading"><h2>Open Games</h2><span>Join the next game</span></div><div id="hub-games" data-hub-games aria-live="polite"><p class="hub-empty">Connect your public API key to see open games and wagers.</p></div><p id="hub-lobby-status" class="hub-status" role="status"></p>';card.append(section);
   const syncKey=()=>{const ok=storage.get('tornKeyConfirmed')==='true'&&Boolean(storage.get('tornVisitorApiKey'));keyBox.hidden=ok;grid.querySelectorAll('.sth-game').forEach(b=>b.disabled=!ok);updateHeader();};
   new MutationObserver(syncKey).observe($('simpleApiStatus'),{childList:true,attributes:true});syncKey();
   new MutationObserver(()=>{updateHeader();if(!home.hidden)refresh();}).observe(home,{attributes:true,attributeFilter:['hidden']});
  }
+ function lobbyStatus(text){document.querySelectorAll('#hub-lobby-status,[data-hub-lobby-status]').forEach(e=>e.textContent=text);}
  function renderGames(list){
-  const root=$('hub-games');if(!root)return;root.replaceChildren();
-  const open=list.filter(g=>g.count<g.capacity&&(!g.expiresAt||g.expiresAt>Date.now()));
-  if(!open.length){root.append(element('p','The floor is yours. Pick a game above and create the first challenge.','hub-empty'));return;}
+  for(const root of document.querySelectorAll('[data-hub-games]')){root.replaceChildren();
+  const open=list.filter(g=>g.mode!=='draw'&&g.count<g.capacity&&(!g.expiresAt||g.expiresAt>Date.now()));
+  if(!open.length){root.append(element('p','No open games yet.','hub-empty'));continue;}
   for(const g of open){
    const row=element('div',undefined,'hub-row'),label=element('div');label.append(element('strong',games[g.mode]?.[0]||g.name),element('small',`${g.creator||'Player'} · ${g.count}/${g.capacity} players${g.mine?' · Your game':''}`));row.append(label,element('div',chips(g.wager),'hub-wager'));const actions=element('div',undefined,'hub-buttons'),join=element('button',g.mine?'Return':'Join');
    join.onclick=async()=>{join.disabled=true;try{
     if(g.mode==='rps'||g.mode==='roulette-four'){location.assign(`/games/multiplayer/${g.mode}/?${g.mode==='rps'?'arena':'room'}=${encodeURIComponent(g.id)}`);}
-    else await window.XanSiteAdapter.open(g.mode,g.id,!g.mine);
-   }catch(e){$('hub-lobby-status').textContent=e.message;join.disabled=false;}};actions.append(join);
-   if(g.mine&&g.count===1){const cancel=element('button','×','hub-cancel');cancel.setAttribute('aria-label','Cancel '+(games[g.mode]?.[0]||g.name));cancel.onclick=async()=>{cancel.disabled=true;try{if(g.mode==='rps')await post('rps-action',{action:'leave',gameId:g.id,token:await authenticate()});else if(g.mode==='roulette-four')await post('roulette-four-action',{action:'cancel',gameId:g.id,token:await authenticate()});else await window.XanSiteAdapter.cancel(g.id);await refresh();}catch(e){$('hub-lobby-status').textContent=e.message;cancel.disabled=false;}};actions.append(cancel);}
+    else if(window.XanSiteAdapter?.open)await window.XanSiteAdapter.open(g.mode,g.id,!g.mine);else location.assign('/?game='+encodeURIComponent(g.mode)+'&room='+encodeURIComponent(g.id)+(g.mine?'':'&join=1'));
+   }catch(e){lobbyStatus(e.message);join.disabled=false;}};actions.append(join);
+   if(g.mine&&g.count===1){const cancel=element('button','×','hub-cancel');cancel.setAttribute('aria-label','Cancel '+(games[g.mode]?.[0]||g.name));cancel.onclick=async()=>{cancel.disabled=true;try{if(g.mode==='rps')await post('rps-action',{action:'leave',gameId:g.id,token:await authenticate()});else if(g.mode==='roulette-four')await post('roulette-four-action',{action:'cancel',gameId:g.id,token:await authenticate()});else if(window.XanSiteAdapter?.cancel)await window.XanSiteAdapter.cancel(g.id);else await post('duel-action',{action:'cancel',gameId:g.id,visitorKey:storage.get('tornVisitorApiKey')});await refresh();}catch(e){lobbyStatus(e.message);cancel.disabled=false;}};actions.append(cancel);}
    row.append(actions);root.append(row);
   }
+  }
+ }
+
+ function setupGameEntry(){
+  const legacy=$('duelScreen'),rps=document.querySelector('.lobby-card'),four=$('roulette-four');
+  const target=legacy||document.querySelector('main');if(!target||(!legacy&&!rps&&!four))return;
+  const heading=element('section',undefined,'hub-game-entry');heading.innerHTML='<div class="hub-game-heading"><span class="hub-kicker">XAN DUELS</span><h1 id="hub-game-title"></h1></div><div class="hub-create-controls"></div>';target.prepend(heading);
+  const controls=heading.querySelector('.hub-create-controls');
+  if(legacy){
+   const fields=document.querySelector('.duel-create-fields');controls.append(fields.querySelector('.duel-compact-field:not(:first-child)'),$('duelCreateBtn'));
+   const preview=element('div',undefined,'hub-game-preview');preview.id='hub-game-preview';heading.after(preview);
+   const status=$('duelStatus');heading.append(status);
+   new MutationObserver(()=>updateHeader()).observe($('duelActive'),{childList:true});
+  }else if(rps){
+   const label=document.querySelector('label[for=wager]'),box=element('div',undefined,'duel-compact-field');box.append(label,$('wager'));controls.append(box,$('create'));rps.querySelector('h2').textContent='Your gladiator';rps.querySelector('h2+p')?.remove();
+  }
+  const list=element('section',undefined,'hub-open hub-game-open');list.innerHTML='<div class="hub-heading"><h2>Open Games</h2></div><div data-hub-games><p class="hub-empty">Connect your public API key to see open games.</p></div><p data-hub-lobby-status class="hub-status" role="status"></p>';const footer=target.querySelector(':scope>footer');if(footer)footer.before(list);else target.append(list);
  }
  async function refresh(){
   if(pending||document.hidden||!storage.get('tornVisitorApiKey'))return;
-  pending=true;updateHeader();try{const data=await api('sync',{focus:current().id});$('hub-player').textContent=data.player.name;$('hub-balance').textContent=chips(data.balance);renderGames(data.games);notifications=data.notifications;renderNotifications();if($('hub-lobby-status'))$('hub-lobby-status').textContent='';}catch(e){networkErrors++;if($('hub-lobby-status'))$('hub-lobby-status').textContent=e.message;}finally{pending=false;}
+  pending=true;updateHeader();try{const data=await api('sync',{focus:current().id});$('hub-player').textContent=data.player.name;$('hub-balance').textContent=chips(data.balance);renderGames(data.games);notifications=data.notifications;renderNotifications();lobbyStatus('');}catch(e){networkErrors++;lobbyStatus(e.message);}finally{pending=false;}
  }
  window.addEventListener('error',()=>errors++);window.addEventListener('unhandledrejection',()=>errors++);
  window.addEventListener('xan-navigation',()=>{updateHeader();refresh();});
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});
  $('duelModeSelect')?.addEventListener('change',updateHeader);
- setupHome();updateHeader();refresh();refreshTimer=setInterval(refresh,15000);
+ setupHome();setupGameEntry();updateHeader();refresh();refreshTimer=setInterval(refresh,15000);
  window.addEventListener('pagehide',()=>clearInterval(refreshTimer));
 })();

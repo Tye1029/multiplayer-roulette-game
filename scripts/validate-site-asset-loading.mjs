@@ -9,9 +9,11 @@ assert(template, 'Summit image preload template is missing');
 const script = html.match(/<script id="game-asset-loading-v1">([\s\S]*?)<\/script>/)?.[1];
 assert(script, 'Game asset selection loader is missing');
 const imagePaths = [...template[1].matchAll(/href="([^"]+)"/g)].map(match => match[1]);
-assert.equal(imagePaths.length, 10, 'All ten current Summit images must remain available');
+assert.deepEqual(imagePaths, ['/assets/mountain-race/images/summit-world-v68.png','/assets/mountain-race/images/summit-climbers-v68.png','/assets/mountain-race/images/summit-sprint-jagged-ledges-v65.png'], 'V68 must preload exactly its three scene assets');
+const historical = html.match(/<template id="mountainRaceHistoricalPreloads">([\s\S]*?)<\/template>/);
+assert(historical && [...historical[1].matchAll(/href="([^"]+)"/g)].length === 10, 'Validated fallback assets must remain available');
 assert.equal(new Set(imagePaths).size, imagePaths.length, 'Preload template duplicates an image');
-assert(!html.replace(template[0], '').includes('rel="preload" as="image" href="/assets/mountain-race/'),
+assert(!html.replace(template[0], '').replace(historical[0], '').includes('rel="preload" as="image" href="/assets/mountain-race/'),
   'Summit images must not preload on unrelated game pages');
 let deferredBytes = 0;
 for (const path of imagePaths) deferredBytes += (await stat(new URL(path.slice(1), root))).size;
@@ -61,7 +63,7 @@ assert.deepEqual(direct.requests, imagePaths, 'Direct Summit links must preload 
 direct.dom('DOMContentLoaded');
 direct.state({ mode: 'mountainrace', status: 'ready' });
 direct.state({ mode: 'mountainrace', status: 'playing' });
-assert.equal(direct.requests.length, 10, 'URL, Ready, and playing updates duplicate preloads');
+assert.equal(direct.requests.length, imagePaths.length, 'URL, Ready, and playing updates duplicate preloads');
 
 for (const bot of [false, true]) {
   const test = environment();
@@ -70,7 +72,7 @@ for (const bot of [false, true]) {
   test.choice('mountainrace', false, bot);
   assert.deepEqual(test.requests, imagePaths, 'Choosing Summit must preload before Ready');
   test.choice('mountainrace', false, bot);
-  assert.equal(test.requests.length, 10, 'Repeated selection duplicates preloads');
+  assert.equal(test.requests.length, imagePaths.length, 'Repeated selection duplicates preloads');
 }
 const select = environment();
 select.dom('change', { target: { id: 'duelModeSelect', value: 'mountainrace' } });

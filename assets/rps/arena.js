@@ -17,7 +17,7 @@
   function selectedWager() {const input=$('wager');if(!input.reportValidity())return null;return Number(input.value);}
   function updateWagerLabels() {
     const cost=chips($('wager').value);
-    $('create').textContent='Challenge A New Opponent · '+cost;
+    $('create').textContent='Create Game';
     $('challengeRival').textContent='Challenge your rival · '+cost;
   }
   $('wager').oninput=updateWagerLabels;updateWagerLabels();

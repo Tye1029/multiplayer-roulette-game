@@ -1,0 +1,18 @@
+XAN DUELS V2 / SUMMIT SPRINT V68 — 2026-10-11
+
+Generated with the built-in imagegen tool. Final project assets:
+- assets/site-hub/images/roulette.webp
+- assets/site-hub/images/roulette-four.webp
+- assets/mountain-race/images/summit-world-v68.png
+- assets/mountain-race/images/summit-climbers-v68.png
+
+Prompt set:
+1. Square cinematic saloon game card: one complete oval wooden table, exactly two empty wooden chairs (left/right), one steel-and-walnut revolver resting centrally, warm pendant light, worn wood and charcoal shadows, polished painterly 3D art, no text or people.
+2. Matching elevated three-quarter saloon game card: exactly four empty chairs on all four sides of a complete oval wooden table, single central revolver, warm pendant lighting, no text or people.
+3. One tall 1:3 continuous alpine granite cliff, grassy rocky base, broad flat snow-dusted summit at the upper 20 percent, blue sky and distant peaks. Straight-on cliff face, coherent jagged strata, warm afternoon light and cool shadows, sparse pines, painterly adventure-game art. No people, arrows, lanes or UI. Preserve the image's aspect ratio in the camera.
+4. Transparent ten-figure sprite atlas in five equal columns and two rows. Blue-jacket male with red backpack in row one, orange-jacket female with teal backpack in row two. White helmets, rear view. Columns: stand, reach left, reach right, slip, victory with arms raised. Consistent scale, clear gripping hands and boots, no scenery or text. Follow-up edit removed the background and corrected left-reaching poses. Actual alpha confirmed.
+
+Asset and compatibility notes:
+The obsolete Roulette card foreground was removed after direct and dynamic reference checks. Draw is removed from the public game list; its mechanics, debug tooling and small legacy thumbnail remain for existing game compatibility. Historical Summit artwork, prototype and V65 renderer remain referenced by the independent prototype, build validators and fallback presentation; they are not loaded by the active V68 scene. The new active preload contains only the world, climber atlas and reused six-ledge atlas.
+
+V68 changes only presentation. Existing server-generated course length/order, deadlines, next-four prompts, optimistic input queue, authoritative correction, wrong-input slips, Remote Network Bot, synchronization, rematches and winner labels are preserved. Persistent scene nodes and translated cameras replace the legacy scene's repeated DOM construction. The controls sit below the scene, preserving both route views on mobile.

@@ -64,13 +64,13 @@ $('reopen-results').onclick=()=>$('result-dialog').showModal();$('view-table').o
 $('rematch').onclick=async()=>{busy=true;render();try{await api('rematch',{wager:game.wager});}catch(e){status(e.message);}finally{busy=false;render();}};
 document.querySelector('footer>span').textContent='Server-controlled turns · shared Chip wagers';
 const cancel=document.createElement('button');cancel.id='cancel-table';cancel.textContent='Cancel empty table';cancel.hidden=true;cancel.onclick=async()=>{try{await api('cancel');window.XanHub.refresh();}catch(e){status(e.message);}};document.querySelector('footer').append(cancel);
-const form=$('join-form');form.querySelector('p:not(.eyebrow)').textContent='Create a public table or accept the wager to take an open seat. Four verified players are required.';
+const form=$('join-form');form.append($('profile-status'));document.body.classList.add('four-online');form.querySelector('p:not(.eyebrow)').textContent='Create a public table or accept the wager to take an open seat. Four verified players are required.';
 const back=document.createElement('a');back.href='/';back.textContent='← All games';form.append(back);
 const label=document.createElement('label');label.textContent='Wager per player · Chips';const input=document.createElement('input');Object.assign(input,{id:'four-wager',type:'number',min:'1000',max:'50000',step:'1000',value:'1000'});input.required=true;label.append(input);form.querySelector('button').before(label);form.querySelector('.fine').textContent='Unfilled tables expire after 15 minutes and refund all stakes. Closing the page keeps your seat. Inactive turns forfeit your bank.';
 form.onsubmit=async e=>{e.preventDefault();if(busy)return;busy=true;form.querySelector('button').disabled=true;try{await audio.unlock();await gun.ready();await api(id?'join':'create',{wager:Number(input.value),requestId});window.XanHub.refresh();}catch(e){status(e.message);}finally{busy=false;form.querySelector('button').disabled=false;render();}};
 async function init(){
  if(!window.XanHub){setTimeout(init,50);return;}
- $('welcome').showModal();gun.ready().catch(()=>{});form.querySelector('button').textContent=id?'Accept wager & join':'Create public table';$('profile-name').textContent='Four-player Roulette';status('Connect on the main site before staking Chips.');
+ document.querySelector('.hub-create-controls').append($('welcome'));$('welcome').setAttribute('open','');gun.ready().catch(()=>{});form.querySelector('button').textContent=id?'Accept wager & join':'Create Game';$('profile-name').textContent='Four-player Roulette';status('Connect on the main site before staking Chips.');
  try{await window.XanHub.authenticate();if(id){await api('get');input.value=game.wager;input.disabled=true;if(!game.seated)status(`${game.players.length}/4 seats · ${chips(game.wager)} each · ${game.rate}% fee`);}else status('Choose your stake. Your challenge appears on the main screen.');}catch(e){status(e.message);}
  timer=setInterval(poll,game?.phase==='waiting'?1800:1000);
 }

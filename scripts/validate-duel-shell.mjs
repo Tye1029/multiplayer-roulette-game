@@ -15,7 +15,7 @@ const input={value:'1000',min:'1000',max:'',disabled:false,
   dispatchEvent(event){events.push(event.type);},addEventListener(){}};
 const document={getElementById:id=>({duelModeSelect:select,duelWagerInput:input}[id]),querySelectorAll:()=>buttons};
 vm.runInNewContext(source,{document,Event:class{constructor(type){this.type=type;}},MutationObserver:class{observe(){}}});
-assert.deepEqual(options.filter(o=>!o.hidden).map(o=>o.value),['draw','fishing','roulette','safecracker','mountainrace','blackjackduel']);
+assert.deepEqual(options.filter(o=>!o.hidden).map(o=>o.value),['fishing','roulette','safecracker','mountainrace','blackjackduel']);
 assert.equal(options.find(o=>o.value==='fishing').textContent,'Fishing Duel');
 assert.equal(buttons[0].disabled,true);
 listeners.get(1)();assert.equal(input.value,'2000');assert.deepEqual(events,['input','change']);

@@ -1368,6 +1368,10 @@
     const controlsEnabled = runtime.game.status === 'playing' && publicState.canSubmit && prompts.length > 0 && !presentation.blocked && !runtime.inputQueueBlocked;
     const tone = presentation.tone || (authoritativeMe.lastInput ? (authoritativeMe.lastInput.correct ? 'correct' : 'wrong') : 'neutral');
 
+    if (window.SummitSceneV68) {
+      window.SummitSceneV68.render(root, {game:runtime.game,total,me,opponent,prompts,enabled:controlsEnabled,tone,status:statusText(publicState),overlays:countdownOverlay()+resultOverlay(publicState,me,total),seconds:secondsLeft()});
+      return;
+    }
     ensureMountainRaceWorld(root);
     void 0; // V44 retired generated raster canvases
     void 0; // V44 retired decorative environment layers

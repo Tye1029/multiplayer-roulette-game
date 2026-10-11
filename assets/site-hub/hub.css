@@ -33,3 +33,30 @@ body:has(#simpleTestHome:not([hidden])) #rnbDock{display:none!important}
 #simpleTestHome .hub-title{z-index:1}
 body>header.xan-bar .xan-brand{font-weight:900!important}
 @media(max-width:800px){body>header.xan-bar{padding:10px 12px;gap:7px}}
+/* XAN_HUB_V2_20261011: one create-and-join format across game routes. */
+.hub-game-entry,.hub-game-open{font-family:Inter,ui-sans-serif,system-ui,sans-serif!important;color:var(--hub-text);max-width:1180px;margin:0 auto 24px;text-align:left}
+.hub-game-entry{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:20px;padding:24px 0;border-bottom:1px solid var(--hub-line)}
+.hub-game-entry h1{margin:5px 0 0!important;font:750 clamp(24px,4vw,36px)/1.15 Inter,system-ui!important;letter-spacing:-.03em!important;text-transform:none!important;text-shadow:none!important;color:var(--hub-text)!important}
+.hub-create-controls{display:flex;align-items:flex-end;gap:12px}.hub-create-controls label,.hub-create-controls .duel-compact-field>label{display:block;margin:0 0 7px;font:600 11px system-ui;color:var(--hub-muted)}
+.hub-create-controls input{box-sizing:border-box;width:160px!important;min-height:46px;border:1px solid var(--hub-line)!important;border-radius:8px;background:var(--hub-panel)!important;color:var(--hub-text)!important;padding:10px;font:700 17px system-ui!important}
+.hub-create-controls button:is(#duelCreateBtn,#create,[type=submit]){min-height:46px!important;padding:12px 25px!important;background:var(--xan-accent)!important;border:0!important;border-radius:8px!important;color:#121418!important;font:750 14px system-ui!important;text-transform:none!important;box-shadow:none!important;white-space:nowrap}
+.hub-create-controls .duel-wager-control{display:flex}.hub-create-controls .duel-wager-control input{border-radius:0}.hub-create-controls [data-wager-step]{width:30px;min-width:30px;background:var(--hub-panel);border:1px solid var(--hub-line)}
+.hub-game-entry>#duelStatus{flex:1 0 100%;background:none!important;margin:0!important}.hub-game-open{margin-top:28px;padding-bottom:25px}.hub-game-preview{height:clamp(180px,26vw,300px);max-width:1180px;margin:0 auto 24px;border:1px solid var(--hub-line);border-radius:14px;background-position:center;background-size:cover;box-shadow:inset 0 0 0 1000px #0003}
+#duelScreen>.duel-header,#duelScreen .duel-top-actions,#duelScreen .duel-create-card,#duelScreen .duel-join-card{display:none!important}
+#duelScreen:not(.hub-has-game) .duel-grid{display:none!important}#duelScreen .duel-grid{display:block!important}#duelScreen .duel-live-card{padding:0!important;background:none!important;border:0!important}
+#duelScreen{padding:0 24px 35px!important;max-width:1280px!important;margin-inline:auto!important;background:var(--hub-bg)!important;border:0!important;box-shadow:none!important}
+body:has(#duelScreen:not([hidden])){background:var(--hub-bg)!important}#duelScreen .duel-side-stack{display:none!important}
+.lobby-card #balance,.lobby-card .open-heading,.lobby-card #openGames{display:none!important}.lobby-card>h2{font-size:20px}.lobby-card .character-picker legend{display:none}.lobby-card #wagerHint{margin-top:16px}
+.four-online #welcome{position:static!important;max-width:none!important;width:auto!important;margin:0!important;padding:0!important;border:0!important;background:transparent!important;color:var(--hub-text)!important;box-shadow:none!important;overflow:visible!important}
+.four-online #welcome:not([open]){display:none!important}.four-online #join-form{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px;margin:0;padding:0}.four-online #join-form label{order:0}.four-online #join-form button[type=submit]{order:1}.four-online #join-form #profile-status{order:2;flex-basis:100%;margin:0;font-size:12px}
+.four-online #join-form>:is(h1,h2,p:not(#profile-status),.profile-card,a),.four-online #join-form>div:not(#profile-status){display:none!important}
+.four-online .page-header>div,.four-online:not(:has(#welcome[open])) .hub-create-controls:empty{display:none}.four-online .page-header{justify-content:flex-end;padding:0!important;margin:0 0 12px!important}
+.four-online:has(#welcome[open]) :is(.table-meta,.gun-picker,.player-bars,.control-deck,#roulette-four>footer){display:none!important}.four-online:has(#welcome[open]) #scene{height:300px;min-height:300px;background:url('/assets/site-hub/images/roulette-four.webp') center 54%/cover}.four-online:has(#welcome[open]) #scene>*{display:none!important}
+@media(max-width:600px){#duelScreen{padding:0 12px 24px!important}.hub-game-entry{gap:16px;padding:20px 0}.hub-create-controls{width:100%;gap:9px}.hub-create-controls .duel-compact-field{flex:1}.hub-create-controls input{width:100%!important;min-width:70px}.hub-create-controls .duel-wager-control{width:100%}.hub-create-controls button:is(#duelCreateBtn,#create,[type=submit]){padding:12px 20px!important}.hub-game-open .hub-heading h2{font-size:21px}.four-online #join-form{width:100%}.four-online #join-form label{flex:1}.four-online #join-form #four-wager{width:100%!important}}
+.hub-game-entry,.hub-game-open,.hub-game-preview{box-sizing:border-box;width:100%}
+#duelScreen:not([hidden]){display:block!important}
+.four-online #join-form>.profile-name{display:none!important}
+.hub-create-controls #duelCreateBtn{width:auto!important;flex:none}
+.hub-game-heading h1::after{content:none!important}.hub-game-entry~.masthead{display:none!important}
+.four-online:has(#welcome[open]){background:var(--hub-bg)!important}
+.four-online .hub-create-controls{width:340px;max-width:100%}.four-online #join-form>label{display:grid;gap:7px;margin:0;flex:1;font:600 11px system-ui;color:var(--hub-muted)}.four-online #join-form>button[type=submit]{width:auto;flex:none}.four-online #join-form #profile-status{color:var(--hub-muted)}

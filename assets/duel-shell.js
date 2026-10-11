@@ -1,6 +1,6 @@
 (function xanDuelsShell() {
   "use strict";
-  const listedModes = new Set(["roulette", "draw", "fishing", "safecracker", "mountainrace", "blackjackduel"]);
+  const listedModes = new Set(["roulette", "fishing", "safecracker", "mountainrace", "blackjackduel"]);
   const select = document.getElementById("duelModeSelect");
   function updateModeList() {
     if (!select) return;

@@ -6632,7 +6632,8 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
 <!-- MOUNTAIN_RACE_MULTIPLAYER_ASSETS_START -->
 <link id="mountainRaceStyles" rel="stylesheet" href="/assets/mountain-race/mountain-race.css?v=3&multiplayer=1&gameplay=3">
   <link id="mountainRaceSceneStyles" rel="stylesheet" href="/assets/mountain-race/mountain-race-scene-v65.css?v=1">
-  <script id="mountainRaceMultiplayerRuntime" src="/assets/mountain-race/mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=11&scene=65&holds=30" defer></script>
+  <link rel="stylesheet" href="/assets/mountain-race/scene-v68.css?v=1"><script src="/assets/mountain-race/scene-v68.js?v=1" defer></script>
+  <script id="mountainRaceMultiplayerRuntime" src="/assets/mountain-race/mountain-race-multiplayer.js?v=1&gameplay=3&load=2&sync=11&scene=65&holds=30&presentation=68" defer></script>
 <!-- MOUNTAIN_RACE_MULTIPLAYER_ASSETS_END -->
 <!-- BLACKJACK_DUEL_ASSETS_START -->
   <link id="blackjackDuelStyles" rel="stylesheet" href="/assets/blackjack-duel/blackjack-duel.css?v=blackjack-duel-v17">
@@ -6646,6 +6647,12 @@ body.duel-mode.roulette-viewport-lock .duel-screen{
 
 <!-- Game artwork is prewarmed when its game is chosen, before the Ready screen. -->
 <template id="mountainRaceImagePreloads">
+  <link rel="preload" as="image" href="/assets/mountain-race/images/summit-world-v68.png">
+  <link rel="preload" as="image" href="/assets/mountain-race/images/summit-climbers-v68.png">
+  <link rel="preload" as="image" href="/assets/mountain-race/images/summit-sprint-jagged-ledges-v65.png">
+</template>
+<!-- Retained for the validated historical renderer; not prewarmed by V68. -->
+<template id="mountainRaceHistoricalPreloads">
   <link rel="preload" as="image" href="/assets/mountain-race/images/summit-sprint-climber-back-sheet-v45.png" fetchpriority="high">
   <link rel="preload" as="image" href="/assets/mountain-race/images/summit-sprint-climber-back-opponent-sheet-v45.png" fetchpriority="high">
 
@@ -6724,7 +6731,8 @@ body.duel-mode.blackjack-duel-focus .duel-side-stack {display:grid!important;}
 #duelJoinNotice[hidden]{display:none;}
 #duelJoinNotice>div{display:flex;align-items:center;gap:10px;}
 #duelJoinNotice button{min-height:36px;padding:6px 12px;font-size:12px;}
-</style><link rel="stylesheet" href="/assets/site-hub/hub.css?v=1"><script src="/assets/site-hub/preferences.js?v=1"></script><script defer src="/assets/site-hub/hub.js?v=1"></script></head>
+</style><link rel="stylesheet" href="/assets/site-hub/hub.css?v=2"><script src="/assets/site-hub/preferences.js?v=1"></script><script defer src="/assets/site-hub/hub.js?v=2"></script><link rel="stylesheet" href="/assets/roulette/duel-cast.css?v=1"><script type="module" src="/assets/roulette/duel-cast.mjs?v=1"></script>
+</head>
 <body class="test-shell-loading">
 
   <main class="page">
@@ -6797,11 +6805,10 @@ body.duel-mode.blackjack-duel-focus .duel-side-stack {display:grid!important;}
               <option value="coin">Coin Flip Duel</option>
             </select></label>
             <div class="duel-compact-field"><label for="duelWagerInput">Wager · Chips</label><div class="duel-wager-control"><button type="button" data-wager-step="-1" aria-label="Decrease wager by 1,000 Chips"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m10 3-5 5 5 5"/></svg></button><input class="duel-input" id="duelWagerInput" type="number" min="1000" step="1000" value="1000" placeholder="Chips" autocomplete="off" inputmode="numeric" data-lpignore="true" data-1p-ignore="true" data-form-type="other" /><button type="button" data-wager-step="1" aria-label="Increase wager by 1,000 Chips"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3 5 5-5 5"/></svg></button></div></div>
-            <button class="gold duel-main-btn" id="duelCreateBtn" type="button">Create match</button>
+            <button class="gold duel-main-btn" id="duelCreateBtn" type="button">Create Game</button>
             <button class="secondary duel-main-btn" id="duelNpcBtn" type="button">Add NPC</button>
             </div>
             <p class="duel-status" id="duelStatus">Save your Torn API key first, then create or join a duel.</p>
-            <p class="duel-status"><a href="/games/multiplayer/roulette-four/" style="color:#e5bd77">Four-player Roulette · Join an online table</a><br><small>Choose your wager · four players · shared Chip pot</small></p>
           </div>
           <div class="duel-card duel-join-card">
             <div class="duel-card-heading"><span>Open matches</span><small>Waiting for a player to join</small></div>
@@ -13090,7 +13097,7 @@ function createSparkle(x, y) {
  document.title='XAN DUELS';sync();
  const requestedMode=new URLSearchParams(location.search).get('game');
  if(requestedMode==='rps')location.replace('/games/multiplayer/rps/');
- if(requestedMode&&confirmed())setTimeout(()=>{openGame(requestedMode);const room=new URLSearchParams(location.search).get('room');if(room&&/^[a-zA-Z0-9_-]{1,100}$/.test(room))duelReturnToGame(room);},0);
+ if(requestedMode&&confirmed())setTimeout(()=>{openGame(requestedMode);const params=new URLSearchParams(location.search),room=params.get('room');if(room&&/^[a-zA-Z0-9_-]{1,100}$/.test(room)){history.replaceState(null,'','?game='+encodeURIComponent(requestedMode));if(params.get('join')==='1')duelJoin(room);else duelReturnToGame(room);}},0);
 })();
 </script>
 
@@ -13550,7 +13557,7 @@ body.roulette-viewport-lock .page,body.roulette-viewport-lock .duel-screen{heigh
 <!-- MOUNTAIN_RACE_ENVIRONMENT_POLISH_V17 -->
 <script>
 window.XanSiteAdapter={
- current(){const home=document.getElementById('simpleTestHome');return {mode:home&&!home.hidden?'':String(duelModeSelect?.value||''),id:home&&!home.hidden?'':String(duelCurrentGameId||''),phase:duelLastActiveGame?.status||''};},
+ current(){const home=document.getElementById('simpleTestHome');return {mode:home&&!home.hidden?'':String(duelModeSelect?.value||''),id:home&&!home.hidden?'':(duelLastActiveGame?.mode===duelModeSelect?.value?String(duelCurrentGameId||''):''),phase:duelLastActiveGame?.status||''};},
  async open(mode,id,join){window.XanOpenGame(mode);if(join)await duelJoin(id);else await duelReturnToGame(id);window.dispatchEvent(new Event('xan-navigation'));},
  async cancel(id){await duelRequest('cancel',{gameId:id});}
 };

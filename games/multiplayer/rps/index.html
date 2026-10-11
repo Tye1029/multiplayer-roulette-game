@@ -12,9 +12,9 @@
   <script src="/assets/rps/audio.js?v=5" defer></script>
   <script src="/assets/rps/cinema.js?v=5" defer></script>
   <script src="/assets/rps/debug.js?v=5" defer></script>
-  <script src="/assets/rps/arena.js?v=5" defer></script>
+  <script src="/assets/rps/arena.js?v=6" defer></script>
 <link rel="stylesheet" href="/assets/rps/cinema.css?v=5">
-<link rel="stylesheet" href="/assets/site-hub/hub.css?v=1"><script src="/assets/site-hub/preferences.js?v=1"></script><script defer src="/assets/site-hub/hub.js?v=1"></script></head>
+<link rel="stylesheet" href="/assets/site-hub/hub.css?v=2"><script src="/assets/site-hub/preferences.js?v=1"></script><script defer src="/assets/site-hub/hub.js?v=2"></script></head>
 <body>
   <main>
     <div class="masthead"><div><p class="eyebrow">THE COLOSSEUM · TEST ARENA</p><h1>Rock Paper Scissors</h1><p class="intro">Two gladiators. Three hand gestures. Absolutely no chill.</p></div></div>
@@ -53,7 +53,7 @@
           <p id="lobbyStatus" class="lobby-status" role="status">Connect for online play, or try quick practice.</p>
           <div class="invite" id="invite" hidden><label for="arenaCode">Challenge an opponent</label><div class="input-row"><input id="arenaCode" readonly><button id="copy">Copy link</button></div></div>
           <form id="joinForm"><label for="joinCode">Have an arena code?</label><div class="input-row"><input id="joinCode" placeholder="12-character code" maxlength="12" autocomplete="off"><button id="join" disabled>Join</button></div></form>
-          <div class="open-heading"><h3>Open challenges</h3><button id="refresh" disabled>Refresh</button></div><div id="openGames" class="open-games">Connect to see live challenges.</div>
+          <div class="open-heading"><h3>Open Games</h3><button id="refresh" disabled>Refresh</button></div><div id="openGames" class="open-games">Connect to see live challenges.</div>
         </section>
         <section class="rival-card"><p class="eyebrow">A LITTLE UNFINISHED BUSINESS</p><h2>Your arch rival</h2><strong id="archName">No rival yet</strong><p id="archStats">Your most-played human opponent appears here.</p><button id="challengeRival" disabled>Challenge your rival <span>⚔</span></button><p class="rival-note">Invites appear here when your rival opens the arena. They expire after 15 minutes.</p><details><summary>Match records</summary><div id="rivalList"></div><small>Completed human duels count. Bot practice stays off the record.</small></details></section>
       </aside>
