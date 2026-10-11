@@ -1,4 +1,4 @@
-/* BLUFF_OR_BUST_V1 */
+/* BLUFF_OR_BUST_V2 */
 (() => {
   'use strict';
   const rules = window.BluffRules, $ = id => document.getElementById(id);
@@ -6,13 +6,13 @@
   const suitName = { crown: 'Crowns', coin: 'Coins', skull: 'Skulls' }, pip = { crown: '♛', coin: '◆', skull: '✦' };
   const storage = { get(k) { try { return sessionStorage.getItem(k); } catch { return null; } }, set(k, v) { try { sessionStorage.setItem(k, v); } catch {} }, remove(k) { try { sessionStorage.removeItem(k); } catch {} } };
   let state, local, room = '', token = '', busy = false, polling = false, selected = new Set(), key = '', clockOffset = 0, audio, lastCue = '', createId = '', noticeTimer;
-  let sound = false;
+  window.XanSiteAdapter = { current: () => ({ mode: 'bluff', id: local ? '' : room, phase: state?.phase || 'lobby' }) };
   function notice(message, persistent = false) {
     clearTimeout(noticeTimer); $('notice').textContent = message;
     if (!persistent) noticeTimer = setTimeout(() => { $('notice').textContent = ''; }, 6000);
   }
   function tone(kind) {
-    if (!sound || window.XanPreferences?.muted) return;
+    if (window.XanPreferences?.muted) return;
     try {
       audio ||= new AudioContext(); audio.resume().catch(() => {});
       const notes = kind === 'win' ? [392, 494, 587, 784] : kind === 'reveal' ? [220, 330, 440] : kind === 'lock' ? [330, 494] : [640];
@@ -21,7 +21,6 @@
       });
     } catch {}
   }
-  $('sound').onclick = () => { sound = !sound; window.XanPreferences?.sound(sound); $('sound').textContent = sound ? 'Sound on' : 'Sound off'; $('sound').setAttribute('aria-pressed', String(sound)); tone('pick'); };
   $('rules').onclick = () => $('rules-dialog').showModal();
   $('close-rules').onclick = () => $('rules-dialog').close();
   $('rules-dialog').addEventListener('click', e => { if (e.target === $('rules-dialog')) { const r = e.target.getBoundingClientRect(); if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) e.target.close(); } });
@@ -116,9 +115,9 @@
       if (state.phase !== 'complete') return;
     }
     state = null; local = null; room = ''; key = ''; selected.clear(); storage.remove('bluff-room'); storage.remove('bluff-practice');
-    history.replaceState(null, '', location.pathname); $('game').hidden = true; $('lobby').hidden = false; notice('');
+    history.replaceState(null, '', location.pathname); $('game').hidden = true; $('lobby').hidden = false; $('table-controls').replaceChildren(); notice('');
   }
-  $('exit').onclick = async e => { if (state && state.phase !== 'complete') { e.preventDefault(); notice('Use “Leave & forfeit” at the table to end this match before returning home.'); } };
+  document.addEventListener('click', e => { if (e.target.closest('.xan-bar a[href="/"]') && state && ['select', 'decide', 'reveal'].includes(state.phase)) { e.preventDefault(); notice('Use “Leave & forfeit” at the table before returning home.'); } });
   function outcome(e) {
     const own = e.player === state.me, who = own ? 'You' : esc(state.players[e.player].name), n = e.cards.length;
     if (e.result === 'caught') return `<b>CAUGHT BLUFFING.</b>${who} take${own ? '' : 's'} ${n} cards back.`;
@@ -134,11 +133,11 @@
     const oldPhase = $('game').dataset.phase;
     const focus = document.activeElement?.dataset.card;
     key = nextKey; $('game').dataset.phase = s.phase;
-    const heading = `<div class="game-heading"><div><h1>Bluff <i>or</i> Bust.</h1><span class="eyebrow">${local ? 'LOCAL BOT PRACTICE' : rival?.bot ? 'NETWORK BOT · FREE PLAY' : 'FRIEND DUEL · FREE PLAY'}</span></div><div class="table-options">${!local && s.phase === 'waiting' ? '<button data-action="invite">Copy invite</button>' : ''}<button data-action="leave">${['waiting', 'complete'].includes(s.phase) ? 'Leave table' : 'Leave & forfeit'}</button></div></div>`;
+    $('table-controls').innerHTML = `${!local && s.phase === 'waiting' ? '<button data-action="invite">Copy invite</button>' : ''}<button data-action="leave">${['waiting', 'complete'].includes(s.phase) ? 'Leave table' : 'Leave & forfeit'}</button>`;
     let content;
     if (s.phase === 'waiting') {
       const ready = s.ready.includes(s.players[me].id);
-      content = `<section class="table waiting"><span class="eyebrow">${rival ? 'YOUR OPPONENT IS HERE' : 'SAVE A SEAT FOR A GOOD LIAR'}</span><h2>${rival ? `You vs. ${esc(rival.name)}` : 'Your table is ready.'}</h2>${!local ? `<div class="room-code">${s.id}</div>` : '<img class="result-icon" src="/assets/bluff/images/back.svg" alt="Ornate card back">'}<p>${rival ? 'Ten random cards each. Lock your play within 30 seconds or lose. The clock starts when both players are ready.' : 'Copy the invitation link and send it to a friend. Both players must press Ready before the clock starts.'}</p>${rival ? `<button class="primary" data-action="ready" ${ready ? 'disabled' : ''}>${ready ? 'Ready · waiting for your rival…' : 'I’m ready. Deal me in →'}</button>` : '<button class="primary" data-action="invite">Copy invitation link ↗</button>'}<p>No hearts. No wagers. Just your poker face.</p></section>`;
+      content = `<section class="table waiting"><span class="eyebrow">${rival ? 'YOUR OPPONENT IS HERE' : 'SAVE A SEAT FOR A GOOD LIAR'}</span><h2>${rival ? `You vs. ${esc(rival.name)}` : 'Your table is ready.'}</h2>${!local ? `<div class="room-code">${s.id}</div>` : '<img class="result-icon" src="/assets/bluff/images/back.svg" alt="Ornate card back">'}<p>${rival ? 'Ten random cards each. Lock your play within 30 seconds or lose. The clock starts when both players are ready.' : 'Invite a friend or add a bot to test your bluff. The clock starts when both players are ready.'}</p>${rival ? `<button class="primary" data-action="ready" ${ready ? 'disabled' : ''}>${ready ? 'Ready · waiting for your rival…' : 'I’m ready. Deal me in →'}</button>` : `<div class="waiting-actions"><button class="primary" data-action="invite">Copy invitation link ↗</button>${me === 0 ? '<button class="secondary" data-action="add-bot">Add bot</button>' : ''}</div>`}</section>`;
     } else if (s.phase === 'complete') {
       const draw = s.winner === 'draw', won = s.winner === me;
       content = `<section class="table result">${won ? Array.from({length:28},(_,i)=>`<i class="confetti" style="--x:${i*3.7}%;--delay:${i%7*.11}s;--color:${['#eace91','#b98ac0','#83c5b6'][i%3]}"></i>`).join('') : ''}<img class="result-icon" src="/assets/bluff/images/${won ? 'crown' : draw ? 'coin' : 'skull'}.svg" alt=""><span class="eyebrow">${draw ? 'EVENLY MATCHED' : won ? 'A MASTERCLASS IN MISDIRECTION' : 'THE TABLE HAS TURNED'}</span><h2>${draw ? 'An honest draw.' : won ? 'You played them.' : 'Outbluffed.'}</h2><p>${esc(s.reason)}<br>${draw ? 'Nobody takes the win.' : `${won ? 'You win' : esc(rival?.name || 'Opponent') + ' wins'}.`}<br>You: ${s.counts[me]} cards · ${esc(rival?.name || 'Opponent')}: ${s.counts[other]} cards</p><div class="result-actions">${s.players.length === 2 ? `<button class="primary" data-action="rematch" ${s.rematch.includes(s.players[me].id) ? 'disabled' : ''}>${s.rematch.includes(s.players[me].id) ? 'Waiting for rematch…' : 'One more hand ↗'}</button>` : ''}<button data-action="leave">Back to lobby</button></div></section>`;
@@ -150,8 +149,8 @@
         return `<div class="play-zone"><p class="play-label">${p === me ? 'YOUR STORY' : 'THEIR STORY'}${reveal ? ` · ${e.challenged ? 'CHALLENGED' : 'BELIEVED'}` : ''}</p>${reveal ? `<div class="reveal-pile">${e.cards.map((c,i)=>card(c,i,true,s.target)).join('')}</div><p class="outcome" style="--max:${e.cards.length}">${outcome(e)}</p>` : `<div class="card-pile">${backs(s.locked[p] ? s.playCounts[p] || 3 : p === me ? selected.size : 0, s.locked[p])}</div><span class="pile-count">${s.locked[p] ? s.phase === 'select' && p !== me ? 'Locked · count hidden' : `${s.playCounts[p]} cards committed` : p === me ? 'Your secret selection' : 'Waiting for their play'}</span>`}</div>`;
       }).join('')}</div><div class="action-area">${s.phase === 'select' ? `<button class="primary" id="lock" ${s.locked[me] || !selected.size ? 'disabled' : ''}>${s.locked[me] ? '✓ Cards locked' : `Lock ${selected.size || 'your'} card${selected.size === 1 ? '' : 's'} →`}</button><p>${s.locked[me] ? 'Your rival still has to meet the play deadline.' : 'Play any number. Miss the 30-second deadline and you lose.'}</p>` : s.phase === 'decide' ? s.decisionLocked[me] ? `<span class="decision-tag">✓ ${s.myDecision === 'call' ? 'CALL BLUFF' : 'BELIEVE'} LOCKED</span><p>Waiting for the other decision. Then everything flips.</p>` : '<div class="decisions"><button class="secondary" data-choice="believe">Believe them ✓</button><button class="call" data-choice="call">Call bluff !</button></div><p>Wrong accusation? You take their entire play. No answer defaults to Believe.</p>' : '<p>Both plays resolve together. Returned cards count before a win.</p>'}</div></section><section class="hand-panel"><div class="hand-head"><h2>Your hand <small>${s.counts[me]} cards</small></h2><div class="hand-tools"><button id="matching" ${s.phase !== 'select' || s.locked[me] ? 'disabled' : ''}>Pick genuine</button><button id="all" ${s.phase !== 'select' || s.locked[me] ? 'disabled' : ''}>Select all</button><button id="clear" ${s.phase !== 'select' || s.locked[me] ? 'disabled' : ''}>Clear</button></div></div><div class="hand ${s.locked[me] ? 'locked' : ''}">${s.hand.map((c,i)=>card(c,i)).join('')}</div><p class="hand-hint">${reveal ? 'Remember what came back. A familiar card can make a convincing lie.' : '<b>Tap cards to select.</b> Genuine, fake, or a little of both. Only you can see your hand.'}</p></section>`;
     }
-    $('game').innerHTML = heading + content + '<p class="table-note">PLAY TOGETHER · DECIDE IN SECRET · REVEAL EVERYTHING</p>';
-    $('game').querySelectorAll('[data-action]').forEach(b => b.onclick = () => b.dataset.action === 'invite' ? copyInvite() : b.dataset.action === 'leave' ? leave() : request(b.dataset.action));
+    $('game').innerHTML = content;
+    $('app').querySelectorAll('[data-action]').forEach(b => b.onclick = () => b.dataset.action === 'invite' ? copyInvite() : b.dataset.action === 'leave' ? leave() : request(b.dataset.action));
     $('game').querySelectorAll('[data-card]').forEach(b => b.onclick = () => { if (busy || state.phase !== 'select' || state.locked[me]) return; selected.has(b.dataset.card) ? selected.delete(b.dataset.card) : selected.add(b.dataset.card); tone('pick'); updateSelection(); });
     $('game').querySelectorAll('[data-choice]').forEach(b => b.onclick = () => { tone('lock'); request('decide', { choice: b.dataset.choice }); });
     if ($('lock')) $('lock').onclick = () => { if (!selected.size) return; tone('lock'); request('play', { cards: [...selected] }); };
@@ -161,7 +160,7 @@
     if (focus) [...$('game').querySelectorAll('[data-card]')].find(b=>b.dataset.card===focus)?.focus({preventScroll:true});
     const cue = `${s.id}:${s.match}:${s.round}:${s.phase}`;
     if (cue !== lastCue) { lastCue = cue; if (s.phase === 'reveal') tone('reveal'); if (s.phase === 'complete' && s.winner === me) tone('win'); }
-    if (oldPhase && oldPhase !== s.phase && ['reveal', 'complete', 'select'].includes(s.phase)) $('game').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (oldPhase && oldPhase !== s.phase && ['reveal', 'complete', 'select'].includes(s.phase)) document.querySelector('.game-heading').scrollIntoView({ behavior: 'smooth', block: 'start' });
     tick();
   }
   function updateSelection() {

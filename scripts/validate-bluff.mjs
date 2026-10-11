@@ -42,6 +42,24 @@ await test('randomized matches preserve all 20 cards through hundreds of resolut
     now=s.deadline;M.advance(s,now,rng);now++;
   }}
 });
+await test('creator adds a bot to an empty seat without starting the clock; retries are harmless',()=>{
+  const s=M.create('ABCDEF123456',{id:'a',name:'Alice'},0);
+  M.act(s,'a',{action:'add-bot',name:'Spoofed',id:'spoofed'},10,rng);
+  assert.equal(s.phase,'waiting');assert.equal(s.deadline,900000);assert.deepEqual(s.hands,[[],[]]);
+  assert.deepEqual(s.players[1],{id:'bot:velvet',name:'The Velvet Fox',bot:true});
+  const revision=s.revision;M.act(s,'a',{action:'add-bot'},20,rng);assert.equal(s.revision,revision);
+  M.act(s,'a',{action:'ready'},30,rng);assert.equal(s.phase,'select');assert.equal(s.deadline,30030);assert.deepEqual(s.hands.map(h=>h.length),[10,10]);
+  M.bot(s,5000,rng);assert.ok(s.plays[1]);
+});
+await test('adding a bot rejects outsiders, guests, full tables, active matches and expired invitations',()=>{
+  const empty=()=>M.create('ABCDEF123456',{id:'a',name:'Alice'},0);
+  const s=empty();assert.throws(()=>M.act(s,'stranger',{action:'add-bot'},1,rng),e=>e.status===403);
+  M.join(s,{id:'b',name:'Bob'},1);assert.throws(()=>M.act(s,'b',{action:'add-bot'},2,rng),e=>e.status===403);
+  assert.throws(()=>M.act(s,'a',{action:'add-bot'},2,rng),/available/);assert.equal(s.players[1].id,'b');
+  const botFirst=empty();M.act(botFirst,'a',{action:'add-bot'},1,rng);assert.throws(()=>M.join(botFirst,{id:'b',name:'Bob'},2),/available/);
+  assert.throws(()=>M.act(game(),'a',{action:'add-bot'},2,rng),/waiting/);
+  const expired=empty();assert.throws(()=>M.act(expired,'a',{action:'add-bot'},900000,rng),/waiting/);assert.equal(expired.phase,'complete');assert.equal(expired.players.length,1);
+});
 await test('API authentication, payload bounds, methods, errors and redaction',async()=>{
   let calls=0;const s=game();const store={create:async()=>{calls++;return s;},action:async()=>{calls++;return s;}};
   const handler=createHandler(store,{authenticate:async token=>token==='valid'?{id:'a'}:null});

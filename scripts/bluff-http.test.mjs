@@ -30,4 +30,11 @@ try{
   await send('alice','leave');const done=await send('bob','get');assert.equal(done.winner,'draw');
   await send('alice','rematch');const rematch=await send('bob','rematch');assert.equal(rematch.match,2);assert.equal(rematch.phase,'select');assert.equal(rematch.hand.length,10);
   console.log('Bluff HTTP: two identities, simultaneous commits, private decisions, synchronized reveals, reconnect reads and mutual rematches passed.');
+  await send('alice','create');
+  const outsider=await fetch(url,{method:'POST',body:JSON.stringify({token:'bob',action:'add-bot',gameId:'ABCDEF123456'})});assert.equal(outsider.status,403);
+  const waiting=await send('alice','add-bot');assert.equal(waiting.phase,'waiting');assert.equal(waiting.players[1].bot,true);
+  const retry=await send('alice','add-bot');assert.equal(retry.revision,waiting.revision);
+  const occupied=await fetch(url,{method:'POST',body:JSON.stringify({token:'bob',action:'join',gameId:'ABCDEF123456'})});assert.equal(occupied.status,409);
+  const botGame=await send('alice','ready');assert.equal(botGame.phase,'select');assert.equal(botGame.hand.length,10);
+  console.log('Bluff HTTP: authenticated creator-only Add bot, retry, occupied-seat protection and Ready passed.');
 }finally{await new Promise(resolve=>server.close(resolve));}

@@ -71,7 +71,13 @@
     const p = s.players.findIndex(p => p.id === id);
     if (p < 0) fail('This table belongs to its players.', 403);
     advance(s, now, rng);
-    if (body.action === 'ready') {
+    if (body.action === 'add-bot') {
+      if (p !== 0) fail('Only the table creator can add a bot.', 403);
+      if (s.phase !== 'waiting') fail('Bots can only join a waiting table.');
+      // A retry is harmless; a bot can never replace an opponent who joined first.
+      if (s.players.length === 2 && s.players[1].id === 'bot:velvet') return s;
+      join(s, { id: 'bot:velvet', name: 'The Velvet Fox', bot: true }, now);
+    } else if (body.action === 'ready') {
       if (s.phase !== 'waiting' || s.players.length !== 2) fail('Wait for your opponent to join.');
       if (!s.ready.includes(id)) { s.ready.push(id); s.revision++; }
       if (s.players.every(p => p.bot || s.ready.includes(p.id))) start(s, now, rng);
