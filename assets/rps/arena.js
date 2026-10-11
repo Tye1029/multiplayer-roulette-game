@@ -1,4 +1,4 @@
-/* HAND_OF_DOOM_V4_20261010 */
+/* HAND_OF_DOOM_V4_20261010 · RPS_LOBBY_COPY_20261011 */
 (() => {
   'use strict';
   const $ = id => document.getElementById(id), rules = window.RPSRules, audio = window.RPSAudio;
@@ -17,7 +17,7 @@
   function selectedWager() {const input=$('wager');if(!input.reportValidity())return null;return Number(input.value);}
   function updateWagerLabels() {
     const cost=chips($('wager').value);
-    $('create').textContent='Challenge a random opponent · '+cost;
+    $('create').textContent='Challenge A New Opponent · '+cost;
     $('challengeRival').textContent='Challenge your rival · '+cost;
   }
   $('wager').oninput=updateWagerLabels;updateWagerLabels();

@@ -6,13 +6,13 @@
   <meta name="theme-color" content="#17181b">
   <meta name="referrer" content="same-origin">
   <title>Rock Paper Scissors · Xan Duels</title>
-  <!-- HAND_OF_DOOM_V4_20261010 -->
-  <link rel="stylesheet" href="/assets/rps/arena.css?v=4">
+  <!-- HAND_OF_DOOM_V4_20261010 · RPS_LOBBY_COPY_20261011 -->
+  <link rel="stylesheet" href="/assets/rps/arena.css?v=4.1">
   <script src="/shared/games/rps-model.js?v=4" defer></script>
   <script src="/assets/rps/audio.js?v=4" defer></script>
   <script src="/assets/rps/cinema.js?v=4" defer></script>
   <script src="/assets/rps/debug.js?v=4" defer></script>
-  <script src="/assets/rps/arena.js?v=4" defer></script>
+  <script src="/assets/rps/arena.js?v=4.1" defer></script>
 <link rel="stylesheet" href="/assets/rps/cinema.css?v=4">
 </head>
 <body>
@@ -44,14 +44,13 @@
           <button data-choice="scissors" disabled><span class="choice-art"><img src="/assets/rps/images/scissors-icon.png?v=4" width="256" height="256" alt="" /></span><span><b>SCISSORS</b><small>Cuts paper</small></span><kbd>3</kbd></button>
         </div><div class="match-actions" id="matchActions" hidden><button id="rematch" class="primary">Demand a rematch</button><button id="backLobby">Back to lobby</button></div><p id="payout" class="payout" hidden role="status"></p><p class="status" id="status" role="status">First to two round wins. Ties replay immediately.</p><div id="roundHistory" class="history" aria-label="Round history"></div></div>
         <section id="debug-panel" class="debug-panel" hidden aria-label="Arena debug"><div class="debug-heading"><h2>Arena debug</h2><button id="close-debug">Close debug</button></div><p>Session diagnostics. Keys, tokens and concealed hands are excluded.</p><div class="debug-actions"><button id="refresh-debug">Refresh report</button><button id="copy-debug">Copy report</button><button id="download-debug">Download report</button></div><textarea id="debug-report" readonly aria-label="Debug report" spellcheck="false"></textarea><p id="debug-status" role="status"></p></section>
-        <div class="rule-strip"><span><b>01</b> Lock a secret hand</span><span><b>02</b> 1.8 seconds of drama</span><span><b>03</b> First to two wins</span></div>
       </section>
       <aside>
         <section class="lobby-card"><h2>Challenge an opponent</h2><p>Quick duels. Ridiculous drama. First to two wins.</p>
           <div id="identity" class="identity">Practice is ready. Connect for live 1v1.</div>
           <a id="siteLogin" href="/">Sign in on the main site</a>
           <fieldset class="character-picker"><legend>Your gladiator</legend><div id="characters" class="characters"></div><p id="characterHint">Your look, your dramatic entrance.</p></fieldset>
-          <label for="wager">Wager per player · Chips</label><input id="wager" type="number" min="1000" max="50000" step="1000" value="1000" required><p id="wagerHint" class="lobby-status">1,000–50,000 Chips per player. Leaving a funded duel forfeits your stake. A locked hand wins if the opponent times out. Bot practice is free.</p><p id="balance" class="lobby-status"></p><div class="lobby-buttons"><button id="create" class="primary">Challenge a random opponent <span>↗</span></button><button id="practice">Quick practice <small>Local bot · no key</small></button><button id="remoteBot">Remote Network Bot <small>Server practice</small></button></div>
+          <label for="wager">Wager per player · Chips</label><input id="wager" type="number" min="1000" max="50000" step="1000" value="1000" required><p id="wagerHint" class="lobby-status">1,000–50,000 Chips per player. Leaving a funded duel forfeits your stake. A locked hand wins if the opponent times out. Bot practice is free.</p><p id="balance" class="lobby-status"></p><div class="lobby-buttons"><button id="create" class="primary">Challenge A New Opponent <span>↗</span></button><button id="practice">Quick practice <small>Local bot · no key</small></button><button id="remoteBot">Remote Network Bot <small>Server practice</small></button></div>
           <p id="lobbyStatus" class="lobby-status" role="status">Connect for online play, or try quick practice.</p>
           <div class="invite" id="invite" hidden><label for="arenaCode">Challenge an opponent</label><div class="input-row"><input id="arenaCode" readonly><button id="copy">Copy link</button></div></div>
           <form id="joinForm"><label for="joinCode">Have an arena code?</label><div class="input-row"><input id="joinCode" placeholder="12-character code" maxlength="12" autocomplete="off"><button id="join" disabled>Join</button></div></form>
