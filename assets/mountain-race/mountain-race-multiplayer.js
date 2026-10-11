@@ -1786,9 +1786,12 @@
       return;
     }
     const token = KEY_MAP[event.key];
-    if (!token || event.repeat || runtime.game?.status !== 'playing') return;
+    if (!token || runtime.game?.status !== 'playing') return;
     if (/^(INPUT|TEXTAREA|SELECT)$/.test(event.target?.tagName) || event.target?.isContentEditable) return;
     event.preventDefault();
+    // Held arrow keys still emit repeats. Consume them before returning so the
+    // browser cannot scroll the course or accidentally submit extra moves.
+    if (event.repeat) return;
     submit(token);
   }
 

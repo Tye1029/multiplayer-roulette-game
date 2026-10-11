@@ -28,6 +28,9 @@ try{
  round++;state=model.createMountainRaceState({playerIds:['a','b'],countdownMs:0});state.sequence.fill('up');for(let i=0;i<pages.length;i++)await pages[i].evaluate(g=>{window.confirmedRevision=0;window.MountainRaceMultiplayer.adopt(g);},game(i?'b':'a'));
  await pages[0].keyboard.down('ArrowUp');
  assert.equal(Number(await pages[0].locator('.m68-key').first().getAttribute('data-mr-displayed-index')),1,'Ordinary arrows respond before keyup or server confirmation');
+ const repeat=await pages[0].evaluate(()=>{const e=new KeyboardEvent('keydown',{key:'ArrowUp',code:'ArrowUp',repeat:true,bubbles:true,cancelable:true});document.dispatchEvent(e);return e.defaultPrevented;});
+ assert.equal(repeat,true,'Held arrows must suppress browser scrolling');
+ assert.equal(Number(await pages[0].locator('.m68-key').first().getAttribute('data-mr-displayed-index')),1,'Auto-repeat must not create extra moves');
  await pages[0].keyboard.up('ArrowUp');await pages[0].waitForFunction(()=>window.confirmedRevision>0);
  releaseDelay=600;
  async function jump(i,distance,keyboard=false,followup=false){
