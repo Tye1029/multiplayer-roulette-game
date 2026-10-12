@@ -1,4 +1,4 @@
-/* POCKET_PUTT_V2 — original courses, shared by the renderer and authoritative physics. */
+/* POCKET_PUTT_V3 — original courses, shared by the renderer and authoritative physics. */
 (function(root,factory){const value=factory();if(typeof module==='object'&&module.exports)module.exports=value;else root.PuttCourses=value;})(globalThis,()=>{
   'use strict';
   const rect=(x,y,w,h)=>[[x,y],[x+w,y],[x+w,y+h],[x,y+h]];
@@ -36,11 +36,61 @@
     [{x:275,y:185,rx:70,ry:62,height:12},{x:450,y:370,rx:53,ry:58,height:8}],
     [{x:300,y:550,rx:96,ry:78,height:14},{x:560,y:370,rx:58,ry:75,height:-9}]
   ];
-  holes.forEach((h,i)=>{h.terrain=terrain[i];h.tip+=' Light ridges roll the ball downhill; darker divots draw it inward.';});
+  holes.forEach((h,i)=>{h.terrain=terrain[i];});
   const courses=[
-    {id:'garden',name:'Bramble Gardens',subtitle:'Banks, bends & a little finesse',color:'#a6df97',holes:holes.slice(0,3)},
-    {id:'lagoon',name:'Hippo Hollow',subtitle:'Hungry shortcuts & lagoon leaps',color:'#8cddd9',holes:holes.slice(3,6)},
-    {id:'fair',name:'Moonlight Fair',subtitle:'Moving gates & bumper mischief',color:'#ebc28c',holes:holes.slice(6,9)}
+    {id:'garden',name:'Bramble Gardens',difficulty:'Intermediate',subtitle:'Banks, bends & a little finesse',color:'#a6df97',holes:holes.slice(0,3)},
+    {id:'lagoon',name:'Hippo Hollow',difficulty:'Intermediate',subtitle:'Hungry shortcuts & lagoon leaps',color:'#8cddd9',holes:holes.slice(3,6)},
+    {id:'fair',name:'Moonlight Fair',difficulty:'Challenging',subtitle:'Moving gates & bumper mischief',color:'#ebc28c',holes:holes.slice(6,9)}
   ];
+  const mound=(x,y,rx,ry,height=12)=>({x,y,rx,ry,height}),sand=(x,y,w,h)=>({x,y,w,h}),bumper=(x,y,r=25)=>({x,y,r});
+  function add(id,name,difficulty,theme,subtitle,layouts){
+    const greens=layouts.map(([name,par,tee,cup,tip,features],i)=>({id:id+'-'+(i+1),name,par,theme,tee,cup,tip,floor:rect(70,70,580,580),walls:[],sand:[],water:[],bumpers:[],terrain:[],...features}));
+    holes.push(...greens);courses.push({id,name,difficulty,subtitle,color:'#c4dfad',holes:greens});
+  }
+  add('clover','Clover Club','Beginner','garden','Room to learn your touch',[
+    ['First Putt',2,[360,575],[360,160],'A clear lane. Start gently and learn how far your ball rolls.',{floor:rect(210,75,300,570)}],
+    ['Easy Bank',3,[180,560],[550,180],'A single angled rail introduces bank shots. There is room around either end.',{walls:[[[290,350],[445,425]]],sand:[sand(100,210,100,85)]}],
+    ['Little Rise',3,[160,570],[540,170],'Try aiming beside the small hill. A downhill bounce can save a stroke.',{terrain:[mound(350,365,120,100,9)]}]
+  ]);
+  add('willow','Willow Walk','Easy','garden','Gentle bends through the gardens',[
+    ['Around the Pond',3,[160,570],[555,180],'Follow the wide bend. The inner rail sets up a tidy second shot.',{floor:[[70,650],[70,90],[650,90],[650,290],[290,290],[290,650]],terrain:[mound(435,185,80,65,-6)]}],
+    ['Garden Gate',3,[160,570],[555,155],'The gap through the fence is wide; choose a line before adding power.',{walls:[[[70,330],[240,330]],[[445,330],[650,330]]],sand:[sand(480,410,125,105)]}],
+    ['The Horseshoe',4,[150,575],[570,575],'Go up, across the top, then down. Soft shots make the bends easier.',{floor:[[70,650],[70,70],[650,70],[650,650],[450,650],[450,270],[270,270],[270,650]],terrain:[mound(360,170,90,65,8)]}]
+  ]);
+  add('dunes','Sandstone Dunes','Intermediate','dunes','Read the sand, save your strokes',[
+    ['Bunker Boulevard',3,[160,565],[555,155],'Sand grabs the ball. Take the clean strip down either side.',{sand:[sand(275,220,175,270)],terrain:[mound(535,490,75,80,10)]}],
+    ['Desert Dogleg',4,[140,570],[570,155],'Set up at the elbow; the sandy corner punishes overpowered banks.',{floor:[[70,650],[70,380],[380,380],[380,70],[650,70],[650,650]],sand:[sand(140,430,170,100),sand(465,220,100,125)]}],
+    ['Dune Crossing',4,[150,555],[565,160],'The ridge pushes outward. Aim into its slope to bend toward the cup.',{terrain:[mound(325,390,120,130,19),mound(510,225,80,75,-10)],sand:[sand(90,90,160,140)],walls:[[[400,650],[400,475]]]}]
+  ]);
+  add('pebble','Pebble Springs','Easy','alpine','Friendly bumpers and open greens',[
+    ['Bumper School',3,[155,575],[560,145],'The blue spring bumper kicks your ball away on contact.',{bumpers:[bumper(360,355,35)]}],
+    ['Twin Springs',3,[360,580],[360,140],'Thread the middle or bank around the pair of spring bumpers.',{bumpers:[bumper(245,350,32),bumper(475,350,32)],terrain:[mound(360,200,80,65,-6)]}],
+    ['Pebble Bend',4,[155,575],[560,155],'A bumper at the bend can send you up the second lane.',{floor:[[70,650],[70,420],[420,420],[420,70],[650,70],[650,650]],bumpers:[bumper(545,540,33)],sand:[sand(220,475,115,95)]}]
+  ]);
+  add('tide','Tidal Trails','Challenging','lagoon','Bridges, coves and careful landings',[
+    ['Dry Bridge',4,[150,560],[560,145],'Cross the narrow dry bridge between the two pools.',{water:[sand(70,290,240,120),sand(410,290,240,120)],terrain:[mound(515,205,75,65,-8)]}],
+    ['Island Hops',4,[145,570],[570,145],'Use the left bank, then turn above the central lagoon.',{water:[sand(250,235,230,275)],walls:[[[70,200],[200,200]],[[510,520],[650,520]]],bumpers:[bumper(565,350,25)]}],
+    ['The Shoreline',5,[160,575],[560,105],'Two offset pools leave a winding dry route. Keep your landing spot in mind.',{water:[sand(70,330,295,110),sand(355,140,295,110)],terrain:[mound(485,520,105,85,14)],walls:[[[200,70],[200,170]]]}]
+  ]);
+  add('alpine','Alpine Greens','Challenging','alpine','Slopes do the steering',[
+    ['Ridge Rider',4,[155,570],[560,150],'Hit across the ridge at an angle and let its downhill side bend your shot.',{terrain:[mound(345,360,145,125,22)],sand:[sand(90,100,120,100)]}],
+    ['Bowl Country',4,[155,570],[565,155],'These grassy bowls pull shots inward. Leave enough power to climb out.',{terrain:[mound(280,455,95,100,-15),mound(465,260,105,95,-15)],walls:[[[70,270],[210,270]]]}],
+    ['Mountain Pass',5,[155,575],[560,150],'Climb the first slope, cross the opening, then avoid the final bowl.',{walls:[[[70,350],[290,350]],[[415,350],[650,350]]],terrain:[mound(275,500,110,95,19),mound(430,190,90,80,-13)],sand:[sand(490,410,120,100)]}]
+  ]);
+  add('neon','Neon Boardwalk','Expert','fair','Timing meets pinball precision',[
+    ['Turnstile',4,[155,565],[565,150],'Wait for the moving bar to clear your line, then commit.',{walls:[[[70,350],[215,350]],[[505,350],[650,350]]],gate:{x:360,y:350,length:120,speed:.8},bumpers:[bumper(530,520,26)]}],
+    ['Spring Alley',5,[150,580],[565,145],'The central spring array offers sharp bank-shot shortcuts.',{bumpers:[bumper(280,470,30),bumper(425,370,30),bumper(290,250,30),bumper(485,200,25)],walls:[[[70,370],[190,370]],[[515,460],[650,460]]],terrain:[mound(525,570,65,55,-9)]}],
+    ['Clockwork Corner',5,[150,570],[565,145],'Line up at the corner before taking on the rotating arm.',{floor:[[70,650],[70,420],[330,420],[330,70],[650,70],[650,650]],gate:{x:475,y:310,length:95,speed:-.55},sand:[sand(420,475,135,100)],bumpers:[bumper(575,430,22)]}]
+  ]);
+  add('safari','Hippo Safari','Expert','lagoon','Three very hungry detours',[
+    ['Feeding Time',4,[155,570],[555,155],'Feed the hippo to skip a long detour. Its exit aims away from the water.',{portal:{mouth:[285,525],exit:[500,260],angle:-Math.PI/2},water:[sand(70,300,385,115)],terrain:[mound(560,385,60,75,-9)]}],
+    ['River Run',5,[150,575],[565,160],'The hippo skips one pool, but you must still find a safe route to the flag.',{portal:{mouth:[270,530],exit:[180,220],angle:0},water:[sand(70,315,370,115),sand(350,265,150,185)],walls:[[[350,70],[350,175]]],sand:[sand(440,100,95,100)]}],
+    ['Hungry Detour',5,[145,580],[565,570],'Go through the hippo, then use a soft bank to avoid the spring bumper.',{walls:[[[350,260],[350,650]]],portal:{mouth:[250,485],exit:[475,165],angle:Math.PI/2},bumpers:[bumper(515,290,32)],terrain:[mound(535,450,85,80,15)],sand:[sand(100,100,140,150)]}]
+  ]);
+  add('masters','The Masters Loop','Expert','dunes','Every trick in the caddy book',[
+    ['The Switchback',5,[145,580],[570,140],'Climb around the two offset rails. The bowl can help catch an overshoot.',{walls:[[[70,420],[445,420]],[[275,250],[650,250]]],terrain:[mound(535,500,65,95,15),mound(180,185,75,70,-12)],sand:[sand(280,290,125,85)]}],
+    ['Risk and Reward',5,[150,575],[565,145],'The hippo saves distance; the open bank route avoids the moving gate.',{portal:{mouth:[255,505],exit:[500,340],angle:-Math.PI/2},gate:{x:510,y:230,length:85,speed:.6},water:[sand(280,270,135,180)],bumpers:[bumper(180,230,30)],terrain:[mound(480,535,90,65,-12)]}],
+    ['Grand Finale',6,[150,575],[565,145],'Use the left opening first, the right opening second, then a measured final putt.',{walls:[[[270,440],[650,440]],[[70,270],[420,270]]],terrain:[mound(190,370,85,100,17),mound(520,195,85,75,-13)],bumpers:[bumper(505,350,28)],sand:[sand(315,500,140,100)]}]
+  ]);
   return {courses,holes,rect,get:id=>courses.find(c=>c.id===id),SIZE:720};
 });

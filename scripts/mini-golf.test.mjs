@@ -6,8 +6,8 @@ const require=createRequire(import.meta.url),C=require('../shared/games/mini-gol
 const {createStore}=require('../netlify/functions/mini-golf/database'),{createHandler}=require('../netlify/functions/mini-golf-action'),progress=require('../netlify/functions/site-hub/progression');
 const a={id:'101',name:'Alice'},b={id:'202',name:'Bob'},uuid=()=>crypto.randomUUID();
 function match(course='garden'){const s=M.create('ABCDEF123456',a,course,0);M.join(s,b,0);M.act(s,a.id,{action:'ready'},0);M.act(s,b.id,{action:'ready'},0);return s;}
-test('all nine original holes are reachable through legal shots and deterministic physics',()=>{
-  assert.equal(C.courses.length,3);assert.equal(C.holes.length,9);
+test('all 36 holes across 12 varied courses are reachable through legal deterministic shots',()=>{
+  assert.equal(C.courses.length,12);assert.equal(C.holes.length,36);assert.equal(new Set(C.holes.map(h=>h.id)).size,36);assert.ok(C.courses.every(c=>c.holes.length===3&&c.difficulty));assert.equal(new Set(C.courses.map(c=>c.difficulty)).size,5);
   for(const h of C.holes){assert.ok(P.safe(h,h.tee));assert.ok(P.safe(h,h.cup));let p=h.tee,strokes=0,now=0,r;while(strokes<12){const shot=P.botShot(h,p,now);r=P.simulate(h,p,shot.angle,shot.power,now);assert.deepEqual(P.simulate(h,p,shot.angle,shot.power,now),r);assert.ok(P.safe(h,r.position));strokes+=1+r.penalty;p=r.position;now+=r.duration+1400;if(r.holed)break;}assert.ok(r.holed,h.id+' must be finishable');}
 });
 test('pullback strength, banks, sand, water penalties, hippo transport, and capture speed',()=>{
@@ -31,7 +31,7 @@ test('hills slow uphill shots and bend downhill; divots pull inward with smooth,
   assert.ok(Math.abs(P.terrainAt(green,469.999,330).ax)<.01,'No force discontinuity at the edge');
   assert.ok(P.terrainAt(green,400,330).ax>0);assert.ok(P.terrainAt(bowl,400,330).ax<0);
   const mirrored=P.simulate(green,[200,360],0,.45);assert.ok(Math.abs(mirrored.position[1]+raised.position[1]-660)<.01);
-  for(const h of C.holes){assert.ok(h.terrain.length>=2);for(const t of h.terrain){assert.ok(P.safe(h,[t.x,t.y]));assert.ok(t.rx>0&&t.ry>0);}}
+  assert.ok(C.holes.filter(h=>h.terrain.length).length>=20);for(const h of C.holes)for(const t of h.terrain){assert.ok(P.safe(h,[t.x,t.y]));assert.ok(t.rx>0&&t.ry>0);}
 });
 test('wall collision cannot tunnel or escape at maximum power across sampled shots',()=>{
   for(const h of C.holes)for(let i=0;i<40;i++){const r=P.simulate(h,h.tee,i*Math.PI/20,1,i*113);assert.ok(P.safe(h,r.position),h.id+' escaped at '+i);assert.ok(r.duration<=13000);assert.ok(r.position.every(Number.isFinite));}
@@ -51,9 +51,35 @@ test('full three-hole duel, score totals, mutual rematch and reset',()=>{
 test('waiting cancellation, readiness timeout, shot timeout, caps, and automatic next hole',()=>{
   const wait=M.create('ABCDEF123456',a,'garden',0);M.act(wait,a.id,{action:'cancel'},10);assert.ok(wait.cancelled);assert.equal(wait.winner,'draw');
   const ready=M.create('ABCDEF123456',a,'garden',0);M.join(ready,b,0);M.act(ready,a.id,{action:'ready'},0);M.advance(ready,60001);assert.deepEqual(ready.ready,[]);
-  const timed=match();M.advance(timed,90001);assert.equal(timed.winner,1);assert.ok(timed.forfeited);assert.deepEqual(progress.outcomes('minigolf',timed),[]);
-  const late=match();M.act(late,a.id,{action:'shot',angle:0,power:.2,revision:late.revision,requestId:uuid()},1);M.advance(late,late.lastShot.endsAt+M.TURN_MS+1);assert.equal(late.phase,'complete');assert.equal(late.winner,0,'Late polling cannot reset the opponent clock');
+  const timed=match();assert.equal(M.TURN_MS,60000);M.advance(timed,59999);assert.equal(timed.turn,0);M.advance(timed,60000);assert.equal(timed.phase,'playing');assert.equal(timed.turn,1);assert.equal(timed.balls[0].strokes,0);assert.equal(timed.deadline,120000);assert.equal(timed.turnEvent.type,'timeout');
+  const late=match();M.act(late,a.id,{action:'shot',angle:0,power:.2,revision:late.revision,requestId:uuid()},1);const end=late.lastShot.endsAt;M.advance(late,end+M.TURN_MS+1);assert.equal(late.phase,'playing');assert.equal(late.turn,0,'Late polling skips the expired opponent turn');assert.equal(late.deadline,end+M.TURN_MS*2);
   const s=match();assert.throws(()=>M.act(s,a.id,{action:'cancel'},10),/before/);s.balls.forEach(ball=>ball.strokes=11);let now=1;for(const p of [a,b]){M.act(s,p.id,{action:'shot',angle:0,power:.025,revision:s.revision,requestId:uuid()},now);now=s.lastShot.endsAt+1;M.advance(s,now);}assert.equal(s.phase,'hole-complete');assert.deepEqual(s.scores,[[12],[12]]);M.advance(s,s.deadline+1);assert.equal(s.hole,1);
+});
+test('timeout after opponent sinks awards only that hole, preserves totals, catches up and resets on rematch',()=>{
+  const s=match();s.balls[1].holed=true;s.balls[1].strokes=2;M.advance(s,60000);assert.equal(s.phase,'hole-complete');assert.equal(s.holeResults[0].winner,1);assert.deepEqual(s.scores,[[13],[2]]);assert.ok(s.balls[0].conceded);assert.match(s.holeReason,/wins this hole/);
+  const rev=s.revision;M.advance(s,60001);assert.equal(s.revision,rev);assert.equal(s.scores[0].length,1);
+  M.advance(s,90000);assert.equal(s.hole,1);assert.equal(s.turn,1);assert.equal(s.deadline,150000);assert.ok(s.balls.every(b=>b.strokes===0));
+  const idle=match();M.advance(idle,60000*100001+1);assert.equal(idle.turn,1);assert.equal(idle.deadline,60000*100002);assert.equal(idle.phase,'playing');
+  const final=match();final.hole=2;final.scores=[[4,4],[3,3]];final.balls[1].holed=true;final.balls[1].strokes=12;M.advance(final,60000);assert.equal(final.phase,'complete');assert.equal(final.winner,1);assert.deepEqual(final.scores,[[4,4,13],[3,3,12]]);assert.deepEqual(progress.outcomes('minigolf',final),[],'Timeout rounds do not farm achievement rewards');
+  M.act(final,a.id,{action:'rematch'},60001);M.act(final,b.id,{action:'rematch'},60001);assert.equal(final.timedOut,false);assert.equal(final.deadline,120001);assert.deepEqual(final.holeResults,[]);
+});
+test('a sunk shot leaves time for the shared cup animation before passing the turn',()=>{
+  const s=match();s.balls[0].position=[550,205];M.act(s,a.id,{action:'shot',angle:-Math.PI/2,power:.16,revision:s.revision,requestId:uuid()},10);assert.ok(s.lastShot.holed);assert.ok(s.lastShot.events.some(e=>e.type==='cup'));assert.equal(s.lastShot.endsAt-s.lastShot.startedAt-s.lastShot.duration,M.CUP_FEEDBACK_MS+50);M.advance(s,s.lastShot.endsAt-1);assert.equal(s.turn,0);M.advance(s,s.lastShot.endsAt);assert.equal(s.turn,1);
+});
+test('golf ball unlocks are server-checked, persistent per player, and shared with the opponent',async()=>{
+  const pg=new PGlite();let tail=Promise.resolve();const pool={query:(q,args)=>pg.query(q,args),connect:async()=>{let release;const before=tail;tail=new Promise(r=>release=r);await before;return {query:(q,args)=>pg.query(q,args),release};}};
+  const ledger=new Map(),wallet={account:async p=>p.id,rate:async()=>3.3,apply:async(id,e)=>{ledger.set(e.id,e.delta);},award:async(id,e)=>{ledger.set(e.id,e.delta);}};
+  const progression=progress.createStore(pool,wallet),db=createStore(pool,wallet,progression);
+  try{
+    await assert.rejects(progression.preferences(a,{golfBall:'gold'}),/still locked/);await assert.rejects(progression.preferences(a,{golfBall:'<script>'}),/still locked/);
+    const won=match();won.phase='complete';won.winner=0;won.completedAt=100;won.scores=[[2,2,2],[3,3,3]];await progression.observe('minigolf',won);const profile=await progression.profile(a);assert.ok(profile.achievements.minigolf.find(x=>x.id==='wins-1').unlocked);
+    await progression.preferences(a,{golfBall:'coral',character:'lyra'});assert.equal((await progression.profile(a)).settings.golfBall,'coral');assert.equal((await progression.profile(a)).settings.character,'lyra');
+    let s=await db.create({...a,ballColor:'gold'},{course:'clover',wager:0,requestId:uuid()});assert.equal(s.players[0].ballColor,'coral','Request identity cannot bypass the equipped profile');s=await db.action(s.id,b,{action:'join',wager:0,ballColor:'gold'});assert.equal(s.players[1].ballColor,'pearl');assert.equal(M.publicState(s,b.id).players[0].ballColor,'coral');
+    await assert.rejects(db.action(s.id,b,{action:'color',ballColor:'coral'}),/still locked/);await assert.rejects(db.action(s.id,{id:'303'},{action:'color',ballColor:'pearl'}),/belongs/);
+    s=await db.action(s.id,a,{action:'color',ballColor:'pearl'});assert.equal(s.players[0].ballColor,'pearl');assert.equal((await progression.profile(a)).settings.golfBall,'pearl');
+    s=await db.action(s.id,a,{action:'color',ballColor:'coral'});await db.action(s.id,a,{action:'ready'});await db.action(s.id,b,{action:'ready'});s=await db.action(s.id,b,{action:'forfeit'});await db.action(s.id,a,{action:'rematch',wager:0});s=await db.action(s.id,b,{action:'rematch',wager:0});assert.equal(s.players[0].ballColor,'coral','Rematch keeps each player’s ball');
+    const newSession=await db.create({...a,name:'Same player, refreshed key'},{course:'garden',wager:0,requestId:uuid()});assert.equal(newSession.players[0].ballColor,'coral');await progression.observe('minigolf',won);await progression.profile(a);assert.equal(ledger.size,1,'Cosmetics never duplicate achievement rewards');
+  }finally{await pg.close();}
 });
 test('authenticated HTTP boundary rejects malformed and oversized requests and server score cannot be supplied',async()=>{
   const s=match();let called=0;const handler=createHandler({action:async(id,p,body)=>{called++;M.act(s,p.id,body,10);return s;}},{authenticate:async token=>token==='valid'?a:null});

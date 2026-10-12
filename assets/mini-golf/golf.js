@@ -1,11 +1,31 @@
-/* POCKET_PUTT_V2 */
+/* POCKET_PUTT_V3 */
 (()=>{
   'use strict';
-  const C=window.PuttCourses,P=window.PuttPhysics,M=window.PuttRules,$=id=>document.getElementById(id),board=$('golf-board'),result=$('golf-result');
+  const C=window.PuttCourses,P=window.PuttPhysics,M=window.PuttRules,B=window.PuttCosmetics,$=id=>document.getElementById(id),board=$('golf-board'),result=$('golf-result');
   let state=null,local=false,busy=false,polling=false,epoch=0,offset=0,aim=null,drag=null,frames=0,slowFrames=0,lastFrame=0,networkErrors=0,shotSeen='',playedEvents=new Set(),toastUntil=0,resultKey='',createIntent=null,shotRetry=null;
   const now=()=>Date.now()+offset;
   const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;};
-  const controls=el('div',undefined,'golf-course-picker'),select=el('select'),label=el('span','Course');select.id='golf-course';select.setAttribute('aria-label','Choose golf course');for(const c of C.courses){const o=el('option',c.name);o.value=c.id;select.append(o);}const solo=el('button','Solo practice','golf-solo');controls.append(label,select,solo);
+  const controls=el('div',undefined,'golf-course-picker'),select=el('select'),label=el('span','12 courses · 36 holes');select.id='golf-course';select.setAttribute('aria-label','Choose golf course');for(const c of C.courses){const o=el('option',c.name+' · '+c.difficulty);o.value=c.id;select.append(o);}const solo=el('button','Solo practice','golf-solo');controls.append(label,select,solo);
+  let ballDialog,selectedBall='pearl',turnEventSeen='';
+  const earnedBalls=()=>window.XanProgress?.profile?.achievements?.minigolf?.filter(a=>a.unlocked).map(a=>a.id)||[];
+  function ballButton(){const b=el('button','Golf ball','golf-solo golf-ball-button');b.setAttribute('aria-label','Choose golf ball');b.onclick=()=>{ballDialog||=el('dialog',undefined,'xan-dialog golf-ball-dialog');if(!ballDialog.isConnected)document.body.append(ballDialog);drawBallPicker();ballDialog.showModal();window.XanProgress?.refresh();};return b;}
+  controls.append(ballButton());
+  function drawBallPicker(){
+    ballDialog.replaceChildren(el('small','YOUR GOLF LOCKER','xg-kicker'),el('h2','Pick your golf ball'),el('p','Colors unlock through golf achievements against real players. Your choice follows your profile.'));
+    const grid=el('div',undefined,'golf-ball-grid'),message=el('p');message.setAttribute('role','status');
+    for(const color of B.colors){const unlocked=B.available(color.id,earnedBalls()),button=el('button',undefined,'golf-ball-choice');button.disabled=!unlocked;button.dataset.color=color.id;button.setAttribute('aria-pressed',String(selectedBall===color.id));const swatch=el('i');swatch.style.background=`radial-gradient(circle at 30% 25%,${color.light},${color.base} 60%,${color.dark})`;button.append(swatch,el('strong',color.name),el('small',unlocked?(selectedBall===color.id?'Selected':'Unlocked'):'Locked'),el('span',color.challenge));button.onclick=async()=>{
+      if(busy){message.textContent='Wait for your current action to finish.';return;}button.disabled=true;message.textContent='Saving your choice…';
+      try{if(state&&!local)await action('color',{ballColor:color.id});else if(hasKey())await window.XanHub.api('preferences',{settings:{golfBall:color.id}});selectedBall=color.id;if(window.XanProgress?.profile)window.XanProgress.profile.settings.golfBall=color.id;if(local&&state)state.players[0].ballColor=color.id;renderUI();drawBallPicker();}
+      catch(e){message.textContent=e.message;button.disabled=false;}
+    };grid.append(button);}
+    const close=el('button','Close');close.onclick=()=>ballDialog.close();ballDialog.append(grid,message,close);
+  }
+  window.addEventListener('xan-progress',e=>{
+    selectedBall=B.get(e.detail?.settings?.golfBall).id;if(ballDialog?.open)drawBallPicker();const owner=window.XanHub?.profile?.id;if(!owner)return;
+    for(const c of B.colors.filter(c=>c.achievement&&B.available(c.id,earnedBalls()))){const key=`golf-ball-unlocked:${owner}:${c.id}`;try{if(localStorage.getItem(key))continue;localStorage.setItem(key,'1');}catch{continue;}
+      const toast=el('section',undefined,'xg-award-toast');toast.setAttribute('role','status');const text=el('div');text.append(el('small','NEW GOLF BALL'),el('strong',c.name+' unlocked'),el('span','Choose it in your golf locker.'));const swatch=el('b','●');swatch.style.color=c.base;const close=el('button','×');close.setAttribute('aria-label','Dismiss golf ball unlock');close.onclick=()=>toast.remove();toast.append(swatch,text,close);let host=$('xg-award-stack');if(!host){host=el('div');host.id='xg-award-stack';document.body.prepend(host);}host.append(toast);sound('cup');
+    }
+  });
   const retry=el('button','Retry shot','golf-solo');retry.hidden=true;retry.onclick=()=>shotRetry&&shoot(shotRetry);$('golf-caddy')?.append(retry);$('golf-notice').after(retry);
   const hasKey=()=>{try{return !!localStorage.getItem('tornVisitorApiKey');}catch{return false;}};
   function notice(text){$('golf-notice').textContent=text||'';}
@@ -13,7 +33,8 @@
   function accept(s,generation=epoch){
     if(generation!==epoch)return;
     if(state?.id===s.id&&state.revision>s.revision)return;
-    offset=local?0:s.serverNow-Date.now();state=s;
+    offset=local?0:s.serverNow-Date.now();state=s;if(s.players[s.you]?.ballColor)selectedBall=s.players[s.you].ballColor;
+    const turnKey=s.turnEvent?s.id+':'+s.match+':'+s.turnEvent.at:'';if(turnKey&&turnKey!==turnEventSeen){turnEventSeen=turnKey;notice(s.turnEvent.type==='conceded'?s.holeReason:`${s.players[s.turnEvent.player].name}'s time ran out. Turn passed.`);}
     if(s.cancelled){reset();notice(s.reason);return;}
     if(shotRetry&&(s.lastShot?.id===shotRetry.requestId||s.phase!=='playing'||s.revision!==shotRetry.revision)){shotRetry=null;retry.hidden=true;}
     if(aim&&!canShoot())aim=drag=null;
@@ -33,7 +54,7 @@
     finally{busy=false;renderUI();}
   }
   async function join(id,wager){if(busy)return;busy=true;const generation=++epoch;try{const d=await post('join',{wager},id.trim().toUpperCase());local=false;accept(d.game,generation);}finally{busy=false;renderUI();}}
-  function practice(bot=false){reset();local=true;state=M.create('practice',{id:'local',name:'You'},select.value);if(bot){M.join(state,{id:'bot:putter',name:'Pip the Putter',bot:true});M.act(state,'local',{action:'ready'});}else M.start(state,Date.now());accept(M.publicState(state,'local'));}
+  function practice(bot=false){reset();local=true;state=M.create('practice',{id:'local',name:'You',ballColor:selectedBall},select.value);if(bot){M.join(state,{id:'bot:putter',name:'Pip the Putter',bot:true,ballColor:'coral'});M.act(state,'local',{action:'ready'});}else M.start(state,Date.now());accept(M.publicState(state,'local'));}
   solo.onclick=()=>practice(false);
   async function addBot(){
     if(!state){if(hasKey())return create({wager:0,bot:true,private:true});return practice(true);}if(local)return;
@@ -64,10 +85,10 @@
     $('golf-table').hidden=!state;controls.hidden=!!state;updateShotControls();if(!state)return;
     const course=C.get(state.course),h=course.holes[state.hole],you=state.you;
     $('golf-table').dataset.phase=state.phase;$('golf-table').dataset.turn=String(state.turn);$('golf-table').dataset.hole=String(state.hole);
-    $('golf-hole-count').textContent=`${course.name.toUpperCase()} · ${state.hole+1} / 3`;$('golf-hole-name').textContent=h.name;$('golf-par').textContent=`PAR ${h.par} · ${course.holes.reduce((v,n)=>v+n.par,0)} TOTAL`;
+    $('golf-hole-count').textContent=`${course.name.toUpperCase()} · ${state.hole+1} / ${course.holes.length}`;$('golf-hole-name').textContent=h.name;$('golf-par').textContent=`${course.difficulty.toUpperCase()} · PAR ${h.par}`;
     for(let i=0;i<2;i++){
       const root=$(i===0?'golf-player-a':'golf-player-b'),p=state.players[i];
-      const key=JSON.stringify([p,state.balls[i]?.strokes,total(i),local]);if(root.dataset.key===key)continue;root.dataset.key=key;root.replaceChildren();const image=el('img');image.src=avatar(p);image.alt='';root.append(image,el('strong',p?p.name:local?'Solo round':'Open seat'),el('small',p?`${state.balls[i]?.strokes||0} this hole · ${total(i)} total`:local?'Just you & the green':'Waiting for a player'));
+      const key=JSON.stringify([p,state.balls[i]?.strokes,total(i),local]);if(root.dataset.key===key)continue;root.dataset.key=key;root.replaceChildren();const image=el('img');image.src=avatar(p);image.alt='';root.append(image,el('strong',p?p.name:local?'Solo round':'Open seat'),el('small',p?`${state.balls[i]?.strokes||0} this hole · ${total(i)} total`:local?'Just you & the green':'Waiting for a player'));if(p){const swatch=el('span',B.get(p.ballColor).name,'golf-equipped');swatch.style.setProperty('--ball-color',B.get(p.ballColor).base);root.append(swatch);}if(i===you)root.append(ballButton());
     }
     const moving=state.lastShot&&!state.lastShot.resolved,own=state.turn===you,finished=['complete','hole-complete'].includes(state.phase);
     $('golf-turn-tag').textContent=finished?'ON THE SCORECARD':state.phase==='waiting'?'ON THE TEE':moving?'BALL IN PLAY':own?'MAKE IT COUNT':'WATCH & PLAN';
@@ -78,7 +99,7 @@
     const scoreKey=JSON.stringify([state.scores,state.hole,state.players]);if($('golf-scorecard').dataset.key!==scoreKey){$('golf-scorecard').dataset.key=scoreKey;const table=el('table'),head=el('thead'),row=el('tr');for(const name of ['PLAYER','1','2','3','Σ'])row.append(el('th',name));head.append(row);const body=el('tbody');state.players.forEach((p,i)=>{const r=el('tr');r.append(el('td',i===you?'You':p.name));for(let j=0;j<3;j++)r.append(el('td',state.scores[i]?.[j]??'—'));r.append(el('td',String(total(i))));body.append(r);});table.append(head,body);$('golf-scorecard').replaceChildren(table);}
     const show=['complete','hole-complete'].includes(state.phase);result.hidden=!show;
     if(show){const key=[state.id,state.match,state.hole,state.phase].join(':');if(resultKey!==key){resultKey=key;result.replaceChildren();const done=state.phase==='complete';result.append(el('span',done?'ROUND COMPLETE':'ON TO THE NEXT GREEN'),el('h2',done?(state.players.length===1?'Nicely putt.':state.winner==='draw'?'An even round.':state.winner===you?'You take the round!':'Opponent takes the round.'):'Hole complete.'));
-      const scores=el('div',undefined,'golf-result-scores');state.players.forEach((p,i)=>{const item=el('div');item.append(el('span',i===you?'You':p.name),el('b',String(done?total(i):state.scores[i].at(-1))),el('small',done?'TOTAL STROKES':'STROKES'));scores.append(item);});result.append(scores,el('p',done?state.reason:'Both players have finished. Take a breath, then head to the next tee.'));
+      const scores=el('div',undefined,'golf-result-scores');state.players.forEach((p,i)=>{const item=el('div');item.append(el('span',i===you?'You':p.name),el('b',String(done?total(i):state.scores[i].at(-1))),el('small',done?'TOTAL STROKES':state.balls[i].conceded?'CONCEDED':'STROKES'));scores.append(item);});result.append(scores,el('p',done?state.reason:state.holeReason||'Both players have finished. Take a breath, then head to the next tee.'));
       const actions=el('div',undefined,'golf-result-actions'),next=el('button',done?'Rematch':'Next hole');next.id='golf-next';next.onclick=()=>action(done?'rematch':'continue',{wager:state.wager||0}).catch(()=>{});actions.append(next);if(done){const fresh=el('button','Create a new game');fresh.onclick=reset;actions.append(fresh);}result.append(actions);
       sound(done&&(state.winner===you||state.players.length===1)?'win':done?'lose':'cup');
     }
@@ -131,17 +152,17 @@
   }
   async function poll(){
     if(document.hidden||busy||polling||!state)return;polling=true;const generation=epoch;
-    try{if(local){if(state.phase==='playing')state.deadline=Date.now()+M.TURN_MS;M.bot(state);accept(M.publicState(state,'local'),generation);}else{const d=await post('get');accept(d.game,generation);}}
+    try{if(local){M.bot(state);accept(M.publicState(state,'local'),generation);}else{const d=await post('get');accept(d.game,generation);}}
     catch(e){networkErrors++;notice('Reconnecting to your game… '+e.message);}finally{polling=false;}
   }
   const pollingTimer=setInterval(poll,1100);window.addEventListener('pagehide',()=>clearInterval(pollingTimer));
   const previousArt=window.XanMenuArt.mount.bind(window.XanMenuArt);let heroCanvas;
   window.XanMenuArt.mount=(root,mode)=>{if(mode!=='minigolf')return previousArt(root,mode);root.classList.add('golf-menu-art');const hero=el('div',undefined,'golf-hero');heroCanvas=el('canvas');heroCanvas.setAttribute('aria-hidden','true');const tag=el('div','SMALL COURSE. BIG PERSONALITY.','golf-hero-label');tag.append(el('b','A little off course.'));hero.append(heroCanvas,tag);root.append(hero);};
-  window.XanRules.minigolf=['Choose one of three courses. Each match has three different holes. Lowest total strokes wins.','Press Ready to start, then take turns. Drag backwards anywhere on the course and release to putt. Or click/tap where to aim, adjust the strength slider, and press Putt. The filled arrow shows direction and power.','Bank off rails, slow down in sand, and find shortcuts. Light hills push the ball downhill; dark divots draw it inward. Water returns your ball to its previous position and adds one penalty stroke.','Aim into a hippo’s mouth to emerge from its bottom on another green. Watch rotating gates and lively bumpers.','You have 90 seconds for each online shot. Twelve strokes ends a hole for that player. The next hole starts when both continue, or after 30 seconds. Equal final scores are a draw.','Keyboard: focus the course; left/right adjust aim, up/down change power, Space putts, and Escape cancels. Solo practice and bots are free.'];
+  window.XanRules.minigolf=['Choose from 12 courses with 36 holes, from Beginner to Expert. Each match has three different holes. Lowest total strokes wins.','Press Ready to start, then take turns. Drag backwards anywhere on the course and release to putt. Or click/tap where to aim, adjust the strength slider, and press Putt. The filled arrow shows direction and power.','Bank off rails, slow down in sand, and find shortcuts. Light hills push the ball downhill; dark divots draw it inward. Water returns your ball to its previous position and adds one penalty stroke.','Aim into a hippo’s mouth to emerge from its bottom on another green. Watch rotating gates and lively bumpers.','You have 60 seconds per turn. Running out of time passes the turn without taking a shot. If your opponent has already finished, they win that hole and you score 13 for conceding it. Twelve actual strokes ends a hole. Both players continue to the next tee, or it starts after 30 seconds. Equal match totals are a draw.','Unlock golf ball colors through competitive achievements, and choose them from Golf ball. Solo practice and bots do not unlock achievements.','Keyboard: focus the course; left/right adjust aim, up/down change power, Space putts, and Escape cancels. Solo practice and bots are free.'];
   window.XanSiteAdapter={
     current:()=>({mode:'minigolf',id:state?.id||'',phase:state?.phase||'lobby'}),
     view:()=>state?{...state,votes:state.rematch,finished:state.phase==='complete',ready:state.ready.includes(state.players[state.you]?.id),canReady:state.phase==='waiting'&&state.players.length===2&&!state.ready.includes(state.players[state.you]?.id),canCancel:state.phase==='waiting'&&state.you===0,payout:state.payouts?.[state.players[state.you]?.id]||0,connecting:busy}:{phase:'lobby'},
-    create,join,quote:async id=>(await post('quote',{},id.trim().toUpperCase())).quote,ready:()=>action('ready'),addBot,practice:()=>practice(true),controls:()=>controls,resultRoot:()=>result,diagnostics:()=>({build:'POCKET_PUTT_V2',round:(state?.hole||0)+1,revision:state?.revision||0,frames,slowFrames,networkErrors,busy,polling}),cancel:id=>post('cancel',{},id),dismissCancelled:id=>{if(state?.id===id)reset();}
+    create,join,quote:async id=>(await post('quote',{},id.trim().toUpperCase())).quote,ready:()=>action('ready'),addBot,practice:()=>practice(true),controls:()=>controls,resultRoot:()=>result,diagnostics:()=>({build:'POCKET_PUTT_V3',round:(state?.hole||0)+1,revision:state?.revision||0,frames,slowFrames,networkErrors,busy,polling}),cancel:id=>post('cancel',{},id),dismissCancelled:id=>{if(state?.id===id)reset();}
   };
   function animate(timestamp){
     requestAnimationFrame(animate);if(document.hidden)return;frames++;if(lastFrame&&timestamp-lastFrame>60)slowFrames++;lastFrame=timestamp;
@@ -151,9 +172,11 @@
       if(elapsed<shot.duration){let i=Math.min(f.length-2,Math.max(0,Math.floor(elapsed/33.333)));while(i>0&&f[i][0]>elapsed)i--;while(i<f.length-2&&f[i+1][0]<elapsed)i++;const a=f[i],b=f[i+1],mix=Math.max(0,Math.min(1,(elapsed-a[0])/(b[0]-a[0]||1)));balls[shot.player]={position:[a[1]+(b[1]-a[1])*mix,a[2]+(b[2]-a[2])*mix],alpha:a[3],holed:false};}
       for(let i=0;i<shot.events.length;i++){const e=shot.events[i];if(e.at<=elapsed&&!playedEvents.has(i)){playedEvents.add(i);if(elapsed-e.at<250){sound(e.type);const label={gulp:'Gulp! Shortcut taken.',pop:'A very unorthodox exit.',splash:'Splash! +1 penalty stroke',cup:state.balls[shot.player]?.strokes===1?'Hole in one!':'In the cup!'}[e.type];if(label){$('golf-event').textContent=label;toastUntil=Date.now()+1800;}}}}
     }
-    window.PuttRenderer.render(board,h,{balls,time:t,aim,active:state.turn,you:state.you,playable:canShoot(),ghost:true});$('golf-event').classList.toggle('visible',Date.now()<toastUntil);updateShotControls();
+    const effects=(shot?.events||[]).map(e=>({...e,age:t-shot.startedAt-e.at,player:shot.player})).filter(e=>e.age>=0&&e.age<M.CUP_FEEDBACK_MS);
+    board.dataset.cupEffect=String(effects.some(e=>e.type==='cup'));
+    window.PuttRenderer.render(board,h,{balls,time:t,aim,active:state.turn,you:state.you,playable:canShoot(),ghost:true,colors:state.players.map(p=>p.ballColor),effects});$('golf-event').classList.toggle('visible',Date.now()<toastUntil);updateShotControls();
     const power=Math.round((aim?.power||0)*100);$('golf-power-meter').value=power;$('golf-power-value').textContent=power+'%';
-    $('golf-clock').textContent=state.phase==='playing'?(shot&&!shot.resolved?'Ball in motion':local?'Take your time':Math.max(0,Math.ceil((state.deadline-t)/1000))+'s to shoot'):state.phase==='hole-complete'?'Next tee in '+Math.max(0,Math.ceil((state.deadline-t)/1000))+'s':'';
+    const seconds=Math.max(0,Math.ceil((state.deadline-t)/1000));$('golf-clock').textContent=state.phase==='playing'?(shot&&!shot.resolved?'Ball in motion':(state.turn===state.you?'Your turn · ':'Opponent · ')+seconds+'s'):state.phase==='hole-complete'?'Next tee in '+seconds+'s':'';$('golf-clock').classList.toggle('urgent',state.phase==='playing'&&(!shot||shot.resolved)&&seconds<=10);
   }
   requestAnimationFrame(animate);
   const code=new URLSearchParams(location.search).get('room');

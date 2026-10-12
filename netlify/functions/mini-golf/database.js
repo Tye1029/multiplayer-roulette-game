@@ -3,8 +3,10 @@ const {getDatabase}=require('@netlify/database');
 const crypto=require('node:crypto');
 const model=require('../../../shared/games/mini-golf-model');
 const finance=require('../shared/table-finance');
-function createStore(injectedPool,injectedWallet){
+function createStore(injectedPool,injectedWallet,injectedProgress){
   const wallet=injectedWallet||require('../rps/wallet');let pool=injectedPool,schema;
+  const progression=injectedProgress||(injectedPool?require('../site-hub/progression').createStore(injectedPool,wallet):require('../site-hub/progression'));
+  async function equipped(player){const p=await progression.profile(player),earned=p.achievements.minigolf.filter(a=>a.unlocked).map(a=>a.id),id=p.settings.golfBall;return {...player,ballColor:require('../../../shared/games/mini-golf-cosmetics').available(id,earned)?id:'pearl'};}
   const db=()=>pool||(pool=getDatabase({connectionString:process.env.NETLIFY_DB_URL}).pool);
   async function ready(){schema||=db().query(`DO $golf$ BEGIN
     PERFORM pg_advisory_xact_lock(hashtext('pocket-putt-v1'));
@@ -22,6 +24,7 @@ function createStore(injectedPool,injectedWallet){
     if(!injectedPool&&result.phase==='complete'&&!result.cancelled)try{await require('../site-hub/progression').observe('minigolf',result);}catch(e){console.error('Golf progress pending',e.name);}return result;
   }
   async function create(player,b){
+    player=await equipped(player);
     const amount=finance.wager(b.wager??0);
     if(!/^[a-f0-9-]{24,40}$/i.test(b.requestId||''))model.fail('Missing request ID.',400);
     if(b.bot&&amount)model.fail('Bot practice uses 0 Chips.',400);
@@ -34,16 +37,23 @@ function createStore(injectedPool,injectedWallet){
     const settled=await recover(result.id);if(settled.finance?.aborted)model.fail(settled.reason||'Unable to reserve Chips.');return settled;
   }
   async function action(id,player,b){
-    await recover(id);
+    const current=await recover(id);
+    if(b.action==='join')player=await equipped(player);
+    let chosen;
+    if(b.action==='color'){
+      if(!current.players.some(p=>p.id===String(player.id)))model.fail('This game belongs to its players.',403);
+      chosen=(await progression.preferences(player,{golfBall:b.ballColor})).golfBall;
+      if(!chosen)model.fail('Choose an available golf ball.',400);
+    }
     const result=await tx(async c=>{const s=(await c.query('SELECT state FROM mini_golf_matches WHERE id=$1 FOR UPDATE',[id])).rows[0]?.state;if(!s)model.fail('Game not found.',404);
       if(b.action==='join'&&!s.players.some(p=>p.id===String(player.id))){model.join(s,player);await finance.join(s,player,b.wager,wallet);}
       if(!s.players.some(p=>p.id===String(player.id)))model.fail('This game belongs to its players.',403);
       if(s.finance?.pending.length&&b.action!=='join')model.fail('Confirming stakes. Please retry shortly.');
-      const before=JSON.stringify(s);model.bot(s);const match=s.match,snapshot=structuredClone(s);let error;
+      const before=JSON.stringify(s);if(chosen){s.players.find(p=>p.id===String(player.id)).ballColor=chosen;s.revision++;}model.bot(s);const match=s.match,snapshot=structuredClone(s);let error;
       try{
         if(b.action==='add-bot'&&s.wager)model.fail('Bots play free games. Create a game with a 0 Chip wager.');
         if(b.action==='rematch')finance.consent(s,b);
-        if(!['get','join'].includes(b.action))model.act(s,player.id,b);
+        if(!['get','join','color'].includes(b.action))model.act(s,player.id,b);
         if(match!==s.match&&s.wager){await finance.prepare(s,'minigolf',s.players,s.wager,wallet,true);s.phase='funding';}
       }catch(e){if(!e.status)throw e;for(const k of Object.keys(s))delete s[k];Object.assign(s,snapshot);error={message:e.message,status:e.status};}
       if(JSON.stringify(s)!==before||b.action==='join')await save(c,s);return {error};});

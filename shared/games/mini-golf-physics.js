@@ -1,4 +1,4 @@
-/* POCKET_PUTT_V2 — fixed-step deterministic ball simulation, no client score input. */
+/* POCKET_PUTT_V3 — fixed-step deterministic ball simulation, no client score input. */
 (function(root,factory){const value=factory();if(typeof module==='object'&&module.exports)module.exports=value;else root.PuttPhysics=value;})(globalThis,()=>{
   'use strict';
   const R=9,DT=1/120,MAX_SPEED=660,DRAG=155,MAX_SECONDS=12;
