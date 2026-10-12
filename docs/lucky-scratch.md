@@ -1,4 +1,4 @@
-# Lucky Scratch V2
+# Lucky Scratch V3
 
 The homepage separates multiplayer and single-player collections. Lucky Scratch
 is the first single-player entry at `/games/single-player/lucky-scratch/`.
@@ -37,8 +37,8 @@ late retry cannot become a new purchase after the active ticket settles.
 Ticket locks serialize reveals and settlement. A client can only submit panel
 indices; it cannot choose the price, prize, owner, or wallet destination.
 
-All nine panels must be revealed for settlement. Reloading restores the ticket
-and confirmed reveals; partially erased foil on an unconfirmed panel may reset.
+All nine panels must be revealed for settlement. Reloading opens the main menu with a Continue Ticket button for unfinished
+tickets. Continuing restores confirmed reveals; partially erased foil on an unconfirmed panel may reset.
 Once funded, panel values are sent to the browser to support local scratching.
 Inspecting those values cannot change the immutable result or obtain a refund.
 The admin's existing financial ledger includes the ticket ID, reason, amount,
@@ -58,3 +58,8 @@ The Lucky Scratch GitHub Actions workflow runs these checks on pushes and PRs.
 After settlement, the player chooses the next tier beside the result and buys
 a new ticket in place. The free sample repeats in sample mode. Existing tickets
 retain their stored price and payout when the current pricing changes.
+
+Opening, reloading, or returning to the page always starts at the main menu.
+Completed tickets are not automatically reopened. Only repeat purchases during
+the current visit open directly in the scratching view. Continuing a saved
+ticket checks its latest state without creating a purchase or charging chips.
