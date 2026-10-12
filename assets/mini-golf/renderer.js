@@ -131,9 +131,17 @@
     }
     if(h.gate){const g=h.gate,seg=P.gateSegment(h,time/1000);circle(g.x,g.y,20,'#3d654533');line(...seg,'#594e45',19);line(...seg,'#e7c590',13);line([seg[0][0],seg[0][1]-2],[seg[1][0],seg[1][1]-2],'#fff1c6',3);circle(g.x,g.y,13,'#eee0b9');circle(g.x,g.y,6,'#9a6654');}
     if(h.portal){const m=h.portal.mouth,e=h.portal.exit;
-      // Mouth and rump are the two visible ends of an underground hippo tunnel.
+      // A complete hippo feeds a visible covered chute, ending at the exact
+      // physics exit. The ball follows this same curve instead of teleporting.
+      const chute=()=>{x.beginPath();for(let i=0;i<=40;i++){const p=P.portalPoint(h,i/40);i?x.lineTo(...p):x.moveTo(...p);}};
+      x.save();x.lineCap='round';chute();x.strokeStyle='#17362d55';x.lineWidth=27;x.stroke();
+      chute();x.strokeStyle='#d3ebe8';x.lineWidth=22;x.stroke();chute();x.strokeStyle='#48696be6';x.lineWidth=18;x.stroke();chute();x.strokeStyle='#bce3db85';x.lineWidth=12;x.stroke();
+      for(const t of [.1,.3,.5,.7,.9]){const p=P.portalPoint(h,t);circle(...p,12,'#d3e7d966');circle(...p,8,'#48696b88');}x.restore();
+      x.save();x.translate(...m);ellipse(3,-85,42,51,'#203a3c55');
+      for(const side of [-1,1]){ellipse(side*33,-98,13,19,'#857993');ellipse(side*34,-65,13,17,'#857993');}
+      const hide=x.createLinearGradient(-36,-100,36,-65);hide.addColorStop(0,'#d0c2db');hide.addColorStop(.5,'#aa9abe');hide.addColorStop(1,'#82718f');ellipse(0,-87,38,50,hide);ellipse(0,-125,12,9,'#5e506e');line([0,-116],[12,-128],'#d8c5df',5);x.restore();
       x.save();x.translate(m[0],m[1]);ellipse(0,-30,45,37,'#34464355');ellipse(0,-38,41,40,'#9b91b1');ellipse(-33,-61,12,11,'#b9a9cb');ellipse(33,-61,12,11,'#b9a9cb');ellipse(-33,-62,6,6,'#8d7e9d');ellipse(33,-62,6,6,'#8d7e9d');ellipse(-19,-44,10,12,'#c7bbd6');ellipse(19,-44,10,12,'#c7bbd6');circle(-18,-43,4,'#28283b');circle(18,-43,4,'#28283b');ellipse(0,-12,42,29,'#b9abc9');ellipse(0,2,31,17+(portalPulse?3:0),'#51405f');ellipse(0,8,19,7,'#b4778d');roundRect(-23,-12,10,13,3,'#f5e7cc');roundRect(13,-12,10,13,3,'#f5e7cc');ellipse(-15,-23,5,3,'#877397');ellipse(15,-23,5,3,'#877397');x.restore();
-      x.save();x.translate(...e);x.rotate(h.portal.angle+Math.PI/2);ellipse(0,31,36,34,'#968baa');ellipse(-18,16,21,25,'#b2a4c4');ellipse(18,16,21,25,'#a598b8');ellipse(0,0,12,8,'#67536f');x.beginPath();x.moveTo(1,25);x.quadraticCurveTo(25,36,17,47);x.strokeStyle='#d3c4dd';x.lineWidth=6;x.lineCap='round';x.stroke();x.restore();
+      x.save();x.translate(...e);x.rotate(h.portal.angle+Math.PI/2);ellipse(0,3,18,11,'#18382c55');ellipse(0,0,15,8,'#e0e8d3');ellipse(0,0,11,5,'#263f40');line([-14,-2],[14,-2],'#b7d7cf',2);x.restore();
     }
     // Cup, flag and tee are always in the same world coordinates as collision.
     circle(...h.tee,18,'#f0e7cd25');circle(...h.tee,3,'#ebedc566');ellipse(h.cup[0]+3,h.cup[1]+3,17,13,'#426d3c55');circle(...h.cup,15,'#c0cb95');circle(...h.cup,12,'#17392a');circle(h.cup[0]+1,h.cup[1]+2,8,'#0b221c');

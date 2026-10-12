@@ -6,7 +6,7 @@ const require=createRequire(import.meta.url),C=require('../shared/games/mini-gol
 const {createStore}=require('../netlify/functions/mini-golf/database'),{createHandler}=require('../netlify/functions/mini-golf-action'),progress=require('../netlify/functions/site-hub/progression');
 const a={id:'101',name:'Alice'},b={id:'202',name:'Bob'},uuid=()=>crypto.randomUUID();
 function match(course='garden'){const s=M.create('ABCDEF123456',a,course,0);M.join(s,b,0);M.act(s,a.id,{action:'ready'},0);M.act(s,b.id,{action:'ready'},0);return s;}
-function tied(){const s=match('clover');s.hole=2;s.scores=[[3,3],[3,3]];s.balls.forEach(ball=>Object.assign(ball,{holed:true,strokes:2}));s.lastShot={resolved:false,endsAt:10,player:1};M.advance(s,10);return s;}
+function tied(){const s=match('clover');s.hole=2;s.scores=[[3,3],[3,3]];s.balls.forEach(ball=>Object.assign(ball,{holed:true,strokes:2}));s.lastShot={resolved:false,endsAt:10,player:1};M.advance(s,10);assert.equal(s.phase,'hole-complete');M.act(s,a.id,{action:'continue'},10);M.act(s,b.id,{action:'continue'},10);return s;}
 const suddenShot=(s,i,extra={})=>({action:'shot',angle:-Math.PI/2,power:.16,revision:s.revision,match:s.match,hole:3,suddenAttempt:s.suddenAttempt,shotNumber:s.shotNumbers[i],requestId:uuid(),...extra});
 test('a regulation tie opens hole four with an authoritative three-second countdown',()=>{
   const s=tied();assert.equal(s.phase,'sudden-countdown');assert.equal(s.hole,3);assert.equal(s.suddenStartsAt,3010);assert.deepEqual(s.scores,[[3,3,2],[3,3,2]]);assert.equal(M.holeFor(s).name,'The Decider');
@@ -111,17 +111,17 @@ test('full three-hole duel, score totals, mutual rematch and reset',()=>{
   while(s.phase!=='complete'&&shots<80){if(s.phase==='hole-complete'){M.act(s,a.id,{action:'continue'},now);M.act(s,b.id,{action:'continue'},now);continue;}if(s.phase==='sudden-countdown'){now=s.suddenStartsAt;M.advance(s,now);continue;}const i=s.suddenDeath?0:s.turn,h=M.holeFor(s),shot=P.botShot(h,s.balls[i].position,now);M.act(s,s.players[i].id,{action:'shot',...shot,revision:s.revision,match:s.match,hole:s.hole,suddenAttempt:s.suddenAttempt,shotNumber:s.shotNumbers[i],requestId:uuid()},now);now=(s.suddenDeath?s.shots[i]:s.lastShot).endsAt+1;M.advance(s,now);shots++;}
   assert.equal(s.phase,'complete');assert.equal(s.scores[0].length,3);assert.equal(s.scores[1].length,3);assert.ok(s.scores.flat().every(n=>n>=1&&n<=12));M.act(s,a.id,{action:'rematch'},now);assert.equal(s.match,1);M.act(s,b.id,{action:'rematch'},now);assert.equal(s.match,2);assert.equal(s.hole,0);assert.deepEqual(s.scores,[[],[]]);assert.ok(s.balls.every(x=>x.strokes===0));
 });
-test('waiting cancellation, readiness timeout, shot timeout, caps, and automatic next hole',()=>{
+test('waiting cancellation, readiness timeout, shot timeout, caps, and next-course confirmation',()=>{
   const wait=M.create('ABCDEF123456',a,'garden',0);M.act(wait,a.id,{action:'cancel'},10);assert.ok(wait.cancelled);assert.equal(wait.winner,'draw');
   const ready=M.create('ABCDEF123456',a,'garden',0);M.join(ready,b,0);M.act(ready,a.id,{action:'ready'},0);M.advance(ready,60001);assert.deepEqual(ready.ready,[]);
   const timed=match();assert.equal(M.TURN_MS,60000);M.advance(timed,59999);assert.equal(timed.turn,0);M.advance(timed,60000);assert.equal(timed.phase,'playing');assert.equal(timed.turn,1);assert.equal(timed.balls[0].strokes,0);assert.equal(timed.deadline,120000);assert.equal(timed.turnEvent.type,'timeout');
   const late=match();M.act(late,a.id,{action:'shot',angle:0,power:.2,revision:late.revision,requestId:uuid()},1);const end=late.lastShot.endsAt;M.advance(late,end+M.TURN_MS+1);assert.equal(late.phase,'playing');assert.equal(late.turn,0,'Late polling skips the expired opponent turn');assert.equal(late.deadline,end+M.TURN_MS*2);
-  const s=match();assert.throws(()=>M.act(s,a.id,{action:'cancel'},10),/before/);s.balls.forEach(ball=>ball.strokes=11);let now=1;for(const p of [a,b]){M.act(s,p.id,{action:'shot',angle:0,power:.025,revision:s.revision,requestId:uuid()},now);now=s.lastShot.endsAt+1;M.advance(s,now);}assert.equal(s.phase,'hole-complete');assert.deepEqual(s.scores,[[12],[12]]);M.advance(s,s.deadline+1);assert.equal(s.hole,1);
+  const s=match();assert.throws(()=>M.act(s,a.id,{action:'cancel'},10),/before/);s.balls.forEach(ball=>ball.strokes=11);let now=1;for(const p of [a,b]){M.act(s,p.id,{action:'shot',angle:0,power:.025,revision:s.revision,requestId:uuid()},now);now=s.lastShot.endsAt+1;M.advance(s,now);}assert.equal(s.phase,'hole-complete');assert.deepEqual(s.scores,[[12],[12]]);M.advance(s,s.deadline+1);assert.equal(s.hole,0);assert.equal(s.winner,'draw');
 });
 test('timeout after opponent sinks awards only that hole, preserves totals, catches up and resets on rematch',()=>{
   const s=match();s.balls[1].holed=true;s.balls[1].strokes=2;M.advance(s,60000);assert.equal(s.phase,'hole-complete');assert.equal(s.holeResults[0].winner,1);assert.deepEqual(s.scores,[[13],[2]]);assert.ok(s.balls[0].conceded);assert.match(s.holeReason,/wins this hole/);
   const rev=s.revision;M.advance(s,60001);assert.equal(s.revision,rev);assert.equal(s.scores[0].length,1);
-  M.advance(s,90000);assert.equal(s.hole,1);assert.equal(s.turn,1);assert.equal(s.deadline,150000);assert.ok(s.balls.every(b=>b.strokes===0));
+  M.advance(s,90000);assert.equal(s.hole,0);M.act(s,a.id,{action:'continue'},90000);M.act(s,b.id,{action:'continue'},90000);assert.equal(s.hole,1);assert.equal(s.turn,1);assert.equal(s.deadline,150000);assert.ok(s.balls.every(b=>b.strokes===0));
   const idle=match();M.advance(idle,60000*100001+1);assert.equal(idle.turn,1);assert.equal(idle.deadline,60000*100002);assert.equal(idle.phase,'playing');
   const final=match();final.hole=2;final.scores=[[4,4],[3,3]];final.balls[1].holed=true;final.balls[1].strokes=12;M.advance(final,60000);assert.equal(final.phase,'complete');assert.equal(final.winner,1);assert.deepEqual(final.scores,[[4,4,13],[3,3,12]]);assert.deepEqual(progress.outcomes('minigolf',final),[],'Timeout rounds do not farm achievement rewards');
   M.act(final,a.id,{action:'rematch'},60001);M.act(final,b.id,{action:'rematch'},60001);assert.equal(final.timedOut,false);assert.equal(final.deadline,120001);assert.deepEqual(final.holeResults,[]);
@@ -165,6 +165,8 @@ test('SQL store: private/public discovery, owner-only access, atomic duplicate s
     s=await db.recover(s.id);s.phase='complete';s.winner=0;s.completedAt=Date.now();s.scores=[[2,2,2],[3,3,3]];await write(s);failAfterWrite=true;await assert.rejects(db.recover(s.id),/response lost/);s=await db.recover(s.id);assert.equal(balances.get(a.id),10934);assert.equal(s.finance.status,'settled');await db.recover(s.id);assert.equal(balances.get(a.id),10934);
     await db.action(s.id,a,{action:'rematch',wager:1000});s=await db.action(s.id,b,{action:'rematch',wager:1000});assert.equal(s.match,2);assert.equal(s.phase,'playing');assert.equal(balances.get(a.id),9934);assert.equal(balances.get(b.id),8000);
     const cancelled=await db.create(a,{requestId:uuid(),course:'garden',wager:1000});await db.action(cancelled.id,a,{action:'cancel'});await db.recover(cancelled.id);assert.equal(balances.get(a.id),9934);
+    s.balls.forEach(ball=>Object.assign(ball,{holed:true,strokes:2}));s.lastShot=null;M.advance(s,Date.now());assert.equal(s.phase,'hole-complete');s.deadline=Date.now()-1;await write(s);
+    s=await db.recover(s.id);assert.equal(s.winner,'draw');assert.equal(s.finance.status,'settled');assert.equal(balances.get(a.id),10934);assert.equal(balances.get(b.id),9000);const refunded=[...balances];await db.recover(s.id);assert.deepEqual([...balances],refunded,'Both idle refunds each stake exactly once');
     assert.equal(progress.catalog('minigolf').reduce((n,x)=>n+x.reward,0),1000000);assert.equal(progress.catalog('minigolf')[0].target,1);
   }finally{await pg.close();}
 });
@@ -220,3 +222,18 @@ test('opponent view contrasts every ball pairing without changing saved choices 
   for(const a of B.colors)for(const b of B.colors){const ids=[a.id,b.id];for(const you of [0,1]){const shown=B.display(ids,you);assert.equal(shown[you],ids[you]);assert.notEqual(shown[0],shown[1]);assert.deepEqual(ids,[a.id,b.id]);}}
   assert.equal(B.available('obsidian',[]),false);assert.deepEqual(B.display(['pearl','pearl'],-1),['pearl','pearl']);
 });
+
+test('next-course consent has a fixed 60-second deadline, forfeits only the non-ready player, and never farms awards',()=>{
+  function intermission(bot=false){const s=match();s.players[1].bot=bot;s.balls.forEach(b=>Object.assign(b,{holed:true,strokes:2}));M.advance(s,10);assert.equal(s.deadline,60010);return s;}
+  for(const ready of [0,1]){const s=intermission();M.act(s,s.players[ready].id,{action:'continue'},100);const revision=s.revision;M.advance(s,60009);assert.equal(s.phase,'hole-complete');assert.equal(s.revision,revision);M.advance(s,60010);assert.equal(s.winner,ready);assert.equal(s.hole,0);assert.ok(s.timedOut);assert.deepEqual(progress.outcomes('minigolf',s),[]);assert.throws(()=>M.act(s,s.players[1-ready].id,{action:'continue'},60011),/Finish/);const snapshot=structuredClone(s);M.advance(s,999999);assert.deepEqual(s,snapshot);}
+  const none=intermission();M.advance(none,60010);assert.equal(none.winner,'draw');
+  const both=intermission();M.act(both,a.id,{action:'continue'},60008);M.act(both,b.id,{action:'continue'},60009);assert.equal(both.hole,1);assert.equal(both.phase,'playing');assert.equal(both.deadline,120009);
+  const late=intermission();M.act(late,a.id,{action:'continue'},60009);assert.throws(()=>M.act(late,b.id,{action:'continue'},60010),/Finish/);assert.equal(late.winner,0);
+  const bot=intermission(true);assert.deepEqual(bot.continue,[b.id]);M.advance(bot,60010);assert.equal(bot.winner,1);
+  const solo=M.create('SOLO',a,'clover',0);M.start(solo,0);solo.balls[0].holed=true;solo.balls[0].strokes=1;M.advance(solo,10);M.act(solo,a.id,{action:'continue'},11);assert.equal(solo.hole,1);
+});
+test('every hippo chute follows its visible route and exits safely in the advertised direction',()=>{
+  for(const h of C.holes.filter(h=>h.portal)){const p=h.portal;assert.deepEqual(P.portalPoint(h,1),p.exit);assert.ok(P.safe(h,p.exit),h.id);const r=P.simulate(h,[p.mouth[0],p.mouth[1]+45],-Math.PI/2,.24);assert.ok(r.portalUsed,h.id);assert.equal(r.penalty,0,h.id+' must not dump the ball in water');const gulp=r.events.find(e=>e.type==='gulp'),pop=r.events.find(e=>e.type==='pop');assert.deepEqual([pop.x,pop.y],p.exit);const journey=r.frames.filter(f=>f[0]>gulp.at+400&&f[0]<pop.at-50);assert.ok(journey.length>10&&journey.every(f=>f[3]===1),h.id+' has a visible journey');assert.ok(new Set(journey.map(f=>f[1]+','+f[2])).size>10);}
+});
+
+test('a late hippo entry completes transport even at the simulation limit',()=>{const h={floor:C.rect(20,20,680,680),cup:[650,650],portal:{mouth:[100,290],exit:[580,100],angle:0},conveyors:[{x:50,y:50,w:600,h:600,angle:-Math.PI/2,force:155}]};const r=P.simulate(h,[100,550],-Math.PI/2,.03);assert.ok(r.portalUsed);assert.ok(r.events.some(e=>e.type==='pop'));assert.deepEqual(r.position,h.portal.exit);assert.ok(P.safe(h,r.position));});

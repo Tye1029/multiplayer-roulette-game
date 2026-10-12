@@ -12,8 +12,10 @@ export async function testSudden({server,player,fit,putt}){
   await server.golf.action(s.id,pb,{action:'join',wager:1000});await server.golf.action(s.id,pa,{action:'ready'});s=await server.golf.action(s.id,pb,{action:'ready'});
   await Promise.all([a,b].map(p=>p.goto(server.origin+'/games/multiplayer/mini-golf/?room='+s.id)));
   await Promise.all([a,b].map(p=>p.locator('#golf-table[data-phase=playing]').waitFor()));
-  s.hole=2;s.scores=[[3,3],[3,3]];s.balls.forEach(ball=>Object.assign(ball,{holed:true,strokes:2}));s.lastShot={resolved:false,endsAt:Date.now(),player:1};M.advance(s,Date.now());
+  s.hole=2;s.scores=[[3,3],[3,3]];s.balls.forEach(ball=>Object.assign(ball,{holed:true,strokes:2}));s.lastShot=null;M.advance(s,Date.now());
   await server.pg.query('UPDATE mini_golf_matches SET state=$2::jsonb WHERE id=$1',[s.id,JSON.stringify(s)]);
+  await Promise.all([a,b].map(p=>p.locator('#golf-next:enabled').waitFor()));
+  await a.locator('#golf-next').click();await b.locator('#golf-next').click();
   await Promise.all([a,b].map(p=>p.locator('#golf-sudden:visible').waitFor()));
   assert.match(await b.locator('#golf-sudden').innerText(),/SUDDEN DEATH.*First player to score wins/s);
   assert.equal(await b.locator('#golf-board').getAttribute('data-playable'),'false');
@@ -24,7 +26,7 @@ export async function testSudden({server,player,fit,putt}){
   await b.locator('#golf-board').scrollIntoViewIfNeeded();const box=await b.locator('#golf-board').boundingBox(),k=box.width/720,x=box.x+360*k,y=box.y+575*k;
   await b.mouse.move(x,y);await b.mouse.down();await b.mouse.move(x-34*k,y,{steps:4});
   s=await server.golf.recover(s.id);await putt(a,{...s,turn:0},{angle:0,power:.4});
-  await b.waitForFunction(()=>!!window.XanSiteAdapter.view().shots[0]);assert.ok(parseInt(await b.locator('#golf-power-value').innerText())>0,'Opponent shot does not erase aim');await b.mouse.up();
+  await b.waitForFunction(()=>!!window.XanSiteAdapter.view().shots[0]);assert.ok(parseInt(await b.locator('#golf-board').getAttribute('data-aim-power'))>0,'Opponent shot does not erase aim');await b.mouse.up();
   await Promise.all([a,b].map(p=>p.waitForFunction(()=>window.XanSiteAdapter.view().shots.every(Boolean))));
   let seen=await Promise.all([a,b].map(p=>p.evaluate(()=>window.XanSiteAdapter.view().shots)));assert.deepEqual(seen[0].map(shot=>[shot.id,shot.frames]),seen[1].map(shot=>[shot.id,shot.frames]));
   await fit(b,'sudden-concurrent-phone');

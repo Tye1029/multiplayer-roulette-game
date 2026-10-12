@@ -9,7 +9,7 @@
       tee:[150,575],cup:[565,150],floor:rect(70,70,580,580),walls:[[[70,365],[305,365]],[[370,365],[540,365]],[[475,70],[475,235]]],bumpers:[{x:570,y:475,r:28}],sand:[{x:100,y:260,w:135,h:90}]},
     {id:'garden-3',name:'Ricochet Roses',par:4,theme:'garden',tip:'Use the diagonal rails to redirect your ball. A soft final putt will hold the cup.',
       tee:[140,570],cup:[570,140],floor:rect(70,70,580,580),walls:[[[210,650],[210,405]],[[340,280],[525,465]],[[70,250],[255,250]]],bumpers:[{x:470,y:180,r:25},{x:350,y:555,r:25}],sand:[]},
-    {id:'lagoon-1',name:'Hungry Hungry Shortcut',par:3,theme:'lagoon',tip:'Putt into the hippo’s mouth. A rumble later, your ball pops out of its bottom on the upper green.',
+    {id:'lagoon-1',name:'Hungry Hungry Shortcut',par:3,theme:'lagoon',tip:'Putt into the hippo’s mouth. Follow its clear chute to the upper green.',
       tee:[160,575],cup:[565,155],floor:[[70,650],[70,440],[440,440],[440,275],[330,275],[330,70],[650,70],[650,650]],walls:[],bumpers:[],sand:[{x:455,y:350,w:155,h:75}],
       portal:{mouth:[280,530],exit:[490,235],angle:-Math.PI/2},water:[{x:485,y:480,w:110,h:100}]},
     {id:'lagoon-2',name:'Lily Pad Passage',par:4,theme:'lagoon',tip:'The slim dry bridge is a shortcut. Water costs a stroke and returns you to your last shot.',
@@ -105,7 +105,7 @@
     ['Launch Window',5,[240,575],[525,145],'The launch ramp skips the moving arm. Catch the near landing green, or take the safe route along the right rail.',{ramps:[ramp(240,435)],gate:{x:300,y:335,length:105,speed:.55},conveyors:[belt(165,170,330,75,0)],sand:[sand(505,155,125,110)],cup:[555,115]}]
   ]);
   add('harbor','Hippo Adventure Harbor','Expert','lagoon','Hungry tunnels and daring jumps',[
-    ['Hippo High Dive',5,[150,575],[550,140],'The hippo drops you beside a ramp. Line up the jump for a shortcut; the open right edge is the longer route.',{portal:{mouth:[260,535],exit:[215,475],angle:0},ramps:[ramp(330,420)],water:[sand(135,255,300,125)],sand:[sand(240,85,150,125)]}],
+    ['Hippo High Dive',5,[150,575],[550,140],'The hippo’s chute exits on the dry right bank. Choose that detour or line up the ramp jump across the lagoon.',{portal:{mouth:[260,535],exit:[480,420],angle:-Math.PI/2},ramps:[ramp(330,420)],water:[sand(135,255,300,125)],sand:[sand(240,85,150,125)]}],
     ['Cargo Run',5,[155,570],[555,150],'Ride the cargo belt toward the hippo, but brake before the pond. A quiet outside approach also reaches its mouth.',{conveyors:[belt(180,460,290,100,0)],portal:{mouth:[475,510],exit:[475,230],angle:-Math.PI/2},water:[sand(520,435,120,155)],walls:[[[70,350],[440,350]]],terrain:[mound(220,210,100,90,14)]}],
     ['The Captain’s Cut',6,[170,575],[550,145],'Choose the ramp over the lagoon or the hippo along the edge. The landing belt can carry a strong shot into sand.',{ramps:[ramp(290,430)],portal:{mouth:[510,560],exit:[480,245],angle:0},water:[sand(145,265,270,130)],conveyors:[belt(180,160,320,75,0)],sand:[sand(500,180,140,130)],bumpers:[bumper(420,540,27)]}]
   ]);

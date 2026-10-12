@@ -20,6 +20,9 @@
   function rampHeight(h,x,y){
     let z=0;for(const r of h.ramps||[]){const dx=x-r.x,dy=y-r.y,f=dx*Math.cos(r.angle)+dy*Math.sin(r.angle),side=-dx*Math.sin(r.angle)+dy*Math.cos(r.angle);if(f>=-r.length&&f<=0&&Math.abs(side)<=r.width/2)z=Math.max(z,(1+f/r.length)*r.height);}return z;
   }
+  const PORTAL_SECONDS=1.5;
+  // One shared curve drives both the visible covered chute and ball transport.
+  function portalPoint(h,t){const p=h.portal,a=[p.mouth[0],p.mouth[1]-125],b=[a[0],a[1]-75],c=[p.exit[0]-Math.cos(p.angle)*75,p.exit[1]-Math.sin(p.angle)*75],d=p.exit,u=1-t;return a.map((v,i)=>u*u*u*v+3*u*u*t*b[i]+3*u*t*t*c[i]+t*t*t*d[i]);}
   function simulate(h,position,angle,power,startMs=0,record=true){
     if(!Number.isFinite(angle)||!Number.isFinite(power)||power<=0||power>1)throw new Error('Invalid shot.');
     let b={x:position[0],y:position[1],vx:Math.cos(angle)*MAX_SPEED*power,vy:Math.sin(angle)*MAX_SPEED*power};
@@ -27,9 +30,10 @@
     const edges=h.floor.map((p,i)=>[p,h.floor[(i+1)%h.floor.length]]);
     function frame(alpha=1){if(record)frames.push([Math.round(time*1000),+b.x.toFixed(3),+b.y.toFixed(3),alpha,+z.toFixed(3)]);}
     function collide(a,c,radius=R+4,restitution=0.79){const q=closest(b.x,b.y,a,c),dx=b.x-q[0],dy=b.y-q[1],d=Math.hypot(dx,dy);if(d>=radius)return;let nx=dx/(d||1),ny=dy/(d||1);if(d<0.0001){const length=Math.hypot(c[0]-a[0],c[1]-a[1])||1;nx=-(c[1]-a[1])/length;ny=(c[0]-a[0])/length;}b.x=q[0]+nx*(radius+0.02);b.y=q[1]+ny*(radius+0.02);const dot=b.vx*nx+b.vy*ny;if(dot<0){b.vx-=(1+restitution)*dot*nx;b.vy-=(1+restitution)*dot*ny;if(!events.length||time*1000-events.at(-1).at>85)events.push({type:'bank',at:Math.round(time*1000),x:b.x,y:b.y});}}
-    while(time<MAX_SECONDS){
+    // Never leave a ball stranded inside a chute at the simulation time limit.
+    while(time<MAX_SECONDS||transit>0){
       time+=DT;steps++;
-      if(transit>0){transit-=DT;if(transit<=0){const p=h.portal;b.x=p.exit[0];b.y=p.exit[1];b.vx=Math.cos(p.angle)*180;b.vy=Math.sin(p.angle)*180;events.push({type:'pop',at:Math.round(time*1000),x:b.x,y:b.y});frame(1);}else if(steps%4===0)frame(0);continue;}
+      if(transit>0){transit-=DT;if(transit<=0){const p=h.portal;b.x=p.exit[0];b.y=p.exit[1];b.vx=Math.cos(p.angle)*180;b.vy=Math.sin(p.angle)*180;events.push({type:'pop',at:Math.round(time*1000),x:b.x,y:b.y});frame(1);}else {const progress=(PORTAL_SECONDS-transit-.3)/(PORTAL_SECONDS-.3);if(progress>=0){[b.x,b.y]=portalPoint(h,clamp(progress,0,1));}if(steps%4===0)frame(progress>=0?1:0);}continue;}
       if(airborne){
         b.x+=b.vx*DT;b.y+=b.vy*DT;vz-=500*DT;z+=vz*DT;
         if(z>0){if(steps%4===0)frame();continue;}
@@ -48,7 +52,7 @@
       if(!inside(b.x,b.y,h.floor)){b.x=px;b.y=py;b.vx*=-0.7;b.vy*=-0.7;}
       for(const p of h.bumpers||[]){const dx=b.x-p.x,dy=b.y-p.y,d=Math.hypot(dx,dy),r=p.r+R;if(d<r){const nx=dx/(d||1),ny=dy/(d||1);b.x=p.x+nx*(r+0.1);b.y=p.y+ny*(r+0.1);const dot=b.vx*nx+b.vy*ny;if(dot<0){b.vx-=2.05*dot*nx;b.vy-=2.05*dot*ny;events.push({type:'bumper',at:Math.round(time*1000),x:p.x,y:p.y});}}}
       if(h.water?.some(r=>inRect(b,r))){events.push({type:'splash',at:Math.round(time*1000),x:b.x,y:b.y});frame();time+=0.65;b.x=position[0];b.y=position[1];b.vx=b.vy=0;penalty=1;frame();break;}
-      if(h.portal&&!portalUsed&&Math.hypot(b.x-h.portal.mouth[0],b.y-h.portal.mouth[1])<22){portalUsed=true;transit=0.8;b.vx=b.vy=0;events.push({type:'gulp',at:Math.round(time*1000),x:b.x,y:b.y});frame(0);continue;}
+      if(h.portal&&!portalUsed&&Math.hypot(b.x-h.portal.mouth[0],b.y-h.portal.mouth[1])<22){portalUsed=true;transit=PORTAL_SECONDS;b.vx=b.vy=0;events.push({type:'gulp',at:Math.round(time*1000),x:b.x,y:b.y});frame(0);continue;}
       let speed=Math.hypot(b.vx,b.vy),distance=Math.hypot(b.x-h.cup[0],b.y-h.cup[1]);
       if(distance<15&&speed<220){b.x=h.cup[0];b.y=h.cup[1];b.vx=b.vy=0;holed=true;events.push({type:'cup',at:Math.round(time*1000),x:b.x,y:b.y});frame(0);break;}
       const drag=(h.sand||[]).some(r=>inRect(b,r))?460:DRAG;
@@ -71,5 +75,5 @@
     for(const angle of candidates)for(const power of [0.16,0.24,0.34,0.46,0.6,0.76,0.94]){const r=simulate(h,position,angle,power,now,false);const [x,y]=cellAt(r.position);let score=r.holed?-10000:r.penalty?10000:Math.min(200,dist[y*n+x])*32+Math.hypot(r.position[0]-h.cup[0],r.position[1]-h.cup[1])*0.14;if(Math.hypot(r.position[0]-position[0],r.position[1]-position[1])<18)score+=500;if(score<best.score)best={angle,power,score};}
     return {angle:best.angle,power:best.power};
   }
-  return {R,DT,MAX_SPEED,DRAG,simulate,inside,closest,safe,gateSegment,terrainAt,rampHeight,botShot};
+  return {R,DT,MAX_SPEED,DRAG,simulate,inside,closest,safe,portalPoint,PORTAL_SECONDS,gateSegment,terrainAt,rampHeight,botShot};
 });

@@ -1,7 +1,7 @@
-/* POCKET_PUTT_V7 — turns, deadlines, scores and rematches belong to the server. */
+/* POCKET_PUTT_V8 — turns, deadlines, scores and rematches belong to the server. */
 (function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory(require('./mini-golf-courses'),require('./mini-golf-physics'));else root.PuttRules=factory(root.PuttCourses,root.PuttPhysics);})(globalThis,(C,P)=>{
   'use strict';
-  const TURN_MS=60000,STROKE_LIMIT=12,CUP_FEEDBACK_MS=1600,COUNTDOWN_MS=3000,SUDDEN_LIMIT_MS=900000;
+  const TURN_MS=60000,NEXT_COURSE_MS=60000,STROKE_LIMIT=12,CUP_FEEDBACK_MS=1600,COUNTDOWN_MS=3000,SUDDEN_LIMIT_MS=900000;
   const fail=(message,status=409)=>{throw Object.assign(Error(message),{status});};
   const person=p=>({id:String(p.id),name:String(p.name||'Player').slice(0,48),avatar:p.avatar||'',bot:!!p.bot,ballColor:p.ballColor||'pearl'});
   const finishedBall=b=>!!b&&(b.holed||b.capped);
@@ -9,11 +9,11 @@
   const holeFor=s=>s.suddenDeath?C.suddenHole(s.course):C.get(s.course).holes[s.hole];
   function create(id,player,course='garden',now=Date.now()){
     if(!C.get(course))fail('Choose an available course.',400);
-    return {id,build:'POCKET_PUTT_V7',course,players:[person(player)],phase:'waiting',ready:[],rematch:[],match:1,revision:1,hole:0,turn:0,createdAt:now,deadline:now+900000,readyDeadline:null,balls:[],scores:[],stats:[],winner:null,lastShot:null};
+    return {id,build:'POCKET_PUTT_V8',course,players:[person(player)],phase:'waiting',ready:[],rematch:[],match:1,revision:1,hole:0,turn:0,createdAt:now,deadline:now+900000,readyDeadline:null,balls:[],scores:[],stats:[],winner:null,lastShot:null};
   }
   function join(s,p,now=Date.now()){if(s.players.some(x=>x.id===String(p.id)))return;if(s.phase!=='waiting'||s.players.length!==1||now>=s.deadline)fail('This game is no longer open.');s.players.push(person(p));s.revision++;}
   function newHole(s,now){const h=C.get(s.course).holes[s.hole];s.balls=s.players.map(()=>({position:[...h.tee],strokes:0,holed:false,capped:false}));s.turn=s.hole%s.players.length;s.phase='playing';s.lastShot=null;s.turnEvent=null;s.holeReason='';s.continue=[];s.deadline=now+TURN_MS;s.botAt=now+1300;s.revision++;}
-  function start(s,now){s.suddenDeath=false;s.suddenAttempt=0;s.shots=[];s.shotNumbers=[];s.suddenWinner=null;s.suddenFinishAt=null;s.suddenStartsAt=null;s.hole=0;s.scores=s.players.map(()=>[]);s.stats=s.players.map(()=>({aces:0,birdies:0,portals:0,banks:0,water:0}));s.holeResults=[];s.timedOut=false;s.rematch=[];s.ready=[];s.winner=null;s.reason='';s.cancelled=false;s.forfeited=false;newHole(s,now);}
+  function start(s,now){s.nextSudden=false;s.suddenDeath=false;s.suddenAttempt=0;s.shots=[];s.shotNumbers=[];s.suddenWinner=null;s.suddenFinishAt=null;s.suddenStartsAt=null;s.hole=0;s.scores=s.players.map(()=>[]);s.stats=s.players.map(()=>({aces:0,birdies:0,portals:0,banks:0,water:0}));s.holeResults=[];s.timedOut=false;s.rematch=[];s.ready=[];s.winner=null;s.reason='';s.cancelled=false;s.forfeited=false;newHole(s,now);}
   function finish(s,winner,reason,now){s.phase='complete';s.winner=winner;s.reason=reason;s.completedAt=now;s.deadline=null;s.revision++;}
   function suddenDeath(s,now){
     s.suddenDeath=true;s.suddenAttempt=(s.suddenAttempt||0)+1;s.hole=3;s.turn=null;s.phase='sudden-countdown';s.lastShot=null;s.turnEvent=null;
@@ -36,12 +36,13 @@
     }else if(s.suddenWinner===null&&now>=s.deadline){s.timedOut=true;finish(s,'draw','Sudden death expired after 15 minutes without a score.',s.deadline);}
     return s;
   }
+  function awaitNext(s,now,sudden=false){s.nextSudden=sudden;s.phase='hole-complete';s.continue=s.players.filter(p=>p.bot).map(p=>p.id);s.deadline=now+NEXT_COURSE_MS;s.revision++;}
   function completeHole(s,now){
     const par=C.get(s.course).holes[s.hole].par;
     s.balls.forEach((b,i)=>{s.scores[i].push(b.strokes);if(b.holed&&b.strokes===1)s.stats[i].aces++;if(b.holed&&b.strokes<par)s.stats[i].birdies++;});
     const strokes=s.balls.map(b=>b.strokes);s.holeResults||=[];s.holeResults.push({winner:strokes.length===1?0:strokes[0]===strokes[1]?'draw':strokes[0]<strokes[1]?0:1,reason:s.holeReason||'Lowest strokes wins the hole.'});
-    if(s.hole===C.get(s.course).holes.length-1){const totals=s.scores.map(a=>a.reduce((x,y)=>x+y,0));if(totals.length===2&&totals[0]===totals[1])suddenDeath(s,now);else finish(s,totals.length===1?0:totals[0]<totals[1]?0:1,'Lowest total strokes wins.',now);}
-    else{s.phase='hole-complete';s.continue=s.players.filter(p=>p.bot).map(p=>p.id);s.deadline=now+30000;s.revision++;}
+    if(s.hole===C.get(s.course).holes.length-1){const totals=s.scores.map(a=>a.reduce((x,y)=>x+y,0));if(totals.length===2&&totals[0]===totals[1])awaitNext(s,now,true);else finish(s,totals.length===1?0:totals[0]<totals[1]?0:1,'Lowest total strokes wins.',now);}
+    else awaitNext(s,now);
   }
   function resolveShot(s,now){
     if(!s.lastShot||s.lastShot.resolved||now<s.lastShot.endsAt)return;
@@ -78,7 +79,11 @@
           s.turnEvent={type:'timeout',player:(expired+passes-1)%s.players.length,at:s.deadline-TURN_MS};s.revision++;
         }
       }
-      if(s.phase==='hole-complete'&&now>=s.deadline){const at=s.deadline;s.hole++;newHole(s,at);continue;}break;
+      if(s.phase==='hole-complete'&&now>=s.deadline){
+        const ready=s.players.map((p,i)=>s.continue.includes(p.id)?i:-1).filter(i=>i>=0);s.timedOut=true;
+        const winner=s.players.length===2&&ready.length===1?ready[0]:'draw';
+        finish(s,winner,winner==='draw'?'Neither player confirmed the next course within 60 seconds. Match drawn; stakes returned.':s.players[1-winner].name+' did not confirm the next course within 60 seconds. '+s.players[winner].name+' wins the match.',s.deadline);
+      }break;
     }
     return s;
   }
@@ -120,7 +125,7 @@
       if(s.phase!=='waiting'||s.players[0].id!==id)fail('Only the creator can cancel before play starts.');s.cancelled=true;finish(s,'draw','Game cancelled.',now);
     }else if(b.action==='shot')shoot(s,id,b,now);
     else if(b.action==='continue'){
-      if(s.phase!=='hole-complete')fail('Finish this hole first.');if(!s.continue.includes(id))s.continue.push(id);s.revision++;if(s.continue.length===s.players.length){s.hole++;newHole(s,now);}
+      if(s.phase!=='hole-complete')fail('Finish this hole first.');if(!s.continue.includes(id))s.continue.push(id);s.revision++;if(s.continue.length===s.players.length){if(s.nextSudden){s.nextSudden=false;suddenDeath(s,now);}else{s.hole++;newHole(s,now);}}
     }else if(b.action==='rematch'){
       if(s.phase!=='complete'||s.cancelled)fail('Complete this match first.');if(!s.rematch.includes(id))s.rematch.push(id);for(const p of s.players)if(p.bot&&!s.rematch.includes(p.id))s.rematch.push(p.id);s.revision++;
       if(s.rematch.length===s.players.length){s.match++;start(s,now);}
@@ -141,5 +146,5 @@
   function publicState(s,id,now=Date.now()){
     const {finance,...v}=s;return {...v,you:s.players.findIndex(p=>p.id===String(id)),serverNow:now,wager:s.wager||0,settlement:finance?.status||'free',funding:!!finance?.pending?.length,payouts:finance?.status==='settled'?finance.payouts:{}};
   }
-  return {create,join,start,act,bot,advance,publicState,holeFor,fail,TURN_MS,STROKE_LIMIT,CUP_FEEDBACK_MS,COUNTDOWN_MS};
+  return {create,join,start,act,bot,advance,publicState,holeFor,fail,TURN_MS,NEXT_COURSE_MS,STROKE_LIMIT,CUP_FEEDBACK_MS,COUNTDOWN_MS};
 });
