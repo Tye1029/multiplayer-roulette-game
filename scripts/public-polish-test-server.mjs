@@ -6,7 +6,7 @@ import path from 'node:path';
 import {createRequire} from 'node:module';
 import {PGlite} from '@electric-sql/pglite';
 const require=createRequire(import.meta.url);
-export async function startPublicPolishServer(root=path.resolve('dist'),port=0){
+export async function startPublicPolishServer(root=path.resolve('dist'),port=0,options={}){
  root=path.resolve(root);
  const pg=new PGlite();let tail=Promise.resolve();
  const pool={query:(s,a)=>pg.query(s,a),connect:async()=>{let release;const prior=tail;tail=new Promise(r=>release=r);await prior;return {query:(s,a)=>pg.query(s,a),release};}};
@@ -16,8 +16,10 @@ export async function startPublicPolishServer(root=path.resolve('dist'),port=0){
  const player=key=>({player_id:String(key).slice(-1),name:'Player '+String(key).slice(-1),profile_image:'/assets/roulette-four/images/amber.svg'});
  const golf=require('../netlify/functions/mini-golf/database').createStore(pool,wallet);
  const scratch=require('../netlify/functions/lucky-scratch/database').createStore(pool,wallet);
+ const junction=require('../netlify/functions/jackpot-junction/database').createStore(pool,wallet,options.junctionRandom);
  const login=require('../netlify/functions/rps-action').createHandler(rps,async url=>({ok:true,json:async()=>player(new URL(url).searchParams.get('key'))}));
  const handlers={
+  'jackpot-junction-action':require('../netlify/functions/jackpot-junction-action').createHandler(junction,rps,wallet),
   'lucky-scratch-action':require('../netlify/functions/lucky-scratch-action').createHandler(scratch,rps,wallet),
   'roulette-four-action':require('../netlify/functions/roulette-four-action').createHandler(four,rps),
   'bluff-action':require('../netlify/functions/bluff-action').createHandler(bluff,rps),
