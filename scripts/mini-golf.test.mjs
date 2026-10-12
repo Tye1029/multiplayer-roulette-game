@@ -105,3 +105,36 @@ test('SQL store: private/public discovery, owner-only access, atomic duplicate s
     assert.equal(progress.catalog('minigolf').reduce((n,x)=>n+x.reward,0),1000000);assert.equal(progress.catalog('minigolf')[0].target,1);
   }finally{await pg.close();}
 });
+
+
+test('course menu progresses from beginner to expert',()=>{
+  const levels=['Beginner','Easy','Intermediate','Challenging','Expert'];
+  const ranks=C.courses.map(c=>levels.indexOf(c.difficulty));
+  assert.deepEqual(ranks,[...ranks].sort((a,b)=>a-b));assert.equal(C.courses[0].id,'clover');assert.equal(C.courses.at(-1).id,'masters');
+});
+
+test('shot playback remains continuous across delayed, duplicate and resolved polls',()=>{
+  const clock=require('../assets/mini-golf/playback').create();
+  const s={id:'game',match:1,hole:0,serverNow:100100,lastShot:{id:'shot',startedAt:100000}};
+  clock.accept(s,10);assert.equal(clock.elapsed(10),100);
+  for(const [localTime,serverNow] of [[100,100110],[800,100150],[1000,102000],[1500,100200]]){
+    const before=clock.elapsed(localTime);clock.accept({...s,serverNow},localTime);assert.equal(clock.elapsed(localTime),before,'Polling must never rewind, freeze or jump a shot');
+  }
+  clock.accept({...s,lastShot:{...s.lastShot,resolved:true}},1800);assert.equal(clock.elapsed(2000),2090);
+  clock.accept({...s,match:2,serverNow:100050},2100);assert.equal(clock.elapsed(2100),50);
+  clock.reset();clock.accept(s,3000);assert.equal(clock.elapsed(3016),116);
+});
+
+test('all courses create and cancel with the production wallet; golf stakes, winnings and rematches remain idempotent',async()=>{
+  const pg=new PGlite();let tail=Promise.resolve();const pool={query:(q,a)=>pg.query(q,a),connect:async()=>{let release;const prev=tail;tail=new Promise(r=>release=r);await prev;return {query:(q,a)=>pg.query(q,a),release};}};
+  const records=new Map([a,b].map(p=>['user/'+p.id+'.json',{balanceUnit:'tickets',ledgerStartedAt:'2026-01-01',balanceBaseline:100000,financialLedger:[]}]));let version=1;
+  const blobs={get:async key=>structuredClone(records.get(key)||null),getWithMetadata:async key=>({data:structuredClone(records.get(key)),etag:String(version)}),set:async(key,value,options)=>{if(options.onlyIfMatch!==String(version))return {modified:false};records.set(key,JSON.parse(value));version++;return {modified:true};}};
+  const wallet=require('../netlify/functions/rps/wallet').createWallet(blobs,async()=>({multiplayer:{houseCutPercent:3.3}})),db=createStore(pool,wallet);
+  try{
+    for(const course of C.courses){const requestId=uuid(),s=await db.create(a,{course:course.id,wager:1000,requestId});assert.equal(s.phase,'waiting');assert.equal(s.finance.status,'reserved');assert.equal(await wallet.balance(a),99000);assert.equal((await db.create(a,{course:course.id,wager:1000,requestId})).id,s.id);await db.action(s.id,a,{action:'cancel'});assert.equal(await wallet.balance(a),100000);}
+    let s=await db.create(a,{course:'clover',wager:1000,requestId:uuid()});await db.action(s.id,b,{action:'join',wager:1000});await db.action(s.id,a,{action:'ready'});await db.action(s.id,b,{action:'ready'});s=await db.action(s.id,b,{action:'forfeit'});assert.equal(s.finance.status,'settled');assert.equal(await wallet.balance(a),100934);assert.equal(await wallet.balance(b),99000);await db.recover(s.id);assert.equal(await wallet.balance(a),100934);
+    await db.action(s.id,a,{action:'rematch',wager:1000});s=await db.action(s.id,b,{action:'rematch',wager:1000});assert.equal(s.match,2);assert.equal(await wallet.balance(a),99934);assert.equal(await wallet.balance(b),98000);
+    await assert.rejects(wallet.apply(a.id,{id:'unknown:ABCDEF123456:stake:101',delta:-1000}),/Invalid wallet/);
+    await assert.rejects(wallet.apply(a.id,{id:'minigolf:bad:stake:101',delta:-1000}),/Invalid wallet/);
+  }finally{await pg.close();}
+});

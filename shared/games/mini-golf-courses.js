@@ -1,4 +1,4 @@
-/* POCKET_PUTT_V3 — original courses, shared by the renderer and authoritative physics. */
+/* POCKET_PUTT_V4 — original courses, shared by the renderer and authoritative physics. */
 (function(root,factory){const value=factory();if(typeof module==='object'&&module.exports)module.exports=value;else root.PuttCourses=value;})(globalThis,()=>{
   'use strict';
   const rect=(x,y,w,h)=>[[x,y],[x+w,y],[x+w,y+h],[x,y+h]];
@@ -92,5 +92,7 @@
     ['Risk and Reward',5,[150,575],[565,145],'The hippo saves distance; the open bank route avoids the moving gate.',{portal:{mouth:[255,505],exit:[500,340],angle:-Math.PI/2},gate:{x:510,y:230,length:85,speed:.6},water:[sand(280,270,135,180)],bumpers:[bumper(180,230,30)],terrain:[mound(480,535,90,65,-12)]}],
     ['Grand Finale',6,[150,575],[565,145],'Use the left opening first, the right opening second, then a measured final putt.',{walls:[[[270,440],[650,440]],[[70,270],[420,270]]],terrain:[mound(190,370,85,100,17),mound(520,195,85,75,-13)],bumpers:[bumper(505,350,28)],sand:[sand(315,500,140,100)]}]
   ]);
+  const order=['clover','willow','pebble','garden','dunes','lagoon','alpine','tide','fair','neon','safari','masters'];
+  courses.sort((a,b)=>order.indexOf(a.id)-order.indexOf(b.id));
   return {courses,holes,rect,get:id=>courses.find(c=>c.id===id),SIZE:720};
 });

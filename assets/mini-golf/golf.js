@@ -1,9 +1,10 @@
-/* POCKET_PUTT_V3 */
+/* POCKET_PUTT_V4 */
 (()=>{
   'use strict';
   const C=window.PuttCourses,P=window.PuttPhysics,M=window.PuttRules,B=window.PuttCosmetics,$=id=>document.getElementById(id),board=$('golf-board'),result=$('golf-result');
   let state=null,local=false,busy=false,polling=false,epoch=0,offset=0,aim=null,drag=null,frames=0,slowFrames=0,lastFrame=0,networkErrors=0,shotSeen='',playedEvents=new Set(),toastUntil=0,resultKey='',createIntent=null,shotRetry=null;
   const now=()=>Date.now()+offset;
+  const playback=window.PuttPlayback.create();
   const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;};
   const controls=el('div',undefined,'golf-course-picker'),select=el('select'),label=el('span','12 courses · 36 holes');select.id='golf-course';select.setAttribute('aria-label','Choose golf course');for(const c of C.courses){const o=el('option',c.name+' · '+c.difficulty);o.value=c.id;select.append(o);}const solo=el('button','Solo practice','golf-solo');controls.append(label,select,solo);
   let ballDialog,selectedBall='pearl',turnEventSeen='';
@@ -29,11 +30,11 @@
   const retry=el('button','Retry shot','golf-solo');retry.hidden=true;retry.onclick=()=>shotRetry&&shoot(shotRetry);$('golf-caddy')?.append(retry);$('golf-notice').after(retry);
   const hasKey=()=>{try{return !!localStorage.getItem('tornVisitorApiKey');}catch{return false;}};
   function notice(text){$('golf-notice').textContent=text||'';}
-  function reset(){epoch++;state=null;local=false;aim=drag=null;shotRetry=null;retry.hidden=true;shotSeen='';resultKey='';history.replaceState(null,'','/games/multiplayer/mini-golf/');renderUI();window.dispatchEvent(new Event('xan-navigation'));}
+  function reset(){epoch++;state=null;local=false;aim=drag=null;shotRetry=null;retry.hidden=true;shotSeen='';playback.reset();resultKey='';history.replaceState(null,'','/games/multiplayer/mini-golf/');renderUI();window.dispatchEvent(new Event('xan-navigation'));}
   function accept(s,generation=epoch){
     if(generation!==epoch)return;
     if(state?.id===s.id&&state.revision>s.revision)return;
-    offset=local?0:s.serverNow-Date.now();state=s;if(s.players[s.you]?.ballColor)selectedBall=s.players[s.you].ballColor;
+    offset=local?0:s.serverNow-Date.now();playback.accept(s,performance.now());state=s;if(s.players[s.you]?.ballColor)selectedBall=s.players[s.you].ballColor;
     const turnKey=s.turnEvent?s.id+':'+s.match+':'+s.turnEvent.at:'';if(turnKey&&turnKey!==turnEventSeen){turnEventSeen=turnKey;notice(s.turnEvent.type==='conceded'?s.holeReason:`${s.players[s.turnEvent.player].name}'s time ran out. Turn passed.`);}
     if(s.cancelled){reset();notice(s.reason);return;}
     if(shotRetry&&(s.lastShot?.id===shotRetry.requestId||s.phase!=='playing'||s.revision!==shotRetry.revision)){shotRetry=null;retry.hidden=true;}
@@ -162,17 +163,17 @@
   window.XanSiteAdapter={
     current:()=>({mode:'minigolf',id:state?.id||'',phase:state?.phase||'lobby'}),
     view:()=>state?{...state,votes:state.rematch,finished:state.phase==='complete',ready:state.ready.includes(state.players[state.you]?.id),canReady:state.phase==='waiting'&&state.players.length===2&&!state.ready.includes(state.players[state.you]?.id),canCancel:state.phase==='waiting'&&state.you===0,payout:state.payouts?.[state.players[state.you]?.id]||0,connecting:busy}:{phase:'lobby'},
-    create,join,quote:async id=>(await post('quote',{},id.trim().toUpperCase())).quote,ready:()=>action('ready'),addBot,practice:()=>practice(true),controls:()=>controls,resultRoot:()=>result,diagnostics:()=>({build:'POCKET_PUTT_V3',round:(state?.hole||0)+1,revision:state?.revision||0,frames,slowFrames,networkErrors,busy,polling}),cancel:id=>post('cancel',{},id),dismissCancelled:id=>{if(state?.id===id)reset();}
+    create,join,quote:async id=>(await post('quote',{},id.trim().toUpperCase())).quote,ready:()=>action('ready'),addBot,practice:()=>practice(true),controls:()=>controls,resultRoot:()=>result,diagnostics:()=>({build:'POCKET_PUTT_V4',round:(state?.hole||0)+1,revision:state?.revision||0,frames,slowFrames,networkErrors,busy,polling}),cancel:id=>post('cancel',{},id),dismissCancelled:id=>{if(state?.id===id)reset();}
   };
   function animate(timestamp){
     requestAnimationFrame(animate);if(document.hidden)return;frames++;if(lastFrame&&timestamp-lastFrame>60)slowFrames++;lastFrame=timestamp;
     if(!state){if(heroCanvas&&heroCanvas.offsetParent){const c=C.get(select.value);window.PuttRenderer.render(heroCanvas,c.holes[0],{time:Date.now(),balls:[{position:[c.holes[0].tee[0]+Math.sin(timestamp*.0007)*8,c.holes[0].tee[1]],holed:false}]});}return;}
     const h=C.get(state.course).holes[state.hole],balls=state.balls.length?state.balls.map(b=>({...b})):state.players.map(()=>({position:h.tee}));const shot=state.lastShot,t=now();
-    if(shot){if(shotSeen!==shot.id){shotSeen=shot.id;playedEvents=new Set();if(t-shot.startedAt<700)sound('shot');}const elapsed=t-shot.startedAt,f=shot.frames;
+    if(shot){if(shotSeen!==shot.id){shotSeen=shot.id;playedEvents=new Set();if(t-shot.startedAt<700)sound('shot');}const elapsed=playback.elapsed(performance.now()),f=shot.frames;
       if(elapsed<shot.duration){let i=Math.min(f.length-2,Math.max(0,Math.floor(elapsed/33.333)));while(i>0&&f[i][0]>elapsed)i--;while(i<f.length-2&&f[i+1][0]<elapsed)i++;const a=f[i],b=f[i+1],mix=Math.max(0,Math.min(1,(elapsed-a[0])/(b[0]-a[0]||1)));balls[shot.player]={position:[a[1]+(b[1]-a[1])*mix,a[2]+(b[2]-a[2])*mix],alpha:a[3],holed:false};}
       for(let i=0;i<shot.events.length;i++){const e=shot.events[i];if(e.at<=elapsed&&!playedEvents.has(i)){playedEvents.add(i);if(elapsed-e.at<250){sound(e.type);const label={gulp:'Gulp! Shortcut taken.',pop:'A very unorthodox exit.',splash:'Splash! +1 penalty stroke',cup:state.balls[shot.player]?.strokes===1?'Hole in one!':'In the cup!'}[e.type];if(label){$('golf-event').textContent=label;toastUntil=Date.now()+1800;}}}}
     }
-    const effects=(shot?.events||[]).map(e=>({...e,age:t-shot.startedAt-e.at,player:shot.player})).filter(e=>e.age>=0&&e.age<M.CUP_FEEDBACK_MS);
+    const effects=(shot?.events||[]).map(e=>({...e,age:playback.elapsed(performance.now())-e.at,player:shot.player})).filter(e=>e.age>=0&&e.age<M.CUP_FEEDBACK_MS);
     board.dataset.cupEffect=String(effects.some(e=>e.type==='cup'));
     window.PuttRenderer.render(board,h,{balls,time:t,aim,active:state.turn,you:state.you,playable:canShoot(),ghost:true,colors:state.players.map(p=>p.ballColor),effects});$('golf-event').classList.toggle('visible',Date.now()<toastUntil);updateShotControls();
     const power=Math.round((aim?.power||0)*100);$('golf-power-meter').value=power;$('golf-power-value').textContent=power+'%';

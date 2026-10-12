@@ -1,4 +1,4 @@
-/* POCKET_PUTT_V3 — live canvas artwork, sized independently of game coordinates. */
+/* POCKET_PUTT_V4 — live canvas artwork, sized independently of game coordinates. */
 (()=>{
   'use strict';
   const C=window.PuttCourses,P=window.PuttPhysics,B=window.PuttCosmetics;
@@ -72,16 +72,17 @@
     const light=x.createLinearGradient(80,70,640,650);light.addColorStop(0,'#eef5b514');light.addColorStop(1,'#163c221c');x.fillStyle=light;x.fillRect(0,0,720,720);
     for(const hill of h.terrain||[]){
       const bowl=hill.height<0;x.save();x.translate(hill.x,hill.y);x.scale(hill.rx,hill.ry);
-      const shade=x.createRadialGradient(bowl?.18:-.25,bowl?.15:-.28,.02,0,0,1);shade.addColorStop(0,bowl?'#24503dce':'#d5e89ecc');shade.addColorStop(.55,bowl?'#4c774ce0':'#9cbe70a0');shade.addColorStop(1,bowl?'#a4c78088':'#45673330');circle(0,0,1,shade);
-      x.lineWidth=.025;for(const ring of [.48,.74,.97]){x.beginPath();x.ellipse(0,0,ring,ring,0,0,Math.PI*2);x.strokeStyle=bowl?'#d3e8a548':'#4b723e60';x.stroke();}
-      // Reversed inner-edge lighting makes the bowl read as a depression.
-      x.beginPath();x.arc(0,0,.95,bowl?3.35:.2,bowl?6:2.8);x.strokeStyle='#274e3b99';x.lineWidth=.075;x.stroke();
-      x.beginPath();x.arc(0,0,.94,bowl?.25:3.4,bowl?2.9:6.1);x.strokeStyle='#e6f0b5ac';x.lineWidth=.035;x.stroke();x.restore();
-      for(const angle of [0,Math.PI/2,Math.PI,Math.PI*1.5]){
-        const from=bowl?.78:.36,to=bowl?.43:.78,ax=hill.x+Math.cos(angle)*hill.rx*from,ay=hill.y+Math.sin(angle)*hill.ry*from,bx=hill.x+Math.cos(angle)*hill.rx*to,by=hill.y+Math.sin(angle)*hill.ry*to,a=Math.atan2(by-ay,bx-ax);
-        line([ax,ay],[bx,by],'#f1f1bdc0',2);line([bx,by],[bx-Math.cos(a-.6)*7,by-Math.sin(a-.6)*7],'#f1f1bdc0',2);line([bx,by],[bx-Math.cos(a+.6)*7,by-Math.sin(a+.6)*7],'#f1f1bdc0',2);
-      }
-      roundRect(hill.x-22,hill.y-8,44,16,5,bowl?'#224e3dcc':'#f0efc5cc');x.fillStyle=bowl?'#e3eab8':'#395c32';x.font='bold 9px system-ui';x.textAlign='center';x.fillText(bowl?'DIVOT':'HILL',hill.x,hill.y+3);
+      // Continuous turf, lit from the upper left. Bowls reverse the lighting.
+      const shade=x.createRadialGradient(bowl?.20:-.28,bowl?.24:-.32,.04,0,0,1);
+      shade.addColorStop(0,bowl?'#254c35a8':'#e3efb2b8');
+      shade.addColorStop(.45,bowl?'#375e3c90':'#bad58782');
+      shade.addColorStop(.78,bowl?'#4d784345':'#5d823d38');
+      shade.addColorStop(1,'#527b3b00');circle(0,0,1,shade);
+      const rim=x.createLinearGradient(-.55,-.7,.55,.7);
+      rim.addColorStop(0,bowl?'#214d3990':'#e7f1b88a');
+      rim.addColorStop(.48,'#85a65a00');
+      rim.addColorStop(1,bowl?'#dbe9a48a':'#234a3868');
+      x.strokeStyle=rim;x.lineWidth=.09;x.beginPath();x.ellipse(0,0,.83,.83,0,0,Math.PI*2);x.stroke();x.restore();
     }
     x.fillStyle=x.createPattern(texture('grass'),'repeat');x.fillRect(0,0,720,720);
     for(const s of h.sand||[]){
