@@ -1,12 +1,14 @@
-/* POCKET_PUTT_V5 — turns, deadlines, scores and rematches belong to the server. */
+/* POCKET_PUTT_V6 — turns, deadlines, scores and rematches belong to the server. */
 (function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory(require('./mini-golf-courses'),require('./mini-golf-physics'));else root.PuttRules=factory(root.PuttCourses,root.PuttPhysics);})(globalThis,(C,P)=>{
   'use strict';
   const TURN_MS=60000,STROKE_LIMIT=12,CUP_FEEDBACK_MS=1600;
   const fail=(message,status=409)=>{throw Object.assign(Error(message),{status});};
   const person=p=>({id:String(p.id),name:String(p.name||'Player').slice(0,48),avatar:p.avatar||'',bot:!!p.bot,ballColor:p.ballColor||'pearl'});
+  const finishedBall=b=>!!b&&(b.holed||b.capped);
+  function nextPlayer(s,after){for(let n=1;n<=s.players.length;n++){const i=(after+n)%s.players.length;if(!finishedBall(s.balls[i]))return i;}return -1;}
   function create(id,player,course='garden',now=Date.now()){
     if(!C.get(course))fail('Choose an available course.',400);
-    return {id,build:'POCKET_PUTT_V5',course,players:[person(player)],phase:'waiting',ready:[],rematch:[],match:1,revision:1,hole:0,turn:0,createdAt:now,deadline:now+900000,readyDeadline:null,balls:[],scores:[],stats:[],winner:null,lastShot:null};
+    return {id,build:'POCKET_PUTT_V6',course,players:[person(player)],phase:'waiting',ready:[],rematch:[],match:1,revision:1,hole:0,turn:0,createdAt:now,deadline:now+900000,readyDeadline:null,balls:[],scores:[],stats:[],winner:null,lastShot:null};
   }
   function join(s,p,now=Date.now()){if(s.players.some(x=>x.id===String(p.id)))return;if(s.phase!=='waiting'||s.players.length!==1||now>=s.deadline)fail('This game is no longer open.');s.players.push(person(p));s.revision++;}
   function newHole(s,now){const h=C.get(s.course).holes[s.hole];s.balls=s.players.map(()=>({position:[...h.tee],strokes:0,holed:false,capped:false}));s.turn=s.hole%s.players.length;s.phase='playing';s.lastShot=null;s.turnEvent=null;s.holeReason='';s.continue=[];s.deadline=now+TURN_MS;s.botAt=now+1300;s.revision++;}
@@ -28,7 +30,7 @@
       completeHole(s,now);
       return;
     }
-    let next=(s.turn+1)%s.players.length;if(s.balls[next].holed||s.balls[next].capped)next=s.turn;s.turn=next;s.deadline=now+TURN_MS;s.botAt=now+1400;s.revision++;
+    s.turn=nextPlayer(s,s.lastShot.player);s.deadline=now+TURN_MS;s.botAt=now+1400;s.revision++;
   }
   function advance(s,now=Date.now()){
     if(s.phase==='waiting'&&now>=s.deadline){s.cancelled=true;finish(s,'draw','The invitation expired.',now);}
@@ -37,6 +39,11 @@
     // Fast-forward idle passes in O(1), so reconnecting after hours cannot hang.
     for(let i=0;i<=C.get(s.course).holes.length;i++){
       if(s.phase==='playing')resolveShot(s,now);
+      // Recover an old/stale turn assignment without ever asking a sunk player
+      // (including a bot) to shoot again. Keep the existing clock deadline.
+      if(s.phase==='playing'&&(!s.lastShot||s.lastShot.resolved)&&finishedBall(s.balls[s.turn])){
+        const next=nextPlayer(s,s.turn);if(next<0)completeHole(s,now);else{s.turn=next;s.revision++;}
+      }
       if(s.phase==='playing'&&now>=s.deadline&&(!s.lastShot||s.lastShot.resolved)){
         const at=s.deadline,expired=s.turn,opponent=(expired+1)%s.players.length,other=s.balls[opponent];s.timedOut=true;
         if(opponent!==expired&&(other.holed||other.capped)){

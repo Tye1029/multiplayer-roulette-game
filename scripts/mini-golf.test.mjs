@@ -6,8 +6,8 @@ const require=createRequire(import.meta.url),C=require('../shared/games/mini-gol
 const {createStore}=require('../netlify/functions/mini-golf/database'),{createHandler}=require('../netlify/functions/mini-golf-action'),progress=require('../netlify/functions/site-hub/progression');
 const a={id:'101',name:'Alice'},b={id:'202',name:'Bob'},uuid=()=>crypto.randomUUID();
 function match(course='garden'){const s=M.create('ABCDEF123456',a,course,0);M.join(s,b,0);M.act(s,a.id,{action:'ready'},0);M.act(s,b.id,{action:'ready'},0);return s;}
-test('all 45 holes across 15 varied courses are reachable through legal deterministic shots',()=>{
-  assert.equal(C.courses.length,15);assert.equal(C.holes.length,45);assert.equal(new Set(C.holes.map(h=>h.id)).size,45);assert.ok(C.courses.every(c=>c.holes.length===3&&c.difficulty));assert.equal(new Set(C.courses.map(c=>c.difficulty)).size,5);
+test('all 60 holes across 20 varied courses are reachable through legal deterministic shots',()=>{
+  assert.equal(C.courses.length,20);assert.equal(C.holes.length,60);assert.equal(new Set(C.holes.map(h=>h.id)).size,60);assert.ok(C.courses.every(c=>c.holes.length===3&&c.difficulty));assert.equal(new Set(C.courses.map(c=>c.difficulty)).size,5);
   for(const h of C.holes){assert.ok(P.safe(h,h.tee));assert.ok(P.safe(h,h.cup));let p=h.tee,strokes=0,now=0,r;while(strokes<12){const shot=P.botShot(h,p,now);r=P.simulate(h,p,shot.angle,shot.power,now);assert.deepEqual(P.simulate(h,p,shot.angle,shot.power,now),r);assert.ok(P.safe(h,r.position));strokes+=1+r.penalty;p=r.position;now+=r.duration+1400;if(r.holed)break;}assert.ok(r.holed,h.id+' must be finishable');}
 });
 test('pullback strength, banks, sand, water penalties, hippo transport, and capture speed',()=>{
@@ -18,6 +18,31 @@ test('pullback strength, banks, sand, water penalties, hippo transport, and capt
   const water=P.simulate({...empty,water:[{x:90,y:350,w:120,h:100}]},empty.tee,-Math.PI/2,.6);assert.equal(water.penalty,1);assert.deepEqual(water.position,empty.tee);
   const h=C.holes[3],mouth=h.portal.mouth,portal=P.simulate(h,[mouth[0],mouth[1]+60],-Math.PI/2,.25);assert.ok(portal.portalUsed);assert.ok(portal.events.some(e=>e.type==='pop'));assert.ok(portal.frames.some(f=>f[3]===0));assert.ok(portal.position[1]<300);
   const gentle=P.simulate(empty,[560,190],-Math.PI/2,.17);assert.ok(gentle.holed);const blast=P.simulate(empty,[560,190],-Math.PI/2,1);assert.ok(!blast.events.some(e=>e.type==='cup'&&e.at<100));
+});
+test('new courses use varied playable silhouettes and keep ramps a minority',()=>{
+  const fresh=['meadow','canyon','brook','highland','switchback'].flatMap(id=>C.get(id).holes);
+  assert.equal(fresh.length,15);assert.ok(fresh.every(h=>h.floor.length>4&&!h.ramps?.length));
+  assert.equal(new Set(fresh.map(h=>JSON.stringify(h.floor))).size,15);
+  assert.ok(C.courses.filter(c=>c.holes.some(h=>h.ramps?.length)).length<=3);
+  assert.ok(C.holes.filter(h=>h.ramps?.length).length<=6);
+  for(const feature of ['sand','water','terrain'])assert.ok(fresh.some(h=>h[feature].length)&&fresh.some(h=>!h[feature].length));
+});
+test('water penalties keep the unfinished player active after an opponent sinks, including bot and reconnect paths',()=>{
+  for(const bot of [false,true])for(const shooter of [0,1]){
+    const s=match('skybridge'),other=1-shooter;s.players[other].bot=bot;s.turn=other;
+    s.balls[other].position=[510,205];
+    M.act(s,s.players[other].id,{action:'shot',angle:-Math.PI/2,power:.16,revision:s.revision,requestId:uuid()},1);
+    assert.equal(s.balls[other].holed,true);let now=s.lastShot.endsAt;M.advance(s,now);assert.equal(s.turn,shooter);
+    const sunk=structuredClone(s.balls[other]);
+    for(let n=0;n<2;n++){
+      M.act(s,s.players[shooter].id,{action:'shot',angle:-Math.PI/2,power:.4,revision:s.revision,requestId:uuid()},++now);
+      assert.equal(s.lastShot.penalty,1);now=s.lastShot.endsAt;M.bot(s,now);
+      assert.equal(s.turn,shooter);assert.equal(s.balls[shooter].strokes,(n+1)*2);assert.deepEqual(s.balls[other],sunk);assert.equal(s.deadline,now+M.TURN_MS);
+      const revision=s.revision;M.bot(s,now+1500);assert.equal(s.revision,revision,'Sunk bot must not play');
+    }
+    s.turn=other;M.advance(s,now+2000);assert.equal(s.turn,shooter,'Repair an old finished-player turn on reconnect');
+    M.advance(s,s.deadline);assert.equal(s.phase,'hole-complete');assert.equal(s.holeResults[0].winner,other);
+  }
 });
 test('hills slow uphill shots and bend downhill; divots pull inward with smooth, deterministic edges',()=>{
   const flat={floor:C.rect(20,20,680,680),cup:[650,100]},hill={x:360,y:330,rx:110,ry:110,height:12};

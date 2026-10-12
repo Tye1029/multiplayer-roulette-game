@@ -1,4 +1,4 @@
-/* POCKET_PUTT_V5 — original courses, shared by the renderer and authoritative physics. */
+/* POCKET_PUTT_V6 — original courses, shared by the renderer and authoritative physics. */
 (function(root,factory){const value=factory();if(typeof module==='object'&&module.exports)module.exports=value;else root.PuttCourses=value;})(globalThis,()=>{
   'use strict';
   const rect=(x,y,w,h)=>[[x,y],[x+w,y],[x+w,y+h],[x,y+h]];
@@ -109,7 +109,35 @@
     ['Cargo Run',5,[155,570],[555,150],'Ride the cargo belt toward the hippo, but brake before the pond. A quiet outside approach also reaches its mouth.',{conveyors:[belt(180,460,290,100,0)],portal:{mouth:[475,510],exit:[475,230],angle:-Math.PI/2},water:[sand(520,435,120,155)],walls:[[[70,350],[440,350]]],terrain:[mound(220,210,100,90,14)]}],
     ['The Captain’s Cut',6,[170,575],[550,145],'Choose the ramp over the lagoon or the hippo along the edge. The landing belt can carry a strong shot into sand.',{ramps:[ramp(290,430)],portal:{mouth:[510,560],exit:[480,245],angle:0},water:[sand(145,265,270,130)],conveyors:[belt(180,160,320,75,0)],sand:[sand(500,180,140,130)],bumpers:[bumper(420,540,27)]}]
   ]);
-  const order=['clover','willow','pebble','garden','dunes','lagoon','alpine','tide','fair','skybridge','neon','safari','clockwork','harbor','masters'];
+  // Curved silhouettes are real collision boundaries, not square greens with
+  // decorative cutouts. New sets deliberately leave ramps to the jump courses.
+  const oval=(x,y,rx,ry,n=24)=>Array.from({length:n},(_,i)=>[Math.round(x+Math.cos(i*Math.PI*2/n)*rx),Math.round(y+Math.sin(i*Math.PI*2/n)*ry)]);
+  add('meadow','Meadow Meanders','Easy','garden','Curved greens and quiet doglegs',[
+    ['The Oval Office',3,[235,530],[480,190],'An open oval green. Read the curved rail for a gentle bank toward the flag.',{floor:oval(360,360,285,285)}],
+    ['Crooked Clover',3,[160,550],[540,160],'Stop at the broad elbow, then send a gentle putt up the second lane.',{floor:[[70,640],[70,425],[380,425],[380,75],[640,75],[640,640]],terrain:[mound(510,290,80,100,8)]}],
+    ['Butterfly Green',3,[180,530],[540,185],'A wide waist connects the two greens. The shallow bowl catches a slightly wide approach.',{floor:[[85,580],[85,440],[235,350],[85,230],[110,95],[260,75],[365,220],[515,75],[640,110],[630,265],[470,350],[635,470],[610,625],[450,630],[360,490],[245,640]],terrain:[mound(515,230,65,65,-6)]}]
+  ]);
+  add('canyon','Canyon Corners','Intermediate','dunes','Angular banks and sandy pockets',[
+    ['Copper Chevron',4,[165,540],[560,145],'Follow the chevron uphill on the map. Aim at the angled outside rail to cut the bend.',{floor:[[65,650],[65,440],[365,280],[450,70],[655,70],[535,450],[280,575],[280,650]],sand:[sand(400,320,95,65)]}],
+    ['Hourglass Sands',4,[360,565],[360,145],'The waist is the clean route. Sandy wings catch wide banks.',{floor:[[120,650],[75,535],[265,355],[75,170],[120,70],[600,70],[645,170],[455,355],[645,535],[600,650]],sand:[sand(145,115,130,75),sand(445,510,125,80)]}],
+    ['The Long Dogleg',4,[145,565],[560,160],'Two square turns demand accurate setup shots. The bunker sits on the tempting inside line.',{floor:[[65,650],[65,400],[390,400],[390,70],[650,70],[650,650]],sand:[sand(420,425,110,115)],walls:[[[390,310],[500,310]]]}]
+  ]);
+  add('brook','Brookside Bends','Intermediate','lagoon','Curving banks and dry crossings',[
+    ['Crescent Cove',4,[160,565],[180,150],'Follow the crescent around its planted center. Use the sloping rails to carry each bend.',{floor:[[80,650],[80,470],[345,470],[470,350],[345,235],[80,235],[80,70],[420,70],[650,295],[650,435],[420,650]],water:[sand(505,325,95,95)]}],
+    ['The Narrow Neck',4,[175,540],[545,165],'Cross the narrow middle between the pools. The broad ends give you room to line up.',{floor:[[75,650],[75,420],[260,320],[260,80],[645,80],[645,285],[435,400],[435,650]],water:[sand(80,435,125,100),sand(465,170,160,100)]}],
+    ['Estuary',4,[170,565],[540,165],'Choose either side of the central pool. The tapered top rewards a careful final bank.',{floor:[[70,590],[115,410],[70,235],[205,70],[565,70],[655,230],[600,430],[650,650],[220,650]],water:[sand(285,275,150,190)],terrain:[mound(515,200,65,80,-8)]}]
+  ]);
+  add('highland','Highland Hollows','Challenging','alpine','Rolling ridges, bowls and contoured greens',[
+    ['Rolling Ribbon',4,[160,575],[540,155],'The ribbon bends twice. Use the first rise to curve toward the center lane.',{floor:[[70,650],[70,430],[280,285],[280,70],[650,70],[650,300],[425,450],[425,650]],terrain:[mound(245,480,105,90,14),mound(450,190,100,70,-10)]}],
+    ['Emerald Basin',4,[205,530],[520,195],'The broad bowl pulls toward its center. Aim across its shoulder to escape toward the flag.',{floor:oval(360,360,290,275),terrain:[mound(350,360,155,130,-16),mound(520,245,70,80,12)]}],
+    ['Twin Peaks',5,[155,540],[555,155],'A diagonal ridge divides the open diamond. Cross it gently, or follow the low edge around it.',{floor:[[70,490],[70,270],[280,70],[495,70],[650,235],[650,460],[445,650],[230,650]],terrain:[mound(290,415,105,100,18),mound(440,280,95,105,17)],sand:[sand(460,485,95,85)]}]
+  ]);
+  add('switchback','Switchback Trail','Expert','fair','Winding lanes and precision banks',[
+    ['Serpentine',5,[145,570],[565,150],'Three lanes snake from tee to flag. Set up each corner rather than blasting through all three.',{floor:[[65,650],[65,430],[435,430],[435,290],[65,290],[65,70],[650,70],[650,650]],sand:[sand(465,460,100,110)],bumpers:[bumper(225,175,24)]}],
+    ['The Keyhole',5,[170,560],[535,170],'The dogleg opens into an angled upper green. Clear the rotating arm before your approach.',{floor:[[70,650],[70,420],[335,420],[335,220],[405,70],[575,70],[650,205],[575,345],[525,345],[525,650]],gate:{x:425,y:385,length:65,speed:.5}}],
+    ['Zigzag Finish',5,[150,570],[550,145],'Use the diagonal walls as banks. A shallow divot holds the final setup shot near the top.',{floor:[[70,650],[70,425],[405,285],[405,70],[650,70],[650,340],[280,510],[280,650]],terrain:[mound(530,190,70,75,-9)],sand:[sand(130,455,90,75)]}]
+  ]);
+  const order=['clover','willow','pebble','meadow','garden','dunes','lagoon','canyon','brook','alpine','tide','fair','highland','skybridge','neon','safari','clockwork','harbor','switchback','masters'];
   courses.sort((a,b)=>order.indexOf(a.id)-order.indexOf(b.id));
   return {courses,holes,rect,get:id=>courses.find(c=>c.id===id),SIZE:720};
 });
