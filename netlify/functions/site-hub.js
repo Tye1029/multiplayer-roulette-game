@@ -52,6 +52,7 @@ function createHandler(deps={}){
     const tables=await four.lobby(identity);games.push(...tables.games);joined.push(...tables.joined);
     games.push(...await dice.lobby(identity));if(dice.readyOpponents)joined.push(...await dice.readyOpponents(identity));
     const bluff=deps.bluff||require('./bluff/database');games.push(...await bluff.lobby(identity));if(bluff.readyOpponents)joined.push(...await bluff.readyOpponents(identity));
+    const golf=deps.minigolf||require('./mini-golf/database');games.push(...await golf.lobby(identity));joined.push(...await golf.readyOpponents(identity));
     for(const g of joined)await storage.notify(identity.id,g,String(body.focus||''));
     return reply(200,{ok:true,player:identity,balance:await chips.balance(identity),games,notifications:await storage.notifications(identity.id)});
   }catch(error){return reply(error.status||503,{error:error.status?error.message:'The service is temporarily unavailable. Please retry.'});}

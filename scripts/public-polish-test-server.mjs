@@ -14,12 +14,14 @@ export async function startPublicPolishServer(root=path.resolve('dist'),port=0){
  const wallet={account:async p=>p.id,balance:async p=>balances.get(p.id)??500000,rate:async()=>3.3,apply:async(id,e)=>{if(ledger.has(e.id))return balances.get(id);const n=(balances.get(id)??500000)+e.delta;if(n<0)throw Object.assign(Error('Not enough Chips'),{status:409});balances.set(id,n);ledger.set(e.id,e);return n;}};wallet.award=wallet.apply;
  const rps=require('../netlify/functions/rps/database').createStore(pool,wallet),four=require('../netlify/functions/roulette-four/database').createStore(pool,wallet),bluff=require('../netlify/functions/bluff/database').createStore(pool,wallet),dice=require('../netlify/functions/yahtzee/database').createStore(pool,undefined,Date.now,wallet),progress=require('../netlify/functions/site-hub/progression').createStore(pool,wallet);
  const player=key=>({player_id:String(key).slice(-1),name:'Player '+String(key).slice(-1),profile_image:'/assets/roulette-four/images/amber.svg'});
+ const golf=require('../netlify/functions/mini-golf/database').createStore(pool,wallet);
  const login=require('../netlify/functions/rps-action').createHandler(rps,async url=>({ok:true,json:async()=>player(new URL(url).searchParams.get('key'))}));
  const handlers={
   'roulette-four-action':require('../netlify/functions/roulette-four-action').createHandler(four,rps),
   'bluff-action':require('../netlify/functions/bluff-action').createHandler(bluff,rps),
+  'mini-golf-action':require('../netlify/functions/mini-golf-action').createHandler(golf,rps),
   'yahtzee-action':require('../netlify/functions/yahtzee-action').createHandler(dice,rps),
-  'site-hub':require('../netlify/functions/site-hub').createHandler({rps,four,bluff,yahtzee:dice,wallet,progression:progress,store:require('../netlify/functions/site-hub/store').createStore(pool),data:{duelListGames:async()=>({games:[]})}})
+  'site-hub':require('../netlify/functions/site-hub').createHandler({rps,four,bluff,minigolf:golf,yahtzee:dice,wallet,progression:progress,store:require('../netlify/functions/site-hub/store').createStore(pool),data:{duelListGames:async()=>({games:[]})}})
  };
  const mime={'.html':'text/html','.js':'application/javascript','.mjs':'application/javascript','.css':'text/css','.png':'image/png','.webp':'image/webp','.svg':'image/svg+xml','.mp3':'audio/mpeg','.ogg':'audio/ogg','.wav':'audio/wav'};
  const server=http.createServer(async(req,res)=>{try{
@@ -32,6 +34,6 @@ export async function startPublicPolishServer(root=path.resolve('dist'),port=0){
   }
   const file=path.resolve(root,'.'+decodeURIComponent(pathname)+(pathname.endsWith('/')?'index.html':''));if(!file.startsWith(root+path.sep))throw Error('Path');const bytes=await fs.readFile(file);res.writeHead(200,{'Content-Type':mime[path.extname(file)]||'application/octet-stream'});res.end(bytes);
  }catch(e){res.writeHead(404);res.end('Not found');}});
- await new Promise(r=>server.listen(port,'127.0.0.1',r));return {origin:'http://127.0.0.1:'+server.address().port,pg,pool,rps,four,bluff,dice,progress,wallet,balances,ledger,close:async()=>{await new Promise(r=>server.close(r));await pg.close();}};
+ await new Promise(r=>server.listen(port,'127.0.0.1',r));return {origin:'http://127.0.0.1:'+server.address().port,pg,pool,rps,four,bluff,golf,dice,progress,wallet,balances,ledger,close:async()=>{await new Promise(r=>server.close(r));await pg.close();}};
 }
 if(process.argv.includes('--serve')){const s=await startPublicPolishServer(process.argv[3]||path.resolve('dist'),26752);console.log(s.origin);}

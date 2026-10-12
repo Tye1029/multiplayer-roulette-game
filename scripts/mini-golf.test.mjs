@@ -1,0 +1,67 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {createRequire} from 'node:module';
+import {PGlite} from '@electric-sql/pglite';
+const require=createRequire(import.meta.url),C=require('../shared/games/mini-golf-courses'),P=require('../shared/games/mini-golf-physics'),M=require('../shared/games/mini-golf-model');
+const {createStore}=require('../netlify/functions/mini-golf/database'),{createHandler}=require('../netlify/functions/mini-golf-action'),progress=require('../netlify/functions/site-hub/progression');
+const a={id:'101',name:'Alice'},b={id:'202',name:'Bob'},uuid=()=>crypto.randomUUID();
+function match(course='garden'){const s=M.create('ABCDEF123456',a,course,0);M.join(s,b,0);M.act(s,a.id,{action:'ready'},0);M.act(s,b.id,{action:'ready'},0);return s;}
+test('all nine original holes are reachable through legal shots and deterministic physics',()=>{
+  assert.equal(C.courses.length,3);assert.equal(C.holes.length,9);
+  for(const h of C.holes){assert.ok(P.safe(h,h.tee));assert.ok(P.safe(h,h.cup));let p=h.tee,strokes=0,now=0,r;while(strokes<12){const shot=P.botShot(h,p,now);r=P.simulate(h,p,shot.angle,shot.power,now);assert.deepEqual(P.simulate(h,p,shot.angle,shot.power,now),r);assert.ok(P.safe(h,r.position));strokes+=1+r.penalty;p=r.position;now+=r.duration+1400;if(r.holed)break;}assert.ok(r.holed,h.id+' must be finishable');}
+});
+test('pullback strength, banks, sand, water penalties, hippo transport, and capture speed',()=>{
+  const empty={tee:[150,570],cup:[560,140],floor:C.rect(50,50,620,620),walls:[],bumpers:[],sand:[]};
+  const soft=P.simulate(empty,empty.tee,-Math.PI/2,.2),hard=P.simulate(empty,empty.tee,-Math.PI/2,.4);assert.ok(hard.position[1]<soft.position[1]-80);
+  const sandy=P.simulate({...empty,sand:[{x:50,y:50,w:620,h:620}]},empty.tee,-Math.PI/2,.4);assert.ok(sandy.position[1]>hard.position[1]);
+  const bank=P.simulate(empty,[100,300],Math.PI,.6);assert.ok(bank.events.some(e=>e.type==='bank'));assert.ok(bank.position[0]>100);
+  const water=P.simulate({...empty,water:[{x:90,y:350,w:120,h:100}]},empty.tee,-Math.PI/2,.6);assert.equal(water.penalty,1);assert.deepEqual(water.position,empty.tee);
+  const h=C.holes[3],mouth=h.portal.mouth,portal=P.simulate(h,[mouth[0],mouth[1]+60],-Math.PI/2,.25);assert.ok(portal.portalUsed);assert.ok(portal.events.some(e=>e.type==='pop'));assert.ok(portal.frames.some(f=>f[3]===0));assert.ok(portal.position[1]<300);
+  const gentle=P.simulate(empty,[560,190],-Math.PI/2,.17);assert.ok(gentle.holed);const blast=P.simulate(empty,[560,190],-Math.PI/2,1);assert.ok(!blast.events.some(e=>e.type==='cup'&&e.at<100));
+});
+test('wall collision cannot tunnel or escape at maximum power across sampled shots',()=>{
+  for(const h of C.holes)for(let i=0;i<40;i++){const r=P.simulate(h,h.tee,i*Math.PI/20,1,i*113);assert.ok(P.safe(h,r.position),h.id+' escaped at '+i);assert.ok(r.duration<=13000);assert.ok(r.position.every(Number.isFinite));}
+});
+test('online turn enforcement, stale requests, duplicate shots, and authoritative score',()=>{
+  const s=match(),shot={action:'shot',angle:-Math.PI/2,power:.4,revision:s.revision,requestId:uuid(),position:[550,170],strokes:0,holed:true};
+  assert.throws(()=>M.act(s,b.id,shot,1),/turn/);M.act(s,a.id,shot,1);assert.equal(s.balls[0].strokes,1);assert.equal(s.balls[0].holed,false);const rev=s.revision;M.act(s,a.id,shot,2);assert.equal(s.revision,rev);
+  assert.throws(()=>M.act(s,a.id,{...shot,requestId:uuid(),revision:rev},2),/stop/);M.advance(s,s.lastShot.endsAt+1);assert.equal(s.turn,1);
+  assert.throws(()=>M.act(s,b.id,{...shot,requestId:uuid()},s.lastShot.endsAt+2),/changed/);assert.throws(()=>M.act(s,'intruder',{action:'get'},3),/belongs/);
+  for(const power of [-1,0,NaN,Infinity,1.01,'0.5'])assert.throws(()=>M.act(s,b.id,{...shot,revision:s.revision,requestId:uuid(),power},s.lastShot.endsAt+2),/Invalid/);
+});
+test('full three-hole duel, score totals, mutual rematch and reset',()=>{
+  const s=match('lagoon');let now=10,shots=0;
+  while(s.phase!=='complete'&&shots<80){if(s.phase==='hole-complete'){M.act(s,a.id,{action:'continue'},now);M.act(s,b.id,{action:'continue'},now);continue;}const h=C.get(s.course).holes[s.hole],shot=P.botShot(h,s.balls[s.turn].position,now);M.act(s,s.players[s.turn].id,{action:'shot',...shot,revision:s.revision,requestId:uuid()},now);now=s.lastShot.endsAt+1;M.advance(s,now);shots++;}
+  assert.equal(s.phase,'complete');assert.equal(s.scores[0].length,3);assert.equal(s.scores[1].length,3);assert.ok(s.scores.flat().every(n=>n>=1&&n<=12));M.act(s,a.id,{action:'rematch'},now);assert.equal(s.match,1);M.act(s,b.id,{action:'rematch'},now);assert.equal(s.match,2);assert.equal(s.hole,0);assert.deepEqual(s.scores,[[],[]]);assert.ok(s.balls.every(x=>x.strokes===0));
+});
+test('waiting cancellation, readiness timeout, shot timeout, caps, and automatic next hole',()=>{
+  const wait=M.create('ABCDEF123456',a,'garden',0);M.act(wait,a.id,{action:'cancel'},10);assert.ok(wait.cancelled);assert.equal(wait.winner,'draw');
+  const ready=M.create('ABCDEF123456',a,'garden',0);M.join(ready,b,0);M.act(ready,a.id,{action:'ready'},0);M.advance(ready,60001);assert.deepEqual(ready.ready,[]);
+  const timed=match();M.advance(timed,90001);assert.equal(timed.winner,1);assert.ok(timed.forfeited);assert.deepEqual(progress.outcomes('minigolf',timed),[]);
+  const late=match();M.act(late,a.id,{action:'shot',angle:0,power:.2,revision:late.revision,requestId:uuid()},1);M.advance(late,late.lastShot.endsAt+M.TURN_MS+1);assert.equal(late.phase,'complete');assert.equal(late.winner,0,'Late polling cannot reset the opponent clock');
+  const s=match();assert.throws(()=>M.act(s,a.id,{action:'cancel'},10),/before/);s.balls.forEach(ball=>ball.strokes=11);let now=1;for(const p of [a,b]){M.act(s,p.id,{action:'shot',angle:0,power:.025,revision:s.revision,requestId:uuid()},now);now=s.lastShot.endsAt+1;M.advance(s,now);}assert.equal(s.phase,'hole-complete');assert.deepEqual(s.scores,[[12],[12]]);M.advance(s,s.deadline+1);assert.equal(s.hole,1);
+});
+test('authenticated HTTP boundary rejects malformed and oversized requests and server score cannot be supplied',async()=>{
+  const s=match();let called=0;const handler=createHandler({action:async(id,p,body)=>{called++;M.act(s,p.id,body,10);return s;}},{authenticate:async token=>token==='valid'?a:null});
+  const req=body=>handler(new Request('http://test',{method:'POST',body:typeof body==='string'?body:JSON.stringify(body)}));
+  assert.equal((await req('{')).status,400);assert.equal((await req('x'.repeat(9000))).status,413);assert.equal((await req({action:'get',gameId:s.id,token:'bad'})).status,401);assert.equal(called,0);
+  assert.equal((await req({action:'shot',gameId:s.id,token:'valid',power:.2,angle:0})).status,400);
+  const response=await req({action:'shot',gameId:s.id,token:'valid',requestId:uuid(),power:.2,angle:0,revision:s.revision,strokes:0,winner:0});assert.equal(response.status,200);const pub=(await response.json()).game;assert.equal(pub.balls[0].strokes,1);assert.equal(pub.winner,null);assert.ok(!('finance' in pub));
+});
+test('SQL store: private/public discovery, owner-only access, atomic duplicate shots, stakes, refunds, and rematch recovery',async()=>{
+  const pg=new PGlite();let tail=Promise.resolve();const pool={query:(q,a)=>pg.query(q,a),connect:async()=>{let release;const prev=tail;tail=new Promise(r=>release=r);await prev;return {query:(q,a)=>pg.query(q,a),release};}};
+  const balances=new Map([[a.id,10000],[b.id,10000]]),ledger=new Map();let failAfterWrite=false;
+  const wallet={account:async p=>p.id,rate:async()=>3.3,apply:async(id,e)=>{if(ledger.has(e.id))return;const amount=balances.get(id)+e.delta;if(amount<0)throw Object.assign(Error('Not enough Chips'),{code:'RPS_FUNDS'});balances.set(id,amount);ledger.set(e.id,e);if(failAfterWrite){failAfterWrite=false;throw Error('response lost');}}};
+  const db=createStore(pool,wallet),write=s=>pg.query('UPDATE mini_golf_matches SET state=$2::jsonb WHERE id=$1',[s.id,JSON.stringify(s)]);
+  try{
+    const requestId=uuid();let s=await db.create(a,{requestId,course:'garden',wager:1000});assert.equal(balances.get(a.id),9000);assert.equal((await db.create(a,{requestId,course:'garden',wager:1000})).id,s.id);assert.equal(balances.get(a.id),9000);
+    assert.equal((await db.lobby(b))[0].id,s.id);const secret=await db.create(a,{requestId:uuid(),course:'lagoon',wager:0,private:true});assert.ok(!(await db.lobby(b)).some(x=>x.id===secret.id));
+    await assert.rejects(db.action(s.id,b,{action:'get'}),/belongs/);await assert.rejects(db.action(s.id,b,{action:'join',wager:0}),/accept/);s=await db.action(s.id,b,{action:'join',wager:1000});assert.equal(balances.get(b.id),9000);
+    await db.action(s.id,a,{action:'ready'});s=await db.action(s.id,b,{action:'ready'});assert.equal(s.phase,'playing');await assert.rejects(db.action(s.id,a,{action:'cancel'}),/before/);
+    const shot={action:'shot',requestId:uuid(),revision:s.revision,power:.3,angle:0};const both=await Promise.all([db.action(s.id,a,shot),db.action(s.id,a,shot)]);assert.ok(both.every(v=>v.balls[0].strokes===1));
+    s=await db.recover(s.id);s.phase='complete';s.winner=0;s.completedAt=Date.now();s.scores=[[2,2,2],[3,3,3]];await write(s);failAfterWrite=true;await assert.rejects(db.recover(s.id),/response lost/);s=await db.recover(s.id);assert.equal(balances.get(a.id),10934);assert.equal(s.finance.status,'settled');await db.recover(s.id);assert.equal(balances.get(a.id),10934);
+    await db.action(s.id,a,{action:'rematch',wager:1000});s=await db.action(s.id,b,{action:'rematch',wager:1000});assert.equal(s.match,2);assert.equal(s.phase,'playing');assert.equal(balances.get(a.id),9934);assert.equal(balances.get(b.id),8000);
+    const cancelled=await db.create(a,{requestId:uuid(),course:'garden',wager:1000});await db.action(cancelled.id,a,{action:'cancel'});await db.recover(cancelled.id);assert.equal(balances.get(a.id),9934);
+    assert.equal(progress.catalog('minigolf').reduce((n,x)=>n+x.reward,0),1000000);assert.equal(progress.catalog('minigolf')[0].target,1);
+  }finally{await pg.close();}
+});
