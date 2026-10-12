@@ -1,4 +1,4 @@
-# Lucky Scratch V1
+# Lucky Scratch V2
 
 The homepage separates multiplayer and single-player collections. Lucky Scratch
 is the first single-player entry at `/games/single-player/lucky-scratch/`.
@@ -7,7 +7,7 @@ is the first single-player entry at `/games/single-player/lucky-scratch/`.
 
 Reveal nine panels. Exactly three matching amounts win that amount once. Losing
 tickets have no trio. Each tier has the same probability distribution; prices
-are 1,000, 5,000, 10,000, 25,000 and 50,000 Chips. Prizes are total returns,
+are 50,000, 100,000, 500,000, 1,000,000, 5,000,000 and 10,000,000 Chips. Prizes are total returns,
 including any returned stake, rather than profit added on top of the stake.
 
 | Return multiplier | Probability |
@@ -54,3 +54,7 @@ Browser QA uses isolated synthetic accounts, PGlite, and the real endpoint.
 It covers mouse and native touch input, keyboard reveal, saved progress, lost
 settlement responses, demo play, homepage links, and phone/desktop layouts.
 The Lucky Scratch GitHub Actions workflow runs these checks on pushes and PRs.
+
+After settlement, the player chooses the next tier beside the result and buys
+a new ticket in place. The free sample repeats in sample mode. Existing tickets
+retain their stored price and payout when the current pricing changes.

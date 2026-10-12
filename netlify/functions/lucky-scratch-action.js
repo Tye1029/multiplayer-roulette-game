@@ -1,7 +1,7 @@
 'use strict';
 const database=require('./lucky-scratch/database'),identity=require('./rps/database'),wallet=require('./rps/wallet');
 function createHandler(store=database,auth=identity,funds=wallet){return async request=>{
-  const reply=(status,value)=>new Response(JSON.stringify(value),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store','X-Scratch-Build':'LUCKY_SCRATCH_V1'}});
+  const reply=(status,value)=>new Response(JSON.stringify(value),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store','X-Scratch-Build':'LUCKY_SCRATCH_V2'}});
   if(request.method!=='POST')return reply(405,{ok:false,error:'Use POST.'});
   const raw=await request.text();if(raw.length>4096)return reply(413,{ok:false,error:'Request too large.'});
   let b;try{b=JSON.parse(raw);if(!b||typeof b!=='object'||Array.isArray(b))throw 0;}catch{return reply(400,{ok:false,error:'Invalid request.'});}
