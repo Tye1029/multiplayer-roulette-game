@@ -15,8 +15,10 @@ export async function startPublicPolishServer(root=path.resolve('dist'),port=0){
  const rps=require('../netlify/functions/rps/database').createStore(pool,wallet),four=require('../netlify/functions/roulette-four/database').createStore(pool,wallet),bluff=require('../netlify/functions/bluff/database').createStore(pool,wallet),dice=require('../netlify/functions/yahtzee/database').createStore(pool,undefined,Date.now,wallet),progress=require('../netlify/functions/site-hub/progression').createStore(pool,wallet);
  const player=key=>({player_id:String(key).slice(-1),name:'Player '+String(key).slice(-1),profile_image:'/assets/roulette-four/images/amber.svg'});
  const golf=require('../netlify/functions/mini-golf/database').createStore(pool,wallet);
+ const scratch=require('../netlify/functions/lucky-scratch/database').createStore(pool,wallet);
  const login=require('../netlify/functions/rps-action').createHandler(rps,async url=>({ok:true,json:async()=>player(new URL(url).searchParams.get('key'))}));
  const handlers={
+  'lucky-scratch-action':require('../netlify/functions/lucky-scratch-action').createHandler(scratch,rps,wallet),
   'roulette-four-action':require('../netlify/functions/roulette-four-action').createHandler(four,rps),
   'bluff-action':require('../netlify/functions/bluff-action').createHandler(bluff,rps),
   'mini-golf-action':require('../netlify/functions/mini-golf-action').createHandler(golf,rps),

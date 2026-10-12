@@ -3,6 +3,7 @@
  'use strict';
  const $=id=>document.getElementById(id), storage={get(k){try{return localStorage.getItem(k);}catch{return null;}},set(k,v){try{localStorage.setItem(k,v);}catch{}}};
  const games={
+  scratch:['Lucky Scratch','SINGLE PLAYER','/assets/lucky-scratch/cover.svg','Choose a ticket, scratch the nine panels, and match three prize amounts to win. Bigger tickets offer bigger prizes.','#efd493'],
   minigolf:['Pocket Putt','2 PLAYERS','/assets/mini-golf/cover.svg','Pull back, pick your line, and putt. Twenty courses, 60 unique holes, and a few very hungry hippos. Pick your challenge, from Beginner to Expert. Lowest total strokes wins.','#d4ee94'],
   yahtzee:['Yahtzee','2 PLAYERS','/assets/yahtzee/dice.svg','Both players get 30 seconds per round to roll, hold dice, and choose one category. Roll up to three times. Highest score after 13 rounds wins.','#67b47c'],
   bluff:['Bluff or Bust','2 PLAYERS','/assets/bluff/images/cover.svg','Both players secretly play cards claiming the required symbol. Believe or challenge, then reveal everything. A caught bluffer takes their cards back; a false accuser takes the genuine play. Empty your hand after all transfers to win. Lock cards within 30 seconds or lose.','#e9c68a'],
@@ -101,7 +102,7 @@
  document.addEventListener('keydown',e=>{if(e.key==='Escape'){menu.hidden=inbox.hidden=true;}});
  function setupHome(){
   if(!home)return;
-  const card=home.querySelector('.sth-card'),title=card.querySelector('h1');title.textContent='Pick Your Next Duel!';card.querySelector('p').remove();card.insertBefore(element('div','THE GAMES ROOM','hub-kicker'),title);
+  const card=home.querySelector('.sth-card'),title=card.querySelector('h1');title.textContent='Pick Your Next Game!';card.querySelector('p').remove();card.insertBefore(element('div','THE GAMES ROOM','hub-kicker'),title);
   const keyBox=element('section',undefined,'hub-key');title.after(keyBox);
   for(const node of [card.querySelector('.sth-label'),card.querySelector('.sth-row'),$('simpleApiStatus')])if(node)keyBox.append(node);
   keyBox.querySelector('label').textContent='Connect with your public Torn API key';
@@ -116,7 +117,10 @@
   const yahtzeeArt=element('img');yahtzeeArt.src='/assets/yahtzee/dice.svg';yahtzeeArt.alt='';yahtzeeArt.width=360;yahtzeeArt.height=360;yahtzeeArt.loading='lazy';
   const yahtzeeLabel=element('span',undefined,'hub-title');yahtzeeLabel.append(element('small','2 PLAYERS · 30-SECOND ROUNDS'),document.createTextNode('Yahtzee'));
   yahtzeeLink.append(yahtzeeArt,yahtzeeLabel);yahtzeeTile.append(yahtzeeLink);grid.append(yahtzeeTile);
-  const golfTile=element('article',undefined,'hub-tile'),golfLink=element('a',undefined,'sth-game'),golfArt=element('img'),golfLabel=element('span',undefined,'hub-title');golfLink.href='/games/multiplayer/mini-golf/';golfArt.src='/assets/mini-golf/cover.svg';golfArt.alt='';golfArt.width=360;golfArt.height=360;golfArt.loading='lazy';golfLabel.append(element('small','2 PLAYERS · 9 ORIGINAL HOLES'),document.createTextNode('Pocket Putt'));golfLink.append(golfArt,golfLabel);golfTile.append(golfLink);grid.append(golfTile);
+  const golfTile=element('article',undefined,'hub-tile'),golfLink=element('a',undefined,'sth-game'),golfArt=element('img'),golfLabel=element('span',undefined,'hub-title');golfLink.href='/games/multiplayer/mini-golf/';golfArt.src='/assets/mini-golf/cover.svg';golfArt.alt='';golfArt.width=360;golfArt.height=360;golfArt.loading='lazy';golfLabel.append(element('small','2 PLAYERS · 60 UNIQUE HOLES'),document.createTextNode('Pocket Putt'));golfLink.append(golfArt,golfLabel);golfTile.append(golfLink);grid.append(golfTile);
+  const multiplayer=element('h2','Multiplayer','hub-section-title');grid.before(multiplayer);
+  const singleHeading=element('h2','Single Player','hub-section-title'),singleGrid=element('div',undefined,'sth-games hub-single-games');singleGrid.setAttribute('aria-label','Single player games');
+  const scratchTile=element('article',undefined,'hub-tile'),scratchLink=element('a',undefined,'sth-game'),scratchArt=element('img'),scratchLabel=element('span',undefined,'hub-title');scratchLink.href='/games/single-player/lucky-scratch/';scratchArt.src='/assets/lucky-scratch/cover.svg';scratchArt.alt='';scratchArt.width=360;scratchArt.height=360;scratchArt.loading='lazy';scratchLabel.append(element('small','SINGLE PLAYER · SCRATCH & MATCH'),document.createTextNode('Lucky Scratch'));scratchLink.append(scratchArt,scratchLabel);scratchTile.append(scratchLink);singleGrid.append(scratchTile);grid.after(singleHeading,singleGrid);
   const section=element('section',undefined,'hub-open');section.innerHTML='<div class="hub-heading"><h2>Open Games</h2><span>Join the next game</span></div><div id="hub-games" data-hub-games aria-live="polite"><p class="hub-empty">Connect your public API key to see open games and wagers.</p></div><p id="hub-lobby-status" class="hub-status" role="status"></p>';card.append(section);
   const syncKey=()=>{const ok=storage.get('tornKeyConfirmed')==='true'&&Boolean(storage.get('tornVisitorApiKey'));keyBox.hidden=ok;grid.querySelectorAll('.sth-game').forEach(b=>b.disabled=b.dataset.mode==='bluff'?false:!ok);updateHeader();};
   new MutationObserver(syncKey).observe($('simpleApiStatus'),{childList:true,attributes:true});syncKey();

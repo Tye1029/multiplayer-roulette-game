@@ -17,14 +17,16 @@ for (const entry of await readdir(root, { withFileTypes: true })) {
     await cp(path.join(root, entry.name), path.join(output, entry.name));
   }
 }
-for (const game of await readdir(path.join(root, 'games/multiplayer'), { withFileTypes: true })) {
+for (const category of ['multiplayer', 'single-player']) {
+for (const game of await readdir(path.join(root, 'games', category), { withFileTypes: true })) {
   if (!game.isDirectory()) continue;
-  const directory = path.join(root, 'games/multiplayer', game.name);
+  const directory = path.join(root, 'games', category, game.name);
   for (const entry of await readdir(directory, { withFileTypes: true })) {
     if (!entry.isFile() || !entry.name.endsWith('.html')) continue;
-    const destination = path.join(output, 'games/multiplayer', game.name);
+    const destination = path.join(output, 'games', category, game.name);
     await mkdir(destination, { recursive: true });
     await cp(path.join(directory, entry.name), path.join(destination, entry.name));
   }
+}
 }
 console.log('Prepared dist/: public pages and runtime assets only.');

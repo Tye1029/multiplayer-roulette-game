@@ -89,3 +89,6 @@ body:has(#duelScreen:not([hidden])){background:var(--hub-bg)!important}#duelScre
 @media(max-width:480px){.xan-account .hub-wallet{padding:4px 3px;font-size:9px;letter-spacing:-.02em;white-space:nowrap}.xan-account .rps-pick-character{margin:3px 0;padding:4px 5px!important;font-size:9px!important;min-height:0}}
 
 .xan-dialog .hub-debug-data{display:block;width:100%;min-height:260px;max-height:45dvh;resize:vertical;box-sizing:border-box;font:12px/1.6 ui-monospace,monospace;white-space:pre;overflow:auto}.xan-dialog .hub-actions{flex-wrap:wrap}
+
+/* LUCKY_SCRATCH_V1 — the two game collections share the existing tile layout. */
+.hub-section-title{margin:30px 0 16px;font:700 clamp(22px,4vw,30px) system-ui;letter-spacing:-.03em;color:var(--hub-text)}.hub-single-games{margin-bottom:30px}.hub-single-games .sth-game{display:block;text-decoration:none}
