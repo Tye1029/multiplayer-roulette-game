@@ -3,7 +3,7 @@
  'use strict';
  const $=id=>document.getElementById(id), storage={get(k){try{return localStorage.getItem(k);}catch{return null;}},set(k,v){try{localStorage.setItem(k,v);}catch{}}};
  const games={
-  minigolf:['Pocket Putt','2 PLAYERS','/assets/mini-golf/cover.svg','Pull back, pick your line, and putt. Twelve courses, 36 unique holes, and a few very hungry hippos. Pick your challenge, from Beginner to Expert. Lowest total strokes wins.','#d4ee94'],
+  minigolf:['Pocket Putt','2 PLAYERS','/assets/mini-golf/cover.svg','Pull back, pick your line, and putt. Fifteen courses, 45 unique holes, and a few very hungry hippos. Pick your challenge, from Beginner to Expert. Lowest total strokes wins.','#d4ee94'],
   yahtzee:['Yahtzee','2 PLAYERS','/assets/yahtzee/dice.svg','Both players get 30 seconds per round to roll, hold dice, and choose one category. Roll up to three times. Highest score after 13 rounds wins.','#67b47c'],
   bluff:['Bluff or Bust','2 PLAYERS','/assets/bluff/images/cover.svg','Both players secretly play cards claiming the required symbol. Believe or challenge, then reveal everything. A caught bluffer takes their cards back; a false accuser takes the genuine play. Empty your hand after all transfers to win. Lock cards within 30 seconds or lose.','#e9c68a'],
   roulette:['Russian Roulette','2 PLAYERS','/assets/roulette/decor/saloon-room-v3.webp','Take turns with a six-chamber revolver. Follow the table’s shoot, spin and pass controls. Survive your opponent to win the pot.','#e6bf51'],

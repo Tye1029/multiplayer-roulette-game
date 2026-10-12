@@ -1,4 +1,4 @@
-/* POCKET_PUTT_V4 — original courses, shared by the renderer and authoritative physics. */
+/* POCKET_PUTT_V5 — original courses, shared by the renderer and authoritative physics. */
 (function(root,factory){const value=factory();if(typeof module==='object'&&module.exports)module.exports=value;else root.PuttCourses=value;})(globalThis,()=>{
   'use strict';
   const rect=(x,y,w,h)=>[[x,y],[x+w,y],[x+w,y+h],[x,y+h]];
@@ -92,7 +92,24 @@
     ['Risk and Reward',5,[150,575],[565,145],'The hippo saves distance; the open bank route avoids the moving gate.',{portal:{mouth:[255,505],exit:[500,340],angle:-Math.PI/2},gate:{x:510,y:230,length:85,speed:.6},water:[sand(280,270,135,180)],bumpers:[bumper(180,230,30)],terrain:[mound(480,535,90,65,-12)]}],
     ['Grand Finale',6,[150,575],[565,145],'Use the left opening first, the right opening second, then a measured final putt.',{walls:[[[270,440],[650,440]],[[70,270],[420,270]]],terrain:[mound(190,370,85,100,17),mound(520,195,85,75,-13)],bumpers:[bumper(505,350,28)],sand:[sand(315,500,140,100)]}]
   ]);
-  const order=['clover','willow','pebble','garden','dunes','lagoon','alpine','tide','fair','neon','safari','masters'];
+  const ramp=(x,y,angle=-Math.PI/2)=>({x,y,angle,width:90,length:95,height:22,lift:.62});
+  const belt=(x,y,w,h,angle)=>({x,y,w,h,angle,force:240});
+  add('skybridge','Skybridge Park','Challenging','garden','Carry the water or take the long way',[
+    ['Leap of Faith',4,[260,575],[510,170],'The ramp clears the pond at medium power. Too soft splashes short; too hard finds the far bunker. The right lane is safe.',{ramps:[ramp(260,425)],water:[sand(100,255,290,145)],sand:[sand(155,80,230,120)]}],
+    ['Island Express',5,[160,570],[550,150],'Launch diagonally across the lagoon, or follow the dry right-hand bank. Leave room for the landing roll.',{ramps:[ramp(270,460,-Math.PI/3)],water:[sand(180,250,240,160)],sand:[sand(420,80,160,100)],walls:[[[70,210],[190,210]]]}],
+    ['Over the Hedge',5,[180,580],[540,140],'Jump over the hedge for a direct approach. The outside path costs distance but has no landing bunker.',{ramps:[ramp(260,430)],walls:[[[70,340],[450,340]]],sand:[sand(165,170,160,95)],terrain:[mound(515,235,85,95,-11)]}]
+  ]);
+  add('clockwork','Clockwork Gardens','Expert','fair','Moving lanes and timed escapes',[
+    ['Beltway',4,[145,575],[560,140],'The moving lane carries you right. Use it to cut the corner, or hit across before it steers you toward the pond.',{conveyors:[belt(180,365,360,100,0)],water:[sand(555,350,95,135)],walls:[[[70,250],[300,250]]],bumpers:[bumper(425,220,25)]}],
+    ['Cross Traffic',5,[160,570],[550,140],'Two belts pull in opposite directions. A measured diagonal shot can use both to reach the upper green.',{conveyors:[belt(165,415,370,80,0),belt(185,230,355,80,Math.PI)],sand:[sand(535,400,110,110),sand(75,215,110,115)],gate:{x:365,y:340,length:80,speed:.45}}],
+    ['Launch Window',5,[240,575],[525,145],'The launch ramp skips the moving arm. Catch the near landing green, or take the safe route along the right rail.',{ramps:[ramp(240,435)],gate:{x:300,y:335,length:105,speed:.55},conveyors:[belt(165,170,330,75,0)],sand:[sand(505,155,125,110)],cup:[555,115]}]
+  ]);
+  add('harbor','Hippo Adventure Harbor','Expert','lagoon','Hungry tunnels and daring jumps',[
+    ['Hippo High Dive',5,[150,575],[550,140],'The hippo drops you beside a ramp. Line up the jump for a shortcut; the open right edge is the longer route.',{portal:{mouth:[260,535],exit:[215,475],angle:0},ramps:[ramp(330,420)],water:[sand(135,255,300,125)],sand:[sand(240,85,150,125)]}],
+    ['Cargo Run',5,[155,570],[555,150],'Ride the cargo belt toward the hippo, but brake before the pond. A quiet outside approach also reaches its mouth.',{conveyors:[belt(180,460,290,100,0)],portal:{mouth:[475,510],exit:[475,230],angle:-Math.PI/2},water:[sand(520,435,120,155)],walls:[[[70,350],[440,350]]],terrain:[mound(220,210,100,90,14)]}],
+    ['The Captain’s Cut',6,[170,575],[550,145],'Choose the ramp over the lagoon or the hippo along the edge. The landing belt can carry a strong shot into sand.',{ramps:[ramp(290,430)],portal:{mouth:[510,560],exit:[480,245],angle:0},water:[sand(145,265,270,130)],conveyors:[belt(180,160,320,75,0)],sand:[sand(500,180,140,130)],bumpers:[bumper(420,540,27)]}]
+  ]);
+  const order=['clover','willow','pebble','garden','dunes','lagoon','alpine','tide','fair','skybridge','neon','safari','clockwork','harbor','masters'];
   courses.sort((a,b)=>order.indexOf(a.id)-order.indexOf(b.id));
   return {courses,holes,rect,get:id=>courses.find(c=>c.id===id),SIZE:720};
 });

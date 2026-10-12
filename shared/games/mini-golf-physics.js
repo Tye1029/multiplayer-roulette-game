@@ -1,4 +1,4 @@
-/* POCKET_PUTT_V3 — fixed-step deterministic ball simulation, no client score input. */
+/* POCKET_PUTT_V5 — fixed-step deterministic ball simulation, no client score input. */
 (function(root,factory){const value=factory();if(typeof module==='object'&&module.exports)module.exports=value;else root.PuttPhysics=value;})(globalThis,()=>{
   'use strict';
   const R=9,DT=1/120,MAX_SPEED=660,DRAG=155,MAX_SECONDS=12;
@@ -17,18 +17,33 @@
     }
     return {height,ax,ay};
   }
+  function rampHeight(h,x,y){
+    let z=0;for(const r of h.ramps||[]){const dx=x-r.x,dy=y-r.y,f=dx*Math.cos(r.angle)+dy*Math.sin(r.angle),side=-dx*Math.sin(r.angle)+dy*Math.cos(r.angle);if(f>=-r.length&&f<=0&&Math.abs(side)<=r.width/2)z=Math.max(z,(1+f/r.length)*r.height);}return z;
+  }
   function simulate(h,position,angle,power,startMs=0,record=true){
     if(!Number.isFinite(angle)||!Number.isFinite(power)||power<=0||power>1)throw new Error('Invalid shot.');
     let b={x:position[0],y:position[1],vx:Math.cos(angle)*MAX_SPEED*power,vy:Math.sin(angle)*MAX_SPEED*power};
-    const frames=[[0,b.x,b.y,1]],events=[];let time=0,holed=false,penalty=0,portalUsed=false,transit=0,steps=0;
+    const frames=[[0,b.x,b.y,1,0]],events=[];let time=0,holed=false,penalty=0,portalUsed=false,transit=0,steps=0,z=0,vz=0,airborne=false;const launched=new Set();
     const edges=h.floor.map((p,i)=>[p,h.floor[(i+1)%h.floor.length]]);
-    function frame(alpha=1){if(record)frames.push([Math.round(time*1000),+b.x.toFixed(3),+b.y.toFixed(3),alpha]);}
+    function frame(alpha=1){if(record)frames.push([Math.round(time*1000),+b.x.toFixed(3),+b.y.toFixed(3),alpha,+z.toFixed(3)]);}
     function collide(a,c,radius=R+4,restitution=0.79){const q=closest(b.x,b.y,a,c),dx=b.x-q[0],dy=b.y-q[1],d=Math.hypot(dx,dy);if(d>=radius)return;let nx=dx/(d||1),ny=dy/(d||1);if(d<0.0001){const length=Math.hypot(c[0]-a[0],c[1]-a[1])||1;nx=-(c[1]-a[1])/length;ny=(c[0]-a[0])/length;}b.x=q[0]+nx*(radius+0.02);b.y=q[1]+ny*(radius+0.02);const dot=b.vx*nx+b.vy*ny;if(dot<0){b.vx-=(1+restitution)*dot*nx;b.vy-=(1+restitution)*dot*ny;if(!events.length||time*1000-events.at(-1).at>85)events.push({type:'bank',at:Math.round(time*1000),x:b.x,y:b.y});}}
     while(time<MAX_SECONDS){
       time+=DT;steps++;
       if(transit>0){transit-=DT;if(transit<=0){const p=h.portal;b.x=p.exit[0];b.y=p.exit[1];b.vx=Math.cos(p.angle)*180;b.vy=Math.sin(p.angle)*180;events.push({type:'pop',at:Math.round(time*1000),x:b.x,y:b.y});frame(1);}else if(steps%4===0)frame(0);continue;}
+      if(airborne){
+        b.x+=b.vx*DT;b.y+=b.vy*DT;vz-=500*DT;z+=vz*DT;
+        if(z>0){if(steps%4===0)frame();continue;}
+        z=0;airborne=false;events.push({type:'land',at:Math.round(time*1000),x:b.x,y:b.y});b.vx*=.4;b.vy*=.4;
+        if(!safe(h,[b.x,b.y])){events.push({type:'splash',at:Math.round(time*1000),x:b.x,y:b.y});frame(0);time+=.65;b.x=position[0];b.y=position[1];b.vx=b.vy=0;penalty=1;frame();break;}
+      }
       const terrain=terrainAt(h,b.x,b.y);b.vx+=terrain.ax*DT;b.vy+=terrain.ay*DT;
+      let beltX=0,beltY=0;for(const c of h.conveyors||[])if(inRect(b,c)){beltX+=Math.cos(c.angle)*c.force;beltY+=Math.sin(c.angle)*c.force;}b.vx+=beltX*DT;b.vy+=beltY*DT;
       const px=b.x,py=b.y;b.x+=b.vx*DT;b.y+=b.vy*DT;
+      for(const [i,r] of (h.ramps||[]).entries()){
+        const co=Math.cos(r.angle),si=Math.sin(r.angle),before=(px-r.x)*co+(py-r.y)*si,after=(b.x-r.x)*co+(b.y-r.y)*si,side=-(b.x-r.x)*si+(b.y-r.y)*co,forward=b.vx*co+b.vy*si;
+        if(!launched.has(i)&&before<=0&&after>0&&Math.abs(side)<r.width/2-R&&forward>70&&forward>Math.hypot(b.vx,b.vy)*.65){launched.add(i);airborne=true;z=r.height;vz=forward*r.lift;events.push({type:'launch',at:Math.round(time*1000),x:b.x,y:b.y});frame();break;}
+      }
+      if(airborne)continue;
       for(let pass=0;pass<2;pass++){for(const [a,c] of edges)collide(a,c,R+2);for(const [a,c] of h.walls||[])collide(a,c);const gate=gateSegment(h,startMs/1000+time);if(gate)collide(...gate,R+7,0.85);}
       if(!inside(b.x,b.y,h.floor)){b.x=px;b.y=py;b.vx*=-0.7;b.vy*=-0.7;}
       for(const p of h.bumpers||[]){const dx=b.x-p.x,dy=b.y-p.y,d=Math.hypot(dx,dy),r=p.r+R;if(d<r){const nx=dx/(d||1),ny=dy/(d||1);b.x=p.x+nx*(r+0.1);b.y=p.y+ny*(r+0.1);const dot=b.vx*nx+b.vy*ny;if(dot<0){b.vx-=2.05*dot*nx;b.vy-=2.05*dot*ny;events.push({type:'bumper',at:Math.round(time*1000),x:p.x,y:p.y});}}}
@@ -39,7 +54,7 @@
       const drag=(h.sand||[]).some(r=>inRect(b,r))?460:DRAG;
       const next=Math.max(0,speed-drag*DT);if(speed){b.vx*=next/speed;b.vy*=next/speed;}
       if(steps%4===0)frame();
-      if(next<3&&Math.hypot(terrain.ax,terrain.ay)<=drag){b.vx=b.vy=0;break;}
+      if(next<3&&Math.hypot(terrain.ax+beltX,terrain.ay+beltY)<=drag){b.vx=b.vy=0;break;}
     }
     frame(holed?0:1);
     return {position:[+b.x.toFixed(3),+b.y.toFixed(3)],holed,penalty,portalUsed,duration:Math.max(180,Math.round(time*1000)),frames,events};
@@ -56,5 +71,5 @@
     for(const angle of candidates)for(const power of [0.16,0.24,0.34,0.46,0.6,0.76,0.94]){const r=simulate(h,position,angle,power,now,false);const [x,y]=cellAt(r.position);let score=r.holed?-10000:r.penalty?10000:Math.min(200,dist[y*n+x])*32+Math.hypot(r.position[0]-h.cup[0],r.position[1]-h.cup[1])*0.14;if(Math.hypot(r.position[0]-position[0],r.position[1]-position[1])<18)score+=500;if(score<best.score)best={angle,power,score};}
     return {angle:best.angle,power:best.power};
   }
-  return {R,DT,MAX_SPEED,DRAG,simulate,inside,closest,safe,gateSegment,terrainAt,botShot};
+  return {R,DT,MAX_SPEED,DRAG,simulate,inside,closest,safe,gateSegment,terrainAt,rampHeight,botShot};
 });

@@ -6,8 +6,8 @@ const require=createRequire(import.meta.url),C=require('../shared/games/mini-gol
 const {createStore}=require('../netlify/functions/mini-golf/database'),{createHandler}=require('../netlify/functions/mini-golf-action'),progress=require('../netlify/functions/site-hub/progression');
 const a={id:'101',name:'Alice'},b={id:'202',name:'Bob'},uuid=()=>crypto.randomUUID();
 function match(course='garden'){const s=M.create('ABCDEF123456',a,course,0);M.join(s,b,0);M.act(s,a.id,{action:'ready'},0);M.act(s,b.id,{action:'ready'},0);return s;}
-test('all 36 holes across 12 varied courses are reachable through legal deterministic shots',()=>{
-  assert.equal(C.courses.length,12);assert.equal(C.holes.length,36);assert.equal(new Set(C.holes.map(h=>h.id)).size,36);assert.ok(C.courses.every(c=>c.holes.length===3&&c.difficulty));assert.equal(new Set(C.courses.map(c=>c.difficulty)).size,5);
+test('all 45 holes across 15 varied courses are reachable through legal deterministic shots',()=>{
+  assert.equal(C.courses.length,15);assert.equal(C.holes.length,45);assert.equal(new Set(C.holes.map(h=>h.id)).size,45);assert.ok(C.courses.every(c=>c.holes.length===3&&c.difficulty));assert.equal(new Set(C.courses.map(c=>c.difficulty)).size,5);
   for(const h of C.holes){assert.ok(P.safe(h,h.tee));assert.ok(P.safe(h,h.cup));let p=h.tee,strokes=0,now=0,r;while(strokes<12){const shot=P.botShot(h,p,now);r=P.simulate(h,p,shot.angle,shot.power,now);assert.deepEqual(P.simulate(h,p,shot.angle,shot.power,now),r);assert.ok(P.safe(h,r.position));strokes+=1+r.penalty;p=r.position;now+=r.duration+1400;if(r.holed)break;}assert.ok(r.holed,h.id+' must be finishable');}
 });
 test('pullback strength, banks, sand, water penalties, hippo transport, and capture speed',()=>{
@@ -137,4 +137,23 @@ test('all courses create and cancel with the production wallet; golf stakes, win
     await assert.rejects(wallet.apply(a.id,{id:'unknown:ABCDEF123456:stake:101',delta:-1000}),/Invalid wallet/);
     await assert.rejects(wallet.apply(a.id,{id:'minigolf:bad:stake:101',delta:-1000}),/Invalid wallet/);
   }finally{await pg.close();}
+});
+
+
+test('ramps reward controlled power, punish short/long landings, and preserve authoritative flight',()=>{
+  const h=C.get('skybridge').holes[0],shot=power=>P.simulate(h,h.tee,-Math.PI/2,power,1234);
+  const short=shot(.4),good=shot(.5),hard=shot(.55),wild=shot(.8);
+  assert.equal(short.penalty,1);assert.equal(good.penalty,0);assert.equal(wild.penalty,1);
+  assert.ok(!h.sand.some(s=>good.position[0]>s.x&&good.position[0]<s.x+s.w&&good.position[1]>s.y&&good.position[1]<s.y+s.h),'Controlled landing stays on the green');
+  assert.ok(h.sand.some(s=>hard.position[0]>s.x&&hard.position[0]<s.x+s.w&&hard.position[1]>s.y&&hard.position[1]<s.y+s.h),'Overpowered landing reaches the bunker');
+  assert.ok(good.events.some(e=>e.type==='launch'));assert.ok(good.events.some(e=>e.type==='land'));assert.ok(good.frames.some(f=>f[4]>30));assert.equal(good.frames.at(-1)[4],0);assert.deepEqual(shot(.5),good);
+  const reverse=P.simulate(h,[260,405],Math.PI/2,.2);assert.ok(!reverse.events.some(e=>e.type==='launch'),'Ramps launch only from the rising side');
+  const flat={...h,water:[],sand:[],ramps:[]},belt={...flat,conveyors:[{x:100,y:100,w:500,h:500,angle:0,force:240}]};assert.ok(P.simulate(belt,[200,500],-Math.PI/2,.2).position[0]>P.simulate(flat,[200,500],-Math.PI/2,.2).position[0]+50);
+  const s=match('skybridge');M.act(s,a.id,{action:'shot',requestId:uuid(),angle:-Math.PI/2,power:.5,revision:s.revision},1234);assert.ok(M.publicState(s,b.id,1234).lastShot.frames.some(f=>f[4]>30));
+});
+
+test('opponent view contrasts every ball pairing without changing saved choices or unlocking colors',()=>{
+  const B=require('../shared/games/mini-golf-cosmetics');
+  for(const a of B.colors)for(const b of B.colors){const ids=[a.id,b.id];for(const you of [0,1]){const shown=B.display(ids,you);assert.equal(shown[you],ids[you]);assert.notEqual(shown[0],shown[1]);assert.deepEqual(ids,[a.id,b.id]);}}
+  assert.equal(B.available('obsidian',[]),false);assert.deepEqual(B.display(['pearl','pearl'],-1),['pearl','pearl']);
 });

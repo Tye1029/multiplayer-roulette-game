@@ -1,4 +1,4 @@
-/* POCKET_PUTT_V3 — turns, deadlines, scores and rematches belong to the server. */
+/* POCKET_PUTT_V5 — turns, deadlines, scores and rematches belong to the server. */
 (function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory(require('./mini-golf-courses'),require('./mini-golf-physics'));else root.PuttRules=factory(root.PuttCourses,root.PuttPhysics);})(globalThis,(C,P)=>{
   'use strict';
   const TURN_MS=60000,STROKE_LIMIT=12,CUP_FEEDBACK_MS=1600;
@@ -6,7 +6,7 @@
   const person=p=>({id:String(p.id),name:String(p.name||'Player').slice(0,48),avatar:p.avatar||'',bot:!!p.bot,ballColor:p.ballColor||'pearl'});
   function create(id,player,course='garden',now=Date.now()){
     if(!C.get(course))fail('Choose an available course.',400);
-    return {id,build:'POCKET_PUTT_V3',course,players:[person(player)],phase:'waiting',ready:[],rematch:[],match:1,revision:1,hole:0,turn:0,createdAt:now,deadline:now+900000,readyDeadline:null,balls:[],scores:[],stats:[],winner:null,lastShot:null};
+    return {id,build:'POCKET_PUTT_V5',course,players:[person(player)],phase:'waiting',ready:[],rematch:[],match:1,revision:1,hole:0,turn:0,createdAt:now,deadline:now+900000,readyDeadline:null,balls:[],scores:[],stats:[],winner:null,lastShot:null};
   }
   function join(s,p,now=Date.now()){if(s.players.some(x=>x.id===String(p.id)))return;if(s.phase!=='waiting'||s.players.length!==1||now>=s.deadline)fail('This game is no longer open.');s.players.push(person(p));s.revision++;}
   function newHole(s,now){const h=C.get(s.course).holes[s.hole];s.balls=s.players.map(()=>({position:[...h.tee],strokes:0,holed:false,capped:false}));s.turn=s.hole%s.players.length;s.phase='playing';s.lastShot=null;s.turnEvent=null;s.holeReason='';s.continue=[];s.deadline=now+TURN_MS;s.botAt=now+1300;s.revision++;}
