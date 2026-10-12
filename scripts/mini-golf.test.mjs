@@ -19,6 +19,20 @@ test('pullback strength, banks, sand, water penalties, hippo transport, and capt
   const h=C.holes[3],mouth=h.portal.mouth,portal=P.simulate(h,[mouth[0],mouth[1]+60],-Math.PI/2,.25);assert.ok(portal.portalUsed);assert.ok(portal.events.some(e=>e.type==='pop'));assert.ok(portal.frames.some(f=>f[3]===0));assert.ok(portal.position[1]<300);
   const gentle=P.simulate(empty,[560,190],-Math.PI/2,.17);assert.ok(gentle.holed);const blast=P.simulate(empty,[560,190],-Math.PI/2,1);assert.ok(!blast.events.some(e=>e.type==='cup'&&e.at<100));
 });
+test('hills slow uphill shots and bend downhill; divots pull inward with smooth, deterministic edges',()=>{
+  const flat={floor:C.rect(20,20,680,680),cup:[650,100]},hill={x:360,y:330,rx:110,ry:110,height:12};
+  const green={...flat,terrain:[hill]},bowl={...flat,terrain:[{...hill,height:-12}]};
+  const straight=P.simulate(flat,[200,300],0,.45),raised=P.simulate(green,[200,300],0,.45),lowered=P.simulate(bowl,[200,300],0,.45);
+  assert.ok(raised.position[1]<straight.position[1]-30,'Hill deflects away from its crest');
+  assert.ok(lowered.position[1]>straight.position[1]+20,'Divot draws the shot toward its center');
+  assert.ok(raised.position[0]<straight.position[0],'Uphill travel costs distance');
+  assert.deepEqual(P.simulate(green,[200,300],0,.45),raised);
+  assert.deepEqual(P.terrainAt(green,470,330),{height:0,ax:0,ay:0});
+  assert.ok(Math.abs(P.terrainAt(green,469.999,330).ax)<.01,'No force discontinuity at the edge');
+  assert.ok(P.terrainAt(green,400,330).ax>0);assert.ok(P.terrainAt(bowl,400,330).ax<0);
+  const mirrored=P.simulate(green,[200,360],0,.45);assert.ok(Math.abs(mirrored.position[1]+raised.position[1]-660)<.01);
+  for(const h of C.holes){assert.ok(h.terrain.length>=2);for(const t of h.terrain){assert.ok(P.safe(h,[t.x,t.y]));assert.ok(t.rx>0&&t.ry>0);}}
+});
 test('wall collision cannot tunnel or escape at maximum power across sampled shots',()=>{
   for(const h of C.holes)for(let i=0;i<40;i++){const r=P.simulate(h,h.tee,i*Math.PI/20,1,i*113);assert.ok(P.safe(h,r.position),h.id+' escaped at '+i);assert.ok(r.duration<=13000);assert.ok(r.position.every(Number.isFinite));}
 });

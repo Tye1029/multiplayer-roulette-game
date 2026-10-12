@@ -1,4 +1,4 @@
-/* POCKET_PUTT_V1 — fixed-step deterministic ball simulation, no client score input. */
+/* POCKET_PUTT_V2 — fixed-step deterministic ball simulation, no client score input. */
 (function(root,factory){const value=factory();if(typeof module==='object'&&module.exports)module.exports=value;else root.PuttPhysics=value;})(globalThis,()=>{
   'use strict';
   const R=9,DT=1/120,MAX_SPEED=660,DRAG=155,MAX_SECONDS=12;
@@ -8,6 +8,15 @@
   function closest(x,y,a,b){const dx=b[0]-a[0],dy=b[1]-a[1],t=clamp(((x-a[0])*dx+(y-a[1])*dy)/(dx*dx+dy*dy||1),0,1);return [a[0]+dx*t,a[1]+dy*t];}
   function gateSegment(h,time){const g=h.gate;if(!g)return null;const a=time*g.speed;return [[g.x-Math.cos(a)*g.length,g.y-Math.sin(a)*g.length],[g.x+Math.cos(a)*g.length,g.y+Math.sin(a)*g.length]];}
   function safe(h,p){if(!inside(p[0],p[1],h.floor))return false;return !h.water?.some(r=>inRect({x:p[0],y:p[1]},r));}
+  // Smooth compact hills: positive height rolls outwards, negative height draws
+  // the ball into a divot. The slope and its force reach zero at the outer edge.
+  function terrainAt(h,x,y){
+    let height=0,ax=0,ay=0;
+    for(const t of h.terrain||[]){const dx=x-t.x,dy=y-t.y,q=(dx/t.rx)**2+(dy/t.ry)**2;if(q>=1)continue;
+      const rim=1-q;height+=t.height*rim*rim;const force=800*4*t.height*rim;ax+=force*dx/(t.rx*t.rx);ay+=force*dy/(t.ry*t.ry);
+    }
+    return {height,ax,ay};
+  }
   function simulate(h,position,angle,power,startMs=0,record=true){
     if(!Number.isFinite(angle)||!Number.isFinite(power)||power<=0||power>1)throw new Error('Invalid shot.');
     let b={x:position[0],y:position[1],vx:Math.cos(angle)*MAX_SPEED*power,vy:Math.sin(angle)*MAX_SPEED*power};
@@ -18,6 +27,7 @@
     while(time<MAX_SECONDS){
       time+=DT;steps++;
       if(transit>0){transit-=DT;if(transit<=0){const p=h.portal;b.x=p.exit[0];b.y=p.exit[1];b.vx=Math.cos(p.angle)*180;b.vy=Math.sin(p.angle)*180;events.push({type:'pop',at:Math.round(time*1000),x:b.x,y:b.y});frame(1);}else if(steps%4===0)frame(0);continue;}
+      const terrain=terrainAt(h,b.x,b.y);b.vx+=terrain.ax*DT;b.vy+=terrain.ay*DT;
       const px=b.x,py=b.y;b.x+=b.vx*DT;b.y+=b.vy*DT;
       for(let pass=0;pass<2;pass++){for(const [a,c] of edges)collide(a,c,R+2);for(const [a,c] of h.walls||[])collide(a,c);const gate=gateSegment(h,startMs/1000+time);if(gate)collide(...gate,R+7,0.85);}
       if(!inside(b.x,b.y,h.floor)){b.x=px;b.y=py;b.vx*=-0.7;b.vy*=-0.7;}
@@ -29,7 +39,7 @@
       const drag=(h.sand||[]).some(r=>inRect(b,r))?460:DRAG;
       const next=Math.max(0,speed-drag*DT);if(speed){b.vx*=next/speed;b.vy*=next/speed;}
       if(steps%4===0)frame();
-      if(next<3){b.vx=b.vy=0;break;}
+      if(next<3&&Math.hypot(terrain.ax,terrain.ay)<=drag){b.vx=b.vy=0;break;}
     }
     frame(holed?0:1);
     return {position:[+b.x.toFixed(3),+b.y.toFixed(3)],holed,penalty,portalUsed,duration:Math.max(180,Math.round(time*1000)),frames,events};
@@ -46,5 +56,5 @@
     for(const angle of candidates)for(const power of [0.16,0.24,0.34,0.46,0.6,0.76,0.94]){const r=simulate(h,position,angle,power,now,false);const [x,y]=cellAt(r.position);let score=r.holed?-10000:r.penalty?10000:Math.min(200,dist[y*n+x])*32+Math.hypot(r.position[0]-h.cup[0],r.position[1]-h.cup[1])*0.14;if(Math.hypot(r.position[0]-position[0],r.position[1]-position[1])<18)score+=500;if(score<best.score)best={angle,power,score};}
     return {angle:best.angle,power:best.power};
   }
-  return {R,DT,MAX_SPEED,DRAG,simulate,inside,closest,safe,gateSegment,botShot};
+  return {R,DT,MAX_SPEED,DRAG,simulate,inside,closest,safe,gateSegment,terrainAt,botShot};
 });

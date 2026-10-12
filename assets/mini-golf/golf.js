@@ -1,4 +1,4 @@
-/* POCKET_PUTT_V1 */
+/* POCKET_PUTT_V2 */
 (()=>{
   'use strict';
   const C=window.PuttCourses,P=window.PuttPhysics,M=window.PuttRules,$=id=>document.getElementById(id),board=$('golf-board'),result=$('golf-result');
@@ -46,8 +46,14 @@
     finally{busy=false;renderUI();}
   }
   function canShoot(){return !!state&&state.phase==='playing'&&state.turn===state.you&&(!state.lastShot||state.lastShot.resolved)&&!busy&&!shotRetry;}
+  function defaultAim(){return {position:[...state.balls[state.you].position],angle:-Math.PI/2,power:Number($('golf-strength').value)/100};}
+  function updateShotControls(){
+    const playable=canShoot();board.dataset.playable=String(playable);
+    $('golf-strength').disabled=!playable;$('golf-putt').disabled=!playable||!aim||!!drag;
+    if(aim&&!drag)$('golf-strength').value=Math.round(aim.power*100);
+  }
   async function shoot(request){
-    if(busy)return;
+    if(busy||(!request&&(!canShoot()||!aim)))return;
     const shot=request||{angle:Math.atan2(Math.sin(aim.angle),Math.cos(aim.angle)),power:aim.power,revision:state.revision,requestId:crypto.randomUUID()};aim=drag=null;
     try{await action('shot',shot);shotRetry=null;retry.hidden=true;}
     catch(e){if(!e.status||e.status>=500){shotRetry=shot;retry.hidden=false;notice('Connection interrupted. Retry the same shot safely, or wait for the game to reconnect.');}}
@@ -55,7 +61,7 @@
   function total(i){return (state.scores[i]||[]).reduce((a,b)=>a+b,0);}
   function avatar(p){return /^(https:\/\/|\/assets\/)/.test(p?.avatar||'')?p.avatar:'/assets/mini-golf/ball.svg';}
   function renderUI(){
-    $('golf-table').hidden=!state;controls.hidden=!!state;if(!state)return;
+    $('golf-table').hidden=!state;controls.hidden=!!state;updateShotControls();if(!state)return;
     const course=C.get(state.course),h=course.holes[state.hole],you=state.you;
     $('golf-table').dataset.phase=state.phase;$('golf-table').dataset.turn=String(state.turn);$('golf-table').dataset.hole=String(state.hole);
     $('golf-hole-count').textContent=`${course.name.toUpperCase()} · ${state.hole+1} / 3`;$('golf-hole-name').textContent=h.name;$('golf-par').textContent=`PAR ${h.par} · ${course.holes.reduce((v,n)=>v+n.par,0)} TOTAL`;
@@ -66,7 +72,7 @@
     const moving=state.lastShot&&!state.lastShot.resolved,own=state.turn===you,finished=['complete','hole-complete'].includes(state.phase);
     $('golf-turn-tag').textContent=finished?'ON THE SCORECARD':state.phase==='waiting'?'ON THE TEE':moving?'BALL IN PLAY':own?'MAKE IT COUNT':'WATCH & PLAN';
     $('golf-turn-title').textContent=finished?'That’s a wrap.':state.phase==='waiting'?'Your course is ready.':moving?'Let it roll.':own?'Your shot.':`${state.players[state.turn]?.name}’s shot.`;
-    $('golf-instruction').textContent=finished?'The scorecard is in. Ready up for your next tee.':state.phase==='waiting'?'The first hole is waiting. Ready up when your opponent joins.':moving?'Both players are watching the same shot.':own?'Pull back from your ball. Release to putt.':'You can plan your next bank shot while they aim.';
+    $('golf-instruction').textContent=finished?'The scorecard is in. Ready up for your next tee.':state.phase==='waiting'?(state.players.length===2?'Press Ready above the course to start.':'Waiting for another player. Add a bot from the top menu to practice.'):moving?'Both players are watching the same shot.':own?'Drag back anywhere on the course, then release. Or click where to aim, adjust power, and press Putt.':'Your ball is marked YOU. Wait for your turn to putt.';
     $('golf-tip').textContent=h.tip;$('golf-pot').textContent=state.wager?(state.wager*state.players.length).toLocaleString()+' Chips in pot':local?'Free practice':'Free match';
     $('golf-concede').hidden=!['playing','hole-complete'].includes(state.phase);$('golf-concede').textContent=local?'End practice':'Concede match';
     const scoreKey=JSON.stringify([state.scores,state.hole,state.players]);if($('golf-scorecard').dataset.key!==scoreKey){$('golf-scorecard').dataset.key=scoreKey;const table=el('table'),head=el('thead'),row=el('tr');for(const name of ['PLAYER','1','2','3','Σ'])row.append(el('th',name));head.append(row);const body=el('tbody');state.players.forEach((p,i)=>{const r=el('tr');r.append(el('td',i===you?'You':p.name));for(let j=0;j<3;j++)r.append(el('td',state.scores[i]?.[j]??'—'));r.append(el('td',String(total(i))));body.append(r);});table.append(head,body);$('golf-scorecard').replaceChildren(table);}
@@ -83,15 +89,33 @@
     const dialog=el('dialog',undefined,'xan-dialog');dialog.append(el('h2','Concede this match?'),el('p','Your opponent wins the round and its pot.'));const back=el('button','Keep playing'),confirm=el('button','Concede match');back.onclick=()=>dialog.close();confirm.onclick=async()=>{confirm.disabled=true;try{await action('forfeit');dialog.close();}catch{confirm.disabled=false;}};dialog.append(back,confirm);dialog.addEventListener('close',()=>dialog.remove());document.body.append(dialog);dialog.showModal();
   };
   function point(e){const r=board.getBoundingClientRect();return [(e.clientX-r.left)*720/r.width,(e.clientY-r.top)*720/r.height];}
+  function blockedShot(){notice(state?.phase==='waiting'?(state.players.length===2?'Press Ready above the course to start playing.':'Waiting for another player. You can add a bot from the top menu.'):busy?'Sending your shot…':shotRetry?'Use Retry shot to recover your last putt.':state?.lastShot&&!state.lastShot.resolved?'Wait for the ball to stop.':state?.phase==='playing'?'It is your opponent’s turn. Your ball is marked YOU.':'Finish this hole, then continue to the next tee.');}
+  function pull(e){
+    const p=point(e),dx=drag.start[0]-p[0],dy=drag.start[1]-p[1];
+    const r=board.getBoundingClientRect();if(Math.hypot(dx,dy)*r.width/720<5&&!drag.moved)return;
+    drag.moved=true;aim={position:[...state.balls[state.you].position],angle:Math.atan2(dy,dx),power:Math.min(1,Math.hypot(dx,dy)/170)};
+  }
   board.addEventListener('pointerdown',e=>{
-    if(e.button!==0||!canShoot())return;const p=point(e),ball=state.balls[state.you].position,r=board.getBoundingClientRect(),hit=Math.max(30,30*720/r.width);
-    if(Math.hypot(p[0]-ball[0],p[1]-ball[1])>hit)return;
-    e.preventDefault();board.focus({preventScroll:true});board.setPointerCapture(e.pointerId);drag={id:e.pointerId,start:p};aim={position:[...ball],angle:-Math.PI/2,power:0};unlockAudio();
+    if(e.button!==0||e.isPrimary===false||drag)return;
+    if(!canShoot()){blockedShot();return;}
+    const p=point(e),ball=state.balls[state.you].position;
+    e.preventDefault();notice('');board.focus({preventScroll:true});board.setPointerCapture(e.pointerId);drag={id:e.pointerId,start:p,moved:false};aim=defaultAim();
+    if(Math.hypot(p[0]-ball[0],p[1]-ball[1])>25)aim.angle=Math.atan2(p[1]-ball[1],p[0]-ball[0]);
+    updateShotControls();unlockAudio();
   });
-  board.addEventListener('pointermove',e=>{if(!drag||drag.id!==e.pointerId)return;const p=point(e),dx=drag.start[0]-p[0],dy=drag.start[1]-p[1];aim={position:[...state.balls[state.you].position],angle:Math.atan2(dy,dx),power:Math.min(1,Math.hypot(dx,dy)/170)};});
-  board.addEventListener('pointerup',e=>{if(!drag||drag.id!==e.pointerId)return;drag=null;if(board.hasPointerCapture(e.pointerId))board.releasePointerCapture(e.pointerId);if(aim?.power>=.025&&canShoot())shoot();else aim=null;});
-  function cancelAim(){drag=aim=null;}
-  board.addEventListener('pointercancel',cancelAim);board.addEventListener('lostpointercapture',()=>{if(drag)cancelAim();});window.addEventListener('blur',cancelAim);document.addEventListener('visibilitychange',()=>{cancelAim();if(!document.hidden)poll();});window.addEventListener('resize',cancelAim);
+  board.addEventListener('pointermove',e=>{if(drag?.id===e.pointerId)pull(e);});
+  board.addEventListener('pointerup',e=>{
+    if(!drag||drag.id!==e.pointerId)return;pull(e);const moved=drag.moved;drag=null;
+    if(board.hasPointerCapture(e.pointerId))board.releasePointerCapture(e.pointerId);
+    if(moved){if(aim?.power>=.025&&canShoot())shoot();else aim=null;}updateShotControls();
+  });
+  function cancelAim(){const id=drag?.id;drag=aim=null;if(id!==undefined&&board.hasPointerCapture(id))board.releasePointerCapture(id);updateShotControls();}
+  $('golf-strength').addEventListener('input',()=>{if(!canShoot())return;aim||=defaultAim();aim.power=Number($('golf-strength').value)/100;updateShotControls();});
+  $('golf-putt').onclick=()=>{if(canShoot()&&aim){unlockAudio();shoot();}};
+  board.addEventListener('pointercancel',cancelAim);board.addEventListener('lostpointercapture',()=>{if(drag)cancelAim();});window.addEventListener('blur',cancelAim);document.addEventListener('visibilitychange',()=>{cancelAim();if(!document.hidden)poll();});
+  // Resizing changes drag coordinates, but a prepared click/keyboard aim is in
+  // course coordinates and remains valid (including mobile browser-chrome resize).
+  window.addEventListener('resize',()=>{if(drag)cancelAim();});
   board.addEventListener('keydown',e=>{if(e.key==='Escape'){cancelAim();return;}if(!canShoot()||!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' '].includes(e.key))return;e.preventDefault();aim||={position:[...state.balls[state.you].position],angle:-Math.PI/2,power:.35};if(e.key==='ArrowLeft')aim.angle-=.045;if(e.key==='ArrowRight')aim.angle+=.045;if(e.key==='ArrowUp')aim.power=Math.min(1,aim.power+.04);if(e.key==='ArrowDown')aim.power=Math.max(.025,aim.power-.04);if(e.key===' '){unlockAudio();shoot();}});
   let context;
   function unlockAudio(){try{context||=new AudioContext();context.resume().catch(()=>{});}catch{}}
@@ -113,11 +137,11 @@
   const pollingTimer=setInterval(poll,1100);window.addEventListener('pagehide',()=>clearInterval(pollingTimer));
   const previousArt=window.XanMenuArt.mount.bind(window.XanMenuArt);let heroCanvas;
   window.XanMenuArt.mount=(root,mode)=>{if(mode!=='minigolf')return previousArt(root,mode);root.classList.add('golf-menu-art');const hero=el('div',undefined,'golf-hero');heroCanvas=el('canvas');heroCanvas.setAttribute('aria-hidden','true');const tag=el('div','SMALL COURSE. BIG PERSONALITY.','golf-hero-label');tag.append(el('b','A little off course.'));hero.append(heroCanvas,tag);root.append(hero);};
-  window.XanRules.minigolf=['Choose one of three courses. Each match has three different holes. Lowest total strokes wins.','Take turns: press your ball, drag backwards to aim and set power, then release. The arrow points where the ball will go; its fill shows power. Touch works the same way.','Bank off rails, slow down in sand, and find shortcuts. Water returns your ball to its previous position and adds one penalty stroke.','Aim into a hippo’s mouth to emerge from its bottom on another green. Watch rotating gates and lively bumpers.','You have 90 seconds for each online shot. Twelve strokes ends a hole for that player. The next hole starts when both continue, or after 30 seconds. Equal final scores are a draw.','Keyboard: focus the course; left/right adjust aim, up/down change power, Space putts, and Escape cancels. Solo practice and bots are free.'];
+  window.XanRules.minigolf=['Choose one of three courses. Each match has three different holes. Lowest total strokes wins.','Press Ready to start, then take turns. Drag backwards anywhere on the course and release to putt. Or click/tap where to aim, adjust the strength slider, and press Putt. The filled arrow shows direction and power.','Bank off rails, slow down in sand, and find shortcuts. Light hills push the ball downhill; dark divots draw it inward. Water returns your ball to its previous position and adds one penalty stroke.','Aim into a hippo’s mouth to emerge from its bottom on another green. Watch rotating gates and lively bumpers.','You have 90 seconds for each online shot. Twelve strokes ends a hole for that player. The next hole starts when both continue, or after 30 seconds. Equal final scores are a draw.','Keyboard: focus the course; left/right adjust aim, up/down change power, Space putts, and Escape cancels. Solo practice and bots are free.'];
   window.XanSiteAdapter={
     current:()=>({mode:'minigolf',id:state?.id||'',phase:state?.phase||'lobby'}),
     view:()=>state?{...state,votes:state.rematch,finished:state.phase==='complete',ready:state.ready.includes(state.players[state.you]?.id),canReady:state.phase==='waiting'&&state.players.length===2&&!state.ready.includes(state.players[state.you]?.id),canCancel:state.phase==='waiting'&&state.you===0,payout:state.payouts?.[state.players[state.you]?.id]||0,connecting:busy}:{phase:'lobby'},
-    create,join,quote:async id=>(await post('quote',{},id.trim().toUpperCase())).quote,ready:()=>action('ready'),addBot,practice:()=>practice(true),controls:()=>controls,resultRoot:()=>result,diagnostics:()=>({build:'POCKET_PUTT_V1',round:(state?.hole||0)+1,revision:state?.revision||0,frames,slowFrames,networkErrors,busy,polling}),cancel:id=>post('cancel',{},id),dismissCancelled:id=>{if(state?.id===id)reset();}
+    create,join,quote:async id=>(await post('quote',{},id.trim().toUpperCase())).quote,ready:()=>action('ready'),addBot,practice:()=>practice(true),controls:()=>controls,resultRoot:()=>result,diagnostics:()=>({build:'POCKET_PUTT_V2',round:(state?.hole||0)+1,revision:state?.revision||0,frames,slowFrames,networkErrors,busy,polling}),cancel:id=>post('cancel',{},id),dismissCancelled:id=>{if(state?.id===id)reset();}
   };
   function animate(timestamp){
     requestAnimationFrame(animate);if(document.hidden)return;frames++;if(lastFrame&&timestamp-lastFrame>60)slowFrames++;lastFrame=timestamp;
@@ -127,7 +151,7 @@
       if(elapsed<shot.duration){let i=Math.min(f.length-2,Math.max(0,Math.floor(elapsed/33.333)));while(i>0&&f[i][0]>elapsed)i--;while(i<f.length-2&&f[i+1][0]<elapsed)i++;const a=f[i],b=f[i+1],mix=Math.max(0,Math.min(1,(elapsed-a[0])/(b[0]-a[0]||1)));balls[shot.player]={position:[a[1]+(b[1]-a[1])*mix,a[2]+(b[2]-a[2])*mix],alpha:a[3],holed:false};}
       for(let i=0;i<shot.events.length;i++){const e=shot.events[i];if(e.at<=elapsed&&!playedEvents.has(i)){playedEvents.add(i);if(elapsed-e.at<250){sound(e.type);const label={gulp:'Gulp! Shortcut taken.',pop:'A very unorthodox exit.',splash:'Splash! +1 penalty stroke',cup:state.balls[shot.player]?.strokes===1?'Hole in one!':'In the cup!'}[e.type];if(label){$('golf-event').textContent=label;toastUntil=Date.now()+1800;}}}}
     }
-    window.PuttRenderer.render(board,h,{balls,time:t,aim,active:state.turn,ghost:true});$('golf-event').classList.toggle('visible',Date.now()<toastUntil);
+    window.PuttRenderer.render(board,h,{balls,time:t,aim,active:state.turn,you:state.you,playable:canShoot(),ghost:true});$('golf-event').classList.toggle('visible',Date.now()<toastUntil);updateShotControls();
     const power=Math.round((aim?.power||0)*100);$('golf-power-meter').value=power;$('golf-power-value').textContent=power+'%';
     $('golf-clock').textContent=state.phase==='playing'?(shot&&!shot.resolved?'Ball in motion':local?'Take your time':Math.max(0,Math.ceil((state.deadline-t)/1000))+'s to shoot'):state.phase==='hole-complete'?'Next tee in '+Math.max(0,Math.ceil((state.deadline-t)/1000))+'s':'';
   }

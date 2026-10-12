@@ -1,4 +1,4 @@
-/* POCKET_PUTT_V1 — original courses, shared by the renderer and authoritative physics. */
+/* POCKET_PUTT_V2 — original courses, shared by the renderer and authoritative physics. */
 (function(root,factory){const value=factory();if(typeof module==='object'&&module.exports)module.exports=value;else root.PuttCourses=value;})(globalThis,()=>{
   'use strict';
   const rect=(x,y,w,h)=>[[x,y],[x+w,y],[x+w,y+h],[x,y+h]];
@@ -23,6 +23,20 @@
     {id:'fair-3',name:'The Grand Zigzag',par:5,theme:'fair',tip:'A patient setup shot beats a wild ricochet. Leave yourself a clear angle for the last bend.',
       tee:[145,580],cup:[575,145],floor:[[70,650],[70,440],[450,440],[450,280],[70,280],[70,70],[650,70],[650,650]],walls:[[[450,450],[530,530]]],bumpers:[{x:190,y:175,r:24}],sand:[{x:280,y:105,w:125,h:100}]}
   ];
+  // Broad hills and shallow bowls, with smaller bumps on the later greens.
+  // Their same elliptical contours are drawn by the renderer and used by physics.
+  const terrain=[
+    [{x:185,y:485,rx:68,ry:84,height:12},{x:425,y:175,rx:72,ry:62,height:-8}],
+    [{x:285,y:485,rx:100,ry:90,height:14},{x:395,y:220,rx:65,ry:80,height:-9}],
+    [{x:300,y:380,rx:65,ry:95,height:13},{x:510,y:550,rx:55,ry:50,height:8}],
+    [{x:395,y:550,rx:58,ry:72,height:10},{x:575,y:260,rx:48,ry:60,height:-7}],
+    [{x:200,y:520,rx:75,ry:58,height:11},{x:340,y:190,rx:95,ry:75,height:-10}],
+    [{x:235,y:300,rx:74,ry:65,height:12},{x:540,y:500,rx:58,ry:60,height:-8}],
+    [{x:275,y:535,rx:90,ry:78,height:13},{x:435,y:190,rx:80,ry:70,height:-10}],
+    [{x:275,y:185,rx:70,ry:62,height:12},{x:450,y:370,rx:53,ry:58,height:8}],
+    [{x:300,y:550,rx:96,ry:78,height:14},{x:560,y:370,rx:58,ry:75,height:-9}]
+  ];
+  holes.forEach((h,i)=>{h.terrain=terrain[i];h.tip+=' Light ridges roll the ball downhill; darker divots draw it inward.';});
   const courses=[
     {id:'garden',name:'Bramble Gardens',subtitle:'Banks, bends & a little finesse',color:'#a6df97',holes:holes.slice(0,3)},
     {id:'lagoon',name:'Hippo Hollow',subtitle:'Hungry shortcuts & lagoon leaps',color:'#8cddd9',holes:holes.slice(3,6)},
