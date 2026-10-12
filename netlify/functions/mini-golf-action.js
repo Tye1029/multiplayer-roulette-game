@@ -3,7 +3,7 @@ const database=require('./mini-golf/database');
 const auth=require('./rps/database');
 const model=require('../../shared/games/mini-golf-model');
 function createHandler(store=database,identity=auth){return async request=>{
-  const reply=(status,value)=>new Response(JSON.stringify(value),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store','X-Golf-Build':'POCKET_PUTT_V6'}});
+  const reply=(status,value)=>new Response(JSON.stringify(value),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store','X-Golf-Build':'POCKET_PUTT_V7'}});
   if(request.method!=='POST')return reply(405,{error:'Use POST.'});
   const raw=await request.text();if(raw.length>8192)return reply(413,{error:'Request too large.'});
   let b;try{b=JSON.parse(raw);if(!b||typeof b!=='object'||Array.isArray(b))throw 0;}catch{return reply(400,{error:'Invalid request.'});}

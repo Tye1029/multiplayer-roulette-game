@@ -4,12 +4,15 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import {startPublicPolishServer} from './public-polish-test-server.mjs';
-const require=createRequire(import.meta.url),{chromium}=require(process.env.RPS_PLAYWRIGHT_MODULE||'playwright'),P=require('../shared/games/mini-golf-physics'),C=require('../shared/games/mini-golf-courses');
+import {testSudden} from './mini-golf-sudden-browser.mjs';
+const require=createRequire(import.meta.url),{chromium}=require(process.env.RPS_PLAYWRIGHT_MODULE||'playwright'),P=require('../shared/games/mini-golf-physics'),C=require('../shared/games/mini-golf-courses'),M=require('../shared/games/mini-golf-model');
 const server=await startPublicPolishServer(),browser=await chromium.launch({headless:true,executablePath:process.env.RPS_BROWSER||undefined}),errors=[],out=process.env.GOLF_SCREENSHOTS||path.join(os.tmpdir(),'pocket-putt-qa');await fs.mkdir(out,{recursive:true});
 async function player(id,width,height=900){const ctx=await browser.newContext({viewport:{width,height},hasTouch:width<700});if(id)await ctx.addInitScript(id=>{localStorage.setItem('tornVisitorApiKey','TESTPUBLICKEY00'+id);localStorage.setItem('tornKeyConfirmed','true');localStorage.setItem('xan-muted','1');},id);await ctx.addInitScript(()=>{window.golfAudioDecoded=[];window.golfAudioStarts=[];const decode=AudioContext.prototype.decodeAudioData;AudioContext.prototype.decodeAudioData=async function(...args){const buffer=await decode.apply(this,args);window.golfAudioDecoded.push(buffer.duration);return buffer;};const start=AudioBufferSourceNode.prototype.start;AudioBufferSourceNode.prototype.start=function(...args){window.golfAudioStarts.push(this.buffer?.duration);return start.apply(this,args);};});const p=await ctx.newPage();p.on('pageerror',e=>errors.push(e.message));await p.goto(server.origin+'/games/multiplayer/mini-golf/');await p.locator('.xg-heading h1').filter({hasText:'Pocket Putt'}).waitFor();return p;}
 async function fit(p,label){assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false,label+' overflow');const clipped=await p.locator('button:visible,input:visible,select:visible').evaluateAll(es=>es.filter(e=>{const r=e.getBoundingClientRect();return r.left< -1||r.right>innerWidth+1;}).map(e=>e.textContent));assert.deepEqual(clipped,[],label+' clipped controls');await p.screenshot({path:path.join(out,label+'.png'),fullPage:true});}
 async function putt(p,state,shot){await p.locator('#golf-board').scrollIntoViewIfNeeded();const rect=await p.locator('#golf-board').boundingBox(),ball=state.balls[state.turn].position,k=rect.width/720,x=rect.x+ball[0]*k,y=rect.y+ball[1]*k;await p.mouse.move(x,y);await p.mouse.down();await p.mouse.move(x-Math.cos(shot.angle)*shot.power*170*k,y-Math.sin(shot.angle)*shot.power*170*k,{steps:8});await p.waitForTimeout(60);assert.ok(Number((await p.locator('#golf-power-value').innerText()).replace('%',''))>0,'Drag fills power arrow');await p.mouse.up();}
 try{
+  await testSudden({server,player,fit,putt});
+  if(!process.argv.includes('--sudden-only')){
   const a=await player('1',1280),b=await player('2',390,844);await a.locator('#golf-course').selectOption('garden');await fit(a,'menu-desktop');await fit(b,'menu-phone');await a.evaluate(()=>window.XanPreferences.sound(true));
   await a.locator('.xg-private').click();await a.locator('.xg-cancel:visible').waitFor();let s=await server.golf.recover(new URL(a.url()).searchParams.get('room'));const id=s.id;
   assert.equal(s.wager,1000);assert.ok(!(await server.golf.lobby({id:'2'})).some(g=>g.id===id));assert.equal(await a.locator('#golf-board').isVisible(),true);await fit(a,'waiting-desktop');
@@ -19,12 +22,13 @@ try{
   let shots=0,shotId='',cupSeen=false;
   while(shots<60){s=await server.golf.recover(id);if(s.phase==='complete')break;
     if(s.phase==='hole-complete'){for(const p of [a,b]){await p.locator('#golf-next').waitFor();await p.locator('#golf-next:enabled').click();}await a.locator('#golf-result').waitFor({state:'hidden'});continue;}
-    if(s.lastShot&&!s.lastShot.resolved){await a.waitForTimeout(250);continue;}
-    const p=[a,b][s.turn];await p.waitForFunction(rev=>window.XanSiteAdapter.view().revision>=rev&&!window.XanSiteAdapter.diagnostics().busy,s.revision);const shot=P.botShot(C.get(s.course).holes[s.hole],s.balls[s.turn].position,Date.now());
+    const i=s.suddenDeath?0:s.turn,current=s.suddenDeath?s.shots[0]:s.lastShot;
+    if(s.phase==='sudden-countdown'||(current&&!current.resolved)){await a.waitForTimeout(250);continue;}
+    const p=[a,b][i];await p.waitForFunction(rev=>window.XanSiteAdapter.view().revision>=rev&&!window.XanSiteAdapter.diagnostics().busy,s.revision);const shot=P.botShot(M.holeFor(s),s.balls[i].position,Date.now());
     if(shots===1)shot.power*=.65;
-    await putt(p,s,shot);
-    await p.waitForFunction(old=>{const s=window.XanSiteAdapter.view();return s.lastShot?.id&&s.lastShot.id!==old;},shotId);s=await server.golf.recover(id);shotId=s.lastShot.id;shots++;
-    if(s.lastShot.holed&&!cupSeen){await p.locator('#golf-board[data-cup-effect=true]').waitFor();cupSeen=true;await fit(p,'cup-feedback');}
+    await putt(p,{...s,turn:i},shot);
+    await p.waitForFunction(old=>{const s=window.XanSiteAdapter.view(),shot=s.suddenDeath?s.shots[s.you]:s.lastShot;return shot?.id&&shot.id!==old;},shotId);s=await server.golf.recover(id);const latest=s.suddenDeath?s.shots[i]:s.lastShot;shotId=latest.id;shots++;
+    if(latest.holed&&!cupSeen){await p.locator('#golf-board[data-cup-effect=true]').waitFor();cupSeen=true;await fit(p,'cup-feedback');}
     if(shots===1){await b.waitForFunction(id=>window.XanSiteAdapter.view().lastShot?.id===id,shotId);const views=await Promise.all([a,b].map(p=>p.evaluate(()=>window.XanSiteAdapter.view().lastShot)));assert.deepEqual(views[0].frames,views[1].frames);await fit(a,'playing-desktop');await fit(b,'playing-phone');}
   }
   assert.equal(s.phase,'complete');assert.ok(s.scores.every(row=>row.length===3));await a.locator('#golf-table[data-phase=complete]').waitFor();await b.locator('#golf-table[data-phase=complete]').waitFor();await fit(b,'results-phone');assert.equal(await b.locator('#golf-result').evaluate(e=>e.querySelector('h2').getBoundingClientRect().top>=e.getBoundingClientRect().top),true,'Result title stays reachable above rematch controls');assert.equal(await b.locator('.golf-course-picker').isVisible(),false,'Course selection cannot reset a live game');assert.equal(s.finance.status,'settled');const balances=await Promise.all(['1','2'].map(id=>server.wallet.balance({id})));
@@ -70,6 +74,7 @@ try{
   await touch.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:px,y:py}]});await touch.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:px,y:py+35}]});await touch.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await guest.waitForFunction(()=>window.XanSiteAdapter.view().balls[0].strokes===1);
   await guest.waitForFunction(()=>window.XanSiteAdapter.view().lastShot?.resolved);
   await guest.locator('#golf-board').tap({position:{x:box.width*.55,y:box.height*.25}});await guest.locator('#golf-strength').press('End');assert.equal(await guest.locator('#golf-putt').isEnabled(),true);await fit(guest,'aiming-phone');await guest.locator('#golf-putt').click();await guest.waitForFunction(()=>window.XanSiteAdapter.view().balls[0].strokes===2);
-  await guest.getByRole('button',{name:'Open menu',exact:true}).click();await guest.getByRole('button',{name:'Debug',exact:true}).click();const debug=JSON.parse(await guest.locator('#hub-debug-data').inputValue());assert.equal(debug.mode,'minigolf');assert.equal(debug.gameBuild,'POCKET_PUTT_V6');assert.ok(!JSON.stringify(debug).includes('token'));
-  assert.deepEqual(errors,[]);console.log('PASS Pocket Putt: full live 1v1, cup feedback, 60-second timeout/pass and hole concession, achievement ball unlock/equip/opponent sync, paid rematch, 20 courses at five sizes, touch controls and debug. Screenshots: '+out);
+  await guest.getByRole('button',{name:'Open menu',exact:true}).click();await guest.getByRole('button',{name:'Debug',exact:true}).click();const debug=JSON.parse(await guest.locator('#hub-debug-data').inputValue());assert.equal(debug.mode,'minigolf');assert.equal(debug.gameBuild,'POCKET_PUTT_V7');assert.ok(!JSON.stringify(debug).includes('token'));
+  }
+  assert.deepEqual(errors,[]);console.log('PASS Pocket Putt: '+(process.argv.includes('--sudden-only')?'simultaneous sudden death, countdown, reconnect/back restoration, payout and funded rematch':'full live 1v1, sudden death, cup feedback, timeout/pass, water retry, unlocks, paid rematch, 20 courses at five sizes, touch controls and debug')+'. Screenshots: '+out);
 }finally{await browser.close();await server.close();}

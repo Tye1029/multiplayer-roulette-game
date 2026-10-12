@@ -6,6 +6,44 @@ const require=createRequire(import.meta.url),C=require('../shared/games/mini-gol
 const {createStore}=require('../netlify/functions/mini-golf/database'),{createHandler}=require('../netlify/functions/mini-golf-action'),progress=require('../netlify/functions/site-hub/progression');
 const a={id:'101',name:'Alice'},b={id:'202',name:'Bob'},uuid=()=>crypto.randomUUID();
 function match(course='garden'){const s=M.create('ABCDEF123456',a,course,0);M.join(s,b,0);M.act(s,a.id,{action:'ready'},0);M.act(s,b.id,{action:'ready'},0);return s;}
+function tied(){const s=match('clover');s.hole=2;s.scores=[[3,3],[3,3]];s.balls.forEach(ball=>Object.assign(ball,{holed:true,strokes:2}));s.lastShot={resolved:false,endsAt:10,player:1};M.advance(s,10);return s;}
+const suddenShot=(s,i,extra={})=>({action:'shot',angle:-Math.PI/2,power:.16,revision:s.revision,match:s.match,hole:3,suddenAttempt:s.suddenAttempt,shotNumber:s.shotNumbers[i],requestId:uuid(),...extra});
+test('a regulation tie opens hole four with an authoritative three-second countdown',()=>{
+  const s=tied();assert.equal(s.phase,'sudden-countdown');assert.equal(s.hole,3);assert.equal(s.suddenStartsAt,3010);assert.deepEqual(s.scores,[[3,3,2],[3,3,2]]);assert.equal(M.holeFor(s).name,'The Decider');
+  assert.throws(()=>M.act(s,a.id,suddenShot(s,0),3009),/countdown/);assert.equal(s.balls[0].strokes,0);M.advance(s,3010);assert.equal(s.phase,'sudden-death');assert.equal(s.winner,null);
+});
+test('sudden death accepts concurrent shots with independent sequences and resolves actual cup arrival, not request order',()=>{
+  const s=tied(),at=s.suddenStartsAt;M.advance(s,at);s.balls[0].position=[360,215];s.balls[1].position=[360,185];
+  const first=suddenShot(s,0,{power:.24}),second=suddenShot(s,1);M.act(s,a.id,first,at);M.act(s,b.id,second,at+1);
+  assert.equal(s.shots.length,2);assert.ok(s.shots.every(shot=>shot.holed));assert.equal(s.balls[0].strokes,1);assert.equal(s.balls[1].strokes,1);
+  const arrival=shot=>shot.startedAt+shot.events.find(e=>e.type==='cup').at;assert.ok(arrival(s.shots[1])<arrival(s.shots[0]));
+  M.act(s,a.id,first,at+2);assert.equal(s.balls[0].strokes,1,'Retry remains idempotent after opponent shot');
+  assert.throws(()=>M.act(s,a.id,suddenShot(s,0),at+3),/ball to stop/);
+  M.advance(s,arrival(s.shots[1]));assert.equal(s.suddenWinner,1);assert.equal(s.phase,'sudden-death');
+  assert.throws(()=>M.act(s,b.id,{action:'forfeit'},arrival(s.shots[1])+1),/already in the cup/);
+  M.advance(s,s.suddenFinishAt);assert.equal(s.phase,'complete');assert.equal(s.winner,1);assert.deepEqual(s.scores,[[3,3,2],[3,3,2]]);
+  const stats=structuredClone(s.stats);M.advance(s,s.suddenFinishAt+10000);assert.deepEqual(s.stats,stats);
+  M.act(s,a.id,{action:'rematch'},at+10000);M.act(s,b.id,{action:'rematch'},at+10000);assert.equal(s.suddenDeath,false);assert.equal(s.hole,0);assert.deepEqual(s.shots,[]);assert.equal(s.turn,0);
+});
+test('sudden-death misses permit independent retries, reject stale attempts and replay exact dead heats',()=>{
+  const s=tied(),at=s.suddenStartsAt;M.advance(s,at);const stale=suddenShot(s,0,{power:.025});M.act(s,a.id,stale,at);const end=s.shots[0].endsAt;M.advance(s,end);
+  assert.throws(()=>M.act(s,a.id,{...stale,requestId:uuid()},end),/game changed/);assert.throws(()=>M.act(s,a.id,suddenShot(s,0,{power:NaN}),end),/Invalid/);
+  s.balls[0].strokes=12;M.act(s,a.id,suddenShot(s,0,{power:.025}),end);assert.equal(s.balls[0].strokes,13);assert.equal(s.balls[0].capped,false);
+  M.advance(s,s.shots[0].endsAt);s.balls.forEach(ball=>ball.position=[360,185]);const t=s.shots[0].endsAt,one=suddenShot(s,0),two=suddenShot(s,1);M.act(s,a.id,one,t);M.act(s,b.id,two,t);
+  M.advance(s,Math.max(...s.shots.map(shot=>shot.endsAt)));assert.equal(s.phase,'sudden-countdown');assert.equal(s.suddenAttempt,2);assert.equal(s.winner,null);assert.ok(s.balls.every(ball=>ball.strokes===0));
+  M.advance(s,s.suddenStartsAt);assert.throws(()=>M.act(s,a.id,{...one,requestId:uuid()},s.suddenStartsAt),/game changed/);
+  M.advance(s,s.deadline);assert.equal(s.phase,'complete');assert.equal(s.winner,'draw');assert.ok(s.timedOut);
+});
+test('bot sudden death runs independently of the human and every themed decider is finishable',()=>{
+  for(const c of C.courses){const h=C.suddenHole(c.id);let p=h.tee,r;for(let n=0;n<12;n++){const shot=P.botShot(h,p,0);r=P.simulate(h,p,shot.angle,shot.power,0);p=r.position;if(r.holed)break;}assert.ok(r.holed,c.id);}
+  const s=tied();s.players[1].bot=true;let now=s.suddenStartsAt;M.advance(s,now);M.act(s,a.id,suddenShot(s,0,{power:.025}),now);
+  for(let n=0;n<15&&s.phase!=='complete';n++){now+=5000;M.bot(s,now);}assert.equal(s.phase,'complete');assert.equal(s.winner,1);assert.equal(s.balls[0].strokes,1);
+});
+test('abandoned sudden-death expiry cannot change outcome depending on when someone polls',()=>{
+  const s=tied(),at=s.suddenStartsAt;M.advance(s,at);s.balls[0].position=[360,185];s.deadline=at+50;
+  M.act(s,a.id,suddenShot(s,0),at);const late=structuredClone(s);M.advance(s,s.deadline);M.advance(late,late.shots[0].endsAt+10000);
+  assert.equal(s.winner,'draw');assert.equal(late.winner,'draw');assert.equal(s.completedAt,late.completedAt);
+});
 test('all 60 holes across 20 varied courses are reachable through legal deterministic shots',()=>{
   assert.equal(C.courses.length,20);assert.equal(C.holes.length,60);assert.equal(new Set(C.holes.map(h=>h.id)).size,60);assert.ok(C.courses.every(c=>c.holes.length===3&&c.difficulty));assert.equal(new Set(C.courses.map(c=>c.difficulty)).size,5);
   for(const h of C.holes){assert.ok(P.safe(h,h.tee));assert.ok(P.safe(h,h.cup));let p=h.tee,strokes=0,now=0,r;while(strokes<12){const shot=P.botShot(h,p,now);r=P.simulate(h,p,shot.angle,shot.power,now);assert.deepEqual(P.simulate(h,p,shot.angle,shot.power,now),r);assert.ok(P.safe(h,r.position));strokes+=1+r.penalty;p=r.position;now+=r.duration+1400;if(r.holed)break;}assert.ok(r.holed,h.id+' must be finishable');}
@@ -70,7 +108,7 @@ test('online turn enforcement, stale requests, duplicate shots, and authoritativ
 });
 test('full three-hole duel, score totals, mutual rematch and reset',()=>{
   const s=match('lagoon');let now=10,shots=0;
-  while(s.phase!=='complete'&&shots<80){if(s.phase==='hole-complete'){M.act(s,a.id,{action:'continue'},now);M.act(s,b.id,{action:'continue'},now);continue;}const h=C.get(s.course).holes[s.hole],shot=P.botShot(h,s.balls[s.turn].position,now);M.act(s,s.players[s.turn].id,{action:'shot',...shot,revision:s.revision,requestId:uuid()},now);now=s.lastShot.endsAt+1;M.advance(s,now);shots++;}
+  while(s.phase!=='complete'&&shots<80){if(s.phase==='hole-complete'){M.act(s,a.id,{action:'continue'},now);M.act(s,b.id,{action:'continue'},now);continue;}if(s.phase==='sudden-countdown'){now=s.suddenStartsAt;M.advance(s,now);continue;}const i=s.suddenDeath?0:s.turn,h=M.holeFor(s),shot=P.botShot(h,s.balls[i].position,now);M.act(s,s.players[i].id,{action:'shot',...shot,revision:s.revision,match:s.match,hole:s.hole,suddenAttempt:s.suddenAttempt,shotNumber:s.shotNumbers[i],requestId:uuid()},now);now=(s.suddenDeath?s.shots[i]:s.lastShot).endsAt+1;M.advance(s,now);shots++;}
   assert.equal(s.phase,'complete');assert.equal(s.scores[0].length,3);assert.equal(s.scores[1].length,3);assert.ok(s.scores.flat().every(n=>n>=1&&n<=12));M.act(s,a.id,{action:'rematch'},now);assert.equal(s.match,1);M.act(s,b.id,{action:'rematch'},now);assert.equal(s.match,2);assert.equal(s.hole,0);assert.deepEqual(s.scores,[[],[]]);assert.ok(s.balls.every(x=>x.strokes===0));
 });
 test('waiting cancellation, readiness timeout, shot timeout, caps, and automatic next hole',()=>{

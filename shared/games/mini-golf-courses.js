@@ -1,4 +1,4 @@
-/* POCKET_PUTT_V6 — original courses, shared by the renderer and authoritative physics. */
+/* POCKET_PUTT_V7 — original courses, shared by the renderer and authoritative physics. */
 (function(root,factory){const value=factory();if(typeof module==='object'&&module.exports)module.exports=value;else root.PuttCourses=value;})(globalThis,()=>{
   'use strict';
   const rect=(x,y,w,h)=>[[x,y],[x+w,y],[x+w,y+h],[x,y+h]];
@@ -139,5 +139,6 @@
   ]);
   const order=['clover','willow','pebble','meadow','garden','dunes','lagoon','canyon','brook','alpine','tide','fair','highland','skybridge','neon','safari','clockwork','harbor','switchback','masters'];
   courses.sort((a,b)=>order.indexOf(a.id)-order.indexOf(b.id));
-  return {courses,holes,rect,get:id=>courses.find(c=>c.id===id),SIZE:720};
+  const suddenHole=course=>({id:'decider-'+course,name:'The Decider',par:2,theme:courses.find(c=>c.id===course)?.holes[0].theme||'garden',tee:[360,575],cup:[360,150],floor:[[210,650],[120,500],[120,250],[230,70],[490,70],[600,250],[600,500],[510,650]],walls:[],water:[],sand:[],terrain:[],bumpers:[bumper(360,355,32)],tip:'Both players putt at once. Bank around the central bumper; the first ball in the cup wins. Wait only for your own ball to stop.'});
+  return {courses,holes,rect,suddenHole,get:id=>courses.find(c=>c.id===id),SIZE:720};
 });
