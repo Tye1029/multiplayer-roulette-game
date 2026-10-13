@@ -69,3 +69,21 @@ Individual player transactions appear in the existing admin financial ledger.
 Tests cover the entire million-outcome base distribution, all wager boundaries,
 real wallet CAS receipts, crash recovery, simultaneous jackpots, no reseeding,
 funds/auth validation, physical handle inputs, demo isolation, and mobile layout.
+
+## Cabinet presentation V2
+
+The game uses a brass-and-enamel cabinet with illuminated perimeter lamps,
+reel-window lighting, a fixed side mount and a perspective-animated pull lever.
+A drag of at least 35 pixels starts a spin; short pulls and pointer cancellation
+do not spend chips. The handle also supports keyboard activation.
+
+The game-local audio module generates the spring latch, continuously looping
+reel motor, staggered reel locks, and coin/bell win accents using Web Audio.
+The motor slows as reels stop. Mute, backgrounding, navigation and request errors
+stop the loop. Audio failure cannot interrupt settlement. Reduced motion disables
+chase, reel and coin animations. No external audio or new bitmap downloads are
+needed; the former shared Bluff win sound remains in use by other games.
+
+Browser coverage includes cancelled/short pulls, keyboard activation, motor
+start/stop/mute/background/error behavior and reduced motion, in addition to
+paid mouse/touch spins, recovery and the 320px/390px/desktop layouts.
