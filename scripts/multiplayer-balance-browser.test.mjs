@@ -31,6 +31,10 @@ try{
   // No stale response can overwrite a newer sample or a different account.
   await p.evaluate(()=>{balanceFixture.id='';window.sampleTime=performance.now();XanHub.setBalance(2000,{at:sampleTime+1});XanHub.setBalance(1000,{at:sampleTime});XanHub.setBalance(999999,{key:'other-account'});});assert.equal(await p.locator('#hub-balance').innerText(),'2,000 Chips');
   await p.evaluate(()=>{balanceFixture.mode='luckydice';balanceFixture.id='solo';balanceFixture.phase='playing';XanHub.setBalance(3000);});assert.equal(await p.locator('#hub-balance').innerText(),'3,000 Chips','Solo keeps its existing balance behavior');
+  await p.evaluate(()=>{const stack=document.createElement('div');stack.className='xg-award-stack';stack.innerHTML='<section class="xg-award-toast"><div><strong>Achievement unlocked</strong><span>First victory · +5,000 Chips</span></div><button aria-label="Dismiss achievement">×</button></section>';stack.querySelector('button').onclick=()=>stack.remove();document.body.prepend(stack);});
+  assert.ok(await p.evaluate(()=>document.querySelector('.xg-award-stack').getBoundingClientRect().top>=document.querySelector('.xan-bar').getBoundingClientRect().bottom),'Result notifications leave the account controls exposed');
+  await p.evaluate(()=>{const b=document.createElement('button');b.id='under-toast';b.textContent='Continue playing';b.style.cssText='position:fixed;left:20px;top:calc(var(--xan-header-height) + 25px);z-index:1000';b.onclick=()=>b.dataset.clicked='true';document.body.append(b);});await p.locator('#under-toast').click();assert.equal(await p.locator('#under-toast').getAttribute('data-clicked'),'true','The banner cannot swallow gameplay clicks');
+  await p.locator('#hub-menu').click();await p.locator('#hub-diagnostics').click();await p.locator('#hub-close').click();await p.getByRole('button',{name:'Dismiss achievement',exact:true}).click();
   await p.close();
   // Restored scenes keep gross pots in their snapshots; only visible prize
   // labels are formatted. A new render must not flash the gross amount back.

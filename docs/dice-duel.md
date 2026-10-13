@@ -93,7 +93,8 @@ a late reveal retains its result briefly before showing the current round.
 The shared header defers wallet and achievement balance updates while a multiplayer
 match is active, until the adapter exposes a visible result root. Hidden dialogs,
 transparent overlays and Yahtzee’s tally keep the balance held; rematches reset
-the hold. Server settlement and ledger receipts are unchanged. Multiplayer prize
+the hold. Achievement banners sit below the account bar and behind its menus.
+Server settlement and ledger receipts are unchanged. Multiplayer prize
 labels exclude the configured house share; final results use actual settled
 payouts. Restored legacy scenes format their pot labels in the shared shell using
 the server’s current rate, leaving their authoritative gross-pot state untouched.

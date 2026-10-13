@@ -26,7 +26,7 @@ body:has(.xg-object-art) .xg-object-art[hidden]{display:none}
 @media(max-width:600px){.xg-achievement-grid{grid-template-columns:1fr}.xg-board-row{grid-template-columns:22px 1fr;gap:8px}.xg-board-row strong{grid-column:2;text-align:left}.xg-award-toast{padding:12px}}
 
 /* Shared public release presentation. Keep controls in their game-owned roots. */
-.xg-award-stack{position:fixed;inset:0 0 auto;z-index:2147483000;max-height:45dvh;overflow:auto}.xg-award-toast:first-of-type{position:relative}
+.xg-award-stack{position:fixed;inset:var(--xan-header-height,70px) 0 auto;z-index:2147483050;max-height:45dvh;overflow:auto;pointer-events:none}.xg-award-toast button{pointer-events:auto}.xg-award-toast:first-of-type{position:relative}
 body.xan-unified[data-xan-mode=roulette],body.xan-unified[data-xan-mode=roulette-four]{background:radial-gradient(ellipse at 70% 20%,#65512555,transparent 70%),#181814!important}
 body.xan-unified[data-xan-mode=fishing]{background:radial-gradient(ellipse at 70% 20%,#23677966,transparent 70%),#10252b!important}
 body.xan-unified[data-xan-mode=safecracker]{background:radial-gradient(ellipse at 70% 20%,#4d5e7166,transparent 70%),#181e26!important}
@@ -53,7 +53,7 @@ body.xan-unified[data-xan-mode=draw]{background:radial-gradient(ellipse at 70% 2
 .xan-unified .sh-turn-to-front .sh-workbench{animation-timing-function:cubic-bezier(.35,.05,.55,1)}.xan-unified .sh-front-arrival .sc-safe-shell{animation-timing-function:cubic-bezier(.2,.6,.25,1)}
 #testingClearAllWrap,#rnbDock,#rouletteDebugDock,#mountainRaceNetworkBotLog,.rnb-dock,.rnb-panel,.sc-debug-dock{display:none!important}
 .xg-invite[hidden],.xg-join[hidden],.xg-ready[hidden],.xg-cancel[hidden]{display:none!important}.xg-status:empty{display:none!important}
-.four-online .gun-picker,.four-online #cancel-table{display:none!important}.xg-award-stack{z-index:2147483600}
+.four-online .gun-picker,.four-online #cancel-table{display:none!important}
 .xan-unified #yahtzee>#waiting,.xan-unified[data-xan-mode=rps] .arena-toolbar{display:none!important}.xg-heading h1::after{content:none!important}
 body.xan-unified:has(#duelScreen:not([hidden])){background:radial-gradient(ellipse at 70% 20%,color-mix(in srgb,var(--game-accent) 17%,transparent),transparent 70%),var(--game-bg)!important}body.xan-unified #duelScreen{background:transparent!important}
 .four-online .scene.redshift-fire::after{content:'';position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse,#ff25404d,transparent 75%);animation:xanRedshift .82s ease-out both}.four-online .scene.redshift-error .gun-charge{animation:xanRelay 1s linear both}@keyframes xanRedshift{0%{opacity:1}20%{opacity:.45}60%{opacity:.2}100%{opacity:0}}@keyframes xanRelay{0%,30%,72%,100%{filter:brightness(1)}8%,48%{filter:brightness(3);box-shadow:0 0 14px #ff1838}}
