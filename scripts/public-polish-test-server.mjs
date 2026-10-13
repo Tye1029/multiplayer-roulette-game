@@ -21,10 +21,12 @@ export async function startPublicPolishServer(root=path.resolve('dist'),port=0,o
  const minefield=require('../netlify/functions/minefield/database').createStore(pool,wallet,options.minefieldRandom);
  const plinko=require('../netlify/functions/plinko/database').createStore(pool,wallet,options.plinkoRandom,options.plinkoNow);
  const rocket=require('../netlify/functions/rocket-run/database').createStore(pool,wallet,options.rocketRandom,options.rocketNow);
+ const midnight=require('../netlify/functions/midnight-run/database').createStore(pool,wallet,options.midnightRandom,options.midnightNow);
  const diceduel=require('../netlify/functions/dice-duel/database').createStore(pool,wallet,options.diceDuelRandom,options.diceDuelNow);
  const luckyDice=require('../netlify/functions/lucky-dice/database').createStore(pool,wallet,options.luckyDiceRandom,options.luckyDiceNow);
  const duelDice=require('../netlify/functions/dice-duel-multiplayer/database').createStore(pool,options.duelDiceRandom,options.duelDiceNow||Date.now,wallet);
  const handlers={
+  'midnight-run-action':require('../netlify/functions/midnight-run-action').createHandler(midnight,rps,wallet),
   'lucky-dice-action':require('../netlify/functions/lucky-dice-action').createHandler(luckyDice,rps,wallet),
   'dice-duel-multiplayer-action':require('../netlify/functions/dice-duel-multiplayer-action').createHandler(duelDice,rps),
   'dice-duel-action':require('../netlify/functions/dice-duel-action').createHandler(diceduel,rps,wallet),
@@ -50,6 +52,6 @@ export async function startPublicPolishServer(root=path.resolve('dist'),port=0,o
   }
   const file=path.resolve(root,'.'+decodeURIComponent(pathname)+(pathname.endsWith('/')?'index.html':''));if(!file.startsWith(root+path.sep))throw Error('Path');const bytes=await fs.readFile(file);res.writeHead(200,{'Content-Type':mime[path.extname(file)]||'application/octet-stream'});res.end(bytes);
  }catch(e){res.writeHead(404);res.end('Not found');}});
- await new Promise(r=>server.listen(port,'127.0.0.1',r));return {origin:'http://127.0.0.1:'+server.address().port,pg,pool,rps,four,bluff,golf,dice,duelDice,luckyDice,progress,wallet,balances,ledger,close:async()=>{await new Promise(r=>server.close(r));await pg.close();}};
+ await new Promise(r=>server.listen(port,'127.0.0.1',r));return {origin:'http://127.0.0.1:'+server.address().port,pg,pool,rps,four,bluff,golf,dice,duelDice,luckyDice,midnight,progress,wallet,balances,ledger,close:async()=>{await new Promise(r=>server.close(r));await pg.close();}};
 }
 if(process.argv.includes('--serve')){const s=await startPublicPolishServer(process.argv[3]||path.resolve('dist'),26752);console.log(s.origin);}

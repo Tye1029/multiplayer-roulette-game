@@ -4,7 +4,7 @@ import { readFile, access } from 'node:fs/promises';
 const root = new URL('../', import.meta.url);
 const read = path => readFile(new URL(path, root), 'utf8');
 const exists = async path => { try { await access(new URL(path, root)); return true; } catch { return false; } };
-for (const entry of ['index.html', 'admin.html', 'games/single-player/lucky-scratch/index.html', 'games/single-player/jackpot-junction/index.html', 'games/single-player/minefield/index.html', 'games/single-player/plinko/index.html', 'games/single-player/rocket-run/index.html', 'games/single-player/lucky-dice/index.html', 'games/multiplayer/dice-duel/index.html']) {
+for (const entry of ['index.html', 'admin.html', 'games/single-player/lucky-scratch/index.html', 'games/single-player/jackpot-junction/index.html', 'games/single-player/minefield/index.html', 'games/single-player/plinko/index.html', 'games/single-player/rocket-run/index.html', 'games/single-player/midnight-run/index.html', 'games/single-player/lucky-dice/index.html', 'games/multiplayer/dice-duel/index.html']) {
   assert.equal(await read(`dist/${entry}`), await read(entry), `Published ${entry} is stale`);
 }
 for (const excluded of ['scripts', 'node_modules', 'docs', '.github', 'shared/site', 'netlify']) {
@@ -19,7 +19,7 @@ for (const retired of ['async function buildTicket(', 'async function runnerStar
 for (const endpoint of ['buy-ticket', 'record-bet', 'runner-action', 'horse-action', 'arcade-action']) {
   assert.equal(await exists(`netlify/functions/${endpoint}.js`), false, `Retired play endpoint remains: ${endpoint}`);
 }
-for (const entry of ['index.html', 'admin.html', 'games/single-player/lucky-scratch/index.html', 'games/single-player/jackpot-junction/index.html', 'games/single-player/minefield/index.html', 'games/single-player/plinko/index.html', 'games/single-player/rocket-run/index.html', 'games/single-player/lucky-dice/index.html', 'games/multiplayer/dice-duel/index.html']) {
+for (const entry of ['index.html', 'admin.html', 'games/single-player/lucky-scratch/index.html', 'games/single-player/jackpot-junction/index.html', 'games/single-player/minefield/index.html', 'games/single-player/plinko/index.html', 'games/single-player/rocket-run/index.html', 'games/single-player/midnight-run/index.html', 'games/single-player/lucky-dice/index.html', 'games/multiplayer/dice-duel/index.html']) {
   const page = await read(`dist/${entry}`);
   for (const match of page.matchAll(/<(?:script|link)\b[^>]*\b(?:src|href)="(\/[^"?]+)(?:\?[^" ]*)?"/g)) {
     assert.equal(await exists(`dist${match[1]}`), true, `Missing published dependency: ${match[1]}`);

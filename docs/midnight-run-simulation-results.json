@@ -1,0 +1,735 @@
+{
+  "rounds": 2000000,
+  "scenarios": 90,
+  "expectedReturnRange": [
+    0.6567789167237811,
+    0.9
+  ],
+  "observedReturnRange": [
+    0.6592,
+    0.9080366178
+  ],
+  "sampledHouseLossScenarios": [],
+  "rows": [
+    {
+      "stake": 50000,
+      "block": 1,
+      "payout": 56250,
+      "expectedReturn": 0.9,
+      "observedReturn": 0.9004072500000001,
+      "escapes": 1600724
+    },
+    {
+      "stake": 50000,
+      "block": 2,
+      "payout": 63920,
+      "expectedReturn": 0.8999936000000002,
+      "observedReturn": 0.9006315215999999,
+      "escapes": 1408998
+    },
+    {
+      "stake": 50000,
+      "block": 3,
+      "payout": 74326,
+      "expectedReturn": 0.8999986688000001,
+      "observedReturn": 0.9008080789400001,
+      "escapes": 1211969
+    },
+    {
+      "stake": 50000,
+      "block": 4,
+      "payout": 88483,
+      "expectedReturn": 0.899995278336,
+      "observedReturn": 0.9013506609300002,
+      "escapes": 1018671
+    },
+    {
+      "stake": 50000,
+      "block": 5,
+      "payout": 107906,
+      "expectedReturn": 0.8999944646246401,
+      "observedReturn": 0.90083381792,
+      "escapes": 834832
+    },
+    {
+      "stake": 50000,
+      "block": 6,
+      "payout": 134883,
+      "expectedReturn": 0.8999978008412161,
+      "observedReturn": 0.9010009052100001,
+      "escapes": 667987
+    },
+    {
+      "stake": 50000,
+      "block": 7,
+      "payout": 172927,
+      "expectedReturn": 0.8999982011872051,
+      "observedReturn": 0.9008389967199999,
+      "escapes": 520936
+    },
+    {
+      "stake": 50000,
+      "block": 8,
+      "payout": 227535,
+      "expectedReturn": 0.8999961193880617,
+      "observedReturn": 0.90057215325,
+      "escapes": 395795
+    },
+    {
+      "stake": 50000,
+      "block": 9,
+      "payout": 307481,
+      "expectedReturn": 0.8999998374813319,
+      "observedReturn": 0.8999630640899999,
+      "escapes": 292689
+    },
+    {
+      "stake": 50000,
+      "block": 10,
+      "payout": 427057,
+      "expectedReturn": 0.8999999545617159,
+      "observedReturn": 0.89979628729,
+      "escapes": 210697
+    },
+    {
+      "stake": 50000,
+      "block": 11,
+      "payout": 610081,
+      "expectedReturn": 0.8999993223276431,
+      "observedReturn": 0.9016326090900001,
+      "escapes": 147789
+    },
+    {
+      "stake": 50000,
+      "block": 12,
+      "payout": 897178,
+      "expectedReturn": 0.8999993813361565,
+      "observedReturn": 0.90262387046,
+      "escapes": 100607
+    },
+    {
+      "stake": 50000,
+      "block": 13,
+      "payout": 1359361,
+      "expectedReturn": 0.8999996421537861,
+      "observedReturn": 0.8991629270599999,
+      "escapes": 66146
+    },
+    {
+      "stake": 50000,
+      "block": 14,
+      "payout": 2124002,
+      "expectedReturn": 0.899999827534932,
+      "observedReturn": 0.9010228884199999,
+      "escapes": 42421
+    },
+    {
+      "stake": 50000,
+      "block": 15,
+      "payout": 3425810,
+      "expectedReturn": 0.8999999122805985,
+      "observedReturn": 0.9033175808,
+      "escapes": 26368
+    },
+    {
+      "stake": 50000,
+      "block": 16,
+      "payout": 5709683,
+      "expectedReturn": 0.8999998597382851,
+      "observedReturn": 0.9033860442599999,
+      "escapes": 15822
+    },
+    {
+      "stake": 50000,
+      "block": 17,
+      "payout": 9844282,
+      "expectedReturn": 0.8999999480093716,
+      "observedReturn": 0.90803657168,
+      "escapes": 9224
+    },
+    {
+      "stake": 50000,
+      "block": 18,
+      "payout": 17579076,
+      "expectedReturn": 0.8999999992066017,
+      "observedReturn": 0.8928412700400001,
+      "escapes": 5079
+    },
+    {
+      "stake": 50000,
+      "block": 19,
+      "payout": 32553844,
+      "expectedReturn": 0.8999999869192664,
+      "observedReturn": 0.9001137866000001,
+      "escapes": 2765
+    },
+    {
+      "stake": 50000,
+      "block": 20,
+      "payout": 50000000,
+      "expectedReturn": 0.7188091108349886,
+      "observedReturn": 0.7355,
+      "escapes": 1471
+    },
+    {
+      "stake": 100000,
+      "block": 1,
+      "payout": 112500,
+      "expectedReturn": 0.9,
+      "observedReturn": 0.9004072500000001,
+      "escapes": 1600724
+    },
+    {
+      "stake": 100000,
+      "block": 2,
+      "payout": 127840,
+      "expectedReturn": 0.8999936000000002,
+      "observedReturn": 0.9006315215999999,
+      "escapes": 1408998
+    },
+    {
+      "stake": 100000,
+      "block": 3,
+      "payout": 148652,
+      "expectedReturn": 0.8999986688000001,
+      "observedReturn": 0.9008080789400001,
+      "escapes": 1211969
+    },
+    {
+      "stake": 100000,
+      "block": 4,
+      "payout": 176966,
+      "expectedReturn": 0.899995278336,
+      "observedReturn": 0.9013506609300002,
+      "escapes": 1018671
+    },
+    {
+      "stake": 100000,
+      "block": 5,
+      "payout": 215813,
+      "expectedReturn": 0.8999986348953601,
+      "observedReturn": 0.9008379920799999,
+      "escapes": 834832
+    },
+    {
+      "stake": 100000,
+      "block": 6,
+      "payout": 269766,
+      "expectedReturn": 0.8999978008412161,
+      "observedReturn": 0.9010009052100001,
+      "escapes": 667987
+    },
+    {
+      "stake": 100000,
+      "block": 7,
+      "payout": 345854,
+      "expectedReturn": 0.8999982011872051,
+      "observedReturn": 0.9008389967199999,
+      "escapes": 520936
+    },
+    {
+      "stake": 100000,
+      "block": 8,
+      "payout": 455071,
+      "expectedReturn": 0.8999980970972478,
+      "observedReturn": 0.900574132225,
+      "escapes": 395795
+    },
+    {
+      "stake": 100000,
+      "block": 9,
+      "payout": 614962,
+      "expectedReturn": 0.8999998374813319,
+      "observedReturn": 0.8999630640899999,
+      "escapes": 292689
+    },
+    {
+      "stake": 100000,
+      "block": 10,
+      "payout": 854114,
+      "expectedReturn": 0.8999999545617159,
+      "observedReturn": 0.89979628729,
+      "escapes": 210697
+    },
+    {
+      "stake": 100000,
+      "block": 11,
+      "payout": 1220162,
+      "expectedReturn": 0.8999993223276431,
+      "observedReturn": 0.9016326090900001,
+      "escapes": 147789
+    },
+    {
+      "stake": 100000,
+      "block": 12,
+      "payout": 1794357,
+      "expectedReturn": 0.899999882908521,
+      "observedReturn": 0.902624373495,
+      "escapes": 100607
+    },
+    {
+      "stake": 100000,
+      "block": 13,
+      "payout": 2718723,
+      "expectedReturn": 0.8999999731915465,
+      "observedReturn": 0.89916325779,
+      "escapes": 66146
+    },
+    {
+      "stake": 100000,
+      "block": 14,
+      "payout": 4248004,
+      "expectedReturn": 0.899999827534932,
+      "observedReturn": 0.9010228884199999,
+      "escapes": 42421
+    },
+    {
+      "stake": 100000,
+      "block": 15,
+      "payout": 6851620,
+      "expectedReturn": 0.8999999122805985,
+      "observedReturn": 0.9033175808,
+      "escapes": 26368
+    },
+    {
+      "stake": 100000,
+      "block": 16,
+      "payout": 11419367,
+      "expectedReturn": 0.8999999385517552,
+      "observedReturn": 0.90338612337,
+      "escapes": 15822
+    },
+    {
+      "stake": 100000,
+      "block": 17,
+      "payout": 19688565,
+      "expectedReturn": 0.8999999937211841,
+      "observedReturn": 0.9080366178,
+      "escapes": 9224
+    },
+    {
+      "stake": 100000,
+      "block": 18,
+      "payout": 35158152,
+      "expectedReturn": 0.8999999992066017,
+      "observedReturn": 0.8928412700400001,
+      "escapes": 5079
+    },
+    {
+      "stake": 100000,
+      "block": 19,
+      "payout": 50000000,
+      "expectedReturn": 0.6911626065721043,
+      "observedReturn": 0.69125,
+      "escapes": 2765
+    },
+    {
+      "stake": 500000,
+      "block": 1,
+      "payout": 562500,
+      "expectedReturn": 0.9,
+      "observedReturn": 0.90040725,
+      "escapes": 1600724
+    },
+    {
+      "stake": 500000,
+      "block": 2,
+      "payout": 639204,
+      "expectedReturn": 0.8999992320000001,
+      "observedReturn": 0.900637157592,
+      "escapes": 1408998
+    },
+    {
+      "stake": 500000,
+      "block": 3,
+      "payout": 743261,
+      "expectedReturn": 0.8999998796800002,
+      "observedReturn": 0.9008092909090001,
+      "escapes": 1211969
+    },
+    {
+      "stake": 500000,
+      "block": 4,
+      "payout": 884834,
+      "expectedReturn": 0.8999993468928,
+      "observedReturn": 0.9013547356140001,
+      "escapes": 1018671
+    },
+    {
+      "stake": 500000,
+      "block": 5,
+      "payout": 1079066,
+      "expectedReturn": 0.8999994689495041,
+      "observedReturn": 0.9008388269120001,
+      "escapes": 834832
+    },
+    {
+      "stake": 500000,
+      "block": 6,
+      "payout": 1348833,
+      "expectedReturn": 0.8999998025711616,
+      "observedReturn": 0.901002909171,
+      "escapes": 667987
+    },
+    {
+      "stake": 500000,
+      "block": 7,
+      "payout": 1729273,
+      "expectedReturn": 0.8999997625365627,
+      "observedReturn": 0.9008405595279999,
+      "escapes": 520936
+    },
+    {
+      "stake": 500000,
+      "block": 8,
+      "payout": 2275359,
+      "expectedReturn": 0.8999996792645969,
+      "observedReturn": 0.900575715405,
+      "escapes": 395795
+    },
+    {
+      "stake": 500000,
+      "block": 9,
+      "payout": 3074810,
+      "expectedReturn": 0.8999998374813319,
+      "observedReturn": 0.8999630640899999,
+      "escapes": 292689
+    },
+    {
+      "stake": 500000,
+      "block": 10,
+      "payout": 4270570,
+      "expectedReturn": 0.8999999545617158,
+      "observedReturn": 0.89979628729,
+      "escapes": 210697
+    },
+    {
+      "stake": 500000,
+      "block": 11,
+      "payout": 6100814,
+      "expectedReturn": 0.8999999124127777,
+      "observedReturn": 0.9016332002460001,
+      "escapes": 147789
+    },
+    {
+      "stake": 500000,
+      "block": 12,
+      "payout": 8971786,
+      "expectedReturn": 0.8999999832229938,
+      "observedReturn": 0.902624474102,
+      "escapes": 100607
+    },
+    {
+      "stake": 500000,
+      "block": 13,
+      "payout": 13593615,
+      "expectedReturn": 0.8999999731915465,
+      "observedReturn": 0.89916325779,
+      "escapes": 66146
+    },
+    {
+      "stake": 500000,
+      "block": 14,
+      "payout": 21240024,
+      "expectedReturn": 0.8999999970262652,
+      "observedReturn": 0.9010230581040001,
+      "escapes": 42421
+    },
+    {
+      "stake": 500000,
+      "block": 15,
+      "payout": 34258103,
+      "expectedReturn": 0.8999999910940685,
+      "observedReturn": 0.903317659904,
+      "escapes": 26368
+    },
+    {
+      "stake": 500000,
+      "block": 16,
+      "payout": 50000000,
+      "expectedReturn": 0.7881347000685373,
+      "observedReturn": 0.7911,
+      "escapes": 15822
+    },
+    {
+      "stake": 1000000,
+      "block": 1,
+      "payout": 1125000,
+      "expectedReturn": 0.9,
+      "observedReturn": 0.90040725,
+      "escapes": 1600724
+    },
+    {
+      "stake": 1000000,
+      "block": 2,
+      "payout": 1278409,
+      "expectedReturn": 0.8999999360000001,
+      "observedReturn": 0.9006378620909999,
+      "escapes": 1408998
+    },
+    {
+      "stake": 1000000,
+      "block": 3,
+      "payout": 1486522,
+      "expectedReturn": 0.8999998796800002,
+      "observedReturn": 0.9008092909090001,
+      "escapes": 1211969
+    },
+    {
+      "stake": 1000000,
+      "block": 4,
+      "payout": 1769669,
+      "expectedReturn": 0.8999998554624001,
+      "observedReturn": 0.9013552449495,
+      "escapes": 1018671
+    },
+    {
+      "stake": 1000000,
+      "block": 5,
+      "payout": 2158133,
+      "expectedReturn": 0.8999998859765761,
+      "observedReturn": 0.900839244328,
+      "escapes": 834832
+    },
+    {
+      "stake": 1000000,
+      "block": 6,
+      "payout": 2697666,
+      "expectedReturn": 0.8999998025711616,
+      "observedReturn": 0.901002909171,
+      "escapes": 667987
+    },
+    {
+      "stake": 1000000,
+      "block": 7,
+      "payout": 3458546,
+      "expectedReturn": 0.8999997625365627,
+      "observedReturn": 0.9008405595279999,
+      "escapes": 520936
+    },
+    {
+      "stake": 1000000,
+      "block": 8,
+      "payout": 4550719,
+      "expectedReturn": 0.8999998770355155,
+      "observedReturn": 0.9005759133025001,
+      "escapes": 395795
+    },
+    {
+      "stake": 1000000,
+      "block": 9,
+      "payout": 6149621,
+      "expectedReturn": 0.8999999838318117,
+      "observedReturn": 0.8999632104344999,
+      "escapes": 292689
+    },
+    {
+      "stake": 1000000,
+      "block": 10,
+      "payout": 8541140,
+      "expectedReturn": 0.8999999545617158,
+      "observedReturn": 0.89979628729,
+      "escapes": 210697
+    },
+    {
+      "stake": 1000000,
+      "block": 11,
+      "payout": 12201629,
+      "expectedReturn": 0.8999999861734195,
+      "observedReturn": 0.9016332741405,
+      "escapes": 147789
+    },
+    {
+      "stake": 1000000,
+      "block": 12,
+      "payout": 17943572,
+      "expectedReturn": 0.8999999832229938,
+      "observedReturn": 0.902624474102,
+      "escapes": 100607
+    },
+    {
+      "stake": 1000000,
+      "block": 13,
+      "payout": 27187230,
+      "expectedReturn": 0.8999999731915465,
+      "observedReturn": 0.89916325779,
+      "escapes": 66146
+    },
+    {
+      "stake": 1000000,
+      "block": 14,
+      "payout": 42480048,
+      "expectedReturn": 0.8999999970262652,
+      "observedReturn": 0.9010230581040001,
+      "escapes": 42421
+    },
+    {
+      "stake": 1000000,
+      "block": 15,
+      "payout": 50000000,
+      "expectedReturn": 0.6567789167237811,
+      "observedReturn": 0.6592,
+      "escapes": 26368
+    },
+    {
+      "stake": 5000000,
+      "block": 1,
+      "payout": 5625000,
+      "expectedReturn": 0.9,
+      "observedReturn": 0.90040725,
+      "escapes": 1600724
+    },
+    {
+      "stake": 5000000,
+      "block": 2,
+      "payout": 6392045,
+      "expectedReturn": 0.8999999360000002,
+      "observedReturn": 0.900637862091,
+      "escapes": 1408998
+    },
+    {
+      "stake": 5000000,
+      "block": 3,
+      "payout": 7432610,
+      "expectedReturn": 0.8999998796800001,
+      "observedReturn": 0.9008092909090001,
+      "escapes": 1211969
+    },
+    {
+      "stake": 5000000,
+      "block": 4,
+      "payout": 8848346,
+      "expectedReturn": 0.8999999571763201,
+      "observedReturn": 0.9013553468166001,
+      "escapes": 1018671
+    },
+    {
+      "stake": 5000000,
+      "block": 5,
+      "payout": 10790666,
+      "expectedReturn": 0.8999999693819905,
+      "observedReturn": 0.9008393278112,
+      "escapes": 834832
+    },
+    {
+      "stake": 5000000,
+      "block": 6,
+      "payout": 13488332,
+      "expectedReturn": 0.8999999360198246,
+      "observedReturn": 0.9010030427683999,
+      "escapes": 667987
+    },
+    {
+      "stake": 5000000,
+      "block": 7,
+      "payout": 17292734,
+      "expectedReturn": 0.899999970716477,
+      "observedReturn": 0.9008407679024,
+      "escapes": 520936
+    },
+    {
+      "stake": 5000000,
+      "block": 8,
+      "payout": 22753598,
+      "expectedReturn": 0.8999999956980667,
+      "observedReturn": 0.900576032041,
+      "escapes": 395795
+    },
+    {
+      "stake": 5000000,
+      "block": 9,
+      "payout": 30748105,
+      "expectedReturn": 0.8999999838318117,
+      "observedReturn": 0.8999632104344999,
+      "escapes": 292689
+    },
+    {
+      "stake": 5000000,
+      "block": 10,
+      "payout": 42705702,
+      "expectedReturn": 0.899999996710654,
+      "observedReturn": 0.8997963294294,
+      "escapes": 210697
+    },
+    {
+      "stake": 5000000,
+      "block": 11,
+      "payout": 50000000,
+      "expectedReturn": 0.7376064181048444,
+      "observedReturn": 0.738945,
+      "escapes": 147789
+    },
+    {
+      "stake": 10000000,
+      "block": 1,
+      "payout": 11250000,
+      "expectedReturn": 0.9,
+      "observedReturn": 0.90040725,
+      "escapes": 1600724
+    },
+    {
+      "stake": 10000000,
+      "block": 2,
+      "payout": 12784090,
+      "expectedReturn": 0.8999999360000002,
+      "observedReturn": 0.900637862091,
+      "escapes": 1408998
+    },
+    {
+      "stake": 10000000,
+      "block": 3,
+      "payout": 14865221,
+      "expectedReturn": 0.8999999402240001,
+      "observedReturn": 0.9008093515074501,
+      "escapes": 1211969
+    },
+    {
+      "stake": 10000000,
+      "block": 4,
+      "payout": 17696692,
+      "expectedReturn": 0.8999999571763201,
+      "observedReturn": 0.9013553468166001,
+      "escapes": 1018671
+    },
+    {
+      "stake": 10000000,
+      "block": 5,
+      "payout": 21581332,
+      "expectedReturn": 0.8999999693819905,
+      "observedReturn": 0.9008393278112,
+      "escapes": 834832
+    },
+    {
+      "stake": 10000000,
+      "block": 6,
+      "payout": 26976665,
+      "expectedReturn": 0.8999999693819905,
+      "observedReturn": 0.90100307616775,
+      "escapes": 667987
+    },
+    {
+      "stake": 10000000,
+      "block": 7,
+      "payout": 34585469,
+      "expectedReturn": 0.8999999967389664,
+      "observedReturn": 0.9008407939491998,
+      "escapes": 520936
+    },
+    {
+      "stake": 10000000,
+      "block": 8,
+      "payout": 45507196,
+      "expectedReturn": 0.8999999956980667,
+      "observedReturn": 0.900576032041,
+      "escapes": 395795
+    },
+    {
+      "stake": 10000000,
+      "block": 9,
+      "payout": 50000000,
+      "expectedReturn": 0.731752398913536,
+      "observedReturn": 0.7317224999999999,
+      "escapes": 292689
+    }
+  ]
+}
