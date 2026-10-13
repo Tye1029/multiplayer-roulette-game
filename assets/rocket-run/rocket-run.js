@@ -1,9 +1,10 @@
-/* ROCKET_RUN_V1 */
+/* ROCKET_RUN_V2 */
 (() => {
  'use strict';
  const rules=window.RocketRunRules,audio=window.RocketRunAudio,$=id=>document.getElementById(id),fmt=n=>Number(n).toLocaleString('en-US'),mult=n=>(n/100).toFixed(2)+'×';
  let scene,stake=50000,autoCents=null,game=null,saved=null,demo=false,playing=false,ready=false,busy=false,connecting=false,pending=null,retry=null,epoch=0,pageActive=true;
  let frame=0,pollTimer=0,polling=false,serverStamp=0,anchor=0,frameStamp=0,lastCount=-1,lastPhase='',celebrated='',effectUntil=0,practiceCrash=0;
+ let cashSnapshot=null,autoHolding=false,lastStateAt=0;
  const active=s=>s?.status==='active',finished=s=>s?.status==='settled',current=run=>pageActive&&run===epoch;
  const serverTime=()=>serverStamp+Math.min(1800,Math.max(0,performance.now()-anchor));
  window.XanSiteAdapter={current:()=>({mode:'rocket',id:playing&&!demo?game?.id||'':'',phase:playing?(active(game)?'playing':'ready'):'lobby'}),diagnostics:()=>({build:rules.build,ready,busy,connecting,polling,demo,phase:game?.status,frames:frame?1:0,audioVoices:audio.active})};
@@ -14,10 +15,10 @@
   try{localStorage.setItem('rocket-run-choice',JSON.stringify({stake,autoCents}));}catch{}controls();
  }
  function controls(){
-  const inFlight=playing&&active(game),locked=busy||connecting||Boolean(pending)||inFlight;
+  const inFlight=playing&&active(game),locked=busy||Boolean(pending)||inFlight;
   for(const id of ['rr-menu-stake','rr-play-stake','rr-menu-auto','rr-play-auto'])$(id).disabled=locked;
-  $('rr-start').disabled=busy||connecting||Boolean(pending)||!ready;$('rr-practice').disabled=busy||connecting||Boolean(pending);
-  $('rr-start').textContent=active(saved)?'Resume your flight':'Launch · '+fmt(stake)+' chips';$('rr-connect').hidden=ready;
+  $('rr-start').disabled=busy||connecting||Boolean(pending)||!ready;$('rr-practice').disabled=busy||Boolean(pending);
+  $('rr-start').textContent=connecting?'Connecting your chip balance…':active(saved)?'Resume your flight':'Launch · '+fmt(stake)+' chips';$('rr-connect').hidden=ready||connecting;
   $('rr-again').disabled=busy||connecting||Boolean(pending)||(!demo&&!ready);$('rr-again').textContent=demo?'Launch a free flight':active(saved)?'Resume your flight':'Launch again · '+fmt(stake)+' chips';
   $('rr-free').disabled=locked;$('rr-free').checked=demo;$('rr-free-wrap').hidden=inFlight;
   $('rr-live').hidden=!inFlight;$('rr-cashout').hidden=!inFlight;$('rr-again').hidden=inFlight;$('rr-result').hidden=!finished(game);
@@ -32,23 +33,26 @@
    const target=game.autoCents??rules.cap(game.stake),crashAt=game.launchAt+rules.timeAt(practiceCrash),autoAt=game.launchAt+rules.timeAt(target);
    if(practiceCrash<=target&&now>=crashAt)settlePractice('crash',0,crashAt);else if(target<practiceCrash&&now>=autoAt)settlePractice(target===rules.cap(game.stake)?'limit':'auto',target,autoAt);
   }
-  let phase=active(game)?(elapsed<0?'countdown':'flight'):finished(game)?(game.outcome==='crash'?'crash':'win'):'ready';
-  const elapsedDraw=finished(game)?game.endedAt-game.launchAt:Math.max(0,elapsed),cents=finished(game)?(game.outcome==='crash'?game.crashCents:game.cashCents):Math.min(game?.autoCents??rules.cap(stake),rules.centsAt(elapsed));
+  const target=game?.autoCents??rules.cap(stake),targetTime=rules.timeAt(target);
+  if(!demo&&active(game)&&!cashSnapshot&&elapsed>=targetTime&&!autoHolding){autoHolding=true;clearTimeout(pollTimer);poll();}
+  const holding=active(game)&&(cashSnapshot||autoHolding);
+  let phase=active(game)?(holding?'securing':elapsed<0?'countdown':'flight'):finished(game)?(game.outcome==='crash'?'crash':'win'):'ready';
+  const elapsedDraw=finished(game)?game.endedAt-game.launchAt:cashSnapshot?cashSnapshot.elapsed:autoHolding?targetTime:Math.max(0,elapsed),cents=finished(game)?(game.outcome==='crash'?game.crashCents:game.cashCents):cashSnapshot?cashSnapshot.cents:Math.min(target,rules.centsAt(elapsed));
   const stale=!demo&&active(game)&&performance.now()-anchor>1800;
   $('rr-countdown').hidden=phase!=='countdown';
   if(phase==='countdown'){const count=Math.max(1,Math.ceil(-elapsed/1000));$('rr-countdown').querySelector('strong').textContent=count;if(count!==lastCount){lastCount=count;audio.tick();}}
   if(phase==='flight'){if(lastPhase==='countdown')audio.ignite();audio.engine(cents/100);}else audio.stopEngine();
   lastPhase=phase;
   $('rr-multiplier').innerHTML=(cents/100).toFixed(2)+'<span>×</span>';
-  $('rr-flight-label').textContent=phase==='countdown'?'YOUR FLIGHT STARTS IN A MOMENT':phase==='flight'?(stale?'CONFIRMING FLIGHT':'MULTIPLIER CLIMBING'):phase==='win'?'RETURN SECURED':phase==='crash'?'FLIGHT ENDED':'READY TO LAUNCH';
-  $('rr-flight-note').textContent=phase==='countdown'?'Make your moment count.':phase==='flight'?(stale?'Waiting for flight control…':'How far will you go?'):phase==='win'?'A good time to come back down.':phase==='crash'?'The next flight is a new chance.':'The sky is calling.';
-  $('rr-scene-title').textContent=phase==='countdown'?'All systems ready.':phase==='flight'?'Beyond the ordinary.':phase==='win'?'Welcome back, captain.':phase==='crash'?'Flight lost.':'Ready for liftoff.';
+  $('rr-flight-label').textContent=phase==='securing'?(cashSnapshot?'CASH-OUT REQUESTED':'AUTO CASH-OUT TARGET REACHED'):phase==='countdown'?'YOUR FLIGHT STARTS IN A MOMENT':phase==='flight'?(stale?'CONFIRMING FLIGHT':'MULTIPLIER CLIMBING'):phase==='win'?'RETURN SECURED':phase==='crash'?'FLIGHT ENDED':'READY TO LAUNCH';
+  $('rr-flight-note').textContent=phase==='securing'?'Confirming your return…':phase==='countdown'?'Make your moment count.':phase==='flight'?(stale?'Waiting for flight control…':'How far will you go?'):phase==='win'?'A good time to come back down.':phase==='crash'?'The next flight is a new chance.':'The sky is calling.';
+  $('rr-scene-title').textContent=phase==='securing'?'Bringing it home.':phase==='countdown'?'All systems ready.':phase==='flight'?'Beyond the ordinary.':phase==='win'?'Welcome back, captain.':phase==='crash'?'Flight lost.':'Ready for liftoff.';
   $('rr-value').innerHTML=fmt(game?rules.payout(game.stake,cents):0)+' <small>chips</small>';
   $('rr-value-note').textContent=phase==='countdown'?'Wait for liftoff.':stale?'Connection delayed. The server confirms cash-out timing.':'Total return includes your wager.';
-  $('rr-cashout').disabled=phase!=='flight'||busy||Boolean(pending);
-  $('rr-cashout').textContent=busy?'Securing your return…':pending?'Recover your flight':phase==='countdown'?'Awaiting liftoff…':'Cash out · '+fmt(rules.payout(game?.stake||stake,cents));
+  $('rr-cashout').disabled=phase!=='flight'||busy||Boolean(pending)||stale;
+  $('rr-cashout').textContent=holding?'Confirming cash-out…':busy?'Securing your return…':pending?'Recover your flight':phase==='countdown'?'Awaiting liftoff…':stale?'Reconnecting…':'Cash out · '+fmt(rules.payout(game?.stake||stake,cents));
   $('rr-connection').textContent=demo?'FREE PRACTICE':stale?'RECONNECTING TO FLIGHT CONTROL':'FLIGHT CONTROL CONNECTED';
-  scene.draw({phase,elapsed:elapsedDraw,multiplier:cents/100});
+  scene.draw({phase,elapsed:elapsedDraw,multiplier:cents/100,flightId:game?.id});
   if(active(game)||performance.now()<effectUntil)scheduleFrame();
  }
  function paint(animate=true){
@@ -64,31 +68,36 @@
   }else $('rr-scene').setAttribute('aria-label','Rocket Run flight in progress. Use Cash out to secure your return.');
   controls();scheduleFrame();
  }
- function enter(){playing=true;$('rr-menu').hidden=true;$('rr-play').hidden=false;lastCount=-1;lastPhase='';paint(false);requestAnimationFrame(()=>$('rr-play').scrollIntoView({block:'start',behavior:'instant'}));schedulePoll();}
- async function request(body){const before=performance.now(),token=await window.XanHub.authenticate(),response=await window.XanHub.post('rocket-run-action',{token,...body});return {...response,received:performance.now(),before};}
+ function enter(){playing=true;cashSnapshot=null;autoHolding=false;$('rr-menu').hidden=true;$('rr-play').hidden=false;lastCount=-1;lastPhase='';paint(false);requestAnimationFrame(()=>$('rr-play').scrollIntoView({block:'start',behavior:'instant'}));schedulePoll();}
+ async function request(body){const token=await window.XanHub.authenticate(),before=performance.now(),response=await window.XanHub.post('rocket-run-action',{token,...body});return {...response,received:performance.now(),before};}
  function adopt(response,animate=true){
   const next=response.game;
   if(game&&next&&game.id===next.id&&finished(game)&&!finished(next))return;
-  if(response.serverNow<serverStamp)return;
-  serverStamp=response.serverNow;anchor=response.received;saved=next;
+  const stateAt=response.stateAt??response.serverNow;if(stateAt<lastStateAt)return;lastStateAt=stateAt;
+  const wire=Math.max(0,(response.received-response.before)-(response.serverNow-(response.requestAt??response.receivedAt??response.serverNow)));
+  serverStamp=response.serverNow+Math.min(400,wire/2);anchor=response.received;saved=next;
+  if(finished(next)){cashSnapshot=null;autoHolding=false;}
   if(Number.isFinite(response.balance)&&$('hub-balance'))$('hub-balance').textContent=fmt(response.balance)+' Chips';
-  if(!demo&&playing){game=next;if(game){stake=game.stake;autoCents=game.autoCents;configure();paint(animate);}}
+  if(!demo&&playing){game=next;if(game){const changed=stake!==game.stake||autoCents!==game.autoCents;stake=game.stake;autoCents=game.autoCents;if(changed)configure();paint(animate);}}
  }
- function schedulePoll(){clearTimeout(pollTimer);if(pageActive&&playing&&!demo&&active(game)&&!document.hidden)pollTimer=setTimeout(poll,950);}
+ function schedulePoll(){clearTimeout(pollTimer);if(pageActive&&playing&&!demo&&active(game)&&!document.hidden){const untilTarget=game.launchAt+rules.timeAt(game.autoCents??rules.cap(game.stake))-serverTime();pollTimer=setTimeout(poll,autoHolding?200:Math.max(40,Math.min(650,untilTarget+15)));}}
  async function poll(){if(polling||busy||!pageActive||!playing||demo||!active(game)||document.hidden){schedulePoll();return;}polling=true;const run=epoch,id=game.id;
-  try{const response=await request({action:'current'});if(!current(run)||demo||game?.id!==id)return;adopt(response);if(!pending)notice();}
+  try{const response=await request({action:'current'});if(!current(run)||demo||game?.id!==id||cashSnapshot)return;adopt(response);if(!pending)notice();}
   catch(e){if(current(run))notice('Flight connection delayed. Reconnect to confirm the result. Your saved auto cash-out still applies.',reconnect);}
   finally{polling=false;if(current(run))schedulePoll();}
  }
  async function send(body,opening=false){if(busy)return;const run=epoch;busy=true;pending=body;notice();controls();audio.unlock();
   try{const response=await request(body);if(!current(run))return;pending=null;ready=true;adopt(response);if(opening){game=response.game;saved=game;stake=game.stake;autoCents=game.autoCents;configure();enter();}else paint();if(finished(game))window.XanHub.refresh().catch(()=>{});}
-  catch(e){if(!current(run))return;if([400,401,404,409].includes(e.status)){pending=null;if(e.status===401)ready=false;notice(e.message,reconnect);}else notice('Connection interrupted. Recover this flight before launching again. Your launch and cash-out receipts are saved.',()=>send(body,opening));}
+  catch(e){if(!current(run))return;if([400,401,404,409].includes(e.status)){pending=null;cashSnapshot=null;if(e.status===401)ready=false;notice(e.message,reconnect);}else notice('Connection interrupted. Recover this flight before launching again. Your launch and cash-out receipts are saved.',()=>send(body,opening));}
   finally{if(current(run)){busy=false;controls();scheduleFrame();schedulePoll();}}
  }
  function start(){if(busy||pending||connecting||!ready)return;demo=false;stop();epoch++;if(active(saved)){game=saved;stake=game.stake;autoCents=game.autoCents;configure();enter();reconnect();return;}send({action:'start',stake,autoCents,quote:rules.build,requestId:crypto.randomUUID()},true);}
- function practice(){if(busy||pending||connecting)return;stop();epoch++;demo=true;const n=crypto.getRandomValues(new Uint32Array(1))[0];practiceCrash=rules.crashFrom(n);game={id:'free-'+crypto.randomUUID(),stake,autoCents,status:'active',launchAt:performance.now()+rules.countdownMs};notice();audio.unlock();enter();}
+ function practice(){if(busy||pending)return;stop();epoch++;connecting=false;demo=true;const n=crypto.getRandomValues(new Uint32Array(1))[0];practiceCrash=rules.crashFrom(n);game={id:'free-'+crypto.randomUUID(),stake,autoCents,status:'active',launchAt:performance.now()+rules.countdownMs};notice();audio.unlock();enter();}
  function settlePractice(outcome,cents,endedAt){game={...game,status:'settled',outcome,cashCents:cents,crashCents:practiceCrash,payout:cents?rules.payout(game.stake,cents):0,endedAt};paint();}
- function cashout(){if(busy||pending||!active(game))return;audio.unlock();if(demo){const now=performance.now();if(now<game.launchAt)return;const crashAt=game.launchAt+rules.timeAt(practiceCrash),target=game.autoCents??rules.cap(game.stake),autoAt=game.launchAt+rules.timeAt(target);if(practiceCrash<=target&&now>=crashAt)settlePractice('crash',0,crashAt);else if(target<practiceCrash&&now>=autoAt)settlePractice(target===rules.cap(game.stake)?'limit':'auto',target,autoAt);else settlePractice('cashout',rules.centsAt(now-game.launchAt),now);}else send({action:'cashout',gameId:game.id,requestId:crypto.randomUUID()});}
+ function cashout(){if(busy||pending||!active(game)||autoHolding)return;audio.unlock();if(demo){const now=performance.now();if(now<game.launchAt)return;const crashAt=game.launchAt+rules.timeAt(practiceCrash),target=game.autoCents??rules.cap(game.stake),autoAt=game.launchAt+rules.timeAt(target);if(practiceCrash<=target&&now>=crashAt)settlePractice('crash',0,crashAt);else if(target<practiceCrash&&now>=autoAt)settlePractice(target===rules.cap(game.stake)?'limit':'auto',target,autoAt);else settlePractice('cashout',rules.centsAt(now-game.launchAt),now);}else{
+   const elapsed=serverTime()-game.launchAt;if(elapsed<0||performance.now()-anchor>1800)return;
+   cashSnapshot={elapsed,cents:Math.min(game.autoCents??rules.cap(game.stake),rules.centsAt(elapsed))};audio.stopEngine();clearTimeout(pollTimer);scheduleFrame();send({action:'cashout',gameId:game.id,requestId:crypto.randomUUID()});
+  }}
  async function reconnect(){if(busy||connecting)return;if(pending){retry?.();return;}if(!localStorage.getItem('tornVisitorApiKey')){ready=false;controls();return;}const run=epoch;connecting=true;controls();
   try{const response=await request({action:'current'});if(!current(run))return;ready=true;adopt(response,false);notice();}
   catch(e){if(current(run)){ready=false;notice(e.message,reconnect);}}finally{if(current(run)){connecting=false;controls();scheduleFrame();schedulePoll();}}
@@ -96,8 +105,8 @@
  document.addEventListener('DOMContentLoaded',()=>{
   try{const s=JSON.parse(localStorage.getItem('rocket-run-choice'));if(rules.stakes.includes(s?.stake)&&rules.validAuto(s.autoCents,s.stake)){stake=s.stake;autoCents=s.autoCents;}}catch{}
   for(const prefix of ['rr-menu-','rr-play-']){$(prefix+'settings').innerHTML=settings(prefix);$(prefix+'stake').onchange=e=>{stake=Number(e.target.value);if(autoCents!==null)autoCents=Math.min(autoCents,rules.cap(stake));configure();};$(prefix+'auto').onchange=e=>{autoCents=e.target.value===''?null:Number(e.target.value);configure();};}
-  scene=new window.RocketRunScene($('rr-scene'));configure();$('rr-start').onclick=start;$('rr-practice').onclick=practice;$('rr-cashout').onclick=cashout;$('rr-again').onclick=()=>demo?practice():start();$('rr-retry').onclick=()=>retry?.();$('rr-free').onchange=e=>{demo=e.target.checked;controls();};
-  $('rr-help').onclick=()=>{const d=document.createElement('dialog');d.className='xan-dialog rr-help';d.innerHTML='<h2>How to play Rocket Run</h2><ol><li>Choose your wager. Launch spends that amount and starts a three-second countdown.</li><li>After liftoff, the multiplier climbs. Press Cash out before the rocket crashes to secure your total return, including your wager.</li><li>A crash before cash-out loses the wager. A flight can crash immediately at 1.00×. Each flight is independent; the animation does not predict a crash.</li><li>Optionally choose Auto cash-out before launch. It is saved on the server and pays at that target if the rocket survives past it, even if you disconnect. A crash at the exact target takes priority.</li><li>Manual cash-out uses the time your request is processed by the server. The displayed value is an estimate between updates; network delay can affect manual timing. Use Auto cash-out for a fixed target.</li><li>Maximum total return is 50,000,000 chips. Reaching that limit safely cashes out automatically. Your flight continues if you leave; reconnect to recover its result. Free practice never spends or awards chips.</li></ol><button class="rr-secondary">Got it</button>';document.body.append(d);d.querySelector('button').onclick=()=>d.close();d.onclose=()=>d.remove();d.showModal();};
+  scene=new window.RocketRunScene($('rr-scene'));configure();$('rr-start').onclick=start;$('rr-practice').onclick=practice;$('rr-cashout').onclick=cashout;$('rr-cashout').onpointerdown=e=>{if(e.isPrimary&&e.button===0&&!e.currentTarget.disabled)cashout();};$('rr-again').onclick=()=>demo?practice():start();$('rr-retry').onclick=()=>retry?.();$('rr-free').onchange=e=>{demo=e.target.checked;controls();if(!demo)reconnect();};
+  $('rr-help').onclick=()=>{const d=document.createElement('dialog');d.className='xan-dialog rr-help';d.innerHTML='<h2>How to play Rocket Run</h2><ol><li>Choose your wager. Launch spends that amount and starts a three-second countdown.</li><li>After liftoff, the multiplier climbs. Press Cash out before the rocket crashes to secure your total return, including your wager.</li><li>A crash before cash-out loses the wager. A flight can crash immediately at 1.00×. Each flight is independent; the animation does not predict a crash.</li><li>Optionally choose Auto cash-out before launch. It is saved on the server and pays at that target if the rocket survives past it, even if you disconnect. A crash at the exact target takes priority.</li><li>Cash out stops the flight display immediately. The server uses the time it receives your verified request, before waiting for the flight database. An already confirmed crash cannot be reversed; use Auto cash-out to avoid network timing.</li><li>Maximum total return is 50,000,000 chips. Reaching that limit safely cashes out automatically. Your flight continues if you leave; reconnect to recover its result. Free practice never spends or awards chips.</li></ol><button class="rr-secondary">Got it</button>';document.body.append(d);d.querySelector('button').onclick=()=>d.close();d.onclose=()=>d.remove();d.showModal();};
   reconnect();
  });
  document.addEventListener('visibilitychange',()=>{if(document.hidden){stop();return;}if(!pageActive)return;scheduleFrame();if(!demo)reconnect();});

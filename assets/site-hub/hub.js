@@ -1,4 +1,4 @@
-/* XAN_HUB_V4_SHARED_DEBUG · XAN_HOME_READY_V1 */
+/* XAN_HUB_V4_SHARED_DEBUG · XAN_HOME_READY_V1 · XAN_SESSION_REUSE_V1 */
 (() => {
  'use strict';
  const $=id=>document.getElementById(id), storage={get(k){try{return localStorage.getItem(k);}catch{return null;}},set(k,v){try{localStorage.setItem(k,v);}catch{}}};
@@ -20,17 +20,33 @@
   blackjackduel:['Blackjack Duel','2 PLAYERS','/assets/blackjack-duel/images/table-felt.png','Play head-to-head blackjack with your match stack. Choose your bet, then hit or stand to approach 21 without busting. Follow the match’s round and stack rules to beat your opponent.','#ba7897'],
   'roulette-four':['Four-player Roulette','4 PLAYERS','/assets/roulette-four/images/tv-gamblers-v6.png','Four players each stake the chosen wager. Take at least one shot before passing; you get one spin per round. Safe shots bank increasing awards. A live round ends the game: the eliminated player loses their bank and survivors share the remaining pot, weighted by safe shots. Inactivity eliminates a player.','#e6bf51']
  };
- let token='',authPromise=null,pending=false,notifications=[],errors=0,networkErrors=0,refreshTimer;
+ let token='',tokenKey='',authKey='',authPromise=null,pending=false,notifications=[],errors=0,networkErrors=0,refreshTimer;
  const chips=v=>Number(v||0).toLocaleString()+' Chips';
  const element=(tag,text,cls)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e;};
  function current(){return window.XanSiteAdapter?.current?.()||{mode:location.pathname.includes('/rps/')?'rps':location.pathname.includes('/roulette-four/')?'roulette-four':'',id:''};}
- async function post(endpoint,body){const r=await fetch('/.netlify/functions/'+endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(12000)});const d=await r.json();if(!r.ok||!d.ok){const e=new Error(d.error||'Please retry.');e.status=r.status;throw e;}return d;}
+ function clearSession(){token='';tokenKey='';try{sessionStorage.removeItem('xan-hub-session');}catch{}}
+ async function post(endpoint,body,retried=false){const keyAtSend=storage.get('tornVisitorApiKey'),r=await fetch('/.netlify/functions/'+endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(12000)});const d=await r.json();if(!r.ok||!d.ok){
+   // Only an authentication rejection is replayed. Mutations retain their
+   // original receipt, and the server still verifies every request.
+   if(r.status===401&&body.token&&endpoint!=='rps-action'&&!retried&&keyAtSend===storage.get('tornVisitorApiKey')){if(body.token===token)clearSession();const renewed=await authenticate();if(renewed)return post(endpoint,{...body,token:renewed},true);}
+   const e=new Error(d.error||'Please retry.');e.status=r.status;throw e;
+  }return d;}
  async function authenticate(){
-  if(token)return token;if(authPromise)return authPromise;
-  const key=storage.get('tornVisitorApiKey');if(!key)return '';
-  authPromise=(async()=>{const d=await post('rps-action',{action:'login',visitorKey:key});token=d.token;return token;})().finally(()=>{authPromise=null;});return authPromise;
+  const key=storage.get('tornVisitorApiKey');if(!key){clearSession();return '';}
+  if(token&&tokenKey===key)return token;if(authPromise&&authKey===key)return authPromise;
+  authKey=key;
+  const operation=(async()=>{
+   let keyHash='';try{keyHash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(key))),n=>n.toString(16).padStart(2,'0')).join('');}catch{}
+   let cached;try{cached=JSON.parse(sessionStorage.getItem('xan-hub-session'));}catch{}
+   if(keyHash&&cached?.keyHash===keyHash&&cached.expiresAt>Date.now()&&/^[a-f0-9]{64}$/.test(cached.token)){
+    if(storage.get('tornVisitorApiKey')!==key)throw Error('Your profile changed. Please reconnect.');token=cached.token;tokenKey=key;return token;
+   }
+   const d=await post('rps-action',{action:'login',visitorKey:key});if(storage.get('tornVisitorApiKey')!==key)throw Error('Your profile changed. Please reconnect.');token=d.token;tokenKey=key;
+   if(keyHash)try{sessionStorage.setItem('xan-hub-session',JSON.stringify({keyHash,token,expiresAt:Date.now()+10*60*60*1000}));}catch{}
+   return token;
+  })();authPromise=operation;try{return await operation;}finally{if(authPromise===operation){authPromise=null;authKey='';}}
  }
- async function api(action,extra={}){const session=await authenticate();try{return await post('site-hub',{action,token:session,...extra});}catch(e){if(e.status===401)token='';throw e;}}
+ async function api(action,extra={}){const session=await authenticate();try{return await post('site-hub',{action,token:session,...extra});}catch(e){if(e.status===401)clearSession();throw e;}}
  async function cancelTable(mode,id){const token=await authenticate();if(mode==='yahtzee')await post('yahtzee-action',{action:'cancel',room:id,requestId:crypto.randomUUID(),token});else if(mode==='minigolf')await post('mini-golf-action',{action:'cancel',gameId:id,token});else if(['rps','roulette-four','bluff'].includes(mode))await post(mode+'-action',{action:'cancel',gameId:id,token});else if(window.XanSiteAdapter?.cancel)await window.XanSiteAdapter.cancel(id);else await post('duel-action',{action:'cancel',gameId:id,visitorKey:storage.get('tornVisitorApiKey')});await window.XanSiteAdapter?.dismissCancelled?.(id);await refresh();}
  window.XanHub={authenticate,post,api,cancelTable,refresh:()=>refresh(),games,get profile(){return window.XanPlayerProfile;}};
  const bar=element('header',undefined,'xan-bar');bar.innerHTML='<div class="xan-account"><span id="hub-player">WELCOME TO THE ARENA</span><strong id="hub-balance">Connect to play</strong></div><a href="/" class="xan-brand" aria-label="Xan Duels home"><b>XAN</b> DUELS</a><nav class="xan-tools" aria-label="Site controls"><a class="hub-all" href="/">All games</a><button id="hub-bell" aria-label="Notifications" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M9 21h6"/></svg></button><button id="hub-menu" aria-label="Open menu" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button></nav>';
@@ -61,7 +77,7 @@
   // Remove credentials and cached identities, while server-owned waiting rooms remain open.
   for(const k of ['tornVisitorApiKey','tornKeyConfirmed','tornVisitorUserId','tornVisitorName','tornVisitorId','xanVisitorId','xanSiteConfirmedBalance','xanSiteSharedState']){try{localStorage.removeItem(k);}catch{}}
   try{sessionStorage.removeItem('rps-token');sessionStorage.removeItem('rps-match');}catch{}
-  token='';location.assign('/');
+  clearSession();location.assign('/');
  };
  function closeDialog(){dialog.close();$('hub-menu').focus();}
  function diagnosticSnapshot(){

@@ -2,9 +2,18 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 import {PGlite} from '@electric-sql/pglite';
+import {readFileSync} from 'node:fs';
+import vm from 'node:vm';
 const require=createRequire(import.meta.url),rules=require('../shared/games/rocket-run'),{createStore,publicGame}=require('../netlify/functions/rocket-run/database'),{createWallet}=require('../netlify/functions/rps/wallet'),{createHandler}=require('../netlify/functions/rocket-run-action');
 const purchase=(stake=50000,autoCents=null)=>({stake,autoCents,quote:rules.build,requestId:crypto.randomUUID()});
 const cash=s=>({gameId:s.id,requestId:crypto.randomUUID()});
+test('rocket keeps sweeping both ways on long flights, stays in frame and moves continuously',()=>{
+ const window={};vm.runInNewContext(readFileSync(new URL('../assets/rocket-run/scene.js',import.meta.url),'utf8'),{window});
+ for(const seed of [0,1,7289,4294967295]){const scene=Object.create(window.RocketRunScene.prototype);scene.seed=seed;let left=false,right=false;
+  for(let t=0;t<180;t+=.016){const a=scene.position(t),b=scene.position(t+.016);assert.ok(a.x>150&&a.x<850&&a.y>300&&a.y<650);assert.ok(Math.hypot(a.x-b.x,a.y-b.y)<6);if(t>20){left||=b.x<a.x;right||=b.x>a.x;}}
+  assert.ok(left&&right,'Long flights cannot get stuck veering right');
+ }
+});
 async function fixture(){
  const pg=new PGlite();let tail=Promise.resolve(),failure=null,clock=Date.now(),draw=0;
  const pool={query:(s,a)=>pg.query(s,a),connect:async()=>{let release;const prior=tail;tail=new Promise(r=>release=r);await prior;return {query:(s,a)=>pg.query(s,a),release};}};
@@ -33,6 +42,27 @@ test('immediate crash and exact ties beat cash-out; no client timestamp can reve
  const f=await fixture();try{
   f.draw(rules.range-1);let s=await f.store.start(f.a,purchase());f.at(s.launchAt);s=await f.store.cashout(f.a,{...cash(s),timestamp:0,cashCents:99999});assert.equal(s.outcome,'crash');assert.equal(s.payout,0);assert.equal(s.crashCents,100);assert.equal(await f.wallet.balance(f.a),1999950000);
   f.draw(Math.floor(90*rules.range/200)-1);s=await f.store.start(f.a,purchase(50000,200));assert.equal(s.crashCents,200);f.at(s.launchAt+rules.timeAt(200));assert.equal((await f.store.current(f.a)).outcome,'crash');assert.equal((await f.store.cashout(f.a,cash(s))).payout,0);
+ }finally{await f.pg.close();}
+});
+
+test('cash-out freezes verified receipt time before waiting for the database lock',async()=>{
+ const f=await fixture();try{
+  f.draw(Math.floor(90*rules.range/200)-1);const s=await f.store.start(f.a,purchase());
+  f.at(s.launchAt+rules.timeAt(190));const connect=f.pool.connect;
+  f.pool.connect=async()=>{f.at(s.launchAt+rules.timeAt(300));return connect();};
+  const win=await f.store.cashout(f.a,cash(s));assert.equal(win.cashCents,190);assert.equal(win.payout,95000);assert.equal(win.outcome,'cashout');
+  assert.equal((await f.store.current(f.a)).payout,95000);assert.equal(f.entries().length,2);
+ }finally{await f.pg.close();}
+});
+
+test('active polls avoid wallet latency; response clocks are stamped after balance reads; forged timing is ignored',async()=>{
+ const f=await fixture();try{
+  let balanceReads=0;const funds={balance:async p=>{balanceReads++;f.at(f.store.time()+2000);return f.wallet.balance(p);}};
+  const handler=createHandler(f.store,{authenticate:async()=>f.a},funds),call=async b=>(await handler(new Request('http://local',{method:'POST',body:JSON.stringify({token:'valid',...b})}))).json();
+  f.draw(Math.floor(90*rules.range/200)-1);const start=await call({action:'start',...purchase()});assert.equal(start.serverNow-start.stateAt,2000);
+  const initial=balanceReads,poll=await call({action:'current'});assert.equal(balanceReads,initial);assert.equal(poll.balance,undefined);assert.equal(poll.serverNow,f.store.time());
+  f.at(start.game.launchAt+rules.timeAt(210));const loss=await call({action:'cashout',...cash(start.game),receivedAt:start.game.launchAt,timestamp:start.game.launchAt,cashCents:100,payout:99999999});
+  assert.equal(loss.game.outcome,'crash');assert.equal(loss.game.payout,0);assert.equal(loss.serverNow-loss.stateAt,2000);
  }finally{await f.pg.close();}
 });
 test('automatic cash-out survives a long disconnect; cap settles without any client claim',async()=>{

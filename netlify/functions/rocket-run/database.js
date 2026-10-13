@@ -18,7 +18,7 @@ function createStore(injectedPool,injectedWallet,random=crypto.randomInt,now=Dat
  async function tx(fn){await ready();const c=await db().connect();try{await c.query('BEGIN');const r=await fn(c);await c.query('COMMIT');return r;}catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}}
  const save=(c,s)=>c.query('UPDATE rocket_run_games SET state=$2::jsonb WHERE id=$1',[s.id,JSON.stringify(s)]);
  async function load(c,player,id){const s=(await c.query('SELECT state FROM rocket_run_games WHERE id=$1 AND owner=$2 FOR UPDATE',[id,player.id])).rows[0]?.state;if(!s)fail('Flight not found.',404);return s;}
- async function recover(player,id,manual=false){
+ async function recover(player,id,manualAt=null){
   // The secret outcome is committed before debit. A result is committed before
   // credit. Every wallet retry uses the same immutable receipt and amount.
   const prepared=await tx(async c=>{
@@ -28,10 +28,10 @@ function createStore(injectedPool,injectedWallet,random=crypto.randomInt,now=Dat
     catch(e){if(e.code!=='RPS_FUNDS')throw e;s.status='failed';s.error=e.message;}
    }
    if(s.status==='active'){
-    const stamp=now(),target=s.autoCents??rules.cap(s.stake),crashAt=s.launchAt+rules.timeAt(s.crashCents),autoAt=s.launchAt+rules.timeAt(target);
+    const stamp=manualAt??now(),target=s.autoCents??rules.cap(s.stake),crashAt=s.launchAt+rules.timeAt(s.crashCents),autoAt=s.launchAt+rules.timeAt(target);
     if(s.crashCents<=target&&stamp>=crashAt){s.outcome='crash';s.payout=0;s.cashCents=0;s.endedAt=crashAt;s.status='paying';}
     else if(target<s.crashCents&&stamp>=autoAt){s.outcome=target===rules.cap(s.stake)?'limit':'auto';s.cashCents=target;s.payout=rules.payout(s.stake,target);s.endedAt=autoAt;s.status='paying';}
-    else if(manual){
+    else if(manualAt!==null){
      if(stamp<s.launchAt)fail('Wait for liftoff before cashing out.');
      s.outcome='cashout';s.cashCents=rules.centsAt(stamp-s.launchAt);s.payout=rules.payout(s.stake,s.cashCents);s.endedAt=stamp;s.status='paying';
     }
@@ -60,7 +60,7 @@ function createStore(injectedPool,injectedWallet,random=crypto.randomInt,now=Dat
   });
   const s=await recover(player,id);if(s.status==='failed')fail(s.error||'Unable to fund this launch.');return s;
  }
- async function cashout(player,b){if(!/^[A-F0-9]{12}$/.test(b.gameId||'')||!validRequest(b.requestId))fail('Invalid flight reference.',400);return recover(player,b.gameId,true);}
+ async function cashout(player,b,receivedAt=now()){if(!/^[A-F0-9]{12}$/.test(b.gameId||'')||!validRequest(b.requestId))fail('Invalid flight reference.',400);return recover(player,b.gameId,Math.min(receivedAt,now()));}
  async function current(player){await ready();const r=(await db().query("SELECT id FROM rocket_run_games WHERE owner=$1 AND state->>'status'<>'failed' ORDER BY created_at DESC LIMIT 1",[player.id])).rows[0];return r?recover(player,r.id):null;}
  return {ready,start,cashout,current,recover,publicGame,time:now};
 }

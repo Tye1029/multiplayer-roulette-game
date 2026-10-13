@@ -1,4 +1,4 @@
-/* ROCKET_RUN_V1 */
+/* ROCKET_RUN_V2 */
 :root{--game-accent:#e9b292}*{box-sizing:border-box}body.xan-unified{margin:0;--game-bg:#101b2c;--game-accent:#e9b292;font-family:Inter,system-ui,sans-serif}.rr-intro,.rr-hero{min-width:0}#rr-play{scroll-margin-top:calc(var(--xan-header-height,90px) + 10px)}
 body.xan-unified{background:radial-gradient(ellipse at 70% 0,#263952 0,transparent 55%),radial-gradient(ellipse at 8% 70%,#352837 0,transparent 55%),#0c1422;color:#edf0ed}
 #rocket-app{max-width:1400px;margin:auto;padding:24px 4.5% 0}#rocket-app [hidden]{display:none!important}#rocket-app button,#rocket-app input,#rocket-app select{font:inherit}#rocket-app button{cursor:pointer}#rocket-app button:disabled{cursor:wait;opacity:.55}#rocket-app :focus-visible{outline:3px solid #a0e5ec;outline-offset:4px}

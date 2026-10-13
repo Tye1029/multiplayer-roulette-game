@@ -1,4 +1,4 @@
-# Rocket Run V1
+# Rocket Run V2
 
 Single-player flight game at `/games/single-player/rocket-run/`, linked in the
 homepage Single Player section. Uses the existing verified Torn identity, chip
@@ -19,6 +19,9 @@ wallet, timestamped ledger, header, menu, notifications, mute and debug controls
 - Separate free practice uses identical math and never calls paid game actions.
 - Original SVG rocket/cover and canvas scenery: lit porthole, metallic hull,
   engine plume, parallax stars/clouds, layered mountains, launch pad and skyline.
+  Flights continuously bank both ways rather than stopping at one position.
+  Each flight independently selects one of eight shaded moon phases, plus sparse
+  satellite flybys and shooting stars. Scenery never depends on the crash draw.
   Successful cash-out produces a gold burst; a crash scatters debris.
 - Original Web Audio ignition, relay countdown, soft looped engine, airlock and
   landing chord, and a short breakup sound. Shared mute and background silence.
@@ -43,7 +46,7 @@ target increases potential payout and reduces its survival chance. This is a
 long-run expectation, not a guarantee for any finite set of flights.
 
 Tests check every hundredth target at every available stake. A separate
-2,000,000-flight production-RNG simulation returned 88.60%–90.39% across fourteen
+2,000,000-flight production-RNG V2 simulation returned 86.80%–90.36% across fourteen
 targets from 1x through 1000x. All sampled targets returned less than the stakes;
 the exact probability formula establishes the advantage regardless of a sample.
 Run `node scripts/rocket-run-simulation.mjs` for a fresh report.
@@ -52,10 +55,21 @@ Run `node scripts/rocket-run-simulation.mjs` for a fresh report.
 
 The crash value never leaves the server while the flight is active. Clients
 cannot submit a crash, payout, start time or accepted cash-out timestamp.
-Manual cash-out uses server time after locking the flight row. Automatic targets
+Manual cash-out captures server time immediately after authentication, before
+waiting for the flight row lock. Browser timestamps and requested multipliers
+are ignored. Already committed terminal results cannot be changed. Automatic targets
 are evaluated against immutable deadlines, independently of polling frequency.
-The UI estimates time between updates and freezes extrapolation after 1.8 seconds
-without a response. The rules explain that network delay affects manual cash-out.
+Active polls no longer read the wallet separately. Response clocks are sampled
+after any balance read; the client estimates transit time from server duration
+and round-trip time. This avoids displaying seconds-old multipliers as current.
+The UI freezes the rocket and multiplier immediately on pressing Cash out;
+late polling replies cannot overwrite that pending action. Auto cash-out freezes
+at its target and requests confirmation immediately, without waiting for the next
+normal poll. Neither pending state claims a win before the server confirms it.
+After 1.8 seconds without a fresh response, the manual button reconnects rather
+than offering cash-out against stale flight information. Network travel and
+authentication still happen before verified receipt; a request arriving after
+a crash cannot be guaranteed a payout without permitting backdated claims.
 
 Owner advisory locks serialize new flights. Row locks serialize resolution.
 An immutable launch intent precedes debit; an immutable result precedes credit.
@@ -65,7 +79,8 @@ responses cannot reroll a flight, duplicate its charge or award it twice.
 One funded flight per verified player; ownership and authentication are checked
 before any read or mutation. Failed funding cannot expose a playable flight.
 
-Active visible flights poll about once per second, with no overlapping polls.
+Active visible flights poll after a 650ms gap, with no overlapping polls. Target
+confirmation uses a bounded 200ms gap until resolved.
 Unchanged flight polls do not write the state. There is no idle menu polling.
 Settlement after closing the page is evaluated on the next server request; it
 does not require a client timer to run, and uses the original target/deadlines.
@@ -77,9 +92,15 @@ node --test scripts/rocket-run.test.mjs scripts/plinko.test.mjs scripts/minefiel
 node scripts/rocket-run-simulation.mjs
 npm run build
 node scripts/rocket-run-browser.test.mjs
+node scripts/site-entry-browser.test.mjs
 ```
 
 The build includes the existing protected Roulette, Safe Cracker and Summit
 Sprint checks. Browser tests cover manual/automatic/crash/cap results, failed
 funding, duplicate windows, reload and retry recovery, desktop, 390/320px phones,
 landscape, free practice, mute, reduced motion, light theme, BFCache and homepage.
+V2 also tests delayed manual/auto responses, frozen pending displays, one request
+per press, lock queue latency, forged timestamps, response clock accuracy and
+wallet-free active polls. Shared entry tests cover tab-local session reuse,
+expired/rejected sessions, changed profiles, sign-out and free play during a slow
+login. Session reuse never skips server authentication or paid-game recovery.

@@ -6,10 +6,10 @@
  window.XanSiteAdapter={current:()=>({mode:'plinko',id:playing&&!demo?last?.id||'':'',phase:playing?(busy?'playing':'ready'):'lobby'}),diagnostics:()=>({build:rules.build,ready,busy,connecting,demo,frames:board?.frame?1:0,audioVoices:audio.active})};
  function notice(text='',again=null){$('pl-notice').textContent=text;retry=again;$('pl-retry').hidden=!again;$('pl-retry').textContent=pending?'Recover drop':'Reconnect';}
  function settings(prefix){return '<div class="pl-settings"><label class="pl-stake-label" for="'+prefix+'stake">Chips per drop<select id="'+prefix+'stake">'+rules.stakes.map(n=>'<option value="'+n+'">'+fmt(n)+' chips</option>').join('')+'</select></label><div class="pl-risk-heading"><span>Risk level</span><small>16 PEG ROWS</small></div><div class="pl-risks" role="group" aria-label="Risk level">'+Object.entries(rules.risks).map(([key,value])=>'<button type="button" data-risk="'+key+'" aria-pressed="false">'+value.name+'</button>').join('')+'</div><p class="pl-risk-note"></p><div class="pl-cap"><span>Top return · includes wager</span><b></b></div></div>';}
- function controls(){const locked=busy||Boolean(pending)||connecting;
+ function controls(){const locked=busy||Boolean(pending);
   for(const prefix of ['pl-menu-','pl-play-']){const panel=$(prefix+'settings');panel.querySelector('select').value=String(stake);panel.querySelector('select').disabled=locked;for(const button of panel.querySelectorAll('[data-risk]')){button.disabled=locked;button.setAttribute('aria-pressed',String(button.dataset.risk===risk));}panel.querySelector('.pl-risk-note').textContent=rules.risks[risk].description;panel.querySelector('.pl-cap b').textContent=fmt(rules.payout(stake,risk,0))+' chips';}
   $('pl-enter').disabled=locked;$('pl-practice').disabled=locked;$('pl-free').disabled=locked;$('pl-free').checked=demo;
-  $('pl-drop').disabled=locked||(!demo&&!ready)||remaining()>0;
+  $('pl-drop').disabled=locked||(!demo&&(!ready||connecting))||remaining()>0;
   $('pl-drop').textContent=busy?'Ball in motion…':pending?'Recover your drop':remaining()>0?'Preparing next drop…':demo?'Drop a free ball':'Drop ball · '+fmt(stake)+' chips';
   $('pl-connect').hidden=ready;$('pl-play-connect').hidden=ready||demo;
   $('pl-mode').textContent=demo?'FREE PRACTICE · NO CHIPS SPENT':'THE DROP ROOM';
@@ -43,7 +43,7 @@
    else{notice('Connection interrupted. Recover this drop before starting another. Your purchase reference is saved.',()=>launch(body));$('pl-result').querySelector('.pl-result-label').textContent='CONNECTION INTERRUPTED';$('pl-result').querySelector('strong').textContent='Your drop is saved.';$('pl-result').querySelector('p').textContent='Use Recover drop to restore the original result.';}
   }finally{if(current(run)){busy=false;$('pl-machine').classList.remove('is-dropping');if(pending)$('pl-flight').textContent='AWAITING CONFIRMATION';controls();}}
  }
- function drop(){if(busy||pending||connecting||remaining()>0||(!demo&&!ready))return;launch({action:'drop',stake,risk,quote:rules.build,requestId:crypto.randomUUID()});}
+ function drop(){if(busy||pending||remaining()>0||(!demo&&(!ready||connecting)))return;launch({action:'drop',stake,risk,quote:rules.build,requestId:crypto.randomUUID()});}
  async function reconnect(){if(busy||pending)return;if(!localStorage.getItem('tornVisitorApiKey')){ready=false;controls();return;}const run=epoch;connecting=true;controls();
   try{const response=await request({action:'current'});if(!current(run))return;ready=true;last=response.drop;balance(response);notice();if(playing&&!demo){result(last,true);if(last&&last.stake===stake&&last.risk===risk)board.show(last);}}
   catch(e){if(current(run)){ready=false;notice(e.message,reconnect);}}finally{if(current(run)){connecting=false;controls();}}

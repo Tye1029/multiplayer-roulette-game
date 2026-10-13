@@ -20,4 +20,5 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: node --test scripts/rocket-run.test.mjs scripts/plinko.test.mjs scripts/minefield.test.mjs scripts/site-hub.test.mjs
       - run: npm run build
+      - run: node scripts/site-entry-browser.test.mjs
       - run: node scripts/rocket-run-browser.test.mjs

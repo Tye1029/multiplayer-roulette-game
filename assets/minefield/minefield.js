@@ -10,9 +10,9 @@
  function selection(){return {stake:Number($('mf-menu-stake').value),mineCount:Number($('mf-menu-mines').value),returnPercent:selectedReturnPercent,payoutLimit:selectedPayoutLimit};}
  function notice(message='',again=null){$('mf-notice').textContent=message;retry=again;$('mf-retry').hidden=!again;}
  function controls(){
-  const resume=active(saved),locked=busy||Boolean(pending)||connecting,choiceLocked=locked||(!demo&&active(game))||(!playing&&resume);
+  const resume=active(saved),locked=busy||Boolean(pending)||(connecting&&!demo),choiceLocked=busy||Boolean(pending)||(!demo&&active(game))||(!playing&&resume);
   for(const id of ['mf-menu-stake','mf-menu-mines','mf-next-stake','mf-next-mines'])$(id).disabled=choiceLocked;
-  $('mf-start').disabled=locked||!ready;$('mf-practice').disabled=locked||connecting;
+  $('mf-start').disabled=locked||!ready;$('mf-practice').disabled=busy||Boolean(pending);
   $('mf-start').textContent=connecting?'Connecting…':resume?'Resume your field':'Start field · '+fmt(selection().stake)+' chips';
   $('mf-again').disabled=locked||(!demo&&!ready);$('mf-again').textContent=demo?'Try another free field':'Start new field · '+fmt(selection().stake)+' chips';
   $('mf-cashout').disabled=locked||!active(game)||game.safeCount===0;

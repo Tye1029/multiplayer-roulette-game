@@ -1,7 +1,7 @@
-/* ROCKET_RUN_V1 — display math shared with the authoritative flight server. */
+/* ROCKET_RUN_V2 — display math shared with the authoritative flight server. */
 (function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory();else root.RocketRunRules=factory();})(globalThis,()=>{
  'use strict';
- const build='ROCKET_RUN_V1',stakes=[50000,100000,500000,1000000,5000000,10000000],maxPayout=50000000,countdownMs=3000,growth=.12,range=4294967296;
+ const build='ROCKET_RUN_V2',stakes=[50000,100000,500000,1000000,5000000,10000000],maxPayout=50000000,countdownMs=3000,growth=.12,range=4294967296;
  function cap(stake){if(!stakes.includes(stake))throw new RangeError('Invalid wager');return maxPayout/stake*100;}
  function validAuto(n,stake){return n===null||(Number.isInteger(n)&&n>=110&&n<=cap(stake));}
  function centsAt(elapsed){return Math.min(100000,Math.max(100,Math.floor(100*Math.exp(Math.max(0,elapsed)/1000*growth)+1e-8)));}

@@ -1,4 +1,6 @@
 :root{--xan-accent:#ed555d;--hub-bg:#101114;--hub-panel:#1b1d22;--hub-line:#34363d;--hub-text:#f4f3f0;--hub-muted:#a4a6af;color-scheme:dark}
+/* Keep unavailable controls clear without showing an OS loading spinner. */
+body :is(button:disabled,input:disabled,select:disabled,[aria-disabled=true]){cursor:default!important}
 :root[data-theme=light]{--hub-bg:#eeeff2;--hub-panel:#fff;--hub-line:#ced0d7;--hub-text:#202126;--hub-muted:#5a5e68;color-scheme:light}
 .xan-bar,.xan-dialog,.xan-popover,#simpleTestHome{font-family:Inter,ui-sans-serif,system-ui,sans-serif!important;color:var(--hub-text)!important}
 body>header.xan-bar{position:sticky;top:0;z-index:2147483100;display:grid!important;grid-template-columns:1fr auto 1fr;align-items:center;min-height:70px;padding:12px clamp(14px,4vw,48px);gap:12px;background:var(--hub-bg);border-bottom:1px solid var(--hub-line)}
