@@ -11,7 +11,7 @@ for(let n=0;n<matches;n++){
   model.advance(s,now,die);for(const id of ['101','202'])model.act(s,id,{action:'roll',round:s.round,game:s.game},die,now);
   rounds++;if(s.history.at(-1).winner===null)ties++;
   if(s.phase!=='complete')assert.equal(s.winner,null);
-  now+=model.BREAK_MS+model.COUNTDOWN_MS;
+  now+=model.BREAK_MS;
  }
  counts[s.winner]++;assert.equal(s.scores[s.winner],2);assert.ok(s.scores[1-s.winner]<2);
 }

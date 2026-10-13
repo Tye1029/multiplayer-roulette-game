@@ -1,9 +1,9 @@
-/* DICE_V3 */
+/* DICE_V4 */
 (() => {
  'use strict';const rules=window.LuckyDiceRules,audio=window.DiceDuelAudio,$=id=>document.getElementById(id),fmt=n=>Number(n).toLocaleString('en-US');
  let target=7,direction='higher',table,stake=50000,playing=false,demo=false,ready=false,connecting=false,busy=false,pending=null,retry=null,last=null,lastFree=null,epoch=0,pageActive=true,cooldownUntil=0,cooldownTimer;
  const current=run=>pageActive&&run===epoch,remaining=()=>demo?0:Math.max(0,cooldownUntil-performance.now()),read=key=>{try{return localStorage.getItem(key);}catch{return null;}};
- window.XanSiteAdapter={current:()=>({mode:'luckydice',id:'',phase:playing?(busy?'rolling':'ready'):'lobby'}),diagnostics:()=>({build:'DICE_V3',ready,busy,connecting,demo,animations:table?.animations.size||0,audioVoices:audio.active})};
+ window.XanSiteAdapter={current:()=>({mode:'luckydice',id:'',phase:playing?(busy?'rolling':'ready'):'lobby'}),diagnostics:()=>({build:'DICE_V4',ready,busy,connecting,demo,animations:table?.animations.size||0,audioVoices:audio.active})};
  function notice(text='',again=null){$('dd-notice').textContent=text;retry=again;$('dd-retry').hidden=!again;$('dd-retry').textContent=pending?'Recover roll':'Reconnect';}
  function settings(prefix){return '<div class="dd-settings"><label for="'+prefix+'stake">Chips per roll<select id="'+prefix+'stake">'+rules.stakes.map(n=>'<option value="'+n+'">'+fmt(n)+' chips</option>').join('')+'</select></label><div class="ld-choice"><label>Prediction<select data-choice="direction"><option value="higher">Higher than</option><option value="lower">Lower than</option></select></label><label>Your number<select data-choice="target">'+rules.targets.map(n=>'<option>'+n+'</option>').join('')+'</select></label></div><div class="dd-payout-preview"><span>Win return</span><b></b></div><p class="ld-odds"></p></div>';}
  function prediction(t=target,d=direction){$('ld-call').textContent=d.toUpperCase()+' THAN '+t;$('ld-target-display').textContent=(d==='higher'?'> ':'< ')+t;const values=Array.from({length:11},(_,i)=>i+2).filter(n=>d==='higher'?n>t:n<t);$('ld-winning-totals').textContent='Win on '+values.join(', ');$('ld-distribution').replaceChildren(...Array.from({length:11},(_,i)=>{const n=i+2,bar=document.createElement('i');bar.style.height=(6-Math.abs(7-n))*8+'px';bar.dataset.total=n;bar.className=values.includes(n)?'is-winning':'';bar.title=n+': '+(6-Math.abs(7-n))+' of 36 combinations';return bar;}));}
@@ -14,7 +14,7 @@
   $('dd-roll').textContent=busy?'Dice in motion…':pending?'Recover your roll':remaining()>0?'Preparing next roll…':demo?'Roll free dice':'Roll dice · '+fmt(stake)+' chips';
   $('dd-connect').hidden=ready;$('dd-play-connect').hidden=ready||demo;
   $('dd-mode').textContent=demo?'FREE PRACTICE · NO CHIPS SPENT':'THE LUCKY ROOM';
-  $('dd-play-note').textContent=demo?'Practice uses the same fair dice and payouts. No chips are spent or awarded.':'Both dice are fair and independent. Winnings are added automatically.';
+  $('dd-play-note').textContent=demo?'Practice uses the same fair dice and payouts. No chips are spent or awarded.':'Winnings are added automatically.';
   clearTimeout(cooldownTimer);if(!busy&&remaining()>0)cooldownTimer=setTimeout(controls,Math.min(remaining()+25,1000));
  }
  function configure(){controls();try{localStorage.setItem('lucky-dice-stake',String(stake));}catch{}}

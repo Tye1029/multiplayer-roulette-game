@@ -1,4 +1,4 @@
-# Lucky Dice and Dice Duel — DICE_V3
+# Lucky Dice and Dice Duel — DICE_V4
 
 Lucky Dice is the solo higher/lower game at `/games/single-player/lucky-dice/`.
 Dice Duel is the live two-player game at `/games/multiplayer/dice-duel/`.
@@ -37,7 +37,8 @@ games, Ready, three-second countdown, and 60 seconds to roll. Both results stay
 hidden until both players roll. Higher total wins a round; the first player to
 win two rounds takes the shared prize after the same configured settlement rate
 as other multiplayer games. A tie awards no point. Between rolls, pause seven
-seconds, then start another countdown. One wager covers the entire match.
+seconds for the dice animation and result pause, then open the next roll directly.
+Only the opening round and rematches have a three-second countdown. One wager covers the entire match.
 Scores reset only on a new match or rematch, never on a tied roll.
 
 One million simulated matches produced 501,123 / 498,877 wins, with 316,737 tied
@@ -71,7 +72,7 @@ Prize and rematch amounts come from authoritative state.
 Already-started legacy multiplayer matches keep their one-win terms; their next
 rematch uses first to two. Waiting rooms adopt first to two before starting.
 Lucky Dice's payout quote remains DICE_V2 because its financial terms are
-unchanged; the frontend assets and multiplayer endpoint use DICE_V3.
+unchanged; the frontend assets and multiplayer endpoint use DICE_V4.
 
 The old single-player URL redirects to Lucky Dice. The old dice-duel-action
 endpoint, dice_duel_rounds / dice_duel_requests, original rules, and financial
@@ -89,6 +90,14 @@ Reduced-motion mode, mute, backgrounding and navigation cancel playback safely.
 Totals, points, tie/winner text, result sounds and rematch controls appear only
 after every die finishes settling. Incoming snapshots cannot interrupt a reveal;
 a late reveal retains its result briefly before showing the current round.
+The shared header defers wallet and achievement balance updates while a multiplayer
+match is active, until the adapter exposes a visible result root. Hidden dialogs,
+transparent overlays and Yahtzee’s tally keep the balance held; rematches reset
+the hold. Server settlement and ledger receipts are unchanged. Multiplayer prize
+labels exclude the configured house share; final results use actual settled
+payouts. Restored legacy scenes format their pot labels in the shared shell using
+the server’s current rate, leaving their authoritative gross-pot state untouched.
+
 Roll audio uses the existing recorded dice throws from
 [Kenney Casino Audio](https://kenney.nl/assets/casino-audio), licensed CC0;
 see assets/site-hub/audio/LICENSE.json. Three varied recordings are decoded
@@ -100,6 +109,7 @@ node scripts/lucky-dice-simulation.mjs
 node scripts/dice-duel-multiplayer-simulation.mjs
 npm run build
 node scripts/dice-v2-browser.test.mjs
+node scripts/multiplayer-balance-browser.test.mjs
 node scripts/site-entry-browser.test.mjs
 node scripts/home-navigation-browser.test.mjs
 ```

@@ -144,7 +144,7 @@
     shoot(s,s.players[s.turn].id,{...shot,revision:s.revision,requestId:`bot-${s.match}-${s.revision}`},now);return s;
   }
   function publicState(s,id,now=Date.now()){
-    const {finance,...v}=s;return {...v,you:s.players.findIndex(p=>p.id===String(id)),serverNow:now,wager:s.wager||0,settlement:finance?.status||'free',funding:!!finance?.pending?.length,payouts:finance?.status==='settled'?finance.payouts:{}};
+    const {finance,...v}=s;return {...v,you:s.players.findIndex(p=>p.id===String(id)),serverNow:now,wager:s.wager||0,houseCutPercent:finance?.rate||0,settlement:finance?.status||'free',funding:!!finance?.pending?.length,payouts:finance?.status==='settled'?finance.payouts:{}};
   }
   return {create,join,start,act,bot,advance,publicState,holeFor,fail,TURN_MS,NEXT_COURSE_MS,STROKE_LIMIT,CUP_FEEDBACK_MS,COUNTDOWN_MS};
 });

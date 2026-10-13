@@ -5,7 +5,7 @@ const randomDie=()=>randomInt(1,7);
 function fail(message,status=409){throw Object.assign(Error(message),{status});}
 function player(id,name,bot=false){return {id:String(id),name:String(name).slice(0,40),bot,dice:[],locked:false};}
 function fresh(id,who,now=Date.now()){return {version:2,id,phase:'waiting',players:[who],revision:1,round:1,winsRequired:2,scores:[0,0],requests:[],rematch:[],ready:[],createdAt:now,expiresAt:now+86400000,game:1,deadline:0,nextAt:0,botAt:0,history:[],winner:null};}
-function begin(s,now){s.phase='playing';s.deadline=now+ROUND_MS;s.nextAt=0;s.botAt=now+1800;for(const p of s.players){p.dice=[];p.locked=false;}}
+function begin(s,now){s.phase='playing';s.startAt=0;s.deadline=now+ROUND_MS;s.nextAt=0;s.botAt=now+1800;for(const p of s.players){p.dice=[];p.locked=false;}}
 function countdown(s,now){begin(s,now+COUNTDOWN_MS);s.phase='countdown';s.startAt=now+COUNTDOWN_MS;s.finishedAt=0;s.winner=null;delete s.reason;delete s.forfeitWinner;}
 function finish(s,now){if(!s.players.every(p=>p.locked))return;const totals=s.players.map(p=>p.dice[0]+p.dice[1]),winner=totals[0]===totals[1]?null:totals[0]>totals[1]?0:1;s.scores||=[0,0];const scoresBefore=[...s.scores];if(winner!==null)s.scores[winner]++;s.history.push({round:s.round,dice:s.players.map(p=>[...p.dice]),totals,winner,scoresBefore});s.history=s.history.slice(-20);s.deadline=0;
  // Already-started legacy matches retain their one-win terms until the next rematch.
@@ -14,7 +14,7 @@ function advance(s,now=Date.now(),roll=randomDie){
  if(s.phase==='waiting'&&s.readyDeadline&&now>=s.readyDeadline){s.ready=[];s.readyDeadline=null;}
  for(let i=0;i<8;i++){
   if(s.phase==='countdown'&&now>=s.startAt){s.phase='playing';continue;}
-  if(s.phase==='between'&&now>=s.nextAt){const at=s.nextAt;s.round++;countdown(s,at);continue;}
+  if(s.phase==='between'&&now>=s.nextAt){const at=s.nextAt;s.round++;begin(s,at);continue;}
   if(s.phase!=='playing')break;
   const bot=s.players.find(p=>p.bot&&!p.locked);
   if(bot&&now>=s.botAt&&s.botAt<s.deadline){bot.dice=[roll(),roll()];bot.locked=true;finish(s,s.botAt);continue;}

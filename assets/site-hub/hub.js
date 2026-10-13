@@ -1,4 +1,4 @@
-/* XAN_HUB_V4_SHARED_DEBUG · XAN_HOME_READY_V1 · XAN_SESSION_REUSE_V1 */
+/* XAN_HUB_V4_SHARED_DEBUG · XAN_HOME_READY_V1 · XAN_SESSION_REUSE_V1 · XAN_RESULT_BALANCE_V1 */
 (() => {
  'use strict';
  const $=id=>document.getElementById(id), storage={get(k){try{return localStorage.getItem(k);}catch{return null;}},set(k,v){try{localStorage.setItem(k,v);}catch{}}};
@@ -26,6 +26,51 @@
  const chips=v=>Number(v||0).toLocaleString()+' Chips';
  const element=(tag,text,cls)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e;};
  function current(){return window.XanSiteAdapter?.current?.()||{mode:location.pathname.includes('/rps/')?'rps':location.pathname.includes('/roulette-four/')?'roulette-four':'',id:''};}
+ // Wallet settlement stays server-owned. Only its header presentation waits for
+ // the game-owned result UI, including dice rolls, tallies and cinematic reveals.
+ let pendingBalance=null,balanceTimer,revealedMatch='',balanceSample=-1,balanceOwner='',houseRate=null;
+ function prize(pot,rate=houseRate){
+  if(rate===null||!Number.isFinite(Number(rate)))return null;
+  const amount=Math.max(0,Math.floor(Number(pot)||0));
+  return amount-Math.min(amount,Math.ceil(amount*Math.max(0,Math.min(25,Number(rate)))/100));
+ }
+ // These restored scenes retain their original gross-pot state. Format only
+ // their money labels here; no game snapshot or settlement value is rewritten.
+ function legacyPrizes(){
+  const c=current(),v=window.XanSiteAdapter?.view?.();
+  if(!c.id||!v||v.id!==c.id||!['roulette','fishing','safecracker','mountainrace','draw'].includes(c.mode))return;
+  const amount=v.prize??prize(v.pot||v.wager||0),label=amount===null?'—':chips(amount);
+  const labels={'.rr-pot > b':amount===null?'—':amount.toLocaleString(),'.rr-pot > small':'Chips','.rr-pot > span:first-child':'Prize','.fishing-pot > small':'PRIZE','.fishing-pot > b':label,'.sc-prize > b':label,'.sh-clock > small':label+' PRIZE','.m68-stakes':chips(v.wager)+' stake · '+label+' prize'};
+  for(const [selector,value] of Object.entries(labels))for(const n of document.querySelectorAll('#duelActive '+selector))if(n.textContent!==value)n.textContent=value;
+ }
+ function visibleResult(root){
+  if(!root?.isConnected||!root.getClientRects().length)return false;
+  for(let n=root;n?.nodeType===1;n=n.parentElement){const css=getComputedStyle(n);if(n.hidden||n.tagName==='DIALOG'&&!n.open||css.display==='none'||css.visibility==='hidden'||Number(css.opacity)===0)return false;}
+  return true;
+ }
+ function awaitingResult(){
+  const c=current(),a=window.XanSiteAdapter,v=a?.view?.()||{},id=c.id||v.id;
+  if(!id||!games[c.mode]||games[c.mode][1]==='SINGLE PLAYER'){revealedMatch='';return false;}
+  const key=c.mode+':'+id+':'+(v.match||''),phase=v.phase||c.phase;
+  if(['waiting','ready','funding','lobby','closed','cancelled'].includes(phase)){revealedMatch='';return false;}
+  if(v.finished){
+   if(revealedMatch===key)return false;
+   if(!document.hidden&&visibleResult(a.resultRoot?.())){revealedMatch=key;return false;}
+  }else revealedMatch='';
+  return true;
+ }
+ function flushBalance(){
+  clearTimeout(balanceTimer);if(!pendingBalance)return;
+  if(pendingBalance.key!==storage.get('tornVisitorApiKey')){pendingBalance=null;return;}
+  if(awaitingResult()){balanceTimer=setTimeout(flushBalance,100);return;}
+  const value=pendingBalance.value;pendingBalance=null;$('hub-balance').textContent=chips(value);
+  window.dispatchEvent(new Event('xan-balance-revealed'));
+ }
+ function setBalance(value,{key=storage.get('tornVisitorApiKey'),at=performance.now()}={}){
+  if(!Number.isFinite(value)||key!==storage.get('tornVisitorApiKey'))return;
+  if(balanceOwner!==key){balanceOwner=key;balanceSample=-1;pendingBalance=null;revealedMatch='';}
+  if(at<balanceSample)return;balanceSample=at;pendingBalance={value,key};flushBalance();
+ }
  function clearSession(){token='';tokenKey='';try{sessionStorage.removeItem('xan-hub-session');}catch{}}
  async function post(endpoint,body,retried=false){const keyAtSend=storage.get('tornVisitorApiKey'),r=await fetch('/.netlify/functions/'+endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(12000)});const d=await r.json();if(!r.ok||!d.ok){
    // Only an authentication rejection is replayed. Mutations retain their
@@ -50,7 +95,7 @@
  }
  async function api(action,extra={}){const session=await authenticate();try{return await post('site-hub',{action,token:session,...extra});}catch(e){if(e.status===401)clearSession();throw e;}}
  async function cancelTable(mode,id){const token=await authenticate();if(mode==='diceduel')await post('dice-duel-multiplayer-action',{action:'cancel',room:id,requestId:crypto.randomUUID(),token});else if(mode==='yahtzee')await post('yahtzee-action',{action:'cancel',room:id,requestId:crypto.randomUUID(),token});else if(mode==='minigolf')await post('mini-golf-action',{action:'cancel',gameId:id,token});else if(['rps','roulette-four','bluff'].includes(mode))await post(mode+'-action',{action:'cancel',gameId:id,token});else if(window.XanSiteAdapter?.cancel)await window.XanSiteAdapter.cancel(id);else await post('duel-action',{action:'cancel',gameId:id,visitorKey:storage.get('tornVisitorApiKey')});await window.XanSiteAdapter?.dismissCancelled?.(id);await refresh();}
- window.XanHub={authenticate,post,api,cancelTable,refresh:()=>refresh(),games,get profile(){return window.XanPlayerProfile;}};
+ window.XanHub={authenticate,post,api,cancelTable,setBalance,awaitingResult,prize,refresh:()=>refresh(),games,get profile(){return window.XanPlayerProfile;}};
  const bar=element('header',undefined,'xan-bar');bar.innerHTML='<div class="xan-account"><span id="hub-player">WELCOME TO THE ARENA</span><strong id="hub-balance">Connect to play</strong></div><a href="/" class="xan-brand" aria-label="Xan Duels home"><b>XAN</b> DUELS</a><nav class="xan-tools" aria-label="Site controls"><a class="hub-all" href="/">All games</a><button id="hub-bell" aria-label="Notifications" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M9 21h6"/></svg></button><button id="hub-menu" aria-label="Open menu" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button></nav>';
  document.body.prepend(bar);
  // Account controls can wrap on phones; launcher and menus follow the actual bar.
@@ -192,12 +237,15 @@
  }
  async function refresh(){
   if(pending||!storage.get('tornVisitorApiKey'))return;if(document.hidden&&Date.now()-(window._xanLastHiddenSync||0)<60000)return;if(document.hidden)window._xanLastHiddenSync=Date.now();
-  pending=true;updateHeader();try{const data=await api('sync',{focus:document.hidden?'':current().id});window.XanPlayerProfile=data.player;window.dispatchEvent(new CustomEvent('xan-hub-sync',{detail:data}));$('hub-player').textContent=data.player.name;$('hub-balance').textContent=chips(data.balance);renderGames(data.games);notifications=data.notifications;renderNotifications();lobbyStatus('');}catch(e){networkErrors++;lobbyStatus(e.message);}finally{pending=false;}
+  pending=true;const sample={key:storage.get('tornVisitorApiKey'),at:performance.now()};updateHeader();try{const data=await api('sync',{focus:document.hidden?'':current().id});if(sample.key!==storage.get('tornVisitorApiKey'))return;houseRate=Number.isFinite(data.houseCutPercent)?data.houseCutPercent:null;legacyPrizes();window.XanPlayerProfile=data.player;window.dispatchEvent(new CustomEvent('xan-hub-sync',{detail:data}));$('hub-player').textContent=data.player.name;setBalance(data.balance,sample);renderGames(data.games);notifications=data.notifications;renderNotifications();lobbyStatus('');}catch(e){networkErrors++;lobbyStatus(e.message);}finally{pending=false;}
  }
  window.addEventListener('error',()=>errors++);window.addEventListener('unhandledrejection',()=>errors++);
  window.addEventListener('xan-navigation',()=>{updateHeader();refresh();});
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});
  $('duelModeSelect')?.addEventListener('change',updateHeader);
+ const prizeRoot=$('duelActive'),prizeObserver=prizeRoot?new MutationObserver(legacyPrizes):null;
+ if(prizeRoot)prizeObserver.observe(prizeRoot,{childList:true,subtree:true,characterData:true});
  setupHome();setupGameEntry();updateHeader();refresh();refreshTimer=setInterval(refresh,15000);
- window.addEventListener('pagehide',()=>clearInterval(refreshTimer));
+ window.addEventListener('pagehide',()=>{clearInterval(refreshTimer);clearTimeout(balanceTimer);prizeObserver?.disconnect();});
+ window.addEventListener('pageshow',event=>{if(event.persisted){refreshTimer=setInterval(refresh,15000);if(prizeRoot)prizeObserver.observe(prizeRoot,{childList:true,subtree:true,characterData:true});refresh();}legacyPrizes();flushBalance();});
 })();

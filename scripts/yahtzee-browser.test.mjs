@@ -50,9 +50,11 @@ try{
     await Promise.all([bank(a),bank(b)]);
   }
   for(const p of [a,b])await p.locator('#result-dialog').waitFor({state:'visible'});
+  fixture.setBalance(123456);await a.evaluate(()=>XanHub.refresh());assert.equal(await a.locator('#hub-balance').innerText(),'100,000 Chips','Tally must not reveal the new balance');
   assert.equal(await a.locator('#result-title').textContent(),'The final count');assert.equal(await a.locator('#result-actions').isVisible(),false);
   await a.waitForFunction(()=>document.querySelectorAll('.yd-tally-row.is-counted').length>=6);await a.screenshot({path:path.join(output,'final-tally-desktop.png'),fullPage:true});await b.screenshot({path:path.join(output,'final-tally-mobile.png'),fullPage:true});
   for(const p of [a,b]){await p.locator('#result-actions').waitFor({state:'visible'});assert.equal(await p.locator('.yd-tally-row.is-counted').count(),15);const sums=await p.locator('.yd-tally-row').evaluateAll(es=>[0,1].map(n=>es.reduce((sum,e)=>sum+Number(e.children[n+1].textContent),0)));assert.deepEqual(await p.locator('.yd-tally-player strong').allTextContents(),sums.map(String));}
+  await a.waitForFunction(()=>document.getElementById('hub-balance').textContent==='123,456 Chips');
   assert.equal(await a.locator('#standings').textContent(),await b.locator('#standings').textContent());
   await b.screenshot({path:path.join(output,'mobile-result.png'),fullPage:true});
   await Promise.all([a.locator('#rematch').click(),b.locator('#rematch').click()]);

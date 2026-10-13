@@ -23,5 +23,7 @@ jobs:
       - run: node scripts/dice-duel-multiplayer-simulation.mjs
       - run: npm run build
       - run: node scripts/dice-v2-browser.test.mjs
+      - run: node scripts/multiplayer-balance-browser.test.mjs
+      - run: node scripts/site-hub-browser.test.mjs
       - run: node scripts/site-entry-browser.test.mjs
       - run: node scripts/home-navigation-browser.test.mjs

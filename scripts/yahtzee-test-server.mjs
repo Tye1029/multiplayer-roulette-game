@@ -5,13 +5,13 @@ import {createRequire} from 'node:module';
 import {PGlite} from '@electric-sql/pglite';
 const require=createRequire(import.meta.url);
 export async function startTestServer(){
-  const pg=new PGlite();let tail=Promise.resolve(),timeOffset=0;
+  const pg=new PGlite();let tail=Promise.resolve(),timeOffset=0,balance=100000;
   const pool={query:(s,a)=>pg.query(s,a),connect:async()=>{let release;const prior=tail;tail=new Promise(r=>release=r);await prior;return{query:(s,a)=>pg.query(s,a),release};}};
   const auth=require('../netlify/functions/rps/database').createStore(pool);
   const login=require('../netlify/functions/rps-action').createHandler(auth,async url=>({ok:true,json:async()=>({player_id:new URL(url).searchParams.get('key').endsWith('2')?202:101,name:new URL(url).searchParams.get('key').endsWith('2')?'Clementine':'Juniper'})}));
   const database=require('../netlify/functions/yahtzee/database').createStore(pool,undefined,()=>Date.now()+timeOffset);
   const handler=require('../netlify/functions/yahtzee-action').createHandler(database,auth);
-  const hub=require('../netlify/functions/site-hub').createHandler({diceduel:require('../netlify/functions/dice-duel-multiplayer/database').createStore(pool),minigolf:require('../netlify/functions/mini-golf/database').createStore(pool),rps:auth,yahtzee:database,bluff:require('../netlify/functions/bluff/database').createStore(pool),wallet:{account:async p=>p.id,balance:async()=>100000},data:{duelListGames:async()=>({games:[]})},four:{lobby:async()=>({games:[],joined:[]})},store:{notifications:async()=>[],notify:async()=>{}}});
+  const hub=require('../netlify/functions/site-hub').createHandler({diceduel:require('../netlify/functions/dice-duel-multiplayer/database').createStore(pool),minigolf:require('../netlify/functions/mini-golf/database').createStore(pool),rps:auth,yahtzee:database,bluff:require('../netlify/functions/bluff/database').createStore(pool),wallet:{account:async p=>p.id,balance:async()=>balance,rate:async()=>3.3},data:{duelListGames:async()=>({games:[]})},four:{lobby:async()=>({games:[],joined:[]})},store:{notifications:async()=>[],notify:async()=>{}}});
   const root=path.resolve('dist'),mime={'.html':'text/html','.js':'application/javascript','.css':'text/css','.svg':'image/svg+xml','.png':'image/png','.webp':'image/webp'};
   const server=http.createServer(async(req,res)=>{
     try{
@@ -30,5 +30,5 @@ export async function startTestServer(){
     }catch{res.writeHead(404);res.end('Not found');}
   });
   await new Promise(r=>server.listen(0,'127.0.0.1',r));
-  return {origin:'http://127.0.0.1:'+server.address().port,advance:ms=>{timeOffset+=ms;},expire:async id=>{const s=(await pg.query('SELECT state FROM yahtzee_rooms WHERE id=$1',[id])).rows[0].state;timeOffset=s.deadline-Date.now()+1;},close:async()=>{await new Promise(r=>server.close(r));await pg.close();}};
+  return {origin:'http://127.0.0.1:'+server.address().port,setBalance:value=>{balance=value;},advance:ms=>{timeOffset+=ms;},expire:async id=>{const s=(await pg.query('SELECT state FROM yahtzee_rooms WHERE id=$1',[id])).rows[0].state;timeOffset=s.deadline-Date.now()+1;},close:async()=>{await new Promise(r=>server.close(r));await pg.close();}};
 }
