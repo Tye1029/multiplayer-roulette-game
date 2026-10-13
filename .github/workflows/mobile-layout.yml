@@ -19,6 +19,7 @@ jobs:
       - run: npm install --no-save --no-package-lock @electric-sql/pglite@0.3.14 playwright@1.61.1
       - run: npx playwright install --with-deps chromium
       - run: npm run build
+      - run: node scripts/home-navigation-browser.test.mjs
       - run: node scripts/mobile-layout-browser.test.mjs
         env:
           MOBILE_SCREENSHOTS: mobile-layout-results

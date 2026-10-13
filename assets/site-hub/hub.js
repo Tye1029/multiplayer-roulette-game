@@ -1,4 +1,4 @@
-/* XAN_HUB_V4_SHARED_DEBUG */
+/* XAN_HUB_V4_SHARED_DEBUG · XAN_HOME_READY_V1 */
 (() => {
  'use strict';
  const $=id=>document.getElementById(id), storage={get(k){try{return localStorage.getItem(k);}catch{return null;}},set(k,v){try{localStorage.setItem(k,v);}catch{}}};
@@ -110,7 +110,7 @@
   const keyBox=element('section',undefined,'hub-key');title.after(keyBox);
   for(const node of [card.querySelector('.sth-label'),card.querySelector('.sth-row'),$('simpleApiStatus')])if(node)keyBox.append(node);
   keyBox.querySelector('label').textContent='Connect with your public Torn API key';
-  const grid=card.querySelector('.sth-games');grid.querySelector('a')?.remove();grid.querySelector('[data-mode=draw]')?.remove();grid.querySelector('[data-mode=blackjackduel]')?.remove();
+  const grid=card.querySelector('.sth-games');grid.querySelector('[data-mode=draw]')?.remove();grid.querySelector('[data-mode=blackjackduel]')?.remove();
   for(const mode of ['rps','roulette-four','bluff']){const b=element('button',games[mode][0],'sth-game');b.dataset.mode=mode;b.disabled=true;b.onclick=()=>{if(mode==='bluff'||storage.get('tornKeyConfirmed')==='true')location.assign('/games/multiplayer/'+mode+'/');};grid.append(b);}
   for(const button of [...grid.children]){
     const mode=button.dataset.mode,g=games[mode];if(!g)continue;const tile=element('article',undefined,'hub-tile');button.before(tile);tile.append(button);button.replaceChildren();const img=element('img');img.src=mode==='bluff'?'/assets/bluff/images/cover.svg':'/assets/site-hub/images/'+mode+'.webp';img.alt='';img.width=360;img.height=360;img.loading='lazy';button.append(img);if(['safecracker','blackjackduel','rps'].includes(mode)){const fg=element('img',undefined,'hub-foreground');fg.src='/assets/site-hub/images/'+mode+'-foreground.webp';fg.alt='';fg.loading='lazy';button.append(fg);}
@@ -133,6 +133,7 @@
   const syncKey=()=>{const ok=storage.get('tornKeyConfirmed')==='true'&&Boolean(storage.get('tornVisitorApiKey'));keyBox.hidden=ok;grid.querySelectorAll('.sth-game').forEach(b=>b.disabled=b.dataset.mode==='bluff'?false:!ok);updateHeader();};
   new MutationObserver(syncKey).observe($('simpleApiStatus'),{childList:true,attributes:true});syncKey();
   new MutationObserver(()=>{updateHeader();if(!home.hidden)refresh();}).observe(home,{attributes:true,attributeFilter:['hidden']});
+  home.dataset.hubReady='true';window.XanHomeBoot?.ready();
  }
  function lobbyStatus(text){document.querySelectorAll('#hub-lobby-status,[data-hub-lobby-status]').forEach(e=>e.textContent=text);}
  function renderGames(list){
