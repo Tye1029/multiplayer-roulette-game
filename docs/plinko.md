@@ -11,13 +11,13 @@ transaction ledger, site header, settings, mute, deposit/withdraw and debug menu
 - 16 peg rows, 17 prize pockets, Low / Medium / High risk. One ball at a time.
 - Wagers: 50K, 100K, 500K, 1M, 5M and 10M. Entering the board is free; Drop ball
   purchases one drop. The board stays open for subsequent drops.
-- Reload/navigation returns to the main menu. The last result and ten recent
-  paid drops are restored from the server when entering again.
+- Reload/navigation returns to the main menu. The last paid result is restored
+  from the server when entering again.
 - Every return includes the wager. Values below 1x return only part of the wager.
-  The result separately describes net profit or loss. Maximum total return is
+  The result shows the payout and any positive profit. Maximum total return is
   50,000,000 chips. Pocket labels and the payout table already apply the cap.
 - Free practice uses crypto-random independent directions, the same rules and
-  presentation, and its own local history. It never purchases or awards chips.
+  presentation, and its own last result. It never purchases or awards chips.
 - Canvas board has brushed rails, lit metal pegs, a gold ball with a short trail,
   parabolic bounces, pocket highlights and a restrained prize burst. The animation
   follows the actual server path, never a fabricated near miss.

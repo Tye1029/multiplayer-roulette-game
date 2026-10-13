@@ -1,7 +1,7 @@
-/* PLINKO_V1 */
+/* PLINKO_UI_V2 */
 (() => {
  'use strict';const rules=window.PlinkoRules,audio=window.PlinkoAudio,$=id=>document.getElementById(id),fmt=n=>Number(n).toLocaleString('en-US'),multi=n=>Number(n).toLocaleString('en-US',{maximumFractionDigits:2})+'×';
- let board,stake=50000,risk='medium',playing=false,demo=false,ready=false,connecting=false,busy=false,pending=null,retry=null,last=null,paidHistory=[],freeHistory=[],epoch=0,pageActive=true,cooldownTimer;
+ let board,stake=50000,risk='medium',playing=false,demo=false,ready=false,connecting=false,busy=false,pending=null,retry=null,last=null,lastFree=null,epoch=0,pageActive=true,cooldownTimer;
  const current=run=>pageActive&&run===epoch,remaining=()=>!demo&&last?Math.max(0,last.availableAt-Date.now()):0;
  window.XanSiteAdapter={current:()=>({mode:'plinko',id:playing&&!demo?last?.id||'':'',phase:playing?(busy?'playing':'ready'):'lobby'}),diagnostics:()=>({build:rules.build,ready,busy,connecting,demo,frames:board?.frame?1:0,audioVoices:audio.active})};
  function notice(text='',again=null){$('pl-notice').textContent=text;retry=again;$('pl-retry').hidden=!again;$('pl-retry').textContent=pending?'Recover drop':'Reconnect';}
@@ -12,21 +12,21 @@
   $('pl-drop').disabled=locked||(!demo&&!ready)||remaining()>0;
   $('pl-drop').textContent=busy?'Ball in motion…':pending?'Recover your drop':remaining()>0?'Preparing next drop…':demo?'Drop a free ball':'Drop ball · '+fmt(stake)+' chips';
   $('pl-connect').hidden=ready;$('pl-play-connect').hidden=ready||demo;
-  $('pl-mode').textContent=demo?'FREE PRACTICE · NO CHIPS SPENT':'THE DROP ROOM';$('pl-history-label').textContent=demo?'FREE PRACTICE':'YOUR LAST 10';
+  $('pl-mode').textContent=demo?'FREE PRACTICE · NO CHIPS SPENT':'THE DROP ROOM';
   $('pl-play-note').textContent=demo?'Free practice uses the same odds and payouts. No chips are spent or awarded.':'Each bounce is random. Timing does not affect the result. Returns include your wager; maximum 50,000,000 chips.';
   clearTimeout(cooldownTimer);if(!busy&&remaining()>0)cooldownTimer=setTimeout(controls,Math.min(remaining()+25,1000));
  }
  function configure(){controls();board.configure(stake,risk);payouts();try{localStorage.setItem('plinko-choice',JSON.stringify({stake,risk}));}catch{}}
  function payouts(){const weights=rules.weights;$('pl-odds').innerHTML='<table><caption>'+rules.risks[risk].name+' risk · '+fmt(stake)+' chips per drop. Pockets run left to right. Amounts include the wager and already apply the 50M cap.</caption><thead><tr><th scope="col">Pocket</th><th scope="col">Chance</th><th scope="col">Return</th><th scope="col">Chips</th></tr></thead><tbody>'+weights.map((w,k)=>'<tr><th scope="row">'+(k+1)+'</th><td>'+(100*w/2**rules.rows).toFixed(3)+'%</td><td>'+multi(rules.multiplier(stake,risk,k))+'</td><td>'+fmt(rules.payout(stake,risk,k))+'</td></tr>').join('')+'</tbody></table>';}
- function history(){const list=demo?freeHistory:paidHistory;$('pl-history').replaceChildren(...list.slice(0,10).map(s=>{const e=document.createElement('li');e.textContent=multi(s.multiplier);e.className=s.payout>s.stake?'win':'';e.title=(demo?'Practice · ':'')+fmt(s.stake)+' chips → '+fmt(s.payout)+' chips';e.setAttribute('aria-label',e.title);return e;}));$('pl-empty').hidden=list.length>0;}
+
  function result(s,restored=false){const box=$('pl-result');box.classList.toggle('is-win',Boolean(s&&s.payout>s.stake));box.classList.toggle('is-loss',Boolean(s&&s.payout<s.stake));
   if(!s){box.querySelector('.pl-result-label').textContent='THE NEXT ONE COULD BE YOURS';box.querySelector('strong').textContent='Ready when you are.';box.querySelector('p').textContent='Select your wager and risk, then drop the ball.';return;}
   box.querySelector('.pl-result-label').textContent=(demo?'PRACTICE RETURN':restored?'LAST DROP · TOTAL RETURN':'TOTAL RETURN')+' · '+multi(s.multiplier);
   box.querySelector('strong').textContent=fmt(s.payout)+' chips';const net=s.payout-s.stake;
-  box.querySelector('p').textContent=(demo?'No chips spent or awarded. ':net>0?'Profit +'+fmt(net)+' chips. ':net===0?'Your wager was returned. ':'Net loss '+fmt(-net)+' chips. ')+(s.payout===rules.maxPayout?'Maximum payout reached. ':'')+'Pocket '+(s.bucket+1)+' · '+rules.risks[s.risk].name+' risk.';
+  box.querySelector('p').textContent=(demo?'No chips spent or awarded. ':net>0?'Profit +'+fmt(net)+' chips. ':net===0?'Your wager was returned. ':'')+(s.payout===rules.maxPayout?'Maximum payout reached. ':'')+'Pocket '+(s.bucket+1)+' · '+rules.risks[s.risk].name+' risk.';
   $('pl-board').setAttribute('aria-label','Plinko ball landed in pocket '+(s.bucket+1)+', '+multi(s.multiplier)+', '+fmt(s.payout)+' chips'+(demo?' in free practice.':'.'));
  }
- function enter(free=false){demo=free;playing=true;$('pl-menu').hidden=true;$('pl-play').hidden=false;configure();history();result(demo?freeHistory[0]:last,true);audio.unlock();requestAnimationFrame(()=>$('pl-play').scrollIntoView({block:'start',behavior:'instant'}));}
+ function enter(free=false){demo=free;playing=true;$('pl-menu').hidden=true;$('pl-play').hidden=false;configure();result(demo?lastFree:last,true);audio.unlock();requestAnimationFrame(()=>$('pl-play').scrollIntoView({block:'start',behavior:'instant'}));}
  async function request(body){const token=await window.XanHub.authenticate();return window.XanHub.post('plinko-action',{token,...body});}
  function balance(response){if(Number.isFinite(response.balance)&&$('hub-balance'))$('hub-balance').textContent=fmt(response.balance)+' Chips';}
  async function launch(body){if(busy)return;const run=epoch,free=demo;busy=true;pending=free?null:body;notice();controls();audio.drop();if(innerWidth<=700)$('pl-machine').scrollIntoView({block:'start',behavior:'instant'});$('pl-flight').textContent='RELEASING BALL';$('pl-board-title').textContent='Watch it fall.';$('pl-result').classList.remove('is-win','is-loss');$('pl-result').querySelector('.pl-result-label').textContent='BALL IN MOTION';$('pl-result').querySelector('strong').textContent='Follow the bounce.';$('pl-result').querySelector('p').textContent='Your return appears when the ball lands.';$('pl-machine').classList.remove('is-celebrating');$('pl-machine').classList.add('is-dropping');
@@ -35,23 +35,23 @@
    if(s?.status!=='settled')throw Error('Drop is not settled yet.');
    pending=null;stake=s.stake;risk=s.risk;controls();payouts();
    const done=await board.animate(s,audio,row=>{$('pl-flight').textContent='BOUNCE '+row+' / '+rules.rows;});if(!done||!current(run))return;
-   if(free)freeHistory=[s,...freeHistory].slice(0,10);else{last=s;paidHistory=response.history;balance(response);}
-   result(s);history();$('pl-flight').textContent=multi(s.multiplier)+' · LANDED';$('pl-board-title').textContent=s.payout>s.stake?'That’s a good bounce.':'Every bounce is a new chance.';
+   if(free)lastFree=s;else{last=s;balance(response);}
+   result(s);$('pl-flight').textContent=multi(s.multiplier)+' · LANDED';$('pl-board-title').textContent=s.payout>s.stake?'That’s a good bounce.':'Every bounce is a new chance.';
    if(s.payout>s.stake)$('pl-machine').classList.add('is-celebrating');if(!free)window.XanHub.refresh().catch(()=>{});
   }catch(e){if(!current(run))return;
-   if([400,401,404,409,429].includes(e.status)){pending=null;notice(e.message,e.status===429?reconnect:null);if(e.status===401)ready=false;result(free?freeHistory[0]:last,true);$('pl-flight').textContent='READY TO DROP';$('pl-board-title').textContent='Find your fortune.';}
+   if([400,401,404,409,429].includes(e.status)){pending=null;notice(e.message,e.status===429?reconnect:null);if(e.status===401)ready=false;result(free?lastFree:last,true);$('pl-flight').textContent='READY TO DROP';$('pl-board-title').textContent='Find your fortune.';}
    else{notice('Connection interrupted. Recover this drop before starting another. Your purchase reference is saved.',()=>launch(body));$('pl-result').querySelector('.pl-result-label').textContent='CONNECTION INTERRUPTED';$('pl-result').querySelector('strong').textContent='Your drop is saved.';$('pl-result').querySelector('p').textContent='Use Recover drop to restore the original result.';}
   }finally{if(current(run)){busy=false;$('pl-machine').classList.remove('is-dropping');if(pending)$('pl-flight').textContent='AWAITING CONFIRMATION';controls();}}
  }
  function drop(){if(busy||pending||connecting||remaining()>0||(!demo&&!ready))return;launch({action:'drop',stake,risk,quote:rules.build,requestId:crypto.randomUUID()});}
  async function reconnect(){if(busy||pending)return;if(!localStorage.getItem('tornVisitorApiKey')){ready=false;controls();return;}const run=epoch;connecting=true;controls();
-  try{const response=await request({action:'current'});if(!current(run))return;ready=true;last=response.drop;paidHistory=response.history;balance(response);notice();if(playing&&!demo){result(last,true);history();if(last&&last.stake===stake&&last.risk===risk)board.show(last);}}
+  try{const response=await request({action:'current'});if(!current(run))return;ready=true;last=response.drop;balance(response);notice();if(playing&&!demo){result(last,true);if(last&&last.stake===stake&&last.risk===risk)board.show(last);}}
   catch(e){if(current(run)){ready=false;notice(e.message,reconnect);}}finally{if(current(run)){connecting=false;controls();}}
  }
  document.addEventListener('DOMContentLoaded',()=>{
   try{const s=JSON.parse(localStorage.getItem('plinko-choice'));if(rules.stakes.includes(s?.stake))stake=s.stake;if(Object.hasOwn(rules.risks,s?.risk))risk=s.risk;}catch{}
   for(const prefix of ['pl-menu-','pl-play-']){const panel=$(prefix+'settings');panel.innerHTML=settings(prefix);panel.querySelector('select').onchange=e=>{stake=Number(e.target.value);configure();};for(const b of panel.querySelectorAll('[data-risk]'))b.onclick=()=>{risk=b.dataset.risk;configure();};}
-  const toggle=document.createElement('label');toggle.className='pl-practice-toggle';toggle.innerHTML='<input id="pl-free" type="checkbox"> Free practice';$('pl-drop').before(toggle);$('pl-free').onchange=e=>{demo=e.target.checked;configure();history();result(demo?freeHistory[0]:last,true);};
+  const toggle=document.createElement('label');toggle.className='pl-practice-toggle';toggle.innerHTML='<input id="pl-free" type="checkbox"> Free practice';$('pl-drop').before(toggle);$('pl-free').onchange=e=>{demo=e.target.checked;configure();result(demo?lastFree:last,true);};
   const connect=document.createElement('a');connect.id='pl-play-connect';connect.href='/';connect.textContent='Connect your public Torn API key to play with chips ↗';connect.className='pl-play-connect';$('pl-drop').after(connect);
   board=new window.PlinkoBoard($('pl-board'));configure();$('pl-enter').onclick=()=>enter(false);$('pl-practice').onclick=()=>{enter(true);drop();};$('pl-drop').onclick=drop;$('pl-retry').onclick=()=>retry?.();
   $('pl-payouts').onclick=()=>{const open=$('pl-odds').hidden;$('pl-odds').hidden=!open;$('pl-payouts').setAttribute('aria-expanded',String(open));};
