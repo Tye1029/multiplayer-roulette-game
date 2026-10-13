@@ -1,4 +1,4 @@
-/* ROCKET_RUN_V2: flight-seeded scenery, continuous banking and bounded effects. */
+/* ROCKET_RUN_SCENE_V3: world-anchored moon, celebration bursts and fiery breakup. */
 (() => {
  'use strict';
  class RocketScene{
@@ -21,8 +21,15 @@
    const lift=1-Math.exp(-t/2.1),sway=1-Math.exp(-t/4),phase=(this.seed%11)*.2;
    return {x:260+lift*(315+sway*(112*Math.sin(t*.43+phase)+34*Math.sin(t*.91))),y:575-lift*(169+28*Math.sin(t*.67)+15*Math.sin(t*.29))};
   }
+  moonPosition(t){
+   // The moon stays at one world altitude while the camera climbs past it.
+   // Never wrap it back into view, including on very long flights.
+   const travel=48*(t-2*(1-Math.exp(-t/2)));
+   return {x:810-(this.seed%55),y:260+(this.seed%35)+travel};
+  }
   sky(c,t){
-   const mx=810-(this.seed%55),my=260+(this.seed%35),glow=c.createRadialGradient(mx,my,45,mx,my,115);glow.addColorStop(0,'#adccde13');glow.addColorStop(1,'#adccde00');c.fillStyle=glow;c.fillRect(mx-115,my-115,230,230);c.drawImage(this.moon,mx-57,my-57,114,114);
+   const {x:mx,y:my}=this.moonPosition(t);
+   if(my<895){const glow=c.createRadialGradient(mx,my,45,mx,my,115);glow.addColorStop(0,'#adccde13');glow.addColorStop(1,'#adccde00');c.fillStyle=glow;c.fillRect(mx-115,my-115,230,230);c.drawImage(this.moon,mx-57,my-57,114,114);}
    if(this.reduced.matches)return;
    const pass=((t+(this.seed%43))%49)/14;
    if(pass<1){c.save();c.translate(-110+pass*1250,240+Math.sin(pass*Math.PI)*65);c.rotate(-.2+pass*.35);c.globalAlpha=.72;const metal=c.createLinearGradient(-8,-12,8,12);metal.addColorStop(0,'#e0c88e');metal.addColorStop(1,'#6a6867');c.fillStyle=metal;c.fillRect(-10,-12,20,24);c.fillStyle='#264665';c.strokeStyle='#8aacc2';c.lineWidth=1;
@@ -38,7 +45,7 @@
    const aura=c.createRadialGradient(770,480,20,770,480,550);aura.addColorStop(0,'#71999a22');aura.addColorStop(1,'#71999a00');c.fillStyle=aura;c.fillRect(0,0,w,h);
    // Stable star positions: no frame-to-frame randomness or flicker.
    for(let i=0;i<86;i++){const x=(i*173.23+49)%w,y=((i*113.79+15)+(motion*(8+i%9)))%h;c.globalAlpha=.2+(i%5)*.12;c.fillStyle='#dce9df';c.beginPath();c.arc(x,y,i%7===0?1.8:.8,0,Math.PI*2);c.fill();}c.globalAlpha=1;
-   this.sky(c,motion);
+   this.sky(c,t);
    c.save();c.translate(0,progress*260);c.fillStyle='#91b8be24';c.beginPath();c.ellipse(400,1110,1000,540,-.08,Math.PI,Math.PI*2);c.fill();c.strokeStyle='#a0cbd844';c.lineWidth=3;c.stroke();
    for(let layer=0;layer<3;layer++){c.fillStyle=['#33495e','#263b50','#192d42'][layer];c.beginPath();c.moveTo(0,h);for(let x=0;x<=1100;x+=55)c.lineTo(x,650+layer*44+Math.sin(x*.016+layer*3)*22+Math.cos(x*.031+layer)*15);c.lineTo(1100,1000);c.lineTo(0,1000);c.fill();}
    c.fillStyle='#111f32';for(let i=0;i<20;i++){const x=i*55,hei=20+(i*37%95);c.fillRect(x,765-hei,38,hei);c.fillStyle='#d1b88855';for(let row=0;row<3;row++)if(i%3)c.fillRect(x+9,775-hei+row*12,3,4);c.fillStyle='#111f32';}c.restore();
@@ -55,8 +62,57 @@
     if(flying){const len=this.reduced.matches?150:160+Math.sin(motion*37)*13+Math.sin(motion*21)*8,g=c.createLinearGradient(0,130,0,130+len);g.addColorStop(0,'#fff5c6');g.addColorStop(.25,'#ffc484');g.addColorStop(.7,'#ed886966');g.addColorStop(1,'#ed886900');c.fillStyle=g;c.beginPath();c.moveTo(-18,137);c.quadraticCurveTo(-30,195,0,137+len);c.quadraticCurveTo(30,195,18,137);c.fill();c.fillStyle='#fffadc';c.beginPath();c.moveTo(-8,141);c.quadraticCurveTo(-9,185,0,226);c.quadraticCurveTo(9,185,8,141);c.fill();}
     if(this.ship.complete&&this.ship.naturalWidth)c.drawImage(this.ship,-100,-200,200,400);c.restore();
    }
-   if(ended&&effect<2.5&&!this.reduced.matches){const win=state.phase==='win',radius=effect*170;c.save();c.globalAlpha=Math.max(0,1-effect/2.5);c.strokeStyle=win?'#f8db9d':'#f6ac82';c.lineWidth=2;c.beginPath();c.arc(x,y,radius,0,Math.PI*2);c.stroke();for(let i=0;i<42;i++){const a=i*2.39996,speed=40+(i*29%130),px=x+Math.cos(a)*effect*speed,py=y+Math.sin(a)*effect*speed+effect*effect*(win?9:55);c.fillStyle=win?(i%2?'#f2dba3':'#a8e3dc'):(i%3?'#faad74':'#788494');c.save();c.translate(px,py);c.rotate(a+effect*2);c.fillRect(-2,-3,win?3:5,win?8:6);c.restore();}c.restore();}
+   if(ended&&effect<2.5){
+    c.save();c.translate(x,y);
+    // Reduced motion keeps a soft, still result glow instead of flying debris.
+    if(this.reduced.matches){const glow=c.createRadialGradient(0,0,12,0,0,130);glow.addColorStop(0,state.phase==='win'?'#f6d89544':'#e8622444');glow.addColorStop(1,'#00000000');c.globalAlpha=Math.max(0,1-effect/2.5);c.fillStyle=glow;c.fillRect(-130,-130,260,260);}
+    else if(state.phase==='win')this.celebrate(c,effect);
+    else this.breakup(c,effect);
+    c.restore();
+   }
    c.font='11px system-ui';c.fillStyle='#9cb6c366';c.textAlign='right';c.fillText('XAN AEROSPACE / RR–01',960,749);
+  }
+  celebrate(c,t){
+   const fade=Math.max(0,1-t/2.5),spread=1-Math.exp(-t*4);
+   const halo=c.createRadialGradient(0,0,30,0,0,180);halo.addColorStop(0,'#ffdb922a');halo.addColorStop(1,'#ffdb9200');c.globalAlpha=fade;c.fillStyle=halo;c.fillRect(-180,-180,360,360);
+   // Three gold/teal fireworks surround the intact rocket; no fire or wreckage.
+   for(let burst=0;burst<3;burst++){
+    const age=t-burst*.19;if(age<0)continue;
+    const bx=[-138,136,16][burst],by=[-66,-113,90][burst];
+    c.globalAlpha=fade*Math.min(1,age*12);c.lineWidth=1.8;
+    for(let i=0;i<16;i++){
+     const a=i*Math.PI/8+burst*.2,r=18+(1-Math.exp(-age*2.5))*(58+i%3*12),tail=Math.max(0,r-14-age*7);
+     c.strokeStyle=i%3===0?'#9fece1':'#ffe3a2';c.beginPath();c.moveTo(bx+Math.cos(a)*tail,by+Math.sin(a)*tail+age*age*14);c.lineTo(bx+Math.cos(a)*r,by+Math.sin(a)*r+age*age*14);c.stroke();
+    }
+   }
+   for(let i=0;i<48;i++){
+    const a=i*2.39996,r=(55+i*31%155)*spread,px=Math.cos(a)*r,py=Math.sin(a)*r+t*t*28;
+    c.globalAlpha=fade*(.65+.35*Math.sin(i+t*3)**2);c.fillStyle=i%4===0?'#a6eee3':'#f7d17f';c.save();c.translate(px,py);c.rotate(a+t*(i%2?1:-1));
+    if(i%3===0){c.beginPath();c.moveTo(0,-7);c.lineTo(2,-2);c.lineTo(7,0);c.lineTo(2,2);c.lineTo(0,7);c.lineTo(-2,2);c.lineTo(-7,0);c.lineTo(-2,-2);c.closePath();c.fill();}
+    else c.fillRect(-2,-4,4*Math.cos(t*4+i),8);c.restore();
+   }
+  }
+  breakup(c,t){
+   const fade=Math.max(0,1-t/2.5),heat=Math.max(0,1-t/1.15),spread=1-Math.exp(-t*5);
+   // Dark, overlapping smoke rolls outward and rises behind the fireball.
+   for(let i=0;i<14;i++){
+    const a=i*2.39996+(this.seed%13),r=(26+i*19%74)*spread,px=Math.cos(a)*r,py=Math.sin(a)*r-t*42,size=24+t*25+i%4*5;
+    const smoke=c.createRadialGradient(px-size*.2,py-size*.25,2,px,py,size);smoke.addColorStop(0,'#343039e0');smoke.addColorStop(.65,'#202432bb');smoke.addColorStop(1,'#20243200');c.globalAlpha=fade*Math.min(1,.3+t*3);c.fillStyle=smoke;c.fillRect(px-size,py-size,size*2,size*2);
+   }
+   if(heat>0){
+    const radius=50+spread*135,glow=c.createRadialGradient(0,0,8,0,0,radius);glow.addColorStop(0,'#ffd17bb0');glow.addColorStop(.4,'#ef621d70');glow.addColorStop(1,'#e34a1000');c.globalAlpha=heat;c.fillStyle=glow;c.fillRect(-radius,-radius,radius*2,radius*2);
+    for(let i=0;i<12;i++){
+     const a=i*2.39996,r=(16+i*17%58)*spread,px=Math.cos(a)*r,py=Math.sin(a)*r-t*23,size=(28+i%4*9)*(1+t*.5);
+     const fire=c.createRadialGradient(px-size*.18,py-size*.2,0,px,py,size);fire.addColorStop(0,'#fff2bd');fire.addColorStop(.22,'#ffc351');fire.addColorStop(.53,'#f56c17');fire.addColorStop(.8,'#b82e13aa');fire.addColorStop(1,'#72211900');c.globalAlpha=heat;c.fillStyle=fire;c.fillRect(px-size,py-size,size*2,size*2);
+    }
+   }
+   // Hull fragments tumble downward while fine embers leave short orange trails.
+   for(let i=0;i<34;i++){
+    const a=i*2.39996,speed=70+i*37%155,px=Math.cos(a)*t*speed,py=Math.sin(a)*t*speed+t*t*65;
+    c.globalAlpha=fade;
+    if(i<10){c.save();c.translate(px,py);c.rotate(a+t*(i%2?3:-2));c.fillStyle=i%3===0?'#c98a60':'#7e909f';c.strokeStyle='#303b47';c.lineWidth=1.5;c.beginPath();c.moveTo(-6,-10);c.lineTo(7,-5);c.lineTo(4,8);c.lineTo(-4,5);c.closePath();c.fill();c.stroke();c.fillStyle='#ed943d';c.fillRect(-4,-8,6,2);c.restore();}
+    else {c.strokeStyle=i%3===0?'#ffdc8b':'#fa8130';c.lineWidth=i%2?1.5:2.5;c.beginPath();c.moveTo(px-Math.cos(a)*12,py-Math.sin(a)*12-t*5);c.lineTo(px,py);c.stroke();}
+   }
   }
   destroy(){this.resize.disconnect();}
  }

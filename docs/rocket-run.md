@@ -87,6 +87,13 @@ does not require a client timer to run, and uses the original target/deadlines.
 
 ## Validation
 
+`ROCKET_RUN_SCENE_V3` gives cash-outs gold/teal fireworks around the intact
+rocket. Crashes have a layered orange fireball, hull fragments, embers and rising
+smoke. Both effects finish within the existing 2.6-second render window; reduced
+motion uses a still, fading glow. The moon has a fixed world altitude and passes
+below the camera once per flight, without wrapping back into view. Its phase
+remains stable for that flight. This scene update does not change payout rules.
+
 ```sh
 node --test scripts/rocket-run.test.mjs scripts/plinko.test.mjs scripts/minefield.test.mjs scripts/site-hub.test.mjs
 node scripts/rocket-run-simulation.mjs
