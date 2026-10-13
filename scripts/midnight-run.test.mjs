@@ -5,7 +5,7 @@ import {PGlite} from '@electric-sql/pglite';
 const require=createRequire(import.meta.url),rules=require('../shared/games/midnight-run');
 const {createStore,publicGame,draw}=require('../netlify/functions/midnight-run/database');
 const {createWallet}=require('../netlify/functions/rps/wallet'),{createHandler}=require('../netlify/functions/midnight-run-action');
-const purchase=(stake=50000)=>({stake,quote:rules.build,requestId:crypto.randomUUID()});
+const purchase=(stake=50000,difficulty='normal')=>({stake,difficulty,quote:rules.build,requestId:crypto.randomUUID()});
 const cash=(s,cleared=s.cleared)=>({gameId:s.id,cleared,requestId:crypto.randomUUID()});
 async function fixture(){
  const pg=new PGlite();let tail=Promise.resolve(),failure=null,clock=Date.now(),random=()=>0;
@@ -15,23 +15,41 @@ async function fixture(){
  const wallet=createWallet(blob),store=createStore(pool,wallet,n=>random(n),()=>clock),a={id:'101'},b={id:'202'};
  await store.ready();return {pg,pool,wallet,store,a,b,records,blob,fail:kind=>failure=kind,at:n=>clock=n,random:fn=>random=fn,entries:()=>records.get('user/legacy-101.json').data.financialLedger};
 }
-test('every reachable block and stake: exact capped arithmetic, increasing returns and optimal-stopping house advantage',()=>{
- for(const stake of rules.stakes){
-  let probabilityNumerator=1n,probabilityDenominator=1n,previous=0;
-  const last=rules.lastBlock(stake);
+test('all difficulties and wagers have exact increasing capped payouts and the same entry edge',()=>{
+ for(const difficulty of rules.difficulties)for(const stake of rules.stakes){
+  const odds=rules.odds(difficulty);let pn=1n,pd=1n,previous=0;
+  const last=rules.lastBlock(stake,difficulty);
   for(let block=1;block<=last;block++){
-   probabilityNumerator*=BigInt(rules.safePercent[block-1]);probabilityDenominator*=100n;
-   const exact=BigInt(stake)*90n*probabilityDenominator/(100n*probabilityNumerator),expected=Number(exact>50000000n?50000000n:exact);
-   const paid=rules.payout(stake,block);assert.equal(paid,expected);assert.ok(Number.isSafeInteger(paid)&&paid<=rules.maxPayout&&paid>previous);previous=paid;
-   assert.ok(BigInt(paid)*probabilityNumerator*10n<=BigInt(stake)*probabilityDenominator*9n);
+   pn*=BigInt(odds[block-1]);pd*=100n;
+   const exact=BigInt(stake)*90n*pd/(100n*pn),expected=Number(exact>50000000n?50000000n:exact);
+   const paid=rules.payout(stake,block,difficulty);assert.equal(paid,expected);assert.ok(Number.isSafeInteger(paid)&&paid<=rules.maxPayout&&paid>previous);previous=paid;
+   assert.ok(BigInt(paid)*pn*10n<=BigInt(stake)*pd*9n);
+   if(difficulty!=='normal')assert.ok(paid>=rules.payout(stake,block));
   }
-  assert.equal(rules.payout(stake,last),rules.maxPayout);
-  let best=rules.payout(stake,last);for(let block=last-1;block>=1;block--)best=Math.max(rules.payout(stake,block),rules.safePercent[block]/100*best);
-  assert.ok(best*.8/stake<=.90000000001,'Adaptive stopping cannot remove the entry edge');
+  assert.equal(rules.payout(stake,last,difficulty),rules.maxPayout);
+  let best=rules.payout(stake,last,difficulty);for(let block=last-1;block>=1;block--)best=Math.max(rules.payout(stake,block,difficulty),odds[block]/100*best);
+  assert.ok(best*odds[0]/100/stake<=.90000000001,'Adaptive stopping cannot remove the entry edge');
  }
- for(const n of [-1,1.5,25,NaN])assert.throws(()=>rules.ratio(n));assert.throws(()=>rules.payout(1,1));
+ assert.deepEqual(rules.odds('normal'),[80,88,86,84,82,80,78,76,74,72,70,68,66,64,62,60,58,56,54,52,50,48,46,44]);
+ assert.deepEqual(rules.difficulties.map(d=>rules.payout(50000,1,d)),[56250,64285,75000]);
+ for(const n of [-1,1.5,25,NaN])assert.throws(()=>rules.ratio(n));assert.throws(()=>rules.payout(1,1));assert.throws(()=>rules.odds('__proto__'));
  assert.equal(rules.clearedAt(rules.blockMs-1),0);assert.equal(rules.clearedAt(rules.blockMs),1);
 });
+
+test('street plans mix individual sides, disperse neon, vary runs and reproduce a resumed run',()=>{
+ const streets=require('../assets/midnight-run/streets'),signatures=new Set();
+ for(let i=0;i<100;i++){
+  const id='run-'+i,rows=streets.plan(id);assert.deepEqual(rows,streets.plan(id));signatures.add(JSON.stringify(rows.slice(1,8)));
+  for(let r=1;r<rows.length;r++){
+   const neon=rows[r].filter(l=>l.image===0).length;assert.ok(neon<=1,'never a full neon row');
+   if(neon)assert.ok(rows[r-1].every(l=>l.image!==0),'leave ordinary properties between neon venues');
+   for(let side=0;side<2;side++){assert.notEqual(rows[r][side].image,rows[r-1][side].image);assert.ok(rows[r][side].section>=0&&rows[r][side].section<3);}
+  }
+  assert.ok(rows.flat().filter(l=>l.image===0).length>=40);assert.equal(new Set(rows.flat().map(l=>l.image)).size,4);
+ }
+ assert.equal(signatures.size,100);
+});
+
 test('route draws have exact thresholds and never reveal a future block',()=>{
  assert.equal(draw(50000,()=>99),1);assert.equal(draw(50000,()=>79),7);
  assert.equal(draw(50000,()=>0),rules.lastBlock(50000)+1);
@@ -41,7 +59,7 @@ test('route draws have exact thresholds and never reveal a future block',()=>{
 });
 test('real wallet, simultaneous purchases, ownership, ignored client prizes and exactly-once escape',async()=>{
  const f=await fixture();try{
-  const body={...purchase(),caughtBlock:1,startedAt:0,payout:900000000};const [s,t]=await Promise.all([f.store.start(f.a,body),f.store.start(f.a,purchase(100000,2))]);
+  const body={...purchase(),caughtBlock:1,startedAt:0,payout:900000000};const [s,t]=await Promise.all([f.store.start(f.a,body),f.store.start(f.a,purchase(100000))]);
   assert.equal(s.id,t.id);assert.equal(s.stake,50000);assert.equal(f.entries().length,1);assert.equal(await f.wallet.balance(f.a),1999950000);
   await assert.rejects(f.store.cashout(f.b,cash(s)),e=>e.status===404);await assert.rejects(f.store.cashout(f.a,cash(s)),/Reach the next corner/);
   f.at(s.startedAt+rules.blockMs+200);const [win,retry]=await Promise.all([f.store.cashout(f.a,{...cash(s,1),payout:900000000}),f.store.cashout(f.a,cash(s,1))]);
@@ -89,11 +107,11 @@ test('corner cashout is safe through database delays',async()=>{
 
 test('every wager reaches the cap only after explicit continue choices',async()=>{
  const f=await fixture();try{
-  for(const stake of rules.stakes){
-   let s=await f.store.start(f.a,purchase(stake));
-   for(let block=1;block<=rules.lastBlock(stake);block++){
+  for(const difficulty of rules.difficulties)for(const stake of rules.stakes){
+   let s=await f.store.start(f.a,purchase(stake,difficulty));
+   for(let block=1;block<=rules.lastBlock(stake,difficulty);block++){
     f.at(s.legStartedAt+3600000);s=await f.store.current(f.a);assert.equal(s.cleared,block);
-    if(block<rules.lastBlock(stake)){assert.equal(s.phase,'corner');s=await f.store.continue(f.a,cash(s));}
+    if(block<rules.lastBlock(stake,difficulty)){assert.equal(s.phase,'corner');s=await f.store.continue(f.a,cash(s));}
    }
    assert.equal(s.outcome,'limit');assert.equal(s.payout,50000000);assert.equal((await f.store.cashout(f.a,cash(s))).payout,50000000);
   }
@@ -141,5 +159,30 @@ test('endpoint validates auth and quotes, excludes secrets, and active polls ski
   assert.equal((await handler(new Request('http://local',{method:'POST',body:'['}))).status,400);
   assert.equal((await handler(new Request('http://local',{method:'POST',body:'x'.repeat(5000)}))).status,413);
   await assert.rejects(f.wallet.apply('legacy-101',{id:'midnight:forged:payout:101',delta:50000000}),/Invalid wallet/);
+ }finally{await f.pg.close();}
+});
+
+
+test('difficulty is fixed before funding, survives lost replies and ignores action overrides',async()=>{
+ const f=await fixture();try{
+  for(const difficulty of ['invalid',null,'__proto__'])await assert.rejects(f.store.start(f.a,purchase(50000,difficulty)),e=>e.status===400);
+  for(const difficulty of rules.difficulties){
+   f.random(()=>0);const body=purchase(50000,difficulty);f.fail('stake');await assert.rejects(f.store.start(f.a,body),/Lost wallet/);
+   f.random(()=>99);const s=await f.store.start(f.a,{...body,difficulty:'normal'});assert.equal(s.difficulty,difficulty);assert.ok(s.caughtBlock>1);
+   f.at(s.startedAt+rules.blockMs);const corner=await f.store.current(f.a);assert.equal(publicGame(corner).difficulty,difficulty);
+   const next=await f.store.continue(f.a,{...cash(corner),difficulty:'normal',safePercent:[100]});assert.equal(next.difficulty,difficulty);
+   f.at(next.legStartedAt+rules.blockMs);const win=await f.store.cashout(f.a,{...cash(next,2),difficulty:'high',payout:50000000});assert.equal(win.payout,rules.payout(50000,2,difficulty));
+   const threshold=rules.odds(difficulty)[0];assert.equal(draw(50000,()=>threshold,difficulty),1);assert.ok(draw(50000,()=>threshold-1,difficulty)>1);
+  }
+  assert.equal(f.entries().length,6);
+ }finally{await f.pg.close();}
+});
+
+test('existing V2 corner runs with no difficulty keep original odds and payouts',async()=>{
+ const f=await fixture();try{
+  const s=await f.store.start(f.a,purchase());delete s.difficulty;
+  await f.pool.query('UPDATE midnight_run_games SET state=$2::jsonb WHERE id=$1',[s.id,JSON.stringify(s)]);
+  f.at(s.startedAt+rules.blockMs);const corner=await f.store.current(f.a);assert.equal(publicGame(corner).difficulty,'normal');
+  assert.equal((await f.store.cashout(f.a,{...cash(corner),difficulty:'high'})).payout,56250);
  }finally{await f.pg.close();}
 });

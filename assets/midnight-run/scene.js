@@ -1,37 +1,47 @@
-/* MIDNIGHT_RUN_V2_CORNERS — original art with world-space lighting, rain and character animation. */
+/* MIDNIGHT_RUN_V3_CITY_RISK — original art with world-space lighting, rain and character animation. */
 (() => {
  'use strict';
  const W=720,H=780,images=new Map();
- function art(name){if(!images.has(name)){const img=new Image();img.src='/assets/midnight-run/images/'+name+'.webp?v=MIDNIGHT_RUN_V2_CORNERS';images.set(name,img);}return images.get(name);}
+ function art(name){if(!images.has(name)){const img=new Image();img.src='/assets/midnight-run/images/'+name+'.webp?v=MIDNIGHT_RUN_V3_CITY_RISK';images.set(name,img);}return images.get(name);}
  const loaded=img=>img.complete&&img.naturalWidth>0;
  const clamp=(n,a=0,b=1)=>Math.max(a,Math.min(b,n));
  class MidnightScene{
   constructor(canvas){
    this.canvas=canvas;this.ctx=canvas.getContext('2d',{alpha:false});this.reduced=matchMedia('(prefers-reduced-motion:reduce)');
    this.streets=['neon-strip','old-quarter','dockside','market-row'].map(art);this.runner=art('runner');this.patrol=art('patrol');this.state={phase:'preview',elapsed:0};
-   this.effectAt=0;this.effectKey='';this.lastResize=0;
+   this.effectAt=0;this.effectKey='';this.previewId='preview-'+crypto.randomUUID();this.routeId='';this.lots=[];
    this.resize=new ResizeObserver(()=>this.draw(this.state));this.resize.observe(canvas);
    for(const img of images.values())img.addEventListener('load',()=>this.draw(this.state));
    this.fog=document.createElement('canvas');this.fog.width=this.fog.height=128;
    const fc=this.fog.getContext('2d'),fg=fc.createRadialGradient(64,64,0,64,64,64);fg.addColorStop(0,'#adc2c252');fg.addColorStop(.5,'#adc2c225');fg.addColorStop(1,'#adc2c200');fc.fillStyle=fg;fc.fillRect(0,0,128,128);
   }
-  get ready(){return loaded(this.streets[0])&&loaded(this.runner);}
+  get ready(){return this.streets.every(loaded)&&loaded(this.runner);}
   glow(c,x,y,r,color,alpha=1){c.save();c.globalAlpha=alpha;const g=c.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,color);g.addColorStop(1,'transparent');c.fillStyle=g;c.fillRect(x-r,y-r,r*2,r*2);c.restore();}
   street(c,travel,t){
-   const height=1080,part=Math.floor(travel/height),y=travel%height-300;
+   // Keep the roadway continuous; choose each roadside building lot separately.
+   const height=1080,y=travel%height-300,road=this.streets[1];
+   for(let n=-1;n<=1;n++)if(loaded(road))c.drawImage(road,0,y+n*height,W,height);
    for(let n=-1;n<=1;n++){
-    const index=((part-n)%this.streets.length+this.streets.length)%this.streets.length,img=this.streets[index],top=y+n*height;
-    if(top>H||top+height<0)continue;
-    if(loaded(img))c.drawImage(img,0,top,W,height);else if(loaded(this.streets[0]))c.drawImage(this.streets[0],0,top,W,height);
-    if(index===0){
-     // World-space neon spills stay attached to their buildings as the street moves.
-     const pulse=this.reduced.matches?1:.88+.12*Math.sin(t*1.7);
-     for(const [x,offset,color] of [[175,165,'#ffaf35'],[545,235,'#ff39cf'],[175,545,'#28d7ff'],[545,590,'#29caff'],[165,915,'#df38ff']]){
-      this.glow(c,x,top+offset,155,color,.13*pulse);
+    const top=y+n*height,shade=c.createLinearGradient(0,top-25,0,top+25);
+    shade.addColorStop(0,'#0b182500');shade.addColorStop(.5,'#0b182585');shade.addColorStop(1,'#0b182500');c.fillStyle=shade;c.fillRect(252,top-25,216,50);
+   }
+   const {lotHeight,lotWidth}=window.MidnightRunStreets,first=Math.floor((travel-300-H)/lotHeight),last=Math.ceil((travel-300)/lotHeight);
+   for(let row=first;row<=last;row++){
+    const top=travel-300-row*lotHeight,lot=this.lots[(((row+4)%this.lots.length)+this.lots.length)%this.lots.length];
+    for(let side=0;side<2;side++){
+     const {image,section}=lot[side],img=this.streets[image],x=side?W-lotWidth:0;
+     if(!loaded(img))continue;
+     // Source and destination crops share the same uniform scale; signs are never mirrored.
+     const scale=img.naturalWidth/W;
+     c.drawImage(img,x*scale,section*lotHeight*scale,lotWidth*scale,lotHeight*scale,x,top,lotWidth,lotHeight);
+     // Shallow access-alley shadows separate adjacent properties without crossing the road.
+     const edge=c.createLinearGradient(0,top,0,top+24);edge.addColorStop(0,'#08131bd9');edge.addColorStop(1,'#08131b00');c.fillStyle=edge;c.fillRect(x,top,lotWidth,24);
+     if(image===0){
+      const colors=side?['#ff39cf','#29caff','#ff3975']:['#ffaf35','#28d7ff','#df38ff'];
+      const pulse=this.reduced.matches?1:.9+.1*Math.sin(t*1.7+row);
+      this.glow(c,side?510:210,top+175,170,colors[section],.2*pulse);
      }
     }
-    // A shallow atmospheric seam softens the transition between distinct city blocks.
-    const shade=c.createLinearGradient(0,top-8,0,top+15);shade.addColorStop(0,'#0b182500');shade.addColorStop(.5,'#0b18254a');shade.addColorStop(1,'#0b182500');c.fillStyle=shade;c.fillRect(0,top-8,W,23);
    }
    if(!this.reduced.matches){
     for(let i=0;i<8;i++){
@@ -57,6 +67,7 @@
    c.restore();
   }
   draw(state=this.state){
+   const routeId=state.id||this.previewId;if(routeId!==this.routeId){this.routeId=routeId;this.lots=window.MidnightRunStreets.plan(routeId);}
    this.state=state;if(!this.canvas.getBoundingClientRect().width)return;
    const rect=this.canvas.getBoundingClientRect(),dpr=Math.min(2,window.devicePixelRatio||1),pw=Math.round(rect.width*dpr),ph=Math.round(rect.height*dpr);
    if(this.canvas.width!==pw||this.canvas.height!==ph){this.canvas.width=pw;this.canvas.height=ph;}

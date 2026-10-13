@@ -1,4 +1,4 @@
-# Midnight Run V2 — corner choices
+# Midnight Run V3 — mixed streets and three difficulties
 
 Single-player automatic runner at `/games/single-player/midnight-run/`, linked
 from the homepage Single Player section. Shares the verified Torn identity,
@@ -7,6 +7,11 @@ wallet and timestamped admin ledger, header, settings, mute, theme and debug UI.
 ## Play
 
 - Wagers: 50K, 100K, 500K, 1M, 5M or 10M chips.
+- Choose Normal (original), Medium or High Risk before starting. Difficulty is
+  immutable for a funded run and restored on resume. Practice uses matching odds.
+- First-block clear chances are 80%, 70% and 60%; a 50K wager returns 56,250,
+  64,285 or 75,000 chips respectively. The setup shows first-block risk/return;
+  each corner shows the next block's clear/capture chances and total return.
 - Three-second countdown, then a 4.5-second run to the first corner.
 - Surviving a block stops both the runner and street. Choose **Continue** to risk
   one more block, or **Cash out** to secure the displayed return. No decision timer.
@@ -20,8 +25,10 @@ wallet and timestamped admin ledger, header, settings, mute, theme and debug UI.
 
 ## Payout math and audit
 
-The first block survives 80 of 100 equally likely crypto draws. Later safe counts
-are 88, 86, 84, …, 44 out of 100. For a fixed cleared block k, let P be the product
+Normal is unchanged: the first block survives 80 of 100 equally likely crypto
+draws, then 88, 86, 84, …, 44. Medium uses 70, then 79, 77, 75, …, 35.
+High Risk uses 60, then 70, 68, 66, …, 26. Difficulty changes the risk schedule;
+all three use the same payout formula, rounding and 50M cap. For a fixed cleared block k, let P be the product
 of its safe probabilities. Total return is `min(50M, floor(stake * 0.90 / P))`.
 BigInt rational arithmetic makes each quoted amount exact in whole chips.
 
@@ -30,11 +37,12 @@ whole-chip rounding). A backwards optimal-stopping check confirms that choosing
 whether to continue based on already cleared blocks cannot remove the 10%
 minimum expected house advantage. Scenery, character movements and lighting use
 no secret outcome data. At the capped final block, the truncated prize reduces
-expected return further, as low as 65.68% for one stake/target combination.
+expected return further, as low as 45.19% for one High Risk stake/target combination.
 Only reachable targets are offered; later blocks disappear once the cap is reached.
 
-A 2,000,000-route production-RNG simulation covered all **90 reachable stake / exit
-combinations**. Observed returns were **65.92%–90.80%**; every sampled combination
+A 6,000,000-route production-RNG simulation (2M per difficulty) covered all
+**219 reachable difficulty / stake / exit combinations**. Observed returns were
+**45.35%–91.48%**; every sampled combination
 had positive house profit. This is a finite sample, not a guarantee for future
 sessions. Bonuses or other games are outside this audit. Exact expectation and
 optimal-stopping checks, rather than a profitable sample, establish the edge.
@@ -64,7 +72,8 @@ an idempotent request ID. Duplicate or delayed requests cannot skip another bloc
 stale corner choices are rejected. Cash-out and Continue share the row lock.
 Corner arrival, clock and settlement are server-owned.
 
-Already-funded V1 records retain their original settlement contract so deployment
+Existing V2 corner records without a difficulty use Normal, with their original
+route and payout intact. Already-funded V1 records retain their original settlement contract so deployment
 cannot change an existing wager. The legacy resolver remains solely for those
 records; new starts use `mode: corners` and reject non-null auto targets.
 
@@ -79,6 +88,14 @@ and rejects stale replies and responses from an old profile/page lifetime.
 Original generated Neon Strip, Old Quarter, Dockside and Market Row art, a four-frame runner
 sheet and a patrol sedan are optimized WebP files under `assets/midnight-run/images`.
 Artwork retains its aspect ratio; the viewport crops instead of stretching.
+A cosmetic plan seeded only by the public run ID chooses each left/right building
+lot separately. Neon venues occur on only one side of a row, with one or two rows
+of ordinary buildings between them. Neighboring lots on the same side use different
+source neighborhoods. A new run changes the layout; reconnecting preserves it.
+The road scrolls continuously beneath cropped properties, with alley-edge shadows
+and lighting attached to each venue. Plans are cached per run and never use secret
+capture data, difficulty or per-frame randomness. The four environment images
+remain in use as building/road sources, so none are superseded.
 The menu is a live scene, with the same runner and lighting as gameplay.
 Rain, steam, puddle ripples, moving headlight cones, soft patrol lights and
 world-space street movement are canvas overlays. Neon Strip adds casino, strip-club,
@@ -115,12 +132,14 @@ node scripts/site-hub-browser.test.mjs
 node scripts/multiplayer-balance-browser.test.mjs
 ```
 
-Unit coverage includes all payouts and targets, optimal stopping, RNG boundaries,
+Unit coverage includes all three difficulty schedules, every capped payout, optimal
+stopping, RNG boundaries, deterministic mixed building plans, immutable difficulty,
 real conditional wallet writes, ownership, concurrent windows, ignored client
 values, lost debit/credit responses, funding failures, capture boundaries, lock latency,
 indefinite corner waits, explicit progression to the cap, stale/duplicate Continue,
 legacy recovery, auth, private-state serialization and input limits.
-Browser coverage includes corner stops, Continue/capture, delayed and lost replies,
+Browser coverage includes all three difficulties, preserved scenery after reload,
+new scenery per run, corner stops, Continue/capture, delayed and lost replies,
 reload/resume, replay, two windows, touch/keyboard, free-practice isolation,
 desktop/phone/tablet/landscape, light/reduced motion, mute and BFCache.
 The build includes the unchanged protected Roulette, Safe Cracker and Summit checks.

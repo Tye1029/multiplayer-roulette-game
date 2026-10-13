@@ -1,24 +1,27 @@
-/* MIDNIGHT_RUN_V2_CORNERS */
+/* MIDNIGHT_RUN_V3_CITY_RISK */
 (() => {
  'use strict';
  const rules=window.MidnightRunRules,audio=window.MidnightRunAudio,$=id=>document.getElementById(id),fmt=n=>Number(n).toLocaleString('en-US');
  const active=s=>s?.status==='active',finished=s=>s?.status==='settled',mult=(amount,wager)=>(amount/wager).toFixed(2)+'×';
  const label=(id,text)=>{const el=$(id),value=String(text);if(el.textContent!==value)el.textContent=value;};
  const markup=(id,html)=>{const el=$(id);if(el.dataset.html!==html){el.innerHTML=html;el.dataset.html=html;}};
- let scene,preview,stake=50000,game=null,saved=null,demo=false,playing=false,ready=false,busy=false,connecting=false,pending=null,retry=null,epoch=0,pageActive=true;
+ let scene,preview,stake=50000,difficulty='normal',game=null,saved=null,demo=false,playing=false,ready=false,busy=false,connecting=false,pending=null,retry=null,epoch=0,pageActive=true;
  let frame=0,frameStamp=0,pollTimer=0,polling=false,serverStamp=0,anchor=0,lastStateAt=0,lastCount=-1,lastCleared=0,lastDrawElapsed=0;
  let frozen=null,celebrated='',revealAt=0,revealed=false,effectUntil=0,practiceCaught=0,heldBalance=null;
  const current=run=>pageActive&&run===epoch,serverTime=()=>serverStamp+Math.min(2000,Math.max(0,performance.now()-anchor));
- window.XanSiteAdapter={current:()=>({mode:'midnight',id:playing&&!demo?game?.id||'':'',phase:playing?(active(game)?'playing':'ready'):'lobby'}),diagnostics:()=>({build:rules.build,ready,busy,connecting,polling,demo,phase:game?.status,cleared:game?.cleared,artReady:scene?.ready,frames:frame?1:0,audioVoices:audio.active,resultVisible:revealed})};
+ window.XanSiteAdapter={current:()=>({mode:'midnight',id:playing&&!demo?game?.id||'':'',phase:playing?(active(game)?'playing':'ready'):'lobby'}),diagnostics:()=>({build:rules.build,ready,busy,connecting,polling,demo,phase:game?.status,cleared:game?.cleared,difficulty:game?.difficulty,scenery:scene?.routeId,artReady:scene?.ready,frames:frame?1:0,audioVoices:audio.active,resultVisible:revealed})};
  function notice(text='',again=null){$('mr-notice').textContent=text;retry=again;$('mr-retry').hidden=!again;$('mr-retry').textContent=pending?'Recover run':'Reconnect';}
- function settings(prefix){return '<div class="mr-settings"><label for="'+prefix+'stake">Chips per run<select id="'+prefix+'stake">'+rules.stakes.map(n=>'<option value="'+n+'">'+fmt(n)+' chips</option>').join('')+'</select></label><p class="mr-setting-note">Stop at every cleared corner. Continue for a bigger return or cash out.</p></div>';}
+ function settings(prefix){return '<div class="mr-settings"><label for="'+prefix+'stake">Chips per run<select id="'+prefix+'stake">'+rules.stakes.map(n=>'<option value="'+n+'">'+fmt(n)+' chips</option>').join('')+'</select></label><label for="'+prefix+'difficulty">Difficulty<select id="'+prefix+'difficulty">'+rules.difficulties.map(d=>'<option value="'+d+'">'+rules.labels[d]+'</option>').join('')+'</select></label><p class="mr-setting-note"></p></div>';}
  function configure(){
-  for(const prefix of ['mr-menu-','mr-play-'])$(prefix+'stake').value=String(stake);
-  try{localStorage.setItem('midnight-run-choice',JSON.stringify({stake}));}catch{}controls();
+  for(const prefix of ['mr-menu-','mr-play-']){
+   $(prefix+'stake').value=String(stake);$(prefix+'difficulty').value=difficulty;
+   const safe=rules.odds(difficulty)[0];$(prefix+'settings').querySelector('.mr-setting-note').textContent='First block: '+safe+'% clear / '+(100-safe)+'% caught. Return '+fmt(rules.payout(stake,1,difficulty))+' chips ('+mult(rules.payout(stake,1,difficulty),stake)+'). Difficulty is fixed for the run.';
+  }
+  try{localStorage.setItem('midnight-run-choice',JSON.stringify({stake,difficulty}));}catch{}controls();
  }
  function controls(){
   const inRun=playing&&active(game),ending=playing&&finished(game)&&!revealed,locked=busy||Boolean(pending)||inRun||ending;
-  for(const id of ['mr-menu-stake','mr-play-stake'])$(id).disabled=locked;
+  for(const id of ['mr-menu-stake','mr-play-stake','mr-menu-difficulty','mr-play-difficulty'])$(id).disabled=locked;
   $('mr-start').disabled=busy||connecting||Boolean(pending)||!ready;
   $('mr-start').textContent=connecting?'Connecting your chip balance…':active(saved)?'Resume your run':'Start run · '+fmt(stake)+' chips';
   $('mr-practice').disabled=busy||Boolean(pending);$('mr-connect').hidden=ready||connecting;
@@ -42,11 +45,11 @@
   const phase=terminal?(game.outcome==='caught'?'caught':'escape'):holding?'securing':atCorner?'corner':awaiting&&corners?'waiting':legElapsed<0?'countdown':'running';
   const rawElapsed=terminal?game.travelMs:holding?frozen:corners?game.cleared*rules.blockMs+(atCorner?0:Math.max(0,Math.min(rules.blockMs,legElapsed))):Math.max(0,now-game.startedAt);
   const drawElapsed=Math.max(lastDrawElapsed,rawElapsed||0);lastDrawElapsed=drawElapsed;
-  const block=Math.min((game?.cleared||0)+1,game?.lastBlock||rules.lastBlock(stake));
+  const block=Math.min((game?.cleared||0)+1,game?.lastBlock||rules.lastBlock(stake,difficulty));
   $('mr-countdown').hidden=phase!=='countdown';
   if(phase==='countdown'){const count=Math.max(1,Math.ceil(-legElapsed/1000));$('mr-countdown').querySelector('strong').textContent=count;if(count!==lastCount){lastCount=count;audio.tick();}}
   if(phase==='running'&&!stale)audio.run();else audio.stopRun();
-  label('mr-district',rules.district(drawElapsed/rules.blockMs));label('mr-block',atCorner?'CORNER '+String(game.cleared).padStart(2,'0'):'BLOCK '+String(block).padStart(2,'0'));
+  label('mr-district','CITY STREETS');label('mr-block',atCorner?'CORNER '+String(game.cleared).padStart(2,'0'):'BLOCK '+String(block).padStart(2,'0'));
   label('mr-distance',fmt(Math.floor(drawElapsed/rules.blockMs*100))+' m');
   label('mr-state',holding?'ESCAPE REQUESTED':terminal?(revealed?(game.outcome==='caught'?'CAUGHT':'ESCAPED'):'RUN ENDED'):atCorner?'CONTINUE OR CASH OUT':phase==='countdown'?'MAKE YOUR MOVE':stale?'RECONNECTING':awaiting?'CHECKING CORNER':'KEEP MOVING');
   const bank=terminal&&revealed?game.payout:game?.bank||0;
@@ -57,9 +60,9 @@
   $('mr-cashout').disabled=!canChoose;$('mr-continue').disabled=!canChoose||!corners;
   label('mr-cashout',terminal?'Finishing your run…':holding?'Securing your escape…':pending?'Recover your run':phase==='countdown'?'Ready to run…':stale?'Reconnecting…':!atCorner&&corners?'Reach the next corner…':'Cash out · '+fmt(game.bank));
   label('mr-continue',busy&&pending?.action==='continue'?'Continuing…':'Continue · block '+block);
-  const next=rules.payout(game?.stake||stake,block);
+  const next=rules.payout(game?.stake||stake,block,game?.difficulty||difficulty);
   markup('mr-next-value',fmt(next)+' <small>chips</small>');label('mr-next-multiplier',mult(next,game?.stake||stake));
-  label('mr-next-note',block===(game?.lastBlock||rules.lastBlock(stake))?'Final block · maximum return.':'Every new block risks your return.');
+  const safe=rules.odds(game?.difficulty||difficulty)[block-1];label('mr-next-note',rules.labels[game?.difficulty||difficulty]+' · '+safe+'% clear / '+(100-safe)+'% caught'+(block===game?.lastBlock?' · Final block.':'.'));
   $('mr-next').hidden=terminal;label('mr-route-label',terminal?'Run complete':holding?'Securing your escape':atCorner?'Corner cleared · your choice':'Next corner · block '+block);
   $('mr-progress').style.width=(terminal||atCorner?100:Math.max(0,Math.min(100,(drawElapsed-(block-1)*rules.blockMs)/rules.blockMs*100)))+'%';
   scene.draw({phase,elapsed:drawElapsed,id:game?.id});
@@ -77,7 +80,7 @@
   controls();
  }
  function paint(animate=true){
-  $('mr-mode').textContent=demo?'FREE PRACTICE':'MIDNIGHT RUN';
+  $('mr-mode').textContent=(demo?'PRACTICE · ':'')+rules.labels[game?.difficulty||difficulty].toUpperCase();
   if(active(game)&&game.cleared>lastCleared){if(animate&&playing)audio.corner();lastCleared=game.cleared;}
   if(finished(game)&&celebrated!==game.id){celebrated=game.id;revealed=false;revealAt=performance.now()+(animate?1250:0);effectUntil=performance.now()+(animate?3100:0);if(animate)audio.finish(game.outcome!=='caught');}
   controls();scheduleFrame();
@@ -102,7 +105,7 @@
    const meta={key:response.key,at:response.received};
    if(playing&&!demo&&finished(next)&&!revealed)heldBalance={value:response.balance,meta};else window.XanHub.setBalance(response.balance,meta);
   }
-  if(!demo&&playing){game=next;if(game){const changed=stake!==game.stake;stake=game.stake;if(changed)configure();paint(animate);}}
+  if(!demo&&playing){game=next;if(game){const changed=stake!==game.stake||difficulty!==(game.difficulty||'normal');stake=game.stake;difficulty=game.difficulty||'normal';if(changed)configure();paint(animate);}}
  }
  function schedulePoll(){
   clearTimeout(pollTimer);if(!pageActive||!playing||demo||!active(game)||document.hidden)return;
@@ -118,7 +121,7 @@
  }
  async function send(body,opening=false){
   if(busy)return;const run=epoch;busy=true;pending=body;notice();controls();audio.unlock();
-  try{const response=await request(body);if(!current(run))return;pending=null;ready=true;adopt(response);if(opening){game=response.game;saved=game;stake=game.stake;configure();enter();}else paint();}
+  try{const response=await request(body);if(!current(run))return;pending=null;ready=true;adopt(response);if(opening){game=response.game;saved=game;stake=game.stake;difficulty=game.difficulty||'normal';configure();enter();}else paint();}
   catch(e){if(!current(run))return;
    if([400,401,404,409].includes(e.status)){pending=null;frozen=null;if(e.status===401)ready=false;notice(e.message,reconnect);}
    else notice('Connection interrupted. Recover this run before starting another. Your wager and return are saved.',()=>send(body,opening));
@@ -126,23 +129,23 @@
  }
  function start(){
   if(busy||pending||connecting||!ready)return;demo=false;stop();epoch++;lastStateAt=0;
-  if(active(saved)){game=saved;stake=game.stake;configure();audio.unlock();enter();reconnect();return;}
-  send({action:'start',stake,quote:rules.build,requestId:crypto.randomUUID()},true);
+  if(active(saved)){game=saved;stake=game.stake;difficulty=game.difficulty||'normal';configure();audio.unlock();enter();reconnect();return;}
+  send({action:'start',stake,difficulty,quote:rules.build,requestId:crypto.randomUUID()},true);
  }
  function practiceInt(){let n;do{n=crypto.getRandomValues(new Uint32Array(1))[0];}while(n>=4294967200);return n%100;}
  function practice(){
-  if(busy||pending)return;stop();epoch++;connecting=false;demo=true;heldBalance=null;practiceCaught=rules.lastBlock(stake)+1;
-  for(let b=1;b<=rules.lastBlock(stake);b++)if(practiceInt()>=rules.safePercent[b-1]){practiceCaught=b;break;}
-  game={id:'free-'+crypto.randomUUID(),stake,mode:'corners',phase:'running',status:'active',startedAt:performance.now()+rules.countdownMs,legStartedAt:performance.now()+rules.countdownMs,cleared:0,bank:0,lastBlock:rules.lastBlock(stake)};
+  if(busy||pending)return;stop();epoch++;connecting=false;demo=true;heldBalance=null;practiceCaught=rules.lastBlock(stake,difficulty)+1;
+  for(let b=1;b<=rules.lastBlock(stake,difficulty);b++)if(practiceInt()>=rules.odds(difficulty)[b-1]){practiceCaught=b;break;}
+  game={id:'free-'+crypto.randomUUID(),stake,difficulty,mode:'corners',phase:'running',status:'active',startedAt:performance.now()+rules.countdownMs,legStartedAt:performance.now()+rules.countdownMs,cleared:0,bank:0,lastBlock:rules.lastBlock(stake,difficulty)};
   notice();audio.unlock();enter();
  }
- function settlePractice(outcome,cleared,endedAt){game={...game,status:'settled',outcome,cleared,payout:outcome==='caught'?0:rules.payout(game.stake,cleared),endedAt,travelMs:(outcome==='caught'?cleared+1:cleared)*rules.blockMs};paint();}
+ function settlePractice(outcome,cleared,endedAt){game={...game,status:'settled',outcome,cleared,payout:outcome==='caught'?0:rules.payout(game.stake,cleared,game.difficulty),endedAt,travelMs:(outcome==='caught'?cleared+1:cleared)*rules.blockMs};paint();}
  function advancePractice(now){
   if(game.phase!=='running'||now<game.legStartedAt+rules.blockMs)return;
   const block=game.cleared+1,arrival=game.legStartedAt+rules.blockMs;
   if(block>=practiceCaught)settlePractice('caught',game.cleared,arrival);
   else if(block===game.lastBlock)settlePractice('limit',block,arrival);
-  else{game.cleared=block;game.bank=rules.payout(game.stake,block);game.phase='corner';paint();}
+  else{game.cleared=block;game.bank=rules.payout(game.stake,block,game.difficulty);game.phase='corner';paint();}
  }
  function continueRun(){
   if(busy||pending||!active(game)||game.phase!=='corner'||frozen!==null)return;
@@ -164,16 +167,16 @@
  }
  function reset(){stop();epoch++;busy=false;pending=null;connecting=false;polling=false;ready=false;playing=false;demo=false;game=null;saved=null;heldBalance=null;lastStateAt=0;frozen=null;$('mr-menu').hidden=false;$('mr-play').hidden=true;notice();configure();reconnect();scheduleFrame();}
  document.addEventListener('DOMContentLoaded',()=>{
-  try{const s=JSON.parse(localStorage.getItem('midnight-run-choice'));if(rules.stakes.includes(s?.stake))stake=s.stake;}catch{}
+  try{const s=JSON.parse(localStorage.getItem('midnight-run-choice'));if(rules.stakes.includes(s?.stake))stake=s.stake;if(rules.validDifficulty(s?.difficulty))difficulty=s.difficulty;}catch{}
   for(const prefix of ['mr-menu-','mr-play-']){
-   $(prefix+'settings').innerHTML=settings(prefix);$(prefix+'stake').onchange=e=>{stake=Number(e.target.value);configure();};
+   $(prefix+'settings').innerHTML=settings(prefix);$(prefix+'stake').onchange=e=>{stake=Number(e.target.value);configure();};$(prefix+'difficulty').onchange=e=>{difficulty=e.target.value;configure();};
   }
   scene=new window.MidnightRunScene($('mr-scene'));preview=new window.MidnightRunScene($('mr-preview'));configure();
   $('mr-continue').onclick=continueRun;$('mr-start').onclick=start;$('mr-practice').onclick=practice;$('mr-cashout').onclick=cashout;
   $('mr-cashout').onpointerdown=e=>{if(e.isPrimary&&e.button===0&&!e.currentTarget.disabled)cashout();};
   $('mr-again').onclick=()=>demo?practice():start();$('mr-retry').onclick=()=>retry?.();$('mr-free').onchange=e=>{demo=e.target.checked;controls();if(!demo)reconnect();};
   $('mr-help').onclick=()=>{
-   const d=document.createElement('dialog');d.className='xan-dialog mr-help';d.innerHTML='<h2>How to play Midnight Run</h2><ol><li>Choose your wager and start. Your runner moves after a three-second countdown.</li><li>Each block takes 4.5 seconds. Survive it and your runner stops at the corner.</li><li>Choose Continue to risk another block, or Cash out to secure your current return, including your wager.</li><li>There is no decision timer. Your runner waits at a cleared corner even if you leave or disconnect.</li><li>Getting caught during a block loses your wager. Scenery and patrol lights are atmosphere, not clues.</li><li>Reaching 50,000,000 chips completes the run. Free practice uses the same risks and never spends or awards chips.</li></ol><button class="mr-secondary">Got it</button>';document.body.append(d);d.querySelector('button').onclick=()=>d.close();d.onclose=()=>d.remove();d.showModal();
+   const d=document.createElement('dialog');d.className='xan-dialog mr-help';d.innerHTML='<h2>How to play Midnight Run</h2><ol><li>Choose your wager and difficulty. Normal keeps the original odds; Medium and High Risk increase both capture chance and return. Your runner moves after a three-second countdown.</li><li>Each block takes 4.5 seconds. Survive it and your runner stops at the corner.</li><li>Choose Continue to risk another block, or Cash out to secure your current return, including your wager.</li><li>There is no decision timer. Your runner waits at a cleared corner even if you leave or disconnect.</li><li>Getting caught during a block loses your wager. The next block’s clear/capture chances are shown before you continue. Randomized scenery and patrol lights are atmosphere, not clues.</li><li>Reaching 50,000,000 chips completes the run. Free practice uses the same risks and never spends or awards chips.</li></ol><button class="mr-secondary">Got it</button>';document.body.append(d);d.querySelector('button').onclick=()=>d.close();d.onclose=()=>d.remove();d.showModal();
   };
   reconnect();scheduleFrame();
  });
