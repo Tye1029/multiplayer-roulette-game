@@ -1,4 +1,4 @@
-# Lucky Dice and Dice Duel — DICE_V2
+# Lucky Dice and Dice Duel — DICE_V3
 
 Lucky Dice is the solo higher/lower game at `/games/single-player/lucky-dice/`.
 Dice Duel is the live two-player game at `/games/multiplayer/dice-duel/`.
@@ -9,8 +9,9 @@ debug controls, and responsive felt table with real six-face dice.
 
 Choose a threshold from 3 through 11 and a strict **higher** or **lower** prediction.
 The combined total of two fair dice must satisfy that comparison. Equality loses.
-Before paying, the menu and table show exact winning combinations, probability,
-total return including stake, and multiplier. Wagers: 50K, 100K, 500K, 1M, 5M, 10M.
+Before paying, the menu and table show winning totals, winning return, and
+multiplier. The chance percentage and redundant footer labels are removed.
+Wagers: 50K, 100K, 500K, 1M, 5M, 10M.
 Entering is free. Practice cannot spend or award Chips.
 
 For `w` winning ordered combinations out of 36, the total winning return is
@@ -33,9 +34,17 @@ returned 94.9707% overall; each setting produced a house profit in that run.
 
 Public/private games, wager quote acceptance, private code/link entry, live open
 games, Ready, three-second countdown, and 60 seconds to roll. Both results stay
-hidden until both players roll. Higher total wins the shared prize after the same
-configured settlement rate as other multiplayer games. A tie reveals both rolls,
-pauses 5.5 seconds, then starts another countdown without another stake.
+hidden until both players roll. Higher total wins a round; the first player to
+win two rounds takes the shared prize after the same configured settlement rate
+as other multiplayer games. A tie awards no point. Between rolls, pause seven
+seconds, then start another countdown. One wager covers the entire match.
+Scores reset only on a new match or rematch, never on a tied roll.
+
+One million simulated matches produced 501,123 / 498,877 wins, with 316,737 tied
+rounds in 2,816,415 rolls. The actual shared settlement function was checked at
+all 50 paid wager levels with the default configured 3.3% rate. Each completed
+funded match keeps that rate once; refunded matches and free bots generate no
+house revenue. A 1,000-Chip stake per player leaves 66 Chips for the house.
 
 One missed roll forfeits to a player who rolled. If neither rolls, both wagers
 return. Only an empty waiting game can be cancelled. Rematch requires both
@@ -59,6 +68,10 @@ Requests are idempotent, seats are bound to verified identity, and stale rounds
 or matches cannot roll again. Payouts recover on subsequent requests/lobby sweeps
 even after a lost wallet response. Timeout/forfeit results cannot farm achievements.
 Prize and rematch amounts come from authoritative state.
+Already-started legacy multiplayer matches keep their one-win terms; their next
+rematch uses first to two. Waiting rooms adopt first to two before starting.
+Lucky Dice's payout quote remains DICE_V2 because its financial terms are
+unchanged; the frontend assets and multiplayer endpoint use DICE_V3.
 
 The old single-player URL redirects to Lucky Dice. The old dice-duel-action
 endpoint, dice_duel_rounds / dice_duel_requests, original rules, and financial
@@ -73,6 +86,9 @@ simulation were removed; the four-die renderer remains shared by both new modes.
 Dice use continuous deceleration with sampled transform frames, smooth shallow
 bounces and exact authoritative landing faces. Rules sit inside the oval rail.
 Reduced-motion mode, mute, backgrounding and navigation cancel playback safely.
+Totals, points, tie/winner text, result sounds and rematch controls appear only
+after every die finishes settling. Incoming snapshots cannot interrupt a reveal;
+a late reveal retains its result briefly before showing the current round.
 Roll audio uses the existing recorded dice throws from
 [Kenney Casino Audio](https://kenney.nl/assets/casino-audio), licensed CC0;
 see assets/site-hub/audio/LICENSE.json. Three varied recordings are decoded
@@ -81,6 +97,7 @@ lazily for this game and layered at decreasing volumes. Result chords are origin
 ```sh
 node --test scripts/lucky-dice.test.mjs scripts/dice-duel-multiplayer.test.mjs scripts/dice-duel.test.mjs scripts/site-hub.test.mjs scripts/unified-tables.test.mjs
 node scripts/lucky-dice-simulation.mjs
+node scripts/dice-duel-multiplayer-simulation.mjs
 npm run build
 node scripts/dice-v2-browser.test.mjs
 node scripts/site-entry-browser.test.mjs
@@ -90,7 +107,8 @@ node scripts/home-navigation-browser.test.mjs
 Browser QA uses actual handlers/stores with isolated PostgreSQL, synthetic Torn
 identities and a local Chip ledger: no production account funding. Checks include
 desktop, 390/320-pixel phones and landscape; paid solo win/loss/equality, two-player
-ties/wins, rematches, private/public lobbies, bots, deadlines, cancellations,
+ties, 2–1 wins, score resets, single match funding, rematches, private/public
+lobbies, bots, deadlines, cancellations, result text timing during polling,
 lost replies, actual dice faces, audio decoding/mute, reduced motion and redirect.
 The build includes protected Roulette, Safe Cracker and Summit Sprint checks.
 

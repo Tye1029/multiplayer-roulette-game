@@ -34,7 +34,7 @@ function outcomes(mode,s){
   if(mode==='safecracker'){const player=s.safecrackerState?.players?.[account];if(player?.completedAt)values.fast=Math.max(1,epoch(player.completedAt)-epoch(s.startAt));}
   if(mode==='fishing'){const c=s.fishingState?.catches?.[account]||(i===0?s.fishingState?.creatorCatch:s.fishingState?.joinerCatch);if(c){values.size=Number(c.size||0);values.rarity=['common','uncommon','rare','mythical'].indexOf(c.rarity);values.fish=c.name;values.rare=values.rarity>=2?1:0;values.mythical=values.rarity===3?1:0;}}
   if(mode==='yahtzee'){values.score=p.total||0;values.yahtzees=(p.card?.yahtzee===50?1:0)+Math.floor((p.yahtzeeBonus||0)/100);}
-  if(mode==='diceduel'){values.doubles=(s.history||[]).filter(r=>r.dice[i][0]===r.dice[i][1]).length;values.sixes=(s.history||[]).filter(r=>r.dice[i][0]===6&&r.dice[i][1]===6).length;values.tiebreaks=winner&&s.round>1?1:0;}
+  if(mode==='diceduel'){values.doubles=(s.history||[]).filter(r=>r.dice[i][0]===r.dice[i][1]).length;values.sixes=(s.history||[]).filter(r=>r.dice[i][0]===6&&r.dice[i][1]===6).length;values.tiebreaks=winner&&(s.history||[]).some(r=>r.dice[0][0]+r.dice[0][1]===r.dice[1][0]+r.dice[1][1])?1:0;}
   if(mode==='draw')values.targets=Math.max(0,Number(s.drawState?.scores?.[account]||s.result?.scores?.[account]||0));
   if(mode==='bluff'){values.bluffs=s.stats?.[i]?.bluffs||0;values.catches=s.stats?.[i]?.catches||0;}
   if(mode==='minigolf'){for(const k of ['aces','birdies','portals'])values[k]=s.stats?.[i]?.[k]||0;}

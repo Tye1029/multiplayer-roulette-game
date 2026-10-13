@@ -4,7 +4,7 @@
  const $=id=>document.getElementById(id), storage={get(k){try{return localStorage.getItem(k);}catch{return null;}},set(k,v){try{localStorage.setItem(k,v);}catch{}}};
  const games={
   luckydice:['Lucky Dice','SINGLE PLAYER','/assets/dice-duel/lucky-cover.svg?v=DICE_V2','Choose higher or lower, set your number, and roll two dice. A bolder prediction pays more.','#90d5c2'],
-  diceduel:['Dice Duel','2 PLAYERS','/assets/dice-duel/cover.svg?v=DICE_V2','Two players. Two dice each. Higher total wins the pot. Ties roll again.','#90d5c2'],
+  diceduel:['Dice Duel','2 PLAYERS','/assets/dice-duel/cover.svg?v=DICE_V2','Two players. Two dice each. First to two round wins takes the pot. Ties roll again.','#90d5c2'],
   rocket:['Rocket Run','SINGLE PLAYER','/assets/rocket-run/cover.svg?v=ROCKET_RUN_V1','Ride a rising multiplier and cash out before the rocket crashes. Set an optional auto cash-out and choose when to come back down.','#e9b292'],
   plinko:['Plinko','SINGLE PLAYER','/assets/plinko/cover.svg?v=PLINKO_V1','Drop a golden ball through sixteen rows of pegs. Pick your risk and follow every bounce into a prize pocket.','#83cbd7'],
   minefield:['Minefield','SINGLE PLAYER','/assets/minefield/cover.svg?v=MINEFIELD_V2','Choose your mine count, uncover diamonds, and cash out before you hit a mine. Every safe find grows your return.','#cdd0d5'],
