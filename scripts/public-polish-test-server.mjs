@@ -20,7 +20,9 @@ export async function startPublicPolishServer(root=path.resolve('dist'),port=0,o
  const login=require('../netlify/functions/rps-action').createHandler(rps,async url=>({ok:true,json:async()=>player(new URL(url).searchParams.get('key'))}));
  const minefield=require('../netlify/functions/minefield/database').createStore(pool,wallet,options.minefieldRandom);
  const plinko=require('../netlify/functions/plinko/database').createStore(pool,wallet,options.plinkoRandom,options.plinkoNow);
+ const rocket=require('../netlify/functions/rocket-run/database').createStore(pool,wallet,options.rocketRandom,options.rocketNow);
  const handlers={
+  'rocket-run-action':require('../netlify/functions/rocket-run-action').createHandler(rocket,rps,wallet),
   'plinko-action':require('../netlify/functions/plinko-action').createHandler(plinko,rps,wallet),
   'minefield-action':require('../netlify/functions/minefield-action').createHandler(minefield,rps,wallet),
   'jackpot-junction-action':require('../netlify/functions/jackpot-junction-action').createHandler(junction,rps,wallet),
