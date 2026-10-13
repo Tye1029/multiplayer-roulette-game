@@ -18,7 +18,7 @@
    ambience=play(b,.12,true);
   }
   const now=context.currentTime;
-  if(now>=stepAt){stepAt=now+.3;if(loaded)play(steps[Math.floor(Math.random()*steps.length)],.23,false,.96+Math.random()*.12);}
+  if(now>=stepAt){stepAt=now+.46;if(loaded)play(steps[Math.floor(Math.random()*steps.length)],.23,false,.96+Math.random()*.12);}
   // A quiet, spacious minor ostinato; no loud repetitive arcade bleeps.
   if(now>=nextNote){nextNote=now+.6;const notes=[110,0,164.81,0,130.81,0,146.83,0];const f=notes[note++%notes.length];if(f)tone(f,1.1,.065);}
  }

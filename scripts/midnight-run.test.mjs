@@ -5,8 +5,8 @@ import {PGlite} from '@electric-sql/pglite';
 const require=createRequire(import.meta.url),rules=require('../shared/games/midnight-run');
 const {createStore,publicGame,draw}=require('../netlify/functions/midnight-run/database');
 const {createWallet}=require('../netlify/functions/rps/wallet'),{createHandler}=require('../netlify/functions/midnight-run-action');
-const purchase=(stake=50000,autoBlock=null)=>({stake,autoBlock,quote:rules.build,requestId:crypto.randomUUID()});
-const cash=s=>({gameId:s.id,requestId:crypto.randomUUID()});
+const purchase=(stake=50000)=>({stake,quote:rules.build,requestId:crypto.randomUUID()});
+const cash=(s,cleared=s.cleared)=>({gameId:s.id,cleared,requestId:crypto.randomUUID()});
 async function fixture(){
  const pg=new PGlite();let tail=Promise.resolve(),failure=null,clock=Date.now(),random=()=>0;
  const pool={query:(s,a)=>pg.query(s,a),connect:async()=>{let release;const prior=tail;tail=new Promise(r=>release=r);await prior;return {query:(s,a)=>pg.query(s,a),release};}};
@@ -28,7 +28,6 @@ test('every reachable block and stake: exact capped arithmetic, increasing retur
   assert.equal(rules.payout(stake,last),rules.maxPayout);
   let best=rules.payout(stake,last);for(let block=last-1;block>=1;block--)best=Math.max(rules.payout(stake,block),rules.safePercent[block]/100*best);
   assert.ok(best*.8/stake<=.90000000001,'Adaptive stopping cannot remove the entry edge');
-  assert.ok(rules.validAuto(null,stake));assert.ok(!rules.validAuto(0,stake));assert.ok(!rules.validAuto(last+1,stake));
  }
  for(const n of [-1,1.5,25,NaN])assert.throws(()=>rules.ratio(n));assert.throws(()=>rules.payout(1,1));
  assert.equal(rules.clearedAt(rules.blockMs-1),0);assert.equal(rules.clearedAt(rules.blockMs),1);
@@ -44,48 +43,83 @@ test('real wallet, simultaneous purchases, ownership, ignored client prizes and 
  const f=await fixture();try{
   const body={...purchase(),caughtBlock:1,startedAt:0,payout:900000000};const [s,t]=await Promise.all([f.store.start(f.a,body),f.store.start(f.a,purchase(100000,2))]);
   assert.equal(s.id,t.id);assert.equal(s.stake,50000);assert.equal(f.entries().length,1);assert.equal(await f.wallet.balance(f.a),1999950000);
-  await assert.rejects(f.store.cashout(f.b,cash(s)),e=>e.status===404);await assert.rejects(f.store.cashout(f.a,cash(s)),/Clear the first block/);
-  f.at(s.startedAt+rules.blockMs+200);const [win,retry]=await Promise.all([f.store.cashout(f.a,{...cash(s),cleared:24,payout:900000000}),f.store.cashout(f.a,cash(s))]);
+  await assert.rejects(f.store.cashout(f.b,cash(s)),e=>e.status===404);await assert.rejects(f.store.cashout(f.a,cash(s)),/Reach the next corner/);
+  f.at(s.startedAt+rules.blockMs+200);const [win,retry]=await Promise.all([f.store.cashout(f.a,{...cash(s,1),payout:900000000}),f.store.cashout(f.a,cash(s,1))]);
   assert.equal(win.payout,56250);assert.equal(retry.payout,56250);assert.equal(win.cleared,1);assert.equal(f.entries().length,2);assert.equal(await f.wallet.balance(f.a),2000006250);
   assert.equal((await f.store.start(f.a,body)).id,s.id);assert.equal(f.entries().length,2);
   assert.notEqual((await f.store.start(f.a,purchase())).id,s.id);
  }finally{await f.pg.close();}
 });
-test('capture wins exact boundary; tampered timestamps cannot reverse losses',async()=>{
+test('each corner waits indefinitely; continue is authoritative and duplicate/stale requests cannot skip blocks',async()=>{
  const f=await fixture();try{
-  let count=0;f.random(()=>++count===2?99:0);const s=await f.store.start(f.a,purchase(50000,2));assert.equal(s.caughtBlock,2);
-  f.at(s.startedAt+rules.blockMs*2);const loss=await f.store.cashout(f.a,{...cash(s),receivedAt:s.startedAt,timestamp:1,autoBlock:1});
+  const s=await f.store.start(f.a,purchase());f.at(s.startedAt+86400000);
+  let corner=await f.store.current(f.a);assert.equal(corner.phase,'corner');assert.equal(corner.cleared,1);
+  f.at(s.startedAt+172800000);corner=await f.store.current(f.a);assert.equal(corner.cleared,1);
+  const body=cash(corner);await assert.rejects(f.store.continue(f.b,body),e=>e.status===404);
+  const [next,duplicate]=await Promise.all([f.store.continue(f.a,body),f.store.continue(f.a,body)]);
+  assert.equal(next.phase,'running');assert.equal(next.legStartedAt,duplicate.legStartedAt);
+  await assert.rejects(f.store.cashout(f.a,cash(corner)),/Reach the next corner/);
+  await assert.rejects(f.store.continue(f.a,cash(corner)),/Reach the next corner/);
+  f.at(next.legStartedAt+rules.blockMs);corner=await f.store.current(f.a);assert.equal(corner.cleared,2);
+  const retry=await f.store.continue(f.a,body);assert.equal(retry.phase,'corner');assert.equal(retry.cleared,2);
+  await assert.rejects(f.store.continue(f.a,cash(s,1)),/corner has changed/);
+  await assert.rejects(f.store.cashout(f.a,cash(s,1)),/corner has changed/);
+  const win=await f.store.cashout(f.a,cash(corner));assert.equal(win.payout,rules.payout(s.stake,2));assert.equal(f.entries().length,2);
+ }finally{await f.pg.close();}
+});
+
+test('capture at the next attempted corner wins; client timestamps cannot reverse it',async()=>{
+ const f=await fixture();try{
+  let count=0;f.random(()=>++count===2?99:0);const s=await f.store.start(f.a,purchase());
+  f.at(s.startedAt+rules.blockMs);const corner=await f.store.current(f.a);
+  const next=await f.store.continue(f.a,cash(corner));f.at(next.legStartedAt+rules.blockMs);
+  const loss=await f.store.cashout(f.a,{...cash(next),receivedAt:s.startedAt,timestamp:1,payout:50000000});
   assert.equal(loss.outcome,'caught');assert.equal(loss.payout,0);assert.equal(loss.cleared,1);
   assert.equal((await f.store.cashout(f.a,cash(s))).payout,0);assert.equal(f.entries().length,2);
  }finally{await f.pg.close();}
 });
-test('manual escape uses verified receipt time before queueing for the database',async()=>{
+
+test('corner cashout is safe through database delays',async()=>{
  const f=await fixture();try{
   let n=0;f.random(()=>++n===2?99:0);const s=await f.store.start(f.a,purchase());f.at(s.startedAt+rules.blockMs+100);
-  const connect=f.pool.connect;f.pool.connect=async()=>{f.at(s.startedAt+rules.blockMs*3);return connect();};
-  const win=await f.store.cashout(f.a,cash(s));assert.equal(win.outcome,'escape');assert.equal(win.payout,56250);
+  const connect=f.pool.connect;f.pool.connect=async()=>{f.at(s.startedAt+rules.blockMs*300);return connect();};
+  const win=await f.store.cashout(f.a,cash(s,1));assert.equal(win.outcome,'escape');assert.equal(win.payout,56250);
  }finally{await f.pg.close();}
 });
-test('saved escape and maximum return settle after disconnect at every wager',async()=>{
+
+test('every wager reaches the cap only after explicit continue choices',async()=>{
  const f=await fixture();try{
   for(const stake of rules.stakes){
-   const s=await f.store.start(f.a,purchase(stake));f.at(s.startedAt+3600000);const win=await f.store.current(f.a);
-   assert.equal(win.outcome,'limit');assert.equal(win.payout,50000000);assert.equal(win.cleared,rules.lastBlock(stake));
-   assert.equal((await f.store.cashout(f.a,cash(s))).payout,50000000);
+   let s=await f.store.start(f.a,purchase(stake));
+   for(let block=1;block<=rules.lastBlock(stake);block++){
+    f.at(s.legStartedAt+3600000);s=await f.store.current(f.a);assert.equal(s.cleared,block);
+    if(block<rules.lastBlock(stake)){assert.equal(s.phase,'corner');s=await f.store.continue(f.a,cash(s));}
+   }
+   assert.equal(s.outcome,'limit');assert.equal(s.payout,50000000);assert.equal((await f.store.cashout(f.a,cash(s))).payout,50000000);
   }
-  let count=0;f.random(()=>++count===3?99:0);const s=await f.store.start(f.a,purchase(50000,2));f.at(s.startedAt+86400000);
-  assert.equal((await f.store.current(f.a)).payout,rules.payout(50000,2));assert.equal(f.entries().length,14);
  }finally{await f.pg.close();}
 });
-test('lost wallet debit or credit responses recover immutable receipts without rerolls',async()=>{
+
+test('lost debit and credit replies recover immutable receipts without rerolls',async()=>{
  const f=await fixture();try{
-  const body=purchase(50000,1);f.fail('stake');await assert.rejects(f.store.start(f.a,body),/Lost wallet/);assert.equal(f.entries().length,1);
+  const body=purchase();f.fail('stake');await assert.rejects(f.store.start(f.a,body),/Lost wallet/);assert.equal(f.entries().length,1);
   f.random(()=>99);let s=await f.store.start(f.a,body);assert.ok(s.caughtBlock>1);assert.equal(f.entries().length,1);
-  f.at(s.startedAt+rules.blockMs);f.fail('payout');await assert.rejects(f.store.current(f.a),/Lost wallet/);assert.equal(f.entries().length,2);
+  f.at(s.startedAt+rules.blockMs);f.fail('payout');await assert.rejects(f.store.cashout(f.a,cash(s,1)),/Lost wallet/);assert.equal(f.entries().length,2);
   s=await f.store.current(f.a);assert.equal(s.status,'settled');assert.equal(s.payout,56250);assert.equal(f.entries().length,2);
   await f.store.start(f.a,body);assert.equal(f.entries().length,2);
  }finally{await f.pg.close();}
 });
+
+test('already-funded V1 contracts still recover, but new auto targets are rejected',async()=>{
+ const f=await fixture();try{
+  await assert.rejects(f.store.start(f.a,{...purchase(),autoBlock:1}),e=>e.status===400);
+  const s=await f.store.start(f.a,purchase());delete s.mode;s.autoBlock=2;
+  await f.pool.query('UPDATE midnight_run_games SET state=$2::jsonb WHERE id=$1',[s.id,JSON.stringify(s)]);
+  f.at(s.startedAt+86400000);const win=await f.store.current(f.a);
+  assert.equal(win.outcome,'auto');assert.equal(win.payout,rules.payout(s.stake,2));
+ }finally{await f.pg.close();}
+});
+
 test('failed funding is not playable and cannot block a later funded run',async()=>{
  const f=await fixture();try{
   f.records.get('user/legacy-101.json').data.balanceBaseline=0;

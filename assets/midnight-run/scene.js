@@ -1,14 +1,14 @@
-/* MIDNIGHT_RUN_V1 — original art with world-space lighting, rain and character animation. */
+/* MIDNIGHT_RUN_V2_CORNERS — original art with world-space lighting, rain and character animation. */
 (() => {
  'use strict';
  const W=720,H=780,images=new Map();
- function art(name){if(!images.has(name)){const img=new Image();img.src='/assets/midnight-run/images/'+name+'.webp?v=MIDNIGHT_RUN_V1';images.set(name,img);}return images.get(name);}
+ function art(name){if(!images.has(name)){const img=new Image();img.src='/assets/midnight-run/images/'+name+'.webp?v=MIDNIGHT_RUN_V2_CORNERS';images.set(name,img);}return images.get(name);}
  const loaded=img=>img.complete&&img.naturalWidth>0;
  const clamp=(n,a=0,b=1)=>Math.max(a,Math.min(b,n));
  class MidnightScene{
   constructor(canvas){
    this.canvas=canvas;this.ctx=canvas.getContext('2d',{alpha:false});this.reduced=matchMedia('(prefers-reduced-motion:reduce)');
-   this.streets=['old-quarter','dockside','market-row'].map(art);this.runner=art('runner');this.patrol=art('patrol');this.state={phase:'preview',elapsed:0};
+   this.streets=['neon-strip','old-quarter','dockside','market-row'].map(art);this.runner=art('runner');this.patrol=art('patrol');this.state={phase:'preview',elapsed:0};
    this.effectAt=0;this.effectKey='';this.lastResize=0;
    this.resize=new ResizeObserver(()=>this.draw(this.state));this.resize.observe(canvas);
    for(const img of images.values())img.addEventListener('load',()=>this.draw(this.state));
@@ -20,9 +20,16 @@
   street(c,travel,t){
    const height=1080,part=Math.floor(travel/height),y=travel%height-300;
    for(let n=-1;n<=1;n++){
-    const index=((part-n)%3+3)%3,img=this.streets[index],top=y+n*height;
+    const index=((part-n)%this.streets.length+this.streets.length)%this.streets.length,img=this.streets[index],top=y+n*height;
     if(top>H||top+height<0)continue;
     if(loaded(img))c.drawImage(img,0,top,W,height);else if(loaded(this.streets[0]))c.drawImage(this.streets[0],0,top,W,height);
+    if(index===0){
+     // World-space neon spills stay attached to their buildings as the street moves.
+     const pulse=this.reduced.matches?1:.88+.12*Math.sin(t*1.7);
+     for(const [x,offset,color] of [[175,165,'#ffaf35'],[545,235,'#ff39cf'],[175,545,'#28d7ff'],[545,590,'#29caff'],[165,915,'#df38ff']]){
+      this.glow(c,x,top+offset,155,color,.13*pulse);
+     }
+    }
     // A shallow atmospheric seam softens the transition between distinct city blocks.
     const shade=c.createLinearGradient(0,top-8,0,top+15);shade.addColorStop(0,'#0b182500');shade.addColorStop(.5,'#0b18254a');shade.addColorStop(1,'#0b182500');c.fillStyle=shade;c.fillRect(0,top-8,W,23);
    }
@@ -58,7 +65,7 @@
    const key=(state.id||'')+':'+state.phase;if(terminal&&this.effectKey!==key){this.effectKey=key;this.effectAt=performance.now();}
    const effect=terminal?Math.min(3,(performance.now()-this.effectAt)/1000):0;
    const elapsed=Math.max(0,state.elapsed||0)/1000,t=reduced?0:performance.now()/1000;
-   const travel=reduced?0:preview?(t%10000)*14:elapsed*85;
+   const travel=reduced?0:preview?(t%10000)*14:elapsed*140;
    this.street(c,travel,t);
    const x=360+(reduced?0:Math.sin(elapsed*.61)*28+Math.sin(elapsed*1.3)*8),baseY=520;
    if(!preview&&state.phase!=='countdown')this.vehicle(c,x+17,state.phase==='caught'?H+85-clamp(effect/1.15)*210:H+85+Math.sin(t*.6)*12,t);
@@ -71,9 +78,9 @@
    c.save();c.globalAlpha=alpha;
    c.fillStyle='#0009';c.beginPath();c.ellipse(px,py+24,16,8,0,0,Math.PI*2);c.fill();
    this.glow(c,px,py+18,37,'#e1c296',.14);
-   if(moving){const step=(t*3.3)%1;c.strokeStyle='rgba(191,215,217,'+((1-step)*.3)+')';c.lineWidth=1.4;c.beginPath();c.ellipse(px+(Math.floor(t*3.3)%2?7:-7),py+24+step*11,3+step*10,1+step*4,0,0,Math.PI*2);c.stroke();}
+   if(moving){const step=(t*2.2)%1;c.strokeStyle='rgba(191,215,217,'+((1-step)*.3)+')';c.lineWidth=1.4;c.beginPath();c.ellipse(px+(Math.floor(t*2.2)%2?7:-7),py+24+step*11,3+step*10,1+step*4,0,0,Math.PI*2);c.stroke();}
    if(loaded(this.runner)){
-    const frame=moving?Math.floor(t*13.2)%4:1,sw=this.runner.naturalWidth/2,sh=this.runner.naturalHeight/2,bob=moving?Math.sin(t*20.7)*1.2:0;
+    const frame=moving?Math.floor(t*8.8)%4:1,sw=this.runner.naturalWidth/2,sh=this.runner.naturalHeight/2,bob=moving?Math.sin(t*13.8)*1.2:0;
     c.translate(px,py+bob);c.rotate(moving?Math.sin(elapsed*.61)*.065:0);c.drawImage(this.runner,frame%2*sw,Math.floor(frame/2)*sh,sw,sh,-47,-47,94,94);
    }
    c.restore();

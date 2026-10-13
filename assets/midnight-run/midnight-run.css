@@ -1,4 +1,4 @@
-/* MIDNIGHT_RUN_V1 */
+/* MIDNIGHT_RUN_V2_CORNERS */
 body:has(#midnight-app){--game-bg:#10181e;--game-accent:#dfbd87;margin:0;overflow-x:clip;background:radial-gradient(ellipse at 80% 20%,#22414655,transparent 58%),radial-gradient(ellipse at 0 75%,#7d54351c,transparent 65%),#10181e!important;color:#e7eee9}
 #midnight-app{--mr-gold:#e9bc79;--mr-teal:#9fcac0;max-width:1240px;margin:auto;padding:24px 28px 0;font-family:Inter,ui-sans-serif,system-ui,sans-serif}
 #midnight-app [hidden]{display:none!important}#midnight-app *{box-sizing:border-box}#midnight-app button,#midnight-app select{font:inherit}#midnight-app button{cursor:pointer}#midnight-app button:disabled{cursor:default;opacity:.52}#midnight-app button:focus-visible,#midnight-app select:focus-visible{outline:3px solid #a9e0d2;outline-offset:4px}
@@ -11,3 +11,6 @@ body:has(#midnight-app){--game-bg:#10181e;--game-accent:#dfbd87;margin:0;overflo
 @media(prefers-reduced-motion:reduce){#midnight-app *{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 :root[data-theme=light] body:has(#midnight-app){background:radial-gradient(ellipse at 80% 20%,#afc3bc55,transparent 60%),#edf0eb!important;color:#2b3d40}
 :root[data-theme=light] :is(.mr-intro h2,.mr-caddy>h2){color:#263d40}:root[data-theme=light] .mr-intro h2 em{color:#926330}:root[data-theme=light] :is(.mr-kicker,.mr-bank>strong){color:#855b2e}:root[data-theme=light] :is(.mr-intro>p,.mr-settings label,.mr-setting-note,.mr-fine,.mr-bank p,.mr-bank>span,.mr-next p,.mr-next>span,.mr-free,.mr-footer){color:#536b6d!important}:root[data-theme=light] :is(.mr-bank>div b,.mr-next strong){color:#326259}:root[data-theme=light] .mr-settings select{color:#2f4144;background:#fff;border-color:#aebfbc;color-scheme:light}:root[data-theme=light] .mr-intro>a{color:#326259}:root[data-theme=light] .mr-secondary{color:#355c59;background:#b6cdc62e}
+
+.mr-action-dock{display:grid;gap:12px}.mr-action-dock .mr-secondary{margin-top:0;background:#163535;color:#c7f4e6;border-color:#70c7b3}
+@media(max-width:700px){.mr-stage{max-height:44dvh;min-height:260px}.mr-action-dock{position:static}}

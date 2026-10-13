@@ -9,9 +9,12 @@ function draw(stake,random=crypto.randomInt){
 }
 function publicGame(s){
  if(!s)return null;
- const cleared=s.status==='active'?Math.min(s.caughtBlock-1,rules.clearedAt((s.evaluatedAt??s.startedAt)-s.startedAt)):s.cleared||0;
- return {id:s.id,stake:s.stake,status:s.status,autoBlock:s.autoBlock,startedAt:s.startedAt,createdAt:s.createdAt,
-  cleared,bank:rules.payout(s.stake,cleared),lastBlock:rules.lastBlock(s.stake),
+ const corners=s.mode==='corners';
+ const cleared=corners?s.cleared||0:s.status==='active'?Math.min(s.caughtBlock-1,rules.clearedAt((s.evaluatedAt??s.startedAt)-s.startedAt)):s.cleared||0;
+ const phase=corners?s.phase:'running';
+ const travelMs=corners?(s.status==='settled'?s.travelMs:cleared*rules.blockMs+(phase==='running'?Math.max(0,Math.min(rules.blockMs,(s.evaluatedAt??s.legStartedAt)-s.legStartedAt)):0)):Math.max(0,(s.endedAt??s.evaluatedAt??s.startedAt)-s.startedAt);
+ return {id:s.id,stake:s.stake,status:s.status,mode:corners?'corners':'legacy',phase,startedAt:s.startedAt,legStartedAt:s.legStartedAt??s.startedAt,createdAt:s.createdAt,
+  cleared,travelMs,bank:rules.payout(s.stake,cleared),lastBlock:rules.lastBlock(s.stake),
   ...(s.status==='settled'?{outcome:s.outcome,payout:s.payout,endedAt:s.endedAt}: {})};
 }
 function createStore(injectedPool,injectedWallet,random=crypto.randomInt,now=Date.now){
@@ -26,15 +29,33 @@ function createStore(injectedPool,injectedWallet,random=crypto.randomInt,now=Dat
  async function tx(fn){await ready();const c=await db().connect();try{await c.query('BEGIN');const result=await fn(c);await c.query('COMMIT');return result;}catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}}
  const save=(c,s)=>c.query('UPDATE midnight_run_games SET state=$2::jsonb WHERE id=$1',[s.id,JSON.stringify(s)]);
  async function load(c,player,id){const s=(await c.query('SELECT state FROM midnight_run_games WHERE id=$1 AND owner=$2 FOR UPDATE',[id,player.id])).rows[0]?.state;if(!s)fail('Run not found.',404);return s;}
- async function recover(player,id,manualAt=null){
+ async function recover(player,id,manualAt=null,command=null){
   const prepared=await tx(async c=>{
-   const s=await load(c,player,id),before=s.status;
+   const s=await load(c,player,id),before=JSON.stringify(s);
    if(s.status==='funding'){
-    try{await wallet.apply(s.account,{id:`midnight:${s.id}:stake:${s.owner}`,delta:-s.stake,reason:'Midnight Run · entry'});s.status='active';s.startedAt=now()+rules.countdownMs;}
+    try{await wallet.apply(s.account,{id:`midnight:${s.id}:stake:${s.owner}`,delta:-s.stake,reason:'Midnight Run · entry'});s.status='active';s.startedAt=now()+rules.countdownMs;if(s.mode==='corners'){s.legStartedAt=s.startedAt;s.phase='running';s.cleared=0;}}
     catch(e){if(e.code!=='RPS_FUNDS')throw e;s.status='failed';s.error=e.message;}
    }
    const at=manualAt??now();
-   if(s.status==='active'){
+   if(command?.action==='continue'&&s.mode!=='corners')fail('Resume and cash out your previous run before starting a new one.');
+   if(s.status==='active'&&s.mode==='corners'){
+    const arrival=s.legStartedAt+rules.blockMs;
+    if(s.phase==='running'&&at>=arrival){
+     const block=s.cleared+1;s.travelMs=block*rules.blockMs;
+     if(block>=s.caughtBlock){s.outcome='caught';s.payout=0;s.endedAt=arrival;s.status='paying';}
+     else{s.cleared=block;s.phase='corner';if(block===rules.lastBlock(s.stake)){s.outcome='limit';s.payout=rules.payout(s.stake,block);s.endedAt=arrival;s.status='paying';}}
+    }
+    if(s.status==='active'&&command){
+     const duplicate=command.action==='continue'&&s.lastContinue===command.requestId;
+     if(!duplicate){
+      if(s.phase!=='corner')fail('Reach the next corner before choosing.');
+      if(command.cleared!==s.cleared)fail('This corner has changed. Reconnect to your run.');
+      if(command.action==='continue'){s.phase='running';s.legStartedAt=now();s.lastContinue=command.requestId;}
+      else{s.outcome='escape';s.payout=rules.payout(s.stake,s.cleared);s.endedAt=at;s.travelMs=s.cleared*rules.blockMs;s.status='paying';}
+     }
+    }
+   }else if(s.status==='active'){
+    // Honor already-funded V1 contracts; new runs never accept an auto target.
     const target=s.autoBlock??rules.lastBlock(s.stake),caughtAt=s.startedAt+s.caughtBlock*rules.blockMs,targetAt=s.startedAt+target*rules.blockMs;
     if(s.caughtBlock<=target&&at>=caughtAt){s.outcome='caught';s.cleared=s.caughtBlock-1;s.payout=0;s.endedAt=caughtAt;s.status='paying';}
     else if(target<s.caughtBlock&&at>=targetAt){s.outcome=target===rules.lastBlock(s.stake)?'limit':'auto';s.cleared=target;s.payout=rules.payout(s.stake,target);s.endedAt=targetAt;s.status='paying';}
@@ -45,7 +66,7 @@ function createStore(injectedPool,injectedWallet,random=crypto.randomInt,now=Dat
     }
    }
    // Commit the immutable result before touching the independently stored wallet.
-   if(s.status!==before)await save(c,s);
+   if(JSON.stringify(s)!==before)await save(c,s);
    return {...s,evaluatedAt:at};
   });
   if(prepared.status!=='paying')return prepared;
@@ -55,7 +76,7 @@ function createStore(injectedPool,injectedWallet,random=crypto.randomInt,now=Dat
   }return s;});
  }
  async function start(player,b){
-  if(!rules.stakes.includes(b.stake)||!rules.validAuto(b.autoBlock,b.stake))fail('Choose an available wager and escape target.',400);
+  if(!rules.stakes.includes(b.stake)||b.autoBlock!=null)fail('Choose an available wager. Auto escape is no longer supported.',400);
   if(!validRequest(b.requestId))fail('Missing run reference.',400);
   const account=await wallet.account(player);
   const id=await tx(async c=>{
@@ -64,7 +85,7 @@ function createStore(injectedPool,injectedWallet,random=crypto.randomInt,now=Dat
    let s=(await c.query("SELECT state FROM midnight_run_games WHERE owner=$1 AND state->>'status' IN ('funding','active','paying') ORDER BY created_at DESC LIMIT 1",[player.id])).rows[0]?.state;
    if(!s){
     if(b.quote!==rules.build)fail('Midnight Run has changed. Refresh before starting.',400);
-    s={id:crypto.randomBytes(6).toString('hex').toUpperCase(),owner:player.id,account,stake:b.stake,autoBlock:b.autoBlock,quote:rules.build,
+    s={id:crypto.randomBytes(6).toString('hex').toUpperCase(),owner:player.id,account,stake:b.stake,mode:'corners',cleared:0,quote:rules.build,
      caughtBlock:draw(b.stake,random),status:'funding',createdAt:now(),startedAt:null};
     await c.query('INSERT INTO midnight_run_games(id,owner,state) VALUES($1,$2,$3::jsonb)',[s.id,player.id,JSON.stringify(s)]);
    }
@@ -74,9 +95,13 @@ function createStore(injectedPool,injectedWallet,random=crypto.randomInt,now=Dat
  }
  async function cashout(player,b,receivedAt=now()){
   if(!/^[A-F0-9]{12}$/.test(b.gameId||'')||!validRequest(b.requestId))fail('Invalid run reference.',400);
-  return recover(player,b.gameId,Math.min(receivedAt,now()));
+  return recover(player,b.gameId,Math.min(receivedAt,now()),{...b,action:'cashout'});
+ }
+ async function continueRun(player,b,receivedAt=now()){
+  if(!/^[A-F0-9]{12}$/.test(b.gameId||'')||!validRequest(b.requestId)||!Number.isInteger(b.cleared))fail('Invalid corner reference.',400);
+  return recover(player,b.gameId,Math.min(receivedAt,now()),{...b,action:'continue'});
  }
  async function current(player){await ready();const row=(await db().query("SELECT id FROM midnight_run_games WHERE owner=$1 AND state->>'status'<>'failed' ORDER BY created_at DESC LIMIT 1",[player.id])).rows[0];return row?recover(player,row.id):null;}
- return {ready,start,cashout,current,recover,publicGame,time:now};
+ return {ready,start,cashout,continue:continueRun,current,recover,publicGame,time:now};
 }
 module.exports={...createStore(),createStore,publicGame,draw};

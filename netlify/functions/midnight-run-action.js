@@ -6,7 +6,7 @@ function createHandler(store=database,auth=identity,funds=wallet){return async r
  const raw=await request.text();if(raw.length>4096)return reply(413,{ok:false,error:'Request too large.'});let b;
  try{b=JSON.parse(raw);if(!b||typeof b!=='object'||Array.isArray(b))throw 0;}catch{return reply(400,{ok:false,error:'Invalid request.'});}
  try{
-  if(!['start','current','cashout'].includes(b.action))return reply(400,{ok:false,error:'Unknown action.'});
+  if(!['start','current','cashout','continue'].includes(b.action))return reply(400,{ok:false,error:'Unknown action.'});
   const requestAt=store.time(),player=await auth.authenticate(b.token);
   if(!player)return reply(401,{ok:false,error:'Connect your public Torn API key on the main page to play.'});
   // Verified receipt time, before waiting on the game lock. Client clocks and prizes are never trusted.
