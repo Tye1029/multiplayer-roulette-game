@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#101e24"><meta name="dice-duel-version" content="DICE_DUEL_V1"><title>Dice Duel · Xan Duels</title>
+<link rel="stylesheet" href="/assets/site-hub/hub.css?v=DICE_DUEL_V1"><link rel="stylesheet" href="/assets/site-hub/game-menu.css?v=XAN_PUBLIC_POLISH_V2"><link rel="stylesheet" href="/assets/site-hub/public-polish.css?v=XAN_PUBLIC_POLISH_V2"><link rel="stylesheet" href="/assets/site-hub/mobile.css?v=XAN_MOBILE_V1"><link rel="stylesheet" href="/assets/dice-duel/dice-duel.css?v=DICE_DUEL_V1">
+<script src="/assets/site-hub/preferences.js?v=2"></script><script defer src="/shared/games/dice-duel.js?v=DICE_DUEL_V1"></script><script defer src="/assets/site-hub/public-polish.js?v=XAN_PUBLIC_POLISH_V2"></script><script defer src="/assets/dice-duel/audio.js?v=DICE_DUEL_V1"></script><script defer src="/assets/dice-duel/dice.js?v=DICE_DUEL_V1"></script><script defer src="/assets/dice-duel/dice-duel.js?v=DICE_DUEL_V1"></script><script defer src="/assets/site-hub/hub.js?v=DICE_DUEL_V1"></script></head>
+<body class="xan-unified"><main id="dice-duel-app">
+ <header class="xg-heading"><h1>Dice Duel</h1><div class="xg-tools"><button id="dd-help">How to play</button></div></header>
+ <section id="dd-menu" class="dd-menu">
+  <div class="dd-intro"><span class="dd-kicker">YOU. THE HOUSE. FOUR DICE.</span><h2>Let the dice<br><em>do the talking.</em></h2><p>Two dice for you. Two for the house. Roll across the felt, watch the numbers settle, and take the higher total.</p>
+   <div id="dd-menu-settings"></div><button id="dd-enter" class="dd-primary">Play Dice Duel <span aria-hidden="true">↗</span></button><button id="dd-practice" class="dd-secondary">Try a free roll</button><a id="dd-connect" href="/" hidden>Connect your public Torn API key to play with chips ↗</a><p class="dd-fine">Entering the table is free. Chips are only spent when you roll.</p>
+  </div>
+  <div class="dd-hero" aria-hidden="true"><div class="dd-hero-halo"></div><div class="dd-hero-table"><div class="dd-hero-ring"></div><span class="dd-hero-monogram">D<span>◆</span>D</span></div><div id="dd-hero-dice"></div><div class="dd-chips"><i></i><i></i><i></i><i></i></div><span class="dd-hero-caption">THE HIGHER ROLL TAKES IT</span></div>
+ </section>
+ <section id="dd-play" hidden><div class="dd-play-layout">
+  <article id="dd-machine" class="dd-machine"><div class="dd-machine-heading"><div><span id="dd-mode" class="dd-kicker">THE DUEL ROOM</span><h2 id="dd-table-title">Your seat is waiting.</h2></div><span class="dd-mark" aria-hidden="true">D<span>◆</span>D</span></div>
+   <div class="dd-table" id="dd-table" role="group" aria-label="Dice Duel table">
+    <div class="dd-table-rule">HIGHER TOTAL WINS <span>◆</span> TIES RETURN YOUR WAGER</div>
+    <div class="dd-lanes">
+     <section id="dd-player-lane" class="dd-lane dd-player"><div class="dd-seat"><span class="dd-avatar" id="dd-player-avatar" aria-hidden="true">Y</span><div><small>YOUR DICE</small><strong id="dd-player-name">You</strong></div></div><div id="dd-player-dice" class="dd-dice-row" aria-label="Your two dice"></div><div class="dd-score"><strong id="dd-player-total">—</strong><span id="dd-player-note">Ready to roll</span></div></section>
+     <span class="dd-versus" aria-hidden="true">VS</span>
+     <section id="dd-house-lane" class="dd-lane dd-house"><div class="dd-seat"><span class="dd-avatar house" aria-hidden="true">◆</span><div><small>HOUSE DICE</small><strong>The House</strong></div></div><div id="dd-house-dice" class="dd-dice-row" aria-label="House’s two dice"></div><div class="dd-score"><strong id="dd-house-total">—</strong><span id="dd-house-note">The house is ready</span></div></section>
+    </div>
+    <div class="dd-table-status" id="dd-table-status">FOUR FAIR DICE. ONE DUEL.</div><div id="dd-sparks" aria-hidden="true"></div>
+   </div>
+   <div class="dd-machine-footer"><span><i></i> <span id="dd-connection">READY WHEN YOU ARE</span></span><span>WIN <b>1.8×</b> · TIE <b>1×</b></span></div>
+  </article>
+  <aside class="dd-caddy"><span class="dd-kicker">TAKE YOUR CHANCE</span><h2>Make your roll.</h2><div id="dd-play-settings"></div><label class="dd-free"><input id="dd-free" type="checkbox"> Free practice</label><div class="dd-action-dock"><button id="dd-roll" class="dd-primary" disabled>Roll dice</button></div><a id="dd-play-connect" href="/" hidden>Connect your public Torn API key to play with chips ↗</a>
+   <div id="dd-result" class="dd-result" role="status" aria-live="polite"><span id="dd-result-label">THE TABLE IS YOURS</span><strong id="dd-result-value">Ready to roll.</strong><p id="dd-result-note">Choose your wager. Beat the house’s total.</p></div><p id="dd-play-note" class="dd-fine">All four dice are fair and independent. Returns include your wager.</p>
+  </aside>
+ </div></section>
+ <div class="dd-notice"><p id="dd-notice" role="status" aria-live="polite"></p><button id="dd-retry" class="dd-secondary" hidden>Recover roll</button></div>
+ <footer class="dd-footer"><span aria-hidden="true">⚄</span><p>Two dice. A little suspense.<br>Win pays 1.8×. A tie returns your wager.</p></footer>
+</main><noscript>Enable JavaScript to play Dice Duel.</noscript></body></html>

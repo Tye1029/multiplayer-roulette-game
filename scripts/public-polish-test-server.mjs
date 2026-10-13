@@ -21,7 +21,9 @@ export async function startPublicPolishServer(root=path.resolve('dist'),port=0,o
  const minefield=require('../netlify/functions/minefield/database').createStore(pool,wallet,options.minefieldRandom);
  const plinko=require('../netlify/functions/plinko/database').createStore(pool,wallet,options.plinkoRandom,options.plinkoNow);
  const rocket=require('../netlify/functions/rocket-run/database').createStore(pool,wallet,options.rocketRandom,options.rocketNow);
+ const diceduel=require('../netlify/functions/dice-duel/database').createStore(pool,wallet,options.diceDuelRandom,options.diceDuelNow);
  const handlers={
+  'dice-duel-action':require('../netlify/functions/dice-duel-action').createHandler(diceduel,rps,wallet),
   'rocket-run-action':require('../netlify/functions/rocket-run-action').createHandler(rocket,rps,wallet),
   'plinko-action':require('../netlify/functions/plinko-action').createHandler(plinko,rps,wallet),
   'minefield-action':require('../netlify/functions/minefield-action').createHandler(minefield,rps,wallet),
