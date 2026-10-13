@@ -91,3 +91,60 @@ wallet idempotency; crash recovery; ownership; insufficient funds; stale and
 concurrent actions; complete/lose/cash-out; mouse/touch/keyboard; reload/resume;
 dropped start/reveal/payout responses; free practice isolation; mute/reduced
 motion; homepage entry; 1280px, 390px, 320px and landscape layouts.
+
+## Simulation audit — October 13, 2026
+
+Ran **25,000,000 unique boards** using the production cryptographic board
+sampler: 5,000,000 for each of the five mine counts. Evaluated all six wagers
+(50K, 100K, 500K, 1M, 5M and 10M), every available fixed cash-out depth
+(**480 combinations**), and 65 combinations of mixed stopping or loss-chasing
+strategies. The same boards are reused across wager amounts and stopping rules;
+these are correlated comparisons, not 480 independently sampled runs.
+
+Independent combinatorial checks confirm an expected house margin of
+**10.000000%–10.001061%** for every new-field combination. Whole-chip rounding
+accounts for the small amount above 10%. Backwards optimal-stopping checks show
+that choosing whether to cash out after each safe pick cannot beat the expected
+edge. All 1,800 legacy wager/depth combinations retain their original 4% minimum
+expected house margin.
+
+Observed house profit as a percentage of wagers, with a 50K stake:
+
+| Mines | Cash out after 1 safe tile | After 3 safe tiles | Full clear |
+| --- | ---: | ---: | ---: |
+| 3 | 9.98% | 9.97% | 6.73% |
+| 6 | 9.96% | 9.94% | 42.62% |
+| 9 | 10.00% | 9.95% | -83.87% |
+| 12 | 10.03% | 9.89% | 6.39% |
+| 15 | 9.96% | 10.16% | -17.68% |
+
+These are measured results from this run, not guaranteed future margins.
+The full-clear strategy lost chips for the house with 9 and 15 mines despite
+5 million rounds per mine count. Four mine/depth combinations produced losses
+in the sample (9 mines at 14 or 16 finds; 15 mines at 9 or 10 finds), across all
+six wagers. That is 24 of 480 correlated scenarios, not a 5% probability of loss.
+All mixed-strategy samples produced positive house profit, but their rare tails
+also prevent a finite-run guarantee. Loss-chasing samples returned house margins
+between 9.93% and 10.08% of the chips actually wagered.
+
+The largest current prize is **46,802,700,000,000 chips** for a 10M wager,
+12 mines and all 13 safe finds. Its probability is 1 in 5,200,300. A house edge
+alone does not make that payout affordable. A maximum payout or explicit reserve
+limit is recommended before relying on finite-run profitability. This audit does
+not change the payout rules, cap prizes, or spend any player chips. It covers
+Minefield stake/payout flows only; bonuses and other games are outside its scope.
+
+Re-run with:
+
+```sh
+node scripts/minefield-simulation.mjs --rounds 5000000 --out docs/minefield-simulation-results
+```
+
+- [Full fixed cash-out results](minefield-simulation-results/fixed-cashouts.csv)
+- [Mixed-strategy results](minefield-simulation-results/mixed-strategies.csv)
+- [Summary, source hashes, raw histograms and sampling intervals](minefield-simulation-results/summary.json)
+
+The generator uses fresh crypto randomness on every run, so measured results
+will differ. Exact expectation checks must continue to pass. Individual 95%
+Wilson intervals are included for fixed depths; rare full-clear intervals are
+wide and must not be read as a guarantee across all 480 scenarios.
