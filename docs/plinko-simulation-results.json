@@ -1,0 +1,231 @@
+{
+  "build": "PLINKO_V1",
+  "createdAt": "2026-10-13T16:31:31.291Z",
+  "seconds": 10.859,
+  "uniqueRandomPaths": 5000000,
+  "histogram": [
+    92,
+    1219,
+    9322,
+    42723,
+    138049,
+    333222,
+    611363,
+    872206,
+    982324,
+    874023,
+    610416,
+    332776,
+    139122,
+    42590,
+    9238,
+    1244,
+    71
+  ],
+  "outcomes": [
+    {
+      "risk": "low",
+      "stake": 50000,
+      "rounds": 5000000,
+      "expectedHouseMarginPercent": 10.023345947265627,
+      "observedHouseMarginPercent": 10.025574,
+      "wageredChips": "250000000000",
+      "returnedChips": "224936065000",
+      "houseProfitChips": "25063935000",
+      "maxPayout": 400000
+    },
+    {
+      "risk": "low",
+      "stake": 100000,
+      "rounds": 5000000,
+      "expectedHouseMarginPercent": 10.023345947265627,
+      "observedHouseMarginPercent": 10.025574,
+      "wageredChips": "500000000000",
+      "returnedChips": "449872130000",
+      "houseProfitChips": "50127870000",
+      "maxPayout": 800000
+    },
+    {
+      "risk": "low",
+      "stake": 500000,
+      "rounds": 5000000,
+      "expectedHouseMarginPercent": 10.023345947265627,
+      "observedHouseMarginPercent": 10.025574,
+      "wageredChips": "2500000000000",
+      "returnedChips": "2249360650000",
+      "houseProfitChips": "250639350000",
+      "maxPayout": 4000000
+    },
+    {
+      "risk": "low",
+      "stake": 1000000,
+      "rounds": 5000000,
+      "expectedHouseMarginPercent": 10.023345947265627,
+      "observedHouseMarginPercent": 10.025574,
+      "wageredChips": "5000000000000",
+      "returnedChips": "4498721300000",
+      "houseProfitChips": "501278700000",
+      "maxPayout": 8000000
+    },
+    {
+      "risk": "low",
+      "stake": 5000000,
+      "rounds": 5000000,
+      "expectedHouseMarginPercent": 10.023345947265627,
+      "observedHouseMarginPercent": 10.025574,
+      "wageredChips": "25000000000000",
+      "returnedChips": "22493606500000",
+      "houseProfitChips": "2506393500000",
+      "maxPayout": 40000000
+    },
+    {
+      "risk": "low",
+      "stake": 10000000,
+      "rounds": 5000000,
+      "expectedHouseMarginPercent": 10.032501220703127,
+      "observedHouseMarginPercent": 10.035354,
+      "wageredChips": "50000000000000",
+      "returnedChips": "44982323000000",
+      "houseProfitChips": "5017677000000",
+      "maxPayout": 50000000
+    },
+    {
+      "risk": "medium",
+      "stake": 50000,
+      "rounds": 5000000,
+      "expectedHouseMarginPercent": 10.136871337890629,
+      "observedHouseMarginPercent": 10.110184,
+      "wageredChips": "250000000000",
+      "returnedChips": "224724540000",
+      "houseProfitChips": "25275460000",
+      "maxPayout": 5000000
+    },
+    {
+      "risk": "medium",
+      "stake": 100000,
+      "rounds": 5000000,
+      "expectedHouseMarginPercent": 10.136871337890629,
+      "observedHouseMarginPercent": 10.110184,
+      "wageredChips": "500000000000",
+      "returnedChips": "449449080000",
+      "houseProfitChips": "50550920000",
+      "maxPayout": 10000000
+    },
+    {
+      "risk": "medium",
+      "stake": 500000,
+      "rounds": 5000000,
+      "expectedHouseMarginPercent": 10.136871337890629,
+      "observedHouseMarginPercent": 10.110184,
+      "wageredChips": "2500000000000",
+      "returnedChips": "2247245400000",
+      "houseProfitChips": "252754600000",
+      "maxPayout": 50000000
+    },
+    {
+      "risk": "medium",
+      "stake": 1000000,
+      "rounds": 5000000,
+      "expectedHouseMarginPercent": 10.289459228515629,
+      "observedHouseMarginPercent": 10.273184,
+      "wageredChips": "5000000000000",
+      "returnedChips": "4486340800000",
+      "houseProfitChips": "513659200000",
+      "maxPayout": 50000000
+    },
+    {
+      "risk": "medium",
+      "stake": 5000000,
+      "rounds": 5000000,
+      "expectedHouseMarginPercent": 11.143951416015629,
+      "observedHouseMarginPercent": 11.142484,
+      "wageredChips": "25000000000000",
+      "returnedChips": "22214379000000",
+      "houseProfitChips": "2785621000000",
+      "maxPayout": 50000000
+    },
+    {
+      "risk": "medium",
+      "stake": 10000000,
+      "rounds": 5000000,
+      "expectedHouseMarginPercent": 13.234405517578129,
+      "observedHouseMarginPercent": 13.261084,
+      "wageredChips": "50000000000000",
+      "returnedChips": "43369458000000",
+      "houseProfitChips": "6630542000000",
+      "maxPayout": 50000000
+    },
+    {
+      "risk": "high",
+      "stake": 50000,
+      "rounds": 5000000,
+      "expectedHouseMarginPercent": 11.29302978515625,
+      "observedHouseMarginPercent": 10.940088,
+      "wageredChips": "250000000000",
+      "returnedChips": "222649780000",
+      "houseProfitChips": "27350220000",
+      "maxPayout": 50000000
+    },
+    {
+      "risk": "high",
+      "stake": 100000,
+      "rounds": 5000000,
+      "expectedHouseMarginPercent": 12.81890869140625,
+      "observedHouseMarginPercent": 12.570088,
+      "wageredChips": "500000000000",
+      "returnedChips": "437149560000",
+      "houseProfitChips": "62850440000",
+      "maxPayout": 50000000
+    },
+    {
+      "risk": "high",
+      "stake": 500000,
+      "rounds": 5000000,
+      "expectedHouseMarginPercent": 15.50445556640625,
+      "observedHouseMarginPercent": 15.351888,
+      "wageredChips": "2500000000000",
+      "returnedChips": "2116202800000",
+      "houseProfitChips": "383797200000",
+      "maxPayout": 50000000
+    },
+    {
+      "risk": "high",
+      "stake": 1000000,
+      "rounds": 5000000,
+      "expectedHouseMarginPercent": 18.09844970703125,
+      "observedHouseMarginPercent": 17.977888,
+      "wageredChips": "5000000000000",
+      "returnedChips": "4101105600000",
+      "houseProfitChips": "898894400000",
+      "maxPayout": 50000000
+    },
+    {
+      "risk": "high",
+      "stake": 5000000,
+      "rounds": 5000000,
+      "expectedHouseMarginPercent": 27.49786376953125,
+      "observedHouseMarginPercent": 27.502688,
+      "wageredChips": "25000000000000",
+      "returnedChips": "18124328000000",
+      "houseProfitChips": "6875672000000",
+      "maxPayout": 50000000
+    },
+    {
+      "risk": "high",
+      "stake": 10000000,
+      "rounds": 5000000,
+      "expectedHouseMarginPercent": 34.71527099609375,
+      "observedHouseMarginPercent": 34.740068,
+      "wageredChips": "50000000000000",
+      "returnedChips": "32629966000000",
+      "houseProfitChips": "17370034000000",
+      "maxPayout": 50000000
+    }
+  ],
+  "notes": [
+    "Production cryptographic draws evaluated offline without wallet/API calls.",
+    "All 18 stake/risk combinations share these paths; results are correlated, not independent simulations.",
+    "Exact binomial expectations verify the house advantage. No finite sample guarantees profit.",
+    "Higher wagers encounter the fixed payout cap sooner; all displayed pocket returns already include that cap."
+  ]
+}
