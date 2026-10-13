@@ -1,3 +1,4 @@
+/* ADMIN_LEDGER_V2_20261013 */
 const password = document.getElementById('password');
     const loadBtn = document.getElementById('loadBtn');
     const statusBox = document.getElementById('status');
@@ -134,8 +135,7 @@ const password = document.getElementById('password');
       const user = latestUsers.find(u => String(u.userId) === String(userId));
       if (!user) {
         userDetailContent.innerHTML = '<div class="detail-muted">Select a connected user to inspect.</div>';
-        let before;const more=document.getElementById('ledger-more');more.onclick=async()=>{more.disabled=true;try{const response=await fetch('/.netlify/functions/admin-users',{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Password':password.value},body:JSON.stringify({action:'ledger',userId:user.userId,...(before===undefined?{}:{before})})});const data=await response.json();if(!response.ok)throw Error(data.error);const host=document.getElementById('full-ledger');if(before===undefined)host.replaceChildren();host.insertAdjacentHTML('beforeend',data.entries.map(e=>`<div class="detail-item"><strong>${escapeHtml(fmtDate(e.at))}</strong><br>${escapeHtml(e.type)} · ${signed(e.delta)}<small>Balance: ${xans(e.balanceAfter)}</small><small>Receipt: ${escapeHtml(e.id)}</small><small>${escapeHtml(e.reason||'')}</small></div>`).join(''));before=data.next;more.hidden=!before;more.textContent='Load older transactions';}catch(e){more.textContent=e.message;}finally{more.disabled=false;}};
-      detailUpdated.textContent = latestUsers.length ? `${latestUsers.length.toLocaleString()} user(s) loaded` : 'Load admin data first';
+        detailUpdated.textContent = latestUsers.length ? `${latestUsers.length.toLocaleString()} user(s) loaded` : 'Load admin data first';
         return;
       }
 
@@ -194,7 +194,33 @@ const password = document.getElementById('password');
           <div class="detail-box"><h3>Financial Ledger</h3><div id="full-ledger">${ledger}</div><button id="ledger-more">Open complete record book</button></div>
         </div>
       `;
-      let before;const more=document.getElementById('ledger-more');more.onclick=async()=>{more.disabled=true;try{const response=await fetch('/.netlify/functions/admin-users',{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Password':password.value},body:JSON.stringify({action:'ledger',userId:user.userId,...(before===undefined?{}:{before})})});const data=await response.json();if(!response.ok)throw Error(data.error);const host=document.getElementById('full-ledger');if(before===undefined)host.replaceChildren();host.insertAdjacentHTML('beforeend',data.entries.map(e=>`<div class="detail-item"><strong>${escapeHtml(fmtDate(e.at))}</strong><br>${escapeHtml(e.type)} · ${signed(e.delta)}<small>Balance: ${xans(e.balanceAfter)}</small><small>Receipt: ${escapeHtml(e.id)}</small><small>${escapeHtml(e.reason||'')}</small></div>`).join(''));before=data.next;more.hidden=!before;more.textContent='Load older transactions';}catch(e){more.textContent=e.message;}finally{more.disabled=false;}};
+      let before;
+      const more = document.getElementById('ledger-more');
+      const ledgerHost = document.getElementById('full-ledger');
+      more.onclick = async () => {
+        more.disabled = true;
+        try {
+          const response = await fetch('/.netlify/functions/admin-users', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Admin-Password': password.value },
+            body: JSON.stringify({ action: 'ledger', userId: user.userId, ...(before === undefined ? {} : { before }) })
+          });
+          const data = await response.json();
+          if (!response.ok || !data.ok) throw Error(data.error || 'Unable to load the record book.');
+          // A user change or refresh replaces this panel. Never append an old
+          // request's records to the newly selected player's record book.
+          if (!more.isConnected) return;
+          if (before === undefined) ledgerHost.replaceChildren();
+          ledgerHost.insertAdjacentHTML('beforeend', data.entries.map(e => `<div class="detail-item"><strong>${escapeHtml(fmtDate(e.at))}</strong><br>${escapeHtml(e.type)} · ${signed(e.delta)}<small>Balance: ${xans(e.balanceAfter)}</small><small>Receipt: ${escapeHtml(e.id)}</small><small>${escapeHtml(e.reason || '')}</small></div>`).join(''));
+          before = data.next;
+          more.hidden = !before;
+          more.textContent = 'Load older transactions';
+        } catch (error) {
+          more.textContent = error.message;
+        } finally {
+          more.disabled = false;
+        }
+      };
       detailUpdated.textContent = `Viewing ${user.name} [${user.userId}]`;
     }
 
