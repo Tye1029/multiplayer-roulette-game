@@ -70,7 +70,7 @@ Tests cover the entire million-outcome base distribution, all wager boundaries,
 real wallet CAS receipts, crash recovery, simultaneous jackpots, no reseeding,
 funds/auth validation, physical handle inputs, demo isolation, and mobile layout.
 
-## Cabinet presentation V4
+## Cabinet presentation V5
 
 The main menu opens with **Play Slots**. A sculpted gold crown, enamel marquee,
 glass reflections, chased lamps, larger jackpot display and working cabinet Spin
@@ -82,19 +82,24 @@ coordinate system. Pointer input redraws the shaft from that fixed pivot and pla
 the grip at its endpoint. A front-facing projection keeps the pull nearly vertical, enlarging the grip as it approaches the player; it is drawn in front of the axle cap. A short animation returns it to rest. This replaces the
 V2 CSS perspective transform that visually separated the arm from its mount.
 A drag of at least 35 pixels starts a spin; short pulls and pointer cancellation
-do not spend chips. The handle also supports keyboard activation. The square beveled cabinet button, the side Spin
+do not spend chips. The handle also supports keyboard activation. The rectangular beveled cabinet button, the side Spin
 button and the lever share the same request and disabled-state guards.
 
 Visual references (original artwork, no copied branding/assets):
 - IGT DiamondRS cabinet: https://www.prnewswire.com/news-releases/igt-revolutionizes-mechanical-reel-slot-category-with-diamondrs-cabinet-301585377.html
 - Golden Casino illuminated frame: https://freecasinogames.net/games/video-slots/golden-casino2773.html
 
-The game-local audio module generates the spring latch, three separately panned rolling reel
-loops with startup acceleration and independent braking, staggered reel locks, and coin/bell win accents using Web Audio.
-Each reel slows and gives a weightier two-part pawl/clunk as it stops. Loops are cached after their first spin. Mute, backgrounding, navigation and request errors
-stop the loop. Audio failure cannot interrupt settlement. Reduced motion disables
-chase, reel and coin animations. No external audio or new bitmap downloads are
-needed; the former shared Bluff win sound remains in use by other games.
+The game-local audio module combines a licensed slot-machine sample with generated
+spring latch, reel locks and coin/bell accents. The sample's rolling section is
+crossfaded into a seamless loop and cached; the three drums have separate panning,
+playback rates and braking. Fetching begins only when the machine is entered.
+A quiet synthesized fallback covers missing/invalid audio. Mute, backgrounding,
+navigation, late downloads and request errors cannot revive stale audio or block
+settlement. Reduced motion disables chase, reel and coin animations.
+
+Audio source: [Sonilo — Slot Lever and Spinning Reels](https://sonilo.com/royalty-free-sound-effects/game/slot-lever-and-spinning-reels).
+See [audio license](../assets/jackpot-junction/AUDIO-LICENSE.md). The former shared
+Bluff win sound remains in use by other games.
 
 Browser coverage includes cancelled/short pulls, keyboard activation, motor
 start/stop/mute/background/error behavior and reduced motion, in addition to
@@ -107,3 +112,12 @@ return, the Play Slots label, and the cabinet Spin button.
 V4 removes the public spin-ID and LIVE labels, centers the unrotated marquee,
 and labels the gold JJ icon directly in the paytable and rules. Internal spin IDs,
 ledger receipts and jackpot accounting are unchanged.
+
+V5 widens Spin into a rectangle, replaces the lever disk with a hinged socket
+attached to the cabinet, and removes Back to menu. JJ is present in every complete
+animation cycle. The cosmetic strip does not change outcome weights, final trios,
+jackpot contributions or wallet settlement. Braking preserves the current visible
+reel position. Browser-cache returns invalidate in-flight animations, responses
+and audio; reauthentication recovers the saved paid result before enabling spins.
+Browser coverage includes JJ rotation, moving socket alignment, interrupted spins,
+delayed/invalid audio, plus existing payout, recovery, input and viewport checks.

@@ -1,8 +1,8 @@
-/* JACKPOT_JUNCTION_V4 — layered reel audio, loaded only at this machine. */
+/* JACKPOT_JUNCTION_V5 — layered reel audio, loaded only at this machine. */
 (() => {
   'use strict';
-  let context;
-  const motors = [], rollingBuffers = [];
+  let context, sampleBytes, sampleBuffer, sampleLoop, audioGeneration=0;
+  const motors = [], rollingBuffers = [], braking=[];
   const voices = new Set();
   const allowed = () => !document.hidden && !window.XanPreferences?.muted;
   function engine() {
@@ -19,7 +19,7 @@
     for (let i = 0; i < data.length; i++) data[i] = sample(i / context.sampleRate, i / data.length);
     return b;
   }
-  function play(b, {volume = .15, loop = false, delay = 0, cutoff = 3500, pan = 0, attack = .008} = {}) {
+  function play(b, {volume = .15, loop = false, delay = 0, cutoff = 3500, pan = 0, attack = .008, offset = 0} = {}) {
     const source = context.createBufferSource(), gain = context.createGain(), filter = context.createBiquadFilter(), panner = context.createStereoPanner();
     source.buffer = b;
     source.loop = loop;
@@ -33,7 +33,7 @@
     const voice = {source, gain, filter};
     voices.add(voice);
     source.onended = () => { voices.delete(voice); source.disconnect(); gain.disconnect(); filter.disconnect(); panner.disconnect(); };
-    source.start(at);
+    source.start(at,offset);
     return voice;
   }
   function stopReel(index, immediate = false) {
@@ -46,7 +46,7 @@
     voice.gain.gain.linearRampToValueAtTime(0, at + (immediate ? .005 : .18));
     voice.source.stop(at + (immediate ? .01 : .2));
   }
-  function stopMotor(immediate = false) { motors.forEach((_, index) => stopReel(index, immediate)); }
+  function stopMotor(immediate = false) { audioGeneration++; motors.forEach((_, index) => stopReel(index, immediate)); }
   function silence() {
     stopMotor(true);
     for (const voice of voices) {
@@ -65,12 +65,45 @@
       return (Math.random() * 2 - 1) * (.65 * ratchet + .45 * latch) + Math.sin(t * 2 * Math.PI * 165) * latch * .5;
     }), {volume: .24, cutoff: 2600});
   }
+  // Fetch only on entering this machine. Decoding waits for a user gesture.
+  function prepare() {
+    sampleBytes ||= fetch('/assets/jackpot-junction/reel-mechanism.mp3?v=JACKPOT_JUNCTION_V5')
+      .then(r => { if (!r.ok) throw new Error('Audio unavailable'); return r.arrayBuffer(); })
+      .catch(() => { sampleBytes=null; return null; });
+    return sampleBytes;
+  }
+  async function recordedReels(run) {
+    try {
+      const bytes=await prepare();
+      if (!bytes || run!==audioGeneration || !allowed()) return;
+      sampleBuffer ||= await context.decodeAudioData(bytes.slice(0));
+      if (run!==audioGeneration || !allowed() || braking.some(Boolean)) return;
+      // The steady mechanical section becomes a seamless drum loop. Overlap
+      // the end and beginning by 25ms, avoiding a click at the loop boundary.
+      if(!sampleLoop){
+      const rate=sampleBuffer.sampleRate,start=Math.floor(.22*rate),size=Math.floor(.68*rate),fade=Math.floor(.025*rate);
+      const loop=context.createBuffer(sampleBuffer.numberOfChannels,size-fade,rate);
+      for(let ch=0;ch<loop.numberOfChannels;ch++){
+        const input=sampleBuffer.getChannelData(ch),output=loop.getChannelData(ch);
+        for(let n=0;n<output.length;n++)output[n]=input[start+n+fade];
+        for(let n=0;n<fade;n++){const mix=n/fade;output[output.length-fade+n]=input[start+size-fade+n]*(1-mix)+input[start+n]*mix;}
+      }
+      sampleLoop=loop;
+      }
+      for(let i=0;i<3;i++){
+        stopReel(i);
+        const voice=play(sampleLoop,{loop:true,volume:.46,cutoff:6500,pan:(i-1)*.3,attack:.1,offset:i*.17});
+        voice.source.playbackRate.value=.94+i*.06;motors[i]=voice;
+      }
+    } catch { /* The quiet fallback continues if the optional file cannot load. */ }
+  }
   function start() {
     stopMotor(true);
     if (!engine()) return;
     pull();
-    // Three separate drums: rolling texture, fluttering gear teeth and soft
-    // bearing resonance. Cache the seamless loops instead of rebuilding on spins.
+    const run=audioGeneration;braking.fill(false);
+    // A quiet immediate fallback covers slow/offline audio downloads. The
+    // sampled mechanism replaces it as soon as decoding is complete.
     for (let i = 0; i < 3; i++) {
       const teeth = 22 + i * 2;
       rollingBuffers[i] ||= buffer(2, t => {
@@ -81,13 +114,15 @@
         const bearing = Math.sin(t * 2 * Math.PI * (88 + i * 8)) * .09;
         return (click + grain) * flutter + bearing;
       });
-      const voice = play(rollingBuffers[i], {loop: true, volume: .19, cutoff: 3600, pan: (i - 1) * .3, attack: .12});
+      const voice = play(rollingBuffers[i], {loop: true, volume: .075, cutoff: 2200, pan: (i - 1) * .3, attack: .12});
       voice.source.playbackRate.setValueAtTime(.58, context.currentTime);
       voice.source.playbackRate.exponentialRampToValueAtTime(1, context.currentTime + .24);
       motors[i] = voice;
     }
+    recordedReels(run);
   }
   function brake(index) {
+    braking[index]=true;
     const voice = motors[index];
     if (!voice) return;
     const at = context.currentTime;
@@ -119,7 +154,7 @@
   }
   // Optional audio must never interrupt a saved spin or leave controls disabled.
   const safe = fn => (...args) => { try { fn(...args); } catch { silence(); } };
-  window.JackpotAudio = {start: safe(start), brake: safe(brake), reel: safe(reel), win: safe(win), stop: safe(stopMotor), silence, get spinning() { return motors.some(Boolean); }};
+  window.JackpotAudio = {prepare, start: safe(start), brake: safe(brake), reel: safe(reel), win: safe(win), stop: safe(stopMotor), silence, get spinning() { return motors.some(Boolean); }};
   window.addEventListener('xan-preferences', e => { if (e.detail.muted) silence(); });
   document.addEventListener('visibilitychange', () => { if (document.hidden) silence(); });
   window.addEventListener('pagehide', silence);
