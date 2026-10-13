@@ -1,4 +1,4 @@
-/* MINEFIELD_V1: game-local mechanical, crystal and low-impact effects. */
+/* MINEFIELD_V2: game-local mechanical, crystal and low-impact effects. */
 (() => {
  'use strict';let context;const voices=new Set(),cache=new Map();
  const allowed=()=>!document.hidden&&!window.XanPreferences?.muted;
