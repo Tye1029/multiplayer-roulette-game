@@ -1,6 +1,7 @@
 'use strict';
 const crypto=require('node:crypto'),{getDatabase}=require('@netlify/database'),rules=require('../../../shared/games/minefield');
 const fieldReturn=s=>s.returnPercent??96;
+const fieldLimit=s=>s.payoutLimit??null;
 const fail=(message,status=409)=>{throw Object.assign(Error(message),{status});};
 const validRequest=id=>typeof id==='string'&&/^[a-f0-9-]{24,40}$/i.test(id);
 function draw(count,random=crypto.randomInt){
@@ -11,9 +12,9 @@ function draw(count,random=crypto.randomInt){
 }
 function publicGame(s){
  if(!s)return null;const playable=s.status==='active',finished=['paying','settled'].includes(s.status),count=s.revealed.filter(i=>!s.mines.includes(i)).length;
- return {id:s.id,stake:s.stake,mineCount:s.mineCount,returnPercent:fieldReturn(s),status:s.status,revision:s.revision,revealed:s.revealed,safeCount:count,
-  cashout:playable?rules.payout(s.stake,s.mineCount,count,fieldReturn(s)):0,nextPayout:playable&&count<rules.size-s.mineCount?rules.payout(s.stake,s.mineCount,count+1,fieldReturn(s)):0,
-  multiplier:rules.multiplier(s.mineCount,count,fieldReturn(s)),outcome:finished?s.outcome:null,payout:finished?s.payout:null,
+ return {id:s.id,stake:s.stake,mineCount:s.mineCount,returnPercent:fieldReturn(s),payoutLimit:fieldLimit(s),status:s.status,revision:s.revision,revealed:s.revealed,safeCount:count,
+  cashout:playable?rules.payout(s.stake,s.mineCount,count,fieldReturn(s),fieldLimit(s)):0,nextPayout:playable&&count<rules.size-s.mineCount?rules.payout(s.stake,s.mineCount,count+1,fieldReturn(s),fieldLimit(s)):0,
+  multiplier:rules.payoutMultiplier(s.stake,s.mineCount,count,fieldReturn(s),fieldLimit(s)),outcome:finished?s.outcome:null,payout:finished?s.payout:null,
   mines:finished?s.mines:undefined,hit:finished?s.hit:null,createdAt:s.createdAt};
 }
 function createStore(injectedPool,injectedWallet,random=crypto.randomInt){
@@ -34,7 +35,7 @@ function createStore(injectedPool,injectedWallet,random=crypto.randomInt){
    catch(e){if(e.code!=='RPS_FUNDS')throw e;s.status='failed';s.error=e.message;}
   }
   if(s.status==='paying'){
-   await wallet.apply(s.account,{id:`minefield:${s.id}:payout:${s.owner}`,delta:s.payout,reason:'Minefield · '+(s.outcome==='mine'?'mine hit':s.outcome==='clear'?'field cleared':'cash out')});
+   await wallet.apply(s.account,{id:`minefield:${s.id}:payout:${s.owner}`,delta:s.payout,reason:'Minefield · '+(s.outcome==='mine'?'mine hit':s.outcome==='limit'?'maximum payout':s.outcome==='clear'?'field cleared':'cash out')});
    s.status='settled';s.settledAt=new Date().toISOString();
   }
   await save(c,s);return s;
@@ -50,7 +51,7 @@ function createStore(injectedPool,injectedWallet,random=crypto.randomInt){
    const prior=(await c.query('SELECT game_id FROM minefield_requests WHERE owner=$1 AND request_id=$2',[player.id,b.requestId])).rows[0];if(prior)return prior.game_id;
    const existing=(await c.query("SELECT id FROM minefield_games WHERE owner=$1 AND state->>'status' IN ('funding','active','paying') ORDER BY created_at DESC LIMIT 1",[player.id])).rows[0];
    let id=existing?.id;
-   if(!id){if(!rules.validMines(b.mineCount))fail('Choose 3, 6, 9, 12 or 15 mines.',400);if(b.returnPercent!==rules.returnPercent)fail('Minefield’s multipliers have changed. Refresh before starting a new field.',400);id=crypto.randomBytes(6).toString('hex').toUpperCase();const s={id,owner:player.id,account,stake:b.stake,mineCount:b.mineCount,returnPercent:rules.returnPercent,mines:draw(b.mineCount,random),revealed:[],revision:0,actions:[],status:'funding',createdAt:new Date().toISOString()};await c.query('INSERT INTO minefield_games(id,owner,state) VALUES($1,$2,$3::jsonb)',[id,player.id,JSON.stringify(s)]);}
+   if(!id){if(!rules.validMines(b.mineCount))fail('Choose 3, 6, 9, 12 or 15 mines.',400);if(b.returnPercent!==rules.returnPercent||b.payoutLimit!==rules.maxPayout)fail('Minefield’s payout terms have changed. Refresh before starting a new field.',400);id=crypto.randomBytes(6).toString('hex').toUpperCase();const s={id,owner:player.id,account,stake:b.stake,mineCount:b.mineCount,returnPercent:rules.returnPercent,payoutLimit:rules.maxPayout,mines:draw(b.mineCount,random),revealed:[],revision:0,actions:[],status:'funding',createdAt:new Date().toISOString()};await c.query('INSERT INTO minefield_games(id,owner,state) VALUES($1,$2,$3::jsonb)',[id,player.id,JSON.stringify(s)]);}
    await c.query('INSERT INTO minefield_requests(owner,request_id,game_id) VALUES($1,$2,$3)',[player.id,b.requestId,id]);return id;
   });
   const s=await recover(player,id);if(s.status==='failed')fail(s.error||'Unable to fund this field.');return s;
@@ -70,8 +71,8 @@ function createStore(injectedPool,injectedWallet,random=crypto.randomInt){
     if(s.revealed.includes(b.tile))return;
     s.revealed.push(b.tile);
     if(s.mines.includes(b.tile)){s.outcome='mine';s.hit=b.tile;s.payout=0;s.status='paying';}
-    else if(s.revealed.length===rules.size-s.mineCount){s.outcome='clear';s.status='paying';s.payout=rules.payout(s.stake,s.mineCount,s.revealed.length,fieldReturn(s));}
-   }else{s.outcome='cashout';s.status='paying';s.payout=rules.payout(s.stake,s.mineCount,s.revealed.length,fieldReturn(s));}
+    else if(rules.atLimit(s.stake,s.mineCount,s.revealed.length,fieldReturn(s),fieldLimit(s))||s.revealed.length===rules.size-s.mineCount){s.payout=rules.payout(s.stake,s.mineCount,s.revealed.length,fieldReturn(s),fieldLimit(s));s.outcome=fieldLimit(s)!==null&&s.payout===fieldLimit(s)?'limit':'clear';s.status='paying';}
+   }else{s.outcome='cashout';s.status='paying';s.payout=rules.payout(s.stake,s.mineCount,s.revealed.length,fieldReturn(s),fieldLimit(s));}
    s.revision++;s.actions.push({id:b.requestId,action:b.action,tile:b.action==='reveal'?b.tile:null});
    // Reserve the final result before crediting the independent wallet. A failed
    // payout can only retry this same result; it can never reopen a lost field.
