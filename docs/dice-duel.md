@@ -1,70 +1,100 @@
-# Dice Duel — DICE_DUEL_V1
+# Lucky Dice and Dice Duel — DICE_V2
 
-Single-player two-dice duel against the house at `/games/single-player/dice-duel/`,
-listed in the homepage Single Player section. Uses the shared account header,
-verified Torn identity, conditional chip ledger, wallet controls, sound/theme
-settings, debug menu and numbered How to play dialog. Entering the table is free.
-Wagers are 50K, 100K, 500K, 1M, 5M or 10M chips. Replay stays at the table; entering
-or refreshing the page starts at the menu. Free practice is isolated from chips.
+Lucky Dice is the solo higher/lower game at `/games/single-player/lucky-dice/`.
+Dice Duel is the live two-player game at `/games/multiplayer/dice-duel/`.
+Both use the shared Torn profile, Chip wallet, account menu, sound/theme settings,
+debug controls, and responsive felt table with real six-face dice.
 
-## Rules and math
+## Lucky Dice: rules and exposure
 
-Four independent uniform integers in 1–6, using server-side `crypto.randomInt`.
-The first two are the player's dice; the next two belong to the house. Higher
-total wins 1.8× the wager **including the wager**; ties return it; lower totals
-return zero. Doubles have no extra effect. Timing cannot influence the dice.
-There are exactly 1,296 equally likely outcomes: 575 wins, 146 ties, 575 losses.
-Expected return is `(575 × 1.8 + 146) / 1296 = 91.1265432%`, giving an expected
-house edge of 8.8734568%. Every supported wager produces integer payouts; the
-largest return is 18M chips. Individual sessions can win. The edge is an
-expectation, not a guarantee for every finite run.
+Choose a threshold from 3 through 11 and a strict **higher** or **lower** prediction.
+The combined total of two fair dice must satisfy that comparison. Equality loses.
+Before paying, the menu and table show exact winning combinations, probability,
+total return including stake, and multiplier. Wagers: 50K, 100K, 500K, 1M, 5M, 10M.
+Entering is free. Practice cannot spend or award Chips.
 
-## Settlement and recovery
+For `w` winning ordered combinations out of 36, the total winning return is
+`floor(stake × 342 / (10 × w))`. This targets 95% RTP / 5% house edge, with rounding
+slightly in the house's favor. Under 3 pays 34.2×; over 3 pays about 1.03636×.
+Thresholds 2 and 12 are excluded: they create impossible predictions or a 35/36
+chance whose 95%-RTP return would be less than the wager. All offered winning
+returns exceed the wager. Dice use two independent server-owned crypto draws.
 
-`dice_duel_rounds` stores the immutable wager/dice/result before any wallet write.
-`dice_duel_requests` binds each verified owner and request ID to that round. Owner
-advisory locks prevent parallel rolls; row locks serialize recovery. A new roll
-is blocked until 3.2 seconds after the previous settlement. Pending requests with
-new IDs recover the existing round instead of charging another wager.
+No hidden payout cap changes these odds. The maximum return is 342M at a 10M
+wager and a one-combination prediction. If that exposure is too large, lower the
+largest offered wager rather than secretly cap a stated multiplier. A positive
+expected house edge does not guarantee a profit in every finite session.
 
-Funding and award are separate persisted states. Stable
-`diceduel:<12 hex chars>:stake|refund|payout:<Torn ID>` receipts use the existing
-wallet's conditional writes and mismatch checks. Ties use refund receipts.
-Lost responses cannot reroll, duplicate the debit or duplicate the credit.
-Failed funding exposes no dice, and reads/recovery are owner-bound. The API has
-no client-supplied claim/payout action. Results and balances are not cached.
+Exhaustive tests cover all 36 outcomes at every threshold, direction and wager.
+One million simulated rolls per setting (18M total, reproducible seed 1260813)
+returned 94.9707% overall; each setting produced a house profit in that run.
 
-The frontend holds controls during rolls and uncertain purchases. Recover roll
-reuses the original request. Reload recovers the last funded result through
-`current`. Paid outcomes are settled before presentation, so navigating away
-cannot cancel a loss or lose an award. Animation cancellation, BFCache, visibility,
-mute and reduced-motion preferences do not alter settlement.
+## Multiplayer rules and shared integration
+
+Public/private games, wager quote acceptance, private code/link entry, live open
+games, Ready, three-second countdown, and 60 seconds to roll. Both results stay
+hidden until both players roll. Higher total wins the shared prize after the same
+configured settlement rate as other multiplayer games. A tie reveals both rolls,
+pauses 5.5 seconds, then starts another countdown without another stake.
+
+One missed roll forfeits to a player who rolled. If neither rolls, both wagers
+return. Only an empty waiting game can be cancelled. Rematch requires both
+players' consent and fresh stake reservations. Avatar consent bubbles, opponent
+ready notifications, leaderboard, and the shared achievement UI are connected.
+Bot games use zero Chips and cannot earn achievements or leaderboard records.
+The eight multiplayer achievement rewards total 1M with the existing long-term
+game/day gates; unique stats track doubles, double sixes, and tiebreak wins.
+
+## Funding, recovery and retained compatibility
+
+Lucky Dice commits immutable dice, target, direction and payout before wallet
+writes. Owner locks serialize purchases; stable luckydice ledger receipts make
+lost debit/credit replies recoverable. A new request while an earlier purchase is
+pending recovers that purchase. Cooldown is server-enforced. No client payout or
+result can affect settlement. UI locks predictions while a purchase is uncertain.
+
+Dice Duel persists its server-owned room in diceduel_rooms and uses the existing
+shared/table-finance intent/recovery layer for wagers, refunds and every rematch.
+Requests are idempotent, seats are bound to verified identity, and stale rounds
+or matches cannot roll again. Payouts recover on subsequent requests/lobby sweeps
+even after a lost wallet response. Timeout/forfeit results cannot farm achievements.
+Prize and rematch amounts come from authoritative state.
+
+The old single-player URL redirects to Lucky Dice. The old dice-duel-action
+endpoint, dice_duel_rounds / dice_duel_requests, original rules, and financial
+tests remain deliberately: previously purchased rolls and already-open older
+clients retain their original 1.8×/tie-refund terms. Lucky Dice checks that prior
+store on reconnect so outstanding payouts finish. Do not drop these historical
+records or reinterpret their terms. Superseded frontend, browser test and old
+simulation were removed; the four-die renderer remains shared by both new modes.
 
 ## Presentation and verification
 
-The midnight teal/brass table has ivory player dice and obsidian house dice,
-six physical pip faces per die, decelerating tumbles and bounces, individual
-landing sounds, both totals and distinct win/tie/loss feedback. Mobile stacks
-the seats vertically and keeps Roll within reach. Original synthesized dice
-clatter combines short resin clicks and muffled felt impacts; it is cached,
-bounded, and silenced on mute/background/navigation. No external audio is needed.
-Only the selected game loads its renderer/audio; the homepage loads a lazy SVG.
+Dice use continuous deceleration with sampled transform frames, smooth shallow
+bounces and exact authoritative landing faces. Rules sit inside the oval rail.
+Reduced-motion mode, mute, backgrounding and navigation cancel playback safely.
+Roll audio uses the existing recorded dice throws from
+[Kenney Casino Audio](https://kenney.nl/assets/casino-audio), licensed CC0;
+see assets/site-hub/audio/LICENSE.json. Three varied recordings are decoded
+lazily for this game and layered at decreasing volumes. Result chords are original.
 
 ```sh
-node --test scripts/dice-duel.test.mjs scripts/site-hub.test.mjs
-node scripts/dice-duel-simulation.mjs
+node --test scripts/lucky-dice.test.mjs scripts/dice-duel-multiplayer.test.mjs scripts/dice-duel.test.mjs scripts/site-hub.test.mjs scripts/unified-tables.test.mjs
+node scripts/lucky-dice-simulation.mjs
 npm run build
-node scripts/dice-duel-browser.test.mjs
+node scripts/dice-v2-browser.test.mjs
 node scripts/site-entry-browser.test.mjs
 node scripts/home-navigation-browser.test.mjs
 ```
 
-The build includes existing protected Roulette, Safe Cracker and Summit Sprint
-checks. Financial tests use the real wallet over isolated PGlite/store fixtures;
-browser tests never use real accounts or award production chips.
+Browser QA uses actual handlers/stores with isolated PostgreSQL, synthetic Torn
+identities and a local Chip ledger: no production account funding. Checks include
+desktop, 390/320-pixel phones and landscape; paid solo win/loss/equality, two-player
+ties/wins, rematches, private/public lobbies, bots, deadlines, cancellations,
+lost replies, actual dice faces, audio decoding/mute, reduced motion and redirect.
+The build includes protected Roulette, Safe Cracker and Summit Sprint checks.
 
-Baseline note: the broader `scripts/rps.test.mjs` run has an existing static
-homepage assertion for a literal RPS anchor in `shared/site/index.template.html`.
-The homepage already creates that route in `assets/site-hub/hub.js` on the parent
-commit. That unchanged assertion fails; the RPS rules/database/wallet tests and
-the current desktop/mobile home-navigation browser checks pass.
+Existing unrelated baseline: scripts/rps.test.mjs expects a literal RPS anchor
+in the static homepage template. The current homepage creates it dynamically in
+assets/site-hub/hub.js; current homepage browser checks cover that route. That
+assertion was not changed or bypassed.

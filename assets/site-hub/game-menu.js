@@ -4,7 +4,7 @@
   const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;};
   const chips=n=>Number(n||0).toLocaleString()+' Chips';
   const summaries={bluff:'Play your hand. Sell the bluff. Read your opponent and empty your cards first.',yahtzee:'Roll together. Keep your best dice. Build the winning score across thirteen rounds.',rps:'Choose your gladiator, hide your hand, and outguess your rival. First to two wins.',roulette:'A six-chamber showdown. Take your turn, trust your nerve, and be the last one standing.','roulette-four':'Four players. One revolver. Bank safe shots and survive to share the pot.',fishing:'Cast, hook, and reel. Land the biggest catch before your opponent.',safecracker:'Steady hands. Perfect timing. Crack the vault before your rival.',mountainrace:'Find your rhythm and race for the summit. Every hold brings you closer.',draw:'Keep a sharp eye on the saloon. Shoot criminals, spare civilians, and outscore your rival.',blackjackduel:'Hit, stand, and play your stack. Get closer to 21 and outlast your opponent.'};
-  const paths={rps:'rps','roulette-four':'roulette-four',bluff:'bluff',yahtzee:'yahtzee',minigolf:'mini-golf'};
+  const paths={diceduel:'dice-duel',rps:'rps','roulette-four':'roulette-four',bluff:'bluff',yahtzee:'yahtzee',minigolf:'mini-golf'};
   const href=(mode,id='')=>paths[mode]?'/games/multiplayer/'+paths[mode]+'/'+(id?'?'+(mode==='rps'?'arena':'room')+'='+encodeURIComponent(id):''):'/?game='+encodeURIComponent(mode)+(id?'&room='+encodeURIComponent(id):'');
   window.XanGameMenu={href,install({games,showRules}){
     // The isolated four-bot harness owns its setup dialog and has no online adapter.
@@ -49,7 +49,7 @@
       const view=a?.view?.()||{id:c?.id,phase:c?.phase},active=!!view.id;mode=nextMode;
       heading.hidden=legacy&&['countdown','playing'].includes(view.phase);
       host.classList.toggle('hub-has-game',active);document.body.dataset.xanMode=mode;host.dataset.xanActive=String(active);host.dataset.xanPhase=view.phase||'lobby';
-      menu.hidden=active;practice.hidden=true;window.XanGameMenu.addBot=async()=>{if(active&&!(view.phase==='waiting'&&(view.players?.length||0)<2))throw Error('Add a bot before another player joins.');return a?.addBot?a.addBot():a?.practice?.();};window.XanGameMenu.canAddBot=!view.connecting&&!!(a?.addBot||a?.practice)&&(!active||(view.phase==='waiting'&&(view.players?.length||0)<2));stake.min=['bluff','yahtzee','minigolf'].includes(mode)?'0':'1000';
+      menu.hidden=active;practice.hidden=true;window.XanGameMenu.addBot=async()=>{if(active&&!(view.phase==='waiting'&&(view.players?.length||0)<2))throw Error('Add a bot before another player joins.');return a?.addBot?a.addBot():a?.practice?.();};window.XanGameMenu.canAddBot=!view.connecting&&!!(a?.addBot||a?.practice)&&(!active||(view.phase==='waiting'&&(view.players?.length||0)<2));stake.min=['bluff','yahtzee','minigolf','diceduel'].includes(mode)?'0':'1000';
       const key=JSON.stringify([mode,view.id,view.phase,view.wager,view.private,view.players?.length]);
       if(key!==last){last=key;title.textContent=games[mode][0];description.textContent=summaries[mode]||games[mode][3];host.style.setProperty('--game-accent',games[mode][4]);
         if(art.dataset.mode!==mode){art.dataset.mode=mode;art.replaceChildren();if(mode==='bluff'){const hero=document.querySelector('#lobby .hero-art');if(hero)art.append(hero);}else window.XanMenuArt?.mount(art,mode);}

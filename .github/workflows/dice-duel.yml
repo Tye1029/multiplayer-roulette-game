@@ -1,4 +1,4 @@
-name: Dice Duel
+name: Lucky Dice and Dice Duel
 on:
   push:
     branches: [mountain-race-development]
@@ -18,9 +18,9 @@ jobs:
       - run: npm install --no-package-lock
       - run: npm install --no-save --no-package-lock @electric-sql/pglite@0.3.14 playwright@1.61.1
       - run: npx playwright install --with-deps chromium
-      - run: node --test scripts/dice-duel.test.mjs scripts/site-hub.test.mjs
-      - run: node scripts/dice-duel-simulation.mjs
+      - run: node --test scripts/lucky-dice.test.mjs scripts/dice-duel-multiplayer.test.mjs scripts/dice-duel.test.mjs scripts/site-hub.test.mjs scripts/unified-tables.test.mjs
+      - run: node scripts/lucky-dice-simulation.mjs
       - run: npm run build
-      - run: node scripts/dice-duel-browser.test.mjs
+      - run: node scripts/dice-v2-browser.test.mjs
       - run: node scripts/site-entry-browser.test.mjs
       - run: node scripts/home-navigation-browser.test.mjs

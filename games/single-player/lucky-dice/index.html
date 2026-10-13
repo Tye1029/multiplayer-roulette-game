@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#101e24"><meta name="lucky-dice-version" content="DICE_V2"><title>Lucky Dice · Xan Duels</title>
+<link rel="stylesheet" href="/assets/site-hub/hub.css?v=DICE_V2"><link rel="stylesheet" href="/assets/site-hub/game-menu.css?v=XAN_PUBLIC_POLISH_V2"><link rel="stylesheet" href="/assets/site-hub/public-polish.css?v=XAN_PUBLIC_POLISH_V2"><link rel="stylesheet" href="/assets/site-hub/mobile.css?v=XAN_MOBILE_V1"><link rel="stylesheet" href="/assets/dice-duel/dice-duel.css?v=DICE_V2">
+<script src="/assets/site-hub/preferences.js?v=2"></script><script defer src="/shared/games/lucky-dice.js?v=DICE_V2"></script><script defer src="/assets/site-hub/public-polish.js?v=XAN_PUBLIC_POLISH_V2"></script><script defer src="/assets/dice-duel/audio.js?v=DICE_V2"></script><script defer src="/assets/dice-duel/dice.js?v=DICE_V2"></script><script defer src="/assets/dice-duel/lucky-dice.js?v=DICE_V2"></script><script defer src="/assets/site-hub/hub.js?v=DICE_V2"></script></head>
+<body class="xan-unified"><main id="dice-duel-app" class="lucky-dice">
+ <header class="xg-heading"><h1>Lucky Dice</h1><div class="xg-tools"><button id="dd-help">How to play</button></div></header>
+ <section id="dd-menu" class="dd-menu">
+  <div class="dd-intro"><span class="dd-kicker">TWO DICE. YOUR PREDICTION.</span><h2>Let the dice<br><em>do the talking.</em></h2><p>Pick a number. Go higher or lower. Roll two dice across the felt and watch your prediction come to life. The smaller the chance, the bigger the return.</p>
+   <div id="dd-menu-settings"></div><button id="dd-enter" class="dd-primary">Play Lucky Dice <span aria-hidden="true">↗</span></button><button id="dd-practice" class="dd-secondary">Try a free roll</button><a id="dd-connect" href="/" hidden>Connect your public Torn API key to play with chips ↗</a><p class="dd-fine">Entering the table is free. Chips are only spent when you roll.</p>
+  </div>
+  <div class="dd-hero" aria-hidden="true"><div class="dd-hero-halo"></div><div class="dd-hero-table"><div class="dd-hero-ring"></div><span class="dd-hero-monogram">L<span>◆</span>D</span></div><div id="dd-hero-dice"></div><div class="dd-chips"><i></i><i></i><i></i><i></i></div><span class="dd-hero-caption">HOW BOLD IS YOUR CALL?</span></div>
+ </section>
+ <section id="dd-play" hidden><div class="dd-play-layout">
+  <article id="dd-machine" class="dd-machine"><div class="dd-machine-heading"><div><span id="dd-mode" class="dd-kicker">THE DUEL ROOM</span><h2 id="dd-table-title">Your seat is waiting.</h2></div><span class="dd-mark" aria-hidden="true">L<span>◆</span>D</span></div>
+   <div class="dd-table" id="dd-table" role="group" aria-label="Lucky Dice table">
+    <div class="dd-table-rule"><span id="ld-call">HIGHER THAN 7</span><small>Matching your number loses</small></div>
+    <div class="dd-lanes">
+     <section id="dd-player-lane" class="dd-lane dd-player"><div class="dd-seat"><span class="dd-avatar" id="dd-player-avatar" aria-hidden="true">Y</span><div><small>YOUR DICE</small><strong id="dd-player-name">You</strong></div></div><div id="dd-player-dice" class="dd-dice-row" aria-label="Your two dice"></div><div class="dd-score"><strong id="dd-player-total">—</strong><span id="dd-player-note">Ready to roll</span></div></section>
+     <section class="ld-prediction"><span>YOUR PREDICTION</span><strong id="ld-target-display">&gt; 7</strong><small id="ld-winning-totals">Win on 8–12</small><div class="ld-distribution" id="ld-distribution" aria-label="Two dice probability distribution"></div></section>
+    </div>
+    <div class="dd-table-status" id="dd-table-status">TWO FAIR DICE. YOUR CALL.</div><div id="dd-sparks" aria-hidden="true"></div>
+   </div>
+   <div class="dd-machine-footer"><span><i></i> <span id="dd-connection">READY WHEN YOU ARE</span></span><span id="ld-return">RETURN INCLUDES YOUR WAGER</span></div>
+  </article>
+  <aside class="dd-caddy"><span class="dd-kicker">TAKE YOUR CHANCE</span><h2>Make your roll.</h2><div id="dd-play-settings"></div><label class="dd-free"><input id="dd-free" type="checkbox"> Free practice</label><div class="dd-action-dock"><button id="dd-roll" class="dd-primary" disabled>Roll dice</button></div><a id="dd-play-connect" href="/" hidden>Connect your public Torn API key to play with chips ↗</a>
+   <div id="dd-result" class="dd-result" role="status" aria-live="polite"><span id="dd-result-label">THE TABLE IS YOURS</span><strong id="dd-result-value">Ready to roll.</strong><p id="dd-result-note">Choose your number and prediction.</p></div><p id="dd-play-note" class="dd-fine">Both dice are fair and independent. Returns include your wager.</p>
+  </aside>
+ </div></section>
+ <div class="dd-notice"><p id="dd-notice" role="status" aria-live="polite"></p><button id="dd-retry" class="dd-secondary" hidden>Recover roll</button></div>
+ <footer class="dd-footer"><span aria-hidden="true">⚄</span><p>Two dice. A little suspense.<br>Higher or lower. Your number, your call.</p></footer>
+</main><noscript>Enable JavaScript to play Lucky Dice.</noscript></body></html>

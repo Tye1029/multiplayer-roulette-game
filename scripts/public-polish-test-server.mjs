@@ -22,7 +22,11 @@ export async function startPublicPolishServer(root=path.resolve('dist'),port=0,o
  const plinko=require('../netlify/functions/plinko/database').createStore(pool,wallet,options.plinkoRandom,options.plinkoNow);
  const rocket=require('../netlify/functions/rocket-run/database').createStore(pool,wallet,options.rocketRandom,options.rocketNow);
  const diceduel=require('../netlify/functions/dice-duel/database').createStore(pool,wallet,options.diceDuelRandom,options.diceDuelNow);
+ const luckyDice=require('../netlify/functions/lucky-dice/database').createStore(pool,wallet,options.luckyDiceRandom,options.luckyDiceNow);
+ const duelDice=require('../netlify/functions/dice-duel-multiplayer/database').createStore(pool,options.duelDiceRandom,options.duelDiceNow||Date.now,wallet);
  const handlers={
+  'lucky-dice-action':require('../netlify/functions/lucky-dice-action').createHandler(luckyDice,rps,wallet),
+  'dice-duel-multiplayer-action':require('../netlify/functions/dice-duel-multiplayer-action').createHandler(duelDice,rps),
   'dice-duel-action':require('../netlify/functions/dice-duel-action').createHandler(diceduel,rps,wallet),
   'rocket-run-action':require('../netlify/functions/rocket-run-action').createHandler(rocket,rps,wallet),
   'plinko-action':require('../netlify/functions/plinko-action').createHandler(plinko,rps,wallet),
@@ -33,7 +37,7 @@ export async function startPublicPolishServer(root=path.resolve('dist'),port=0,o
   'bluff-action':require('../netlify/functions/bluff-action').createHandler(bluff,rps),
   'mini-golf-action':require('../netlify/functions/mini-golf-action').createHandler(golf,rps),
   'yahtzee-action':require('../netlify/functions/yahtzee-action').createHandler(dice,rps),
-  'site-hub':require('../netlify/functions/site-hub').createHandler({rps,four,bluff,minigolf:golf,yahtzee:dice,wallet,progression:progress,store:require('../netlify/functions/site-hub/store').createStore(pool),data:{duelListGames:async()=>({games:[]})}})
+  'site-hub':require('../netlify/functions/site-hub').createHandler({diceduel:duelDice,rps,four,bluff,minigolf:golf,yahtzee:dice,wallet,progression:progress,store:require('../netlify/functions/site-hub/store').createStore(pool),data:{duelListGames:async()=>({games:[]})}})
  };
  const mime={'.html':'text/html','.js':'application/javascript','.mjs':'application/javascript','.css':'text/css','.png':'image/png','.webp':'image/webp','.svg':'image/svg+xml','.mp3':'audio/mpeg','.ogg':'audio/ogg','.wav':'audio/wav'};
  const server=http.createServer(async(req,res)=>{try{
@@ -46,6 +50,6 @@ export async function startPublicPolishServer(root=path.resolve('dist'),port=0,o
   }
   const file=path.resolve(root,'.'+decodeURIComponent(pathname)+(pathname.endsWith('/')?'index.html':''));if(!file.startsWith(root+path.sep))throw Error('Path');const bytes=await fs.readFile(file);res.writeHead(200,{'Content-Type':mime[path.extname(file)]||'application/octet-stream'});res.end(bytes);
  }catch(e){res.writeHead(404);res.end('Not found');}});
- await new Promise(r=>server.listen(port,'127.0.0.1',r));return {origin:'http://127.0.0.1:'+server.address().port,pg,pool,rps,four,bluff,golf,dice,progress,wallet,balances,ledger,close:async()=>{await new Promise(r=>server.close(r));await pg.close();}};
+ await new Promise(r=>server.listen(port,'127.0.0.1',r));return {origin:'http://127.0.0.1:'+server.address().port,pg,pool,rps,four,bluff,golf,dice,duelDice,luckyDice,progress,wallet,balances,ledger,close:async()=>{await new Promise(r=>server.close(r));await pg.close();}};
 }
 if(process.argv.includes('--serve')){const s=await startPublicPolishServer(process.argv[3]||path.resolve('dist'),26752);console.log(s.origin);}
