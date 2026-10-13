@@ -1,7 +1,8 @@
-/* JACKPOT_JUNCTION_V2 — generated mechanical audio, loaded only at this machine. */
+/* JACKPOT_JUNCTION_V4 — layered reel audio, loaded only at this machine. */
 (() => {
   'use strict';
-  let context, motor;
+  let context;
+  const motors = [], rollingBuffers = [];
   const voices = new Set();
   const allowed = () => !document.hidden && !window.XanPreferences?.muted;
   function engine() {
@@ -18,32 +19,34 @@
     for (let i = 0; i < data.length; i++) data[i] = sample(i / context.sampleRate, i / data.length);
     return b;
   }
-  function play(b, {volume = .15, loop = false, delay = 0, cutoff = 3500} = {}) {
-    const source = context.createBufferSource(), gain = context.createGain(), filter = context.createBiquadFilter();
+  function play(b, {volume = .15, loop = false, delay = 0, cutoff = 3500, pan = 0, attack = .008} = {}) {
+    const source = context.createBufferSource(), gain = context.createGain(), filter = context.createBiquadFilter(), panner = context.createStereoPanner();
     source.buffer = b;
     source.loop = loop;
     filter.type = 'lowpass';
     filter.frequency.value = cutoff;
     const at = context.currentTime + delay;
     gain.gain.setValueAtTime(0, at);
-    gain.gain.linearRampToValueAtTime(volume, at + .025);
-    source.connect(filter).connect(gain).connect(context.destination);
+    gain.gain.linearRampToValueAtTime(volume, at + attack);
+    panner.pan.value = pan;
+    source.connect(filter).connect(gain).connect(panner).connect(context.destination);
     const voice = {source, gain, filter};
     voices.add(voice);
-    source.onended = () => { voices.delete(voice); source.disconnect(); gain.disconnect(); filter.disconnect(); };
+    source.onended = () => { voices.delete(voice); source.disconnect(); gain.disconnect(); filter.disconnect(); panner.disconnect(); };
     source.start(at);
     return voice;
   }
-  function stopMotor(immediate = false) {
-    if (!motor) return;
-    const voice = motor;
-    motor = null;
+  function stopReel(index, immediate = false) {
+    const voice = motors[index];
+    if (!voice) return;
+    motors[index] = null;
     const at = context.currentTime;
     voice.gain.gain.cancelScheduledValues(at);
     voice.gain.gain.setValueAtTime(voice.gain.gain.value, at);
     voice.gain.gain.linearRampToValueAtTime(0, at + (immediate ? .005 : .18));
     voice.source.stop(at + (immediate ? .01 : .2));
   }
+  function stopMotor(immediate = false) { motors.forEach((_, index) => stopReel(index, immediate)); }
   function silence() {
     stopMotor(true);
     for (const voice of voices) {
@@ -66,26 +69,44 @@
     stopMotor(true);
     if (!engine()) return;
     pull();
-    // Integer periods keep the two-second loop seamless. Three ratchets simulate
-    // separate reel gears, under a soft, textured motor whirr.
-    motor = play(buffer(2, t => {
-      const noise = Math.random() * 2 - 1;
-      const gears = [27, 31, 35].reduce((v, hz) => v + Math.exp(-((t * hz) % 1) * 23), 0);
-      const hum = Math.sin(t * Math.PI * 2 * 96) * .12 + Math.sin(t * Math.PI * 2 * 192) * .05;
-      return noise * (.055 + gears * .23) + hum;
-    }), {loop: true, volume: .22, cutoff: 2400});
+    // Three separate drums: rolling texture, fluttering gear teeth and soft
+    // bearing resonance. Cache the seamless loops instead of rebuilding on spins.
+    for (let i = 0; i < 3; i++) {
+      const teeth = 22 + i * 2;
+      rollingBuffers[i] ||= buffer(2, t => {
+        const tooth = (t * teeth) % 1 / teeth;
+        const click = Math.exp(-tooth * 170) * (Math.sin(tooth * 2 * Math.PI * 630) * .36 + Math.sin(tooth * 2 * Math.PI * 1370) * .16);
+        const flutter = .7 + .3 * Math.cos(t * 2 * Math.PI * (7 + i));
+        const grain = (Math.random() * 2 - 1) * (.12 + .3 * Math.exp(-tooth * 330));
+        const bearing = Math.sin(t * 2 * Math.PI * (88 + i * 8)) * .09;
+        return (click + grain) * flutter + bearing;
+      });
+      const voice = play(rollingBuffers[i], {loop: true, volume: .19, cutoff: 3600, pan: (i - 1) * .3, attack: .12});
+      voice.source.playbackRate.setValueAtTime(.58, context.currentTime);
+      voice.source.playbackRate.exponentialRampToValueAtTime(1, context.currentTime + .24);
+      motors[i] = voice;
+    }
+  }
+  function brake(index) {
+    const voice = motors[index];
+    if (!voice) return;
+    const at = context.currentTime;
+    voice.source.playbackRate.cancelScheduledValues(at);
+    voice.source.playbackRate.setValueAtTime(voice.source.playbackRate.value, at);
+    voice.source.playbackRate.exponentialRampToValueAtTime(.32, at + .56);
+    voice.filter.frequency.setTargetAtTime(1500, at, .2);
+    voice.gain.gain.setTargetAtTime(.11, at, .24);
   }
   function reel(index) {
-    if (motor) {
-      const at = context.currentTime;
-      motor.source.playbackRate.setTargetAtTime(1 - (index + 1) * .17, at, .09);
-      motor.gain.gain.setTargetAtTime(.22 - (index + 1) * .055, at, .07);
-      if (index === 2) stopMotor();
-    }
+    stopReel(index);
     if (!engine()) return;
-    play(buffer(.22, t => (Math.random() * 2 - 1) * Math.exp(-t * 65) * .7 +
-      (Math.sin(t * 2 * Math.PI * (215 - index * 24)) * .55 + Math.sin(t * 2 * Math.PI * 730) * .13) * Math.exp(-t * 33)),
-    {volume: .27, cutoff: 3300});
+    // The pawl clicks into place, then the drum gives a deeper cabinet clunk.
+    play(buffer(.32, t => {
+      const impact = Math.sin(t * 2 * Math.PI * (145 + index * 16)) * Math.exp(-t * 27) * .58;
+      const metal = (Math.sin(t * 2 * Math.PI * 1120) + Math.sin(t * 2 * Math.PI * 1830) * .35) * Math.exp(-t * 85) * .16;
+      const catchAt = Math.max(0, t - .035), catchNoise = t > .035 ? (Math.random() * 2 - 1) * Math.exp(-catchAt * 100) * .36 : 0;
+      return impact + metal + catchNoise;
+    }), {volume: .34, cutoff: 4200, pan: (index - 1) * .3, attack: .002});
   }
   function win(jackpot) {
     if (!engine()) return;
@@ -98,7 +119,7 @@
   }
   // Optional audio must never interrupt a saved spin or leave controls disabled.
   const safe = fn => (...args) => { try { fn(...args); } catch { silence(); } };
-  window.JackpotAudio = {start: safe(start), reel: safe(reel), win: safe(win), stop: safe(stopMotor), silence, get spinning() { return Boolean(motor); }};
+  window.JackpotAudio = {start: safe(start), brake: safe(brake), reel: safe(reel), win: safe(win), stop: safe(stopMotor), silence, get spinning() { return motors.some(Boolean); }};
   window.addEventListener('xan-preferences', e => { if (e.detail.muted) silence(); });
   document.addEventListener('visibilitychange', () => { if (document.hidden) silence(); });
   window.addEventListener('pagehide', silence);

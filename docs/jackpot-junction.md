@@ -70,7 +70,7 @@ Tests cover the entire million-outcome base distribution, all wager boundaries,
 real wallet CAS receipts, crash recovery, simultaneous jackpots, no reseeding,
 funds/auth validation, physical handle inputs, demo isolation, and mobile layout.
 
-## Cabinet presentation V3
+## Cabinet presentation V4
 
 The main menu opens with **Play Slots**. A sculpted gold crown, enamel marquee,
 glass reflections, chased lamps, larger jackpot display and working cabinet Spin
@@ -79,19 +79,19 @@ SVGs; animation remains in lightweight CSS and the existing reel renderer.
 
 The lever's mount, stationary axle, projected shaft and spherical grip use one SVG
 coordinate system. Pointer input redraws the shaft from that fixed pivot and places
-the grip at its endpoint. A short animation returns it to rest. This replaces the
+the grip at its endpoint. A front-facing projection keeps the pull nearly vertical, enlarging the grip as it approaches the player; it is drawn in front of the axle cap. A short animation returns it to rest. This replaces the
 V2 CSS perspective transform that visually separated the arm from its mount.
 A drag of at least 35 pixels starts a spin; short pulls and pointer cancellation
-do not spend chips. The handle also supports keyboard activation. Both Spin
-buttons and the lever share the same request and disabled-state guards.
+do not spend chips. The handle also supports keyboard activation. The square beveled cabinet button, the side Spin
+button and the lever share the same request and disabled-state guards.
 
 Visual references (original artwork, no copied branding/assets):
 - IGT DiamondRS cabinet: https://www.prnewswire.com/news-releases/igt-revolutionizes-mechanical-reel-slot-category-with-diamondrs-cabinet-301585377.html
 - Golden Casino illuminated frame: https://freecasinogames.net/games/video-slots/golden-casino2773.html
 
-The game-local audio module generates the spring latch, continuously looping
-reel motor, staggered reel locks, and coin/bell win accents using Web Audio.
-The motor slows as reels stop. Mute, backgrounding, navigation and request errors
+The game-local audio module generates the spring latch, three separately panned rolling reel
+loops with startup acceleration and independent braking, staggered reel locks, and coin/bell win accents using Web Audio.
+Each reel slows and gives a weightier two-part pawl/clunk as it stops. Loops are cached after their first spin. Mute, backgrounding, navigation and request errors
 stop the loop. Audio failure cannot interrupt settlement. Reduced motion disables
 chase, reel and coin animations. No external audio or new bitmap downloads are
 needed; the former shared Bluff win sound remains in use by other games.
@@ -103,3 +103,7 @@ paid mouse/touch spins, recovery and the 320px/390px/desktop layouts.
 V3 browser checks also inspect shaft-to-axle and shaft-to-grip continuity at three
 pull positions on desktop and touch devices, full-travel viewport fit, spring
 return, the Play Slots label, and the cabinet Spin button.
+
+V4 removes the public spin-ID and LIVE labels, centers the unrotated marquee,
+and labels the gold JJ icon directly in the paytable and rules. Internal spin IDs,
+ledger receipts and jackpot accounting are unchanged.
