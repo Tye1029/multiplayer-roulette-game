@@ -40,7 +40,7 @@ function createStore(injectedPool,injectedWallet,random=crypto.randomInt,now=Dat
   });
   const s=await recover(p,id);if(s.status==='failed')fail(s.error||'Unable to fund this race.');return s;
  }
- async function current(p){await ready();const s=(await db().query("SELECT id FROM back_alley_derby_rounds WHERE owner=$1 AND state->>'status'<>'failed' ORDER BY created_at DESC LIMIT 1",[p.id])).rows[0];return s?recover(p,s.id):null;}
+ async function current(p,b={}){if(b.raceId!==undefined){if(typeof b.raceId!=='string'||!/^[A-F0-9]{12}$/.test(b.raceId))fail('Invalid race reference.',400);return recover(p,b.raceId);}await ready();const s=(await db().query("SELECT id FROM back_alley_derby_rounds WHERE owner=$1 AND state->>'status'<>'failed' ORDER BY created_at DESC LIMIT 1",[p.id])).rows[0];return s?recover(p,s.id):null;}
  return {ready,start,current,recover,publicRound};
 }
 module.exports={...createStore(),createStore,publicRound};

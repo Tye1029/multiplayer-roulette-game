@@ -26,3 +26,36 @@ test('locked ticket, server outcome, two windows, deadline, ownership and exactl
 for(const lost of ['stake','payout'])test('lost '+lost+' wallet response recovers without reroll or duplicate money',async()=>{const f=await fixture();try{const b=ticket();let s;if(lost==='stake'){f.lose('stake');await assert.rejects(f.store.start(f.a,b),/Lost wallet/);f.random(n=>n-1);s=await f.store.start(f.a,b);assert.equal(s.winner,0);}else s=await f.store.start(f.a,b);f.clock(s.availableAt);if(lost==='payout'){f.lose('payout');await assert.rejects(f.store.current(f.a),/Lost wallet/);}const result=await f.store.current(f.a);assert.equal(result.payout,150000);assert.equal(f.entries().length,2);assert.equal(await f.wallet.balance(f.a),200100000);}finally{await f.pg.close();}});
 test('invalid/stale tickets and insufficient funds never start a paid race',async()=>{const f=await fixture();try{for(const body of [{...ticket(),rat:6},{...ticket(),stake:'50000'},{...ticket(),quote:'old'},{...ticket(),requestId:'bad'}])await assert.rejects(f.store.start(f.a,body),e=>e.status===400);assert.equal(f.entries().length,0);f.records.get('user/101.json').data.balanceBaseline=1;await assert.rejects(f.store.start(f.a,ticket()),/Not enough/);assert.equal(f.entries().length,0);assert.equal(await f.store.current(f.a),null);await assert.rejects(f.wallet.apply('101',{id:'derby:fake:payout:101',delta:1}),/Invalid wallet/);}finally{await f.pg.close();}});
 test('handler validates request/auth, hides private state, and ignores payout/timing input',async()=>{const f=await fixture();try{const handler=createHandler(f.store,{authenticate:async t=>t==='valid'?f.a:null},f.wallet),call=body=>handler(new Request('http://local',{method:'POST',body:JSON.stringify(body)}));assert.equal((await handler(new Request('http://local'))).status,405);assert.equal((await call(null)).status,400);assert.equal((await call({action:'pay'})).status,400);assert.equal((await call({action:'start',...ticket()})).status,401);assert.equal((await call({action:'start',token:'valid',...ticket(),junk:'x'.repeat(5000)})).status,413);const response=await call({action:'start',token:'valid',...ticket(),payout:9999999});assert.equal(response.headers.get('cache-control'),'no-store');assert.equal(response.headers.get('x-back-alley-derby-build'),R.build);const d=await response.json();assert.equal(d.round.payout,undefined);assert.equal(d.balance,199950000);}finally{await f.pg.close();}});
+
+test('wide race gaps, repeatable paths and changing leaders without speed discontinuities',()=>{
+ const order=[2,5,0,4,1,3],leaders=new Set();
+ for(let seed=0;seed<1000;seed++){
+  const plans=M.plan(order,seed),checkpoints=[1700,4000,6600,8700];let previousLeader=-1;
+  for(const t of checkpoints){const ranking=M.ranking(order,seed,t);assert.notEqual(ranking[0],previousLeader,'Each burst produces a different leader');previousLeader=ranking[0];leaders.add(ranking.join());const gap=M.position(ranking[0],order,seed,t)-M.position(ranking[5],order,seed,t);assert.ok(gap>=.1199,'Pack visibly spreads out');}
+  for(let id=0;id<6;id++)for(const t of plans[id].x.slice(1,-1)){const p=M.position(id,order,seed,t),left=p-M.position(id,order,seed,t-1),right=M.position(id,order,seed,t+1)-p;assert.ok(Math.abs(left-right)<.000001,'Continuous velocity through each change of pace');}
+  assert.deepEqual(M.plan(order,seed),plans);
+ }
+ assert.ok(leaders.size>600,'Seeds produce varied formations');
+});
+
+test('an older tab confirms its own result after a second tab has started the next race',async()=>{
+ const f=await fixture();try{
+  const first=await f.store.start(f.a,ticket());f.clock(first.availableAt);
+  await f.store.current(f.a);const next=await f.store.start(f.a,ticket(5));
+  assert.equal((await f.store.current(f.a)).id,next.id);
+  const recovered=await f.store.current(f.a,{raceId:first.id});assert.equal(recovered.id,first.id);assert.equal(recovered.status,'settled');assert.equal(recovered.payout,150000);
+  assert.equal(f.entries().length,3,'Two debits, only the first result credited');
+  await assert.rejects(f.store.current(f.b,{raceId:first.id}),e=>e.status===404);
+  for(const raceId of [null,{},'../../../','a'.repeat(12),first.id+'x'])await assert.rejects(f.store.current(f.a,{raceId}),e=>e.status===400);
+  assert.equal((await f.store.current(f.a,{raceId:next.id})).status,'racing');assert.equal(f.entries().length,3);
+ }finally{await f.pg.close();}
+});
+
+test('a funded race from the previous build preserves its saved award across deployment',async()=>{
+ const f=await fixture();try{
+  const t=ticket(0),s=await f.store.start(f.a,t);s.quote='BACK_ALLEY_DERBY_V1';
+  await f.pool.query('UPDATE back_alley_derby_rounds SET state=$2::jsonb WHERE id=$1',[s.id,JSON.stringify(s)]);
+  f.clock(s.availableAt);const recovered=await f.store.start(f.a,{...t,quote:'BACK_ALLEY_DERBY_V1'});assert.equal(recovered.id,s.id);assert.equal(recovered.payout,s.payout);assert.equal(recovered.status,'settled');
+  await assert.rejects(f.store.start(f.a,{...ticket(),quote:'BACK_ALLEY_DERBY_V1'}),e=>e.status===400);
+ }finally{await f.pg.close();}
+});

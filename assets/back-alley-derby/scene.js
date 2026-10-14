@@ -1,4 +1,4 @@
-/* BACK_ALLEY_DERBY_V1 — cached scene and sprite frames, one animation owner. */
+/* BACK_ALLEY_DERBY_V2_RACE_DAY — cached scene and sprite frames, one animation owner. */
 (() => {
  'use strict';const rules=window.BackAlleyDerbyRules,motion=window.DerbyMotion;
  const filters=['none','grayscale(.85) brightness(.85)','sepia(.35) brightness(1.3)','grayscale(1) brightness(.65)','sepia(.3) brightness(1.15)','sepia(.7) saturate(.7)'];
@@ -14,7 +14,7 @@
    c.save();c.translate(finish+20,h*.63);c.rotate(-Math.PI/2);c.font='800 9px system-ui';c.textAlign='center';c.fillStyle='#f5e4c5';c.fillText('F I N I S H',0,0);c.restore();
   }
   draw(state){this.last=state;const c=this.c,w=this.w||800,h=this.h||533;c.fillStyle='#172628';c.fillRect(0,0,w,h);if(!this.loaded||!this.back)return;c.drawImage(this.back,0,0,w,h);
-   const running=state.order&&state.elapsed>rules.countdownMs,elapsed=Math.max(0,(state.elapsed||0)-rules.countdownMs),rw=Math.min(170,w*.23),rh=rw*2/3,start=rw*.91,finish=w*.9;
+   const running=state.order&&state.elapsed>rules.countdownMs,elapsed=Math.max(0,(state.elapsed||0)-rules.countdownMs),rw=Math.min(155,w*.215),rh=rw*2/3,start=rw*1.06,finish=w*.9;
    for(let i=0;i<6;i++){const p=state.order?motion.position(i,state.order,state.seed,elapsed):0,nose=start+(finish-start)*p,y=h*(.43+i*.079),frame=running&&p<1&&!this.reduced.matches?Math.floor(elapsed/95+i*.75)%4:1,x=nose-rw*.965;
     if(i===state.selected){c.fillStyle=rules.rats[i].color+'25';c.beginPath();c.ellipse(nose-rw*.33,y+rh*.18,rw*.31,rh*.11,0,0,Math.PI*2);c.fill();}
     if(running&&p<1&&!this.reduced.matches){c.fillStyle='#d8c09b35';for(let d=0;d<3;d++){const phase=(elapsed/480+d/3)%1;c.globalAlpha=(1-phase)*.4;c.beginPath();c.ellipse(nose-rw*.58-phase*22,y+rh*.17-phase*9,1+phase*3,1+phase*2,0,0,7);c.fill();}c.globalAlpha=1;}
