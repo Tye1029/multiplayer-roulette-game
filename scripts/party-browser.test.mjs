@@ -58,5 +58,10 @@ try{
     const d2=(await server.pg.query('SELECT state FROM party_rooms WHERE id=$1',[duelCode])).rows[0].state;d2.deadline=Date.now()-1;if(d2.phase==='playing')d2.game.end=Date.now()-1;await server.pg.query('UPDATE party_rooms SET state=$2::jsonb WHERE id=$1',[duelCode,JSON.stringify(d2)]);await duo[0].waitForTimeout(1600);
   }
   const duelFinal=(await server.pg.query('SELECT state FROM party_rooms WHERE id=$1',[duelCode])).rows[0].state;assert.equal(duelFinal.phase,'complete');assert.ok(duelFinal.winner);await wait(duo[1],'[data-action=rematch]');await fit(duo[1],'duel-result-mobile');
-  assert.deepEqual(errors,[]);console.log('PASS: four-player party, all four interactive minigames, 1v1 duel, reconnect, rewards, rematch, desktop/phone/landscape layouts. Screenshots: '+out);
+  const delayed=await page(390);await delayed.locator('[data-create=duel]').click();await delayed.locator('#nickname').fill('Slow Network');await delayed.getByRole('button',{name:'Let’s play',exact:false}).click();await wait(delayed,'#share-code');
+  await delayed.route('**/.netlify/functions/party-action',async route=>{if(route.request().postDataJSON().action==='add-bot')await new Promise(resolve=>setTimeout(resolve,1800));await route.continue();});
+  await delayed.locator('[data-action=add-bot]').click();assert.equal(await delayed.locator('[data-action=ready]').isDisabled(),true,'lobby controls show the pending request');
+  await delayed.locator('[data-action=ready]').click();await delayed.getByRole('button',{name:'Ready ✓ · undo',exact:true}).waitFor();await delayed.locator('[data-action=start]:enabled').waitFor();
+  const delayedCode=new URL(delayed.url()).searchParams.get('room'),delayedRoom=(await server.pg.query('SELECT state FROM party_rooms WHERE id=$1',[delayedCode])).rows[0].state;assert.equal(delayedRoom.players.length,2);assert.deepEqual(delayedRoom.ready,[delayedRoom.host]);await delayed.context().close();
+  assert.deepEqual(errors,[]);console.log('PASS: four-player party, all four interactive minigames, 1v1 duel, reconnect, rewards, rematch, delayed-network controls, desktop/phone/landscape layouts. Screenshots: '+out);
 }finally{await browser.close();await server.close();}
