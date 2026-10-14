@@ -21,6 +21,7 @@ jobs:
       - run: npm run build
       - run: node --test scripts/site-refinement.test.mjs scripts/public-polish.test.mjs
       - run: node scripts/site-refinement-browser.test.mjs
+      - run: node scripts/game-discovery-browser.test.mjs
       - run: node scripts/home-navigation-browser.test.mjs
       - run: node scripts/mobile-layout-browser.test.mjs
         env:

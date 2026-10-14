@@ -37,17 +37,32 @@
   const menu=document.getElementById('hub-menu-panel');if(!menu)return setTimeout(whenReady,60);
   const wallet=e('button','hub-wallet','Deposit/Withdraw');wallet.id='hub-wallet';document.querySelector('.xan-account').append(wallet);
   const dialog=e('dialog','xan-dialog xg-wallet');document.body.append(dialog);
-  let requestId=crypto.randomUUID();
+  let pendingWithdrawal=null,view=0;
   wallet.onclick=()=>{
+   const generation=++view,key=localStorage.getItem('tornVisitorApiKey'),rate=800000;let balance=null,busy=false;
+   if(pendingWithdrawal?.key!==key)pendingWithdrawal=null;
    dialog.replaceChildren(e('h2',null,'Your Chips'),e('strong','xg-exchange','1 Xan = 800,000 Chips'));
-   const text=e('p');text.append('Send Xanax to ');text.append(e('strong',null,'CowBoyCookie [4300885]'));text.append(' With The Message XanDuel to receive chips.');dialog.append(text);
-   const copies=e('div','hub-actions');for(const [value,label] of [['CowBoyCookie','Copy name'],['XanDuel','Copy message']]){const copy=e('button',null,label);copy.onclick=async()=>{try{await navigator.clipboard.writeText(value);status.textContent=label+' copied.';}catch{status.textContent='Copy: '+value;}};copies.append(copy);}dialog.append(copies);
-   const check=e('button',null,'Check deposit'),input=e('input'),withdraw=e('button',null,'Request withdrawal'),close=e('button',null,'Close'),status=e('p','hub-status');status.setAttribute('role','status');
-   const label=e('label',null,'Chips to withdraw');Object.assign(input,{type:'number',min:800000,step:800000,value:800000});label.append(input);
-   dialog.append(check,label,e('small',null,'Withdrawals use 800,000-Chip increments. Requests are sent to the admin.'),withdraw,status,e('small','xg-withdraw-time','Xans will be sent within 24 Hours'),close);close.onclick=()=>dialog.close();
-   async function run(action){check.disabled=withdraw.disabled=true;try{const key=localStorage.getItem('tornVisitorApiKey');if(!key)throw Error('Connect your Torn API key on the home page first.');let result;if(action==='withdraw'){if(!input.reportValidity())return;result=await window.XanHub.post('request-withdraw',{visitorKey:key,amount:Number(input.value),withdrawalId:requestId});requestId=crypto.randomUUID();}else result=await window.XanHub.post('check-xans',{visitorKey:key});status.textContent=result.message||(result.addedTickets>0?Number(result.addedTickets).toLocaleString()+' Chips added.':'No new deposit detected.');window.XanHub.refresh();}catch(err){status.textContent=err.message;}finally{check.disabled=withdraw.disabled=false;}}
-   check.onclick=()=>run('deposit');withdraw.onclick=()=>run('withdraw');dialog.showModal();
+   const total=e('p','xg-wallet-balance','Loading balance…');dialog.append(total);
+   const instructions=e('section','xg-deposit-instructions'),text=e('p');text.append('Send Xanax to ',e('strong',null,'CowBoyCookie [4300885]'),' With The Message ',e('strong',null,'XanDuel'),' to receive chips.');instructions.append(text);
+   const copies=e('div','hub-actions');for(const [value,label] of [['CowBoyCookie','Copy name'],['XanDuel','Copy message']]){const copy=e('button',null,label);copy.onclick=async()=>{try{await navigator.clipboard.writeText(value);status.textContent=label+' copied.';}catch{status.textContent='Copy: '+value;}};copies.append(copy);}instructions.append(copies);dialog.append(instructions);
+   const check=e('button',null,'Check deposit'),select=e('select'),custom=e('input'),max=e('button',null,'Max'),withdraw=e('button',null,'Request withdrawal'),close=e('button',null,'Close'),status=e('p','hub-status'),cost=e('small','xg-withdraw-cost');status.setAttribute('role','status');
+   select.id='hub-withdraw-xans';custom.id='hub-withdraw-custom';custom.type='number';custom.min='1';custom.step='1';custom.hidden=true;custom.setAttribute('aria-label','Custom Xan amount');
+   const label=e('label',null,'Xans to withdraw');label.htmlFor=select.id;const controls=e('div','xg-withdraw-controls');controls.append(select,max);label.append(controls,custom,cost);
+   dialog.append(check,label,withdraw,status,e('small','xg-withdraw-time','Xans will be sent within 24 Hours'),close);close.onclick=()=>dialog.close();
+   const valid=()=>dialog.open&&generation===view&&key===localStorage.getItem('tornVisitorApiKey');
+   const amount=()=>Number(select.value==='custom'?custom.value:select.value),limit=()=>Math.floor((balance||0)/rate);
+   function controlsState(){const retry=!!pendingWithdrawal,n=amount();custom.hidden=select.value!=='custom';select.disabled=custom.disabled=max.disabled=busy||retry||limit()<1;check.disabled=busy;withdraw.disabled=busy||(!retry&&(!Number.isSafeInteger(n)||n<1||n>limit()));withdraw.textContent=retry?'Retry withdrawal':'Request withdrawal';cost.textContent=Number.isSafeInteger(n)&&n>0?(n*rate).toLocaleString()+' Chips':'Minimum 1 Xan';}
+   function update(value){if(!Number.isSafeInteger(value)||value<0)return;balance=value;total.textContent=value.toLocaleString()+' Chips = '+(value/rate).toLocaleString('en-US',{maximumFractionDigits:8})+' Xans';const chosen=pendingWithdrawal?pendingWithdrawal.amount/rate:amount();select.replaceChildren();for(let n=1;n<=Math.min(100,limit());n++)select.append(new Option(n+' '+(n===1?'Xan':'Xans'),String(n)));if(limit()>100){select.append(new Option(limit().toLocaleString()+' Xans (max)',String(limit())),new Option('Custom amount','custom'));}if(!limit())select.append(new Option('Not enough Chips for 1 Xan','0'));if(pendingWithdrawal){if(![...select.options].some(o=>o.value===String(chosen)))select.append(new Option(chosen+' Xans (pending)',String(chosen)));select.value=String(chosen);}else if(chosen>100&&chosen!==limit()){select.value='custom';custom.value=String(chosen);}else if(chosen>0&&chosen<=limit())select.value=String(chosen);custom.max=String(limit());controlsState();}
+   async function refreshBalance(){try{const sample={key,at:performance.now()},r=await XanHub.api('balance');if(valid()){update(r.balance);XanHub.setBalance(r.balance,sample);}}catch(err){if(valid()){total.textContent=key?'Balance unavailable. Try reopening this panel.':'Connect your Torn API key to see your balance.';status.textContent=err.message;controlsState();}}}
+   async function run(action){if(busy)return;busy=true;controlsState();try{
+    if(!key)throw Error('Connect your Torn API key on the home page first.');let result;
+    if(action==='withdraw'){if(!pendingWithdrawal){const n=amount();if(!Number.isSafeInteger(n)||n<1||n>limit())throw Error('Choose a Xan amount within your balance.');pendingWithdrawal={key,amount:n*rate,id:crypto.randomUUID()};}const receipt=pendingWithdrawal;result=await XanHub.post('request-withdraw',{visitorKey:key,amount:receipt.amount,withdrawalId:receipt.id});if(pendingWithdrawal===receipt)pendingWithdrawal=null;
+    }else result=await XanHub.post('check-xans',{visitorKey:key});
+    if(!valid())return;status.textContent=result.message||(result.addedTickets>0?Number(result.addedTickets).toLocaleString()+' Chips added.':'No new deposit detected.');if(Number.isSafeInteger(result.serverBalance))update(result.serverBalance);await refreshBalance();XanHub.refresh();
+   }catch(err){if(valid()){if(action==='withdraw'&&err.status>=400&&err.status<500)pendingWithdrawal=null;status.textContent=err.message+(pendingWithdrawal?' Retry to confirm this same withdrawal.':'');}}finally{busy=false;if(valid())controlsState();}}
+   select.onchange=custom.oninput=controlsState;max.onclick=()=>{select.value=String(limit());controlsState();};check.onclick=()=>run('deposit');withdraw.onclick=()=>run('withdraw');dialog.showModal();controlsState();refreshBalance();
   };
+  window.addEventListener('storage',event=>{if(event.key==='tornVisitorApiKey'){view++;pendingWithdrawal=null;dialog.close();}});
   // A visible tab checks quietly; a shared lease avoids duplicating checks across tabs.
   let checking=false;
   async function checkDeposits(){

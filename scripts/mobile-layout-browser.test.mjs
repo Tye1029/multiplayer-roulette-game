@@ -35,7 +35,7 @@ try{
    await inspect(p,mode+'-menu-'+viewport.width);
    if(mode!=='home'){
     await p.getByRole('button',{name:'How to play',exact:true}).click();await inspect(p,mode+'-rules-'+viewport.width);await p.getByRole('button',{name:'Got it',exact:true}).click();
-    await p.waitForFunction(()=>!!window.XanProgress?.profile?.achievements);await p.getByRole('button',{name:'Achievements',exact:true}).click();await p.locator('.xg-achievements[open]').waitFor();await inspect(p,mode+'-achievements-'+viewport.width);await p.locator('.xg-achievements').getByRole('button',{name:'Close',exact:true}).click();
+    await p.waitForFunction(()=>!!window.XanProgress?.profile?.achievements);await p.getByRole('button',{name:'Achievements',exact:true}).click();await p.locator('.xan-account-panel[open]').waitFor();await inspect(p,mode+'-achievements-'+viewport.width);await p.locator('.xan-account-panel').getByRole('button',{name:'Close',exact:true}).click();
    }
    if(mode==='home'){
     await menu(p,'Stats & achievements');await p.locator('#hub-stats-game').waitFor();await inspect(p,'stats-'+viewport.width);await p.locator('.xan-account-close').click();await p.locator('#hub-wallet').click();await inspect(p,'wallet-'+viewport.width);await p.getByRole('button',{name:'Close',exact:true}).click();

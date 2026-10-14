@@ -167,7 +167,7 @@ test('SQL store: private/public discovery, owner-only access, atomic duplicate s
     const cancelled=await db.create(a,{requestId:uuid(),course:'garden',wager:10000});await db.action(cancelled.id,a,{action:'cancel'});await db.recover(cancelled.id);assert.equal(balances.get(a.id),99340);
     s.balls.forEach(ball=>Object.assign(ball,{holed:true,strokes:2}));s.lastShot=null;M.advance(s,Date.now());assert.equal(s.phase,'hole-complete');s.deadline=Date.now()-1;await write(s);
     s=await db.recover(s.id);assert.equal(s.winner,'draw');assert.equal(s.finance.status,'settled');assert.equal(balances.get(a.id),109340);assert.equal(balances.get(b.id),90000);const refunded=[...balances];await db.recover(s.id);assert.deepEqual([...balances],refunded,'Both idle refunds each stake exactly once');
-    assert.equal(progress.catalog('minigolf').reduce((n,x)=>n+x.reward,0),1000000);assert.equal(progress.catalog('minigolf')[0].target,1);
+    assert.equal(progress.catalog('minigolf').slice(0,8).reduce((n,x)=>n+x.reward,0),1000000);assert.equal(progress.catalog('minigolf')[0].target,1);
   }finally{await pg.close();}
 });
 

@@ -6,23 +6,27 @@
  let version=0;
  const dialog=el('dialog',undefined,'xan-dialog xan-account-panel');dialog.id='hub-account-dialog';document.body.append(dialog);
  dialog.addEventListener('close',()=>version++);
- function open(title){version++;document.getElementById('hub-menu-panel').hidden=true;dialog.replaceChildren(el('h2',title));const close=el('button','Close','xan-account-close');close.onclick=()=>dialog.close();dialog.append(close);dialog.showModal();return version;}
+ function open(title){version++;document.getElementById('hub-menu-panel').hidden=true;const head=el('div',undefined,'xan-account-heading'),close=el('button','Close','xan-account-close');close.onclick=()=>dialog.close();head.append(el('h2',title),close);dialog.replaceChildren(head);if(!dialog.open)dialog.showModal();return version;}
  const valid=(v,k)=>v===version&&k===key()&&dialog.open;
- function content(node){dialog.insertBefore(node,dialog.lastElementChild);}
+ function content(node){dialog.append(node);}
  function copyButton(text,label,status){const b=el('button',label);b.onclick=async()=>{try{await navigator.clipboard.writeText(text);status.textContent='Copied.';}catch{status.textContent='Copy this code: '+text;}};return b;}
- async function stats(){
+ async function stats(selected='all'){
   const v=open('Your stats & achievements'),k=key(),status=el('p',k?'Loading your records…':'Connect your Torn API key to view your records.','hub-status');content(status);if(!k)return;
   try{
-   const data=await XanHub.api('progress');if(!valid(v,k))return;
+   const sample={key:k,at:performance.now()},data=await XanHub.api('progress');if(!valid(v,k))return;XanHub.setBalance(data.balance,sample);
    status.remove();const label=el('label','Game'),select=el('select');select.id='hub-stats-game';label.htmlFor=select.id;
-   for(const [id,g] of Object.entries(XanHub.games))if(data.progress.stats[id]||data.progress.achievements[id])select.append(new Option(g[0],id));
+   const groups=[['Single Player',true],['Multiplayer',false]],entries=Object.entries(XanHub.games).filter(([id])=>data.progress.stats[id]||data.progress.achievements[id]);select.append(new Option('All games','all'));
+   for(const [name,single] of groups){const group=el('optgroup');group.label=name;for(const [id,g] of entries)if((g[1]==='SINGLE PLAYER')===single)group.append(new Option(g[0],id));select.append(group);}
    label.append(select);content(label);const body=el('section');content(body);
-   const render=()=>{const s=data.progress.stats[select.value]||{},cards=el('div',undefined,'xan-stat-grid');body.replaceChildren(cards);
+   const render=()=>{const all=select.value==='all',ids=all?entries.map(([id])=>id):[select.value],s=all?ids.reduce((a,id)=>{const v=data.progress.stats[id]||{};for(const k of ['games','wins','net','earnings'])a[k]=(a[k]||0)+(v[k]||0);return a;},{}):data.progress.stats[select.value]||{},cards=el('div',undefined,'xan-stat-grid');body.replaceChildren(cards);
     const values=[['Games',fmt(s.games)],['Wins',fmt(s.wins)],['Win rate',s.games?(100*(s.wins||0)/s.games).toFixed(1)+'%':'—']];
-    if(s.net!==undefined)values.push(['Net chips',(s.net>0?'+':'')+fmt(s.net)],['Wagered',fmt(s.wagered)],['Returned',fmt(s.returned)]);else if(s.earnings!==undefined)values.push(['Winnings',fmt(s.earnings)]);
+    if(all)values.push(['Single-player net',(s.net>0?'+':'')+fmt(s.net)],['Multiplayer winnings',fmt(s.earnings)]);else if(s.net!==undefined)values.push(['Net chips',(s.net>0?'+':'')+fmt(s.net)],['Wagered',fmt(s.wagered)],['Returned',fmt(s.returned)]);else values.push(['Winnings',fmt(s.earnings)]);
+    const earned=ids.flatMap(id=>data.progress.achievements[id]||[]).filter(a=>a.unlocked);values.push(['Achievement chips',fmt(earned.reduce((n,a)=>n+a.reward,0))]);
     for(const [name,value] of values){const card=el('div');card.append(el('span',name),el('strong',value));cards.append(card);}
-    body.append(el('h3','Achievements'));const trophies=el('div',undefined,'xan-trophy-list');for(const a of data.progress.achievements[select.value]||[]){const row=el('article',undefined,a.unlocked?'is-earned':'is-locked');row.append(el('b',a.unlocked?'✓':'◇'),el('strong',a.title||'Mystery achievement'),el('p',a.description||'Keep playing to discover this achievement.'));if(a.reward)row.append(el('small',fmt(a.reward)+' Chips'));trophies.append(row);}body.append(trophies);
-   };select.onchange=render;const active=window.XanSiteAdapter?.current?.().mode;if([...select.options].some(o=>o.value===active))select.value=active;render();
+    body.append(el('h3','Achievements'),el('p','Secret challenges. Chip rewards are added automatically when unlocked.','xan-account-note'));
+    function trophies(id){const list=el('div',undefined,'xan-trophy-list');for(const a of [...(data.progress.achievements[id]||[])].sort((a,b)=>a.reward-b.reward)){const row=el('article',undefined,a.unlocked?'is-earned':'is-locked');row.append(el('b',a.unlocked?'✓':'◇'),el('strong',a.unlocked?a.title:'Mystery achievement'),el('p',a.unlocked?'Unlocked · reward received':'Unlock requirement hidden'),el('small','+'+fmt(a.reward)+' Chips'));list.append(row);}return list;}
+    if(!all)body.append(trophies(select.value));else for(const [name,single] of groups){body.append(el('h3',name));for(const [id,g] of entries.filter(([,g])=>(g[1]==='SINGLE PLAYER')===single)){const list=data.progress.achievements[id]||[],details=el('details',undefined,'xan-game-achievements');details.append(el('summary',g[0]+' · '+list.filter(a=>a.unlocked).length+'/'+list.length+' unlocked'),trophies(id));body.append(details);}}
+   };select.onchange=render;if(typeof selected==='string'&&[...select.options].some(o=>o.value===selected))select.value=selected;render();
   }catch(e){if(valid(v,k))status.textContent=e.message;}
  }
  async function referral(){
@@ -35,7 +39,8 @@
   };
   try{render(await XanHub.api('referral'));}catch(e){if(valid(v,k))status.textContent=e.message;}
  }
- document.getElementById('hub-stats').onclick=stats;document.getElementById('hub-referrals').onclick=referral;
+ window.XanAccount={stats};document.getElementById('hub-stats').onclick=()=>stats();document.getElementById('hub-referrals').onclick=referral;
+ const active=window.XanSiteAdapter?.current?.().mode;if(XanHub.games[active]?.[1]==='SINGLE PLAYER'){const heading=document.querySelector('main h1'),button=el('button','Stats & achievements','xan-single-progress');button.onclick=()=>stats(active);heading?.after(button);}
  // Public signup codes contain no account credentials. Keep an entered code
  // through verification retries; the server decides eligibility and awards.
  const box=document.querySelector('.hub-key');if(box){const label=el('label','Referral code (optional)','hub-referral-signup'),input=el('input');input.id='hub-signup-referral';input.maxLength=12;input.placeholder='XD…';input.autocomplete='off';input.spellcheck=false;input.value=storage.get('xan-referral-code');label.htmlFor=input.id;label.append(input);box.append(label);input.oninput=()=>storage.set('xan-referral-code',input.value.trim().toUpperCase());}

@@ -1,4 +1,4 @@
-/* XAN_SITE_REFINEMENT_V1: account panels and readable light-theme surfaces. */
+/* XAN_GAME_DISCOVERY_V2: game discovery, rewards and account controls. */
 body,main,.duel-screen{overflow-anchor:none}
 .xan-account-panel{width:min(650px,calc(100vw - 28px))}
 .xan-account-panel label,.hub-referral-signup{display:grid;gap:9px;font-size:13px;margin:18px 0;color:var(--hub-text)}
@@ -9,7 +9,7 @@ body,main,.duel-screen{overflow-anchor:none}
 .xan-stat-grid strong{font-size:19px;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
 .xan-trophy-list{display:grid;gap:10px}.xan-trophy-list article{display:grid;grid-template-columns:28px 1fr;gap:4px 10px;border:1px solid var(--hub-line);border-radius:10px;padding:13px}
 .xan-trophy-list b{grid-row:1/4;color:var(--hub-muted);font-size:24px}.xan-trophy-list .is-earned b{color:#2c9b72}.xan-trophy-list p,.xan-trophy-list small{grid-column:2;margin:0;font-size:12px}
-.xan-trophy-list strong{font-size:14px}.xan-account-close{display:block;margin-top:20px}.xan-account-panel>small{display:block;margin-top:12px}.xan-referral-code{font:700 clamp(17px,4vw,22px) monospace;letter-spacing:.1em;background:var(--hub-bg);border:1px solid var(--hub-line);border-radius:8px;padding:12px}
+.xan-trophy-list strong{font-size:14px}.xan-account-close{display:block;margin:0;flex:none;align-self:flex-start;min-height:44px}.xan-account-panel>small{display:block;margin-top:12px}.xan-referral-code{font:700 clamp(17px,4vw,22px) monospace;letter-spacing:.1em;background:var(--hub-bg);border:1px solid var(--hub-line);border-radius:8px;padding:12px}
 .xan-account-panel .xan-referral-title{color:var(--hub-text);font-size:17px;font-weight:700}.xan-account-note{font-size:13px}.xg-withdraw-time{display:block;margin:20px 0 16px;color:var(--hub-muted)}
 /* These legacy buttons have listeners needed by their own runtime, but settings
    owns the public audio switch. Internal bot harness controls stay available. */
@@ -63,3 +63,25 @@ body.xan-unified :is(button#sound,button#soundBtn,button#duelSoundBtn,button#pra
 :root[data-theme=light] .xg-achievement.is-locked{opacity:1;filter:none}
 :root[data-theme=light] .xg-achievement strong{color:#6c501e}
 :root[data-theme=light] .xg-medal{color:#667781;border-color:#7c8c95}
+.xan-account-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;position:sticky;top:0;background:var(--hub-panel);z-index:2;padding:8px 0 14px}
+.xan-account-heading h2{margin:0;min-width:0;font-size:clamp(21px,4vw,27px)}
+.xan-game-achievements{border:1px solid var(--hub-line);border-radius:11px;margin:10px 0;background:var(--hub-bg)}
+.xan-game-achievements summary{padding:16px;font-size:14px;font-weight:700;cursor:pointer;min-height:44px}
+.xan-game-achievements .xan-trophy-list{padding:0 12px 12px}
+.xan-trophy-list small{font-weight:750;color:#d9b46d;font-variant-numeric:tabular-nums}
+:root[data-theme=light] .xan-trophy-list small{color:#72521d}
+.xan-single-progress{background:var(--hub-bg);color:var(--hub-text);border:1px solid var(--hub-line);border-radius:9px;padding:10px 14px;font:600 12px system-ui;min-height:44px;margin:4px 0 12px;cursor:pointer}
+.xg-wallet-balance{padding:16px;border:1px solid var(--hub-line);border-radius:10px;background:var(--hub-bg);font-weight:700;font-size:16px;line-height:1.6;overflow-wrap:anywhere}
+.xg-deposit-instructions{padding:18px;border:1px solid #aa8952;border-left:4px solid #d1ac65;border-radius:11px;background:#d9ad6710;margin:18px 0}
+.xg-deposit-instructions p{margin:0 0 14px;font-size:16px;line-height:1.75;color:var(--hub-text)}
+.xg-deposit-instructions strong{color:#efcb87;font-weight:800}
+:root[data-theme=light] .xg-deposit-instructions{background:#fff4dc;border-color:#a08145}
+:root[data-theme=light] .xg-deposit-instructions strong{color:#785017}
+.xg-wallet label{display:grid;gap:10px;margin:20px 0;color:var(--hub-text);font-size:14px}
+.xg-withdraw-controls{display:flex;gap:10px;min-width:0}
+.xg-withdraw-controls select{min-width:0;flex:1;width:100%;min-height:46px;border:1px solid var(--hub-line);border-radius:9px;padding:10px;background:var(--hub-bg);color:var(--hub-text);font:inherit}
+.xg-withdraw-controls button{flex:none;min-width:64px}
+.xg-withdraw-cost{color:var(--hub-muted);font-size:13px}
+.hub-info{min-width:44px;min-height:44px!important;width:44px;height:44px;top:7px;right:7px}
+#simpleTestHome .hub-title small{line-height:1.45;letter-spacing:.07em}
+@media(max-width:520px){.xan-account-heading{gap:10px}.xan-account-heading h2{font-size:21px}.xan-account-close{padding:10px}.xg-deposit-instructions{padding:14px}.xg-wallet-balance{font-size:14px}.hub-info{top:4px;right:4px}#simpleTestHome .hub-title small{font-size:9px;letter-spacing:.025em;margin-bottom:6px}#simpleTestHome .hub-title{right:10px}}

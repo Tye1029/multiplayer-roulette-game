@@ -20,8 +20,8 @@ function accountFixture(){
  vm.runInContext(readFileSync(new URL('../netlify/functions/_data.js',import.meta.url),'utf8'),context);
  return {data:module.exports,rows,store};
 }
-test('every game has a million-Chip catalog, a modest first win, and demanding long-term goals',()=>{
- for(const mode of progress.MODES){const list=progress.catalog(mode);assert.equal(list.reduce((n,a)=>n+a.reward,0),1000000,mode);assert.equal(list[0].target,1);assert.equal(list[0].reward,5000);assert.equal(list[4].target,1000);assert.equal(list[4].minDays,90);assert.equal(list[7].minDays,90);assert.equal(progress.qualifies(list[7],{games:499,activeDays:90,[list[7].metric]:1e9}),false);assert.equal(progress.qualifies(list[4],{wins:1000,activeDays:1}),false);}
+test('every game has an expanded catalog preserving the original million-Chip rewards, a modest first win, and demanding long-term goals',()=>{
+ for(const mode of progress.MODES){const list=progress.catalog(mode);assert.equal(list.slice(0,8).reduce((n,a)=>n+a.reward,0),1000000,mode);assert.equal(list[0].target,1);assert.equal(list[0].reward,5000);assert.equal(list[4].target,1000);assert.equal(list[4].minDays,90);assert.equal(list[7].minDays,90);assert.equal(progress.qualifies(list[7],{games:499,activeDays:90,[list[7].metric]:1e9}),false);assert.equal(progress.qualifies(list[4],{wins:1000,activeDays:1}),false);}
 });
 test('legacy Torn principals, game metrics, winnings and bot exclusions are authoritative',()=>{
  const s={gameId:'rr:one',status:'complete',creator:{userId:'old-alias',tornId:'123',name:'Alice'},joiner:{userId:'second',tornId:'456',name:'Bob'},winnerUserId:'old-alias',wager:10000,payout:19340,rouletteState:{safeShots:{'old-alias':5},maxNoSpinStreak:{'old-alias':5}}};
