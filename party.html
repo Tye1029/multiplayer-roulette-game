@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f5f2eb">
+  <meta name="description" content="A little rivalry. A whole lot of play. Meet your friends on the Boardwalk for quick duels and a four-player party.">
+  <title>Boardwalk — One more round?</title>
+  <!-- BOARDWALK_PARTY_V1 -->
+  <link rel="icon" type="image/svg+xml" href="/assets/party/mark.svg">
+  <link rel="stylesheet" href="/assets/party/party.css?v=BOARDWALK_PARTY_V1">
+  <script defer src="/assets/party/catalog.js?v=BOARDWALK_PARTY_V1"></script>
+  <script defer src="/assets/party/scene.js?v=BOARDWALK_PARTY_V1"></script>
+  <script defer src="/assets/party/app.js?v=BOARDWALK_PARTY_V1"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/party.html" aria-label="Boardwalk home"><img src="/assets/party/mark.svg" alt="" width="36" height="36"><span>boardwalk<span class="brand-dot">.</span></span></a>
+    <div class="header-actions"><button id="wardrobe-open" class="quiet">Wardrobe <span id="coin-balance" class="coin-balance">0</span></button><button id="profile-open" class="avatar-button" aria-label="Your profile">☺</button><button id="settings-open" class="icon-button" aria-label="Settings">⚙</button></div>
+  </header>
+  <main id="app" tabindex="-1"><div class="loading"><span class="eyebrow">WELCOME TO THE BOARDWALK</span><h1>One more round?</h1><p>Opening the arcade…</p></div></main>
+  <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
+  <dialog id="modal"><button class="modal-close" aria-label="Close dialog">×</button><div id="modal-content"></div></dialog>
+  <footer class="site-footer"><span>Good friends. Friendly competition.</span><button id="how-open" class="text-button">How to play</button><span>Playable prototype · V1</span></footer>
+  <noscript>This party needs JavaScript to connect players and run the minigames.</noscript>
+</body>
+</html>
