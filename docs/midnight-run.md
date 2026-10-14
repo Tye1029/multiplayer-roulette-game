@@ -1,4 +1,4 @@
-# Midnight Run V4 — risk choices, smoother streets and corner ambience
+# Midnight Run V5 — quicker blocks and on-screen corner choices
 
 Single-player automatic runner at `/games/single-player/midnight-run/`, linked
 from the homepage Single Player section. Shares the verified Torn identity,
@@ -12,7 +12,7 @@ wallet and timestamped admin ledger, header, settings, mute, theme and debug UI.
 - First-block clear chances are 80%, 70% and 60%; a 50K wager returns 56,250,
   64,285 or 75,000 chips respectively. Each difficulty option shows its first-block multiplier, without a percentage;
   each corner shows the next block's clear/capture chances and total return.
-- Three-second countdown, then a 4.5-second run to the first corner.
+- Three-second countdown, then a 4-second run to the first corner.
 - Surviving a block stops both the runner and street. Choose **Continue** to risk
   one more block, or **Cash out** to secure the displayed return. No decision timer.
 - Getting caught during an attempted block loses the wager. Cash-out is disabled
@@ -70,7 +70,9 @@ leave active server state. Client timestamps, claimed prizes and auto targets
 cannot change a new run. Each Continue identifies the cleared corner and carries
 an idempotent request ID. Duplicate or delayed requests cannot skip another block;
 stale corner choices are rejected. Cash-out and Continue share the row lock.
-Corner arrival, clock and settlement are server-owned. A monotonically increasing
+Corner arrival, clock and settlement are server-owned. New runs store a four-second
+block duration; existing funded runs retain their original 4.5-second duration.
+Client-supplied durations cannot change it. A monotonically increasing
 revision is saved under the row lock whenever game state changes. The client rejects
 older revisions even if a delayed poll has a later response timestamp, preventing
 an old corner from reappearing after Continue. Competing Continue/Cash out requests
@@ -108,7 +110,9 @@ pulses. Street travel is 140 pixels/second (previously 85); runner animation is
 8.8 frames/second (previously 13.2), with footsteps slowed to 0.46-second intervals. Escape animates a clean getaway;
 capture brings the patrol car up behind the runner before the result appears.
 At a corner the runner eases toward the curb, breathes and waits under a soft light.
-A “Catch your breath” card explains the untimed choice; rain and mist remain alive.
+The “Catch your breath” card holds the Continue and Cash out buttons directly
+below the message. These are the same authoritative controls, moved into the scene
+while waiting and returned to the side panel otherwise. Visual rain and mist remain alive.
 Reduced motion keeps this presentation still.
 
 Active play now draws on every browser animation frame instead of a 16ms gate that
@@ -118,10 +122,10 @@ payout math is cached. Running clock corrections ease within an 18% catch-up lim
 authoritative arrival, capture and cash-out boundaries are unchanged.
 
 Recorded concrete footsteps are from [Kenney Impact Sounds](https://kenney.nl/assets/impact-sounds),
-CC0; the included license and original filenames are retained. Rain/traffic bed,
+CC0; the included license and original filenames are retained. The rain/traffic noise bed has been removed. The
 quiet minor ostinato, clasp, escape chord, occasional distant dog barks and patrol cue are original Web Audio
 sound design. Footsteps alternate subtly left/right with softer filtering and a
-quiet wet-sole layer. Rain continues through the corner decision. Distant barks
+quiet wet-sole layer. There is no looping rain audio. Distant barks
 start after 10–18 seconds, then occur every 18–40 seconds, independently of outcomes.
 All voices are stopped on mute, hiding or navigation; no background sound timers
 remain. Audio loads/unlocks on interaction, obeys shared mute, and stops
@@ -131,7 +135,7 @@ Full prompts and provenance: [art manifest](midnight-run-art.json). The main pag
 loads only a small lazy thumbnail, not the city scenes or audio. No existing
 assets were superseded or removed; the old retired Street Runner remains retired.
 
-Mobile places the return and Continue/Cash out controls immediately below the scene.
+Mobile places the return below the scene and Continue/Cash out inside the corner card.
 Desktop uses a scene and side controls. 320px phones, tablets and landscape are
 covered. Reduced motion removes running/scenery movement and softens lighting;
 the authoritative clock and payout rules stay the same. Pixel density is capped

@@ -53,7 +53,7 @@ test('street plans mix individual sides, disperse neon, vary runs and reproduce 
 test('route draws have exact thresholds and never reveal a future block',()=>{
  assert.equal(draw(50000,()=>99),1);assert.equal(draw(50000,()=>79),7);
  assert.equal(draw(50000,()=>0),rules.lastBlock(50000)+1);
- const s={id:'ABCDEF123456',owner:'101',account:'private',stake:50000,autoBlock:null,caughtBlock:5,status:'active',startedAt:1000,evaluatedAt:1000+rules.blockMs*3};
+ const s={id:'ABCDEF123456',owner:'101',account:'private',stake:50000,autoBlock:null,caughtBlock:5,status:'active',startedAt:1000,evaluatedAt:1000+4500*3};
  const p=publicGame(s);assert.equal(p.cleared,3);assert.equal(p.bank,rules.payout(50000,3));
  for(const key of ['caughtBlock','owner','account','payout','endedAt','evaluatedAt'])assert.equal(p[key],undefined);
 });
@@ -184,6 +184,23 @@ test('existing V2 corner runs with no difficulty keep original odds and payouts'
   await f.pool.query('UPDATE midnight_run_games SET state=$2::jsonb WHERE id=$1',[s.id,JSON.stringify(s)]);
   f.at(s.startedAt+rules.blockMs);const corner=await f.store.current(f.a);assert.equal(publicGame(corner).difficulty,'normal');
   assert.equal((await f.store.cashout(f.a,{...cash(corner),difficulty:'high'})).payout,56250);
+ }finally{await f.pg.close();}
+});
+
+test('new blocks take four seconds, while existing funded runs retain their quoted timing',async()=>{
+ const f=await fixture();try{
+  const fresh=await f.store.start(f.a,{...purchase(),blockMs:1});assert.equal(fresh.blockMs,4000);assert.equal(publicGame(fresh).blockMs,4000);
+  f.at(fresh.startedAt+3999);assert.equal((await f.store.current(f.a)).phase,'running');
+  f.at(fresh.startedAt+4000);const corner=await f.store.current(f.a);assert.equal(corner.phase,'corner');
+  const next=await f.store.continue(f.a,{...cash(corner),blockMs:1});assert.equal(next.blockMs,4000);
+  f.at(next.legStartedAt+4000);await f.store.cashout(f.a,cash(next,2));
+  for(const legacy of [false,true]){
+   const old=await f.store.start(f.a,purchase());delete old.blockMs;if(legacy){delete old.mode;old.autoBlock=1;}
+   await f.pool.query('UPDATE midnight_run_games SET state=$2::jsonb WHERE id=$1',[old.id,JSON.stringify(old)]);
+   f.at(old.startedAt+4000);const before=await f.store.current(f.a);assert.equal(before.status,'active');assert.equal(publicGame(before).cleared,0);assert.equal(publicGame(before).blockMs,4500);
+   f.at(old.startedAt+4500);const arrived=await f.store.current(f.a);assert.equal(arrived.cleared,1);
+   if(!legacy)await f.store.cashout(f.a,cash(arrived));else assert.equal(arrived.status,'settled');
+  }
  }finally{await f.pg.close();}
 });
 

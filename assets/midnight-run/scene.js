@@ -1,8 +1,8 @@
-/* MIDNIGHT_RUN_V4_CORNER_AMBIENCE — original art with world-space lighting, rain and character animation. */
+/* MIDNIGHT_RUN_V5_QUICK_CORNERS — original art with world-space lighting, rain and character animation. */
 (() => {
  'use strict';
  const W=720,H=780,images=new Map();
- function art(name){if(!images.has(name)){const img=new Image();img.src='/assets/midnight-run/images/'+name+'.webp?v=MIDNIGHT_RUN_V4_CORNER_AMBIENCE';images.set(name,img);}return images.get(name);}
+ function art(name){if(!images.has(name)){const img=new Image();img.src='/assets/midnight-run/images/'+name+'.webp?v=MIDNIGHT_RUN_V5_QUICK_CORNERS';images.set(name,img);}return images.get(name);}
  const loaded=img=>img.complete&&img.naturalWidth>0;
  const clamp=(n,a=0,b=1)=>Math.max(a,Math.min(b,n));
  class MidnightScene{
