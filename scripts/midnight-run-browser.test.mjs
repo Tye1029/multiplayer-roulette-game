@@ -20,13 +20,15 @@ async function settled(p){await idle(p);await p.waitForFunction(()=>XanSiteAdapt
 async function fit(p,name){
  await p.evaluate(()=>scrollTo({top:0,behavior:'instant'}));assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false,name+' overflow');
  assert.deepEqual(await p.locator('button:visible,select:visible').evaluateAll(es=>es.filter(e=>{const r=e.getBoundingClientRect();return r.left< -1||r.right>innerWidth+1;}).map(e=>e.textContent)),[],name+' clipped controls');
- await p.screenshot({path:path.join(out,name+'.png'),fullPage:true});
+ await p.screenshot({path:path.join(out,name+'.png'),fullPage:true,animations:'disabled'});
 }
 async function fastForward(p,ms){offset+=ms;await p.waitForTimeout(1100);}
 try{
  const a=await player('1');await fit(a,'menu-desktop');assert.equal(await a.locator('#mr-menu-auto,#mr-play-auto,#mr-auto-badge,#mr-connection').count(),0);assert.equal(server.ledger.size,0);await a.locator('#mr-help').click();assert.equal(await a.locator('dialog li').count(),6);await a.locator('dialog button').click();
- await a.locator('#mr-start').click();await idle(a);assert.equal(server.ledger.size,1);assert.equal(await a.locator('#mr-cashout').isEnabled(),false);await fit(a,'countdown-desktop');
- await a.locator('#mr-cashout:enabled').waitFor();assert.equal(await a.locator('#mr-bank').textContent(),'56,250');await fit(a,'running-desktop');
+ assert.deepEqual(await a.locator('#mr-menu-difficulty option').allTextContents(),['Low Risk · 1.13×','Medium Risk · 1.29×','High Risk · 1.50×']);
+ assert.doesNotMatch(await a.locator('.mr-setting-note').first().innerText(),/%/);
+ await a.locator('#mr-start').click();await idle(a);assert.equal(server.ledger.size,1);assert.equal(await a.locator('#mr-cashout').isEnabled(),false);assert.doesNotMatch(await a.locator('#mr-next-note').innerText(),/%/);await fit(a,'countdown-desktop');
+ await a.locator('#mr-cashout:enabled').waitFor();assert.equal(await a.locator('#mr-bank').textContent(),'56,250');assert.equal(await a.locator('#mr-corner').isVisible(),true);await fit(a,'running-desktop');
  // The display freezes on the click, before a deliberately slow response arrives.
  await a.route('**/.netlify/functions/midnight-run-action',async route=>{const body=route.request().postDataJSON();if(body.action!=='cashout')return route.continue();const response=await route.fetch();await new Promise(r=>setTimeout(r,1300));await route.fulfill({response});});
  await a.locator('#mr-cashout').click();await a.waitForTimeout(200);assert.match(await a.locator('#mr-state').innerText(),/ESCAPE REQUESTED/);assert.equal(await a.locator('#mr-result').isVisible(),false);
@@ -60,12 +62,25 @@ try{
  const c=await player('3'),d=await player('3');const beforeTwo=server.ledger.size;
  await Promise.all([c.locator('#mr-start').click(),d.locator('#mr-start').click()]);await Promise.all([idle(c),idle(d)]);assert.equal(server.ledger.size,beforeTwo+1);assert.equal(await c.evaluate(()=>XanSiteAdapter.current().id),await d.evaluate(()=>XanSiteAdapter.current().id));
  await fastForward(c,8000);await Promise.all([c.locator('#mr-cashout:enabled').waitFor(),d.locator('#mr-cashout:enabled').waitFor()]);await Promise.all([c.locator('#mr-cashout').click(),d.locator('#mr-cashout').click()]);await Promise.all([settled(c),settled(d)]);assert.equal(server.ledger.size,beforeTwo+2);
+ // A poll captured before Continue must not restore the old corner, even with a later response timestamp.
+ const race=await player('4');await race.locator('#mr-start').click();await idle(race);await fastForward(race,8000);await race.locator('#mr-continue:enabled').waitFor();
+ let releasePoll,pollCaptured;const captured=new Promise(r=>pollCaptured=r),release=new Promise(r=>releasePoll=r);let held=false;
+ await race.route('**/.netlify/functions/midnight-run-action',async route=>{
+  if(route.request().postDataJSON().action!=='current'||held)return route.continue();held=true;
+  const response=await route.fetch(),body=await response.json();pollCaptured();await release;body.stateAt+=1000;
+  await route.fulfill({response,json:body});
+ });
+ await captured;await race.locator('#mr-continue').click();await idle(race);releasePoll();await race.waitForTimeout(300);
+ assert.equal(await race.locator('#mr-cashout').isEnabled(),false);assert.equal(await race.locator('#mr-corner').isVisible(),false);
+ await race.unroute('**/.netlify/functions/midnight-run-action');await fastForward(race,5000);await race.locator('#mr-cashout:enabled').waitFor();await race.locator('#mr-cashout').click();await settled(race);
  // Phone/tablet/landscape, touch practice, keyboard, light mode and reduced motion.
  const freeBefore=server.ledger.size,phone=await player(null,390,844);await fit(phone,'menu-phone');await phone.locator('#mr-practice').tap();await phone.locator('#mr-cashout:enabled').waitFor();await fit(phone,'corner-phone');const phoneDistance=await phone.locator('#mr-distance').innerText();await phone.waitForTimeout(5000);assert.equal(await phone.locator('#mr-distance').innerText(),phoneDistance);await phone.locator('#mr-continue').tap();await phone.waitForTimeout(300);assert.equal(await phone.locator('#mr-cashout').isEnabled(),false);await phone.locator('#mr-cashout:enabled').waitFor();assert.equal(await phone.locator('#mr-bank').innerText(),'63,920');await phone.locator('#mr-cashout').tap();await settled(phone);assert.match(await phone.locator('#mr-result-note').innerText(),/Practice/);await fit(phone,'escaped-phone');
  for(const [w,h] of [[320,740],[768,1024],[844,390]]){await phone.setViewportSize({width:w,height:h});await fit(phone,'result-'+w+'x'+h);}
  await phone.evaluate(()=>XanPreferences.theme('light'));await phone.emulateMedia({reducedMotion:'reduce'});await fit(phone,'light-reduced');await phone.setViewportSize({width:390,height:844});
  await phone.locator('#mr-play-difficulty').selectOption('medium');await phone.locator('#mr-again').click();await phone.locator('#mr-cashout:enabled').waitFor();assert.equal(await phone.locator('#mr-bank').innerText(),'64,285');await fit(phone,'medium-city-phone');await phone.locator('#mr-cashout').focus();await phone.keyboard.press('Enter');await settled(phone);assert.equal(server.ledger.size,freeBefore);
- await phone.locator('#mr-play-difficulty').selectOption('high');await phone.locator('#mr-again').click();await phone.locator('#mr-cashout:enabled').waitFor();assert.equal(await phone.locator('#mr-bank').innerText(),'75,000');await fit(phone,'high-risk-city-phone');await phone.locator('#mr-cashout').tap();await settled(phone);await phone.evaluate(()=>{XanPreferences.sound(true);MidnightRunAudio.unlock();});await phone.locator('#mr-again').click();await phone.waitForFunction(()=>MidnightRunAudio.loaded);await phone.waitForFunction(()=>MidnightRunAudio.active>0);await phone.evaluate(()=>XanPreferences.sound(false));assert.equal(await phone.evaluate(()=>MidnightRunAudio.active),0);
+ await phone.locator('#mr-play-difficulty').selectOption('high');await phone.locator('#mr-again').click();await phone.locator('#mr-cashout:enabled').waitFor();assert.equal(await phone.locator('#mr-bank').innerText(),'75,000');await fit(phone,'high-risk-city-phone');await phone.locator('#mr-cashout').tap();await settled(phone);await phone.evaluate(()=>{XanPreferences.sound(true);MidnightRunAudio.unlock();});await phone.locator('#mr-again').click();await phone.waitForFunction(()=>MidnightRunAudio.loaded);await phone.waitForFunction(()=>MidnightRunAudio.active>0);await phone.locator('#mr-cashout:enabled').waitFor();
+ assert.equal(await phone.evaluate(()=>MidnightRunAudio.diagnostics.rain),true);const footfalls=await phone.evaluate(()=>MidnightRunAudio.diagnostics.footfalls);await phone.waitForTimeout(800);assert.equal(await phone.evaluate(()=>MidnightRunAudio.diagnostics.footfalls),footfalls);
+ await phone.waitForFunction(()=>MidnightRunAudio.diagnostics.barks>0,{},{timeout:25000});assert.ok(await phone.evaluate(()=>MidnightRunAudio.active<10));await phone.evaluate(()=>XanPreferences.sound(false));assert.equal(await phone.evaluate(()=>MidnightRunAudio.active),0);
  await phone.evaluate(()=>{dispatchEvent(new PageTransitionEvent('pagehide',{persisted:true}));dispatchEvent(new PageTransitionEvent('pageshow',{persisted:true}));});await phone.waitForTimeout(200);assert.equal(await phone.locator('#mr-menu').isVisible(),true);assert.equal(await phone.locator('#mr-play').isVisible(),false);assert.equal(await phone.evaluate(()=>MidnightRunAudio.active),0);
  await a.goto(server.origin+'/');await a.locator('.hub-single-games a[href="/games/single-player/midnight-run/"]').scrollIntoViewIfNeeded();await fit(a,'homepage');await a.locator('.hub-single-games a[href="/games/single-player/midnight-run/"]').click();await a.locator('#mr-menu').waitFor();
  assert.deepEqual(errors,[]);console.log('Midnight Run browser QA passed: desktop/mobile, three difficulties, randomized/resumable city layouts, corner stops, continue, lost continue recovery, capture, replay, reload, lost requests, duplicate windows, funding, practice, keyboard/touch, audio, reduced motion and homepage. '+out);

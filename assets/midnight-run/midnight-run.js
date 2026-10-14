@@ -1,4 +1,4 @@
-/* MIDNIGHT_RUN_V3_CITY_RISK */
+/* MIDNIGHT_RUN_V4_CORNER_AMBIENCE */
 (() => {
  'use strict';
  const rules=window.MidnightRunRules,audio=window.MidnightRunAudio,$=id=>document.getElementById(id),fmt=n=>Number(n).toLocaleString('en-US');
@@ -7,15 +7,17 @@
  const markup=(id,html)=>{const el=$(id);if(el.dataset.html!==html){el.innerHTML=html;el.dataset.html=html;}};
  let scene,preview,stake=50000,difficulty='normal',game=null,saved=null,demo=false,playing=false,ready=false,busy=false,connecting=false,pending=null,retry=null,epoch=0,pageActive=true;
  let frame=0,frameStamp=0,pollTimer=0,polling=false,serverStamp=0,anchor=0,lastStateAt=0,lastCount=-1,lastCleared=0,lastDrawElapsed=0;
+ let nextQuoteKey='',nextQuote=0;
  let frozen=null,celebrated='',revealAt=0,revealed=false,effectUntil=0,practiceCaught=0,heldBalance=null;
  const current=run=>pageActive&&run===epoch,serverTime=()=>serverStamp+Math.min(2000,Math.max(0,performance.now()-anchor));
  window.XanSiteAdapter={current:()=>({mode:'midnight',id:playing&&!demo?game?.id||'':'',phase:playing?(active(game)?'playing':'ready'):'lobby'}),diagnostics:()=>({build:rules.build,ready,busy,connecting,polling,demo,phase:game?.status,cleared:game?.cleared,difficulty:game?.difficulty,scenery:scene?.routeId,artReady:scene?.ready,frames:frame?1:0,audioVoices:audio.active,resultVisible:revealed})};
  function notice(text='',again=null){$('mr-notice').textContent=text;retry=again;$('mr-retry').hidden=!again;$('mr-retry').textContent=pending?'Recover run':'Reconnect';}
- function settings(prefix){return '<div class="mr-settings"><label for="'+prefix+'stake">Chips per run<select id="'+prefix+'stake">'+rules.stakes.map(n=>'<option value="'+n+'">'+fmt(n)+' chips</option>').join('')+'</select></label><label for="'+prefix+'difficulty">Difficulty<select id="'+prefix+'difficulty">'+rules.difficulties.map(d=>'<option value="'+d+'">'+rules.labels[d]+'</option>').join('')+'</select></label><p class="mr-setting-note"></p></div>';}
+ function settings(prefix){return '<div class="mr-settings"><label for="'+prefix+'stake">Chips per run<select id="'+prefix+'stake">'+rules.stakes.map(n=>'<option value="'+n+'">'+fmt(n)+' chips</option>').join('')+'</select></label><label for="'+prefix+'difficulty">Difficulty<select id="'+prefix+'difficulty">'+rules.difficulties.map(d=>'<option value="'+d+'">'+rules.labels[d]+' · '+mult(rules.payout(stake,1,d),stake)+'</option>').join('')+'</select></label><p class="mr-setting-note"></p></div>';}
  function configure(){
   for(const prefix of ['mr-menu-','mr-play-']){
    $(prefix+'stake').value=String(stake);$(prefix+'difficulty').value=difficulty;
-   const safe=rules.odds(difficulty)[0];$(prefix+'settings').querySelector('.mr-setting-note').textContent='First block: '+safe+'% clear / '+(100-safe)+'% caught. Return '+fmt(rules.payout(stake,1,difficulty))+' chips ('+mult(rules.payout(stake,1,difficulty),stake)+'). Difficulty is fixed for the run.';
+   for(const option of $(prefix+'difficulty').options)option.textContent=rules.labels[option.value]+' · '+mult(rules.payout(stake,1,option.value),stake);
+   $(prefix+'settings').querySelector('.mr-setting-note').textContent='First-block return: '+fmt(rules.payout(stake,1,difficulty))+' chips. Difficulty is fixed for the run.';
   }
   try{localStorage.setItem('midnight-run-choice',JSON.stringify({stake,difficulty}));}catch{}controls();
  }
@@ -34,7 +36,8 @@
  function stop(){cancelAnimationFrame(frame);frame=0;clearTimeout(pollTimer);audio.silence();}
  function render(stamp){
   frame=0;if(!pageActive||document.hidden)return;
-  const gap=playing?16:40;if(stamp-frameStamp<gap){scheduleFrame();return;}frameStamp=stamp;
+  const dt=Math.min(100,Math.max(0,stamp-frameStamp));
+  if(!playing&&stamp-frameStamp<40){scheduleFrame();return;}frameStamp=stamp;
   if(!playing){preview.draw({phase:'preview',elapsed:0});if(!preview.reduced.matches||!preview.ready)scheduleFrame();return;}
   const now=demo?performance.now():serverTime();
   if(demo&&active(game))advancePractice(now);
@@ -44,11 +47,15 @@
   const holding=active(game)&&frozen!==null,awaiting=active(game)&&!atCorner&&legElapsed>=rules.blockMs;
   const phase=terminal?(game.outcome==='caught'?'caught':'escape'):holding?'securing':atCorner?'corner':awaiting&&corners?'waiting':legElapsed<0?'countdown':'running';
   const rawElapsed=terminal?game.travelMs:holding?frozen:corners?game.cleared*rules.blockMs+(atCorner?0:Math.max(0,Math.min(rules.blockMs,legElapsed))):Math.max(0,now-game.startedAt);
-  const drawElapsed=Math.max(lastDrawElapsed,rawElapsed||0);lastDrawElapsed=drawElapsed;
+  // Correct server-clock drift gradually while moving; authoritative corners stay exact.
+  const target=Math.max(lastDrawElapsed,rawElapsed||0);
+  const drawElapsed=phase==='running'&&lastDrawElapsed>0?Math.min(target,lastDrawElapsed+dt*Math.max(.85,Math.min(1.18,1+(target-lastDrawElapsed-dt)/1200))):target;lastDrawElapsed=drawElapsed;
   const block=Math.min((game?.cleared||0)+1,game?.lastBlock||rules.lastBlock(stake,difficulty));
   $('mr-countdown').hidden=phase!=='countdown';
   if(phase==='countdown'){const count=Math.max(1,Math.ceil(-legElapsed/1000));$('mr-countdown').querySelector('strong').textContent=count;if(count!==lastCount){lastCount=count;audio.tick();}}
-  if(phase==='running'&&!stale)audio.run();else audio.stopRun();
+  if(phase==='running'&&!stale)audio.run();else{audio.stopRun();if(active(game))audio.ambient();}
+  $('mr-corner').hidden=!atCorner||holding;
+  $('mr-machine').classList.toggle('at-corner',atCorner&&!holding);
   label('mr-district','CITY STREETS');label('mr-block',atCorner?'CORNER '+String(game.cleared).padStart(2,'0'):'BLOCK '+String(block).padStart(2,'0'));
   label('mr-distance',fmt(Math.floor(drawElapsed/rules.blockMs*100))+' m');
   label('mr-state',holding?'ESCAPE REQUESTED':terminal?(revealed?(game.outcome==='caught'?'CAUGHT':'ESCAPED'):'RUN ENDED'):atCorner?'CONTINUE OR CASH OUT':phase==='countdown'?'MAKE YOUR MOVE':stale?'RECONNECTING':awaiting?'CHECKING CORNER':'KEEP MOVING');
@@ -60,9 +67,10 @@
   $('mr-cashout').disabled=!canChoose;$('mr-continue').disabled=!canChoose||!corners;
   label('mr-cashout',terminal?'Finishing your run…':holding?'Securing your escape…':pending?'Recover your run':phase==='countdown'?'Ready to run…':stale?'Reconnecting…':!atCorner&&corners?'Reach the next corner…':'Cash out · '+fmt(game.bank));
   label('mr-continue',busy&&pending?.action==='continue'?'Continuing…':'Continue · block '+block);
-  const next=rules.payout(game?.stake||stake,block,game?.difficulty||difficulty);
+  const quoteKey=[game?.stake||stake,block,game?.difficulty||difficulty].join(':');
+  if(quoteKey!==nextQuoteKey){nextQuoteKey=quoteKey;nextQuote=rules.payout(game?.stake||stake,block,game?.difficulty||difficulty);}const next=nextQuote;
   markup('mr-next-value',fmt(next)+' <small>chips</small>');label('mr-next-multiplier',mult(next,game?.stake||stake));
-  const safe=rules.odds(game?.difficulty||difficulty)[block-1];label('mr-next-note',rules.labels[game?.difficulty||difficulty]+' · '+safe+'% clear / '+(100-safe)+'% caught'+(block===game?.lastBlock?' · Final block.':'.'));
+  const safe=rules.odds(game?.difficulty||difficulty)[block-1];label('mr-next-note',rules.labels[game?.difficulty||difficulty]+(block===1?' · First block.':' · '+safe+'% clear / '+(100-safe)+'% caught'+(block===game?.lastBlock?' · Final block.':'.')));
   $('mr-next').hidden=terminal;label('mr-route-label',terminal?'Run complete':holding?'Securing your escape':atCorner?'Corner cleared · your choice':'Next corner · block '+block);
   $('mr-progress').style.width=(terminal||atCorner?100:Math.max(0,Math.min(100,(drawElapsed-(block-1)*rules.blockMs)/rules.blockMs*100)))+'%';
   scene.draw({phase,elapsed:drawElapsed,id:game?.id});
@@ -96,7 +104,10 @@
   const before=performance.now(),response=await window.XanHub.post('midnight-run-action',{token,...body});return {...response,received:performance.now(),before,key};
  }
  function adopt(response,animate=true){
-  const next=response.game;if(game&&next&&game.id===next.id&&finished(game)&&!finished(next))return;
+  const next=response.game;
+  // A slow poll can arrive after Continue with a later response timestamp.
+  if(saved&&next&&saved.id===next.id&&(next.revision||0)<(saved.revision||0))return;
+  if(game&&next&&game.id===next.id&&finished(game)&&!finished(next))return;
   if(response.key!==localStorage.getItem('tornVisitorApiKey')||response.stateAt<lastStateAt)return;
   lastStateAt=response.stateAt;const wire=Math.max(0,response.received-response.before-(response.serverNow-response.requestAt));
   serverStamp=response.serverNow+Math.min(200,wire/2);anchor=response.received;saved=next;
@@ -176,7 +187,7 @@
   $('mr-cashout').onpointerdown=e=>{if(e.isPrimary&&e.button===0&&!e.currentTarget.disabled)cashout();};
   $('mr-again').onclick=()=>demo?practice():start();$('mr-retry').onclick=()=>retry?.();$('mr-free').onchange=e=>{demo=e.target.checked;controls();if(!demo)reconnect();};
   $('mr-help').onclick=()=>{
-   const d=document.createElement('dialog');d.className='xan-dialog mr-help';d.innerHTML='<h2>How to play Midnight Run</h2><ol><li>Choose your wager and difficulty. Normal keeps the original odds; Medium and High Risk increase both capture chance and return. Your runner moves after a three-second countdown.</li><li>Each block takes 4.5 seconds. Survive it and your runner stops at the corner.</li><li>Choose Continue to risk another block, or Cash out to secure your current return, including your wager.</li><li>There is no decision timer. Your runner waits at a cleared corner even if you leave or disconnect.</li><li>Getting caught during a block loses your wager. The next block’s clear/capture chances are shown before you continue. Randomized scenery and patrol lights are atmosphere, not clues.</li><li>Reaching 50,000,000 chips completes the run. Free practice uses the same risks and never spends or awards chips.</li></ol><button class="mr-secondary">Got it</button>';document.body.append(d);d.querySelector('button').onclick=()=>d.close();d.onclose=()=>d.remove();d.showModal();
+   const d=document.createElement('dialog');d.className='xan-dialog mr-help';d.innerHTML='<h2>How to play Midnight Run</h2><ol><li>Choose your wager and difficulty. Low Risk keeps the original odds; Medium Risk and High Risk increase both capture chance and return. Your runner moves after a three-second countdown.</li><li>Each block takes 4.5 seconds. Survive it and your runner stops at the corner.</li><li>Choose Continue to risk another block, or Cash out to secure your current return, including your wager.</li><li>There is no decision timer. Your runner waits at a cleared corner even if you leave or disconnect.</li><li>Getting caught during a block loses your wager. The next block’s clear/capture chances are shown before you continue. Randomized scenery and patrol lights are atmosphere, not clues.</li><li>Reaching 50,000,000 chips completes the run. Free practice uses the same risks and never spends or awards chips.</li></ol><button class="mr-secondary">Got it</button>';document.body.append(d);d.querySelector('button').onclick=()=>d.close();d.onclose=()=>d.remove();d.showModal();
   };
   reconnect();scheduleFrame();
  });

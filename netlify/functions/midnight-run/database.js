@@ -13,7 +13,7 @@ function publicGame(s){
  const cleared=corners?s.cleared||0:s.status==='active'?Math.min(s.caughtBlock-1,rules.clearedAt((s.evaluatedAt??s.startedAt)-s.startedAt)):s.cleared||0;
  const phase=corners?s.phase:'running';
  const travelMs=corners?(s.status==='settled'?s.travelMs:cleared*rules.blockMs+(phase==='running'?Math.max(0,Math.min(rules.blockMs,(s.evaluatedAt??s.legStartedAt)-s.legStartedAt)):0)):Math.max(0,(s.endedAt??s.evaluatedAt??s.startedAt)-s.startedAt);
- return {id:s.id,stake:s.stake,difficulty:s.difficulty||'normal',status:s.status,mode:corners?'corners':'legacy',phase,startedAt:s.startedAt,legStartedAt:s.legStartedAt??s.startedAt,createdAt:s.createdAt,
+ return {id:s.id,revision:s.revision||0,stake:s.stake,difficulty:s.difficulty||'normal',status:s.status,mode:corners?'corners':'legacy',phase,startedAt:s.startedAt,legStartedAt:s.legStartedAt??s.startedAt,createdAt:s.createdAt,
   cleared,travelMs,bank:rules.payout(s.stake,cleared,s.difficulty),lastBlock:rules.lastBlock(s.stake,s.difficulty),
   ...(s.status==='settled'?{outcome:s.outcome,payout:s.payout,endedAt:s.endedAt}: {})};
 }
@@ -27,7 +27,7 @@ function createStore(injectedPool,injectedWallet,random=crypto.randomInt,now=Dat
   CREATE TABLE IF NOT EXISTS midnight_run_requests(owner TEXT NOT NULL,request_id TEXT NOT NULL,game_id TEXT NOT NULL,PRIMARY KEY(owner,request_id));
  END $midnight$;`).catch(e=>{schema=null;throw e;});return schema;}
  async function tx(fn){await ready();const c=await db().connect();try{await c.query('BEGIN');const result=await fn(c);await c.query('COMMIT');return result;}catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}}
- const save=(c,s)=>c.query('UPDATE midnight_run_games SET state=$2::jsonb WHERE id=$1',[s.id,JSON.stringify(s)]);
+ const save=(c,s)=>{s.revision=(s.revision||0)+1;return c.query('UPDATE midnight_run_games SET state=$2::jsonb WHERE id=$1',[s.id,JSON.stringify(s)]);};
  async function load(c,player,id){const s=(await c.query('SELECT state FROM midnight_run_games WHERE id=$1 AND owner=$2 FOR UPDATE',[id,player.id])).rows[0]?.state;if(!s)fail('Run not found.',404);return s;}
  async function recover(player,id,manualAt=null,command=null){
   const prepared=await tx(async c=>{
@@ -77,7 +77,7 @@ function createStore(injectedPool,injectedWallet,random=crypto.randomInt,now=Dat
  }
  async function start(player,b){
   const difficulty=b.difficulty===undefined?'normal':b.difficulty;
-  if(!rules.validDifficulty(difficulty))fail('Choose Normal, Medium or High Risk.',400);
+  if(!rules.validDifficulty(difficulty))fail('Choose Low Risk, Medium Risk or High Risk.',400);
   if(!rules.stakes.includes(b.stake)||b.autoBlock!=null)fail('Choose an available wager. Auto escape is no longer supported.',400);
   if(!validRequest(b.requestId))fail('Missing run reference.',400);
   const account=await wallet.account(player);

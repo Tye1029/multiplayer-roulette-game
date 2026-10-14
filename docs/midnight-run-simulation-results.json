@@ -1,15 +1,50 @@
 {
-  "build": "MIDNIGHT_RUN_V3_CITY_RISK",
-  "roundsPerDifficulty": 2000000,
-  "totalRounds": 6000000,
+  "build": "MIDNIGHT_RUN_V4_CORNER_AMBIENCE",
+  "roundsPerDifficulty": 5000000,
+  "totalRounds": 15000000,
   "scenarios": 219,
+  "difficulties": [
+    {
+      "difficulty": "normal",
+      "label": "Low Risk",
+      "scenarios": 90,
+      "bestAdaptiveReturn": 0.9,
+      "minimumExpectedHouseEdge": 0.09999999999999998,
+      "observedReturnRange": [
+        0.65853,
+        0.9070128124200001
+      ]
+    },
+    {
+      "difficulty": "medium",
+      "label": "Medium Risk",
+      "scenarios": 72,
+      "bestAdaptiveReturn": 0.8999999992615748,
+      "minimumExpectedHouseEdge": 0.10000000073842519,
+      "observedReturnRange": [
+        0.4798,
+        0.918217482
+      ]
+    },
+    {
+      "difficulty": "high",
+      "label": "High Risk",
+      "scenarios": 57,
+      "bestAdaptiveReturn": 0.9,
+      "minimumExpectedHouseEdge": 0.09999999999999998,
+      "observedReturnRange": [
+        0.4582,
+        0.9022994570879999
+      ]
+    }
+  ],
   "expectedReturnRange": [
     0.4518634875335264,
     0.9
   ],
   "observedReturnRange": [
-    0.4535,
-    0.9147546760899999
+    0.4582,
+    0.918217482
   ],
   "sampledHouseLossScenarios": [],
   "rows": [
@@ -19,8 +54,8 @@
       "block": 1,
       "payout": 56250,
       "expectedReturn": 0.9,
-      "observedReturn": 0.89991675,
-      "escapes": 1599852
+      "observedReturn": 0.89995815,
+      "escapes": 3999814
     },
     {
       "difficulty": "normal",
@@ -28,8 +63,8 @@
       "block": 2,
       "payout": 63920,
       "expectedReturn": 0.8999936000000002,
-      "observedReturn": 0.9002115672,
-      "escapes": 1408341
+      "observedReturn": 0.9001137695999999,
+      "escapes": 3520470
     },
     {
       "difficulty": "normal",
@@ -37,8 +72,8 @@
       "block": 3,
       "payout": 74326,
       "expectedReturn": 0.8999986688000001,
-      "observedReturn": 0.90013394212,
-      "escapes": 1211062
+      "observedReturn": 0.9002252144480001,
+      "escapes": 3027962
     },
     {
       "difficulty": "normal",
@@ -46,8 +81,8 @@
       "block": 4,
       "payout": 88483,
       "expectedReturn": 0.899995278336,
-      "observedReturn": 0.8999880227299999,
-      "escapes": 1017131
+      "observedReturn": 0.900020407508,
+      "escapes": 2542919
     },
     {
       "difficulty": "normal",
@@ -55,8 +90,8 @@
       "block": 5,
       "payout": 107906,
       "expectedReturn": 0.8999944646246401,
-      "observedReturn": 0.9005931875400001,
-      "escapes": 834609
+      "observedReturn": 0.900132860544,
+      "escapes": 2085456
     },
     {
       "difficulty": "normal",
@@ -64,8 +99,8 @@
       "block": 6,
       "payout": 134883,
       "expectedReturn": 0.8999978008412161,
-      "observedReturn": 0.8993742162299999,
-      "escapes": 666781
+      "observedReturn": 0.9002922299280001,
+      "escapes": 1668654
     },
     {
       "difficulty": "normal",
@@ -73,8 +108,8 @@
       "block": 7,
       "payout": 172927,
       "expectedReturn": 0.8999982011872051,
-      "observedReturn": 0.9000106763899999,
-      "escapes": 520457
+      "observedReturn": 0.9002116175639999,
+      "escapes": 1301433
     },
     {
       "difficulty": "normal",
@@ -82,8 +117,8 @@
       "block": 8,
       "payout": 227535,
       "expectedReturn": 0.8999961193880617,
-      "observedReturn": 0.89982583845,
-      "escapes": 395467
+      "observedReturn": 0.9011860426799999,
+      "escapes": 990162
     },
     {
       "difficulty": "normal",
@@ -91,8 +126,8 @@
       "block": 9,
       "payout": 307481,
       "expectedReturn": 0.8999998374813319,
-      "observedReturn": 0.9005196047,
-      "escapes": 292870
+      "observedReturn": 0.9002096638520001,
+      "escapes": 731923
     },
     {
       "difficulty": "normal",
@@ -100,8 +135,8 @@
       "block": 10,
       "payout": 427057,
       "expectedReturn": 0.8999999545617159,
-      "observedReturn": 0.90042406108,
-      "escapes": 210844
+      "observedReturn": 0.9012815915360001,
+      "escapes": 527612
     },
     {
       "difficulty": "normal",
@@ -109,8 +144,8 @@
       "block": 11,
       "payout": 610081,
       "expectedReturn": 0.8999993223276431,
-      "observedReturn": 0.8993020996700001,
-      "escapes": 147407
+      "observedReturn": 0.901707038972,
+      "escapes": 369503
     },
     {
       "difficulty": "normal",
@@ -118,8 +153,8 @@
       "block": 12,
       "payout": 897178,
       "expectedReturn": 0.8999993813361565,
-      "observedReturn": 0.9006680224200001,
-      "escapes": 100389
+      "observedReturn": 0.901667478712,
+      "escapes": 251251
     },
     {
       "difficulty": "normal",
@@ -127,8 +162,8 @@
       "block": 13,
       "payout": 1359361,
       "expectedReturn": 0.8999996421537861,
-      "observedReturn": 0.8989454293,
-      "escapes": 66130
+      "observedReturn": 0.9018000874,
+      "escapes": 165850
     },
     {
       "difficulty": "normal",
@@ -136,8 +171,8 @@
       "block": 14,
       "payout": 2124002,
       "expectedReturn": 0.899999827534932,
-      "observedReturn": 0.8997909672599999,
-      "escapes": 42363
+      "observedReturn": 0.902055153392,
+      "escapes": 106174
     },
     {
       "difficulty": "normal",
@@ -145,8 +180,8 @@
       "block": 15,
       "payout": 3425810,
       "expectedReturn": 0.8999999122805985,
-      "observedReturn": 0.8962946703,
-      "escapes": 26163
+      "observedReturn": 0.9023994637199999,
+      "escapes": 65853
     },
     {
       "difficulty": "normal",
@@ -154,8 +189,8 @@
       "block": 16,
       "payout": 5709683,
       "expectedReturn": 0.8999998597382851,
-      "observedReturn": 0.89681990881,
-      "escapes": 15707
+      "observedReturn": 0.899983073192,
+      "escapes": 39406
     },
     {
       "difficulty": "normal",
@@ -163,8 +198,8 @@
       "block": 17,
       "payout": 9844282,
       "expectedReturn": 0.8999999480093716,
-      "observedReturn": 0.89897983224,
-      "escapes": 9132
+      "observedReturn": 0.907012766352,
+      "escapes": 23034
     },
     {
       "difficulty": "normal",
@@ -172,8 +207,8 @@
       "block": 18,
       "payout": 17579076,
       "expectedReturn": 0.8999999992066017,
-      "observedReturn": 0.9018065988,
-      "escapes": 5130
+      "observedReturn": 0.899767425984,
+      "escapes": 12796
     },
     {
       "difficulty": "normal",
@@ -181,8 +216,8 @@
       "block": 19,
       "payout": 32553844,
       "expectedReturn": 0.8999999869192664,
-      "observedReturn": 0.90467132476,
-      "escapes": 2779
+      "observedReturn": 0.8944494177440001,
+      "escapes": 6869
     },
     {
       "difficulty": "normal",
@@ -190,8 +225,8 @@
       "block": 20,
       "payout": 50000000,
       "expectedReturn": 0.7188091108349886,
-      "observedReturn": 0.7305,
-      "escapes": 1461
+      "observedReturn": 0.7008,
+      "escapes": 3504
     },
     {
       "difficulty": "normal",
@@ -199,8 +234,8 @@
       "block": 1,
       "payout": 112500,
       "expectedReturn": 0.9,
-      "observedReturn": 0.89991675,
-      "escapes": 1599852
+      "observedReturn": 0.89995815,
+      "escapes": 3999814
     },
     {
       "difficulty": "normal",
@@ -208,8 +243,8 @@
       "block": 2,
       "payout": 127840,
       "expectedReturn": 0.8999936000000002,
-      "observedReturn": 0.9002115672,
-      "escapes": 1408341
+      "observedReturn": 0.9001137695999999,
+      "escapes": 3520470
     },
     {
       "difficulty": "normal",
@@ -217,8 +252,8 @@
       "block": 3,
       "payout": 148652,
       "expectedReturn": 0.8999986688000001,
-      "observedReturn": 0.90013394212,
-      "escapes": 1211062
+      "observedReturn": 0.9002252144480001,
+      "escapes": 3027962
     },
     {
       "difficulty": "normal",
@@ -226,8 +261,8 @@
       "block": 4,
       "payout": 176966,
       "expectedReturn": 0.899995278336,
-      "observedReturn": 0.8999880227299999,
-      "escapes": 1017131
+      "observedReturn": 0.900020407508,
+      "escapes": 2542919
     },
     {
       "difficulty": "normal",
@@ -235,8 +270,8 @@
       "block": 5,
       "payout": 215813,
       "expectedReturn": 0.8999986348953601,
-      "observedReturn": 0.900597360585,
-      "escapes": 834609
+      "observedReturn": 0.900137031456,
+      "escapes": 2085456
     },
     {
       "difficulty": "normal",
@@ -244,8 +279,8 @@
       "block": 6,
       "payout": 269766,
       "expectedReturn": 0.8999978008412161,
-      "observedReturn": 0.8993742162299999,
-      "escapes": 666781
+      "observedReturn": 0.9002922299280001,
+      "escapes": 1668654
     },
     {
       "difficulty": "normal",
@@ -253,8 +288,8 @@
       "block": 7,
       "payout": 345854,
       "expectedReturn": 0.8999982011872051,
-      "observedReturn": 0.9000106763899999,
-      "escapes": 520457
+      "observedReturn": 0.9002116175639999,
+      "escapes": 1301433
     },
     {
       "difficulty": "normal",
@@ -262,8 +297,8 @@
       "block": 8,
       "payout": 455071,
       "expectedReturn": 0.8999980970972478,
-      "observedReturn": 0.8998278157849999,
-      "escapes": 395467
+      "observedReturn": 0.901188023004,
+      "escapes": 990162
     },
     {
       "difficulty": "normal",
@@ -271,8 +306,8 @@
       "block": 9,
       "payout": 614962,
       "expectedReturn": 0.8999998374813319,
-      "observedReturn": 0.9005196047,
-      "escapes": 292870
+      "observedReturn": 0.9002096638520001,
+      "escapes": 731923
     },
     {
       "difficulty": "normal",
@@ -280,8 +315,8 @@
       "block": 10,
       "payout": 854114,
       "expectedReturn": 0.8999999545617159,
-      "observedReturn": 0.90042406108,
-      "escapes": 210844
+      "observedReturn": 0.9012815915360001,
+      "escapes": 527612
     },
     {
       "difficulty": "normal",
@@ -289,8 +324,8 @@
       "block": 11,
       "payout": 1220162,
       "expectedReturn": 0.8999993223276431,
-      "observedReturn": 0.8993020996700001,
-      "escapes": 147407
+      "observedReturn": 0.901707038972,
+      "escapes": 369503
     },
     {
       "difficulty": "normal",
@@ -298,8 +333,8 @@
       "block": 12,
       "payout": 1794357,
       "expectedReturn": 0.899999882908521,
-      "observedReturn": 0.900668524365,
-      "escapes": 100389
+      "observedReturn": 0.901667981214,
+      "escapes": 251251
     },
     {
       "difficulty": "normal",
@@ -307,8 +342,8 @@
       "block": 13,
       "payout": 2718723,
       "expectedReturn": 0.8999999731915465,
-      "observedReturn": 0.8989457599499999,
-      "escapes": 66130
+      "observedReturn": 0.9018004191,
+      "escapes": 165850
     },
     {
       "difficulty": "normal",
@@ -316,8 +351,8 @@
       "block": 14,
       "payout": 4248004,
       "expectedReturn": 0.899999827534932,
-      "observedReturn": 0.8997909672599999,
-      "escapes": 42363
+      "observedReturn": 0.902055153392,
+      "escapes": 106174
     },
     {
       "difficulty": "normal",
@@ -325,8 +360,8 @@
       "block": 15,
       "payout": 6851620,
       "expectedReturn": 0.8999999122805985,
-      "observedReturn": 0.8962946703,
-      "escapes": 26163
+      "observedReturn": 0.9023994637199999,
+      "escapes": 65853
     },
     {
       "difficulty": "normal",
@@ -334,8 +369,8 @@
       "block": 16,
       "payout": 11419367,
       "expectedReturn": 0.8999999385517552,
-      "observedReturn": 0.896819987345,
-      "escapes": 15707
+      "observedReturn": 0.899983152004,
+      "escapes": 39406
     },
     {
       "difficulty": "normal",
@@ -343,8 +378,8 @@
       "block": 17,
       "payout": 19688565,
       "expectedReturn": 0.8999999937211841,
-      "observedReturn": 0.8989798779,
-      "escapes": 9132
+      "observedReturn": 0.9070128124200001,
+      "escapes": 23034
     },
     {
       "difficulty": "normal",
@@ -352,8 +387,8 @@
       "block": 18,
       "payout": 35158152,
       "expectedReturn": 0.8999999992066017,
-      "observedReturn": 0.9018065988,
-      "escapes": 5130
+      "observedReturn": 0.899767425984,
+      "escapes": 12796
     },
     {
       "difficulty": "normal",
@@ -361,8 +396,8 @@
       "block": 19,
       "payout": 50000000,
       "expectedReturn": 0.6911626065721043,
-      "observedReturn": 0.69475,
-      "escapes": 2779
+      "observedReturn": 0.6869,
+      "escapes": 6869
     },
     {
       "difficulty": "normal",
@@ -370,8 +405,8 @@
       "block": 1,
       "payout": 562500,
       "expectedReturn": 0.9,
-      "observedReturn": 0.89991675,
-      "escapes": 1599852
+      "observedReturn": 0.89995815,
+      "escapes": 3999814
     },
     {
       "difficulty": "normal",
@@ -379,8 +414,8 @@
       "block": 2,
       "payout": 639204,
       "expectedReturn": 0.8999992320000001,
-      "observedReturn": 0.900217200564,
-      "escapes": 1408341
+      "observedReturn": 0.900119402352,
+      "escapes": 3520470
     },
     {
       "difficulty": "normal",
@@ -388,8 +423,8 @@
       "block": 3,
       "payout": 743261,
       "expectedReturn": 0.8999998796800002,
-      "observedReturn": 0.900135153182,
-      "escapes": 1211062
+      "observedReturn": 0.9002264256328001,
+      "escapes": 3027962
     },
     {
       "difficulty": "normal",
@@ -397,8 +432,8 @@
       "block": 4,
       "payout": 884834,
       "expectedReturn": 0.8999993468928,
-      "observedReturn": 0.8999920912539999,
-      "escapes": 1017131
+      "observedReturn": 0.9000244761784001,
+      "escapes": 2542919
     },
     {
       "difficulty": "normal",
@@ -406,8 +441,8 @@
       "block": 5,
       "payout": 1079066,
       "expectedReturn": 0.8999994689495041,
-      "observedReturn": 0.9005981951940001,
-      "escapes": 834609
+      "observedReturn": 0.9001378656383999,
+      "escapes": 2085456
     },
     {
       "difficulty": "normal",
@@ -415,8 +450,8 @@
       "block": 6,
       "payout": 1348833,
       "expectedReturn": 0.8999998025711616,
-      "observedReturn": 0.8993762165729999,
-      "escapes": 666781
+      "observedReturn": 0.9002942323128,
+      "escapes": 1668654
     },
     {
       "difficulty": "normal",
@@ -424,8 +459,8 @@
       "block": 7,
       "payout": 1729273,
       "expectedReturn": 0.8999997625365627,
-      "observedReturn": 0.9000122377609999,
-      "escapes": 520457
+      "observedReturn": 0.9002131792835999,
+      "escapes": 1301433
     },
     {
       "difficulty": "normal",
@@ -433,8 +468,8 @@
       "block": 8,
       "payout": 2275359,
       "expectedReturn": 0.8999996792645969,
-      "observedReturn": 0.8998293976530001,
-      "escapes": 395467
+      "observedReturn": 0.9011896072632,
+      "escapes": 990162
     },
     {
       "difficulty": "normal",
@@ -442,8 +477,8 @@
       "block": 9,
       "payout": 3074810,
       "expectedReturn": 0.8999998374813319,
-      "observedReturn": 0.9005196047,
-      "escapes": 292870
+      "observedReturn": 0.9002096638520001,
+      "escapes": 731923
     },
     {
       "difficulty": "normal",
@@ -451,8 +486,8 @@
       "block": 10,
       "payout": 4270570,
       "expectedReturn": 0.8999999545617158,
-      "observedReturn": 0.9004240610800001,
-      "escapes": 210844
+      "observedReturn": 0.9012815915360001,
+      "escapes": 527612
     },
     {
       "difficulty": "normal",
@@ -460,8 +495,8 @@
       "block": 11,
       "payout": 6100814,
       "expectedReturn": 0.8999999124127777,
-      "observedReturn": 0.8993026892980001,
-      "escapes": 147407
+      "observedReturn": 0.9017076301768,
+      "escapes": 369503
     },
     {
       "difficulty": "normal",
@@ -469,8 +504,8 @@
       "block": 12,
       "payout": 8971786,
       "expectedReturn": 0.8999999832229938,
-      "observedReturn": 0.9006686247540001,
-      "escapes": 100389
+      "observedReturn": 0.9016680817144,
+      "escapes": 251251
     },
     {
       "difficulty": "normal",
@@ -478,8 +513,8 @@
       "block": 13,
       "payout": 13593615,
       "expectedReturn": 0.8999999731915465,
-      "observedReturn": 0.8989457599499999,
-      "escapes": 66130
+      "observedReturn": 0.9018004191,
+      "escapes": 165850
     },
     {
       "difficulty": "normal",
@@ -487,8 +522,8 @@
       "block": 14,
       "payout": 21240024,
       "expectedReturn": 0.8999999970262652,
-      "observedReturn": 0.8997911367120001,
-      "escapes": 42363
+      "observedReturn": 0.9020553232704001,
+      "escapes": 106174
     },
     {
       "difficulty": "normal",
@@ -496,8 +531,8 @@
       "block": 15,
       "payout": 34258103,
       "expectedReturn": 0.8999999910940685,
-      "observedReturn": 0.896294748789,
-      "escapes": 26163
+      "observedReturn": 0.9023995427436,
+      "escapes": 65853
     },
     {
       "difficulty": "normal",
@@ -505,8 +540,8 @@
       "block": 16,
       "payout": 50000000,
       "expectedReturn": 0.7881347000685373,
-      "observedReturn": 0.7853499999999999,
-      "escapes": 15707
+      "observedReturn": 0.78812,
+      "escapes": 39406
     },
     {
       "difficulty": "normal",
@@ -514,8 +549,8 @@
       "block": 1,
       "payout": 1125000,
       "expectedReturn": 0.9,
-      "observedReturn": 0.89991675,
-      "escapes": 1599852
+      "observedReturn": 0.89995815,
+      "escapes": 3999814
     },
     {
       "difficulty": "normal",
@@ -523,8 +558,8 @@
       "block": 2,
       "payout": 1278409,
       "expectedReturn": 0.8999999360000001,
-      "observedReturn": 0.9002179047345,
-      "escapes": 1408341
+      "observedReturn": 0.900120106446,
+      "escapes": 3520470
     },
     {
       "difficulty": "normal",
@@ -532,8 +567,8 @@
       "block": 3,
       "payout": 1486522,
       "expectedReturn": 0.8999998796800002,
-      "observedReturn": 0.900135153182,
-      "escapes": 1211062
+      "observedReturn": 0.9002264256328001,
+      "escapes": 3027962
     },
     {
       "difficulty": "normal",
@@ -541,8 +576,8 @@
       "block": 4,
       "payout": 1769669,
       "expectedReturn": 0.8999998554624001,
-      "observedReturn": 0.8999925998195,
-      "escapes": 1017131
+      "observedReturn": 0.9000249847622,
+      "escapes": 2542919
     },
     {
       "difficulty": "normal",
@@ -550,8 +585,8 @@
       "block": 5,
       "payout": 2158133,
       "expectedReturn": 0.8999998859765761,
-      "observedReturn": 0.9005986124985,
-      "escapes": 834609
+      "observedReturn": 0.9001382827296,
+      "escapes": 2085456
     },
     {
       "difficulty": "normal",
@@ -559,8 +594,8 @@
       "block": 6,
       "payout": 2697666,
       "expectedReturn": 0.8999998025711616,
-      "observedReturn": 0.8993762165729999,
-      "escapes": 666781
+      "observedReturn": 0.9002942323128,
+      "escapes": 1668654
     },
     {
       "difficulty": "normal",
@@ -568,8 +603,8 @@
       "block": 7,
       "payout": 3458546,
       "expectedReturn": 0.8999997625365627,
-      "observedReturn": 0.9000122377609999,
-      "escapes": 520457
+      "observedReturn": 0.9002131792835999,
+      "escapes": 1301433
     },
     {
       "difficulty": "normal",
@@ -577,8 +612,8 @@
       "block": 8,
       "payout": 4550719,
       "expectedReturn": 0.8999998770355155,
-      "observedReturn": 0.8998295953865,
-      "escapes": 395467
+      "observedReturn": 0.9011898052956,
+      "escapes": 990162
     },
     {
       "difficulty": "normal",
@@ -586,8 +621,8 @@
       "block": 9,
       "payout": 6149621,
       "expectedReturn": 0.8999999838318117,
-      "observedReturn": 0.900519751135,
-      "escapes": 292870
+      "observedReturn": 0.9002098102366,
+      "escapes": 731923
     },
     {
       "difficulty": "normal",
@@ -595,8 +630,8 @@
       "block": 10,
       "payout": 8541140,
       "expectedReturn": 0.8999999545617158,
-      "observedReturn": 0.9004240610800001,
-      "escapes": 210844
+      "observedReturn": 0.9012815915360001,
+      "escapes": 527612
     },
     {
       "difficulty": "normal",
@@ -604,8 +639,8 @@
       "block": 11,
       "payout": 12201629,
       "expectedReturn": 0.8999999861734195,
-      "observedReturn": 0.8993027630015,
-      "escapes": 147407
+      "observedReturn": 0.9017077040773999,
+      "escapes": 369503
     },
     {
       "difficulty": "normal",
@@ -613,8 +648,8 @@
       "block": 12,
       "payout": 17943572,
       "expectedReturn": 0.8999999832229938,
-      "observedReturn": 0.9006686247540001,
-      "escapes": 100389
+      "observedReturn": 0.9016680817144,
+      "escapes": 251251
     },
     {
       "difficulty": "normal",
@@ -622,8 +657,8 @@
       "block": 13,
       "payout": 27187230,
       "expectedReturn": 0.8999999731915465,
-      "observedReturn": 0.8989457599499999,
-      "escapes": 66130
+      "observedReturn": 0.9018004191,
+      "escapes": 165850
     },
     {
       "difficulty": "normal",
@@ -631,8 +666,8 @@
       "block": 14,
       "payout": 42480048,
       "expectedReturn": 0.8999999970262652,
-      "observedReturn": 0.8997911367120001,
-      "escapes": 42363
+      "observedReturn": 0.9020553232704001,
+      "escapes": 106174
     },
     {
       "difficulty": "normal",
@@ -640,8 +675,8 @@
       "block": 15,
       "payout": 50000000,
       "expectedReturn": 0.6567789167237811,
-      "observedReturn": 0.654075,
-      "escapes": 26163
+      "observedReturn": 0.65853,
+      "escapes": 65853
     },
     {
       "difficulty": "normal",
@@ -649,8 +684,8 @@
       "block": 1,
       "payout": 5625000,
       "expectedReturn": 0.9,
-      "observedReturn": 0.89991675,
-      "escapes": 1599852
+      "observedReturn": 0.89995815,
+      "escapes": 3999814
     },
     {
       "difficulty": "normal",
@@ -658,8 +693,8 @@
       "block": 2,
       "payout": 6392045,
       "expectedReturn": 0.8999999360000002,
-      "observedReturn": 0.9002179047345001,
-      "escapes": 1408341
+      "observedReturn": 0.900120106446,
+      "escapes": 3520470
     },
     {
       "difficulty": "normal",
@@ -667,8 +702,8 @@
       "block": 3,
       "payout": 7432610,
       "expectedReturn": 0.8999998796800001,
-      "observedReturn": 0.9001351531820001,
-      "escapes": 1211062
+      "observedReturn": 0.9002264256328,
+      "escapes": 3027962
     },
     {
       "difficulty": "normal",
@@ -676,8 +711,8 @@
       "block": 4,
       "payout": 8848346,
       "expectedReturn": 0.8999999571763201,
-      "observedReturn": 0.8999927015326,
-      "escapes": 1017131
+      "observedReturn": 0.9000250864789602,
+      "escapes": 2542919
     },
     {
       "difficulty": "normal",
@@ -685,8 +720,8 @@
       "block": 5,
       "payout": 10790666,
       "expectedReturn": 0.8999999693819905,
-      "observedReturn": 0.9005986959594,
-      "escapes": 834609
+      "observedReturn": 0.90013836614784,
+      "escapes": 2085456
     },
     {
       "difficulty": "normal",
@@ -694,8 +729,8 @@
       "block": 6,
       "payout": 13488332,
       "expectedReturn": 0.8999999360198246,
-      "observedReturn": 0.8993763499291999,
-      "escapes": 666781
+      "observedReturn": 0.90029436580512,
+      "escapes": 1668654
     },
     {
       "difficulty": "normal",
@@ -703,8 +738,8 @@
       "block": 7,
       "payout": 17292734,
       "expectedReturn": 0.899999970716477,
-      "observedReturn": 0.9000124459438,
-      "escapes": 520457
+      "observedReturn": 0.90021338751288,
+      "escapes": 1301433
     },
     {
       "difficulty": "normal",
@@ -712,8 +747,8 @@
       "block": 8,
       "payout": 22753598,
       "expectedReturn": 0.8999999956980667,
-      "observedReturn": 0.8998297140266002,
-      "escapes": 395467
+      "observedReturn": 0.90118992411504,
+      "escapes": 990162
     },
     {
       "difficulty": "normal",
@@ -721,8 +756,8 @@
       "block": 9,
       "payout": 30748105,
       "expectedReturn": 0.8999999838318117,
-      "observedReturn": 0.900519751135,
-      "escapes": 292870
+      "observedReturn": 0.9002098102366001,
+      "escapes": 731923
     },
     {
       "difficulty": "normal",
@@ -730,8 +765,8 @@
       "block": 10,
       "payout": 42705702,
       "expectedReturn": 0.899999996710654,
-      "observedReturn": 0.9004241032488,
-      "escapes": 210844
+      "observedReturn": 0.9012816337449601,
+      "escapes": 527612
     },
     {
       "difficulty": "normal",
@@ -739,8 +774,8 @@
       "block": 11,
       "payout": 50000000,
       "expectedReturn": 0.7376064181048444,
-      "observedReturn": 0.7370350000000001,
-      "escapes": 147407
+      "observedReturn": 0.739006,
+      "escapes": 369503
     },
     {
       "difficulty": "normal",
@@ -748,8 +783,8 @@
       "block": 1,
       "payout": 11250000,
       "expectedReturn": 0.9,
-      "observedReturn": 0.89991675,
-      "escapes": 1599852
+      "observedReturn": 0.89995815,
+      "escapes": 3999814
     },
     {
       "difficulty": "normal",
@@ -757,8 +792,8 @@
       "block": 2,
       "payout": 12784090,
       "expectedReturn": 0.8999999360000002,
-      "observedReturn": 0.9002179047345001,
-      "escapes": 1408341
+      "observedReturn": 0.900120106446,
+      "escapes": 3520470
     },
     {
       "difficulty": "normal",
@@ -766,8 +801,8 @@
       "block": 3,
       "payout": 14865221,
       "expectedReturn": 0.8999999402240001,
-      "observedReturn": 0.9001352137351001,
-      "escapes": 1211062
+      "observedReturn": 0.9002264861920399,
+      "escapes": 3027962
     },
     {
       "difficulty": "normal",
@@ -775,8 +810,8 @@
       "block": 4,
       "payout": 17696692,
       "expectedReturn": 0.8999999571763201,
-      "observedReturn": 0.8999927015326,
-      "escapes": 1017131
+      "observedReturn": 0.9000250864789602,
+      "escapes": 2542919
     },
     {
       "difficulty": "normal",
@@ -784,8 +819,8 @@
       "block": 5,
       "payout": 21581332,
       "expectedReturn": 0.8999999693819905,
-      "observedReturn": 0.9005986959594,
-      "escapes": 834609
+      "observedReturn": 0.90013836614784,
+      "escapes": 2085456
     },
     {
       "difficulty": "normal",
@@ -793,8 +828,8 @@
       "block": 6,
       "payout": 26976665,
       "expectedReturn": 0.8999999693819905,
-      "observedReturn": 0.89937638326825,
-      "escapes": 666781
+      "observedReturn": 0.9002943991782,
+      "escapes": 1668654
     },
     {
       "difficulty": "normal",
@@ -802,8 +837,8 @@
       "block": 7,
       "payout": 34585469,
       "expectedReturn": 0.8999999967389664,
-      "observedReturn": 0.90001247196665,
-      "escapes": 520457
+      "observedReturn": 0.9002134135415399,
+      "escapes": 1301433
     },
     {
       "difficulty": "normal",
@@ -811,8 +846,8 @@
       "block": 8,
       "payout": 45507196,
       "expectedReturn": 0.8999999956980667,
-      "observedReturn": 0.8998297140266002,
-      "escapes": 395467
+      "observedReturn": 0.90118992411504,
+      "escapes": 990162
     },
     {
       "difficulty": "normal",
@@ -820,8 +855,8 @@
       "block": 9,
       "payout": 50000000,
       "expectedReturn": 0.731752398913536,
-      "observedReturn": 0.7321750000000001,
-      "escapes": 292870
+      "observedReturn": 0.731923,
+      "escapes": 731923
     },
     {
       "difficulty": "medium",
@@ -829,8 +864,8 @@
       "block": 1,
       "payout": 64285,
       "expectedReturn": 0.89999,
-      "observedReturn": 0.8997875022500001,
-      "escapes": 1399685
+      "observedReturn": 0.90015354104,
+      "escapes": 3500636
     },
     {
       "difficulty": "medium",
@@ -838,8 +873,8 @@
       "block": 2,
       "payout": 81374,
       "expectedReturn": 0.8999964399999999,
-      "observedReturn": 0.89934219304,
-      "escapes": 1105196
+      "observedReturn": 0.900357089568,
+      "escapes": 2766108
     },
     {
       "difficulty": "medium",
@@ -847,8 +882,8 @@
       "block": 3,
       "payout": 105680,
       "expectedReturn": 0.8999920159999999,
-      "observedReturn": 0.8988126272,
-      "escapes": 850504
+      "observedReturn": 0.9006641408,
+      "escapes": 2130640
     },
     {
       "difficulty": "medium",
@@ -856,8 +891,8 @@
       "block": 4,
       "payout": 140907,
       "expectedReturn": 0.89999414505,
-      "observedReturn": 0.8983088973299999,
-      "escapes": 637519
+      "observedReturn": 0.90091426776,
+      "escapes": 1598420
     },
     {
       "difficulty": "medium",
@@ -865,8 +900,8 @@
       "block": 5,
       "payout": 193024,
       "expectedReturn": 0.899997466368,
-      "observedReturn": 0.8990864895999999,
-      "escapes": 465790
+      "observedReturn": 0.901238321152,
+      "escapes": 1167262
     },
     {
       "difficulty": "medium",
@@ -874,8 +909,8 @@
       "block": 6,
       "payout": 271865,
       "expectedReturn": 0.8999981657609251,
-      "observedReturn": 0.8997154683,
-      "escapes": 330942
+      "observedReturn": 0.9011759270799999,
+      "escapes": 828698
     },
     {
       "difficulty": "medium",
@@ -883,8 +918,8 @@
       "block": 7,
       "payout": 394008,
       "expectedReturn": 0.8999998872000443,
-      "observedReturn": 0.89883075,
-      "escapes": 228125
+      "observedReturn": 0.901572257664,
+      "escapes": 572052
     },
     {
       "difficulty": "medium",
@@ -892,8 +927,8 @@
       "block": 8,
       "payout": 588071,
       "expectedReturn": 0.8999989049866083,
-      "observedReturn": 0.89761393227,
-      "escapes": 152637
+      "observedReturn": 0.902557257096,
+      "escapes": 383694
     },
     {
       "difficulty": "medium",
@@ -901,8 +936,8 @@
       "block": 9,
       "payout": 904725,
       "expectedReturn": 0.8999992875930048,
-      "observedReturn": 0.8961934432500002,
-      "escapes": 99057
+      "observedReturn": 0.9020253006000001,
+      "escapes": 249254
     },
     {
       "difficulty": "medium",
@@ -910,8 +945,8 @@
       "block": 10,
       "payout": 1436072,
       "expectedReturn": 0.8999996457125922,
-      "observedReturn": 0.89676952112,
-      "escapes": 62446
+      "observedReturn": 0.9025712520000001,
+      "escapes": 157125
     },
     {
       "difficulty": "medium",
@@ -919,8 +954,8 @@
       "block": 11,
       "payout": 2354217,
       "expectedReturn": 0.8999998775950249,
-      "observedReturn": 0.89949923136,
-      "escapes": 38208
+      "observedReturn": 0.9052152702360001,
+      "escapes": 96127
     },
     {
       "difficulty": "medium",
@@ -928,8 +963,8 @@
       "block": 12,
       "payout": 3990198,
       "expectedReturn": 0.8999998087823462,
-      "observedReturn": 0.90002906088,
-      "escapes": 22556
+      "observedReturn": 0.9025349052240002,
+      "escapes": 56547
     },
     {
       "difficulty": "medium",
@@ -937,8 +972,8 @@
       "block": 13,
       "payout": 7000348,
       "expectedReturn": 0.8999998899813071,
-      "observedReturn": 0.90178482936,
-      "escapes": 12882
+      "observedReturn": 0.906853081312,
+      "escapes": 32386
     },
     {
       "difficulty": "medium",
@@ -946,8 +981,8 @@
       "block": 14,
       "payout": 12727907,
       "expectedReturn": 0.8999999992615751,
-      "observedReturn": 0.9147546760899999,
-      "escapes": 7187
+      "observedReturn": 0.9091798528239999,
+      "escapes": 17858
     },
     {
       "difficulty": "medium",
@@ -955,8 +990,8 @@
       "block": 15,
       "payout": 24014918,
       "expectedReturn": 0.8999999667346248,
-      "observedReturn": 0.90464196106,
-      "escapes": 3767
+      "observedReturn": 0.9064190649919999,
+      "escapes": 9436
     },
     {
       "difficulty": "medium",
@@ -964,8 +999,8 @@
       "block": 16,
       "payout": 47088076,
       "expectedReturn": 0.8999999952169196,
-      "observedReturn": 0.90550370148,
-      "escapes": 1923
+      "observedReturn": 0.918217482,
+      "escapes": 4875
     },
     {
       "difficulty": "medium",
@@ -973,8 +1008,8 @@
       "block": 17,
       "payout": 50000000,
       "expectedReturn": 0.4682714129754321,
-      "observedReturn": 0.4535,
-      "escapes": 907
+      "observedReturn": 0.4798,
+      "escapes": 2399
     },
     {
       "difficulty": "medium",
@@ -982,8 +1017,8 @@
       "block": 1,
       "payout": 128571,
       "expectedReturn": 0.8999969999999999,
-      "observedReturn": 0.899794500675,
-      "escapes": 1399685
+      "observedReturn": 0.9001605423119999,
+      "escapes": 3500636
     },
     {
       "difficulty": "medium",
@@ -991,8 +1026,8 @@
       "block": 2,
       "payout": 162748,
       "expectedReturn": 0.8999964399999999,
-      "observedReturn": 0.89934219304,
-      "escapes": 1105196
+      "observedReturn": 0.900357089568,
+      "escapes": 2766108
     },
     {
       "difficulty": "medium",
@@ -1000,8 +1035,8 @@
       "block": 3,
       "payout": 211361,
       "expectedReturn": 0.8999962740999998,
-      "observedReturn": 0.89881687972,
-      "escapes": 850504
+      "observedReturn": 0.90066840208,
+      "escapes": 2130640
     },
     {
       "difficulty": "medium",
@@ -1009,8 +1044,8 @@
       "block": 4,
       "payout": 281815,
       "expectedReturn": 0.8999973386249999,
-      "observedReturn": 0.8983120849249999,
-      "escapes": 637519
+      "observedReturn": 0.9009174646000001,
+      "escapes": 1598420
     },
     {
       "difficulty": "medium",
@@ -1018,8 +1053,8 @@
       "block": 5,
       "payout": 386049,
       "expectedReturn": 0.8999997976777501,
-      "observedReturn": 0.89908881855,
-      "escapes": 465790
+      "observedReturn": 0.901240655676,
+      "escapes": 1167262
     },
     {
       "difficulty": "medium",
@@ -1027,8 +1062,8 @@
       "block": 6,
       "payout": 543731,
       "expectedReturn": 0.8999998209908475,
-      "observedReturn": 0.8997171230100001,
-      "escapes": 330942
+      "observedReturn": 0.9011775844759999,
+      "escapes": 828698
     },
     {
       "difficulty": "medium",
@@ -1036,8 +1071,8 @@
       "block": 7,
       "payout": 788016,
       "expectedReturn": 0.8999998872000443,
-      "observedReturn": 0.89883075,
-      "escapes": 228125
+      "observedReturn": 0.901572257664,
+      "escapes": 572052
     },
     {
       "difficulty": "medium",
@@ -1045,8 +1080,8 @@
       "block": 8,
       "payout": 1176143,
       "expectedReturn": 0.8999996701994014,
-      "observedReturn": 0.8976146954550001,
-      "escapes": 152637
+      "observedReturn": 0.9025580244839999,
+      "escapes": 383694
     },
     {
       "difficulty": "medium",
@@ -1054,8 +1089,8 @@
       "block": 9,
       "payout": 1809451,
       "expectedReturn": 0.8999997849813204,
-      "observedReturn": 0.8961939385350001,
-      "escapes": 99057
+      "observedReturn": 0.9020257991080001,
+      "escapes": 249254
     },
     {
       "difficulty": "medium",
@@ -1063,8 +1098,8 @@
       "block": 10,
       "payout": 2872145,
       "expectedReturn": 0.899999959067231,
-      "observedReturn": 0.8967698333499999,
-      "escapes": 62446
+      "observedReturn": 0.90257156625,
+      "escapes": 157125
     },
     {
       "difficulty": "medium",
@@ -1072,8 +1107,8 @@
       "block": 11,
       "payout": 4708434,
       "expectedReturn": 0.8999998775950249,
-      "observedReturn": 0.89949923136,
-      "escapes": 38208
+      "observedReturn": 0.9052152702360001,
+      "escapes": 96127
     },
     {
       "difficulty": "medium",
@@ -1081,8 +1116,8 @@
       "block": 12,
       "payout": 7980397,
       "expectedReturn": 0.8999999215586807,
-      "observedReturn": 0.9000291736599999,
-      "escapes": 22556
+      "observedReturn": 0.9025350183180001,
+      "escapes": 56547
     },
     {
       "difficulty": "medium",
@@ -1090,8 +1125,8 @@
       "block": 13,
       "payout": 14000697,
       "expectedReturn": 0.8999999542638177,
-      "observedReturn": 0.9017848937699999,
-      "escapes": 12882
+      "observedReturn": 0.906853146084,
+      "escapes": 32386
     },
     {
       "difficulty": "medium",
@@ -1099,8 +1134,8 @@
       "block": 14,
       "payout": 25455814,
       "expectedReturn": 0.8999999992615751,
-      "observedReturn": 0.9147546760899999,
-      "escapes": 7187
+      "observedReturn": 0.9091798528239999,
+      "escapes": 17858
     },
     {
       "difficulty": "medium",
@@ -1108,8 +1143,8 @@
       "block": 15,
       "payout": 48029837,
       "expectedReturn": 0.8999999854729765,
-      "observedReturn": 0.904641979895,
-      "escapes": 3767
+      "observedReturn": 0.9064190838639999,
+      "escapes": 9436
     },
     {
       "difficulty": "medium",
@@ -1117,8 +1152,8 @@
       "block": 16,
       "payout": 50000000,
       "expectedReturn": 0.47782797242391023,
-      "observedReturn": 0.48075,
-      "escapes": 1923
+      "observedReturn": 0.4875,
+      "escapes": 4875
     },
     {
       "difficulty": "medium",
@@ -1126,8 +1161,8 @@
       "block": 1,
       "payout": 642857,
       "expectedReturn": 0.8999997999999999,
-      "observedReturn": 0.899797300045,
-      "escapes": 1399685
+      "observedReturn": 0.9001633428207999,
+      "escapes": 3500636
     },
     {
       "difficulty": "medium",
@@ -1135,8 +1170,8 @@
       "block": 2,
       "payout": 813743,
       "expectedReturn": 0.8999997579999999,
-      "observedReturn": 0.899345508628,
-      "escapes": 1105196
+      "observedReturn": 0.9003604088976,
+      "escapes": 2766108
     },
     {
       "difficulty": "medium",
@@ -1144,8 +1179,8 @@
       "block": 3,
       "payout": 1056809,
       "expectedReturn": 0.8999996805799999,
-      "observedReturn": 0.898820281736,
-      "escapes": 850504
+      "observedReturn": 0.900671811104,
+      "escapes": 2130640
     },
     {
       "difficulty": "medium",
@@ -1153,8 +1188,8 @@
       "block": 4,
       "payout": 1409079,
       "expectedReturn": 0.8999998934849999,
-      "observedReturn": 0.898314635001,
-      "escapes": 637519
+      "observedReturn": 0.9009200220720001,
+      "escapes": 1598420
     },
     {
       "difficulty": "medium",
@@ -1162,8 +1197,8 @@
       "block": 5,
       "payout": 1930245,
       "expectedReturn": 0.89999979767775,
-      "observedReturn": 0.89908881855,
-      "escapes": 465790
+      "observedReturn": 0.9012406556760001,
+      "escapes": 1167262
     },
     {
       "difficulty": "medium",
@@ -1171,8 +1206,8 @@
       "block": 6,
       "payout": 2718655,
       "expectedReturn": 0.8999998209908475,
-      "observedReturn": 0.89971712301,
-      "escapes": 330942
+      "observedReturn": 0.9011775844759999,
+      "escapes": 828698
     },
     {
       "difficulty": "medium",
@@ -1180,8 +1215,8 @@
       "block": 7,
       "payout": 3940080,
       "expectedReturn": 0.8999998872000443,
-      "observedReturn": 0.89883075,
-      "escapes": 228125
+      "observedReturn": 0.901572257664,
+      "escapes": 572052
     },
     {
       "difficulty": "medium",
@@ -1189,8 +1224,8 @@
       "block": 8,
       "payout": 5880717,
       "expectedReturn": 0.8999999762845188,
-      "observedReturn": 0.8976150007289999,
-      "escapes": 152637
+      "observedReturn": 0.9025583314392,
+      "escapes": 383694
     },
     {
       "difficulty": "medium",
@@ -1198,8 +1233,8 @@
       "block": 9,
       "payout": 9047257,
       "expectedReturn": 0.8999999839366466,
-      "observedReturn": 0.8961941366490002,
-      "escapes": 99057
+      "observedReturn": 0.9020259985111999,
+      "escapes": 249254
     },
     {
       "difficulty": "medium",
@@ -1207,8 +1242,8 @@
       "block": 10,
       "payout": 14360725,
       "expectedReturn": 0.8999999590672311,
-      "observedReturn": 0.8967698333499999,
-      "escapes": 62446
+      "observedReturn": 0.90257156625,
+      "escapes": 157125
     },
     {
       "difficulty": "medium",
@@ -1216,8 +1251,8 @@
       "block": 11,
       "payout": 23542173,
       "expectedReturn": 0.8999999922828227,
-      "observedReturn": 0.899499345984,
-      "escapes": 38208
+      "observedReturn": 0.9052153855884,
+      "escapes": 96127
     },
     {
       "difficulty": "medium",
@@ -1225,8 +1260,8 @@
       "block": 12,
       "payout": 39901988,
       "expectedReturn": 0.8999999892244814,
-      "observedReturn": 0.900029241328,
-      "escapes": 22556
+      "observedReturn": 0.9025350861744,
+      "escapes": 56547
     },
     {
       "difficulty": "medium",
@@ -1234,8 +1269,8 @@
       "block": 13,
       "payout": 50000000,
       "expectedReturn": 0.6428251066813443,
-      "observedReturn": 0.6441,
-      "escapes": 12882
+      "observedReturn": 0.64772,
+      "escapes": 32386
     },
     {
       "difficulty": "medium",
@@ -1243,8 +1278,8 @@
       "block": 1,
       "payout": 1285714,
       "expectedReturn": 0.8999997999999999,
-      "observedReturn": 0.899797300045,
-      "escapes": 1399685
+      "observedReturn": 0.9001633428207999,
+      "escapes": 3500636
     },
     {
       "difficulty": "medium",
@@ -1252,8 +1287,8 @@
       "block": 2,
       "payout": 1627486,
       "expectedReturn": 0.8999997579999999,
-      "observedReturn": 0.899345508628,
-      "escapes": 1105196
+      "observedReturn": 0.9003604088976,
+      "escapes": 2766108
     },
     {
       "difficulty": "medium",
@@ -1261,8 +1296,8 @@
       "block": 3,
       "payout": 2113618,
       "expectedReturn": 0.8999996805799999,
-      "observedReturn": 0.898820281736,
-      "escapes": 850504
+      "observedReturn": 0.900671811104,
+      "escapes": 2130640
     },
     {
       "difficulty": "medium",
@@ -1270,8 +1305,8 @@
       "block": 4,
       "payout": 2818158,
       "expectedReturn": 0.8999998934849999,
-      "observedReturn": 0.898314635001,
-      "escapes": 637519
+      "observedReturn": 0.9009200220720001,
+      "escapes": 1598420
     },
     {
       "difficulty": "medium",
@@ -1279,8 +1314,8 @@
       "block": 5,
       "payout": 3860490,
       "expectedReturn": 0.89999979767775,
-      "observedReturn": 0.89908881855,
-      "escapes": 465790
+      "observedReturn": 0.9012406556760001,
+      "escapes": 1167262
     },
     {
       "difficulty": "medium",
@@ -1288,8 +1323,8 @@
       "block": 6,
       "payout": 5437311,
       "expectedReturn": 0.8999999865138398,
-      "observedReturn": 0.899717288481,
-      "escapes": 330942
+      "observedReturn": 0.9011777502155999,
+      "escapes": 828698
     },
     {
       "difficulty": "medium",
@@ -1297,8 +1332,8 @@
       "block": 7,
       "payout": 7880160,
       "expectedReturn": 0.8999998872000443,
-      "observedReturn": 0.89883075,
-      "escapes": 228125
+      "observedReturn": 0.901572257664,
+      "escapes": 572052
     },
     {
       "difficulty": "medium",
@@ -1306,8 +1341,8 @@
       "block": 8,
       "payout": 11761434,
       "expectedReturn": 0.8999999762845188,
-      "observedReturn": 0.8976150007289999,
-      "escapes": 152637
+      "observedReturn": 0.9025583314392,
+      "escapes": 383694
     },
     {
       "difficulty": "medium",
@@ -1315,8 +1350,8 @@
       "block": 9,
       "payout": 18094514,
       "expectedReturn": 0.8999999839366466,
-      "observedReturn": 0.8961941366490002,
-      "escapes": 99057
+      "observedReturn": 0.9020259985111999,
+      "escapes": 249254
     },
     {
       "difficulty": "medium",
@@ -1324,8 +1359,8 @@
       "block": 10,
       "payout": 28721451,
       "expectedReturn": 0.899999990402695,
-      "observedReturn": 0.896769864573,
-      "escapes": 62446
+      "observedReturn": 0.9025715976750001,
+      "escapes": 157125
     },
     {
       "difficulty": "medium",
@@ -1333,8 +1368,8 @@
       "block": 11,
       "payout": 47084346,
       "expectedReturn": 0.8999999922828227,
-      "observedReturn": 0.899499345984,
-      "escapes": 38208
+      "observedReturn": 0.9052153855884,
+      "escapes": 96127
     },
     {
       "difficulty": "medium",
@@ -1342,8 +1377,8 @@
       "block": 12,
       "payout": 50000000,
       "expectedReturn": 0.563881672527495,
-      "observedReturn": 0.5639,
-      "escapes": 22556
+      "observedReturn": 0.56547,
+      "escapes": 56547
     },
     {
       "difficulty": "medium",
@@ -1351,8 +1386,8 @@
       "block": 1,
       "payout": 6428571,
       "expectedReturn": 0.8999999399999998,
-      "observedReturn": 0.8997974400135001,
-      "escapes": 1399685
+      "observedReturn": 0.9001634828462399,
+      "escapes": 3500636
     },
     {
       "difficulty": "medium",
@@ -1360,8 +1395,8 @@
       "block": 2,
       "payout": 8137432,
       "expectedReturn": 0.8999999792,
-      "observedReturn": 0.8993457296672,
-      "escapes": 1105196
+      "observedReturn": 0.90036063018624,
+      "escapes": 2766108
     },
     {
       "difficulty": "medium",
@@ -1369,8 +1404,8 @@
       "block": 3,
       "payout": 10568093,
       "expectedReturn": 0.8999999360659999,
-      "observedReturn": 0.8988205368872,
-      "escapes": 850504
+      "observedReturn": 0.9006720667808,
+      "escapes": 2130640
     },
     {
       "difficulty": "medium",
@@ -1378,8 +1413,8 @@
       "block": 4,
       "payout": 14090791,
       "expectedReturn": 0.8999999573564998,
-      "observedReturn": 0.8983146987528998,
-      "escapes": 637519
+      "observedReturn": 0.9009200860088,
+      "escapes": 1598420
     },
     {
       "difficulty": "medium",
@@ -1387,8 +1422,8 @@
       "block": 5,
       "payout": 19302454,
       "expectedReturn": 0.8999999841825299,
-      "observedReturn": 0.8990890048659999,
-      "escapes": 465790
+      "observedReturn": 0.90124084243792,
+      "escapes": 1167262
     },
     {
       "difficulty": "medium",
@@ -1396,8 +1431,8 @@
       "block": 6,
       "payout": 27186555,
       "expectedReturn": 0.8999999865138396,
-      "observedReturn": 0.8997172884810001,
-      "escapes": 330942
+      "observedReturn": 0.9011777502155999,
+      "escapes": 828698
     },
     {
       "difficulty": "medium",
@@ -1405,8 +1440,8 @@
       "block": 7,
       "payout": 39400804,
       "expectedReturn": 0.899999978568736,
-      "observedReturn": 0.89883084125,
-      "escapes": 228125
+      "observedReturn": 0.90157234919232,
+      "escapes": 572052
     },
     {
       "difficulty": "medium",
@@ -1414,8 +1449,8 @@
       "block": 8,
       "payout": 50000000,
       "expectedReturn": 0.76521279317175,
-      "observedReturn": 0.763185,
-      "escapes": 152637
+      "observedReturn": 0.767388,
+      "escapes": 383694
     },
     {
       "difficulty": "medium",
@@ -1423,8 +1458,8 @@
       "block": 1,
       "payout": 12857142,
       "expectedReturn": 0.8999999399999998,
-      "observedReturn": 0.8997974400135001,
-      "escapes": 1399685
+      "observedReturn": 0.9001634828462399,
+      "escapes": 3500636
     },
     {
       "difficulty": "medium",
@@ -1432,8 +1467,8 @@
       "block": 2,
       "payout": 16274864,
       "expectedReturn": 0.8999999792,
-      "observedReturn": 0.8993457296672,
-      "escapes": 1105196
+      "observedReturn": 0.90036063018624,
+      "escapes": 2766108
     },
     {
       "difficulty": "medium",
@@ -1441,8 +1476,8 @@
       "block": 3,
       "payout": 21136187,
       "expectedReturn": 0.899999978647,
-      "observedReturn": 0.8988205794124,
-      "escapes": 850504
+      "observedReturn": 0.9006721093936,
+      "escapes": 2130640
     },
     {
       "difficulty": "medium",
@@ -1450,8 +1485,8 @@
       "block": 4,
       "payout": 28181583,
       "expectedReturn": 0.8999999892922498,
-      "observedReturn": 0.8983147306288499,
-      "escapes": 637519
+      "observedReturn": 0.9009201179772001,
+      "escapes": 1598420
     },
     {
       "difficulty": "medium",
@@ -1459,8 +1494,8 @@
       "block": 5,
       "payout": 38604908,
       "expectedReturn": 0.8999999841825299,
-      "observedReturn": 0.8990890048659999,
-      "escapes": 465790
+      "observedReturn": 0.90124084243792,
+      "escapes": 1167262
     },
     {
       "difficulty": "medium",
@@ -1468,8 +1503,8 @@
       "block": 6,
       "payout": 50000000,
       "expectedReturn": 0.82761496125,
-      "observedReturn": 0.827355,
-      "escapes": 330942
+      "observedReturn": 0.8286979999999999,
+      "escapes": 828698
     },
     {
       "difficulty": "high",
@@ -1477,8 +1512,8 @@
       "block": 1,
       "payout": 75000,
       "expectedReturn": 0.9,
-      "observedReturn": 0.89985825,
-      "escapes": 1199811
+      "observedReturn": 0.8997135,
+      "escapes": 2999045
     },
     {
       "difficulty": "high",
@@ -1486,8 +1521,8 @@
       "block": 2,
       "payout": 107142,
       "expectedReturn": 0.8999928,
-      "observedReturn": 0.8998535154,
-      "escapes": 839870
+      "observedReturn": 0.8998449440399999,
+      "escapes": 2099655
     },
     {
       "difficulty": "high",
@@ -1495,8 +1530,8 @@
       "block": 3,
       "payout": 157563,
       "expectedReturn": 0.8999998559999999,
-      "observedReturn": 0.89810437311,
-      "escapes": 569997
+      "observedReturn": 0.9004460744159999,
+      "escapes": 1428708
     },
     {
       "difficulty": "high",
@@ -1504,8 +1539,8 @@
       "block": 4,
       "payout": 238731,
       "expectedReturn": 0.89999677152,
-      "observedReturn": 0.89920179729,
-      "escapes": 376659
+      "observedReturn": 0.900715829292,
+      "escapes": 943233
     },
     {
       "difficulty": "high",
@@ -1513,8 +1548,8 @@
       "block": 5,
       "payout": 373018,
       "expectedReturn": 0.8999987318784,
-      "observedReturn": 0.89783940528,
-      "escapes": 240696
+      "observedReturn": 0.9010622808000001,
+      "escapes": 603900
     },
     {
       "difficulty": "high",
@@ -1522,8 +1557,8 @@
       "block": 6,
       "payout": 601642,
       "expectedReturn": 0.899998828388352,
-      "observedReturn": 0.89776417598,
-      "escapes": 149219
+      "observedReturn": 0.9011899255279999,
+      "escapes": 374471
     },
     {
       "difficulty": "high",
@@ -1531,8 +1566,8 @@
       "block": 7,
       "payout": 1002737,
       "expectedReturn": 0.8999991275692031,
-      "observedReturn": 0.8965471517000001,
-      "escapes": 89410
+      "observedReturn": 0.898729107412,
+      "escapes": 224069
     },
     {
       "difficulty": "high",
@@ -1540,8 +1575,8 @@
       "block": 8,
       "payout": 1728858,
       "expectedReturn": 0.8999997019964375,
-      "observedReturn": 0.8990926029,
-      "escapes": 52005
+      "observedReturn": 0.8988678513599999,
+      "escapes": 129980
     },
     {
       "difficulty": "high",
@@ -1549,8 +1584,8 @@
       "block": 9,
       "payout": 3087247,
       "expectedReturn": 0.8999998685803353,
-      "observedReturn": 0.90132176165,
-      "escapes": 29195
+      "observedReturn": 0.897734380636,
+      "escapes": 72697
     },
     {
       "difficulty": "high",
@@ -1558,8 +1593,8 @@
       "block": 10,
       "payout": 5717124,
       "expectedReturn": 0.8999998569194624,
-      "observedReturn": 0.90124742736,
-      "escapes": 15764
+      "observedReturn": 0.9022993781759999,
+      "escapes": 39456
     },
     {
       "difficulty": "high",
@@ -1567,8 +1602,8 @@
       "block": 11,
       "payout": 10994470,
       "expectedReturn": 0.8999999198881757,
-      "observedReturn": 0.8976984755,
-      "escapes": 8165
+      "observedReturn": 0.90128267272,
+      "escapes": 20494
     },
     {
       "difficulty": "high",
@@ -1576,8 +1611,8 @@
       "block": 12,
       "payout": 21988941,
       "expectedReturn": 0.8999999608178395,
-      "observedReturn": 0.89978746572,
-      "escapes": 4092
+      "observedReturn": 0.8983801734960001,
+      "escapes": 10214
     },
     {
       "difficulty": "high",
@@ -1585,8 +1620,8 @@
       "block": 13,
       "payout": 45810295,
       "expectedReturn": 0.8999999853756376,
-      "observedReturn": 0.9139153852499999,
-      "escapes": 1995
+      "observedReturn": 0.8995309526199999,
+      "escapes": 4909
     },
     {
       "difficulty": "high",
@@ -1594,8 +1629,8 @@
       "block": 14,
       "payout": 50000000,
       "expectedReturn": 0.4518634875335264,
-      "observedReturn": 0.457,
-      "escapes": 914
+      "observedReturn": 0.4582,
+      "escapes": 2291
     },
     {
       "difficulty": "high",
@@ -1603,8 +1638,8 @@
       "block": 1,
       "payout": 150000,
       "expectedReturn": 0.9,
-      "observedReturn": 0.89985825,
-      "escapes": 1199811
+      "observedReturn": 0.8997135,
+      "escapes": 2999045
     },
     {
       "difficulty": "high",
@@ -1612,8 +1647,8 @@
       "block": 2,
       "payout": 214285,
       "expectedReturn": 0.8999969999999999,
-      "observedReturn": 0.89985771475,
-      "escapes": 839870
+      "observedReturn": 0.89984914335,
+      "escapes": 2099655
     },
     {
       "difficulty": "high",
@@ -1621,8 +1656,8 @@
       "block": 3,
       "payout": 315126,
       "expectedReturn": 0.8999998559999999,
-      "observedReturn": 0.89810437311,
-      "escapes": 569997
+      "observedReturn": 0.9004460744159999,
+      "escapes": 1428708
     },
     {
       "difficulty": "high",
@@ -1630,8 +1665,8 @@
       "block": 4,
       "payout": 477463,
       "expectedReturn": 0.8999986564799999,
-      "observedReturn": 0.8992036805850001,
-      "escapes": 376659
+      "observedReturn": 0.900717715758,
+      "escapes": 943233
     },
     {
       "difficulty": "high",
@@ -1639,8 +1674,8 @@
       "block": 5,
       "payout": 746037,
       "expectedReturn": 0.8999999382528,
-      "observedReturn": 0.89784060876,
-      "escapes": 240696
+      "observedReturn": 0.9010634886,
+      "escapes": 603900
     },
     {
       "difficulty": "high",
@@ -1648,8 +1683,8 @@
       "block": 6,
       "payout": 1203285,
       "expectedReturn": 0.89999957634048,
-      "observedReturn": 0.8977649220749999,
-      "escapes": 149219
+      "observedReturn": 0.9011906744699999,
+      "escapes": 374471
     },
     {
       "difficulty": "high",
@@ -1657,8 +1692,8 @@
       "block": 7,
       "payout": 2005475,
       "expectedReturn": 0.89999957634048,
-      "observedReturn": 0.89654759875,
-      "escapes": 89410
+      "observedReturn": 0.8987295555500001,
+      "escapes": 224069
     },
     {
       "difficulty": "high",
@@ -1666,8 +1701,8 @@
       "block": 8,
       "payout": 3457717,
       "expectedReturn": 0.899999962283778,
-      "observedReturn": 0.8990928629250001,
-      "escapes": 52005
+      "observedReturn": 0.8988681113199999,
+      "escapes": 129980
     },
     {
       "difficulty": "high",
@@ -1675,8 +1710,8 @@
       "block": 9,
       "payout": 6174494,
       "expectedReturn": 0.8999998685803353,
-      "observedReturn": 0.90132176165,
-      "escapes": 29195
+      "observedReturn": 0.897734380636,
+      "escapes": 72697
     },
     {
       "difficulty": "high",
@@ -1684,8 +1719,8 @@
       "block": 10,
       "payout": 11434249,
       "expectedReturn": 0.8999999356303542,
-      "observedReturn": 0.90124750618,
-      "escapes": 15764
+      "observedReturn": 0.9022994570879999,
+      "escapes": 39456
     },
     {
       "difficulty": "high",
@@ -1693,8 +1728,8 @@
       "block": 11,
       "payout": 21988941,
       "expectedReturn": 0.8999999608178395,
-      "observedReturn": 0.8976985163250001,
-      "escapes": 8165
+      "observedReturn": 0.901282713708,
+      "escapes": 20494
     },
     {
       "difficulty": "high",
@@ -1702,8 +1737,8 @@
       "block": 12,
       "payout": 43977883,
       "expectedReturn": 0.8999999812826713,
-      "observedReturn": 0.8997874861799999,
-      "escapes": 4092
+      "observedReturn": 0.898380193924,
+      "escapes": 10214
     },
     {
       "difficulty": "high",
@@ -1711,8 +1746,8 @@
       "block": 13,
       "payout": 50000000,
       "expectedReturn": 0.4911559647103547,
-      "observedReturn": 0.4987499999999999,
-      "escapes": 1995
+      "observedReturn": 0.49089999999999995,
+      "escapes": 4909
     },
     {
       "difficulty": "high",
@@ -1720,8 +1755,8 @@
       "block": 1,
       "payout": 750000,
       "expectedReturn": 0.9,
-      "observedReturn": 0.89985825,
-      "escapes": 1199811
+      "observedReturn": 0.8997135,
+      "escapes": 2999045
     },
     {
       "difficulty": "high",
@@ -1729,8 +1764,8 @@
       "block": 2,
       "payout": 1071428,
       "expectedReturn": 0.89999952,
-      "observedReturn": 0.89986023436,
-      "escapes": 839870
+      "observedReturn": 0.899851662936,
+      "escapes": 2099655
     },
     {
       "difficulty": "high",
@@ -1738,8 +1773,8 @@
       "block": 3,
       "payout": 1575630,
       "expectedReturn": 0.8999998559999999,
-      "observedReturn": 0.8981043731099999,
-      "escapes": 569997
+      "observedReturn": 0.9004460744159999,
+      "escapes": 1428708
     },
     {
       "difficulty": "high",
@@ -1747,8 +1782,8 @@
       "block": 4,
       "payout": 2387318,
       "expectedReturn": 0.899999787456,
-      "observedReturn": 0.8992048105620001,
-      "escapes": 376659
+      "observedReturn": 0.9007188476376,
+      "escapes": 943233
     },
     {
       "difficulty": "high",
@@ -1756,8 +1791,8 @@
       "block": 5,
       "payout": 3730185,
       "expectedReturn": 0.8999999382528,
-      "observedReturn": 0.8978406087599999,
-      "escapes": 240696
+      "observedReturn": 0.9010634886000001,
+      "escapes": 603900
     },
     {
       "difficulty": "high",
@@ -1765,8 +1800,8 @@
       "block": 6,
       "payout": 6016427,
       "expectedReturn": 0.8999998755213312,
-      "observedReturn": 0.8977652205129999,
-      "escapes": 149219
+      "observedReturn": 0.9011909740467999,
+      "escapes": 374471
     },
     {
       "difficulty": "high",
@@ -1774,8 +1809,8 @@
       "block": 7,
       "payout": 10027379,
       "expectedReturn": 0.8999999353575013,
-      "observedReturn": 0.8965479563900001,
-      "escapes": 89410
+      "observedReturn": 0.8987299140604,
+      "escapes": 224069
     },
     {
       "difficulty": "high",
@@ -1783,8 +1818,8 @@
       "block": 8,
       "payout": 17288585,
       "expectedReturn": 0.899999962283778,
-      "observedReturn": 0.899092862925,
-      "escapes": 52005
+      "observedReturn": 0.8988681113199999,
+      "escapes": 129980
     },
     {
       "difficulty": "high",
@@ -1792,8 +1827,8 @@
       "block": 9,
       "payout": 30872474,
       "expectedReturn": 0.899999985189064,
-      "observedReturn": 0.9013218784299999,
-      "escapes": 29195
+      "observedReturn": 0.8977344969512,
+      "escapes": 72697
     },
     {
       "difficulty": "high",
@@ -1801,8 +1836,8 @@
       "block": 10,
       "payout": 50000000,
       "expectedReturn": 0.7871089178050559,
-      "observedReturn": 0.7882,
-      "escapes": 15764
+      "observedReturn": 0.7891199999999999,
+      "escapes": 39456
     },
     {
       "difficulty": "high",
@@ -1810,8 +1845,8 @@
       "block": 1,
       "payout": 1500000,
       "expectedReturn": 0.9,
-      "observedReturn": 0.89985825,
-      "escapes": 1199811
+      "observedReturn": 0.8997135,
+      "escapes": 2999045
     },
     {
       "difficulty": "high",
@@ -1819,8 +1854,8 @@
       "block": 2,
       "payout": 2142857,
       "expectedReturn": 0.8999999399999999,
-      "observedReturn": 0.8998606542950001,
-      "escapes": 839870
+      "observedReturn": 0.899852082867,
+      "escapes": 2099655
     },
     {
       "difficulty": "high",
@@ -1828,8 +1863,8 @@
       "block": 3,
       "payout": 3151260,
       "expectedReturn": 0.8999998559999999,
-      "observedReturn": 0.8981043731099999,
-      "escapes": 569997
+      "observedReturn": 0.9004460744159999,
+      "escapes": 1428708
     },
     {
       "difficulty": "high",
@@ -1837,8 +1872,8 @@
       "block": 4,
       "payout": 4774637,
       "expectedReturn": 0.899999975952,
-      "observedReturn": 0.8992049988915001,
-      "escapes": 376659
+      "observedReturn": 0.9007190362842,
+      "escapes": 943233
     },
     {
       "difficulty": "high",
@@ -1846,8 +1881,8 @@
       "block": 5,
       "payout": 7460370,
       "expectedReturn": 0.8999999382528,
-      "observedReturn": 0.8978406087599999,
-      "escapes": 240696
+      "observedReturn": 0.9010634886000001,
+      "escapes": 603900
     },
     {
       "difficulty": "high",
@@ -1855,8 +1890,8 @@
       "block": 6,
       "payout": 12032855,
       "expectedReturn": 0.8999999503165439,
-      "observedReturn": 0.8977652951224999,
-      "escapes": 149219
+      "observedReturn": 0.9011910489409999,
+      "escapes": 374471
     },
     {
       "difficulty": "high",
@@ -1864,8 +1899,8 @@
       "block": 7,
       "payout": 20054759,
       "expectedReturn": 0.899999980234629,
-      "observedReturn": 0.8965480010950001,
-      "escapes": 89410
+      "observedReturn": 0.8987299588742,
+      "escapes": 224069
     },
     {
       "difficulty": "high",
@@ -1873,8 +1908,8 @@
       "block": 8,
       "payout": 34577171,
       "expectedReturn": 0.899999988312512,
-      "observedReturn": 0.8990928889275,
-      "escapes": 52005
+      "observedReturn": 0.8988681373159999,
+      "escapes": 129980
     },
     {
       "difficulty": "high",
@@ -1882,8 +1917,8 @@
       "block": 9,
       "payout": 50000000,
       "expectedReturn": 0.7288045535232,
-      "observedReturn": 0.729875,
-      "escapes": 29195
+      "observedReturn": 0.72697,
+      "escapes": 72697
     },
     {
       "difficulty": "high",
@@ -1891,8 +1926,8 @@
       "block": 1,
       "payout": 7500000,
       "expectedReturn": 0.9,
-      "observedReturn": 0.89985825,
-      "escapes": 1199811
+      "observedReturn": 0.8997135,
+      "escapes": 2999045
     },
     {
       "difficulty": "high",
@@ -1900,8 +1935,8 @@
       "block": 2,
       "payout": 10714285,
       "expectedReturn": 0.89999994,
-      "observedReturn": 0.8998606542950001,
-      "escapes": 839870
+      "observedReturn": 0.899852082867,
+      "escapes": 2099655
     },
     {
       "difficulty": "high",
@@ -1909,8 +1944,8 @@
       "block": 3,
       "payout": 15756302,
       "expectedReturn": 0.8999999702399999,
-      "observedReturn": 0.8981044871093999,
-      "escapes": 569997
+      "observedReturn": 0.9004461887126399,
+      "escapes": 1428708
     },
     {
       "difficulty": "high",
@@ -1918,8 +1953,8 @@
       "block": 4,
       "payout": 23873185,
       "expectedReturn": 0.899999975952,
-      "observedReturn": 0.8992049988915,
-      "escapes": 376659
+      "observedReturn": 0.9007190362841999,
+      "escapes": 943233
     },
     {
       "difficulty": "high",
@@ -1927,8 +1962,8 @@
       "block": 5,
       "payout": 37301852,
       "expectedReturn": 0.899999986507776,
-      "observedReturn": 0.8978406568992,
-      "escapes": 240696
+      "observedReturn": 0.901063536912,
+      "escapes": 603900
     },
     {
       "difficulty": "high",
@@ -1936,8 +1971,8 @@
       "block": 6,
       "payout": 50000000,
       "expectedReturn": 0.7479521279999999,
-      "observedReturn": 0.746095,
-      "escapes": 149219
+      "observedReturn": 0.7489419999999999,
+      "escapes": 374471
     },
     {
       "difficulty": "high",
@@ -1945,8 +1980,8 @@
       "block": 1,
       "payout": 15000000,
       "expectedReturn": 0.9,
-      "observedReturn": 0.89985825,
-      "escapes": 1199811
+      "observedReturn": 0.8997135,
+      "escapes": 2999045
     },
     {
       "difficulty": "high",
@@ -1954,8 +1989,8 @@
       "block": 2,
       "payout": 21428571,
       "expectedReturn": 0.899999982,
-      "observedReturn": 0.8998606962885,
-      "escapes": 839870
+      "observedReturn": 0.8998521248601,
+      "escapes": 2099655
     },
     {
       "difficulty": "high",
@@ -1963,8 +1998,8 @@
       "block": 3,
       "payout": 31512605,
       "expectedReturn": 0.8999999987999998,
-      "observedReturn": 0.89810451560925,
-      "escapes": 569997
+      "observedReturn": 0.9004462172868001,
+      "escapes": 1428708
     },
     {
       "difficulty": "high",
@@ -1972,8 +2007,8 @@
       "block": 4,
       "payout": 47746371,
       "expectedReturn": 0.8999999948015999,
-      "observedReturn": 0.8992050177244502,
-      "escapes": 376659
+      "observedReturn": 0.9007190551488601,
+      "escapes": 943233
     },
     {
       "difficulty": "high",
@@ -1981,8 +2016,8 @@
       "block": 5,
       "payout": 50000000,
       "expectedReturn": 0.6031872,
-      "observedReturn": 0.60174,
-      "escapes": 240696
+      "observedReturn": 0.6039,
+      "escapes": 603900
     }
   ]
 }

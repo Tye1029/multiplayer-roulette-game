@@ -1,11 +1,11 @@
-/* MIDNIGHT_RUN_V3_CITY_RISK — shared display math; the server owns the route and clock. */
+/* MIDNIGHT_RUN_V4_CORNER_AMBIENCE — shared display math; the server owns the route and clock. */
 (function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory();else root.MidnightRunRules=factory();})(globalThis,()=>{
  'use strict';
- const build='MIDNIGHT_RUN_V3_CITY_RISK',stakes=[50000,100000,500000,1000000,5000000,10000000];
+ const build='MIDNIGHT_RUN_V4_CORNER_AMBIENCE',stakes=[50000,100000,500000,1000000,5000000,10000000];
  const maxPayout=50000000,countdownMs=3000,blockMs=4500,returnPercent=90;
  const safePercent=[80,88,86,84,82,80,78,76,74,72,70,68,66,64,62,60,58,56,54,52,50,48,46,44];
  const difficulties=['normal','medium','high'];
- const labels={normal:'Normal',medium:'Medium',high:'High Risk'};
+ const labels={normal:'Low Risk',medium:'Medium Risk',high:'High Risk'};
  const chances={normal:safePercent,medium:safePercent.map((n,i)=>n-(i===0?10:9)),high:safePercent.map((n,i)=>n-(i===0?20:18))};
  const validDifficulty=d=>difficulties.includes(d);
  function odds(difficulty='normal'){if(!validDifficulty(difficulty))throw new RangeError('Invalid difficulty');return chances[difficulty];}

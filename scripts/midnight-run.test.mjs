@@ -186,3 +186,23 @@ test('existing V2 corner runs with no difficulty keep original odds and payouts'
   assert.equal((await f.store.cashout(f.a,{...cash(corner),difficulty:'high'})).payout,56250);
  }finally{await f.pg.close();}
 });
+
+test('competing Continue and Cash out cannot undo a choice, skip a block or credit twice',async()=>{
+ const f=await fixture();try{
+  for(const difficulty of rules.difficulties)for(const continueFirst of [true,false]){
+   const start=await f.store.start(f.a,purchase(50000,difficulty));f.at(start.startedAt+rules.blockMs);
+   const corner=await f.store.current(f.a);assert.ok(corner.revision>start.revision);
+   assert.equal((await f.store.current(f.a)).revision,corner.revision,'Read-only polls preserve revision');
+   const before=f.entries().length,advance=()=>f.store.continue(f.a,cash(corner)),escape=()=>f.store.cashout(f.a,cash(corner));
+   const results=await Promise.allSettled(continueFirst?[advance(),escape()]:[escape(),advance()]);
+   assert.equal(results[0].status,'fulfilled');assert.ok(results[0].value.revision>corner.revision);
+   if(continueFirst){
+    assert.equal(results[1].status,'rejected');assert.equal(f.entries().length,before);
+    const moving=results[0].value;assert.equal(moving.cleared,1);f.at(moving.legStartedAt+rules.blockMs);
+    const next=await f.store.current(f.a);await f.store.cashout(f.a,cash(next));
+   }else{assert.equal(results[1].status,'fulfilled');assert.equal(results[1].value.status,'settled');}
+   const final=await f.store.current(f.a);assert.equal(final.status,'settled');assert.equal(f.entries().length,before+1);
+   assert.equal(publicGame(final).revision,final.revision);
+  }
+ }finally{await f.pg.close();}
+});

@@ -1,8 +1,8 @@
-/* MIDNIGHT_RUN_V3_CITY_RISK — original art with world-space lighting, rain and character animation. */
+/* MIDNIGHT_RUN_V4_CORNER_AMBIENCE — original art with world-space lighting, rain and character animation. */
 (() => {
  'use strict';
  const W=720,H=780,images=new Map();
- function art(name){if(!images.has(name)){const img=new Image();img.src='/assets/midnight-run/images/'+name+'.webp?v=MIDNIGHT_RUN_V3_CITY_RISK';images.set(name,img);}return images.get(name);}
+ function art(name){if(!images.has(name)){const img=new Image();img.src='/assets/midnight-run/images/'+name+'.webp?v=MIDNIGHT_RUN_V4_CORNER_AMBIENCE';images.set(name,img);}return images.get(name);}
  const loaded=img=>img.complete&&img.naturalWidth>0;
  const clamp=(n,a=0,b=1)=>Math.max(a,Math.min(b,n));
  class MidnightScene{
@@ -10,17 +10,22 @@
    this.canvas=canvas;this.ctx=canvas.getContext('2d',{alpha:false});this.reduced=matchMedia('(prefers-reduced-motion:reduce)');
    this.streets=['neon-strip','old-quarter','dockside','market-row'].map(art);this.runner=art('runner');this.patrol=art('patrol');this.state={phase:'preview',elapsed:0};
    this.effectAt=0;this.effectKey='';this.previewId='preview-'+crypto.randomUUID();this.routeId='';this.lots=[];
-   this.resize=new ResizeObserver(()=>this.draw(this.state));this.resize.observe(canvas);
+   this.rect={width:0,height:0};this.glows=new Map();this.properties=new Map();this.road=null;this.curb=0;this.lastFrame=performance.now();
+   this.resize=new ResizeObserver(entries=>{this.rect=entries[0].contentRect;this.draw(this.state);});this.resize.observe(canvas);
    for(const img of images.values())img.addEventListener('load',()=>this.draw(this.state));
    this.fog=document.createElement('canvas');this.fog.width=this.fog.height=128;
    const fc=this.fog.getContext('2d'),fg=fc.createRadialGradient(64,64,0,64,64,64);fg.addColorStop(0,'#adc2c252');fg.addColorStop(.5,'#adc2c225');fg.addColorStop(1,'#adc2c200');fc.fillStyle=fg;fc.fillRect(0,0,128,128);
   }
   get ready(){return this.streets.every(loaded)&&loaded(this.runner);}
-  glow(c,x,y,r,color,alpha=1){c.save();c.globalAlpha=alpha;const g=c.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,color);g.addColorStop(1,'transparent');c.fillStyle=g;c.fillRect(x-r,y-r,r*2,r*2);c.restore();}
+  glow(c,x,y,r,color,alpha=1){
+   if(!this.glows.has(color)){const tile=document.createElement('canvas');tile.width=tile.height=128;const ctx=tile.getContext('2d'),g=ctx.createRadialGradient(64,64,0,64,64,64);g.addColorStop(0,color);g.addColorStop(1,'transparent');ctx.fillStyle=g;ctx.fillRect(0,0,128,128);this.glows.set(color,tile);}
+   c.save();c.globalAlpha=alpha;c.drawImage(this.glows.get(color),x-r,y-r,r*2,r*2);c.restore();
+  }
   street(c,travel,t){
    // Keep the roadway continuous; choose each roadside building lot separately.
    const height=1080,y=travel%height-300,road=this.streets[1];
-   for(let n=-1;n<=1;n++)if(loaded(road))c.drawImage(road,0,y+n*height,W,height);
+   if(!this.road&&loaded(road)){this.road=document.createElement('canvas');this.road.width=W;this.road.height=height;this.road.getContext('2d').drawImage(road,0,0,W,height);}
+   for(let n=-1;n<=1;n++)if(this.road)c.drawImage(this.road,0,y+n*height);
    for(let n=-1;n<=1;n++){
     const top=y+n*height,shade=c.createLinearGradient(0,top-25,0,top+25);
     shade.addColorStop(0,'#0b182500');shade.addColorStop(.5,'#0b182585');shade.addColorStop(1,'#0b182500');c.fillStyle=shade;c.fillRect(252,top-25,216,50);
@@ -32,10 +37,13 @@
      const {image,section}=lot[side],img=this.streets[image],x=side?W-lotWidth:0;
      if(!loaded(img))continue;
      // Source and destination crops share the same uniform scale; signs are never mirrored.
-     const scale=img.naturalWidth/W;
-     c.drawImage(img,x*scale,section*lotHeight*scale,lotWidth*scale,lotHeight*scale,x,top,lotWidth,lotHeight);
-     // Shallow access-alley shadows separate adjacent properties without crossing the road.
-     const edge=c.createLinearGradient(0,top,0,top+24);edge.addColorStop(0,'#08131bd9');edge.addColorStop(1,'#08131b00');c.fillStyle=edge;c.fillRect(x,top,lotWidth,24);
+     const key=image+':'+section+':'+side;
+     if(!this.properties.has(key)){
+      const tile=document.createElement('canvas');tile.width=lotWidth;tile.height=lotHeight;const ctx=tile.getContext('2d'),scale=img.naturalWidth/W;
+      ctx.drawImage(img,x*scale,section*lotHeight*scale,lotWidth*scale,lotHeight*scale,0,0,lotWidth,lotHeight);
+      const edge=ctx.createLinearGradient(0,0,0,24);edge.addColorStop(0,'#08131bd9');edge.addColorStop(1,'#08131b00');ctx.fillStyle=edge;ctx.fillRect(0,0,lotWidth,24);this.properties.set(key,tile);
+     }
+     c.drawImage(this.properties.get(key),x,top);
      if(image===0){
       const colors=side?['#ff39cf','#29caff','#ff3975']:['#ffaf35','#28d7ff','#df38ff'];
       const pulse=this.reduced.matches?1:.9+.1*Math.sin(t*1.7+row);
@@ -49,7 +57,7 @@
      c.globalAlpha=Math.sin(cycle*Math.PI)*.21;c.drawImage(this.fog,x-38-cycle*30,y-25,90+cycle*80,45+cycle*45);
     }c.globalAlpha=1;
     c.strokeStyle='#bdd8e829';c.lineWidth=.8;
-    for(let i=0;i<46;i++){const x=(i*179.7+t*24)%W,y=(i*111.37+t*(290+i%5*31))%H;c.beginPath();c.moveTo(x,y);c.lineTo(x-3,y+11);c.stroke();}
+    c.beginPath();for(let i=0;i<46;i++){const x=(i*179.7+t*24)%W,y=(i*111.37+t*(290+i%5*31))%H;c.moveTo(x,y);c.lineTo(x-3,y+11);}c.stroke();
     // Small raindrop ripples sit in the road, beneath the character and vehicles.
     for(let i=0;i<9;i++){const p=(t*.8+i*.371)%1,x=260+(i*71%190),y=(i*163+travel)%H;c.globalAlpha=(1-p)*.11;c.strokeStyle='#d1dfe0';c.beginPath();c.ellipse(x,y,3+p*9,1+p*3,0,0,Math.PI*2);c.stroke();}c.globalAlpha=1;
    }
@@ -68,8 +76,8 @@
   }
   draw(state=this.state){
    const routeId=state.id||this.previewId;if(routeId!==this.routeId){this.routeId=routeId;this.lots=window.MidnightRunStreets.plan(routeId);}
-   this.state=state;if(!this.canvas.getBoundingClientRect().width)return;
-   const rect=this.canvas.getBoundingClientRect(),dpr=Math.min(2,window.devicePixelRatio||1),pw=Math.round(rect.width*dpr),ph=Math.round(rect.height*dpr);
+   this.state=state;if(!this.rect.width)return;
+   const rect=this.rect,dpr=Math.min(2,window.devicePixelRatio||1),pw=Math.round(rect.width*dpr),ph=Math.round(rect.height*dpr);
    if(this.canvas.width!==pw||this.canvas.height!==ph){this.canvas.width=pw;this.canvas.height=ph;}
    const c=this.ctx,scale=Math.max(pw/W,ph/H);c.setTransform(scale,0,0,scale,(pw-W*scale)/2,(ph-H*scale)/2);c.fillStyle='#142127';c.fillRect(0,0,W,H);
    const reduced=this.reduced.matches,preview=state.phase==='preview',running=state.phase==='running',terminal=['caught','escape'].includes(state.phase);
@@ -80,7 +88,11 @@
    this.street(c,travel,t);
    const x=360+(reduced?0:Math.sin(elapsed*.61)*28+Math.sin(elapsed*1.3)*8),baseY=520;
    if(!preview&&state.phase!=='countdown')this.vehicle(c,x+17,state.phase==='caught'?H+85-clamp(effect/1.15)*210:H+85+Math.sin(t*.6)*12,t);
-   let px=x,py=baseY,alpha=1;
+   const now=performance.now(),dt=Math.min(.1,(now-this.lastFrame)/1000);this.lastFrame=now;
+   const resting=state.phase==='corner'||state.phase==='securing',curbTarget=resting?1:0;
+   this.curb=reduced?curbTarget:this.curb+(curbTarget-this.curb)*(1-Math.exp(-dt*5));
+   let px=x+this.curb*(427-x),py=baseY+this.curb*(reduced?0:Math.sin(t*2)*1.8),alpha=1;
+   if(resting)this.glow(c,427,baseY+20,85,'#9cdacc',.11+(reduced?0:Math.sin(t*2)*.025));
    if(state.phase==='escape'){
     const p=clamp(effect/1.75);px+=Math.sin(p*3)*55;py-=p*p*750;alpha=1-clamp((p-.75)*4);
     this.glow(c,x,baseY,145,'#deb678',Math.max(0,.22-effect*.12));
@@ -98,7 +110,8 @@
    if(state.phase==='caught'){
     const g=c.createRadialGradient(x,570,50,x,570,500);g.addColorStop(0,'#16161e00');g.addColorStop(1,'#4e1d2828');c.fillStyle=g;c.fillRect(0,0,W,H);
    }
-   const vignette=c.createRadialGradient(360,420,180,360,420,590);vignette.addColorStop(0,'#06121a00');vignette.addColorStop(1,'#06121a8c');c.fillStyle=vignette;c.fillRect(0,0,W,H);
+   if(!this.vignette){this.vignette=document.createElement('canvas');this.vignette.width=W;this.vignette.height=H;const ctx=this.vignette.getContext('2d'),g=ctx.createRadialGradient(360,420,180,360,420,590);g.addColorStop(0,'#06121a00');g.addColorStop(1,'#06121a8c');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);}
+   c.drawImage(this.vignette,0,0);
   }
  }
  window.MidnightRunScene=MidnightScene;
