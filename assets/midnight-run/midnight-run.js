@@ -1,17 +1,19 @@
-/* MIDNIGHT_RUN_V5_QUICK_CORNERS */
+/* MIDNIGHT_RUN_V6_STORM_FLOW */
 (() => {
  'use strict';
- const rules=window.MidnightRunRules,audio=window.MidnightRunAudio,$=id=>document.getElementById(id),fmt=n=>Number(n).toLocaleString('en-US');
+ const rules=window.MidnightRunRules,audio=window.MidnightRunAudio,$=id=>document.getElementById(id),numberFormat=new Intl.NumberFormat('en-US'),fmt=n=>numberFormat.format(Number(n));
  const active=s=>s?.status==='active',finished=s=>s?.status==='settled',mult=(amount,wager)=>(amount/wager).toFixed(2)+'×';
  const label=(id,text)=>{const el=$(id),value=String(text);if(el.textContent!==value)el.textContent=value;};
  const markup=(id,html)=>{const el=$(id);if(el.dataset.html!==html){el.innerHTML=html;el.dataset.html=html;}};
+ const flag=(id,key,value)=>{const el=$(id);if(el[key]!==value)el[key]=value;};
  let scene,preview,stake=50000,difficulty='normal',game=null,saved=null,demo=false,playing=false,ready=false,busy=false,connecting=false,pending=null,retry=null,epoch=0,pageActive=true;
  let frame=0,frameStamp=0,pollTimer=0,polling=false,serverStamp=0,anchor=0,lastStateAt=0,lastCount=-1,lastCleared=0,lastDrawElapsed=0;
  let nextQuoteKey='',nextQuote=0;
+ const motion=new window.MidnightRunMotion.Clock(),storm=new window.MidnightRunWeather.Storm();
  let frozen=null,celebrated='',revealAt=0,revealed=false,effectUntil=0,practiceCaught=0,heldBalance=null;
  const blockMs=()=>game?.blockMs||rules.blockMs;
  const current=run=>pageActive&&run===epoch,serverTime=()=>serverStamp+Math.min(2000,Math.max(0,performance.now()-anchor));
- window.XanSiteAdapter={current:()=>({mode:'midnight',id:playing&&!demo?game?.id||'':'',phase:playing?(active(game)?'playing':'ready'):'lobby'}),diagnostics:()=>({build:rules.build,ready,busy,connecting,polling,demo,phase:game?.status,cleared:game?.cleared,difficulty:game?.difficulty,scenery:scene?.routeId,artReady:scene?.ready,frames:frame?1:0,audioVoices:audio.active,resultVisible:revealed})};
+ window.XanSiteAdapter={current:()=>({mode:'midnight',id:playing&&!demo?game?.id||'':'',phase:playing?(active(game)?'playing':'ready'):'lobby'}),diagnostics:()=>({build:rules.build,ready,busy,connecting,polling,demo,phase:game?.status,cleared:game?.cleared,difficulty:game?.difficulty,scenery:scene?.routeId,artReady:scene?.ready,frames:frame?1:0,audioVoices:audio.active,resultVisible:revealed,visualElapsed:lastDrawElapsed,lightning:storm.flashes})};
  function notice(text='',again=null){$('mr-notice').textContent=text;retry=again;$('mr-retry').hidden=!again;$('mr-retry').textContent=pending?'Recover run':'Reconnect';}
  function settings(prefix){return '<div class="mr-settings"><label for="'+prefix+'stake">Chips per run<select id="'+prefix+'stake">'+rules.stakes.map(n=>'<option value="'+n+'">'+fmt(n)+' chips</option>').join('')+'</select></label><label for="'+prefix+'difficulty">Difficulty<select id="'+prefix+'difficulty">'+rules.difficulties.map(d=>'<option value="'+d+'">'+rules.labels[d]+' · '+mult(rules.payout(stake,1,d),stake)+'</option>').join('')+'</select></label><p class="mr-setting-note"></p></div>';}
  function configure(){
@@ -34,28 +36,27 @@
   $('mr-round-note').textContent=demo?'Free practice. No chips are spent or awarded.':inRun?'Your runner waits at each cleared corner, even if you leave.':'Choose your wager and start the next run here.';
  }
  function scheduleFrame(){if(!frame&&pageActive&&!document.hidden)frame=requestAnimationFrame(render);}
- function stop(){cancelAnimationFrame(frame);frame=0;clearTimeout(pollTimer);audio.silence();}
+ function stop(){cancelAnimationFrame(frame);frame=0;clearTimeout(pollTimer);audio.silence();storm.reset();}
  function render(stamp){
   frame=0;if(!pageActive||document.hidden)return;
-  const dt=Math.min(100,Math.max(0,stamp-frameStamp));
   if(!playing&&stamp-frameStamp<40){scheduleFrame();return;}frameStamp=stamp;
   if(!playing){preview.draw({phase:'preview',elapsed:0});if(!preview.reduced.matches||!preview.ready)scheduleFrame();return;}
   const now=demo?performance.now():serverTime();
   if(demo&&active(game))advancePractice(now);
   const terminal=finished(game),corners=game?.mode==='corners',atCorner=active(game)&&game.phase==='corner';
-  const legElapsed=now-(game?.legStartedAt??game?.startedAt??now),stale=!demo&&active(game)&&performance.now()-anchor>2000;
+  const serverLegElapsed=now-(game?.legStartedAt??game?.startedAt??now);
+  const visualElapsed=corners?motion.sample(game,stamp,serverLegElapsed):Math.max(0,now-game.startedAt);
+  const legElapsed=corners&&game.phase==='running'?motion.legElapsed:serverLegElapsed,stale=!demo&&active(game)&&performance.now()-anchor>2000;
   if(terminal&&!revealed&&performance.now()>=revealAt)revealResult();
   const holding=active(game)&&frozen!==null,awaiting=active(game)&&!atCorner&&legElapsed>=blockMs();
   const phase=terminal?(game.outcome==='caught'?'caught':'escape'):holding?'securing':atCorner?'corner':awaiting&&corners?'waiting':legElapsed<0?'countdown':'running';
-  const rawElapsed=terminal?game.travelMs:holding?frozen:corners?game.cleared*blockMs()+(atCorner?0:Math.max(0,Math.min(blockMs(),legElapsed))):Math.max(0,now-game.startedAt);
-  // Correct server-clock drift gradually while moving; authoritative corners stay exact.
-  const target=Math.max(lastDrawElapsed,rawElapsed||0);
-  const drawElapsed=phase==='running'&&lastDrawElapsed>0?Math.min(target,lastDrawElapsed+dt*Math.max(.85,Math.min(1.18,1+(target-lastDrawElapsed-dt)/1200))):target;lastDrawElapsed=drawElapsed;
+  const rawElapsed=terminal?game.travelMs:holding?frozen:visualElapsed;
+  const drawElapsed=Math.max(lastDrawElapsed,rawElapsed||0);lastDrawElapsed=drawElapsed;
   const block=Math.min((game?.cleared||0)+1,game?.lastBlock||rules.lastBlock(stake,difficulty));
-  $('mr-countdown').hidden=phase!=='countdown';
-  if(phase==='countdown'){const count=Math.max(1,Math.ceil(-legElapsed/1000));$('mr-countdown').querySelector('strong').textContent=count;if(count!==lastCount){lastCount=count;audio.tick();}}
-  if(phase==='running'&&!stale)audio.run();else{audio.stopRun();if(active(game))audio.ambient();}
-  $('mr-corner').hidden=!atCorner;
+  flag('mr-countdown','hidden',phase!=='countdown');
+  if(phase==='countdown'){const count=Math.max(1,Math.ceil(-legElapsed/1000));if(count!==lastCount){$('mr-countdown').querySelector('strong').textContent=count;lastCount=count;audio.tick();}}
+  if(phase==='running')audio.run();else{audio.stopRun();if(active(game))audio.ambient();}
+  flag('mr-corner','hidden',!atCorner);
   const choiceHome=$(atCorner?'mr-corner-actions':'mr-actions');
   if($('mr-continue').parentElement!==choiceHome)choiceHome.append($('mr-continue'),$('mr-cashout'));
   $('mr-machine').classList.toggle('at-corner',atCorner&&!holding);
@@ -67,16 +68,17 @@
   label('mr-bank-label',terminal&&revealed?(game.outcome==='caught'?'RUN RETURN':'RETURN SECURED'):'CASH-OUT VALUE');
   label('mr-bank-note',terminal?(revealed?(demo?'Practice result · no chips awarded':game.outcome==='caught'?fmt(game.stake)+'-chip wager lost.':'Your return has been credited.'):'Finishing your run…'):holding?'Confirming your escape…':stale?'Connection delayed. Reconnecting…':atCorner?'Corner cleared. Take your time — continue or cash out.':'Running to the next corner…');
   const canChoose=active(game)&&(atCorner||!corners&&game.cleared)&&!busy&&!pending&&!stale&&!holding;
-  $('mr-cashout').disabled=!canChoose;$('mr-continue').disabled=!canChoose||!corners;
+  flag('mr-cashout','disabled',!canChoose);flag('mr-continue','disabled',!canChoose||!corners);
   label('mr-cashout',terminal?'Finishing your run…':holding?'Securing your escape…':pending?'Recover your run':phase==='countdown'?'Ready to run…':stale?'Reconnecting…':!atCorner&&corners?'Reach the next corner…':'Cash out · '+fmt(game.bank));
   label('mr-continue',busy&&pending?.action==='continue'?'Continuing…':'Continue · block '+block);
   const quoteKey=[game?.stake||stake,block,game?.difficulty||difficulty].join(':');
   if(quoteKey!==nextQuoteKey){nextQuoteKey=quoteKey;nextQuote=rules.payout(game?.stake||stake,block,game?.difficulty||difficulty);}const next=nextQuote;
   markup('mr-next-value',fmt(next)+' <small>chips</small>');label('mr-next-multiplier',mult(next,game?.stake||stake));
   const safe=rules.odds(game?.difficulty||difficulty)[block-1];label('mr-next-note',rules.labels[game?.difficulty||difficulty]+(block===1?' · First block.':' · '+safe+'% clear / '+(100-safe)+'% caught'+(block===game?.lastBlock?' · Final block.':'.')));
-  $('mr-next').hidden=terminal;label('mr-route-label',terminal?'Run complete':holding?'Securing your escape':atCorner?'Corner cleared · your choice':'Next corner · block '+block);
-  $('mr-progress').style.width=(terminal||atCorner?100:Math.max(0,Math.min(100,(drawElapsed-(block-1)*blockMs())/blockMs()*100)))+'%';
-  scene.draw({phase,elapsed:drawElapsed,id:game?.id});
+  flag('mr-next','hidden',terminal);label('mr-route-label',terminal?'Run complete':holding?'Securing your escape':atCorner?'Corner cleared · your choice':'Next corner · block '+block);
+  $('mr-progress').style.transform='scaleX('+(terminal||atCorner?1:Math.max(0,Math.min(1,(drawElapsed-(block-1)*blockMs())/blockMs())))+')';
+  const weather=storm.sample(stamp,active(game),scene.reduced.matches);if(weather.thunder)audio.thunder();
+  scene.draw({phase,elapsed:drawElapsed,id:game?.id,lightning:weather.light});
   if(active(game)||!revealed||performance.now()<effectUntil)scheduleFrame();
  }
 
@@ -97,7 +99,7 @@
   controls();scheduleFrame();
  }
  function enter(){
-  playing=true;frozen=null;lastDrawElapsed=0;lastCount=-1;lastCleared=0;revealed=false;celebrated='';
+  playing=true;motion.reset();storm.reset();frozen=null;lastDrawElapsed=0;lastCount=-1;lastCleared=0;revealed=false;celebrated='';
   $('mr-menu').hidden=true;$('mr-play').hidden=false;$('mr-result').hidden=true;paint(false);schedulePoll();
   requestAnimationFrame(()=>$('mr-play').scrollIntoView({block:'start',behavior:'instant'}));
  }

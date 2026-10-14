@@ -1,4 +1,4 @@
-# Midnight Run V5 — quicker blocks and on-screen corner choices
+# Midnight Run V6 — recorded storm ambience and continuous camera travel
 
 Single-player automatic runner at `/games/single-player/midnight-run/`, linked
 from the homepage Single Player section. Shares the verified Torn identity,
@@ -118,14 +118,32 @@ Reduced motion keeps this presentation still.
 Active play now draws on every browser animation frame instead of a 16ms gate that
 could skip refreshes. Canvas dimensions come from ResizeObserver, road/building
 crops and light textures are cached, rain strokes are batched, and next-block
-payout math is cached. Running clock corrections ease within an 18% catch-up limit;
-authoritative arrival, capture and cash-out boundaries are unchanged.
+payout math is cached. Each leg now anchors its visual clock once to monotonic browser time. Later polls
+cannot rewind it or freeze it after the two-second freshness limit; it advances
+only to that leg’s boundary. Choices and outcomes still wait for server confirmation.
+The waiting runner breathes at the curb. Tests inject 3.2-second poll delays and
+backwards clock corrections. Street crops and runner frames are decoded and
+prepared before use, the obscured parts of the base road are no longer painted,
+mobile pixel density is capped at 1.5, and progress uses a compositor transform. Nearby street strips are composited once and evicted offscreen. Canvas resolution can step down to 1x when measured drawing cost is high; unchanged button attributes and countdown text are no longer rewritten every frame.
 
 Recorded concrete footsteps are from [Kenney Impact Sounds](https://kenney.nl/assets/impact-sounds),
-CC0; the included license and original filenames are retained. The rain/traffic noise bed has been removed. The
-quiet minor ostinato, clasp, escape chord, occasional distant dog barks and patrol cue are original Web Audio
-sound design. Footsteps alternate subtly left/right with softer filtering and a
-quiet wet-sole layer. There is no looping rain audio. Distant barks
+CC0; the included license and original filenames are retained. Rain and thunder
+now use edited CC0 field recordings from esh9419’s [Gentle Rain Mix (2018)](https://freesound.org/people/esh9419/sounds/417616/).
+The 23-second rain loop has a one-second seam crossfade, softened high frequencies
+and a 0.06 gain below the 0.48 master, fading in gently. The 14-second thunder
+excerpt uses a softened attack, low-pass filtering and a long release. Both assets
+total about 421 KiB and load only on game interaction; provenance and edits are
+in `assets/midnight-run/audio/Weather-LICENSE.txt`.
+
+A cosmetic storm produces one soft blue-white illumination fading over one second,
+first after 12–22 seconds and then every 24–46 seconds. Thunder follows 1–2.4
+seconds later. No outcome information affects these events. Reduced motion disables
+the illumination; mute suppresses audio; hiding or exiting clears pending weather.
+
+The quiet minor ostinato, clasp, escape chord, occasional distant dog barks and patrol
+cue are original Web Audio sound design. Procedural cues are warmed on the initial
+gesture so first playback does not generate waveforms in an animation frame.
+Footsteps alternate subtly left/right with softer filtering and a quiet wet-sole layer. Distant barks
 start after 10–18 seconds, then occur every 18–40 seconds, independently of outcomes.
 All voices are stopped on mute, hiding or navigation; no background sound timers
 remain. Audio loads/unlocks on interaction, obeys shared mute, and stops
@@ -139,7 +157,7 @@ Mobile places the return below the scene and Continue/Cash out inside the corner
 Desktop uses a scene and side controls. 320px phones, tablets and landscape are
 covered. Reduced motion removes running/scenery movement and softens lighting;
 the authoritative clock and payout rules stay the same. Pixel density is capped
-at 2, hidden rendering stops, and unchanged text is not rewritten every frame.
+at 2 on desktop and 1.5 on phones, hidden rendering stops, and unchanged text is not rewritten every frame.
 
 ## Validation
 

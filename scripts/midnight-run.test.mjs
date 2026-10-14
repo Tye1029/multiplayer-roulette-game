@@ -7,6 +7,31 @@ const {createStore,publicGame,draw}=require('../netlify/functions/midnight-run/d
 const {createWallet}=require('../netlify/functions/rps/wallet'),{createHandler}=require('../netlify/functions/midnight-run-action');
 const purchase=(stake=50000,difficulty='normal')=>({stake,difficulty,quote:rules.build,requestId:crypto.randomUUID()});
 const cash=(s,cleared=s.cleared)=>({gameId:s.id,cleared,requestId:crypto.randomUUID()});
+test('camera clock stays continuous through backwards polls and multi-second network delays',()=>{
+ const {Clock}=require('../assets/midnight-run/motion'),clock=new Clock();
+ const game={id:'city',cleared:0,legStartedAt:10000,status:'active',phase:'running',blockMs:4000};
+ assert.equal(clock.sample(game,1000,-3000),0);assert.equal(clock.sample(game,4000,-3000),0);
+ let previous=0;
+ for(let stamp=4020;stamp<=8000;stamp+=20){
+  const elapsed=clock.sample(game,stamp,stamp%1400<700?900:-400);
+  assert.equal(elapsed-previous,20,'Poll corrections never stall or jump the camera');previous=elapsed;
+ }
+ assert.equal(clock.sample(game,14000,1000),4000,'Never travel beyond an unconfirmed corner');
+ const corner={...game,phase:'corner',cleared:1};assert.equal(clock.sample(corner,15000,5000),4000);
+ const next={...corner,phase:'running',legStartedAt:20000};assert.equal(clock.sample(next,16000,100),4100);
+ assert.equal(clock.sample(next,17000,-900),5100);assert.equal(clock.sample({...next,status:'settled',travelMs:8000},17500,0),8000);
+ clock.reset();assert.equal(clock.sample({...game,id:'old',blockMs:4500},20000,4300),4300);
+});
+
+test('lightning is one bounded fade, thunder follows once, and hidden/reduced motion are respected',()=>{
+ const {Storm}=require('../assets/midnight-run/weather'),storm=new Storm(()=>0);
+ assert.deepEqual(storm.sample(1),{light:0,thunder:false});assert.equal(storm.sample(12001).light,0);
+ assert.ok(storm.sample(12071).light>0);assert.equal(storm.sample(12501,true,true).light,0);
+ assert.equal(storm.sample(13001).thunder,true);assert.equal(storm.sample(13002).thunder,false);assert.equal(storm.flashes,1);
+ for(let t=13003;t<36001;t+=20){const state=storm.sample(t);assert.equal(state.light,0);assert.equal(state.thunder,false);}
+ storm.sample(36001);assert.equal(storm.flashes,2);storm.sample(36100,false);assert.deepEqual(storm.sample(38000),{light:0,thunder:false});
+ storm.reset();assert.equal(storm.flashes,0);
+});
 async function fixture(){
  const pg=new PGlite();let tail=Promise.resolve(),failure=null,clock=Date.now(),random=()=>0;
  const pool={query:(s,a)=>pg.query(s,a),connect:async()=>{let release;const prior=tail;tail=new Promise(r=>release=r);await prior;return {query:(s,a)=>pg.query(s,a),release};}};

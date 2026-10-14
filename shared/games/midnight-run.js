@@ -1,7 +1,7 @@
-/* MIDNIGHT_RUN_V5_QUICK_CORNERS — shared display math; the server owns the route and clock. */
+/* MIDNIGHT_RUN_V6_STORM_FLOW — shared display math; the server owns the route and clock. */
 (function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory();else root.MidnightRunRules=factory();})(globalThis,()=>{
  'use strict';
- const build='MIDNIGHT_RUN_V5_QUICK_CORNERS',stakes=[50000,100000,500000,1000000,5000000,10000000];
+ const build='MIDNIGHT_RUN_V6_STORM_FLOW',stakes=[50000,100000,500000,1000000,5000000,10000000];
  const maxPayout=50000000,countdownMs=3000,blockMs=4000,returnPercent=90;
  const safePercent=[80,88,86,84,82,80,78,76,74,72,70,68,66,64,62,60,58,56,54,52,50,48,46,44];
  const difficulties=['normal','medium','high'];
