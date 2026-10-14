@@ -22,10 +22,12 @@ export async function startPublicPolishServer(root=path.resolve('dist'),port=0,o
  const plinko=require('../netlify/functions/plinko/database').createStore(pool,wallet,options.plinkoRandom,options.plinkoNow);
  const rocket=require('../netlify/functions/rocket-run/database').createStore(pool,wallet,options.rocketRandom,options.rocketNow);
  const midnight=require('../netlify/functions/midnight-run/database').createStore(pool,wallet,options.midnightRandom,options.midnightNow);
+ const derby=require('../netlify/functions/back-alley-derby/database').createStore(pool,wallet,options.derbyRandom,options.derbyNow);
  const diceduel=require('../netlify/functions/dice-duel/database').createStore(pool,wallet,options.diceDuelRandom,options.diceDuelNow);
  const luckyDice=require('../netlify/functions/lucky-dice/database').createStore(pool,wallet,options.luckyDiceRandom,options.luckyDiceNow);
  const duelDice=require('../netlify/functions/dice-duel-multiplayer/database').createStore(pool,options.duelDiceRandom,options.duelDiceNow||Date.now,wallet);
  const handlers={
+  'back-alley-derby-action':require('../netlify/functions/back-alley-derby-action').createHandler(derby,rps,wallet),
   'midnight-run-action':require('../netlify/functions/midnight-run-action').createHandler(midnight,rps,wallet),
   'lucky-dice-action':require('../netlify/functions/lucky-dice-action').createHandler(luckyDice,rps,wallet),
   'dice-duel-multiplayer-action':require('../netlify/functions/dice-duel-multiplayer-action').createHandler(duelDice,rps),

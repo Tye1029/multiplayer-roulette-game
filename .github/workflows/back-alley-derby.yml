@@ -1,0 +1,25 @@
+name: Back Alley Derby
+on:
+  push:
+    branches: [mountain-race-development]
+  pull_request:
+    branches: [safe-cracker-development]
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install --no-package-lock
+      - run: npm install --no-save --no-package-lock @electric-sql/pglite@0.3.14 playwright@1.61.1
+      - run: npx playwright install --with-deps chromium
+      - run: node --test scripts/back-alley-derby.test.mjs scripts/lucky-dice.test.mjs scripts/site-hub.test.mjs
+      - run: node scripts/back-alley-derby-simulation.mjs
+      - run: npm run build
+      - run: node scripts/back-alley-derby-browser.test.mjs
+      - run: node scripts/site-entry-browser.test.mjs

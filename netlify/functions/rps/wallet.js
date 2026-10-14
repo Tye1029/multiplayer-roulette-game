@@ -22,7 +22,7 @@ function createWallet(injectedStore, odds = getGameOddsSettings) {
     const reward=entry.id?.startsWith('achievement:');
     const parts=String(entry.id||'').split(':');
     const achievement=reward&&require('../site-hub/progression').catalog(parts[2]).find(a=>a.id===parts[3]);
-    if (!valid(accountId) || !Number.isSafeInteger(entry.delta) || (reward?(!/^[1-9]\d*$/.test(parts[1])||parts.length!==4||!achievement||achievement.reward!==entry.delta):!/^(rps|four|bluff|yahtzee|minigolf|scratch|junction|minefield|plinko|rocket|diceduel|luckydice|midnight):[A-F0-9]{12}:(stake|refund|payout):[1-9]\d*$/.test(entry.id))) throw new Error('Invalid wallet entry.');
+    if (!valid(accountId) || !Number.isSafeInteger(entry.delta) || (reward?(!/^[1-9]\d*$/.test(parts[1])||parts.length!==4||!achievement||achievement.reward!==entry.delta):!/^(rps|four|bluff|yahtzee|minigolf|scratch|junction|minefield|plinko|rocket|diceduel|luckydice|midnight|derby):[A-F0-9]{12}:(stake|refund|payout):[1-9]\d*$/.test(entry.id))) throw new Error('Invalid wallet entry.');
 
     const key = `user/${accountId}.json`;
     for (let attempt=0;attempt<8;attempt++) {
