@@ -9,14 +9,14 @@
   const centers=[.14,.35,.60,.80],spreads=[.14,.24,.24,.12];
   const paths=Array.from({length:6},(_,id)=>{const rank=order.indexOf(id),x=[0,1700,4000,6600,8700,9800+rank*365+Math.floor(random()*100)],y=[0,...formations.map((f,i)=>centers[i]+spreads[i]*(.5-f.indexOf(id)/5)),1];
    const d=x.slice(1).map((n,i)=>(y[i+1]-y[i])/(n-x[i])),slopes=[d[0]];
-   // Shape-preserving cubics maintain positive speed and continuous velocity,
+   // Shape-preserving cubics plus a 30% linear pace maintain visible forward travel,
    // without pauses or overshoot as racers accelerate and fade.
    for(let i=1;i<x.length-1;i++){const left=x[i]-x[i-1],right=x[i+1]-x[i],w1=2*right+left,w2=right+2*left;slopes.push((w1+w2)/(w1/d[i-1]+w2/d[i]));}slopes.push(d.at(-1));
    return {x,y,slopes,finish:x.at(-1)};
   });
   if(cache.size>=8)cache.delete(cache.keys().next().value);cache.set(key,paths);return paths;
  }
- function position(id,order,seed,elapsed){const p=plan(order,seed)[id];if(elapsed<=0)return 0;if(elapsed>=p.finish)return 1;let i=0;while(elapsed>p.x[i+1])i++;const h=p.x[i+1]-p.x[i],t=(elapsed-p.x[i])/h,t2=t*t,t3=t2*t;return (2*t3-3*t2+1)*p.y[i]+(t3-2*t2+t)*h*p.slopes[i]+(-2*t3+3*t2)*p.y[i+1]+(t3-t2)*h*p.slopes[i+1];}
+ function position(id,order,seed,elapsed){const p=plan(order,seed)[id];if(elapsed<=0)return 0;if(elapsed>=p.finish)return 1;let i=0;while(elapsed>p.x[i+1])i++;const h=p.x[i+1]-p.x[i],t=(elapsed-p.x[i])/h,t2=t*t,t3=t2*t;const curve=(2*t3-3*t2+1)*p.y[i]+(t3-2*t2+t)*h*p.slopes[i]+(-2*t3+3*t2)*p.y[i+1]+(t3-t2)*h*p.slopes[i+1];const turn=8700,base=.725,span=p.finish-turn,u=(elapsed-turn)/span;const pace=elapsed<=turn?elapsed/12000:(2*u*u*u-3*u*u+1)*base+(u*u*u-2*u*u+u)*span/12000+(-2*u*u*u+3*u*u)+(u*u*u-u*u)*(1-base);return .3*pace+.7*curve;}
  function ranking(order,seed,elapsed){return [...order].sort((a,b)=>position(b,order,seed,elapsed)-position(a,order,seed,elapsed));}
  return {position,ranking,plan,hash};
 });

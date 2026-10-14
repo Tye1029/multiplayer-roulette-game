@@ -218,7 +218,6 @@
     if (focus) [...$('game').querySelectorAll('[data-card]')].find(b=>b.dataset.card===focus)?.focus({preventScroll:true});
     const cue = `${s.id}:${s.match}:${s.round}:${s.phase}`;
     if (cue !== lastCue) { lastCue = cue; if (s.phase === 'reveal') tone('reveal'); if (s.phase === 'complete') tone(s.winner === me ? 'win' : s.winner === 'draw' ? 'reveal' : 'lose'); }
-    if (oldPhase !== s.phase && (oldPhase === 'waiting' || s.phase === 'complete')) document.querySelector('.xg-heading,.game-heading').scrollIntoView({ behavior: 'smooth', block: 'start' });
     tick();
   }
   function updateSelection() {

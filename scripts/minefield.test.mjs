@@ -29,14 +29,14 @@ test('one active field, private board, immutable wager and idempotent cash-out w
   const next=await f.store.start(f.a,body());assert.notEqual(next.id,s.id);assert.equal(f.entries().length,3);
  }finally{await f.pg.close();}
 });
-test('mine losses cannot be cashed out; every wager and mine choice automatically settles at the cap',async()=>{
+test('mine losses cannot be cashed out; every wager and mine choice automatically settles at the cap or full clear',async()=>{
  const f=await fixture();try{
   const s=await f.store.start(f.a,body()),lost=await f.store.action(f.a,move(s,'reveal',0));assert.equal(lost.status,'settled');assert.equal(lost.outcome,'mine');assert.equal(lost.payout,0);assert.equal(publicGame(lost).hit,0);await assert.rejects(f.store.action(f.a,move(lost,'cashout')),e=>e.status===409);assert.equal(await f.wallet.balance(f.a),1999950000);
   for(const stake of rules.stakes)for(const mines of rules.mineCounts){
    let s=await f.store.start(f.a,body(stake,mines)),lastMove;const startBalance=await f.wallet.balance(f.a),entryCount=f.entries().length;
    const last=rules.lastPick(stake,mines);assert.equal(s.payoutLimit,50000000);
    for(let k=1;k<=last;k++){assert.equal(publicGame(s).nextPayout,rules.payout(stake,mines,k));lastMove={...move(s,'reveal',mines+k-1),payoutLimit:null,payout:999999999999,returnPercent:96};s=await f.store.action(f.a,lastMove);assert.equal(s.payoutLimit,50000000);assert.equal(s.status,k===last?'settled':'active');}
-   assert.equal(s.outcome,'limit');assert.equal(s.payout,50000000);assert.equal(publicGame(s).multiplier,50000000/stake);assert.equal(await f.wallet.balance(f.a),startBalance+50000000);assert.equal(f.entries().length,entryCount+1);
+   const expected=rules.payout(stake,mines,last);assert.equal(s.outcome,expected===50000000?'limit':'clear');assert.equal(s.payout,expected);assert.equal(publicGame(s).multiplier,expected/stake);assert.equal(await f.wallet.balance(f.a),startBalance+expected);assert.equal(f.entries().length,entryCount+1);
    await f.store.action(f.a,lastMove);await f.store.current(f.a);assert.equal(f.entries().length,entryCount+1);await assert.rejects(f.store.action(f.a,move(s,'reveal',0)),e=>e.status===409);
   }
  }finally{await f.pg.close();}

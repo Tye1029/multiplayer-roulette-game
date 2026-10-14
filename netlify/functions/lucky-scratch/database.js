@@ -9,7 +9,7 @@ function draw(tier,random=crypto.randomInt){
   for(let i=spots.length-1;i>0;i--){const j=random(i+1);[spots[i],spots[j]]=[spots[j],spots[i]];}
   return {spots:spots.map(n=>n*tier.price),payout:multiplier*tier.price};
 }
-function publicTicket(s){if(!s)return null;return {id:s.id,tier:s.tier,price:s.price,status:s.status,revealed:s.revealed,spots:['playing','settled'].includes(s.status)?s.spots:[],payout:s.status==='settled'?s.payout:null,createdAt:s.createdAt};}
+function publicTicket(s){if(!s)return null;return {id:s.id,tier:s.tier,price:s.price,status:s.status,revealed:s.revealed,spots:['playing','settled'].includes(s.status)?s.spots.map((amount,i)=>s.status==='settled'||s.revealed.includes(i)?amount:null):[],payout:s.status==='settled'?s.payout:null,createdAt:s.createdAt};}
 function createStore(injectedPool,injectedWallet,random=crypto.randomInt){
   let pool=injectedPool,schema;const wallet=injectedWallet||require('../rps/wallet'),db=()=>pool||(pool=getDatabase({connectionString:process.env.NETLIFY_DB_URL}).pool);
   async function ready(){schema||=db().query(`DO $scratch$ BEGIN

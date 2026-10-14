@@ -1,0 +1,65 @@
+/* XAN_SITE_REFINEMENT_V1: account panels and readable light-theme surfaces. */
+body,main,.duel-screen{overflow-anchor:none}
+.xan-account-panel{width:min(650px,calc(100vw - 28px))}
+.xan-account-panel label,.hub-referral-signup{display:grid;gap:9px;font-size:13px;margin:18px 0;color:var(--hub-text)}
+.xan-account-panel :is(select,input),.hub-referral-signup input{width:100%;min-height:46px;border:1px solid var(--hub-line);background:var(--hub-bg);color:var(--hub-text);border-radius:9px;padding:11px;font:inherit}
+.xan-stat-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:20px 0}
+.xan-stat-grid>div{display:grid;gap:8px;border:1px solid var(--hub-line);border-radius:10px;padding:15px;background:var(--hub-bg);min-width:0}
+.xan-stat-grid span,.xan-account-panel small{color:var(--hub-muted);font-size:12px;line-height:1.6}
+.xan-stat-grid strong{font-size:19px;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.xan-trophy-list{display:grid;gap:10px}.xan-trophy-list article{display:grid;grid-template-columns:28px 1fr;gap:4px 10px;border:1px solid var(--hub-line);border-radius:10px;padding:13px}
+.xan-trophy-list b{grid-row:1/4;color:var(--hub-muted);font-size:24px}.xan-trophy-list .is-earned b{color:#2c9b72}.xan-trophy-list p,.xan-trophy-list small{grid-column:2;margin:0;font-size:12px}
+.xan-trophy-list strong{font-size:14px}.xan-account-close{display:block;margin-top:20px}.xan-account-panel>small{display:block;margin-top:12px}.xan-referral-code{font:700 clamp(17px,4vw,22px) monospace;letter-spacing:.1em;background:var(--hub-bg);border:1px solid var(--hub-line);border-radius:8px;padding:12px}
+.xan-account-panel .xan-referral-title{color:var(--hub-text);font-size:17px;font-weight:700}.xan-account-note{font-size:13px}.xg-withdraw-time{display:block;margin:20px 0 16px;color:var(--hub-muted)}
+/* These legacy buttons have listeners needed by their own runtime, but settings
+   owns the public audio switch. Internal bot harness controls stay available. */
+body.xan-unified :is(button#sound,button#soundBtn,button#duelSoundBtn,button#practice,button#practiceBtn){display:none!important}
+:root[data-theme=light] body.xan-unified{--game-bg:#eef0f2;--game-ink:#24343d;--game-muted:#4e626e;color:#24343d}
+:root[data-theme=light] .xg-heading h1{color:#24343d!important}
+:root[data-theme=light] :is(.xg-description,.xg-wager,.xg-status,.xg-waiting,.xg-heading,.xg-rematch-note,.xg-payout){color:#344a57}
+:root[data-theme=light] :is(.xg-wager input,.xg-join input){color:#24343d;background:#fff;border-color:#95a4ad}
+:root[data-theme=light] :is(.xg-private,.xg-join button,.xg-ready,.xg-invite button,.xg-invite input,.xg-tools button){background:#fff;color:#24343d;border-color:#95a4ad}
+:root[data-theme=light] :is(.xg-private small,.xg-custom summary){color:#4f6270}
+:root[data-theme=light] :is(.scratch-intro,.scratch-controls,.jj-intro,.jj-controls,.mf-intro,.mf-caddy){color:#293d46}
+:root[data-theme=light] :is(.scratch-intro h2,.scratch-controls h2,.jj-intro h2,.jj-controls h2,.mf-intro h2,.mf-caddy h2){color:#293d46}
+:root[data-theme=light] :is(.scratch-intro p,.scratch-controls>p,.scratch-intro label,.scratch-controls label,.jj-intro p,.jj-controls p,.jj-intro label,.jj-controls label,.jj-prize,.mf-intro p,.mf-caddy>p,.mf-choices label,.mf-small,.mf-hero-caption){color:#4b606b!important}
+:root[data-theme=light] :is(.scratch-intro .scratch-kicker,.scratch-controls .scratch-kicker,.scratch-art-note,.jj-intro .jj-kicker,.jj-controls .jj-kicker,.jj-prize strong,.mf-intro .mf-kicker,.mf-caddy>.mf-kicker){color:#745321}
+:root[data-theme=light] :is(.scratch-intro select,.scratch-controls select,.jj-intro select,.jj-controls select,.mf-choices select,.dd-settings select,.pl-settings select,.rr-settings select){background:#fff;color:#253c46;border-color:#9baeb5;color-scheme:light}
+:root[data-theme=light] :is(.scratch-secondary,.jj-secondary,.mf-secondary){background:#fff;color:#334d5c;border-color:#a9bac1}
+:root[data-theme=light] :is(.scratch-intro>a,.jj-intro>a,.jj-controls>a,.mf-intro>a){color:#245d73}
+:root[data-theme=light] :is(#scratch-notice,#jj-notice,.mf-notice,.pl-notice,.rr-notice,.mr-notice,.bd-notice,.dd-notice){color:#654c20}
+/* Artwork, machines and play tables keep their dark interior and light ink. */
+:root[data-theme=light] :is(.bd-ticket,.bd-arena,.bd-hero-frame,.bd-rat,.scratch-ticket,.scratch-result,.mf-table,.mf-payout-limit,.mf-result,.pl-machine,.pl-result,.dd-table,.dd-result,.rr-machine,.rr-result,.mr-machine,.mr-result,.jj-machine){color:#f1e9db}
+:root[data-theme=light] :is(.mr-machine .mr-kicker,.rr-machine .rr-kicker){color:#efcb90}
+:root[data-theme=light] .bd-field-heading>span{color:#4e626a}
+:root[data-theme=light] .xan-dialog :is(li,label,h3){color:var(--hub-text)}
+:root[data-theme=light] .xan-dialog :is(input,select){color:var(--hub-text);background:var(--hub-bg);border:1px solid var(--hub-line)}
+:root[data-theme=light] .xan-brand b{color:#864830}
+:root[data-theme=light] #hub-wallet{color:#634d2b;background:#fff;border-color:#9b815c}
+:root[data-theme=light] :is(.xg-muted,.xg-board-row small,.xg-achievement p){color:#506571}
+:root[data-theme=light] :is(.mf-rewards p,.mf-rewards .mf-payout-limit){color:#c7d0d8!important}
+:root[data-theme=light] .mf-rewards strong{color:#fff}
+:root[data-theme=light] :is(#scratch-tier,#scratch-next-tier){background:#fff;color:#263d46;border-color:#91a6b1}
+:root[data-theme=light] .scratch-caddy{color:#293d46}
+:root[data-theme=light] :is(.scratch-caddy p,.scratch-prizes h3,.scratch-prizes>div,#scratch-progress){color:#4b606b}
+:root[data-theme=light] #scratch-result{background:#fff7e5;color:#5f441b;border-color:#b39b69}
+:root[data-theme=light] .xg-achievements :is(h3,p,small){color:var(--hub-text)}
+@media(max-width:520px){.xan-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.xan-account-panel{padding:20px}.xan-account-panel .hub-actions{align-items:center}.xan-referral-code{letter-spacing:.04em}}
+
+:root[data-theme=light] .xg-exchange{color:#76501b}
+:root[data-theme=light] body.xan-unified{background:radial-gradient(ellipse at top left,#d4e6e8,transparent 65%),linear-gradient(145deg,#f3f0e8,#e2e9ef)!important}
+:root[data-theme=light] :is(.game-column,#game,.yd-arena,#roulette-four #players,#roulette-four #scene){color:#f3eadc}
+:root[data-theme=light] :is(.game-column .rps-pick-character,.game-column #pickTitle,.game-column #callout,#game .hand-head h2,#game .hand-tools button){color:#f3eadc}
+:root[data-theme=light] #game .hand-hint{color:#d3c9dc}
+:root[data-theme=light] #game .hand-hint b{color:#efd49d}
+:root[data-theme=light] #game .hand-head small{color:#d3c9dc}
+:root[data-theme=light] #roulette-four :is(#turn-label,#turn-hint,#risk-label){color:#445c67}
+:root[data-theme=light] .yd-table-divider{color:#b8c9bf}
+:root[data-theme=light] :is(.sc-result-overlay,#fishingResultPortal,.mr-overlay.complete) .xg-person{color:#e4eaf0}
+:root[data-theme=light] :is(.xg-leaderboard,.xg-achievements) button{background:#fff;color:#2b4350;border-color:#9fadb6}
+:root[data-theme=light] .xg-board-tabs [aria-pressed=true]{background:#354e5b;color:#fff;border-color:#354e5b}
+:root[data-theme=light] .xg-board-row strong{color:#755321}
+:root[data-theme=light] .xg-achievement{background:#e4ebed;border-color:#acb9bf}
+:root[data-theme=light] .xg-achievement.is-locked{opacity:1;filter:none}
+:root[data-theme=light] .xg-achievement strong{color:#6c501e}
+:root[data-theme=light] .xg-medal{color:#667781;border-color:#7c8c95}

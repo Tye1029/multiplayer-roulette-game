@@ -1,6 +1,6 @@
 /* PLINKO_V1 — one fair left/right decision at each peg row. */
 (function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory();else root.PlinkoRules=factory();})(globalThis,()=>{
- const build='PLINKO_V1',rows=16,dropMs=3600,maxPayout=50000000,stakes=[50000,100000,500000,1000000,5000000,10000000];
+ const build='PLINKO_V1',rows=16,dropMs=3600,maxPayout=50000000,stakes=[10000,50000,100000,500000,1000000,5000000,10000000];
  // Hundredths of a multiplier, from an outer pocket through the center.
  const risks={low:{name:'Low',description:'Smaller swings. More modest returns.',half:[800,400,200,150,120,110,100,80,65]},medium:{name:'Medium',description:'A balance of steady drops and bigger prizes.',half:[10000,2500,1000,500,300,150,70,50,25]},high:{name:'High',description:'Small center returns. Rare, much larger edges.',half:[100000,13000,3000,800,300,100,50,30,10]}};
  const weights=Array.from({length:rows+1},(_,k)=>{let n=1;for(let i=1;i<=k;i++)n=n*(rows-i+1)/i;return n;});

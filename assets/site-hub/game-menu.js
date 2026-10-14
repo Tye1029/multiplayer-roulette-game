@@ -15,7 +15,7 @@
     const heading=el('header',undefined,'xg-heading'),title=el('h1'),tools=el('div',undefined,'xg-tools'),help=el('button','How to play'),extras=el('div',undefined,'xg-extras');
     help.onclick=()=>showRules(mode);tools.append(help,extras);heading.append(title,tools);
     const menu=el('section',undefined,'xg-menu'),left=el('div',undefined,'xg-intro'),description=el('p',undefined,'xg-description'),art=el('div',undefined,'xg-art');
-    const label=el('label','Wager per player · Chips','xg-wager'),stake=el('input');Object.assign(stake,{type:'number',min:'1000',max:'50000',step:'1000',value:'1000',required:true,id:'xg-wager'});label.htmlFor=stake.id;label.append(stake);
+    const label=el('label','Wager per player · Chips','xg-wager'),stake=el('input');Object.assign(stake,{type:'number',min:'10000',max:'50000',step:'1000',value:'10000',required:true,id:'xg-wager'});label.htmlFor=stake.id;label.append(stake);
     const actions=el('div',undefined,'xg-actions'),create=el('button','Create Game','xg-primary'),privateGame=el('button',undefined,'xg-private'),practice=el('button','Test with bot','xg-practice');
     privateGame.append(el('span','Create Private Game'),el('small','INVITE A FRIEND ↗'));actions.append(create,privateGame);
     const form=el('form',undefined,'xg-join'),code=el('input'),join=el('button','Join Game');Object.assign(code,{id:'xg-code',placeholder:'Private Game Code',maxLength:100,autocomplete:'off',required:true});code.setAttribute('aria-label','Private Game Code');join.type='submit';form.append(code,join);
@@ -37,19 +37,19 @@
       const resultRoot=adapter()?.resultRoot?.();if(!resultRoot||!view.finished)return;
       let block=resultRoot.querySelector('.xg-rematch');if(!block){block=el('section',undefined,'xg-rematch');resultRoot.append(block);}
       const key=JSON.stringify([view.id,view.match,view.players,view.votes,view.payout,view.settlement,view.wager]);if(block.dataset.key===key)return;block.dataset.key=key;block.replaceChildren();
-      block.append(el('p',view.settlement==='funding'||view.settlement==='reserved'?'Confirming Chip payouts…':view.wager?chips(view.payout)+' credited · '+chips(view.wager)+' stake':'Practice complete','xg-payout'));
+      block.append(el('p',view.settlement==='funding'||view.settlement==='reserved'?'Confirming Chip payouts…':view.wager?chips(view.payout)+' credited · '+chips(view.wager)+' stake':'Match complete','xg-payout'));
       const roster=el('div',undefined,'xg-roster');
       for(const p of view.players||[]){const accepted=(view.votes||[]).includes(p.id)||p.bot;const person=el('div',undefined,'xg-person');person.classList.toggle('accepted',accepted);const portrait=el('div',undefined,'xg-portrait');let source=p.avatar||p.avatarUrl||'';
         if(!/^(https:\/\/|\/assets\/)/.test(source))source=games[mode]?.[2];
         const image=el('img');image.src=source;image.alt=p.name;image.loading='lazy';portrait.append(image,el('span',accepted?'✓':'…'));person.append(portrait,el('small',p.name),el('small',accepted?'Ready':'Waiting'));roster.append(person);}
-      block.append(roster,el('p',view.wager?'Each player accepts '+chips(view.wager)+' for the rematch. A new stake is reserved for each new match.':'Ready up for another free practice match.','xg-rematch-note'));
+      block.append(roster,el('p',view.wager?'Each player accepts '+chips(view.wager)+' for the rematch. A new stake is reserved for each new match.':'Ready up for another match.','xg-rematch-note'));
     }
     function update(){
       const a=adapter(),c=a?.current?.();const nextMode=c?.mode||Object.keys(paths).find(m=>location.pathname.includes('/'+paths[m]+'/'));if(!games[nextMode]){heading.hidden=menu.hidden=waiting.hidden=open.hidden=true;return;}heading.hidden=open.hidden=false;
       const view=a?.view?.()||{id:c?.id,phase:c?.phase},active=!!view.id;mode=nextMode;
       heading.hidden=legacy&&['countdown','playing'].includes(view.phase);
       host.classList.toggle('hub-has-game',active);document.body.dataset.xanMode=mode;host.dataset.xanActive=String(active);host.dataset.xanPhase=view.phase||'lobby';
-      menu.hidden=active;practice.hidden=true;window.XanGameMenu.addBot=async()=>{if(active&&!(view.phase==='waiting'&&(view.players?.length||0)<2))throw Error('Add a bot before another player joins.');return a?.addBot?a.addBot():a?.practice?.();};window.XanGameMenu.canAddBot=!view.connecting&&!!(a?.addBot||a?.practice)&&(!active||(view.phase==='waiting'&&(view.players?.length||0)<2));stake.min=['bluff','yahtzee','minigolf','diceduel'].includes(mode)?'0':'1000';
+      menu.hidden=active;practice.hidden=true;window.XanGameMenu.addBot=async()=>{if(active&&!(view.phase==='waiting'&&(view.players?.length||0)<2))throw Error('Add a bot before another player joins.');return a?.addBot?a.addBot():a?.practice?.();};window.XanGameMenu.canAddBot=!view.connecting&&!!(a?.addBot||a?.practice)&&(!active||(view.phase==='waiting'&&(view.players?.length||0)<2));stake.min='10000';
       const key=JSON.stringify([mode,view.id,view.phase,view.wager,view.private,view.players?.length]);
       if(key!==last){last=key;title.textContent=games[mode][0];description.textContent=summaries[mode]||games[mode][3];host.style.setProperty('--game-accent',games[mode][4]);
         if(art.dataset.mode!==mode){art.dataset.mode=mode;art.replaceChildren();if(mode==='bluff'){const hero=document.querySelector('#lobby .hero-art');if(hero)art.append(hero);}else window.XanMenuArt?.mount(art,mode);}
@@ -58,7 +58,7 @@
         if(active)history.replaceState(null,'',href(mode,view.id));
       }
       cancelButton.hidden=!view.canCancel;readyButton.hidden=!a?.ready||!['waiting','ready'].includes(view.phase);readyButton.disabled=pending||!view.canReady;readyButton.textContent=view.ready?'Waiting for opponent'+(view.readyDeadline?' · '+Math.max(0,Math.ceil((view.readyDeadline-Date.now())/1000))+'s':''):(view.players?.length||0)<(view.capacity||2)?'Waiting for another player':'Ready';if(view.finished)bubbles(view);
-      if(a?.controls){for(const control of [a.controls()].flat())if(control&&control.parentNode!==extras)extras.append(control);}
+      if(a?.controls){for(const control of [a.controls()].flat())if(control&&control.parentNode!==extras){control.querySelectorAll?.('button').forEach(b=>{if(/sound|mute|audio/i.test(b.id+' '+b.textContent))b.hidden=true;});if(!/sound|mute|audio/i.test(control.id+' '+(control.matches('button')?control.textContent:'')))extras.append(control);}}
 
     }
     const params=new URLSearchParams(location.search);code.value=params.get('room')||params.get('arena')||'';

@@ -1,6 +1,6 @@
 /* MINEFIELD_V3 — exact, shared display math; the server owns every board. */
 (function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory();else root.MinefieldRules=factory();})(globalThis,()=>{
- const size=25,stakes=[50000,100000,500000,1000000,5000000,10000000],mineCounts=[3,6,9,12,15],returnPercent=90,maxPayout=50000000;
+ const size=25,stakes=[10000,50000,100000,500000,1000000,5000000,10000000],mineCounts=[3,6,9,12,15],returnPercent=90,maxPayout=50000000;
  const validMines=n=>mineCounts.includes(n);
  function ratio(mines,picks,percent=returnPercent){
   // Legacy fields may contain any 1–24 mine layout at their original 96% return.

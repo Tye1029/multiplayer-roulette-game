@@ -2,7 +2,7 @@
 const crypto = require('node:crypto');
 const fail = (message, status = 409) => { throw Object.assign(new Error(message), { status }); };
 function wager(value = 0) {
-  if (!Number.isSafeInteger(value) || value < 0 || value > 50000 || value % 1000) fail('Choose 0–50,000 Chips in 1,000-Chip steps.', 400);
+  if (!Number.isSafeInteger(value) || value < 0 || (value > 0 && value < 10000) || value > 50000 || value % 1000) fail('Choose 10,000–50,000 Chips in 1,000-Chip steps.', 400);
   return value;
 }
 async function prepare(s, mode, players, amount, wallet, rematch = false) {

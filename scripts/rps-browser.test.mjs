@@ -52,7 +52,7 @@ try {
   for(const p of [a,b])await p.locator('.rps-pick-character').click();await a.locator('[data-character="lyra"]').click();await b.locator('[data-character="bryn"]').click();
   await a.locator('.xg-primary').click();await a.locator('.xg-waiting').waitFor({state:'visible'});const code=await a.locator('.xg-invite input').inputValue();
   await b.locator('#xg-code').fill(code);await b.locator('.xg-join button').click();
-  await b.waitForFunction(()=>document.querySelector('.xg-join button').textContent.includes('1,000 Chips'));
+  await b.waitForFunction(()=>document.querySelector('.xg-join button').textContent.includes('10,000 Chips'));
   assert.equal(balances.get('200'),100000,'review code does not debit');await b.locator('.xg-join button').click();for(const p of [a,b])await p.locator('.xg-ready:enabled').click();
   assert.equal(await a.locator('#apiKey').count(),0);await a.evaluate(()=>document.getElementById('sound').click());
   await a.waitForFunction(()=>document.querySelector('#fighterB').src.includes('bryn.png'));
@@ -89,7 +89,7 @@ try {
   assert.match(await a.locator('#archStats').textContent(),/1 — 0/);assert.match(await b.locator('#archStats').textContent(),/0 — 1/);
   await a.waitForFunction(()=>document.querySelector('#arena').classList.contains('reaction-cut'));
   assert.equal(await a.locator('#reactionA').getAttribute('data-frame'),'7');
-  assert.match(await a.locator('#payout').textContent(),/1,934 Chips won/);assert.equal(balances.get('100'),100934);
+  assert.match(await a.locator('#payout').textContent(),/19,340 Chips won/);assert.equal(balances.get('100'),109340);
   assert.equal(await b.locator('#confetti i').count(),0,'loser gets no confetti');
   assert.ok(await a.locator('#confetti i').count()>0);
   for(const p of [a,b]){

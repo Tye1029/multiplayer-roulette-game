@@ -15,9 +15,9 @@ async function player(id,width=1280){
 }
 async function menu(p,name){await p.getByRole('button',{name:'Open menu',exact:true}).click();await p.getByRole('button',{name,exact:true}).click();}
 async function debug(p,mode){
- await menu(p,'Debug');const data=JSON.parse(await p.locator('#hub-debug-data').inputValue());assert.equal(data.mode,mode);assert.ok(data.viewport.width);assert.ok(!/TESTPUBLICKEY|visitorKey|token|"hand"|"choices"/.test(JSON.stringify(data)));
- await p.getByRole('button',{name:'Refresh details',exact:true}).click();await p.getByRole('button',{name:'Copy debug',exact:true}).click();await p.getByText('Debug details copied.',{exact:true}).waitFor();assert.equal(JSON.parse(await p.evaluate(()=>navigator.clipboard.readText())).mode,mode);await p.locator('#hub-close').click();
+ await menu(p,'Stats & achievements');await p.locator('#hub-stats-game').selectOption(mode);assert.equal(await p.locator('#hub-diagnostics').count(),0);await p.locator('.xan-stat-grid').waitFor();await p.locator('.xan-account-close').click();
 }
+
 try{
  const bot=await player(1);await bot.getByRole('button',{name:'Create Game',exact:true}).click();await bot.locator('.xg-cancel:visible').waitFor();const oldRoom=new URL(bot.url()).searchParams.get('room');
  // Delay an already-read poll until after replacement, reproducing the navigation race.
@@ -30,8 +30,8 @@ try{
  assert.deepEqual(await bot.evaluate(()=>{paintCheck.running=false;return {blank:paintCheck.blank,menu:paintCheck.menu};}),{blank:0,menu:0});
  assert.equal((await server.bluff.recover(oldRoom)).cancelled,true);assert.equal(await server.wallet.balance({id:'1'}),500000,'Stake was refunded exactly once before free practice');await debug(bot,'bluff');await bot.context().close();
 
- const a=await player(3),b=await player(4,390);await a.locator('#xg-wager').fill('0');await a.getByRole('button',{name:'Create Game',exact:true}).click();await a.locator('.xg-cancel:visible').waitFor();const room=new URL(a.url()).searchParams.get('room');
- await b.locator('#xg-code').fill(room);await b.locator('.xg-join button').click();await b.getByRole('button',{name:'Join · 0 Chips',exact:true}).click();await a.locator('.xg-ready:enabled').waitFor();await a.locator('.xg-ready').click();await b.locator('.xg-ready:enabled').click();await a.locator('#game[data-phase=select]').waitFor();await b.locator('#game[data-phase=select]').waitFor();
+ const a=await player(3),b=await player(4,390);await a.locator('#xg-wager').fill('10000');await a.getByRole('button',{name:'Create Game',exact:true}).click();await a.locator('.xg-cancel:visible').waitFor();const room=new URL(a.url()).searchParams.get('room');
+ await b.locator('#xg-code').fill(room);await b.locator('.xg-join button').click();await b.getByRole('button',{name:'Join · 10,000 Chips',exact:true}).click();await a.locator('.xg-ready:enabled').waitFor();await a.locator('.xg-ready').click();await b.locator('.xg-ready:enabled').click();await a.locator('#game[data-phase=select]').waitFor();await b.locator('#game[data-phase=select]').waitFor();
  await a.evaluate(()=>{window.stableTable=document.querySelector('#game>.table');window.stableCard=document.querySelector('[data-card]');});
  await a.locator('[data-card]').nth(0).click();await a.evaluate(()=>window.stableBack=document.querySelectorAll('.card-pile')[1].firstElementChild);await a.locator('[data-card]').nth(1).click();assert.equal(await a.evaluate(()=>stableBack===document.querySelectorAll('.card-pile')[1].firstElementChild),true,'Selecting another card must not remount existing backs');
  await b.locator('[data-card]').first().click();await b.locator('#lock').click();await a.waitForTimeout(1100);assert.equal(await a.evaluate(()=>stableCard===document.querySelector('[data-card]')&&stableTable===document.querySelector('#game>.table')),true,'Opponent polling preserves the hand and felt');

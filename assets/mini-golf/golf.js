@@ -9,7 +9,7 @@
   const ownShot=()=>state?.suddenDeath?state.shots?.[state.you]:state?.lastShot;
   const suddenOpen=()=>state?.suddenDeath&&['sudden-countdown','sudden-death'].includes(state.phase)&&now()>=state.suddenStartsAt;
   const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;};
-  const controls=el('div',undefined,'golf-course-picker'),select=el('select'),label=el('span',C.courses.length+' courses · '+C.holes.length+' holes');select.id='golf-course';select.setAttribute('aria-label','Choose golf course');for(const c of C.courses){const o=el('option',c.name+' · '+c.difficulty);o.value=c.id;select.append(o);}const solo=el('button','Solo practice','golf-solo');controls.append(label,select,solo);
+  const controls=el('div',undefined,'golf-course-picker'),select=el('select'),label=el('span',C.courses.length+' courses · '+C.holes.length+' holes');select.id='golf-course';select.setAttribute('aria-label','Choose golf course');for(const c of C.courses){const o=el('option',c.name+' · '+c.difficulty);o.value=c.id;select.append(o);}controls.append(label,select);
   let ballDialog,selectedBall='pearl',turnEventSeen='';
   const earnedBalls=()=>window.XanProgress?.profile?.achievements?.minigolf?.filter(a=>a.unlocked).map(a=>a.id)||[];
   function ballButton(){const b=el('button','Golf ball','golf-solo golf-ball-button');b.setAttribute('aria-label','Choose golf ball');b.onclick=()=>{ballDialog||=el('dialog',undefined,'xan-dialog golf-ball-dialog');if(!ballDialog.isConnected)document.body.append(ballDialog);drawBallPicker();ballDialog.showModal();window.XanProgress?.refresh();};return b;}
@@ -59,7 +59,6 @@
   }
   async function join(id,wager){if(busy)return;busy=true;const generation=++epoch;try{const d=await post('join',{wager},id.trim().toUpperCase());local=false;accept(d.game,generation);}finally{busy=false;renderUI();}}
   function practice(bot=false){reset();local=true;state=M.create('practice',{id:'local',name:'You',ballColor:selectedBall},select.value);if(bot){M.join(state,{id:'bot:putter',name:'Pip the Putter',bot:true,ballColor:'coral'});M.act(state,'local',{action:'ready'});}else M.start(state,Date.now());accept(M.publicState(state,'local'));}
-  solo.onclick=()=>practice(false);
   async function addBot(){
     if(!state){if(hasKey())return create({wager:0,bot:true,private:true});return practice(true);}if(local)return;
     if(!state.wager)return action('add-bot');
@@ -181,7 +180,7 @@
   window.XanSiteAdapter={
     current:()=>({mode:'minigolf',id:state?.id||'',phase:state?.phase||'lobby'}),
     view:()=>state?{...state,votes:state.rematch,finished:state.phase==='complete',ready:state.ready.includes(state.players[state.you]?.id),canReady:state.phase==='waiting'&&state.players.length===2&&!state.ready.includes(state.players[state.you]?.id),canCancel:state.phase==='waiting'&&state.you===0,payout:state.payouts?.[state.players[state.you]?.id]||0,connecting:busy}:{phase:'lobby'},
-    create,join,quote:async id=>(await post('quote',{},id.trim().toUpperCase())).quote,ready:()=>action('ready'),addBot,practice:()=>practice(true),controls:()=>controls,resultRoot:()=>result,diagnostics:()=>({build:'POCKET_PUTT_V8',round:(state?.hole||0)+1,revision:state?.revision||0,frames,slowFrames,networkErrors,busy,polling}),cancel:id=>post('cancel',{},id),dismissCancelled:id=>{if(state?.id===id)reset();}
+    create,join,quote:async id=>(await post('quote',{},id.trim().toUpperCase())).quote,ready:()=>action('ready'),addBot,practice:(bot=true)=>practice(bot),controls:()=>controls,resultRoot:()=>result,diagnostics:()=>({build:'POCKET_PUTT_V8',round:(state?.hole||0)+1,revision:state?.revision||0,frames,slowFrames,networkErrors,busy,polling}),cancel:id=>post('cancel',{},id),dismissCancelled:id=>{if(state?.id===id)reset();}
   };
   function animate(timestamp){
     requestAnimationFrame(animate);if(document.hidden)return;frames++;if(lastFrame&&timestamp-lastFrame>60)slowFrames++;lastFrame=timestamp;

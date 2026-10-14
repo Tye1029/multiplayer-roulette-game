@@ -19,7 +19,7 @@ try {
  await page.goto(origin+'/games/single-player/rocket-run/');await page.waitForFunction(()=>XanSiteAdapter.diagnostics().ready);assert.equal(logins,3,'Changing profiles cannot reuse another player’s session');
  await page.locator('#hub-menu').click();await page.locator('#hub-remove').click();await page.waitForURL(origin+'/');assert.equal(await page.evaluate(()=>sessionStorage.getItem('xan-hub-session')),null);
  await context.close();
- // Menus and free play remain usable during an arbitrarily slow login.
+ // Menus remain usable during an arbitrarily slow login.
  for(const [game,practice,settings,paid] of [
   ['rocket-run','#rr-practice','#rr-menu-stake','#rr-start'],
   ['minefield','#mf-practice','#mf-menu-stake','#mf-start'],
@@ -30,12 +30,21 @@ try {
   const p=await ctx.newPage();p.on('pageerror',e=>errors.push(e.message));let release;const gate=new Promise(r=>release=r);
   await p.route('**/.netlify/functions/rps-action',async r=>{await gate;await r.continue();});
   try {
-   await p.goto(origin+'/games/single-player/'+game+'/');await p.locator(practice).waitFor();
-   assert.equal(await p.locator(settings).isEnabled(),true,game+' wager choices stay usable');assert.equal(await p.locator(practice).isEnabled(),true);
+   await p.goto(origin+'/games/single-player/'+game+'/');await p.locator(settings).waitFor();
+   assert.equal(await p.locator(settings).isEnabled(),true,game+' wager choices stay usable');assert.equal(await p.locator(practice).count(),0,'Practice control was removed');
    assert.equal(await p.locator(paid).evaluate(e=>getComputedStyle(e).cursor),'default');
-   await p.locator(practice).tap();assert.equal(await p.evaluate(()=>XanSiteAdapter.diagnostics().demo),true);
+   assert.equal(await p.locator(paid).isDisabled(),true,'A slow login cannot enable an unfunded wager');
   } finally {release();await p.unrouteAll({behavior:'wait'});await ctx.close();}
  }
- assert.equal(server.ledger.size,0,'Free play must not debit any wallet');assert.deepEqual(errors,[]);
- console.log('Site entry passed: session reuse, rejected-token recovery, profile changes, sign-out, responsive settings/practice during slow login, no wait cursor and no practice charges.');
+ // An account switch while authentication is pending must not send the old
+ // account's proposed wager under the replacement account's token.
+ const guarded=await browser.newContext();await guarded.addInitScript(()=>{localStorage.setItem('tornVisitorApiKey','TESTPUBLICKEY001');localStorage.setItem('tornKeyConfirmed','true');});
+ const gp=await guarded.newPage();gp.on('pageerror',e=>errors.push(e.message));await gp.goto(origin+'/games/single-player/plinko/');await gp.waitForFunction(()=>XanSiteAdapter.diagnostics().ready);
+ let releaseLogin,loginStarted=false,gameWrites=0;const loginGate=new Promise(r=>releaseLogin=r);
+ await gp.route('**/.netlify/functions/rps-action',async route=>{loginStarted=true;await loginGate;await route.continue();});
+ gp.on('request',r=>{if(r.url().endsWith('/plinko-action')&&r.postDataJSON()?.action==='drop')gameWrites++;});
+ await gp.evaluate(()=>{localStorage.setItem('tornVisitorApiKey','TESTPUBLICKEY002');window.guardedResult=null;XanHub.gameRequest('plinko-action',{action:'drop',stake:10000,risk:'low',requestId:crypto.randomUUID()}).then(()=>window.guardedResult='unexpected success',e=>window.guardedResult=e.message);});
+ for(let n=0;n<50&&!loginStarted;n++)await gp.waitForTimeout(20);assert.equal(loginStarted,true);await gp.evaluate(()=>localStorage.setItem('tornVisitorApiKey','TESTPUBLICKEY003'));releaseLogin();await gp.waitForFunction(()=>window.guardedResult!==null);assert.match(await gp.evaluate(()=>guardedResult),/profile changed|Connect your Torn/);assert.equal(gameWrites,0);await guarded.close();
+ assert.equal(server.ledger.size,0,'Browsing during login or switching profiles must not debit any wallet');assert.deepEqual(errors,[]);
+ console.log('Site entry passed: session reuse, rejected-token recovery, profile changes, sign-out, responsive settings during slow login, disabled wagers and no practice controls.');
 } finally {await browser.close();await server.close();}

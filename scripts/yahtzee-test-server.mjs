@@ -9,7 +9,8 @@ export async function startTestServer(){
   const pool={query:(s,a)=>pg.query(s,a),connect:async()=>{let release;const prior=tail;tail=new Promise(r=>release=r);await prior;return{query:(s,a)=>pg.query(s,a),release};}};
   const auth=require('../netlify/functions/rps/database').createStore(pool);
   const login=require('../netlify/functions/rps-action').createHandler(auth,async url=>({ok:true,json:async()=>({player_id:new URL(url).searchParams.get('key').endsWith('2')?202:101,name:new URL(url).searchParams.get('key').endsWith('2')?'Clementine':'Juniper'})}));
-  const database=require('../netlify/functions/yahtzee/database').createStore(pool,undefined,()=>Date.now()+timeOffset);
+  const receipts=new Set(),wallet={account:async p=>p.id,balance:async()=>balance,rate:async()=>3.3,apply:async(id,e)=>{if(!receipts.has(e.id)){if(balance+e.delta<0)throw Error('Insufficient balance');receipts.add(e.id);}}};
+  const database=require('../netlify/functions/yahtzee/database').createStore(pool,undefined,()=>Date.now()+timeOffset,wallet);
   const handler=require('../netlify/functions/yahtzee-action').createHandler(database,auth);
   const hub=require('../netlify/functions/site-hub').createHandler({diceduel:require('../netlify/functions/dice-duel-multiplayer/database').createStore(pool),minigolf:require('../netlify/functions/mini-golf/database').createStore(pool),rps:auth,yahtzee:database,bluff:require('../netlify/functions/bluff/database').createStore(pool),wallet:{account:async p=>p.id,balance:async()=>balance,rate:async()=>3.3},data:{duelListGames:async()=>({games:[]})},four:{lobby:async()=>({games:[],joined:[]})},store:{notifications:async()=>[],notify:async()=>{}}});
   const root=path.resolve('dist'),mime={'.html':'text/html','.js':'application/javascript','.css':'text/css','.svg':'image/svg+xml','.png':'image/png','.webp':'image/webp'};

@@ -6,7 +6,7 @@
  const label=(id,text)=>{const el=$(id),value=String(text);if(el.textContent!==value)el.textContent=value;};
  const markup=(id,html)=>{const el=$(id);if(el.dataset.html!==html){el.innerHTML=html;el.dataset.html=html;}};
  const flag=(id,key,value)=>{const el=$(id);if(el[key]!==value)el[key]=value;};
- let scene,preview,stake=50000,difficulty='normal',game=null,saved=null,demo=false,playing=false,ready=false,busy=false,connecting=false,pending=null,retry=null,epoch=0,pageActive=true;
+ let scene,preview,stake=10000,difficulty='normal',game=null,saved=null,demo=false,playing=false,ready=false,busy=false,connecting=false,pending=null,retry=null,epoch=0,pageActive=true;
  let frame=0,frameStamp=0,pollTimer=0,polling=false,serverStamp=0,anchor=0,lastStateAt=0,lastCount=-1,lastCleared=0,lastDrawElapsed=0;
  let nextQuoteKey='',nextQuote=0;
  const motion=new window.MidnightRunMotion.Clock(),storm=new window.MidnightRunWeather.Storm();
@@ -29,10 +29,10 @@
   for(const id of ['mr-menu-stake','mr-play-stake','mr-menu-difficulty','mr-play-difficulty'])$(id).disabled=locked;
   $('mr-start').disabled=busy||connecting||Boolean(pending)||!ready;
   $('mr-start').textContent=connecting?'Connecting your chip balance…':active(saved)?'Resume your run':'Start run · '+fmt(stake)+' chips';
-  $('mr-practice').disabled=busy||Boolean(pending);$('mr-connect').hidden=ready||connecting;
+  $('mr-connect').hidden=ready||connecting;
   $('mr-again').hidden=inRun||ending;$('mr-again').disabled=busy||connecting||Boolean(pending)||(!demo&&!ready);
   $('mr-again').textContent=demo?'Start another free run':active(saved)?'Resume your run':'Run again · '+fmt(stake)+' chips';
-  $('mr-cashout').hidden=!inRun&&!ending;$('mr-continue').hidden=!inRun;$('mr-free-wrap').hidden=inRun||ending;$('mr-free').disabled=locked;$('mr-free').checked=demo;
+  $('mr-cashout').hidden=!inRun&&!ending;$('mr-continue').hidden=!inRun;
   $('mr-round-note').textContent=demo?'Free practice. No chips are spent or awarded.':inRun?'Your runner waits at each cleared corner, even if you leave.':'Choose your wager and start the next run here.';
  }
  function scheduleFrame(){if(!frame&&pageActive&&!document.hidden)frame=requestAnimationFrame(render);}
@@ -101,7 +101,7 @@
  function enter(){
   playing=true;motion.reset();storm.reset();frozen=null;lastDrawElapsed=0;lastCount=-1;lastCleared=0;revealed=false;celebrated='';
   $('mr-menu').hidden=true;$('mr-play').hidden=false;$('mr-result').hidden=true;paint(false);schedulePoll();
-  requestAnimationFrame(()=>$('mr-play').scrollIntoView({block:'start',behavior:'instant'}));
+
  }
  async function request(body){
   const key=localStorage.getItem('tornVisitorApiKey'),token=await window.XanHub.authenticate();
@@ -188,11 +188,11 @@
    $(prefix+'settings').innerHTML=settings(prefix);$(prefix+'stake').onchange=e=>{stake=Number(e.target.value);configure();};$(prefix+'difficulty').onchange=e=>{difficulty=e.target.value;configure();};
   }
   scene=new window.MidnightRunScene($('mr-scene'));preview=new window.MidnightRunScene($('mr-preview'));configure();
-  $('mr-continue').onclick=continueRun;$('mr-start').onclick=start;$('mr-practice').onclick=practice;$('mr-cashout').onclick=cashout;
+  $('mr-continue').onclick=continueRun;$('mr-start').onclick=start;$('mr-cashout').onclick=cashout;
   $('mr-cashout').onpointerdown=e=>{if(e.isPrimary&&e.button===0&&!e.currentTarget.disabled)cashout();};
-  $('mr-again').onclick=()=>demo?practice():start();$('mr-retry').onclick=()=>retry?.();$('mr-free').onchange=e=>{demo=e.target.checked;controls();if(!demo)reconnect();};
+  $('mr-again').onclick=()=>demo?practice():start();$('mr-retry').onclick=()=>retry?.();
   $('mr-help').onclick=()=>{
-   const d=document.createElement('dialog');d.className='xan-dialog mr-help';d.innerHTML='<h2>How to play Midnight Run</h2><ol><li>Choose your wager and difficulty. Low Risk keeps the original odds; Medium Risk and High Risk increase both capture chance and return. Your runner moves after a three-second countdown.</li><li>Each new run takes 4 seconds per block. Survive it and your runner stops at the corner.</li><li>Choose Continue to risk another block, or Cash out to secure your current return, including your wager.</li><li>There is no decision timer. Your runner waits at a cleared corner even if you leave or disconnect.</li><li>Getting caught during a block loses your wager. The next block’s clear/capture chances are shown before you continue. Randomized scenery and patrol lights are atmosphere, not clues.</li><li>Reaching 50,000,000 chips completes the run. Free practice uses the same risks and never spends or awards chips.</li></ol><button class="mr-secondary">Got it</button>';document.body.append(d);d.querySelector('button').onclick=()=>d.close();d.onclose=()=>d.remove();d.showModal();
+   const d=document.createElement('dialog');d.className='xan-dialog mr-help';d.innerHTML='<h2>How to play Midnight Run</h2><ol><li>Choose your wager and difficulty. Low Risk keeps the original odds; Medium Risk and High Risk increase both capture chance and return. Your runner moves after a three-second countdown.</li><li>Each new run takes 4 seconds per block. Survive it and your runner stops at the corner.</li><li>Choose Continue to risk another block, or Cash out to secure your current return, including your wager.</li><li>There is no decision timer. Your runner waits at a cleared corner even if you leave or disconnect.</li><li>Getting caught during a block loses your wager. The next block’s clear/capture chances are shown before you continue. Randomized scenery and patrol lights are atmosphere, not clues.</li><li>Reaching 50,000,000 chips completes the run.</li></ol><button class="mr-secondary">Got it</button>';document.body.append(d);d.querySelector('button').onclick=()=>d.close();d.onclose=()=>d.remove();d.showModal();
   };
   reconnect();scheduleFrame();
  });

@@ -28,7 +28,7 @@ try{
   // Isolate each viewport's practice tables without bypassing room limits.
   const viewerId=String(viewportIndex+1),rivalId='9';
   const context=await browser.newContext({viewport,isMobile:viewport.width<1000,hasTouch:viewport.width<1000});
-  await context.addInitScript(id=>{localStorage.setItem('tornVisitorApiKey','TESTPUBLICKEY00'+id);localStorage.setItem('tornKeyConfirmed','true');localStorage.setItem('xan-muted','1');},viewerId);
+  await context.addInitScript(({id,theme})=>{localStorage.setItem('xan-theme',theme);localStorage.setItem('tornVisitorApiKey','TESTPUBLICKEY00'+id);localStorage.setItem('tornKeyConfirmed','true');localStorage.setItem('xan-muted','1');},{id:viewerId,theme:process.env.MOBILE_THEME||'dark'});
   const p=await context.newPage();p.on('pageerror',e=>errors.push(e.message));
   for(const [mode,url] of Object.entries(routes)){
    await p.goto(server.origin+url);await p.locator(mode==='home'?'.hub-tile':'.xg-heading h1').first().waitFor();await p.locator('#hub-wallet').waitFor();
@@ -38,7 +38,7 @@ try{
     await p.waitForFunction(()=>!!window.XanProgress?.profile?.achievements);await p.getByRole('button',{name:'Achievements',exact:true}).click();await p.locator('.xg-achievements[open]').waitFor();await inspect(p,mode+'-achievements-'+viewport.width);await p.locator('.xg-achievements').getByRole('button',{name:'Close',exact:true}).click();
    }
    if(mode==='home'){
-    await menu(p,'Debug');await inspect(p,'debug-'+viewport.width);await p.locator('#hub-close').click();await p.locator('#hub-wallet').click();await inspect(p,'wallet-'+viewport.width);await p.getByRole('button',{name:'Close',exact:true}).click();
+    await menu(p,'Stats & achievements');await p.locator('#hub-stats-game').waitFor();await inspect(p,'stats-'+viewport.width);await p.locator('.xan-account-close').click();await p.locator('#hub-wallet').click();await inspect(p,'wallet-'+viewport.width);await p.getByRole('button',{name:'Close',exact:true}).click();
    }
    if(['roulette','fishing','safecracker','mountainrace'].includes(mode)){
     const now=Date.now(),who={userId:viewerId,name:'Player '+viewerId},other={userId:rivalId,name:'Player With A Long Name'},g={gameId:'mobile-'+mode,mode,status:'playing',creator:who,joiner:other,isCreator:true,isPlayer:true,creatorReady:true,joinerReady:true,ready:{[viewerId]:true,[rivalId]:true},startAt:new Date(now-15000).toISOString(),serverNow:new Date(now).toISOString(),revision:1,wager:1000,pot:2000};

@@ -32,8 +32,8 @@ function createHandler(database = db, request = fetch) {
       if (body.action === 'rivals') return reply(200, { ok:true, ...await database.rivals(player) });
       if (body.action === 'invitations') return reply(200, { ok:true, invitations:await database.invitations(player) });
       let state;
-      if (['create','challenge'].includes(body.action) && !(body.action==='create' && body.bot===true) && (!Number.isSafeInteger(body.wager)||body.wager<1000||body.wager>50000||body.wager%1000))
-        return reply(400,{error:'Choose 1,000–50,000 Chips in 1,000-Chip steps.'});
+      if (['create','challenge'].includes(body.action) && !(body.action==='create' && body.bot===true) && (!Number.isSafeInteger(body.wager)||body.wager<10000||body.wager>50000||body.wager%1000))
+        return reply(400,{error:'Choose 10,000–50,000 Chips in 1,000-Chip steps.'});
       if(body.action==='quote') {
         const id=String(body.gameId||'').toUpperCase();
         if(!/^[A-F0-9]{12}$/.test(id))return reply(400,{error:'Enter the 12-character arena code.'});

@@ -12,17 +12,17 @@ const reports=require('../netlify/functions/site-hub/store');
 function fixture(){const pg=new PGlite();let tail=Promise.resolve();const pool={query:(sql,args)=>pg.query(sql,args),connect:async()=>{let release;const previous=tail;tail=new Promise(r=>release=r);await previous;return {query:(sql,args)=>pg.query(sql,args),release};}};return {pg,pool};}
 test('four-player seats, full lobby exclusion, wrong principal, cancellation, pot conservation and idempotent settlement',async()=>{
  const {pg,pool}=fixture(),players=[1,2,3,4,5].map(id=>({id:String(id),name:'Player '+id}));
- const balances=new Map(players.map(p=>[p.id,20000])),ledger=new Map();let failAfterWrite=false;
+ const balances=new Map(players.map(p=>[p.id,200000])),ledger=new Map();let failAfterWrite=false;
  const wallet={account:async p=>p.id,rate:async()=>3.3,apply:async(id,e)=>{if(ledger.has(e.id))return balances.get(id);const balance=balances.get(id);if(balance+e.delta<0){const x=new Error('Not enough Chips');x.code='RPS_FUNDS';throw x;}balances.set(id,balance+e.delta);ledger.set(e.id,e.delta);if(failAfterWrite){failAfterWrite=false;throw Error('response lost');}return balance+e.delta;}};
- const db=createStore(pool,wallet);let seq=0;const create=p=>db.create(p,{wager:1000,requestId:(++seq).toString(16).padStart(24,'0')});
+ const db=createStore(pool,wallet);let seq=0;const create=p=>db.create(p,{wager:10000,requestId:(++seq).toString(16).padStart(24,'0')});
  try{
-  let s=await create(players[0]);assert.equal(balances.get('1'),19000);assert.equal((await db.lobby(players[1])).games[0].count,1);
+  let s=await create(players[0]);assert.equal(balances.get('1'),190000);assert.equal((await db.lobby(players[1])).games[0].count,1);
   const kept=s.id;const second=await create(players[0]);assert.notEqual(second.id,kept);assert.equal((await db.lobby(players[0])).games.length,2);
   await assert.rejects(db.action(kept,players[1],{action:'cancel'}),/not seated/);
-  await db.action(second.id,players[0],{action:'cancel'});assert.equal(balances.get('1'),19000);await db.action(second.id,players[0],{action:'get'});assert.equal(balances.get('1'),19000);
-  for(const p of players.slice(1,4))s=await db.action(kept,p,{action:'join',wager:1000});
+  await db.action(second.id,players[0],{action:'cancel'});assert.equal(balances.get('1'),190000);await db.action(second.id,players[0],{action:'get'});assert.equal(balances.get('1'),190000);
+  for(const p of players.slice(1,4))s=await db.action(kept,p,{action:'join',wager:10000});
   assert.equal(s.players.length,4);assert.equal(s.phase,'waiting');for(const p of players.slice(0,3)){s=await db.action(kept,p,{action:'ready'});assert.equal(s.phase,'waiting');}s=await db.action(kept,players[3],{action:'ready'});assert.equal(s.phase,'opening');assert.equal(s.paid.length,4);
-  assert.equal((await db.lobby(players[4])).games.length,0);await assert.rejects(db.action(kept,players[4],{action:'join',wager:1000}),/no longer joinable/);
+  assert.equal((await db.lobby(players[4])).games.length,0);await assert.rejects(db.action(kept,players[4],{action:'join',wager:10000}),/no longer joinable/);
   await assert.rejects(db.action(kept,players[0],{action:'cancel'}),/empty table/);
   await assert.rejects(db.action(kept,players[4],{action:'get'}),/belongs/);
   const publicGame=model.publicState(s,'1');assert.equal('bullet' in publicGame,false);assert.equal('account' in publicGame.players[0],false);assert.equal('paid' in publicGame,false);
@@ -30,13 +30,13 @@ test('four-player seats, full lobby exclusion, wrong principal, cancellation, po
   s.startAt=0;s.deadline=Date.now()+60000;s.bullet=2;await pg.query('UPDATE roulette_four_matches SET state=$2::jsonb WHERE id=$1',[kept,JSON.stringify(s)]);
   s=await db.action(kept,players[0],{action:'get'});const actor=players.find(p=>p.id===s.order[s.turn]);
   const body={action:'act',choice:'shoot',revision:s.revision,actionId:'first-shot'};s=await db.action(kept,actor,body);const revision=s.revision;
-  s=await db.action(kept,actor,body);assert.equal(s.revision,revision);assert.equal(s.players.find(p=>p.id===actor.id).bank,200);
+  s=await db.action(kept,actor,body);assert.equal(s.revision,revision);assert.equal(s.players.find(p=>p.id===actor.id).bank,2000);
   s.actionAfter=0;await pg.query('UPDATE roulette_four_matches SET state=$2::jsonb WHERE id=$1',[kept,JSON.stringify(s)]);
   failAfterWrite=true;await assert.rejects(db.action(kept,actor,{action:'act',choice:'shoot',revision:s.revision,actionId:'fatal-shot'}),/response lost/);
-  s=await db.recover(kept);assert.equal(s.phase,'complete');assert.equal(s.settled,true);assert.equal(s.pot+s.players.reduce((n,p)=>n+p.bank,0),4000);
+  s=await db.recover(kept);assert.equal(s.phase,'complete');assert.equal(s.settled,true);assert.equal(s.pot+s.players.reduce((n,p)=>n+p.bank,0),40000);
   const paid=[...balances.values()].reduce((a,b)=>a+b,0);await db.recover(kept);assert.equal([...balances.values()].reduce((a,b)=>a+b,0),paid);
-  for(const p of players.slice(0,4))s=await db.action(kept,p,{action:'rematch',wager:1000});assert.ok(s.nextMatch);const rematch=await db.recover(s.nextMatch);assert.equal(rematch.paid.length,4);assert.equal(rematch.phase,'opening');
-  const expired=await create(players[4]);expired.deadline=0;await pg.query('UPDATE roulette_four_matches SET state=$2::jsonb WHERE id=$1',[expired.id,JSON.stringify(expired)]);await db.recover(expired.id);assert.equal(balances.get('5'),20000);
+  for(const p of players.slice(0,4))s=await db.action(kept,p,{action:'rematch',wager:10000});assert.ok(s.nextMatch);const rematch=await db.recover(s.nextMatch);assert.equal(rematch.paid.length,4);assert.equal(rematch.phase,'opening');
+  const expired=await create(players[4]);expired.deadline=0;await pg.query('UPDATE roulette_four_matches SET state=$2::jsonb WHERE id=$1',[expired.id,JSON.stringify(expired)]);await db.recover(expired.id);assert.equal(balances.get('5'),200000);
  }finally{await pg.close();}
 });
 test('hub diagnostics exclude secrets, verified sender cannot be spoofed, admin access is checked before reads',async()=>{

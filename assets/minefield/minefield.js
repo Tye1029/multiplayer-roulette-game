@@ -12,7 +12,7 @@
  function controls(){
   const resume=active(saved),locked=busy||Boolean(pending)||(connecting&&!demo),choiceLocked=busy||Boolean(pending)||(!demo&&active(game))||(!playing&&resume);
   for(const id of ['mf-menu-stake','mf-menu-mines','mf-next-stake','mf-next-mines'])$(id).disabled=choiceLocked;
-  $('mf-start').disabled=locked||!ready;$('mf-practice').disabled=busy||Boolean(pending);
+  $('mf-start').disabled=locked||!ready;
   $('mf-start').textContent=connecting?'Connecting…':resume?'Resume your field':'Start field · '+fmt(selection().stake)+' chips';
   $('mf-again').disabled=locked||(!demo&&!ready);$('mf-again').textContent=demo?'Try another free field':'Start new field · '+fmt(selection().stake)+' chips';
   $('mf-cashout').disabled=locked||!active(game)||game.safeCount===0;
@@ -37,7 +37,7 @@
    $(prefix+'stake').value=String(stake);$(prefix+'mines').innerHTML=counts.map(n=>'<option value="'+n+'">'+n+' mines · '+mult(rules.multiplier(n,1,percent))+(!rules.validMines(n)?' · saved field':'')+'</option>').join('');$(prefix+'mines').value=String(mines);
   }
  }
- async function request(body,run){const token=await window.XanHub.authenticate(),r=await window.XanHub.post('minefield-action',{token,...body});if(current(run)&&Number.isFinite(r.balance)&&$('hub-balance'))$('hub-balance').textContent=fmt(r.balance)+' Chips';return r.game;}
+ async function request(body,run){const r=await window.XanHub.gameRequest('minefield-action',body);if(current(run)&&Number.isFinite(r.balance)&&$('hub-balance'))$('hub-balance').textContent=fmt(r.balance)+' Chips';return r.game;}
  function spark(tile){if(matchMedia('(prefers-reduced-motion:reduce)').matches)return;for(let i=0;i<7;i++){const p=document.createElement('i');p.className='mf-spark';p.style.setProperty('--x',Math.cos(i*Math.PI*2/7)*42+'px');p.style.setProperty('--y',Math.sin(i*Math.PI*2/7)*42+'px');p.onanimationend=()=>p.remove();tile.append(p);}}
  function paint(animateTile=null,celebrate=false){
   if(!game)return;const done=finished(game),won=done&&game.outcome!=='mine';
@@ -65,7 +65,7 @@
   $('mf-round-note').textContent=(demo?'Free practice. No chips are spent or awarded.':active(game)?'Wager '+fmt(game.stake)+' chips · Your field is saved.':'Choose your next wager and mine count above.')+' '+(game.payoutLimit==null?'This saved field keeps its original uncapped returns.':'Maximum total return: '+fmt(game.payoutLimit)+' chips. Automatic cash-out at the limit.');
   controls();
  }
- function enter(){playing=true;$('mf-menu').hidden=true;$('mf-play').hidden=false;paint();requestAnimationFrame(()=>$('mf-play').scrollIntoView({block:'start',behavior:'instant'}));}
+ function enter(){playing=true;$('mf-menu').hidden=true;$('mf-play').hidden=false;paint();}
  function menu(){playing=false;demo=false;game=null;$('mf-menu').hidden=false;$('mf-play').hidden=true;controls();}
  function practice(){if(busy||pending)return;demo=true;if(!rules.validMines(selection().mineCount)||selectedReturnPercent!==rules.returnPercent||selectedPayoutLimit!==rules.maxPayout)setSelection(selection().stake,rules.validMines(selection().mineCount)?selection().mineCount:3);const s=selection(),pool=Array.from({length:rules.size},(_,i)=>i);
   for(let i=0;i<s.mineCount;i++){let n;const bound=0x100000000-(0x100000000%(rules.size-i));do{n=crypto.getRandomValues(new Uint32Array(1))[0];}while(n>=bound);const j=i+n%(rules.size-i);[pool[i],pool[j]]=[pool[j],pool[i]];}
@@ -107,10 +107,10 @@
    $(prefix+'stake').innerHTML=rules.stakes.map(n=>'<option value="'+n+'">'+fmt(n)+' chips</option>').join('');
    for(const kind of ['stake','mines'])$(prefix+kind).onchange=()=>{setSelection(Number($(prefix+'stake').value),Number($(prefix+'mines').value));controls();};
   }
-  setSelection(50000,3);
+  setSelection(10000,3);
   for(let i=0;i<rules.size;i++){const tile=document.createElement('button');tile.type='button';tile.className='mf-tile';tile.setAttribute('aria-label','Tile '+String.fromCharCode(65+i%5)+(Math.floor(i/5)+1)+' · covered');tile.onclick=()=>act('reveal',i);tile.onanimationend=e=>{if(e.target===tile.firstElementChild)tile.classList.remove('is-new');};tiles.push(tile);$('mf-grid').append(tile);}
   $('mf-grid').onkeydown=e=>{const at=tiles.indexOf(document.activeElement);if(at<0)return;let target;if(e.key==='ArrowLeft')target=at-1;if(e.key==='ArrowRight')target=at+1;if(e.key==='ArrowUp')target=at-5;if(e.key==='ArrowDown')target=at+5;if(target!==undefined){e.preventDefault();if(target>=0&&target<25&&!tiles[target].disabled)tiles[target].focus();}};
-  $('mf-start').onclick=start;$('mf-practice').onclick=practice;$('mf-cashout').onclick=()=>act('cashout');$('mf-again').onclick=()=>demo?practice():start();$('mf-retry').onclick=()=>retry?.();
+  $('mf-start').onclick=start;$('mf-cashout').onclick=()=>act('cashout');$('mf-again').onclick=()=>demo?practice():start();$('mf-retry').onclick=()=>retry?.();
   $('mf-help').onclick=()=>{const d=document.createElement('dialog');d.className='xan-dialog';d.innerHTML='<h2>How to play Minefield</h2><ol><li>Choose your wager and 3, 6, 9, 12 or 15 mines. Starting a field spends the amount shown.</li><li>Pick any covered tile. A diamond increases your cash-out value. A mine ends the round and loses that wager.</li><li>After at least one diamond, press Cash out to collect your current return, or pick again for a bigger prize.</li><li>The mine selector shows your first-find multiplier. The ladder shows total returns for consecutive safe finds. More mines mean bigger rewards and fewer safe tiles. There are no number clues. The next safe-find value is shown before every choice. Your payout schedule is fixed when the field starts.</li><li>New fields have a maximum total return of 50,000,000 chips, including your wager. Reaching the limit cashes out automatically. Saved fields keep their original payout terms. Profit is shown separately.</li><li>Your unfinished field is saved to your profile. Reconnect or resume it without buying another field. Free fields never spend or award chips.</li></ol><button class="mf-primary">Got it</button>';document.body.append(d);d.querySelector('button').onclick=()=>d.close();d.onclose=()=>d.remove();d.showModal();};
   controls();reconnect();
  });

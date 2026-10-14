@@ -8,8 +8,8 @@ export async function testSudden({server,player,fit,putt}){
   const a=await player('3',1280),b=await player('4',390,844),pa={id:'3',name:'Player 3'},pb={id:'4',name:'Player 4'};
   assert.equal(await a.locator('.hub-all').evaluate(e=>Math.round(e.getBoundingClientRect().height)),42,'All games matches the neighboring buttons');
   assert.equal(await b.locator('.hub-all').isVisible(),false,'Phone navigation stays compact');
-  let s=await server.golf.create(pa,{course:'clover',wager:1000,private:true,requestId:crypto.randomUUID()});
-  await server.golf.action(s.id,pb,{action:'join',wager:1000});await server.golf.action(s.id,pa,{action:'ready'});s=await server.golf.action(s.id,pb,{action:'ready'});
+  let s=await server.golf.create(pa,{course:'clover',wager:10000,private:true,requestId:crypto.randomUUID()});
+  await server.golf.action(s.id,pb,{action:'join',wager:10000});await server.golf.action(s.id,pa,{action:'ready'});s=await server.golf.action(s.id,pb,{action:'ready'});
   await Promise.all([a,b].map(p=>p.goto(server.origin+'/games/multiplayer/mini-golf/?room='+s.id)));
   await Promise.all([a,b].map(p=>p.locator('#golf-table[data-phase=playing]').waitFor()));
   s.hole=2;s.scores=[[3,3],[3,3]];s.balls.forEach(ball=>Object.assign(ball,{holed:true,strokes:2}));s.lastShot=null;M.advance(s,Date.now());
@@ -46,10 +46,10 @@ export async function testSudden({server,player,fit,putt}){
   s=await server.golf.recover(s.id);assert.equal(s.phase,'complete');assert.equal(s.winner,0);assert.equal(s.finance.status,'settled');assert.deepEqual(s.scores,[[3,3,2],[3,3,2]]);
   await Promise.all([a,b].map(p=>p.locator('#golf-table[data-phase=complete]').waitFor()));
   assert.match(await a.locator('#golf-result').innerText(),/You take the round.*First ball in the cup/s);assert.match(await b.locator('#golf-result').innerText(),/Opponent takes the round/);await fit(b,'sudden-result-phone');
-  const balances=await Promise.all([pa,pb].map(p=>server.wallet.balance(p)));assert.equal(balances[1],499000);assert.ok(balances[0]>=500934);
+  const balances=await Promise.all([pa,pb].map(p=>server.wallet.balance(p)));assert.equal(balances[1],490000);assert.ok(balances[0]>=509340);
   await server.golf.recover(s.id);assert.deepEqual(await Promise.all([pa,pb].map(p=>server.wallet.balance(p))),balances,'No duplicate payout');
   await a.locator('#golf-next').click();await b.locator('#golf-next').click();await Promise.all([a,b].map(p=>p.locator('#golf-table[data-phase=playing]').waitFor()));
   s=await server.golf.recover(s.id);assert.equal(s.match,2);assert.equal(s.suddenDeath,false);assert.equal(s.hole,0);assert.deepEqual(s.shots,[]);assert.deepEqual(s.scores,[[],[]]);
-  assert.deepEqual(await Promise.all([pa,pb].map(p=>server.wallet.balance(p))),balances.map(n=>n-1000));
+  assert.deepEqual(await Promise.all([pa,pb].map(p=>server.wallet.balance(p))),balances.map(n=>n-10000));
   await a.close();await b.close();
 }

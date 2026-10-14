@@ -1926,7 +1926,7 @@ function sanitizeWithdrawal(withdrawal) {
 
 
 // ---------------- Top-down Street Runner betting game ----------------
-const RUNNER_VALID_WAGER_MIN = 1000;
+const RUNNER_VALID_WAGER_MIN = 10000;
 const RUNNER_VALID_WAGER_MAX = 2500000;
 const RUNNER_DEATHS = [
   { key: "dogs", title: "Wild Dogs", message: "A pack of stray dogs storms out of an alley and knocks the runner down." },
@@ -2189,7 +2189,7 @@ async function runnerStartGame(user, details = {}) {
     return { record: existing, game: runnerGameWithChance(existing.activeRunnerGame, cfg), alreadyActive: true, runnerOdds: cfg };
   }
   const wager = int(details.wager, 0);
-  if (wager < RUNNER_VALID_WAGER_MIN) throw new Error("Street Runner wager must be at least 1,000 Tickets.");
+  if (wager < RUNNER_VALID_WAGER_MIN) throw new Error("Street Runner wager must be at least 10,000 Tickets.");
   if (wager > RUNNER_VALID_WAGER_MAX) throw new Error(`Street Runner wager cannot be more than ${formatTickets(RUNNER_VALID_WAGER_MAX)}.`);
   const balanceBefore = getRecordBalance(existing);
   if (balanceBefore < wager) throw new Error(`Server balance is only ${formatTickets(balanceBefore)}, not enough for a ${formatTickets(wager)} Street Runner bet.`);
@@ -2416,7 +2416,7 @@ async function runnerCashOut(user, details = {}) {
 
 
 // ---------------- Multiplayer head-to-head scratcher ----------------
-const MP_VALID_WAGER_MIN = 1000;
+const MP_VALID_WAGER_MIN = 10000;
 const MP_HOUSE_EDGE = 0.033;
 const MP_TURN_CHOICE_MS = 0; // turn-order buttons stay available until the coin-flip winner chooses
 const MP_TURN_MS = 5 * 60 * 1000;
@@ -2871,7 +2871,7 @@ async function multiplayerGetGame(gameId, viewerUserId = "") {
 async function multiplayerCreateGame(user, details = {}) {
   await mpClearLegacyGamesForFreshStart();
   const wager = int(details.wager, 0);
-  if (wager < MP_VALID_WAGER_MIN || wager % TICKETS_PER_XAN !== 0) throw new Error("Choose a wager of at least 1,000 Tickets in 1,000 Ticket increments.");
+  if (wager < MP_VALID_WAGER_MIN || wager % TICKETS_PER_XAN !== 0) throw new Error("Choose a wager of at least 10,000 Tickets in 1,000 Ticket increments.");
   const existingActive = await mpFindActiveCreatedGame(user.id);
   if (existingActive) throw new Error("You already have an active multiplayer game. Cancel it or finish it before creating another one.");
   let record = await getUserRecord(user.id);
@@ -3506,7 +3506,7 @@ async function basketballGetGame(gameId, viewerUserId = "") {
 
 async function basketballCreateGame(user, details = {}) {
   const wager = int(details.wager, 0);
-  if (wager < MP_VALID_WAGER_MIN || wager % TICKETS_PER_XAN !== 0) throw new Error("Choose a wager of at least 1,000 Tickets in 1,000 Ticket increments.");
+  if (wager < MP_VALID_WAGER_MIN || wager % TICKETS_PER_XAN !== 0) throw new Error("Choose a wager of at least 10,000 Tickets in 1,000 Ticket increments.");
   let record = await getUserRecord(user.id);
   record = prepareLedgerRecord(record || { userId: String(user.id), name: user.name || "Unknown", ledgerStartedAt: nowIso(), balanceBaseline: 0, financialLedger: [] });
   const balanceBefore = getRecordBalance(record);
@@ -3940,7 +3940,7 @@ const ARCADE_GAME_NAMES = {
   chest: "Treasure Chest",
   soccer: "Soccer Shootout"
 };
-const ARCADE_MIN_WAGER = 1000;
+const ARCADE_MIN_WAGER = 10000;
 const ARCADE_MAX_WAGER = 50000;
 
 function arcadeWeightedPick(items = []) {
@@ -4119,7 +4119,7 @@ const DUEL_ACTIVE_PREFIX = "duel-active/";
 const DUEL_SCHEMA_VERSION = 3;
 const DUEL_WAITING_TTL_MS = 15 * 60 * 1000;
 const DUEL_ACTIVE_TTL_MS = 2 * 60 * 60 * 1000;
-const DUEL_VALID_WAGER_MIN = 1000;
+const DUEL_VALID_WAGER_MIN = 10000;
 const DUEL_VALID_WAGER_MAX = 50000;
 const DUEL_DOUBLE_OR_NOTHING_CREATE = Symbol("duel-double-or-nothing-create");
 function duelGameKey(gameId) { return `${DUEL_GAME_PREFIX}${mpCleanId(gameId)}.json`; }

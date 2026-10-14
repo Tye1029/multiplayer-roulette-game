@@ -89,7 +89,7 @@ test('transactional sessions, concurrent picks, exactly-once results and consens
 const {createWallet}=require('../netlify/functions/rps/wallet.js');
 function fixtureWallet() {
   const rows=new Map(), versions=new Map();let collide=false, crash=false;
-  for(const p of [a,b,c])rows.set(`user/${p.id}.json`,{userId:p.id,balanceUnit:'tickets',ledgerStartedAt:'2026-01-01',balanceBaseline:10000,financialLedger:[],activeTickets:{keep:'untouched'}});
+  for(const p of [a,b,c])rows.set(`user/${p.id}.json`,{userId:p.id,balanceUnit:'tickets',ledgerStartedAt:'2026-01-01',balanceBaseline:100000,financialLedger:[],activeTickets:{keep:'untouched'}});
   const store={get:async key=>structuredClone(rows.get(key)||null),getWithMetadata:async key=>({data:structuredClone(rows.get(key)),etag:String(versions.get(key)||0)}),set:async(key,value,options)=>{
     const data=JSON.parse(value);
     if(collide){collide=false;versions.set(key,(versions.get(key)||0)+1);return {modified:false};}
@@ -101,11 +101,11 @@ function fixtureWallet() {
   return {wallet:createWallet(store,async()=>({multiplayer:{houseCutPercent:3.3}})),rows,collide:()=>{collide=true;},crash:()=>{crash=true;}};
 }
 test('wallet CAS, durable deduplication, insufficient funds and unrelated fields',async()=>{
-  const f=fixtureWallet(),w=f.wallet,entry={id:'rps:ABCDEF123456:stake:100',delta:-1000};f.collide();
+  const f=fixtureWallet(),w=f.wallet,entry={id:'rps:ABCDEF123456:stake:100',delta:-10000};f.collide();
   await Promise.all([w.apply('100',entry),w.apply('100',entry)]);
-  assert.equal(await w.balance(a),9000);assert.equal(f.rows.get('user/100.json').financialLedger.length,1);
+  assert.equal(await w.balance(a),90000);assert.equal(f.rows.get('user/100.json').financialLedger.length,1);
   assert.deepEqual(f.rows.get('user/100.json').activeTickets,{keep:'untouched'});
-  await assert.rejects(w.apply('100',{id:'rps:000000000001:stake:100',delta:-20000}),/Not enough/);
+  await assert.rejects(w.apply('100',{id:'rps:000000000001:stake:100',delta:-200000}),/Not enough/);
   f.rows.set('torn-link/100.json',{userId:'canonical-site-user'});assert.equal(await w.account(a),'canonical-site-user');
 });
 test('wager funding, crash recovery, payouts, refunds, forfeits and rematch consent',async()=>{
@@ -114,48 +114,48 @@ test('wager funding, crash recovery, payouts, refunds, forfeits and rematch cons
   const f=fixtureWallet(),w=f.wallet,db=createStore(pool,w);
   const expire=async(id,field)=>pg.query(`UPDATE rps_matches SET state=jsonb_set(state,'{${field}}','0') WHERE id=$1`,[id]);
   try {
-    f.crash();await assert.rejects(db.create(a,false,null,1000),/Response lost/);
-    assert.equal(await w.balance(a),9000);
-    let s=await db.create(a,false,null,1000);assert.equal(await w.balance(a),9000,'create retry debits once');
-    assert.equal((await db.quote(s.id,b)).wager,1000);
+    f.crash();await assert.rejects(db.create(a,false,null,10000),/Response lost/);
+    assert.equal(await w.balance(a),90000);
+    let s=await db.create(a,false,null,10000);assert.equal(await w.balance(a),90000,'create retry debits once');
+    assert.equal((await db.quote(s.id,b)).wager,10000);
     await assert.rejects(db.act(s.id,b,'join'),/Review and accept/);
     await assert.rejects(db.create(a,true),/Leave/);
     // A failed join releases the seat without disturbing the funded host.
     f.rows.get('user/200.json').balanceBaseline=0;
-    await assert.rejects(db.act(s.id,b,'join',{wager:1000}),/Not enough/);
+    await assert.rejects(db.act(s.id,b,'join',{wager:10000}),/Not enough/);
     assert.equal((await db.act(s.id,a,'get')).players.length,1);
-    f.rows.get('user/200.json').balanceBaseline=10000;
+    f.rows.get('user/200.json').balanceBaseline=100000;
     f.rows.set('torn-link/200.json',{userId:'100'});
-    await assert.rejects(db.act(s.id,b,'join',{wager:1000}),/different Chip accounts/);f.rows.delete('torn-link/200.json');
-    f.crash();await assert.rejects(db.act(s.id,b,'join',{wager:1000}),/Response lost/);
-    s=await db.act(s.id,b,'join',{wager:1000});assert.equal(s.phase,'ready');await db.act(s.id,a,'ready');s=await db.act(s.id,b,'ready');assert.equal(s.phase,'choosing');assert.equal(await w.balance(b),9000);
+    await assert.rejects(db.act(s.id,b,'join',{wager:10000}),/different Chip accounts/);f.rows.delete('torn-link/200.json');
+    f.crash();await assert.rejects(db.act(s.id,b,'join',{wager:10000}),/Response lost/);
+    s=await db.act(s.id,b,'join',{wager:10000});assert.equal(s.phase,'ready');await db.act(s.id,a,'ready');s=await db.act(s.id,b,'ready');assert.equal(s.phase,'choosing');assert.equal(await w.balance(b),90000);
     await db.act(s.id,a,'pick',{choice:'rock',round:1});await db.act(s.id,b,'pick',{choice:'scissors',round:1});
     await expire(s.id,'nextAt');await db.act(s.id,a,'get');
     await db.act(s.id,a,'pick',{choice:'paper',round:2});await db.act(s.id,b,'pick',{choice:'rock',round:2});
-    assert.equal(await w.balance(a),9000,'no early payout spoils the reveal');await expire(s.id,'nextAt');
+    assert.equal(await w.balance(a),90000,'no early payout spoils the reveal');await expire(s.id,'nextAt');
     f.crash();await assert.rejects(db.act(s.id,a,'get'),/Response lost/);
-    s=await db.act(s.id,a,'get');assert.equal(s.finance.payout,1934);assert.equal(await w.balance(a),10934,'payout retry credits once');
+    s=await db.act(s.id,a,'get');assert.equal(s.finance.payout,19340);assert.equal(await w.balance(a),109340,'payout retry credits once');
     const rules=require('../shared/games/rps-model');const view=rules.publicState(s,a.id);
-    assert.equal(view.payout,1934);assert.equal(view.finance,undefined);assert.equal(view.accounts,undefined);
+    assert.equal(view.payout,19340);assert.equal(view.finance,undefined);assert.equal(view.accounts,undefined);
     await assert.rejects(db.act(s.id,a,'rematch'),/Review/);
-    assert.equal((await db.act(s.id,a,'rematch',{wager:1000})).nextMatch,null);
-    assert.equal(await w.balance(a),10934,'first rematch vote does not reserve a stake');
-    const next=(await db.act(s.id,b,'rematch',{wager:1000})).nextMatch;
-    assert.equal(await w.balance(a),9934);assert.equal(await w.balance(b),8000);
+    assert.equal((await db.act(s.id,a,'rematch',{wager:10000})).nextMatch,null);
+    assert.equal(await w.balance(a),109340,'first rematch vote does not reserve a stake');
+    const next=(await db.act(s.id,b,'rematch',{wager:10000})).nextMatch;
+    assert.equal(await w.balance(a),99340);assert.equal(await w.balance(b),80000);
     // Leaving even between hand reveals forfeits; it cannot erase a loss.
     await db.act(next,a,'pick',{choice:'rock',round:1});await db.act(next,b,'pick',{choice:'paper',round:1});
-    const forfeited=await db.act(next,a,'leave');assert.equal(forfeited.winner,1);assert.equal(forfeited.forfeit,true);assert.equal(await w.balance(b),9934);
-    const invite=await db.create(a,false,b,1000);await db.act(invite.id,b,'decline');assert.equal(await w.balance(a),9934);
-    const abandoned=await db.create(a,false,null,1000);await expire(abandoned.id,'deadline');await db.sweep();assert.equal(await w.balance(a),9934,'unjoined stake refunded');
-    const timeout=await db.create(a,false,null,1000);await db.act(timeout.id,b,'join',{wager:1000});await db.act(timeout.id,a,'ready');await db.act(timeout.id,b,'ready');await db.act(timeout.id,a,'pick',{choice:'rock',round:1});await expire(timeout.id,'deadline');await db.sweep();
+    const forfeited=await db.act(next,a,'leave');assert.equal(forfeited.winner,1);assert.equal(forfeited.forfeit,true);assert.equal(await w.balance(b),99340);
+    const invite=await db.create(a,false,b,10000);await db.act(invite.id,b,'decline');assert.equal(await w.balance(a),99340);
+    const abandoned=await db.create(a,false,null,10000);await expire(abandoned.id,'deadline');await db.sweep();assert.equal(await w.balance(a),99340,'unjoined stake refunded');
+    const timeout=await db.create(a,false,null,10000);await db.act(timeout.id,b,'join',{wager:10000});await db.act(timeout.id,a,'ready');await db.act(timeout.id,b,'ready');await db.act(timeout.id,a,'pick',{choice:'rock',round:1});await expire(timeout.id,'deadline');await db.sweep();
     assert.equal((await db.act(timeout.id,b,'get')).winner,0,'locked player wins opponent timeout');
-    assert.equal(await w.balance(a),10868);
+    assert.equal(await w.balance(a),108680);
     // Both idle is a refund, not an invented winner.
-    const idle=await db.create(a,false,null,1000);await db.act(idle.id,b,'join',{wager:1000});await expire(idle.id,'deadline');await db.sweep();assert.equal(await w.balance(a),10868);
+    const idle=await db.create(a,false,null,10000);await db.act(idle.id,b,'join',{wager:10000});await expire(idle.id,'deadline');await db.sweep();assert.equal(await w.balance(a),108680);
     assert.equal((await db.act(idle.id,a,'get')).phase,'cancelled');
     // If the second rematch player cannot fund, the first stake is returned.
-    f.rows.get('user/200.json').balanceBaseline=1000;
-    await db.act(timeout.id,a,'rematch',{wager:1000});const cancelled=(await db.act(timeout.id,b,'rematch',{wager:1000})).nextMatch;
-    assert.equal((await db.act(cancelled,a,'get')).phase,'cancelled');assert.equal(await w.balance(a),10868);
+    f.rows.get('user/200.json').balanceBaseline=10000;
+    await db.act(timeout.id,a,'rematch',{wager:10000});const cancelled=(await db.act(timeout.id,b,'rematch',{wager:10000})).nextMatch;
+    assert.equal((await db.act(cancelled,a,'get')).phase,'cancelled');assert.equal(await w.balance(a),108680);
   } finally {await pg.close();}
 });

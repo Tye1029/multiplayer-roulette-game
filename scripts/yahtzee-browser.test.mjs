@@ -17,13 +17,13 @@ try{
   assert.equal(await a.locator('#show-scores,.yd-live,#opponent-total').count(),0);assert.equal(await a.getByRole('heading',{name:'Open Games',exact:true}).isVisible(),true);
   await a.locator('#hub-menu').click();await a.locator('#hub-dark').uncheck();assert.equal(await a.locator('html').getAttribute('data-theme'),'light');await a.locator('#hub-dark').check();await a.locator('#hub-sound').check();await a.locator('#hub-sound').uncheck();await a.locator('#hub-menu').click();
   assert.equal(await a.locator('#me-name').textContent(),'Juniper (you)');await a.screenshot({path:path.join(output,'desktop-lobby.png'),fullPage:true});await b.screenshot({path:path.join(output,'mobile-lobby.png'),fullPage:true});
-  await a.locator('#xg-wager').fill('0');await a.locator('.xg-primary').click();await a.locator('.xg-waiting').waitFor({state:'visible'});const code=await a.locator('#copy-code').textContent();
+  await a.locator('#xg-wager').fill('10000');await a.locator('.xg-primary').click();await a.locator('.xg-waiting').waitFor({state:'visible'});const code=await a.locator('#copy-code').textContent();
   const opponentColor=await a.locator('#opponent-dice .yd-face').first().evaluate(e=>getComputedStyle(e).backgroundImage);
   await a.locator('#dice-color').click();await a.getByRole('button',{name:'Violet dice',exact:true}).click();await a.locator('#color-done').click();
   assert.equal(await a.locator('#dice').getAttribute('data-color'),'violet');assert.equal(await a.locator('#opponent-dice .yd-face').first().evaluate(e=>getComputedStyle(e).backgroundImage),opponentColor);
   await a.reload();await a.waitForFunction(()=>!document.querySelector('#create').disabled);assert.equal(await a.locator('#dice').getAttribute('data-color'),'violet');assert.equal(await b.locator('#dice').getAttribute('data-color'),'ivory');
 
-  await b.reload();await b.locator('.hub-row').filter({hasText:'Yahtzee'}).getByRole('button',{name:'Join',exact:true}).click();await b.locator('.xg-join button').click();await b.getByRole('button',{name:'Join · 0 Chips',exact:true}).click();for(const p of [a,b])await p.locator('.xg-ready:enabled').click();
+  await b.reload();await b.locator('.hub-row').filter({hasText:'Yahtzee'}).getByRole('button',{name:'Join',exact:true}).click();await b.locator('.xg-join button').click();await b.getByRole('button',{name:'Join · 10,000 Chips',exact:true}).click();for(const p of [a,b])await p.locator('.xg-ready:enabled').click();
   await a.locator('#countdown').waitFor({state:'visible'});assert.equal(await a.locator('#roll').isDisabled(),true);assert.equal(await a.locator('#my-rolls').textContent(),'0 / 3 rolls');await b.locator('#countdown').waitFor({state:'visible'});
   for(const p of [a,b])await p.waitForFunction(()=>!document.querySelector('#roll').disabled);
   // Independent simultaneous rolls must not conflict. Lose one successful response.
@@ -63,7 +63,7 @@ try{
   await fixture.expire(code);await a.waitForFunction(()=>document.querySelector('#me-status').textContent==='Score locked');
   assert.equal(await a.locator('.yd-score-row button.filled').count(),1);
   await b.evaluate(()=>document.getElementById('leave').click());await b.locator('#confirm-leave').click();await b.locator('.xg-menu').waitFor({state:'visible'});
-  await a.locator('.xg-menu').waitFor({state:'visible'});await a.locator('.xg-menu').waitFor({state:'visible'});
+  await a.locator('#result-dialog:visible').waitFor();await a.locator('#skip-tally').click();await a.locator('#result-new').click();await a.locator('.xg-menu').waitFor({state:'visible'});
   await a.locator('#hub-menu').click();await a.locator('#hub-add-bot').click();await a.waitForFunction(()=>document.querySelector('#opponent-name').textContent==='House Bot');
   await a.waitForFunction(()=>document.querySelector('#opponent-rolls').textContent!=='0 / 3 rolls');
   await a.screenshot({path:path.join(output,'desktop-bot.png'),fullPage:true});

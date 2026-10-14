@@ -40,6 +40,7 @@ function createHandler(deps={}){
     if(!identity)return reply(401,{error:'Connect your public API key first.'});
     if(body.action==='read'){await storage.read(identity.id,Array.isArray(body.ids)?body.ids.filter(x=>typeof x==='string'):[]);return reply(200,{ok:true});}
     const progression=deps.progression||require('./site-hub/progression');
+    if(body.action==='referral'){const referrals=deps.referrals||require('./site-hub/referrals');return reply(200,{ok:true,referral:body.code===undefined?await referrals.profile(identity):await referrals.claim(identity,body.code),balance:await chips.balance(identity)});}
     if(body.action==='progress')return reply(200,{ok:true,progress:await progression.profile(identity),board:await progression.leaderboard(body.mode),balance:await chips.balance(identity)});
     if(body.action==='preferences')return reply(200,{ok:true,settings:await progression.preferences(identity,body.settings||{})});
     if(body.action!=='sync')return reply(400,{error:'Unknown action.'});

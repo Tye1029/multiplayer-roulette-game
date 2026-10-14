@@ -98,7 +98,7 @@ test('challenge target is the server-selected rival, never an arbitrary submitte
   const handler=createHandler({authenticate:async()=>a,rivals:async()=>({archRival:b}),create:async(p,bot,target)=>{
     invited=target;assert.equal(p.character,'maximus');return rules.create('ABCDEF123456',p);
   }});
-  const res=await handler({httpMethod:'POST',body:JSON.stringify({action:'challenge',wager:1000,invitedId:'999',character:'<script>'})});
+  const res=await handler({httpMethod:'POST',body:JSON.stringify({action:'challenge',wager:10000,invitedId:'999',character:'<script>'})});
   assert.equal(res.statusCode,200);assert.deepEqual(invited,b);
 });
 

@@ -276,13 +276,13 @@
     $('leave').textContent=g.wager && g.players.length===2?'Forfeit duel':'Leave duel';
     $('practice').disabled = !ended; $('leave').hidden = ended;
     $('pickTitle').textContent = ended ? (g.phase === 'complete' ? 'Settle this again?' : 'The duel ended.') : g.phase === 'waiting' ? 'Waiting for an opponent.' : g.locked[g.seat] ? 'Your hand is locked.' : 'Choose your weapon.';
-    $('roundHint').textContent = g.wager ? `${chips(g.wager)} each · ${g.houseCutPercent}% house cut` : g.suddenDeath && !ended ? '1–1. One hand decides everything.' : 'Free practice · First to two wins.';
+    $('roundHint').textContent = g.wager ? `${chips(g.wager)} each · ${g.houseCutPercent}% house cut` : g.suddenDeath && !ended ? '1–1. One hand decides everything.' : 'First to two wins.';
     connected(Boolean(token));
   }
   function render() {
     const g = game, exhibition = Boolean(practice), bot = g.players.some(p => p.bot);
     $('payout').hidden=g.phase!=='complete';
-    $('payout').textContent=!g.wager?'Free practice · No Chips wagered':g.settlement!=='settled'?'Confirming payout…':g.winner===g.seat?`${chips(g.payout)} won · includes your ${chips(g.wager)} stake`:`${chips(g.wager)} wagered · Better luck next duel.`;
+    $('payout').textContent=!g.wager?'Match complete.':g.settlement!=='settled'?'Confirming payout…':g.winner===g.seat?`${chips(g.payout)} won · includes your ${chips(g.wager)} stake`:`${chips(g.wager)} wagered · Better luck next duel.`;
     $('payout').classList.toggle('loss',g.wager>0 && g.winner!==g.seat);
     $('modeLabel').textContent = exhibition ? 'LOCAL PRACTICE' : bot ? 'REMOTE NETWORK BOT' : 'LIVE 1V1';
     $('name'+(g.seat===0?'A':'B')).after(characterButton);$('nameA').textContent = g.players[0].name + (g.seat === 0 ? ' · YOU' : '');

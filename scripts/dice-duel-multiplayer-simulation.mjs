@@ -18,7 +18,7 @@ for(let n=0;n<matches;n++){
 assert.ok(Math.abs(counts[0]/matches-.5)<.003);
 // Exercise the actual settlement code at every offered wager, not a second payout formula.
 let profit=0;
-for(let wager=1000;wager<=50000;wager+=1000){
+for(let wager=10000;wager<=50000;wager+=1000){
  const s={wager,players:[{id:'101'},{id:'202'}]},entries=new Map();
  const wallet={account:async p=>p.id,rate:async()=>3.3,apply:async(id,e)=>{entries.set(e.id,e.delta);}};
  await finance.prepare(s,'diceduel',s.players,wager,wallet);
@@ -27,5 +27,5 @@ for(let wager=1000;wager<=50000;wager+=1000){
  await finance.recover(s,wallet,()=>({done:true,winner:'101'}));assert.equal(entries.size,4);
  const house=-[...entries.values()].reduce((a,b)=>a+b,0);assert.equal(house,Math.ceil(2*wager*.033));assert.ok(house>0);profit+=house;
 }
-console.log(JSON.stringify({matches,rounds,ties,playerWins:counts,configuredRatePercent:3.3,houseProfitAt1000PerPlayer:matches*66,settlementChecks:50,houseProfitAcrossStakeChecks:profit}));
+console.log(JSON.stringify({matches,rounds,ties,playerWins:counts,configuredRatePercent:3.3,houseProfitAt10000PerPlayer:matches*660,settlementChecks:41,houseProfitAcrossStakeChecks:profit}));
 console.log('First to two is symmetric. Every settled funded match retains its configured cut once; ties add no charges. Refunded matches and free bots generate no house revenue.');

@@ -12,9 +12,9 @@
   <script src="/assets/rps/audio.js?v=5" defer></script>
   <script src="/assets/rps/cinema.js?v=5" defer></script>
   <script src="/assets/rps/debug.js?v=5" defer></script>
-  <script src="/assets/rps/arena.js?v=6&unified=1" defer></script>
+  <script src="/assets/rps/arena.js?v=XAN_SITE_REFINEMENT_V1" defer></script>
 <link rel="stylesheet" href="/assets/rps/cinema.css?v=5">
-<link rel="stylesheet" href="/assets/site-hub/hub.css?v=6"><script src="/assets/site-hub/preferences.js?v=2"></script><script defer src="/assets/site-hub/public-polish.js?v=XAN_PUBLIC_POLISH_V2"></script><script defer src="/assets/site-hub/progression.js?v=XAN_RESULT_BALANCE_V1"></script><script defer src="/assets/site-hub/game-menu.js?v=XAN_HUB_V4_SHARED_DEBUG"></script><script defer src="/assets/site-hub/hub.js?v=XAN_RESULT_BALANCE_V1"></script><link rel="stylesheet" href="/assets/site-hub/game-menu.css?v=XAN_PUBLIC_POLISH_V2"><link rel="stylesheet" href="/assets/site-hub/public-polish.css?v=XAN_RESULT_BALANCE_V1"><link rel="stylesheet" href="/assets/site-hub/mobile.css?v=XAN_MOBILE_V1">
+<link rel="stylesheet" href="/assets/site-hub/hub.css?v=6"><script src="/assets/site-hub/preferences.js?v=2"></script><script defer src="/assets/site-hub/public-polish.js?v=XAN_SITE_REFINEMENT_V1"></script><script defer src="/assets/site-hub/progression.js?v=XAN_RESULT_BALANCE_V1"></script><script defer src="/assets/site-hub/game-menu.js?v=XAN_SITE_REFINEMENT_V1"></script><script defer src="/assets/site-hub/hub.js?v=XAN_SITE_REFINEMENT_V1"></script><link rel="stylesheet" href="/assets/site-hub/game-menu.css?v=XAN_PUBLIC_POLISH_V2"><link rel="stylesheet" href="/assets/site-hub/public-polish.css?v=XAN_RESULT_BALANCE_V1"><link rel="stylesheet" href="/assets/site-hub/mobile.css?v=XAN_MOBILE_V1">
 </head>
 <body>
   <main>
@@ -50,7 +50,7 @@
           <div id="identity" class="identity">Practice is ready. Connect for live 1v1.</div>
           <a id="siteLogin" href="/">Sign in on the main site</a>
           <fieldset class="character-picker"><legend>Your gladiator</legend><div id="characters" class="characters"></div><p id="characterHint">Your look, your dramatic entrance.</p></fieldset>
-          <label for="wager">Wager per player · Chips</label><input id="wager" type="number" min="1000" max="50000" step="1000" value="1000" required><p id="wagerHint" class="lobby-status">1,000–50,000 Chips per player. Leaving a funded duel forfeits your stake. A locked hand wins if the opponent times out. Bot practice is free.</p><p id="balance" class="lobby-status"></p><div class="lobby-buttons"><button id="create" class="primary">Challenge A New Opponent <span>↗</span></button><button id="practice">Quick practice <small>Local bot · no key</small></button><button id="remoteBot">Remote Network Bot <small>Server practice</small></button></div>
+          <label for="wager">Wager per player · Chips</label><input id="wager" type="number" min="10000" max="50000" step="1000" value="10000" required><p id="wagerHint" class="lobby-status">10,000–50,000 Chips per player. Leaving a funded duel forfeits your stake. A locked hand wins if the opponent times out.</p><p id="balance" class="lobby-status"></p><div class="lobby-buttons"><button id="create" class="primary">Challenge A New Opponent <span>↗</span></button><button id="practice">Quick practice <small>Local bot · no key</small></button><button id="remoteBot">Remote Network Bot <small>Server practice</small></button></div>
           <p id="lobbyStatus" class="lobby-status" role="status">Connect for online play, or try quick practice.</p>
           <div class="invite" id="invite" hidden><label for="arenaCode">Challenge an opponent</label><div class="input-row"><input id="arenaCode" readonly><button id="copy">Copy link</button></div></div>
           <form id="joinForm"><label for="joinCode">Have an arena code?</label><div class="input-row"><input id="joinCode" placeholder="12-character code" maxlength="12" autocomplete="off"><button id="join" disabled>Join</button></div></form>

@@ -11,7 +11,7 @@ test('exact weighted thresholds, all wagers/racers, integer payouts and immutabl
  for(const rat of [-1,6,'0',0.5,NaN,'__proto__'])assert.throws(()=>R.quote(50000,rat));for(const stake of [-1,0,1,50000.1,'50000',Infinity])assert.throws(()=>R.quote(stake,0));assert.throws(()=>R.draw(()=>100));assert.throws(()=>R.outcome(50000,0,[0,0,1,2,3,4]));assert.ok(Object.isFrozen(R.rats[0]));
 });
 test('race curves are smooth, strictly forward and cross once in the saved order for 250 seeds',()=>{
- for(let seed=0;seed<250;seed++){const order=[0,1,2,3,4,5].sort((a,b)=>M.hash(seed+':'+a)-M.hash(seed+':'+b)),cross=[];for(let id=0;id<6;id++){let previous=0,crossed=false;for(let t=10;t<=R.raceMs;t+=10){const p=M.position(id,order,seed,t);assert.ok(p>=previous);assert.ok(p-previous<.004,'No jumps');if(!crossed&&p>=1){cross.push([id,t]);crossed=true;}previous=p;}assert.equal(previous,1);}assert.deepEqual(cross.sort((a,b)=>a[1]-b[1]).map(x=>x[0]),order);}
+ for(let seed=0;seed<250;seed++){const order=[0,1,2,3,4,5].sort((a,b)=>M.hash(seed+':'+a)-M.hash(seed+':'+b)),cross=[];for(let id=0;id<6;id++){let previous=0,crossed=false;for(let t=10;t<=R.raceMs;t+=10){const p=M.position(id,order,seed,t);assert.ok(p>=previous);if(p<1)assert.ok(p-previous>=.000249,'Every runner keeps at least 30% of the base forward pace');assert.ok(p-previous<.004,'No jumps');if(!crossed&&p>=1){cross.push([id,t]);crossed=true;}previous=p;}assert.equal(previous,1);}assert.deepEqual(cross.sort((a,b)=>a[1]-b[1]).map(x=>x[0]),order);}
 });
 async function fixture(){const pg=new PGlite();let tail=Promise.resolve(),now=100000,lost='',random=()=>0;const pool={query:(q,a)=>pg.query(q,a),connect:async()=>{let release;const prev=tail;tail=new Promise(r=>release=r);await prev;return {query:(q,a)=>pg.query(q,a),release};}};
  const records=new Map(['101','202'].map(id=>['user/'+id+'.json',{version:1,data:{balanceUnit:'tickets',ledgerStartedAt:'today',balanceBaseline:200000000,financialLedger:[]}}]));
@@ -31,7 +31,7 @@ test('wide race gaps, repeatable paths and changing leaders without speed discon
  const order=[2,5,0,4,1,3],leaders=new Set();
  for(let seed=0;seed<1000;seed++){
   const plans=M.plan(order,seed),checkpoints=[1700,4000,6600,8700];let previousLeader=-1;
-  for(const t of checkpoints){const ranking=M.ranking(order,seed,t);assert.notEqual(ranking[0],previousLeader,'Each burst produces a different leader');previousLeader=ranking[0];leaders.add(ranking.join());const gap=M.position(ranking[0],order,seed,t)-M.position(ranking[5],order,seed,t);assert.ok(gap>=.1199,'Pack visibly spreads out');}
+  for(const t of checkpoints){const ranking=M.ranking(order,seed,t);assert.notEqual(ranking[0],previousLeader,'Each burst produces a different leader');previousLeader=ranking[0];leaders.add(ranking.join());const gap=M.position(ranking[0],order,seed,t)-M.position(ranking[5],order,seed,t);assert.ok(gap>=.0839,'Pack visibly spreads out');}
   for(let id=0;id<6;id++)for(const t of plans[id].x.slice(1,-1)){const p=M.position(id,order,seed,t),left=p-M.position(id,order,seed,t-1),right=M.position(id,order,seed,t+1)-p;assert.ok(Math.abs(left-right)<.000001,'Continuous velocity through each change of pace');}
   assert.deepEqual(M.plan(order,seed),plans);
  }

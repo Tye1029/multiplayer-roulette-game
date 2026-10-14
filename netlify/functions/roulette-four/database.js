@@ -35,7 +35,7 @@ function createStore(injected,injectedWallet){
  return result;
  }
  async function create(player,body){
-  const wager=body.wager;if(!Number.isSafeInteger(wager)||wager<1000||wager>50000||wager%1000)model.fail('Choose 1,000–50,000 Chips in 1,000-Chip steps.',400);
+  const wager=body.wager;if(!Number.isSafeInteger(wager)||wager<10000||wager>50000||wager%1000)model.fail('Choose 10,000–50,000 Chips in 1,000-Chip steps.',400);
   if(!/^[a-f0-9]{24}$/i.test(body.requestId||''))model.fail('Missing create request ID.',400);
   const account=await wallet.account(player),rate=await wallet.rate();
   const id=await tx(async c=>{await c.query('SELECT pg_advisory_xact_lock(hashtext($1))',['four-create:'+player.id]);const rows=(await c.query("SELECT state FROM roulette_four_matches WHERE state->'players'->0->>'id'=$1 AND updated_at>NOW()-INTERVAL '1 day'",[player.id])).rows;

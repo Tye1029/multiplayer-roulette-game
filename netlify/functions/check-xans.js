@@ -186,7 +186,7 @@ async function depositLogs(player,from,to,key){
     const url=new URL(next,TORN_API_BASE);
     if(url.origin!==TORN_API_BASE||url.pathname!=='/v2/user/log')throw Error('Unexpected Torn log pagination. Please retry.');
     const following=new URLSearchParams(params);for(const name of ['to','from','offset'])if(url.searchParams.has(name))following.set(name,url.searchParams.get(name));
-    if(following.toString()===params.toString())throw Error('Torn log pagination did not advance. Please retry.');params=following;
+    if(following.toString()===params.toString())return {log:logs};params=following;
   }
   throw Error('Too many deposit records for one check. Please use a shorter date range.');
 }

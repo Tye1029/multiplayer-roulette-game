@@ -2,7 +2,7 @@
 (() => {
  'use strict';
  const rules=window.RocketRunRules,audio=window.RocketRunAudio,$=id=>document.getElementById(id),fmt=n=>Number(n).toLocaleString('en-US'),mult=n=>(n/100).toFixed(2)+'×';
- let scene,stake=50000,autoCents=null,game=null,saved=null,demo=false,playing=false,ready=false,busy=false,connecting=false,pending=null,retry=null,epoch=0,pageActive=true;
+ let scene,stake=10000,autoCents=null,game=null,saved=null,demo=false,playing=false,ready=false,busy=false,connecting=false,pending=null,retry=null,epoch=0,pageActive=true;
  let frame=0,pollTimer=0,polling=false,serverStamp=0,anchor=0,frameStamp=0,lastCount=-1,lastPhase='',celebrated='',effectUntil=0,practiceCrash=0;
  let cashSnapshot=null,autoHolding=false,lastStateAt=0;
  const active=s=>s?.status==='active',finished=s=>s?.status==='settled',current=run=>pageActive&&run===epoch;
@@ -17,10 +17,10 @@
  function controls(){
   const inFlight=playing&&active(game),locked=busy||Boolean(pending)||inFlight;
   for(const id of ['rr-menu-stake','rr-play-stake','rr-menu-auto','rr-play-auto'])$(id).disabled=locked;
-  $('rr-start').disabled=busy||connecting||Boolean(pending)||!ready;$('rr-practice').disabled=busy||Boolean(pending);
+  $('rr-start').disabled=busy||connecting||Boolean(pending)||!ready;
   $('rr-start').textContent=connecting?'Connecting your chip balance…':active(saved)?'Resume your flight':'Launch · '+fmt(stake)+' chips';$('rr-connect').hidden=ready||connecting;
   $('rr-again').disabled=busy||connecting||Boolean(pending)||(!demo&&!ready);$('rr-again').textContent=demo?'Launch a free flight':active(saved)?'Resume your flight':'Launch again · '+fmt(stake)+' chips';
-  $('rr-free').disabled=locked;$('rr-free').checked=demo;$('rr-free-wrap').hidden=inFlight;
+
   $('rr-live').hidden=!inFlight;$('rr-cashout').hidden=!inFlight;$('rr-again').hidden=inFlight;$('rr-result').hidden=!finished(game);
   $('rr-round-note').textContent=demo?'Free practice uses the same crash odds. No chips are spent or awarded.':inFlight?'Your flight continues if you leave. Your saved auto cash-out still applies.':'Choose your next wager and auto cash-out above.';
  }
@@ -68,8 +68,8 @@
   }else $('rr-scene').setAttribute('aria-label','Rocket Run flight in progress. Use Cash out to secure your return.');
   controls();scheduleFrame();
  }
- function enter(){playing=true;cashSnapshot=null;autoHolding=false;$('rr-menu').hidden=true;$('rr-play').hidden=false;lastCount=-1;lastPhase='';paint(false);requestAnimationFrame(()=>$('rr-play').scrollIntoView({block:'start',behavior:'instant'}));schedulePoll();}
- async function request(body){const token=await window.XanHub.authenticate(),before=performance.now(),response=await window.XanHub.post('rocket-run-action',{token,...body});return {...response,received:performance.now(),before};}
+ function enter(){playing=true;cashSnapshot=null;autoHolding=false;$('rr-menu').hidden=true;$('rr-play').hidden=false;lastCount=-1;lastPhase='';paint(false);schedulePoll();}
+ async function request(body){const before=performance.now(),response=await window.XanHub.gameRequest('rocket-run-action',body);return {...response,received:performance.now(),before};}
  function adopt(response,animate=true){
   const next=response.game;
   if(game&&next&&game.id===next.id&&finished(game)&&!finished(next))return;
@@ -105,8 +105,8 @@
  document.addEventListener('DOMContentLoaded',()=>{
   try{const s=JSON.parse(localStorage.getItem('rocket-run-choice'));if(rules.stakes.includes(s?.stake)&&rules.validAuto(s.autoCents,s.stake)){stake=s.stake;autoCents=s.autoCents;}}catch{}
   for(const prefix of ['rr-menu-','rr-play-']){$(prefix+'settings').innerHTML=settings(prefix);$(prefix+'stake').onchange=e=>{stake=Number(e.target.value);if(autoCents!==null)autoCents=Math.min(autoCents,rules.cap(stake));configure();};$(prefix+'auto').onchange=e=>{autoCents=e.target.value===''?null:Number(e.target.value);configure();};}
-  scene=new window.RocketRunScene($('rr-scene'));configure();$('rr-start').onclick=start;$('rr-practice').onclick=practice;$('rr-cashout').onclick=cashout;$('rr-cashout').onpointerdown=e=>{if(e.isPrimary&&e.button===0&&!e.currentTarget.disabled)cashout();};$('rr-again').onclick=()=>demo?practice():start();$('rr-retry').onclick=()=>retry?.();$('rr-free').onchange=e=>{demo=e.target.checked;controls();if(!demo)reconnect();};
-  $('rr-help').onclick=()=>{const d=document.createElement('dialog');d.className='xan-dialog rr-help';d.innerHTML='<h2>How to play Rocket Run</h2><ol><li>Choose your wager. Launch spends that amount and starts a three-second countdown.</li><li>After liftoff, the multiplier climbs. Press Cash out before the rocket crashes to secure your total return, including your wager.</li><li>A crash before cash-out loses the wager. A flight can crash immediately at 1.00×. Each flight is independent; the animation does not predict a crash.</li><li>Optionally choose Auto cash-out before launch. It is saved on the server and pays at that target if the rocket survives past it, even if you disconnect. A crash at the exact target takes priority.</li><li>Cash out stops the flight display immediately. The server uses the time it receives your verified request, before waiting for the flight database. An already confirmed crash cannot be reversed; use Auto cash-out to avoid network timing.</li><li>Maximum total return is 50,000,000 chips. Reaching that limit safely cashes out automatically. Your flight continues if you leave; reconnect to recover its result. Free practice never spends or awards chips.</li></ol><button class="rr-secondary">Got it</button>';document.body.append(d);d.querySelector('button').onclick=()=>d.close();d.onclose=()=>d.remove();d.showModal();};
+  scene=new window.RocketRunScene($('rr-scene'));configure();$('rr-start').onclick=start;$('rr-cashout').onclick=cashout;$('rr-cashout').onpointerdown=e=>{if(e.isPrimary&&e.button===0&&!e.currentTarget.disabled)cashout();};$('rr-again').onclick=()=>demo?practice():start();$('rr-retry').onclick=()=>retry?.();
+  $('rr-help').onclick=()=>{const d=document.createElement('dialog');d.className='xan-dialog rr-help';d.innerHTML='<h2>How to play Rocket Run</h2><ol><li>Choose your wager. Launch spends that amount and starts a three-second countdown.</li><li>After liftoff, the multiplier climbs. Press Cash out before the rocket crashes to secure your total return, including your wager.</li><li>A crash before cash-out loses the wager. A flight can crash immediately at 1.00×. Each flight is independent; the animation does not predict a crash.</li><li>Optionally choose Auto cash-out before launch. It is saved on the server and pays at that target if the rocket survives past it, even if you disconnect. A crash at the exact target takes priority.</li><li>Cash out stops the flight display immediately. The server uses the time it receives your verified request, before waiting for the flight database. An already confirmed crash cannot be reversed; use Auto cash-out to avoid network timing.</li><li>Maximum total return is 50,000,000 chips. Reaching that limit safely cashes out automatically. Your flight continues if you leave; reconnect to recover its result.</li></ol><button class="rr-secondary">Got it</button>';document.body.append(d);d.querySelector('button').onclick=()=>d.close();d.onclose=()=>d.remove();d.showModal();};
   reconnect();
  });
  document.addEventListener('visibilitychange',()=>{if(document.hidden){stop();return;}if(!pageActive)return;scheduleFrame();if(!demo)reconnect();});

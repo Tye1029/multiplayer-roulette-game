@@ -1,7 +1,7 @@
 (function(root,factory){const rules=factory();if(typeof module==='object'&&module.exports)module.exports=rules;else root.BackAlleyDerbyRules=rules;})(typeof window==='object'?window:globalThis,()=>{
  'use strict';
  const build='BACK_ALLEY_DERBY_V2_RACE_DAY',countdownMs=1800,raceMs=11800,totalMs=countdownMs+raceMs;
- const stakes=Object.freeze([50000,100000,500000,1000000,5000000,10000000]);
+ const stakes=Object.freeze([10000,50000,100000,500000,1000000,5000000,10000000]);
  const rats=Object.freeze([
   {id:0,name:'Big Cheese',tag:'The favourite',chance:30,color:'#edbd62',bio:'Knows every shortcut in the alley.'},
   {id:1,name:'Drain Runner',tag:'Street smart',chance:24,color:'#67c7bd',bio:'Quick paws. Questionable intentions.'},

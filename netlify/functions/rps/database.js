@@ -75,7 +75,7 @@ async function prepareCreate(player, bot = false, invited = null, wager = 0, isP
     }
     let s = rules.create(id(), player); s.private = isPrivate === true || !!invited;
     if(!bot && wager) {
-      if(!Number.isSafeInteger(wager)||wager<1000||wager>50000||wager%1000)error('Choose 1,000–50,000 Chips in 1,000-Chip steps.');
+      if(!Number.isSafeInteger(wager)||wager<10000||wager>50000||wager%1000)error('Choose 10,000–50,000 Chips in 1,000-Chip steps.');
       s.wager=wager;s.finance={accounts:{[player.id]:await wallet().account(player)},paid:[],pending:player.id,status:'funding',rate:await wallet().rate()};
     }
     if (invited) { s.invitedId = invited.id; s.invitedName = invited.name; }

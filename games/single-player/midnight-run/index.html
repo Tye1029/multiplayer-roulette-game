@@ -1,14 +1,14 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#101b20"><meta name="midnight-run-version" content="MIDNIGHT_RUN_V6_STORM_FLOW"><title>Midnight Run · Xan Duels</title>
 <link rel="stylesheet" href="/assets/site-hub/hub.css?v=MIDNIGHT_RUN_V6_STORM_FLOW"><link rel="stylesheet" href="/assets/site-hub/game-menu.css?v=XAN_PUBLIC_POLISH_V2"><link rel="stylesheet" href="/assets/site-hub/public-polish.css?v=XAN_RESULT_BALANCE_V1"><link rel="stylesheet" href="/assets/site-hub/mobile.css?v=XAN_MOBILE_V1"><link rel="stylesheet" href="/assets/midnight-run/midnight-run.css?v=MIDNIGHT_RUN_V6_STORM_FLOW">
-<script src="/assets/site-hub/preferences.js?v=2"></script><script defer src="/shared/games/midnight-run.js?v=MIDNIGHT_RUN_V6_STORM_FLOW"></script><script defer src="/assets/site-hub/public-polish.js?v=XAN_PUBLIC_POLISH_V2"></script><script defer src="/assets/midnight-run/audio.js?v=MIDNIGHT_RUN_V6_STORM_FLOW"></script><script defer src="/assets/midnight-run/streets.js?v=MIDNIGHT_RUN_V6_STORM_FLOW"></script><script defer src="/assets/midnight-run/scene.js?v=MIDNIGHT_RUN_V6_STORM_FLOW"></script><script defer src="/assets/midnight-run/motion.js?v=MIDNIGHT_RUN_V6_STORM_FLOW"></script><script defer src="/assets/midnight-run/weather.js?v=MIDNIGHT_RUN_V6_STORM_FLOW"></script><script defer src="/assets/midnight-run/midnight-run.js?v=MIDNIGHT_RUN_V6_STORM_FLOW"></script><script defer src="/assets/site-hub/hub.js?v=MIDNIGHT_RUN_V6_STORM_FLOW"></script></head>
+<script src="/assets/site-hub/preferences.js?v=2"></script><script defer src="/shared/games/midnight-run.js?v=XAN_SITE_REFINEMENT_V1"></script><script defer src="/assets/site-hub/public-polish.js?v=XAN_SITE_REFINEMENT_V1"></script><script defer src="/assets/midnight-run/audio.js?v=MIDNIGHT_RUN_V6_STORM_FLOW"></script><script defer src="/assets/midnight-run/streets.js?v=MIDNIGHT_RUN_V6_STORM_FLOW"></script><script defer src="/assets/midnight-run/scene.js?v=MIDNIGHT_RUN_V6_STORM_FLOW"></script><script defer src="/assets/midnight-run/motion.js?v=MIDNIGHT_RUN_V6_STORM_FLOW"></script><script defer src="/assets/midnight-run/weather.js?v=MIDNIGHT_RUN_V6_STORM_FLOW"></script><script defer src="/assets/midnight-run/midnight-run.js?v=XAN_SITE_REFINEMENT_V1"></script><script defer src="/assets/site-hub/hub.js?v=XAN_SITE_REFINEMENT_V1"></script></head>
 <body class="xan-unified"><main id="midnight-app">
  <header class="xg-heading"><h1>Midnight Run</h1><div class="xg-tools"><button id="mr-help">How to play</button></div></header>
  <section id="mr-menu" class="mr-menu">
   <div class="mr-intro"><span class="mr-kicker"><i></i> THE CITY NEVER SLEEPS</span><h2>One more<br><em>block.</em></h2><p>One block at a time. Grow your getaway money.<br>Escape before the city catches up.</p>
-   <div id="mr-menu-settings"></div><button id="mr-start" class="mr-primary" disabled>Start your run <span>↗</span></button><button id="mr-practice" class="mr-secondary">Explore a free run <span>↗</span></button><a id="mr-connect" href="/" hidden>Connect your Torn API key on the main page ↗</a><p class="mr-fine">Stop at each corner. Continue or cash out.</p>
+   <div id="mr-menu-settings"></div><button id="mr-start" class="mr-primary" disabled>Start your run <span>↗</span></button><a id="mr-connect" href="/" hidden>Connect your Torn API key on the main page ↗</a><p class="mr-fine">Stop at each corner. Continue or cash out.</p>
   </div>
-  <div class="mr-hero" aria-hidden="true"><div class="mr-hero-frame"><canvas id="mr-preview" width="720" height="780"></canvas><div class="mr-hero-top"><span>CITY STREETS</span><span>00:17</span></div><div class="mr-hero-bottom"><span>EVERY CORNER HAS A PRICE.</span><b>Know when to disappear.</b></div></div><span class="mr-hero-caption"><i></i> A little nerve goes a long way.</span></div>
+  <div class="mr-hero" aria-hidden="true"><div class="mr-hero-frame"><canvas id="mr-preview" width="720" height="780"></canvas><div class="mr-hero-top"><span>CITY STREETS</span><span>00:17</span></div><div class="mr-hero-bottom"><span>EVERY CORNER HAS A PRICE.</span><b>Know when to disappear.</b></div></div></div>
  </section>
  <section id="mr-play" hidden><div class="mr-play-layout">
   <article id="mr-machine" class="mr-machine">
@@ -26,9 +26,9 @@
    <div class="mr-bank"><span id="mr-bank-label">CASH-OUT VALUE</span><strong id="mr-bank">0</strong><div><b id="mr-multiplier">—</b><span>CHIPS</span></div><p id="mr-bank-note">Clear the first block to cash out.</p></div>
    <div id="mr-actions" class="mr-action-dock"><button id="mr-continue" class="mr-secondary" disabled hidden>Continue</button><button id="mr-cashout" class="mr-primary" disabled>Waiting to run…</button><button id="mr-again" class="mr-primary" hidden>Run again <span>↗</span></button></div>
    <div id="mr-next" class="mr-next"><span>ONE MORE BLOCK</span><strong id="mr-next-value">56,250 <small>chips</small></strong><p id="mr-next-note">Every corner is a new risk.</p></div>
-   <div id="mr-play-settings"></div><label id="mr-free-wrap" class="mr-free"><input id="mr-free" type="checkbox"> Free practice</label><p id="mr-round-note" class="mr-fine"></p>
+   <div id="mr-play-settings"></div><p id="mr-round-note" class="mr-fine"></p>
   </aside>
  </div></section>
  <div class="mr-notice"><p id="mr-notice" role="status" aria-live="polite"></p><button id="mr-retry" class="mr-secondary" hidden>Reconnect</button></div>
- <footer class="mr-footer"><span aria-hidden="true">↗</span><p>The next corner can change everything.<br>Maximum total return: 50,000,000 chips per run.</p></footer>
+
 </main><noscript>Enable JavaScript to play Midnight Run.</noscript></body></html>
