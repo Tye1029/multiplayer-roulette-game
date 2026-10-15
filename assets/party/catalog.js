@@ -46,7 +46,7 @@
       color: "#ae9fff",
       description: "Find your rhythm. Fly over the rooftops.",
       rules:
-        "Match the arrows to climb 24 ledges. Five correct moves in a row earn a bonus. Every six ledges is a checkpoint; mistakes break your combo and drop you toward it.",
+        "Match the arrows to climb 24 ledges. New five-ledge milestones earn a bonus. Finish order earns separate point bonuses; first place always scores more than later finishers. Every six ledges is a checkpoint; mistakes break your combo and drop you toward it.",
       unit: "points",
     },
     {
@@ -66,7 +66,7 @@
       color: "#82d9ef",
       description: "Watch the ripples. Strike at the splash.",
       rules:
-        "Watch your bobber. Ripples grow before the splash; press Reel while the gold ring appears. Early pulls scare the fish. Six bites, with rarer catches worth more points.",
+        "Watch your bobber. Ripples grow before the splash; press Reel while the gold ring appears. Early pulls scare the fish. Six bites: rarer catches and faster strikes earn more points.",
       unit: "points",
     },
     {
@@ -99,7 +99,7 @@
       color: "#b9a7ff",
       description: "Read the lantern. Find a safe floating platform.",
       rules:
-        "Choose the platform matching the lantern before the bell. Wrong platforms sink! Keep moving through eight changing patterns; three misses end your run.",
+        "Choose the platform matching the lantern before the bell. Wrong platforms sink! Keep moving through eight changing patterns; one wrong landing ends your run.",
       unit: "points",
     },
     {
@@ -137,12 +137,17 @@
       name: "Treasure Tides",
       tag: "COIN COLLECTION",
       color: "#91d3ad",
-      description: "Pick a route. Pocket the treasure.",
+      description: "Chase the tide. Dodge the spikes.",
       rules:
-        "Choose a beach lane before each tide. Read the preview: two-coin prizes, four-coin bundles, or crab traps. Everyone keeps their collected coins; traps stun you for the next wave.",
+        "Coins arrive quickly in one lane at a time. Move under them before they reach your basket. Gold coins give two, bundles four; spiked balls take three collected coins. Everyone keeps their final collection.",
       unit: "coins",
       coinGame: true,
     },
+  );
+  games.push(
+    ...(typeof module === "object" && module.exports
+      ? require("./festival-catalog")
+      : globalThis.PartyFestivalCatalog),
   );
   const skins = [
     {
@@ -254,45 +259,41 @@
     },
   ];
   characters.push(...additions);
-  // 38 promenade spaces + three four-space branches. Each branch saves one step.
+  // 34 promenade + 4 skybridge + 4 tide garden + 8 central crossing spaces.
   const types = [
     "start",
     "coins",
     "loss",
     "gift",
     "shop",
-    "coins",
     "junction",
     "coins",
     "loss",
     "duel",
-    "trophy",
     "coins",
+    "trophy",
     "coins",
     "lucky",
     "loss",
     "chance",
-    "coins",
     "shop",
-    "junction",
     "coins",
+    "junction",
     "gift",
     "loss",
-    "trophy",
     "coins",
+    "coins",
+    "trophy",
     "event",
-    "coins",
     "loss",
     "lucky",
     "shop",
-    "coins",
     "junction",
     "coins",
     "duel",
     "loss",
-    "trophy",
     "gift",
-    "chance",
+    "trophy",
     "coins",
   ];
   const spaces = types.map((type, i) => {
@@ -305,34 +306,44 @@
       y: 0.65,
       next: [(i + 1) % types.length],
       district:
-        i < 13
+        i < 12
           ? "Sunset promenade"
-          : i < 26
+          : i < 24
             ? "Carnival gardens"
             : "Lighthouse quay",
     };
   });
   const branches = [
     {
-      from: 6,
-      to: 12,
+      from: 5,
+      to: 11,
       name: "Skybridge",
-      types: ["coins", "shop", "trophy", "loss"],
+      types: ["coins", "gift", "trophy", "loss"],
       height: 1.5,
     },
     {
-      from: 18,
-      to: 24,
-      name: "Festival lane",
-      types: ["coins", "gift", "duel", "loss"],
+      from: 27,
+      to: 33,
+      name: "Tide gardens",
+      types: ["coins", "gift", "lucky", "loss"],
       height: 0,
     },
     {
-      from: 30,
-      to: 36,
-      name: "Tide gardens",
-      types: ["coins", "shop", "lucky", "loss"],
+      from: 17,
+      to: 0,
+      name: "Festival Crossing",
+      types: [
+        "coins",
+        "loss",
+        "gift",
+        "chance",
+        "coins",
+        "duel",
+        "loss",
+        "coins",
+      ],
       height: 0,
+      central: true,
     },
   ];
   for (const branch of branches) {
@@ -341,18 +352,62 @@
       first = spaces.length;
     a.next.push(first);
     branch.types.forEach((type, i) => {
-      const t = (i + 1) / 5,
-        inset = 1 - Math.sin(t * Math.PI) * 0.11;
+      const t = (i + 1) / (branch.types.length + 1),
+        inset = branch.central ? 1 : 1 - Math.sin(t * Math.PI) * 0.11;
       spaces.push({
         id: spaces.length,
         type,
         x: (a.x + (b.x - a.x) * t) * inset,
         z: (a.z + (b.z - a.z) * t) * inset,
         y: 0.65 + Math.sin(t * Math.PI) * branch.height,
-        next: [i === 3 ? branch.to : first + i + 1],
+        next: [i === branch.types.length - 1 ? branch.to : first + i + 1],
         district: branch.name,
       });
     });
+  }
+  const pathDistance = (x, z) =>
+    Math.min(
+      ...spaces.flatMap((a) =>
+        a.next.map((id) => {
+          const b = spaces[id],
+            dx = b.x - a.x,
+            dz = b.z - a.z,
+            q = Math.max(
+              0,
+              Math.min(
+                1,
+                ((x - a.x) * dx + (z - a.z) * dz) / (dx * dx + dz * dz),
+              ),
+            );
+          return Math.hypot(x - a.x - q * dx, z - a.z - q * dz);
+        }),
+      ),
+    );
+  const scenery = [];
+  for (const [kind, px, pz, radius] of [
+    ["wheel", -7, -1, 3.3],
+    ["tent", 7, 2, 3],
+    ["pond", 0, 7, 2.3],
+    ["lighthouse", 11, 3, 1.6],
+    ["arcade", 0, -8, 2.7],
+    ["snacks", -11, -4, 1.5],
+    ["kites", 6, 8, 1.5],
+    ["post", -5, 7, 1.3],
+  ]) {
+    const candidates = [];
+    for (let x = -15; x <= 15; x += 0.5)
+      for (let z = -11; z <= 11; z += 0.5)
+        if (
+          (x / 18) ** 2 + (z / 13) ** 2 < 0.94 &&
+          pathDistance(x, z) > radius + 1.45 &&
+          scenery.every(
+            (p) => Math.hypot(p.x - x, p.z - z) > p.radius + radius + 0.3,
+          )
+        )
+          candidates.push({ x, z, d: Math.hypot(px - x, pz - z) });
+    candidates.sort((a, b) => a.d - b.d);
+    if (candidates[0])
+      scenery.push({ kind, radius, x: candidates[0].x, z: candidates[0].z });
   }
   const spaceInfo = {
     chance: {
@@ -504,7 +559,9 @@
     outerCount: types.length,
     trophyStops: spaces.filter((n) => n.type === "trophy").map((n) => n.id),
     branches,
-    tideJunction: 30,
+    tideJunction: 27,
+    scenery,
+    pathDistance,
     turnOptions: [10, 20, 30],
     standings(players, mode = "party") {
       const score = (p) => (mode === "duel" ? p.wins : p.trophies);
@@ -520,6 +577,6 @@
         ]),
       );
     },
-    version: "BOARDWALK_CARNIVAL_V4",
+    version: "BOARDWALK_CARNIVAL_V5",
   };
 });

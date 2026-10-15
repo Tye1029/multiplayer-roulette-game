@@ -363,7 +363,7 @@ dialog select {
   text-shadow:
     0 3px 0 #684235,
     0 5px 10px #27334b66;
-  animation: score-burst 1.15s ease-out forwards;
+  animation: score-burst 0.75s ease-out forwards;
 }
 @keyframes score-burst {
   0% {
@@ -740,5 +740,60 @@ body[data-phase="playing"] .game-tip {
   }
   .turn-options strong {
     font-size: 17px;
+  }
+}
+
+.festival-controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  max-width: 600px;
+}
+.festival-controls button {
+  min-height: 46px;
+  min-width: 60px;
+  flex: 1 1 22%;
+  padding: 10px 12px;
+  border: 2px solid #d4c2a9;
+  border-radius: 14px;
+  background: #fff5dd;
+  color: #37435b;
+  font: 800 15px inherit;
+  box-shadow: 0 3px 0 #9e8790;
+  touch-action: manipulation;
+}
+.festival-controls button:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #9e8790;
+}
+.festival-controls button:disabled {
+  opacity: 0.62;
+}
+.action-hint {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+.scene-frame:has(.festival-controls) #scene-controls .controls {
+  width: min(100%, 620px);
+}
+@media (max-width: 600px) {
+  .festival-controls {
+    gap: 5px;
+  }
+  .festival-controls button {
+    font-size: 12px;
+    padding: 8px 6px;
+    min-width: 48px;
+    min-height: 45px;
+  }
+  .action-hint {
+    font-size: 11px !important;
+    line-height: 1.35;
+  }
+  .scene-frame:has(.festival-controls) {
+    min-height: 430px;
   }
 }

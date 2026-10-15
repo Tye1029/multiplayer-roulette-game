@@ -34,8 +34,10 @@ export function carnivalScenes(H) {
     if (w.built) return w;
     w.built = true;
     water(w);
-    box(w.root, 0, -0.4, 0, 35, 1, 35, "#e8ce9a");
-    box(w.root, 0, 0.13, 0, 34.5, 0.1, 34.5, "#8ec9a0");
+    if (kind !== "lantern") {
+      box(w.root, 0, -0.4, 0, 35, 1, 35, "#e8ce9a");
+      box(w.root, 0, 0.13, 0, 34.5, 0.1, 34.5, "#8ec9a0");
+    } else box(w.root, 0, -0.4, -14, 35, 1, 6, "#e8ce9a");
     for (let i = 0; i < 9; i++) {
       palm(w, -15 + i * 3.7, -13, 0.65 + (i % 3) * 0.12);
       if (i % 2 === 0)
@@ -98,7 +100,25 @@ export function carnivalScenes(H) {
           const crate = box(g, 0, 0, 0, 0.8, 0.8, 0.8, "#9b735f");
           box(crate, 0, 0, 0.42, 0.65, 0.12, 0.04, "#e7c09c");
           const bundle = coin(g, 0.25, 0.3, 0, 0.3);
-          row.push({ g, prize, crate, bundle });
+          const spike = new T.Group();
+          g.add(spike);
+          ball(spike, 0, 0, 0, 0.45, 0.45, 0.45, "#79677e");
+          for (let j = 0; j < 8; j++) {
+            const a = (j / 8) * Math.PI * 2;
+            const thorn = cyl(
+              spike,
+              Math.cos(a) * 0.47,
+              Math.sin(a) * 0.47,
+              0,
+              0,
+              0.13,
+              0.35,
+              "#e0c7b5",
+              5,
+            );
+            thorn.rotation.z = a - Math.PI / 2;
+          }
+          row.push({ g, prize, crate, bundle, spike });
           if (kind === "treasure") {
             const sign = label(
               ["LEFT", "MID", "RIGHT"][lane],
@@ -113,7 +133,7 @@ export function carnivalScenes(H) {
         w.objects.push(row);
       }
     } else if (kind === "lantern") {
-      box(w.root, 0, 0.3, 0, 19, 0.4, 18, "#75bfc1");
+      // Open water below the separate platforms makes elimination a real fall.
       const positions = [
         [-4, -3],
         [4, -3],
@@ -267,11 +287,17 @@ export function carnivalScenes(H) {
     if (kind === "lantern")
       w.tiles.forEach((tile, index) => {
         const hit = ps
-          .filter((v) => v.chosen === index && t * 1000 - v.hitAt < 850)
-          .reduce((n, v) => Math.max(n, v.hitAt), 0);
-        tile.position.y =
-          0.6 -
-          (hit ? Math.sin(clamp((t * 1000 - hit) / 850) * Math.PI) * 0.9 : 0);
+          .filter(
+            (v) =>
+              (v.chosen ?? ps.indexOf(v)) === index &&
+              v.eliminatedAt &&
+              t * 1000 - v.eliminatedAt < 1600,
+          )
+          .reduce((n, v) => Math.max(n, v.eliminatedAt), 0);
+        const q = hit ? clamp((t * 1000 - hit) / 1100) : 0;
+        tile.position.y = 0.6 - q * q * 8;
+        tile.rotation.z = q * 0.35;
+        tile.visible = q < 1;
       });
     w.actors.forEach((a, i) => {
       const v = ps[i] || { lane: i % 3, chosen: i, moveAt: 0 },
@@ -326,6 +352,12 @@ export function carnivalScenes(H) {
         mode = "sad";
         y -= Math.sin(clamp((t * 1000 - v.hitAt) / 700) * Math.PI) * 0.4;
       }
+      if (v.eliminatedAt) {
+        const q = clamp((t * 1000 - v.eliminatedAt) / 1100);
+        y = 1.1 - q * q * 8;
+        a.rotation.z = q;
+        a.visible = q < 1;
+      } else a.rotation.z = 0;
       a.position.set(x, y, z);
       a.rotation.y = 0.2;
       a.scale.setScalar(0.8);
@@ -343,17 +375,22 @@ export function carnivalScenes(H) {
       w.objects.forEach((row, p) => {
         row.forEach((o, lane) => {
           const value = beat.values[lane];
-          o.g.visible = !ended;
+          o.g.visible =
+            !ended &&
+            value !== 0 &&
+            (!s?.game || s.game.participants.includes(s.players[p]?.id));
           o.g.position.set(
             (p - 1.5) * 7 + (lane - 1) * 1.9,
             kind === "cascade" ? 1.5 : 1.2,
             kind === "cascade"
               ? mix(-9, 6, clamp((dt + 2500) / (2500 + beat.window)))
-              : -1,
+              : mix(-7, 6, clamp((dt + 1000) / (1000 + beat.window))),
           );
           o.prize.visible = value > 0;
-          o.bundle.visible = value === 3;
-          o.crate.visible = value < 0;
+          o.bundle.visible = value >= 3;
+          o.crate.visible = value < 0 && kind === "cascade";
+          o.spike.visible = value < 0 && kind === "treasure";
+          o.spike.rotation.z = t * 3;
           o.prize.rotation.y = t * 2.5;
           o.bundle.rotation.y = -t * 3;
           if (kind === "treasure")

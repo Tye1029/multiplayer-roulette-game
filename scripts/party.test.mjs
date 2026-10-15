@@ -144,9 +144,11 @@ test("items enforce turn ownership, one use, coin costs and shop-only purchases"
   M.act(shop, "0", { action: "continue", round: 1 }, 12500);
   assert.equal(shop.turn, 1);
 });
-test("branch choices use real connected edges and preserve remaining dice steps", () => {
-  const s = fixture();
-  s.players[0].position = 6;
+test("branch choices use connected edges and preserve remaining dice steps", () => {
+  const s = fixture(),
+    branch = C.branches.find((b) => b.name === "Skybridge"),
+    first = C.spaces[branch.from].next[1];
+  s.players[0].position = branch.from;
   s.phase = "rolling";
   s.dice = { values: [3], total: 3 };
   s.movement = { remaining: 3 };
@@ -158,14 +160,8 @@ test("branch choices use real connected edges and preserve remaining dice steps"
     () => M.act(s, "0", { action: "choose", round: 1, next: 31 }, 12100),
     /highlighted/,
   );
-  M.act(s, "0", { action: "choose", round: 1, next: 38 }, 12200);
-  assert.deepEqual(s.lastMove.path, [6, 38, 39]);
-  assert.equal(s.movement.remaining, 1);
-  assert.equal(s.players[0].position, 39);
-  M.advance(s, s.deadline);
-  assert.equal(s.event.kind, "shop");
-  M.act(s, "0", { action: "continue", round: 1 }, s.deadline - 1000);
-  assert.deepEqual(s.lastMove.path, [39, 40]);
+  M.act(s, "0", { action: "choose", round: 1, next: first }, 12200);
+  assert.deepEqual(s.lastMove.path, [branch.from, first, first + 1, first + 2]);
   assert.equal(s.movement.remaining, 0);
 });
 test("all space effects preserve nonnegative coins; gifts and shields have real effects", () => {
@@ -336,7 +332,7 @@ test("ripple fishing accepts six timed bites, rejects early and duplicate pulls,
     M.advance(s, s.game.start + beat.at + beat.window + 1);
   }
   assert.equal(v.attempts, 6);
-  assert.ok(s.game.scores[0] >= 900 && s.game.scores[0] <= 3600);
+  assert.ok(s.game.scores[0] >= 900 && s.game.scores[0] <= 4500);
   const early = gameFixture("fish");
   input(early, "0", "reel", early.game.start + 200);
   assert.equal(early.game.scores[0], 0);
@@ -423,8 +419,8 @@ test("passing carts pause exactly once, buy exactly once, and resume the remaini
     /one item/,
   );
   M.act(s, "0", { action: "continue", round: 1 }, 14400);
-  assert.deepEqual(s.lastMove.path, [4, 5, 6]);
-  assert.equal(s.movement.remaining, 1);
+  assert.deepEqual(s.lastMove.path, [4, 5]);
+  assert.equal(s.movement.remaining, 2);
   assert.equal(s.turn, 0);
 });
 
@@ -443,9 +439,14 @@ test("three connected junctions obey the tide gate and reject arbitrary teleport
   const s = fixture();
   s.players[0].position = C.tideJunction;
   s.tide = 0;
-  assert.deepEqual(M.view(s, "0", 12000).routes[C.tideJunction], [31]);
+  assert.deepEqual(M.view(s, "0", 12000).routes[C.tideJunction], [
+    C.tideJunction + 1,
+  ]);
   s.tide = 1;
-  assert.deepEqual(M.view(s, "0", 12000).routes[C.tideJunction], [31, 46]);
+  assert.deepEqual(
+    M.view(s, "0", 12000).routes[C.tideJunction],
+    C.spaces[C.tideJunction].next,
+  );
 });
 
 test("single-use triple dice, chosen dice and swaps enforce ownership and valid targets", () => {
@@ -635,7 +636,7 @@ test("all six new games validate inputs, server scores, hidden future cues and c
       coins: 999999,
     });
     M.advance(s, g.start + b.at + b.window + 1);
-    assert.ok(g.scores[0] < 1000);
+    assert.ok(g.scores[0] < 2000);
     const pub = M.view(s, "0", g.start + b.at + 210);
     assert.equal(pub.game.beats, undefined);
     assert.ok(pub.game.cue);
@@ -684,7 +685,23 @@ test("full four-player ten-turn festival completes with varied minigames", () =>
             angle: -1.3 - i * 0.2,
             power: 0.5,
           });
-        else if (G.handled(s.game.id)) {
+        else if (G.festival.handled(s.game.id)) {
+          for (
+            let time = at;
+            time < Math.min(s.game.end, at + 3000);
+            time += 300
+          ) {
+            G.advance(s.game, i, time);
+            const move = G.bot(s.game, i, time);
+            if (move) {
+              try {
+                input(s, p.id, move.value, time);
+              } catch (e) {
+                if (!e.status) throw e;
+              }
+            }
+          }
+        } else if (G.handled(s.game.id)) {
           const beat = s.game.beats[0];
           at = s.game.start + beat.at + 200;
           const value = ["cascade", "dash"].includes(s.game.id)
@@ -933,7 +950,9 @@ test("a depleted showdown pool preserves the unplayed coin games", () => {
     12100,
   );
   assert.ok(
-    C.games.filter((g) => !g.coinGame).every((g) => s.usedGames.includes(g.id)),
+    C.games
+      .filter((g) => !g.duelOnly && !g.coinGame)
+      .every((g) => s.usedGames.includes(g.id)),
   );
   s.phase = "board-end";
   s.deadline = 12200;
@@ -990,7 +1009,10 @@ test("V4 lengths, exclusive picks, rematch selection and standings are authorita
 });
 test("board routes trade one step for risk and soundtrack has four full arrangements", () => {
   for (const b of C.branches) {
-    assert.equal(b.to - b.from, 6);
+    assert.equal(
+      (b.to - b.from + C.outerCount) % C.outerCount,
+      b.central ? 17 : 6,
+    );
     let n = C.spaces[b.from].next[1],
       count = 0,
       loss = 0;
@@ -1000,8 +1022,8 @@ test("board routes trade one step for risk and soundtrack has four full arrangem
       count++;
       assert.ok(count < 10);
     }
-    assert.equal(count, 4);
-    assert.equal(loss, 1);
+    assert.equal(count, b.central ? 8 : 4);
+    assert.equal(loss, b.central ? 2 : 1);
   }
   assert.equal(C.spaces.filter((n) => n.type === "chance").length, 2);
   assert.equal(C.characters.length, 8);

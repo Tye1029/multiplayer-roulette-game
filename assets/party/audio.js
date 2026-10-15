@@ -127,6 +127,39 @@
         noise(at + i * 0.105, 0.045, 0.28 * (1 - i / 15), 1800 - i * 80);
       return;
     }
+    if (
+      ["cannon", "pop", "boost", "drum", "jump", "block", "paddle"].includes(
+        kind,
+      )
+    ) {
+      if (kind === "cannon") {
+        noise(at, 0.18, 0.25, 700);
+        note(120, at, 0.17, 0.22, fx, "triangle");
+      }
+      if (kind === "pop") {
+        noise(at, 0.12, 0.19, 2400);
+        note(420, at, 0.08, 0.13, fx);
+      }
+      if (kind === "boost") {
+        [220, 330, 440, 660].forEach((f, i) =>
+          note(f, at + i * 0.05, 0.13, 0.1, fx, "triangle"),
+        );
+      }
+      if (kind === "drum") {
+        noise(at, 0.08, 0.12, 950);
+        note(180, at, 0.13, 0.2, fx, "sine");
+      }
+      if (kind === "jump") {
+        note(330, at, 0.1, 0.12, fx);
+        note(520, at + 0.06, 0.15, 0.1, fx);
+      }
+      if (kind === "block") {
+        noise(at, 0.1, 0.18, 1100);
+        note(270, at, 0.1, 0.1, fx);
+      }
+      if (kind === "paddle") noise(at, 0.18, 0.13, 1600);
+      return;
+    }
     if (kind === "step") {
       noise(at, 0.04, 0.12, 500);
       return;

@@ -8,7 +8,7 @@ function createHandler(store = database) {
         headers: {
           "Content-Type": "application/json",
           "Cache-Control": "no-store",
-          "X-Party-Build": "BOARDWALK_CARNIVAL_V4",
+          "X-Party-Build": "BOARDWALK_CARNIVAL_V5",
           ...extra,
         },
       });
@@ -65,6 +65,7 @@ function createHandler(store = database) {
           "get",
           "ready",
           "game-ready",
+          "skip-bots",
           "start",
           "add-bot",
           "pick-character",

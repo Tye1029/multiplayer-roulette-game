@@ -1,4 +1,4 @@
-/* BOARDWALK_CARNIVAL_V4 — guest rooms, authoritative matches, local presentation. */
+/* BOARDWALK_CARNIVAL_V5 — guest rooms, authoritative matches, local presentation. */
 (() => {
   "use strict";
   const C = PartyCatalog,
@@ -95,7 +95,7 @@
     e.className = "score-pop";
     e.textContent = message;
     host.append(e);
-    setTimeout(() => e.remove(), 1200);
+    setTimeout(() => e.remove(), 800);
   }
   async function api(action, data = {}) {
     const body = { action, ...data };
@@ -176,7 +176,7 @@
     screen = "menu";
     panelKey = "";
     document.body.dataset.phase = "menu";
-    app.innerHTML = `<section class="festival-hero"><img class="festival-art" src="/assets/party/images/boardwalk-crew-v2.webp" alt="Riff, Cleo, Moss and Bolt race through the sunset festival" fetchpriority="high"><div class="festival-copy"><span class="eyebrow">WELCOME TO CORAL CARNIVAL</span><h1>Big laughs.<br>Little rivalries.</h1><p>Roll into a seaside party full of shortcuts, surprises, and one-more-round moments.</p><div class="hero-buttons"><button class="primary" data-create="party">Start a party ↗</button><button class="secondary" data-open-join>Join friends</button></div><div class="hero-facts"><span>2–4 players</span><span>10 / 20 / 30 turns</span><span>Free to play</span></div></div></section><section class="mode-grid" aria-label="Choose a mode"><button class="mode-card" data-create="party"><div><span class="mode-meta">THE WHOLE ADVENTURE · 2–4 PLAYERS</span><h3>Roll with your crew.</h3><p>50 spaces. Three branching routes. Shops, surprises and rival showdowns.</p></div><span class="mode-arrow">↗</span></button><button class="mode-card" data-create="duel"><div><span class="mode-meta">JUST THE MINIGAMES · 1V1</span><h3>Settle the score.</h3><p>Jump into a best-of-three duel. Bring your favorite rival.</p></div><span class="mode-arrow">↗</span></button></section><section><div class="section-heading"><h2>Steal the show.</h2><p>Ten games. Plenty of ways to outplay your friends.</p></div><div class="game-grid">${C.games.map((g) => `<button class="game-card" data-rules="${g.id}"><canvas class="game-art" data-preview="${g.id}" aria-hidden="true"></canvas><div class="game-card-body"><span class="eyebrow">${g.tag}</span><h3>${g.name}</h3><p>${g.description}</p></div></button>`).join("")}</div></section><section class="crew-section"><div class="section-heading"><h2>A crew with character.</h2><p>Eight personalities. One of each per match.</p></div><div class="crew-grid">${C.characters.map((c) => `<div class="crew-card"><canvas data-character="${c.id}" aria-hidden="true"></canvas><div><h3>${c.name}</h3><span class="eyebrow">${c.kind}</span><p>${c.bio}</p></div></div>`).join("")}</div></section>`;
+    app.innerHTML = `<section class="festival-hero"><img class="festival-art" src="/assets/party/images/boardwalk-crew-v2.webp" alt="Riff, Cleo, Moss and Bolt race through the sunset festival" fetchpriority="high"><div class="festival-copy"><span class="eyebrow">WELCOME TO CORAL CARNIVAL</span><h1>Big laughs.<br>Little rivalries.</h1><p>Roll into a seaside party full of shortcuts, surprises, and one-more-round moments.</p><div class="hero-buttons"><button class="primary" data-create="party">Start a party ↗</button><button class="secondary" data-open-join>Join friends</button></div><div class="hero-facts"><span>2–4 players</span><span>10 / 20 / 30 turns</span><span>Free to play</span></div></div></section><section class="mode-grid" aria-label="Choose a mode"><button class="mode-card" data-create="party"><div><span class="mode-meta">THE WHOLE ADVENTURE · 2–4 PLAYERS</span><h3>Roll with your crew.</h3><p>50 spaces. A central crossing and two scenic detours. Shops, surprises and rival showdowns.</p></div><span class="mode-arrow">↗</span></button><button class="mode-card" data-create="duel"><div><span class="mode-meta">JUST THE MINIGAMES · 1V1</span><h3>Settle the score.</h3><p>Jump into a best-of-three duel. Bring your favorite rival.</p></div><span class="mode-arrow">↗</span></button></section><section><div class="section-heading"><h2>Steal the show.</h2><p>30 games. 24 party challenges and six exclusive duels.</p></div><div class="game-grid">${C.games.map((g) => `<button class="game-card" data-rules="${g.id}"><canvas class="game-art" data-preview="${g.id}" aria-hidden="true"></canvas><div class="game-card-body"><span class="eyebrow">${g.tag}</span><h3>${g.name}</h3><p>${g.description}</p></div></button>`).join("")}</div></section><section class="crew-section"><div class="section-heading"><h2>A crew with character.</h2><p>Eight personalities. One of each per match.</p></div><div class="crew-grid">${C.characters.map((c) => `<div class="crew-card"><canvas data-character="${c.id}" aria-hidden="true"></canvas><div><h3>${c.name}</h3><span class="eyebrow">${c.kind}</span><p>${c.bio}</p></div></div>`).join("")}</div></section>`;
     previewObserver?.disconnect();
     previewObserver = new IntersectionObserver(
       (entries) => {
@@ -524,9 +524,9 @@
         panel.innerHTML =
           '<span class="eyebrow">THE CREW IS READY</span><h2>Minigame time!</h2><p class="game-instructions">New game. Fresh rivalries. Everyone is in.</p>';
       else if (r.phase === "side-result")
-        panel.innerHTML = `<span class="eyebrow">RIVAL SHOWDOWN</span><h2>${esc(r.event.text)}</h2>${ranking(true)}<p class="status-note">Back to the board in a moment.</p>`;
+        panel.innerHTML = `<span class="eyebrow">RIVAL SHOWDOWN</span><h2>${esc(r.event.text)}</h2>${ranking(true)}<p class="status-note">Results stay for 15 seconds · then back to the board.</p>`;
       else if (r.phase === "round-end")
-        panel.innerHTML = `<span class="eyebrow">ROUND ${r.round} COMPLETE</span><h2>${r.tieAgain ? "One last showdown." : "That was a good round."}</h2>${ranking(true)}<p class="status-note">${r.tieAgain ? "The leaders are tied. Rooftop Rally will decide it." : "Your next round starts automatically."}</p>`;
+        panel.innerHTML = `<span class="eyebrow">ROUND ${r.round} COMPLETE</span><h2>${r.tieAgain ? "One last showdown." : "That was a good round."}</h2>${ranking(true)}<p class="status-note">${r.tieAgain ? "The leaders are tied. One final minigame decides it." : "Take a breather · your next round starts after 15 seconds."}</p>`;
       else if (r.phase === "complete") {
         const winner = r.players.find((p) => p.id === r.winner);
         panel.innerHTML = `<span class="eyebrow">${winner?.id === r.you ? "YOU DID THAT." : "THAT’S A WRAP."}</span><h2>${winner ? esc(winner.name) + " takes the crown." : "Honors shared."}</h2>${ranking()}<div class="stack"><button class="primary" data-action="rematch" ${r.ready.includes(r.you) ? "disabled" : ""}>${r.ready.includes(r.you) ? "Rematch requested ✓" : "One more round?"}</button><button class="text-button" data-leave>Back to the boardwalk</button></div>`;
@@ -538,6 +538,17 @@
           panel.querySelector(".controls") ||
           panel.querySelector(".roll-button");
       if (controlNode) overlay.append(controlNode);
+      if (
+        ["intro", "countdown", "playing"].includes(r.phase) &&
+        r.game?.sideDuel &&
+        r.game.participants.every(
+          (id) => r.players.find((p) => p.id === id)?.bot,
+        )
+      )
+        panel.insertAdjacentHTML(
+          "beforeend",
+          '<button class="secondary full" data-action="skip-bots">Skip bot showdown → Results</button>',
+        );
       portraits(panel);
     }
     if ($("#feedback")) $("#feedback").textContent = v?.feedback || "";
@@ -558,6 +569,18 @@
     pendingControls();
   }
   function controls(id, v) {
+    const def = C.games.find((g) => g.id === id);
+    if (def?.engine === "festival")
+      return (
+        '<div class="action-hint" id="cue-instruction">Watch the arena</div><div class="festival-controls">' +
+        def.controls
+          .map(
+            ([value, label]) =>
+              '<button data-control="' + value + '">' + label + "</button>",
+          )
+          .join("") +
+        "</div>"
+      );
     if (id === "climb")
       return `<div id="next-arrows" class="next-arrows" aria-label="Upcoming arrows"></div><div class="arrow-grid"><button data-direction="up" aria-label="Climb up">↑</button><button data-direction="left" aria-label="Climb left">←</button><button data-direction="down" aria-label="Climb down">↓</button><button data-direction="right" aria-label="Climb right">→</button></div>`;
     if (id === "memory")
@@ -571,7 +594,7 @@
     if (["lantern", "signal"].includes(id))
       return `<div class="action-hint" id="cue-instruction">Watch the signal</div><div class="color-controls">${["Blue", "Pink", "Mint", "Gold"].map((c, i) => `<button data-control="${i}" style="--pad:${["#98d8f0", "#f2a5c5", "#9bdfb5", "#f7d675"][i]}">${i + 1} · ${c}</button>`).join("")}</div>`;
     if (id === "treasure")
-      return '<div class="action-hint" id="cue-instruction">Choose your beach route</div><div class="lane-controls"><button data-control="0">Left</button><button data-control="1">Middle</button><button data-control="2">Right</button></div>';
+      return '<div class="action-hint" id="cue-instruction">Catch the coins · dodge spike balls</div><div class="lane-controls"><button data-control="0">Left</button><button data-control="1">Middle</button><button data-control="2">Right</button></div>';
     return `<label class="range-label" for="aim">Aim <output id="aim-value">${Math.round((aim.angle * 180) / Math.PI)}°</output></label><input id="aim" type="range" min="-170" max="-10" step="1" value="${Math.round((aim.angle * 180) / Math.PI)}"><label class="range-label" for="power">Power <output id="power-value">${Math.round(aim.power * 100)}%</output></label><input id="power" type="range" min="5" max="100" step="1" value="${Math.round(aim.power * 100)}"><button class="primary full" id="putt" data-putt>Putt · course ${Math.min(3, v.attempts + 1)} of 3</button>`;
   }
   function boardGuide() {
@@ -591,14 +614,18 @@
   function ranking(round = false) {
     const r = room,
       list = r.players
-        .map((p, i) => ({ ...p, score: r.game?.scores[i] || 0 }))
+        .map((p, i) => ({
+          ...p,
+          score: r.game?.scores[i] || 0,
+          resultPlace: r.game?.placements?.[i] || 0,
+        }))
         .filter(
           (p) =>
             !round || !r.game?.sideDuel || r.game.participants.includes(p.id),
         )
         .sort((a, b) =>
           round
-            ? b.score - a.score
+            ? (a.resultPlace || 99) - (b.resultPlace || 99) || b.score - a.score
             : b.trophies - a.trophies || b.total - a.total,
         );
     return `<div class="results-list">${list
@@ -606,7 +633,7 @@
         const idx = r.players.findIndex((x) => x.id === p.id),
           coins = r.game?.coinAwards?.[idx] || 0,
           trophies = r.game?.trophyAwards?.[idx] || 0;
-        return `<div class="result-row"><span class="place">${i + 1}</span><canvas data-character="${p.character}" aria-hidden="true"></canvas><span class="person-name">${esc(p.name)}${round || r.phase === "complete" ? `<small class="coin-award">${icon("coin")} ${coins >= 0 ? "+" : ""}${coins} coins${trophies ? " · " + (trophies > 0 ? "+" : "") + trophies + " trophy" : ""}</small>` : ""}</span><b>${round ? p.score + (gameDef().coinGame ? " coins" : " pts") : icon("trophy") + p.trophies}</b></div>`;
+        return `<div class="result-row"><span class="place">${round ? p.resultPlace || i + 1 : i + 1}</span><canvas data-character="${p.character}" aria-hidden="true"></canvas><span class="person-name">${esc(p.name)}${round || r.phase === "complete" ? `<small class="coin-award">${icon("coin")} ${coins >= 0 ? "+" : ""}${coins} coins${trophies ? " · " + (trophies > 0 ? "+" : "") + trophies + " trophy" : ""}</small>` : ""}</span><b>${round ? p.score + (gameDef().coinGame ? " coins" : " pts") : icon("trophy") + p.trophies}</b></div>`;
       })
       .join("")}</div>`;
   }
@@ -644,6 +671,7 @@
         round: room.round,
         game: room.game?.id,
         start: room.game?.start,
+        preparedAt: room.game?.preparedAt,
         ...data,
       });
       if (room?.id === id && r.game) adopt(r.game);
@@ -657,7 +685,16 @@
             ? "error"
             : room?.game?.id === "fish"
               ? "splash"
-              : "good"
+              : {
+                  cannon: "cannon",
+                  confetti: "pop",
+                  bomb: "pop",
+                  kart: "boost",
+                  rhythm: "drum",
+                  rope: "jump",
+                  stack: "block",
+                  boats: "paddle",
+                }[room?.game?.id] || "good"
           : "tap",
       );
     } catch (error) {
@@ -703,7 +740,7 @@
   }
   function how() {
     openDialog(
-      `<span class="eyebrow">A DAY AT CORAL CARNIVAL</span><h2>Bring your favorite rival.</h2><p><strong>Party Match:</strong> 2–4 players, 10, 20, or 30 turns per player. Roll dice, choose paths, and visit item carts. Pass the glowing trophy with 10 match coins to collect it. Competitive minigame winners earn a trophy. In collection games, everyone keeps their coins.</p><p><strong>Quick Duel:</strong> 1v1 minigames. First to two wins takes the match. A tied series is settled with a rooftop race.</p><p><strong>Winning:</strong> Most trophies wins a party. Total minigame points break a tie; if those are equal, tied players enter a rooftop tiebreaker.</p><p><strong>Items:</strong> Buy single-use double/triple dice, a chosen roll, a position swap, a trophy compass, skates or a shield. Use one item before rolling. Passing a cart pauses your walk.</p><p><strong>Your profile:</strong> Earn coins for cosmetic outfits. Board tokens cannot be purchased. No cash prizes, paid entries, or chip deposits are offered.</p><p><strong>Need to reconnect?</strong> Reload this page on the same browser. Board turns have a timer, so friends can keep playing during an interruption.</p>`,
+      `<span class="eyebrow">A DAY AT CORAL CARNIVAL</span><h2>Bring your favorite rival.</h2><p><strong>Party Match:</strong> 2–4 players, 10, 20, or 30 turns per player. Roll dice, choose paths, and visit item carts. Pass the glowing trophy with 10 match coins to collect it. Competitive minigame winners earn a trophy. In collection games, everyone keeps their coins.</p><p><strong>Quick Duel:</strong> 1v1 minigames. First to two wins takes the match. A tied series is settled with Circuit Sprint.</p><p><strong>Winning:</strong> Most trophies wins a party. Placement points (1,000 / 650 / 400 / 250 per minigame) break a tie; if those are equal, two tied players enter Circuit Sprint; larger ties enter Rooftop Rally.</p><p><strong>Items:</strong> Buy single-use double/triple dice, a chosen roll, a position swap, a trophy compass, skates or a shield. Use one item before rolling. Passing a cart pauses your walk.</p><p><strong>Your profile:</strong> Earn coins for cosmetic outfits. Board tokens cannot be purchased. No cash prizes, paid entries, or chip deposits are offered.</p><p><strong>Need to reconnect?</strong> Reload this page on the same browser. Board turns have a timer, so friends can keep playing during an interruption.</p>`,
     );
   }
   async function copy() {
@@ -1050,8 +1087,26 @@
       /^[1-4]$/.test(e.key)
     )
       b = $('[data-control="' + (Number(e.key) - 1) + '"]');
+    if (gameDef().engine === "festival") {
+      if (key)
+        b =
+          $('[data-control="' + key + '"]') ||
+          $(
+            '[data-control="' +
+              (key === "up" ? "jump" : key === "down" ? "duck" : key) +
+              '"]',
+          );
+      if (/^[1-4]$/.test(e.key))
+        b = $('[data-control="' + (Number(e.key) - 1) + '"]');
+    }
     if (e.code === "Space")
-      b = $('[data-control="jump"]') || $("#reel") || $("#putt");
+      b =
+        $('[data-control="jump"]') ||
+        $("#reel") ||
+        $("#putt") ||
+        $(
+          '[data-control="fire"], [data-control="drop"], [data-control="pump"], [data-control="pull"], [data-control="serve"]',
+        );
     if (b) {
       e.preventDefault();
       b.click();
@@ -1193,9 +1248,49 @@
                 v.actedBeat === r.game.cue?.index ||
                 !!v.finished),
           );
+      if (gameDef().engine === "festival") {
+        const id = r.game.id,
+          own = r.players.findIndex((p) => p.id === r.you);
+        document.querySelectorAll("[data-control]").forEach((b) => {
+          const value = b.dataset.control;
+          let waiting = false;
+          if (id === "bomb")
+            waiting =
+              r.game.shared.holder !== own ||
+              stamp - r.game.shared.passedAt < 550;
+          if (
+            [
+              "simon",
+              "confetti",
+              "fencing",
+              "draft",
+              "ricochet",
+              "rope",
+            ].includes(id)
+          )
+            waiting ||= v.actedBeat === r.game.cue?.index;
+          if (id === "tug" && value === "pull")
+            waiting ||= stamp - (v.pullAt || 0) < 650;
+          if (id === "boats" && value !== "brace")
+            waiting ||= stamp - (v.strokeAt || 0) < 450;
+          if (id === "balloon") waiting ||= stamp - (v.pumpAt || 0) < 350;
+          if (id === "kart")
+            waiting ||= stamp - v.moveAt < (v.boosted ? 600 : 230);
+          if (id === "cannon") waiting ||= stamp - (v.fireAt || 0) < 1200;
+          if (id === "stack")
+            waiting ||= stamp - (v.dropAt || r.game.start) < 700;
+          if (id === "orchard" && /^[0-3]$/.test(value))
+            waiting ||=
+              stamp < r.game.start + r.game.cue?.at - 300 ||
+              v.actedBeat === r.game.cue?.index;
+          b.disabled ||= waiting;
+        });
+      }
       const cue = r.game.cue,
         hint = $("#cue-instruction");
-      if (hint && cue) {
+      if (hint && gameDef().engine === "festival")
+        hint.textContent = PartyFestivalUI.hint(r.game, v, stamp);
+      if (hint && cue && gameDef().engine !== "festival") {
         const dt = stamp - r.game.start - cue.at;
         hint.textContent =
           r.game.id === "signal"

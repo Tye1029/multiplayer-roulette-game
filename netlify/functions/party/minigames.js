@@ -1,11 +1,22 @@
 "use strict";
 const { randomInt: rnd } = require("node:crypto");
+const F = require("./festival-games");
 const ids = ["fish", "cascade", "lantern", "hop", "dash", "signal", "treasure"];
-const handled = (id) => ids.includes(id);
+const handled = (id) => ids.includes(id) || F.handled(id);
 function setup(g) {
+  if (F.handled(g.id)) return F.setup(g);
+  g.survival = g.id === "lantern";
   if (!handled(g.id)) return;
   const count =
-    g.id === "cascade" ? 20 : g.id === "dash" ? 14 : g.id === "fish" ? 6 : 8;
+    g.id === "treasure"
+      ? 28
+      : g.id === "cascade"
+        ? 20
+        : g.id === "dash"
+          ? 14
+          : g.id === "fish"
+            ? 6
+            : 8;
   const interval = (g.duration - 2500) / count;
   g.beats = Array.from({ length: count }, (_, i) => ({
     index: i,
@@ -25,6 +36,12 @@ function setup(g) {
     rarity: rnd(100),
     fake: rnd(2) === 0,
   }));
+  if (g.id === "treasure")
+    for (const b of g.beats) {
+      b.window = 250;
+      b.values = [0, 0, 0];
+      b.values[b.lane] = rnd(5) === 0 ? -3 : rnd(4) === 0 ? 4 : 2;
+    }
   if (g.id === "signal") for (const b of g.beats) b.at += rnd(650);
   for (const v of g.progress)
     Object.assign(v, {
@@ -42,11 +59,14 @@ function setup(g) {
     });
 }
 function cue(g, now) {
+  if (F.handled(g.id)) return F.cue(g, now);
   return g.beats?.find((b) => now - g.start <= b.at + b.window) || null;
 }
 function award(g, i, value, now, label) {
   const v = g.progress[i];
-  g.scores[i] += value;
+  const before = g.scores[i];
+  g.scores[i] = Math.max(0, before + value);
+  value = g.scores[i] - before;
   if (["cascade", "treasure"].includes(g.id)) v.collected += value;
   v.popup = {
     at: now,
@@ -62,10 +82,12 @@ function miss(g, i, now, label) {
   v.combo = 0;
   v.feedback = label;
   v.popup = { at: now, value: 0, label };
-  if (["hop", "dash", "lantern"].includes(g.id) && v.misses >= 3)
-    v.finished = now;
+  if (g.id === "lantern" || (["hop", "dash"].includes(g.id) && v.misses >= 3)) {
+    v.eliminatedAt = v.finished = now;
+  }
 }
 function advance(g, i, now) {
+  if (F.handled(g.id)) return F.advance(g, i, now);
   if (!handled(g.id)) return;
   const v = g.progress[i];
   if (v.finished) return;
@@ -84,17 +106,23 @@ function advance(g, i, now) {
         }
       }
     } else if (g.id === "treasure") {
-      if (v.choiceBeat === b.index && b.index > (v.skipBeat ?? -1)) {
-        const n = b.values[v.chosen];
-        if (n > 0)
-          award(g, i, n === 3 ? 4 : 2, due, n === 3 ? "+4 coins" : "+2 coins");
-        else {
-          v.skipBeat = b.index + 1;
-          miss(g, i, due, "Crab trap! Miss one tide");
-        }
+      const n = b.values[v.chosen ?? 1];
+      if (v.inputs > 0 && n) {
+        award(
+          g,
+          i,
+          n,
+          due,
+          n > 0 ? "+" + n + " coins" : "Spike ball! -3 coins",
+        );
+        if (n < 0) v.hitAt = due;
       }
     } else if (g.id === "lantern") {
-      if (v.choiceBeat === b.index && v.chosen === b.color) {
+      if ((v.chosen ?? i) === b.color) {
+        if (v.inputs === 0) {
+          v.resolved = b.index;
+          continue;
+        }
         v.combo++;
         award(
           g,
@@ -129,6 +157,7 @@ function advance(g, i, now) {
   if (v.resolved === g.beats.length - 1) v.finished ||= now;
 }
 function play(g, i, b, now, fail) {
+  if (F.handled(g.id)) return F.play(g, i, b, now, fail);
   const v = g.progress[i],
     beat = cue(g, now);
   if (!beat || v.finished) fail("Your round is finished.");
@@ -151,6 +180,7 @@ function play(g, i, b, now, fail) {
       b.value >= (g.id === "lantern" ? 4 : 3)
     )
       fail("Choose a platform.", 400);
+    v.fromLane = v.chosen ?? 1;
     v.chosen = b.value;
     v.choiceBeat = beat.index;
     v.moveAt = now;
@@ -182,7 +212,9 @@ function play(g, i, b, now, fail) {
       v.combo++;
       let score = Math.round(180 + 220 * (1 - Math.max(0, dt) / beat.window));
       if (g.id === "fish") {
-        score = beat.rarity < 65 ? 150 : beat.rarity < 90 ? 300 : 600;
+        score =
+          (beat.rarity < 65 ? 150 : beat.rarity < 90 ? 300 : 600) +
+          Math.round(150 * (1 - Math.max(0, dt) / beat.window));
         v.catch = {
           at: now,
           score,
@@ -205,6 +237,7 @@ function play(g, i, b, now, fail) {
   }
 }
 function bot(g, i, now) {
+  if (F.handled(g.id)) return F.bot(g, i, now);
   const v = g.progress[i],
     b = cue(g, now);
   if (!b) return null;
@@ -227,7 +260,7 @@ function bot(g, i, now) {
   }
   if (g.id === "lantern") return { value: rnd(10) ? b.color : rnd(4) };
   if (g.id === "treasure")
-    return { value: b.values.indexOf(Math.max(...b.values)) };
+    return { value: b.values[b.lane] > 0 ? b.lane : (b.lane + 1) % 3 };
   if (
     now < g.start + b.at + 100 ||
     now > g.start + b.at + b.window ||
@@ -238,4 +271,13 @@ function bot(g, i, now) {
     value: g.id === "fish" ? "reel" : g.id === "hop" ? "jump" : b.color,
   };
 }
-module.exports = { handled, setup, advance, play, bot, cue };
+module.exports = {
+  handled,
+  setup,
+  advance,
+  play,
+  bot,
+  cue,
+  publicView: F.publicView,
+  festival: F,
+};

@@ -249,7 +249,24 @@ async function playRound(pages, code, seen) {
       await p.locator("#power").fill("57");
       await action(p, "[data-putt]", "play");
     }
-    if (G.handled(game)) {
+    if (G.festival.handled(game)) {
+      const state = await roomState(code),
+        v = state.game.progress[i];
+      if (
+        game !== "bomb" ||
+        (state.game.shared.holder === i &&
+          Date.now() - state.game.shared.passedAt >= 600)
+      ) {
+        const def = C.games.find((g) => g.id === game);
+        const value =
+          game === "rope"
+            ? state.game.beats[0].high
+              ? "duck"
+              : "jump"
+            : def.controls[0][0];
+        await action(p, '[data-control="' + value + '"]:enabled', "play");
+      }
+    } else if (G.handled(game)) {
       const state = await roomState(code),
         cue = state.game.beats[0];
       if (["cascade", "dash"].includes(game)) {
@@ -460,6 +477,14 @@ try {
     state.deadline = Date.now() - 1;
     state.round = 1;
     state.usedGames = C.games.filter((g) => g.id !== def.id).map((g) => g.id);
+    M.advance(state, Date.now());
+    state.game.id = def.id;
+    if (def.duelOnly) {
+      state.game.sideDuel = true;
+      state.game.participants = state.players.slice(0, 2).map((p) => p.id);
+      state.game.active = [0, 1];
+    }
+    G.setup(state.game);
     state.revision++;
     await server.pg.query(
       "UPDATE party_rooms SET state=$2::jsonb WHERE id=$1",
@@ -538,7 +563,7 @@ try {
   await delayed.context().close();
   assert.deepEqual(errors, []);
   console.log(
-    "PASS: ten-turn four-player festival, on-scene dice and controls, crossroads, passing shops, stakes, all ten minigames, readiness, live duel, reconnect, rewards, rematch, slow requests and desktop/mobile/landscape layouts. " +
+    "PASS: ten-turn four-player festival, on-scene dice and controls, crossroads, passing shops, stakes, all 30 minigames, readiness, live duel, reconnect, rewards, rematch, slow requests and desktop/mobile/landscape layouts. " +
       out,
   );
 } finally {

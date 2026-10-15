@@ -1,5 +1,6 @@
 import * as T from "./vendor/three.module.min.js";
-import { carnivalScenes } from "./carnival-scenes.js?v=BOARDWALK_CARNIVAL_V4";
+import { carnivalScenes } from "./carnival-scenes.js?v=BOARDWALK_CARNIVAL_V5";
+import { festivalScenes } from "./festival-scenes.js?v=BOARDWALK_CARNIVAL_V5";
 const C = globalThis.PartyCatalog,
   TAU = Math.PI * 2,
   clamp = (n, a = 0, b = 1) => Math.max(a, Math.min(b, n)),
@@ -347,7 +348,7 @@ function mascot(id, skin = "classic") {
       const band = torus(head, 0, 0.07, 0, 0.66, 0.075, "#fdb64d");
       band.scale.y = 1.05;
       for (const side of [-1, 1]) {
-        ball(head, side * 0.66, 0.02, 0, 0.13, 0.26, 0.24, "#f8b544");
+        ball(head, side * 1.53, 0.02, 0, 0.13, 0.26, 0.24, "#f8b544");
         ball(head, side * 0.73, 0.02, 0.02, 0.05, 0.18, 0.16, "#36445d");
       }
     }
@@ -1003,13 +1004,18 @@ function trophy(p, x, y, z, scale = 1) {
 }
 function shopCart(w, tile) {
   const len = Math.hypot(tile.x, tile.z),
-    n = {
-      ...tile,
-      x: tile.x - (tile.x / len) * 3.1 - 1.7,
-      z: tile.z - (tile.z / len) * 3.1 + 1.4,
-    };
+    cx = tile.x + (tile.x / len) * 4.1,
+    cz = tile.z + (tile.z / len) * 4.1;
+  const n = { ...tile, x: cx - 1, z: cz + 0.7 };
+  tube(
+    w.root,
+    [tile.x, tile.y - 0.1, tile.z],
+    [cx, tile.y - 0.1, cz],
+    0.17,
+    "#d9b281",
+  );
   box(w.root, n.x + 1, n.y - 0.12, n.z - 0.7, 4, 0.25, 3.7, "#cfad7d");
-  if (n.y > 1)
+  if (n.y > 0)
     for (const x of [n.x - 0.6, n.x + 2.6])
       for (const z of [n.z - 2.2, n.z + 0.7])
         cyl(w.root, x, n.y / 2 - 0.2, z, 0.1, 0.13, n.y + 0.4, "#947257");
@@ -1130,7 +1136,8 @@ function addBoardDetails(w) {
   for (let j = 0; j < 3; j++) {
     const z = -3 + j * 3;
     for (const x of [-6, 6]) {
-      tube(w.root, [x, 0.5, z], [x, 3.6, z], 0.05, "#786e72");
+      if (!nearPath(x, z, 1.8))
+        tube(w.root, [x, 0.5, z], [x, 3.6, z], 0.05, "#786e72");
     }
     tube(w.root, [-6, 3.6, z], [6, 3.6, z], 0.014, "#ded2bc");
     for (let i = 0; i < 20; i++) {
@@ -1196,7 +1203,7 @@ function boardWorld() {
         bridge = box(
           w.root,
           ...a.clone().addScaledVector(d, 0.5).toArray(),
-          1.28,
+          2.9,
           0.19,
           d.length() + 0.1,
           "#d9b281",
@@ -1208,7 +1215,7 @@ function boardWorld() {
       const count = Math.ceil(a.distanceTo(end) / 0.3);
       for (let i = 1; i < count; i++) {
         const at = a.clone().lerp(end, i / count),
-          plank = box(w.root, ...at.toArray(), 1.25, 0.025, 0.035, "#b78e65");
+          plank = box(w.root, ...at.toArray(), 2.86, 0.025, 0.035, "#b78e65");
         plank.position.y += 0.11;
         plank.quaternion.copy(bridge.quaternion);
       }
@@ -1301,27 +1308,38 @@ function boardWorld() {
       arrow.scale.setScalar(1.4);
     }
     if (n.next.length > 1) {
-      cyl(w.root, n.x - 1.1, n.y + 0.7, n.z, 0.06, 0.06, 1.4, "#927352");
+      cyl(
+        w.root,
+        n.x * 1.12,
+        n.y + 0.7,
+        n.z * 1.12,
+        0.06,
+        0.06,
+        1.4,
+        "#927352",
+      );
       const sign = label("↖  ROUTES  ↗", "#334d62", "#fff0c6", 0.38);
-      sign.position.set(n.x - 1.1, n.y + 1.5, n.z);
+      sign.position.set(n.x * 1.12, n.y + 1.5, n.z * 1.12);
       w.root.add(sign);
     }
     if (n.type === "shop") shopCart(w, n);
   }
-  const pond = ball(w.root, 0, 0.41, 0, 3.7, 0.06, 2.1, "#4bafbe");
-  pond.receiveShadow = true;
-  for (let i = 0; i < 18; i++) {
-    const a = (i / 18) * TAU;
-    ball(
-      w.root,
-      Math.cos(a) * 3.75,
-      0.46,
-      Math.sin(a) * 2.16,
-      0.22,
-      0.12,
-      0.16,
-      "#e9d9ae",
-    );
+  const pondAt = C.scenery.find((p) => p.kind === "pond");
+  if (pondAt) {
+    ball(w.root, pondAt.x, 0.41, pondAt.z, 2.1, 0.06, 1.7, "#4bafbe");
+    for (let i = 0; i < 18; i++) {
+      const a = (i / 18) * TAU;
+      ball(
+        w.root,
+        pondAt.x + Math.cos(a) * 2.15,
+        0.46,
+        pondAt.z + Math.sin(a) * 1.75,
+        0.18,
+        0.12,
+        0.14,
+        "#e9d9ae",
+      );
+    }
   }
   for (let i = 0; i < 24; i++) {
     const x = -7 + (i % 6) * 2.4,
@@ -1346,13 +1364,18 @@ function boardWorld() {
   cyl(w.podium, 0, 1.08, 3.4, 1.6, 1.6, 0.08, "#fff0c6", 32);
   trophy(w.podium, 2, 1, 3.6, 0.8);
   w.podium.visible = false;
-  wheel(w, -5.8, -0.4);
-  tent(w, 5.5, 1.1);
-  lighthouse(w, 10.1, 0.2);
-  building(w, 0, -5.2, 1.18, "#f3a58f", "#9e85cb", "ARCADE");
-  building(w, -8, -3.9, 0.66, "#8bc4b7", "#f4b75c", "SNACKS");
-  building(w, 5, -5.2, 0.63, "#b5a5da", "#ec9c83", "KITES");
-  building(w, -3.2, 5.3, 0.55, "#edc269", "#f39c9b", "POST");
+  for (const p of C.scenery) {
+    if (p.kind === "wheel") wheel(w, p.x, p.z);
+    if (p.kind === "tent") tent(w, p.x, p.z);
+    if (p.kind === "lighthouse") lighthouse(w, p.x, p.z);
+    const b = {
+      arcade: [1.18, "#f3a58f", "#9e85cb", "ARCADE"],
+      snacks: [0.66, "#8bc4b7", "#f4b75c", "SNACKS"],
+      kites: [0.63, "#b5a5da", "#ec9c83", "KITES"],
+      post: [0.55, "#edc269", "#f39c9b", "POST"],
+    }[p.kind];
+    if (b) building(w, p.x, p.z, ...b);
+  }
   for (const [x, z, s] of [
     [-9, 1, 0.8],
     [-8, 1.7, 0.65],
@@ -1382,12 +1405,21 @@ function boardWorld() {
     const n = C.spaces[(i * 4) % C.outerCount];
     tube(
       w.root,
-      [n.x + 0.8, n.y, n.z],
+      [n.x * 1.11, n.y, n.z],
       [n.x + 0.8, n.y + 1.4, n.z],
       0.04,
       "#786b72",
     );
-    ball(w.root, n.x + 0.8, n.y + 1.55, n.z, 0.14, 0.18, 0.14, "#fff2b3");
+    ball(
+      w.root,
+      n.x + 0.8,
+      n.y + 1.55,
+      n.z * 1.11,
+      0.14,
+      0.18,
+      0.14,
+      "#fff2b3",
+    );
   }
   for (let i = 0; i < 6; i++) {
     const a = i * 1.7,
@@ -2262,6 +2294,66 @@ function overlay(c, canvas, kind, s, t, extra) {
   const w = W / d,
     h = H / d,
     v = s?.game?.progress[s.players.findIndex((p) => p.id === s.you)];
+  if (s?.phase === "playing" && s.game?.survival) {
+    const alive = s.game.active.filter(
+      (i) => !s.game.progress[i].eliminatedAt,
+    ).length;
+    text(
+      c,
+      v?.eliminatedAt ? "OUT · Cheer on the survivors" : alive + " STILL IN",
+      w / 2,
+      88,
+      13,
+      "#343d60",
+    );
+  }
+  if (
+    s?.phase === "playing" &&
+    [
+      "simon",
+      "spotlight",
+      "bakery",
+      "fuse",
+      "confetti",
+      "rhythm",
+      "rope",
+    ].includes(kind)
+  ) {
+    const b = s.game.cue,
+      dt = t * 1000 - s.game.start - (b?.at || 0);
+    let title = "";
+    if (kind === "simon" && b)
+      title =
+        (b.fake ? "CAPTAIN: " : "CAPTAIN SAYS: ") + b.action.toUpperCase();
+    if (kind === "spotlight")
+      title =
+        dt < -650
+          ? "GREEN · RUN"
+          : dt < 0
+            ? "AMBER · FREEZE"
+            : "RED · STAY STILL";
+    if (kind === "bakery")
+      title = v?.recipe
+        ? v.recipe.map((n) => ["BLUE", "PINK", "MINT", "GOLD"][n]).join(" → ")
+        : "REMEMBER YOUR RECIPE";
+    if (kind === "fuse")
+      title =
+        "TARGET " +
+        (v?.recipe || []).map((n) => ["↑", "→", "↓", "←"][n]).join("  ");
+    if (kind === "confetti") title = "UNBANKED POT · " + (v?.pot || 0);
+    if (kind === "rhythm" && b)
+      title =
+        b.color === 3 ? "BOTH DRUMS" : b.color % 2 ? "RIGHT DRUM" : "LEFT DRUM";
+    if (kind === "rope" && b)
+      title = b.high ? "HIGH ROPE · DUCK" : "LOW ROPE · JUMP";
+    const width = Math.min(w - 24, 350),
+      top = s.game.survival ? 98 : 70;
+    c.fillStyle = "#614978e8";
+    c.beginPath();
+    c.roundRect((w - width) / 2, top, width, 36, 12);
+    c.fill();
+    text(c, title, w / 2, top + 24, w < 420 ? 12 : 16, "#fff5d5");
+  }
   if (kind === "memory" && v?.reverse) {
     c.fillStyle = "#542f76e0";
     c.beginPath();
@@ -2406,6 +2498,9 @@ function render(canvas, kind, state, time = 0, extra = {}) {
   ) {
     w = extras.build(kind);
     view = extras.update(w, state, time, extra);
+  } else if (C.games.find((g) => g.id === kind)?.engine === "festival") {
+    w = festival.build(kind);
+    view = festival.update(w, state, time, extra);
   } else {
     const v =
         state?.game?.progress[
@@ -2418,6 +2513,14 @@ function render(canvas, kind, state, time = 0, extra = {}) {
     w = puttWorld(index || 0);
     view = updatePutt(w, state, time, extra);
   }
+  if (kind !== "board" && state?.game)
+    for (const a of w.actors) {
+      const i = state.players.findIndex((p) => p.id === a.userData.playerId),
+        v = state.game.progress[i];
+      a.visible =
+        state.game.participants.includes(a.userData.playerId) &&
+        !(v?.eliminatedAt && time * 1000 - v.eliminatedAt >= 1100);
+    }
   if (state && ["round-end", "side-result"].includes(state.phase))
     for (const a of w.actors) {
       a.rotation.y = 0.3;
@@ -2430,15 +2533,67 @@ function render(canvas, kind, state, time = 0, extra = {}) {
   if (
     state &&
     width / height < 1 &&
-    ["cascade", "dash", "treasure", "hop", "fish"].includes(kind)
+    [
+      "cascade",
+      "dash",
+      "treasure",
+      "hop",
+      "fish",
+      "kart",
+      "orchard",
+      "maze",
+      "stack",
+      "balloon",
+      "boats",
+      "spotlight",
+      "bakery",
+      "fuse",
+      "ricochet",
+      "volley",
+    ].includes(kind)
   ) {
     const actor = w.actors.find((a) => a.userData.playerId === state.you);
-    if (actor) {
+    if (actor && actor.visible) {
       view.target = actor.position.clone();
       view.target.y = 1;
       view.target.z -= 3;
       view.extent = kind === "fish" ? 16 : 19;
       view.position = [3, 27, 35];
+      if (
+        ["maze", "stack", "balloon", "bakery", "fuse", "ricochet"].includes(
+          kind,
+        )
+      ) {
+        const slot = state.game.active.indexOf(
+            state.players.findIndex((p) => p.id === state.you),
+          ),
+          station = w.stations?.[slot];
+        if (station) {
+          view.target = station.root.position.clone();
+          view.target.y =
+            kind === "stack"
+              ? 2 +
+                (state.game.progress[
+                  state.players.findIndex((p) => p.id === state.you)
+                ].step || 0) *
+                  0.18
+              : 1.5;
+          view.extent =
+            kind === "stack"
+              ? Math.max(
+                  12,
+                  8 +
+                    (state.game.progress[
+                      state.players.findIndex((p) => p.id === state.you)
+                    ].step || 0) *
+                      0.4,
+                )
+              : kind === "ricochet"
+                ? 15
+                : 12;
+          view.position = kind === "maze" ? [0, 25, 16] : [4, 25, 28];
+        }
+      }
     }
   } else if (kind !== "board" && width / height < 1) {
     view.extent = Math.max(view.extent, 22 / (width / height));
@@ -2486,6 +2641,27 @@ function portrait(canvas, id, skin = "classic") {
   portraits.set(key, copy);
 }
 const extras = carnivalScenes({
+  T,
+  C,
+  world,
+  water,
+  box,
+  ball,
+  cyl,
+  tube,
+  torus,
+  label,
+  mascot,
+  roster,
+  animateCharacter,
+  palm,
+  building,
+  cloud,
+  mat,
+  mix,
+  clamp,
+});
+const festival = festivalScenes({
   T,
   C,
   world,
