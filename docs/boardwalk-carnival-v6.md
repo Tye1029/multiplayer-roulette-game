@@ -72,6 +72,13 @@ clients. Desktop framing moves closer for the measure; mobile shows all catches.
 - Build uses the existing LF mirror for this Windows checkout's strict protected
   source hashes. Roulette, Safe Cracker, multiplayer, Fishing and Summit Sprint
   validation remains enabled and unmodified.
+- The deployed preview completed a live ten-turn match with ten different games,
+  a reload/reconnect, the final winner and one saved profile reward. No JavaScript
+  errors occurred. Deployed source bytes and SVG/WebP MIME types were checked.
+- CI exposed a layout-test race after all four fish were caught: the game had
+  correctly advanced to measuring before the test sought the reel controls.
+  Layout assertions now run before potentially finishing inputs. The expiry
+  check restores its isolated fixture before exercising every player's controls.
 
 3,000 real-model bot simulations completed with the requested turn counts,
 nonnegative integer balances, valid positions and at most three items. These

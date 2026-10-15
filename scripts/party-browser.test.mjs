@@ -233,6 +233,42 @@ async function playRound(pages, code, seen) {
   ]);
   await wake(pages);
   for (const p of pages) await wait(p, "body[data-phase=playing]");
+  // Inspect live controls before inputs can legitimately finish a one-catch or
+  // survival game. Software-rendered screenshots can outlast the result delay.
+  if (!seen.has(game)) {
+    seen.add(game);
+    await fit(pages[0], game + "-desktop");
+    await fit(pages[1], game + "-mobile");
+    await pages[1].evaluate(() => scrollTo(0, 0));
+    const rect = await pages[1].locator(".controls").boundingBox();
+    assert.ok(rect.y + rect.height <= 844, game + " controls fit with scene");
+    if (pages[2]) {
+      await pages[2].setViewportSize({ width: 844, height: 390 });
+      await fit(pages[2], game + "-landscape");
+      await pages[2].setViewportSize({ width: 320, height: 844 });
+    }
+    if (seen.size === 1) {
+      const before = await pages[1].context().cookies();
+      await pages[1].reload();
+      await wait(pages[1], "#share-code");
+      const after = await pages[1].context().cookies();
+      assert.equal(
+        before.find((c) => c.name === "boardwalk_session").value,
+        after.find((c) => c.name === "boardwalk_session").value,
+      );
+      await checkExpiredControls(pages, code);
+      // The expiry assertion ends its isolated fixture. Restore the untouched
+      // playing snapshot so every participant still exercises their controls.
+      s.revision = (await roomState(code)).revision + 1;
+      s.deadline = s.game.end = Date.now() + 240000;
+      await server.pg.query(
+        "UPDATE party_rooms SET state=$2::jsonb WHERE id=$1",
+        [code, JSON.stringify(s)],
+      );
+      await wake(pages);
+      for (const p of pages) await wait(p, "body[data-phase=playing]");
+    }
+  }
   for (let i = 0; i < pages.length; i++) {
     if (!s.game.participants.includes(s.players[i].id)) continue;
     const p = pages[i];
@@ -299,31 +335,6 @@ async function playRound(pages, code, seen) {
         await action(p, '[data-pad="' + value + '"]:enabled', "play");
         await p.waitForTimeout(160);
       }
-    }
-  }
-  if (!seen.has(game)) {
-    seen.add(game);
-    await fit(pages[0], game + "-desktop");
-    await fit(pages[1], game + "-mobile");
-    await pages[1].evaluate(() => scrollTo(0, 0));
-    const rect = await pages[1].locator(".controls").boundingBox();
-    assert.ok(rect.y + rect.height <= 844, game + " controls fit with scene");
-    if (pages[2]) {
-      await pages[2].setViewportSize({ width: 844, height: 390 });
-      await fit(pages[2], game + "-landscape");
-      await pages[2].setViewportSize({ width: 320, height: 844 });
-    }
-    if (seen.size === 1) {
-      const before = await pages[1].context().cookies();
-      await pages[1].reload();
-      await wait(pages[1], "#share-code");
-      const after = await pages[1].context().cookies();
-      assert.equal(
-        before.find((c) => c.name === "boardwalk_session").value,
-        after.find((c) => c.name === "boardwalk_session").value,
-      );
-      await checkExpiredControls(pages, code);
-      return;
     }
   }
   await expire(code, pages);
