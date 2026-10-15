@@ -102,6 +102,10 @@ Browser tests play an eight-round four-player festival, all ten game controls,
 Quick Duel, reconnect, rematch and delayed requests across desktop, phone and
 landscape sizes. Isolated test fixtures shorten waiting and extend input windows
 for software-rendered browsers; scores are produced by the real action handler.
+Those four UI-test views render at 10 Hz to fit shared CI hardware; the deployed
+smoke runs the normal animation loop. Interactive decision deadlines are extended
+only in those isolated fixtures. Slow responses are excluded from clock samples,
+and an eight-second delayed-response test checks countdown accuracy.
 A real-clock test holds network responses across round expiry and verifies that
 late controls stop submitting and then recover. Deployment is separately checked
 through normal UI actions without test-only state changes.

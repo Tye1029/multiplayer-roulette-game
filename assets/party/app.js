@@ -65,10 +65,8 @@
     overview = false,
     pendingIntent = null,
     aim = { angle: (-65 * Math.PI) / 180, power: 0.5 },
-    audio,
     musicOn = storage.get("boardwalk-music") !== "off",
     lastCountdown = "",
-    popupKey = "",
     previewObserver;
   const now = () => Date.now() + offset;
   function notify(message) {
@@ -101,10 +99,10 @@
     const body = { action, ...data };
     if (!["get", "join", "profile", "register"].includes(action))
       body.requestId ||= crypto.randomUUID();
-    const started = Date.now();
-    let result, response;
+    let result, response, started;
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
+        started = Date.now();
         response = await fetch("/.netlify/functions/party-action", {
           method: "POST",
           credentials: "same-origin",
@@ -127,9 +125,15 @@
         status: response.status,
       });
     if (result.game?.serverTime) {
-      const sample = result.game.serverTime - (started + Date.now()) / 2;
-      offset = offset ? offset * 0.7 + sample * 0.3 : sample;
-      latency = latency * 0.7 + Math.min(500, (Date.now() - started) / 2) * 0.3;
+      const received = Date.now(),
+        elapsed = received - started;
+      // A cold start or timed-out attempt is not a reliable clock sample.
+      // Keep the prior clock until a prompt response can synchronize it.
+      if (elapsed <= 2000) {
+        const sample = result.game.serverTime - (started + received) / 2;
+        offset = offset ? offset * 0.7 + sample * 0.3 : sample;
+      }
+      latency = latency * 0.7 + Math.min(500, elapsed / 2) * 0.3;
     }
     return result;
   }

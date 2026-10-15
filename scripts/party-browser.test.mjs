@@ -26,6 +26,11 @@ async function page(width) {
   await ctx.addInitScript(() => {
     localStorage.setItem("boardwalk-sound", "off");
     localStorage.setItem("boardwalk-motion", "off");
+    // Four software-rendered views share a CI CPU. Keep real UI rendering at
+    // 10 Hz here; the deployed real-clock smoke uses the normal animation loop.
+    const frame = requestAnimationFrame.bind(window);
+    window.requestAnimationFrame = (callback) =>
+      setTimeout(() => frame(callback), 100);
   });
   const p = await ctx.newPage();
   p.on("pageerror", (e) => errors.push(e.stack));
@@ -114,8 +119,9 @@ async function action(p, selector, action) {
     ),
     p.locator(selector).click(),
   ]);
-  assert.equal(r.status(), 200, action + " HTTP");
-  return (await r.json()).game;
+  const body = await r.json();
+  assert.equal(r.status(), 200, action + " HTTP: " + (body.error || ""));
+  return body.game;
 }
 async function checkExpiredControls(pages, code) {
   const p = pages[0],
@@ -323,6 +329,15 @@ try {
   while (guard++ < 400) {
     let s = await roomState(code);
     if (s.phase === "complete") break;
+    // Screenshots and four-player interactions must not race a short board
+    // decision timer on a software GPU. Timeout behavior has separate checks.
+    if (["board", "choice", "space", "intro"].includes(s.phase)) {
+      s.deadline = Date.now() + 240000;
+      await server.pg.query(
+        "UPDATE party_rooms SET state=$2::jsonb WHERE id=$1",
+        [code, JSON.stringify(s)],
+      );
+    }
     if (s.phase === "board") {
       const p = pages[s.turn];
       await wake(pages);
@@ -464,6 +479,36 @@ try {
     .getByRole("button", { name: "Ready ✓ · undo", exact: true })
     .waitFor();
   await wait(delayed, "[data-action=start]:enabled");
+  await action(delayed, "[data-action=start]:enabled", "start");
+  await wait(delayed, "[data-action=game-ready]");
+  await delayed.unrouteAll({ behavior: "wait" });
+  // Delayed delivery must not pull the local countdown toward an old timestamp.
+  let delayedDeadline = 0;
+  await delayed.route("**/.netlify/functions/party-action", async (route) => {
+    if (route.request().postDataJSON().action !== "get")
+      return route.continue();
+    const response = await route.fetch();
+    delayedDeadline = (await response.json()).game.deadline;
+    await new Promise((resolve) => setTimeout(resolve, 8000));
+    await route.fulfill({ response });
+  });
+  const delivered = delayed.waitForResponse(
+    (r) =>
+      r.url().includes("/party-action") &&
+      r.request().postDataJSON()?.action === "get",
+  );
+  await delayed.evaluate(() => dispatchEvent(new Event("online")));
+  await (await delivered).finished();
+  await delayed.waitForTimeout(150);
+  const clock = Number(
+    (await delayed.locator("#timer").innerText()).replace("s", ""),
+  );
+  const expected = Math.ceil((delayedDeadline - Date.now()) / 1000);
+  assert.ok(
+    Math.abs(clock - expected) <= 1,
+    "slow responses preserve an accurate countdown",
+  );
+  await delayed.unrouteAll({ behavior: "wait" });
   await delayed.context().close();
   assert.deepEqual(errors, []);
   console.log(
