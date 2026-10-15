@@ -1,4 +1,5 @@
 import * as T from "./vendor/three.module.min.js";
+import { carnivalScenes } from "./carnival-scenes.js?v=BOARDWALK_CARNIVAL_V3";
 const C = globalThis.PartyCatalog,
   TAU = Math.PI * 2,
   clamp = (n, a = 0, b = 1) => Math.max(a, Math.min(b, n)),
@@ -129,6 +130,8 @@ function discIcon(p, text, x, y, z, color) {
   return m;
 }
 function mascot(id, skin = "classic") {
+  const merchant = id === "shopkeeper";
+  if (merchant) id = "frog";
   const root = new T.Group(),
     rig = new T.Group();
   root.add(rig);
@@ -346,13 +349,19 @@ function mascot(id, skin = "classic") {
       );
     }
   }
+  if (merchant) {
+    cyl(head, 0, 0.66, 0, 0.56, 0.56, 0.1, "#f2b659");
+    cyl(head, 0, 0.83, 0, 0.32, 0.37, 0.28, "#f4d293");
+    box(rig, 0, 0.86, 0.35, 0.54, 0.63, 0.08, "#f6e6c8");
+    box(rig, 0, 0.85, 0.41, 0.23, 0.19, 0.04, "#e49865");
+  }
   root.userData = { ...root.userData, rig, head, legs, arms, id };
   return root;
 }
 function animateCharacter(m, t, mode = "idle", amount = 1) {
   const u = m.userData,
     walk = mode === "walk",
-    win = mode === "win",
+    win = mode === "win" || mode === "jump",
     fish = mode === "fish",
     climb = mode === "climb";
   u.rig.position.y =
@@ -361,6 +370,9 @@ function animateCharacter(m, t, mode = "idle", amount = 1) {
       : win
         ? Math.abs(Math.sin(t * 4)) * 0.24
         : Math.sin(t * 2) * 0.018) * amount;
+  u.rig.rotation.z = mode === "sad" ? Math.sin(t * 1.8) * 0.08 : 0;
+  u.head.rotation.x = mode === "sad" ? 0.28 : mode === "fish" ? -0.08 : 0;
+  u.rig.scale.y = mode === "duck" ? 0.7 : 1;
   u.head.rotation.z = Math.sin(t * 1.8) * 0.035;
   u.legs.forEach(
     (l, i) =>
@@ -670,13 +682,146 @@ function trophy(p, x, y, z, scale = 1) {
   }
   return g;
 }
+function shopCart(w, n) {
+  box(w.root, n.x + 1, n.y - 0.12, n.z - 0.7, 4, 0.25, 3.7, "#cfad7d");
+  if (n.y > 1)
+    for (const x of [n.x - 0.6, n.x + 2.6])
+      for (const z of [n.z - 2.2, n.z + 0.7])
+        cyl(w.root, x, n.y / 2 - 0.2, z, 0.1, 0.13, n.y + 0.4, "#947257");
+  w.shopkeepers ||= [];
+  const g = new T.Group();
+  g.position.set(n.x + 1.7, n.y - 0.1, n.z - 1.4);
+  w.root.add(g);
+  box(g, 0, 0.7, 0, 1.5, 1.1, 0.8, "#e6ae79");
+  box(g, 0, 1.3, 0, 1.8, 0.14, 1, "#fff1d6");
+  for (const side of [-1, 1]) {
+    tube(g, [side * 0.75, 0, 0], [side * 0.75, 2.4, 0], 0.045, "#8d6c60");
+    const wheel = torus(g, side * 0.55, 0.05, 0, 0.25, 0.08, "#66596e");
+  }
+  for (let i = 0; i < 6; i++)
+    box(
+      g,
+      -0.75 + i * 0.3,
+      2.45,
+      0,
+      0.3,
+      0.16,
+      1.5,
+      i % 2 ? "#fff0d0" : "#e596a8",
+    );
+  const name = label("POPPY’S", "#5e436b", "#fff1c6", 0.27);
+  name.position.set(0, 2.05, 0.5);
+  g.add(name);
+  const merchant = mascot("shopkeeper");
+  merchant.scale.setScalar(0.65);
+  merchant.position.set(n.x + 1.7, n.y + 0.1, n.z - 2);
+  w.root.add(merchant);
+  w.shopkeepers.push(merchant);
+}
+function addBoardDetails(w) {
+  // Broad plazas and planted districts fill the enlarged island without covering paths.
+  for (const [x, z] of [
+    [-13, -1],
+    [-8, 3],
+    [0, -10],
+    [14, 0],
+    [4, 11],
+    [-12, 9],
+  ]) {
+    cyl(w.root, x, 0.43, z, 2.4, 2.4, 0.06, "#e9d6ac", 32);
+    for (let i = 0; i < 7; i++) {
+      const a = (i / 7) * TAU;
+      cyl(
+        w.root,
+        x + Math.cos(a) * 2,
+        0.6,
+        z + Math.sin(a) * 2,
+        0.25,
+        0.25,
+        0.35,
+        "#dba375",
+      );
+      ball(
+        w.root,
+        x + Math.cos(a) * 2,
+        0.87,
+        z + Math.sin(a) * 2,
+        0.38,
+        0.35,
+        0.38,
+        "#67ae84",
+      );
+    }
+    box(w.root, x, 0.8, z, 1.8, 0.13, 0.55, "#c19166");
+    for (const d of [-0.6, 0.6])
+      box(w.root, x + d, 0.6, z, 0.1, 0.5, 0.45, "#766666");
+  }
+  for (let i = 0; i < 36; i++) {
+    const n = C.spaces[i % 48],
+      x = n.x * 0.85,
+      z = n.z * 0.85;
+    if (i % 3 === 0) palm(w, x, z, 0.45 + (i % 4) * 0.08);
+    else {
+      ball(w.root, x, 0.6, z, 0.45, 0.24, 0.4, "#6fb17d");
+      for (let j = 0; j < 3; j++)
+        ball(
+          w.root,
+          x + Math.sin(j * 2) * 0.28,
+          0.85,
+          z + Math.cos(j * 2) * 0.24,
+          0.09,
+          0.12,
+          0.09,
+          ["#ffd579", "#e595bc", "#b3a0ec"][j],
+        );
+    }
+  }
+  for (let i = 0; i < 4; i++) {
+    const x = -4 + i * 2.5;
+    building(
+      w,
+      x,
+      -12,
+      0.45,
+      ["#e8b877", "#eb9c8d", "#98c4b4", "#b2a0cf"][i],
+      "#f8d09e",
+      ["SODA", "CAKES", "KITES", "POST"][i],
+    );
+  }
+  for (let j = 0; j < 3; j++) {
+    const z = -3 + j * 3;
+    for (const x of [-11, 12]) {
+      tube(w.root, [x, 0.5, z], [x, 3.6, z], 0.05, "#786e72");
+    }
+    tube(w.root, [-11, 3.6, z], [12, 3.6, z], 0.014, "#ded2bc");
+    for (let i = 0; i < 20; i++) {
+      const flag = mesh(
+        w.root,
+        new T.ConeGeometry(0.16, 0.4, 3),
+        ["#f6cb69", "#ea9aba", "#86c7b4"][i % 3],
+        -10.5 + i * 1.15,
+        3.3,
+        z,
+      );
+      flag.rotation.z = Math.PI;
+    }
+  }
+  const n = C.spaces[40];
+  w.tideGate = new T.Group();
+  w.tideGate.position.set(n.x - 1.1, n.y, n.z);
+  w.root.add(w.tideGate);
+  box(w.tideGate, 0, 1.15, 0, 2.3, 0.22, 0.12, "#f0b875");
+  const l = label("TIDE GARDENS", "#fff5d7", "#557c82", 0.3);
+  l.position.set(n.x, n.y + 2.5, n.z);
+  w.root.add(l);
+}
 function boardWorld() {
   const w = world("board");
   if (w.built) return w;
   w.built = true;
   water(w);
   const outline = C.spaces
-    .slice(0, 32)
+    .slice(0, C.outerCount)
     .map((n) => new T.Vector2(n.x * 1.065, n.z * 1.1));
   const shape = new T.Shape(outline);
   const land = mesh(
@@ -728,7 +873,7 @@ function boardWorld() {
         plank.position.y += 0.11;
         plank.quaternion.copy(bridge.quaternion);
       }
-      if (n.id >= 32 || next >= 32) {
+      if (n.id >= C.outerCount || next >= C.outerCount) {
         for (const side of [-1, 1]) {
           const v = new T.Vector3(-d.z, 0, d.x).multiplyScalar(side * 0.66);
           tube(
@@ -771,9 +916,38 @@ function boardWorld() {
       }
     }
     const info = C.spaceInfo[n.type];
-    cyl(w.root, n.x, n.y, n.z, 0.65, 0.68, 0.19, "#fff0d0", 24);
-    cyl(w.root, n.x, n.y + 0.12, n.z, 0.55, 0.55, 0.08, info.color, 24);
-    discIcon(w.root, info.icon, n.x, n.y + 0.167, n.z, "#28465c");
+    cyl(w.root, n.x, n.y, n.z, 0.96, 1, 0.22, "#fff0d0", 32);
+    cyl(w.root, n.x, n.y + 0.15, n.z, 0.84, 0.84, 0.1, info.color, 32);
+    const mark = discIcon(w.root, info.icon, n.x, n.y + 0.207, n.z, "#28465c");
+    mark.scale.setScalar(1.55);
+    for (const to of n.next) {
+      const end = C.spaces[to],
+        dx = end.x - n.x,
+        dz = end.z - n.z,
+        length = Math.hypot(dx, dz);
+      const arrow = discIcon(
+        w.root,
+        "➤",
+        n.x + dx * 0.5,
+        (n.y + end.y) / 2 + 0.17,
+        n.z + dz * 0.5,
+        "#284b65",
+      );
+      arrow.rotation.z = -Math.atan2(dz, dx);
+      arrow.scale.setScalar(1.4);
+    }
+    if (n.next.length > 1) {
+      cyl(w.root, n.x - 1.1, n.y + 0.7, n.z, 0.06, 0.06, 1.4, "#927352");
+      const sign = label("↖  ROUTES  ↗", "#334d62", "#fff0c6", 0.38);
+      sign.position.set(n.x - 1.1, n.y + 1.5, n.z);
+      w.root.add(sign);
+    }
+    if (n.type === "shop") shopCart(w, n);
+    if (["chance", "duel", "event"].includes(n.type)) {
+      const small = label(info.name.toUpperCase(), "#33455d", "#fff3d6", 0.24);
+      small.position.set(n.x, n.y + 1.8, n.z - 0.9);
+      w.root.add(small);
+    }
   }
   const pond = ball(w.root, 0, 0.41, 0, 3.7, 0.06, 2.1, "#4bafbe");
   pond.receiveShadow = true;
@@ -831,8 +1005,8 @@ function boardWorld() {
     palm(w, x, z, s);
   for (let i = 0; i < 24; i++) {
     const a = (i / 24) * TAU,
-      x = Math.cos(a) * 13.8,
-      z = Math.sin(a) * 9.9;
+      x = Math.cos(a) * 21.8,
+      z = Math.sin(a) * 16.2;
     ball(
       w.root,
       x,
@@ -845,7 +1019,7 @@ function boardWorld() {
     );
   }
   for (let i = 0; i < 12; i++) {
-    const n = C.spaces[(i * 3) % 32];
+    const n = C.spaces[(i * 4) % C.outerCount];
     tube(
       w.root,
       [n.x + 0.8, n.y, n.z],
@@ -858,7 +1032,7 @@ function boardWorld() {
   for (let i = 0; i < 6; i++) {
     const a = i * 1.7,
       g = new T.Group();
-    g.position.set(Math.cos(a) * 17, -0.35, Math.sin(a) * 13);
+    g.position.set(Math.cos(a) * 25, -0.35, Math.sin(a) * 20);
     w.root.add(g);
     ball(g, 0, 0, 0, 0.8, 0.25, 0.33, ["#ee997d", "#f8d98d", "#a59ad3"][i % 3]);
     tube(g, [0, 0, 0], [0, 1.5, 0], 0.025, "#fff0d0");
@@ -878,11 +1052,12 @@ function boardWorld() {
   }
   for (let i = 0; i < 6; i++)
     cloud(w, -25 + i * 10, 9 + (i % 2) * 3, -20 - (i % 3) * 4, 1.5 + (i % 2));
+  addBoardDetails(w);
   w.goal = trophy(w.root, 0, 0, 0, 0.95);
   w.goalRing = torus(w.root, 0, 0, 0, 0.85, 0.055, "#fff2a6");
   w.goalRing.rotation.x = Math.PI / 2;
   w.dice = [];
-  for (let j = 0; j < 2; j++) {
+  for (let j = 0; j < 3; j++) {
     const materials = [1, 6, 2, 5, 3, 4].map((value) => {
       const cv = document.createElement("canvas");
       cv.width = cv.height = 128;
@@ -936,6 +1111,8 @@ function boardWorld() {
       return new T.MeshStandardMaterial({ map: tex, roughness: 0.35 });
     });
     const die = mesh(w.root, new T.BoxGeometry(1.5, 1.5, 1.5), materials);
+    die.castShadow = false;
+    die.receiveShadow = false;
     w.dice.push(die);
   }
   const batches = new Map();
@@ -1036,7 +1213,19 @@ function updateBoard(w, s, t, extra) {
     animateCharacter(
       a,
       t + i,
-      walking ? "walk" : s?.phase === "complete" ? "win" : "idle",
+      walking
+        ? "walk"
+        : s?.phase === "complete"
+          ? p.id === s.winner
+            ? "win"
+            : "sad"
+          : s?.phase === "space" && s.event?.player === p.id
+            ? s.event.kind === "loss"
+              ? "sad"
+              : ["coins", "gift", "lucky", "trophy"].includes(s.event.kind)
+                ? "win"
+                : "idle"
+            : "idle",
       extra.motion === false ? 0 : 1,
     );
     a.userData.nameLabel.visible = s?.phase !== "complete";
@@ -1058,32 +1247,22 @@ function updateBoard(w, s, t, extra) {
   w.goal.rotation.y = t * 0.8;
   w.goalRing.position.set(n.x, n.y + 0.2, n.z);
   w.goalRing.scale.setScalar(1 + Math.sin(t * 2) * 0.06);
-  const dice = s?.dice,
-    turn = s?.players[s?.turn],
-    at = C.spaces[turn?.position ?? 0];
+  w.diceData = s?.phase === "rolling" ? s.dice : null;
   w.dice.forEach((d, i) => {
-    d.visible = !!dice && i < dice.values.length && s.phase === "rolling";
-    if (!d.visible) return;
-    const age = t * 1000 - dice.at,
-      settled = age >= 1150;
-    d.position.set(
-      at.x + (i ? 1.8 : -0.3),
-      at.y + 2.8 + (settled ? 0 : Math.abs(Math.sin(age / 130)) * 0.8),
-      at.z + 0.5,
-    );
-    const angles = {
-      1: [0, 0, Math.PI / 2],
-      2: [0, 0, 0],
-      3: [-Math.PI / 2, 0, 0],
-      4: [Math.PI / 2, 0, 0],
-      5: [Math.PI, 0, 0],
-      6: [0, 0, -Math.PI / 2],
-    };
-    const r = angles[dice.values[i]];
-    d.rotation.set(...(settled ? r : [age * 0.012, age * 0.008, age * 0.009]));
+    d.visible = !!w.diceData && i < w.diceData.values.length;
   });
+  if (w.shopkeepers)
+    w.shopkeepers.forEach((m, i) =>
+      animateCharacter(
+        m,
+        t + i,
+        s?.event?.kind === "shop" ? "win" : "idle",
+        0.55,
+      ),
+    );
+  if (w.tideGate) w.tideGate.rotation.z = s?.tide ? -0.9 : 0;
   let target = new T.Vector3(0, 0, 0),
-    extent = 26;
+    extent = 39;
   if (complete) {
     target.set(0, 1.6, 3.4);
     extent = 14;
@@ -1095,13 +1274,18 @@ function updateBoard(w, s, t, extra) {
   ) {
     const a = w.actors[s.turn];
     if (a) {
-      target.copy(a.position).multiplyScalar(0.55);
-      target.y = 0.5;
-      extent = 19;
+      target.copy(a.position);
+      target.y += 0.8;
+      extent = 12.8;
     }
   }
-  w.center.lerp(target, 0.06);
-  w.size = mix(w.size, extent, 0.06);
+  const smooth =
+    extra.motion === false
+      ? 1
+      : 1 - Math.exp(-Math.min(0.1, t - (w.lastCameraTime || t - 0.03)) * 5);
+  w.lastCameraTime = t;
+  w.center.lerp(target, smooth);
+  w.size = mix(w.size, extent, smooth);
   return { target: w.center, extent: w.size, position: [27, 33, 35] };
 }
 
@@ -1111,7 +1295,14 @@ function climbWorld() {
   w.built = true;
   w.scene.background = new T.Color("#b9dce8");
   w.scene.fog = new T.Fog("#bfdfe5", 45, 85);
-  box(w.root, 0, -0.5, 0, 24, 1, 12, "#dcad95");
+  box(w.root, 0, -0.7, -3, 90, 1.4, 65, "#dcad95");
+  box(w.root, 0, 0.03, 7, 70, 0.06, 6, "#677789");
+  for (let i = 0; i < 24; i++)
+    box(w.root, -35 + i * 3, 0.08, 7, 1.5, 0.04, 0.14, "#fff2d0");
+  for (let i = 0; i < 12; i++) {
+    cyl(w.root, -26 + i * 4.7, 1.7, 4, 0.07, 0.08, 3.4, "#5e6376");
+    ball(w.root, -26 + i * 4.7, 3.5, 4, 0.25, 0.25, 0.25, "#ffe6a7");
+  }
   for (let i = 0; i < 4; i++) {
     const x = (i - 1.5) * 3.8,
       col = ["#9b91ca", "#f0a487", "#81bda7", "#79b7cd"][i];
@@ -1212,12 +1403,15 @@ function fishWorld() {
   if (w.built) return w;
   w.built = true;
   water(w);
+  box(w.root, 0, -0.2, -9, 38, 1, 12, "#ead1a1");
+  box(w.root, 0, 0.34, -9, 38, 0.08, 12, "#8ab995");
   box(w.root, 0, -0.1, -4, 27, 0.8, 4, "#c7996a");
   for (let i = 0; i < 44; i++)
     box(w.root, -13 + i * 0.6, 0.33, -4, 0.04, 0.04, 4, "#b0845d");
   w.rods = [];
   w.bobbers = [];
   w.fishes = [];
+  w.ripples = [];
   for (let i = 0; i < 4; i++) {
     const x = (i - 1.5) * 5.2;
     box(w.root, x, 0.15, 0, 2.3, 0.35, 6, "#d4ab76");
@@ -1235,6 +1429,12 @@ function fishWorld() {
     w.rods.push(rod);
     const bob = ball(w.root, x + 0.3, -0.5, 4.8, 0.11, 0.19, 0.11, "#f27b77");
     w.bobbers.push(bob);
+    const rings = Array.from({ length: 3 }, () => {
+      const ring = torus(w.root, x + 0.3, -0.56, 4.8, 0.8, 0.025, "#fff2cd");
+      ring.rotation.x = -Math.PI / 2;
+      return ring;
+    });
+    w.ripples.push(rings);
     const fish = new T.Group();
     ball(
       fish,
@@ -1267,14 +1467,20 @@ function updateFish(w, s, t) {
     a.scale.setScalar(1);
     const v = s?.game?.progress[i],
       age = v?.catch ? (t * 1000 - v.catch.at) / 1000 : 10;
-    animateCharacter(
-      a,
-      t + i,
-      v?.hook ? "fish" : age < 1.5 && v.catch.score ? "win" : "idle",
-    );
-    w.rods[i].rotation.x = v?.hook
-      ? -0.15 + Math.sin(t * 10) * 0.03
-      : Math.sin(t * 1.4 + i) * 0.02;
+    animateCharacter(a, t + i, age < 1.5 && v?.catch?.score ? "fish" : "idle");
+    w.rods[i].rotation.x =
+      age < 1.8
+        ? -0.65 * Math.sin(Math.PI * clamp(age / 1.8))
+        : Math.sin(t * 1.4 + i) * 0.02;
+    const cue = s?.game?.cue,
+      dt = t * 1000 - (s?.game?.start || 0) - (cue?.at || 0),
+      splash = cue && dt >= 0 && dt < cue.window;
+    w.ripples[i].forEach((ring, j) => {
+      const phase = (t * 1.3 + j / 3) % 1;
+      ring.visible = !!cue && dt > -2200 && dt < cue.window;
+      ring.scale.setScalar((splash ? 1.2 : 0.5) + phase * (splash ? 1.5 : 0.6));
+      ring.material = mat(splash ? "#ffd16d" : "#f3f5dd");
+    });
     w.bobbers[i].position.y = -0.5 + Math.sin(t * 3 + i) * 0.07;
     const f = w.fishes[i];
     f.visible = !!v?.catch?.score && age >= 0 && age < 1.8;
@@ -1431,7 +1637,8 @@ function puttWorld(index) {
   const h = C.holes[index],
     conv = ([x, z]) => [(x - 360) / 25, (z - 360) / 25];
   w.conv = conv;
-  box(w.root, 0, -0.15, 0, 23, 1, 24, "#eac898");
+  box(w.root, 0, -0.25, 0, 34, 1.3, 34, "#eac898");
+  box(w.root, 0, 0.41, 0, 33.7, 0.08, 33.7, "#b3cc91");
   box(w.root, 0, 0.42, 0, 21, 0.16, 22, "#80bd94");
   for (let i = 0; i < 11; i++)
     box(
@@ -1566,7 +1773,23 @@ function updatePutt(w, s, t, extra) {
     a.position.set(tee[0] - 1.1, 0.55, tee[1] + 0.5);
     a.rotation.y = 1;
     a.scale.setScalar(0.75);
-    animateCharacter(a, t, rolling ? "win" : "idle", 0.4);
+    animateCharacter(
+      a,
+      t,
+      shot && t * 1000 - shot.at < 700 ? "fish" : v?.finished ? "win" : "idle",
+      0.6,
+    );
+    if (!a.userData.club) {
+      const club = new T.Group();
+      tube(club, [0.5, 0.8, 0.3], [0.8, 0.15, 0.85], 0.025, "#62727d");
+      box(club, 0.83, 0.13, 0.9, 0.45, 0.12, 0.2, "#d2d4c9");
+      a.add(club);
+      a.userData.club = club;
+    }
+    a.userData.club.rotation.x =
+      shot && t * 1000 - shot.at < 700
+        ? -Math.sin(((t * 1000 - shot.at) / 700) * Math.PI)
+        : 0;
   });
   return { target: new T.Vector3(0, 0, 0), extent: 28, position: [15, 31, 30] };
 }
@@ -1579,8 +1802,12 @@ function sceneFrame(w, t, view, canvas) {
     cam = w.camera;
   cam.left = (-extent * aspect) / 2;
   cam.right = (extent * aspect) / 2;
-  cam.top = extent / 2;
-  cam.bottom = -extent / 2;
+  const lift =
+    canvas.id === "party-scene" && document.body.dataset.phase === "playing"
+      ? 0.1
+      : 0;
+  cam.top = extent * (0.5 - lift);
+  cam.bottom = -extent * (0.5 + lift);
   cam.position.copy(view.target).add(new T.Vector3(...view.position));
   cam.lookAt(view.target);
   cam.updateProjectionMatrix();
@@ -1597,6 +1824,40 @@ function sceneFrame(w, t, view, canvas) {
       );
     a.needsUpdate = true;
   }
+  if (w.diceData) {
+    const dice = w.diceData,
+      age = clamp((t * 1000 - dice.at) / 1450),
+      ease = 1 - (1 - age) ** 3,
+      forward = new T.Vector3(0, 0, -1).applyQuaternion(cam.quaternion),
+      right = new T.Vector3(1, 0, 0).applyQuaternion(cam.quaternion),
+      up = new T.Vector3(0, 1, 0).applyQuaternion(cam.quaternion),
+      center = cam.position.clone().addScaledVector(forward, 24);
+    w.dice.forEach((d, i) => {
+      if (!d.visible) return;
+      const angles = {
+          1: [0, -Math.PI / 2, 0],
+          2: [Math.PI / 2, 0, 0],
+          3: [0, 0, 0],
+          4: [0, Math.PI, 0],
+          5: [-Math.PI / 2, 0, 0],
+          6: [0, Math.PI / 2, 0],
+        },
+        a = angles[dice.values[i]];
+      d.position
+        .copy(center)
+        .addScaledVector(right, (i - (dice.values.length - 1) / 2) * 2.3)
+        .addScaledVector(up, Math.sin(age * Math.PI * 3) * (1 - age) * 1.8);
+      const q = new T.Quaternion().setFromEuler(
+        new T.Euler(
+          a[0] + TAU * 3 * (1 - ease),
+          a[1] + TAU * 2 * (1 - ease),
+          a[2] + TAU * (1 - ease),
+        ),
+      );
+      d.quaternion.copy(cam.quaternion).multiply(q);
+      d.scale.setScalar(1.15);
+    });
+  }
   r.setSize(width, height, false);
   r.render(w.scene, cam);
   const c = canvas.getContext("2d");
@@ -1610,20 +1871,6 @@ function text(c, str, x, y, size, color = "#fff4df", align = "center") {
   c.textAlign = align;
   c.fillText(str, x, y);
 }
-function gauge(c, x, y, w, h, position, center, width, reel) {
-  c.fillStyle = "#203d59d9";
-  c.beginPath();
-  c.roundRect(x, y, w, h, h / 2);
-  c.fill();
-  c.fillStyle = reel ? "#8be4a7" : "#ffcc67";
-  c.beginPath();
-  c.roundRect(x + (center - width / 2) * w, y + 3, width * w, h - 6, 5);
-  c.fill();
-  c.fillStyle = "#fff5d9";
-  c.beginPath();
-  c.arc(x + clamp(position) * w, y + h / 2, h * 0.55, 0, TAU);
-  c.fill();
-}
 function overlay(c, canvas, kind, s, t, extra) {
   const W = canvas.width,
     H = canvas.height,
@@ -1633,29 +1880,6 @@ function overlay(c, canvas, kind, s, t, extra) {
   const w = W / d,
     h = H / d,
     v = s?.game?.progress[s.players.findIndex((p) => p.id === s.you)];
-  if (kind === "fish") {
-    const hook = v?.hook,
-      position = hook
-        ? 0.5 + 0.46 * Math.sin(((t * 1000 - hook.at) / 1000) * 3.2 - 1)
-        : 0.5 + 0.46 * Math.sin((t - (s?.game?.start || 0) / 1000) * 2.1),
-      center = hook ? 0.56 : 0.5 + 0.2 * Math.sin((v?.attempts || 0) * 2.1),
-      width = hook
-        ? hook.risk === "deep"
-          ? 0.28
-          : 0.5
-        : extra.fishRisk === "deep"
-          ? 0.32
-          : 0.6;
-    gauge(c, w * 0.15, h - 44, w * 0.7, 17, position, center, width, !!hook);
-    text(
-      c,
-      hook ? "REEL IN GREEN" : "HOOK IN GOLD",
-      w / 2,
-      h - 11,
-      10,
-      "#24465c",
-    );
-  }
   if (kind === "memory" && v?.reverse) {
     c.fillStyle = "#542f76e0";
     c.beginPath();
@@ -1664,14 +1888,14 @@ function overlay(c, canvas, kind, s, t, extra) {
     text(c, "↶ REVERSE THE PATTERN", w / 2, h - 17, 10);
   }
   if (kind === "climb" && v?.combo >= 2) {
-    text(c, "×" + v.combo + " COMBO", w / 2, h - 17, 13, "#243e58");
+    text(c, "×" + v.combo + " COMBO", w / 2, 90, 13, "#243e58");
   }
   if (kind === "putt") {
     const course =
       v?.shot && t * 1000 < v.shot.at + v.shot.duration + 450
         ? v.shot.course
         : Math.min(2, v?.attempts || 0);
-    text(c, "COURSE " + (course + 1) + " / 3", w / 2, h - 14, 11, "#24465c");
+    text(c, "COURSE " + (course + 1) + " / 3", w / 2, 90, 11, "#24465c");
   }
   if (
     kind === "board" &&
@@ -1685,7 +1909,7 @@ function overlay(c, canvas, kind, s, t, extra) {
     c.fill();
     text(
       c,
-      s.dice.values.join(" + ") + "  ·  " + s.dice.total + " SPACES",
+      s.dice.total + (s.dice.total === 1 ? " SPACE" : " SPACES"),
       w / 2,
       h - 27,
       12,
@@ -1712,7 +1936,7 @@ function fallback(canvas, kind, s) {
   c.fillStyle = "#a5dcd5";
   c.fillRect(0, 0, W, H);
   if (kind === "board") {
-    const xy = (n) => [W / 2 + (n.x * W) / 32, H / 2 + (n.z * H) / 23];
+    const xy = (n) => [W / 2 + (n.x * W) / 46, H / 2 + (n.z * H) / 36];
     for (const n of C.spaces) {
       for (const id of n.next) {
         const b = C.spaces[id];
@@ -1789,6 +2013,11 @@ function render(canvas, kind, state, time = 0, extra = {}) {
   } else if (kind === "memory") {
     w = memoryWorld();
     view = updateMemory(w, state, time, extra);
+  } else if (
+    ["cascade", "lantern", "hop", "dash", "signal", "treasure"].includes(kind)
+  ) {
+    w = extras.build(kind);
+    view = extras.update(w, state, time, extra);
   } else {
     const v =
         state?.game?.progress[
@@ -1800,6 +2029,31 @@ function render(canvas, kind, state, time = 0, extra = {}) {
           : Math.min(2, v?.attempts || 0);
     w = puttWorld(index || 0);
     view = updatePutt(w, state, time, extra);
+  }
+  if (state && ["round-end", "side-result"].includes(state.phase))
+    for (const a of w.actors) {
+      a.rotation.y = 0.3;
+      animateCharacter(
+        a,
+        time,
+        state.game.winners?.includes(a.userData.playerId) ? "win" : "sad",
+      );
+    }
+  if (
+    state &&
+    width / height < 1 &&
+    ["cascade", "dash", "treasure", "hop", "fish"].includes(kind)
+  ) {
+    const actor = w.actors.find((a) => a.userData.playerId === state.you);
+    if (actor) {
+      view.target = actor.position.clone();
+      view.target.y = 1;
+      view.target.z -= 3;
+      view.extent = kind === "fish" ? 16 : 19;
+      view.position = [3, 27, 35];
+    }
+  } else if (kind !== "board" && width / height < 1) {
+    view.extent = Math.max(view.extent, 22 / (width / height));
   }
   w.motion = extra.motion !== false;
   overlay(sceneFrame(w, time, view, canvas), canvas, kind, state, time, extra);
@@ -1838,4 +2092,25 @@ function portrait(canvas, id, skin = "classic") {
   copy.getContext("2d").drawImage(canvas, 0, 0);
   portraits.set(key, copy);
 }
+const extras = carnivalScenes({
+  T,
+  C,
+  world,
+  water,
+  box,
+  ball,
+  cyl,
+  tube,
+  torus,
+  label,
+  mascot,
+  roster,
+  animateCharacter,
+  palm,
+  building,
+  cloud,
+  mat,
+  mix,
+  clamp,
+});
 globalThis.PartyScene = { render, portrait };

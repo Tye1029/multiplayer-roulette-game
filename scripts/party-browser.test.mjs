@@ -6,7 +6,9 @@ import { createRequire } from "node:module";
 import { startPartyServer } from "./party-test-server.mjs";
 const require = createRequire(import.meta.url),
   { chromium } = require(process.env.RPS_PLAYWRIGHT_MODULE || "playwright"),
-  C = require("../assets/party/catalog");
+  C = require("../assets/party/catalog"),
+  M = require("../netlify/functions/party/model"),
+  G = require("../netlify/functions/party/minigames");
 const server = await startPartyServer(),
   browser = await chromium.launch({
     headless: true,
@@ -33,7 +35,7 @@ async function page(width) {
 }
 async function fit(p, name) {
   await p.screenshot({
-    path: path.join(out, "v2-" + name + ".png"),
+    path: path.join(out, "v3-" + name + ".png"),
     fullPage: true,
   });
   assert.equal(
@@ -92,6 +94,10 @@ async function expire(code, pages) {
   const s = await roomState(code);
   s.deadline = Date.now() - 1;
   if (s.phase === "playing") s.game.end = Date.now() - 1;
+  if (s.phase === "countdown") {
+    s.game.start = Date.now() - 1;
+    s.game.end = s.game.start + s.game.duration;
+  }
   await server.pg.query("UPDATE party_rooms SET state=$2::jsonb WHERE id=$1", [
     code,
     JSON.stringify(s),
@@ -168,13 +174,35 @@ async function checkExpiredControls(pages, code) {
   await wake(pages);
   await wait(p, "body:not([data-phase=playing])");
 }
+async function readyGame(pages, code) {
+  const s = await roomState(code);
+  await wake(pages);
+  for (const [i, p] of pages.entries())
+    if (s.game.participants.includes(s.players[i].id)) {
+      await wait(p, "[data-action=game-ready]");
+      if (!s.game.ready.includes(s.players[i].id))
+        await action(p, "[data-action=game-ready]", "game-ready");
+    }
+  assert.equal((await roomState(code)).phase, "countdown");
+}
 async function playRound(pages, code, seen) {
   let s = await roomState(code);
   const game = s.game.id;
+  console.log("Checking minigame:", game);
   // Four software-rendered browsers and screenshots can exceed the real round
   // timer on CI. Give this isolated UI fixture time to exercise every player;
   // expire() still takes the normal authoritative end-of-round path afterward.
   s.deadline = s.game.end = Date.now() + 240000;
+  if (G.handled(game)) {
+    s.game.beats = [
+      {
+        ...s.game.beats[0],
+        index: 0,
+        at: Date.now() - s.game.start - 300,
+        window: 240000,
+      },
+    ];
+  }
   await server.pg.query("UPDATE party_rooms SET state=$2::jsonb WHERE id=$1", [
     code,
     JSON.stringify(s),
@@ -199,11 +227,23 @@ async function playRound(pages, code, seen) {
       await p.locator("#power").fill("57");
       await action(p, "[data-putt]", "play");
     }
-    if (game === "fish") {
-      await wait(p, "#reel");
-      for (let n = 0; n < 2; n++) {
-        await action(p, "#reel:enabled", "play");
+    if (G.handled(game)) {
+      const state = await roomState(code),
+        cue = state.game.beats[0];
+      if (["cascade", "dash"].includes(game)) {
+        await action(p, '[data-control="left"]', "play");
         await p.waitForTimeout(180);
+        await action(p, '[data-control="right"]', "play");
+      } else {
+        const value =
+          game === "fish"
+            ? "reel"
+            : game === "hop"
+              ? "jump"
+              : game === "treasure"
+                ? cue.values.indexOf(Math.max(...cue.values))
+                : cue.color;
+        await action(p, '[data-control="' + value + '"]:enabled', "play");
       }
     }
     if (game === "memory") {
@@ -280,7 +320,7 @@ try {
     sawChoice = false,
     sawShop = false,
     sawDuel = false;
-  while (guard++ < 250) {
+  while (guard++ < 400) {
     let s = await roomState(code);
     if (s.phase === "complete") break;
     if (s.phase === "board") {
@@ -317,13 +357,14 @@ try {
       const p = pages[s.turn];
       await wake(pages);
       if (s.event.kind === "duel") {
-        await wait(p, "[data-opponent]");
+        await wait(p, "[data-challenge]");
         if (!sawDuel) {
           await fit(p, "choose-rival");
           sawDuel = true;
         }
         const opponent = s.players.find((x) => x.id !== s.players[s.turn].id);
-        await action(p, '[data-opponent="' + opponent.id + '"]', "challenge");
+        await p.locator("#duel-rival").selectOption(opponent.id);
+        await action(p, "[data-challenge]", "challenge");
       } else {
         await wait(p, "[data-action=continue]");
         if (s.event.kind === "shop" && !sawShop) {
@@ -334,18 +375,24 @@ try {
         }
         await action(p, "[data-action=continue]", "continue");
       }
+    } else if (s.phase === "intro") {
+      await readyGame(pages, code);
     } else if (s.phase === "playing") await playRound(pages, code, seen);
     else if (
-      ["walking", "board-end", "intro", "round-end", "side-result"].includes(
-        s.phase,
-      )
+      [
+        "walking",
+        "board-end",
+        "countdown",
+        "round-end",
+        "side-result",
+      ].includes(s.phase)
     )
       await expire(code, pages);
     else throw Error("Unexpected phase " + s.phase);
   }
   const final = await roomState(code);
   assert.equal(final.phase, "complete");
-  assert.equal(seen.size, 4);
+  assert.ok(seen.size >= 5);
   assert.ok(sawRoll && sawChoice);
   await wake(pages);
   await wait(pages[0], "[data-action=rematch]");
@@ -364,6 +411,26 @@ try {
   for (const p of pages) await action(p, "[data-action=rematch]", "rematch");
   await wait(pages[0], "[data-action=roll]");
   assert.equal((await roomState(code)).match, 2);
+  // Isolated missing-game fixtures keep the real handler, ready flow, inputs,
+  // and rendering. Only the minigame selection is controlled for coverage.
+  for (const def of C.games.filter((g) => !seen.has(g.id))) {
+    let state = await roomState(code);
+    state.phase = "board-end";
+    state.deadline = Date.now() - 1;
+    state.round = 1;
+    state.usedGames = C.games.filter((g) => g.id !== def.id).map((g) => g.id);
+    state.revision++;
+    await server.pg.query(
+      "UPDATE party_rooms SET state=$2::jsonb WHERE id=$1",
+      [code, JSON.stringify(state)],
+    );
+    await wake(pages);
+    await wait(pages[0], "body[data-phase=intro]");
+    await readyGame(pages, code);
+    await expire(code, pages);
+    await playRound(pages, code, seen);
+  }
+  assert.equal(seen.size, C.games.length);
   for (const p of pages) await p.context().close();
   const duo = [await page(1280), await page(390)],
     duelCode = await signup(duo[0], "Duel QA", "duel");
@@ -374,7 +441,8 @@ try {
   for (let n = 0; n < 35; n++) {
     const s = await roomState(duelCode);
     if (s.phase === "complete") break;
-    if (s.phase === "playing") await playRound(duo, duelCode, duelSeen);
+    if (s.phase === "intro") await readyGame(duo, duelCode);
+    else if (s.phase === "playing") await playRound(duo, duelCode, duelSeen);
     else await expire(duelCode, duo);
   }
   assert.equal((await roomState(duelCode)).phase, "complete");
@@ -399,10 +467,20 @@ try {
   await delayed.context().close();
   assert.deepEqual(errors, []);
   console.log(
-    "PASS: six-round four-player festival, dice, crossroads, board events, all four upgraded minigames, live duel, reconnect, rewards, rematch, slow requests and desktop/mobile/landscape layouts. " +
+    "PASS: eight-round four-player festival, on-scene dice and controls, crossroads, passing shops, stakes, all ten minigames, readiness, live duel, reconnect, rewards, rematch, slow requests and desktop/mobile/landscape layouts. " +
       out,
   );
 } finally {
+  console.log("BROWSER ERRORS", errors);
+  for (const [i, c] of browser.contexts().entries())
+    for (const p of c.pages()) {
+      await p
+        .screenshot({
+          path: path.join(out, "v3-debug-" + i + ".png"),
+          fullPage: true,
+        })
+        .catch(() => {});
+    }
   await browser.close();
   await server.close();
 }

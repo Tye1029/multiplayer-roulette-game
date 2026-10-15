@@ -1,7 +1,8 @@
 "use strict";
 const crypto = require("node:crypto"),
   C = require("../../../assets/party/catalog"),
-  physics = require("../../../shared/games/mini-golf-physics");
+  physics = require("../../../shared/games/mini-golf-physics"),
+  G = require("./minigames");
 const rnd = (n) => crypto.randomInt(n),
   pick = (xs) => xs[rnd(xs.length)],
   fail = (message, status = 409) => {
@@ -28,7 +29,7 @@ function player(p) {
 function create(id, p, mode, now = Date.now()) {
   if (!["party", "duel"].includes(mode)) fail("Choose a party or a duel.", 400);
   return {
-    version: 2,
+    version: 3,
     id,
     host: p.id,
     mode,
@@ -36,7 +37,7 @@ function create(id, p, mode, now = Date.now()) {
     players: [player(p)],
     ready: [],
     round: 0,
-    rounds: mode === "duel" ? 3 : 6,
+    rounds: mode === "duel" ? 3 : 8,
     match: 1,
     revision: 1,
     deadline: now + 1800000,
@@ -44,7 +45,7 @@ function create(id, p, mode, now = Date.now()) {
     history: [],
     gameOrder: [],
     turn: 0,
-    goal: 8,
+    goal: C.trophyStops[0],
     log: "Welcome to Coral Carnival. Bring your crew.",
     created: now,
   };
@@ -66,6 +67,7 @@ function enterBoard(s, now) {
   s.event = null;
   s.movement = null;
   s.deadline = now + 25000;
+  s.tide = s.round % 2;
   s.log = "Round " + s.round + ": roll the dice. Find your own route.";
 }
 function begin(s, now) {
@@ -77,7 +79,7 @@ function begin(s, now) {
     const j = rnd(i + 1);
     [s.gameOrder[i], s.gameOrder[j]] = [s.gameOrder[j], s.gameOrder[i]];
   }
-  s.version = 2;
+  s.version = 3;
   s.round = 1;
   s.history = [];
   s.winner = null;
@@ -85,25 +87,43 @@ function begin(s, now) {
   s.tied = null;
   s.tieAgain = false;
   s.tieCount = 0;
-  s.goal = 8;
+  s.goal = C.trophyStops[0];
+  s.usedGames = [];
+  s.tide = 0;
   s.players = s.players.map(player);
   s.receipts = [];
   if (s.mode === "party") enterBoard(s, now);
   else enterGame(s, now);
 }
+function nextGame(s, sideDuel) {
+  const pool = C.games.filter((g) => !sideDuel || !g.coinGame).map((g) => g.id);
+  let available = pool.filter((id) => !s.usedGames.includes(id));
+  if (!available.length) {
+    const last = s.usedGames.at(-1);
+    if (C.games.every((g) => s.usedGames.includes(g.id))) s.usedGames = [];
+    available = pool.filter((id) => id !== last);
+  }
+  const id = pick(available);
+  s.usedGames.push(id);
+  return id;
+}
+function countdown(s, now) {
+  s.phase = "countdown";
+  s.deadline = now + 3000;
+  s.game.start = s.deadline;
+  s.game.end = s.deadline + s.game.duration;
+}
 function enterGame(s, now, tiebreak = false, participants = null) {
   s.phase = "intro";
-  s.deadline = now + 5000;
+  s.deadline = now + 60000;
   const sideDuel = !!participants,
     duration = sideDuel ? 20000 : 35000;
   s.game = {
-    id: tiebreak
-      ? "climb"
-      : sideDuel
-        ? pick(["climb", "memory"])
-        : s.gameOrder[(s.round - 1) % 4],
-    start: now + 5000,
-    end: now + 5000 + duration,
+    id: tiebreak ? "climb" : nextGame(s, sideDuel),
+    start: now + 63000,
+    end: now + 63000 + duration,
+    ready: [],
+    preparedAt: now,
     duration,
     tiebreak,
     sideDuel,
@@ -120,7 +140,6 @@ function enterGame(s, now, tiebreak = false, participants = null) {
       inputs: 0,
       finished: null,
       shot: null,
-      hook: null,
       reverse: false,
       pattern: Array.from({ length: 3 }, () => rnd(4)),
       cursor: 0,
@@ -129,6 +148,7 @@ function enterGame(s, now, tiebreak = false, participants = null) {
       feedback: "",
     })),
   };
+  G.setup(s.game);
   s.lastMove = null;
   s.event = null;
   if (!sideDuel)
@@ -146,27 +166,33 @@ function nextTurn(s, now) {
   s.deadline = now + (s.phase === "board" ? 25000 : 2500);
 }
 function roll(s, p, now) {
-  const values = Array.from({ length: p.double ? 2 : 1 }, () => 1 + rnd(6));
+  const values = p.custom
+    ? [p.custom]
+    : Array.from({ length: p.triple ? 3 : p.double ? 2 : 1 }, () => 1 + rnd(6));
+  p.custom = 0;
+  p.triple = false;
   p.double = false;
   const steps = values.reduce((a, b) => a + b, 0) + (p.boost || 0);
   p.boost = 0;
   s.dice = { values, total: steps, at: now, player: p.id };
-  s.movement = { remaining: steps, path: [p.position], at: now + 1700 };
+  s.movement = { remaining: steps, path: [p.position], at: now + 2100 };
   s.phase = "rolling";
-  s.deadline = now + 1700;
+  s.deadline = now + 2100;
   s.log = p.name + " is rolling…";
 }
 function travel(s, now, chosen) {
   const p = s.players[s.turn],
     m = s.movement,
     path = [p.position];
+  m.stopShop = false;
   let node = C.spaces[p.position],
     choice = chosen;
   while (m.remaining > 0) {
-    if (node.next.length > 1 && choice === undefined) break;
-    const next = choice === undefined ? node.next[0] : choice;
+    const exits = routes(s, node.id);
+    if (exits.length > 1 && choice === undefined) break;
+    const next = choice === undefined ? exits[0] : choice;
     choice = undefined;
-    if (!node.next.includes(next))
+    if (!routes(s, node.id).includes(next))
       fail("Choose one of the highlighted paths.", 400);
     node = C.spaces[next];
     m.remaining--;
@@ -179,6 +205,10 @@ function travel(s, now, chosen) {
         C.trophyStops[
           (C.trophyStops.indexOf(s.goal) + 1) % C.trophyStops.length
         ];
+    }
+    if (node.type === "shop") {
+      m.stopShop = true;
+      break;
     }
   }
   if (path.length > 1) {
@@ -198,6 +228,16 @@ function travel(s, now, chosen) {
     s.log = p.name + " reached a crossroads. " + m.remaining + " spaces left.";
   }
 }
+function routes(s, id) {
+  const n = C.spaces[id];
+  return id === 40 && s.tide === 0 ? [n.next[0]] : n.next;
+}
+function resumeSpace(s, now) {
+  if (s.event?.kind === "shop" && s.movement?.remaining) {
+    s.event = null;
+    travel(s, now);
+  } else nextTurn(s, now);
+}
 function land(s, now) {
   const p = s.players[s.turn],
     tile = C.spaces[p.position],
@@ -211,6 +251,7 @@ function land(s, now) {
     text: C.spaceInfo[kind].description,
     player: p.id,
     bought: false,
+    passing: kind === "shop" && s.movement.remaining > 0,
   };
   const e = s.event;
   if (kind === "coins") {
@@ -275,7 +316,49 @@ function land(s, now) {
       e.text = "Festival collection! Your friends chipped in " + n + " coins.";
     }
   }
-  if (kind === "shop" || kind === "duel") s.deadline = now + 18000;
+  if (kind === "chance") {
+    const first = pick(s.players),
+      second = pick(s.players.filter((x) => x.id !== first.id)),
+      option = rnd(4);
+    let amount = 0;
+    if (option === 0) {
+      [first.tokens, second.tokens] = [second.tokens, first.tokens];
+      e.text = first.name + " and " + second.name + " swapped all their coins!";
+    }
+    if (option === 1) {
+      amount = Math.min(10, first.tokens);
+      first.tokens -= amount;
+      second.tokens += amount;
+      e.text =
+        first.name + " sent " + amount + " coins to " + second.name + "!";
+    }
+    if (option === 2) {
+      [first.trophies, second.trophies] = [second.trophies, first.trophies];
+      e.text = first.name + " and " + second.name + " swapped trophies!";
+    }
+    if (option === 3) {
+      amount = Math.min(1, first.trophies);
+      first.trophies -= amount;
+      second.trophies += amount;
+      e.text = amount
+        ? first.name + " sent a trophy to " + second.name + "!"
+        : "The parade waved through. No trophies to exchange!";
+    }
+    e.chance = { from: first.id, to: second.id, option, amount };
+    s.deadline = now + 7500;
+  }
+  if (kind === "event" && e.variant === 2) {
+    s.tide = 1 - s.tide;
+    e.text +=
+      " The tide " +
+      (s.tide ? "opened" : "closed") +
+      " the Tide Gardens shortcut!";
+  }
+  if (kind === "shop" || kind === "duel") s.deadline = now + 25000;
+  if (kind === "shop")
+    e.text =
+      "Poppy’s traveling cart! Buy one item or keep going" +
+      (e.passing ? " with " + s.movement.remaining + " spaces left." : ".");
   if (kind === "trophy")
     e.text =
       p.position === s.goal
@@ -283,15 +366,40 @@ function land(s, now) {
         : "The trophy host has moved. Follow the golden beacon.";
   s.log = p.name + " · " + e.text;
 }
-function challenge(s, p, opponent, now) {
-  if (!s.players.some((x) => x.id === opponent && x.id !== p.id))
-    fail("Choose another player.", 400);
+function challenge(s, p, opponent, now, stake = 0, currency = "coins") {
+  const rival = s.players.find((x) => x.id === opponent && x.id !== p.id);
+  if (!rival) fail("Choose another player.", 400);
+  if (!["coins", "trophy"].includes(currency))
+    fail("Choose coins or a trophy.", 400);
+  if (currency === "trophy") {
+    if (
+      s.round < s.rounds - 2 ||
+      p.trophies < 1 ||
+      rival.trophies < 1 ||
+      stake !== 1
+    )
+      fail("Both players need a trophy, during the last three turns.");
+    p.trophies--;
+    rival.trophies--;
+  } else {
+    if (
+      !Number.isInteger(stake) ||
+      stake < 0 ||
+      stake > Math.min(p.tokens, rival.tokens, 50)
+    )
+      fail("Choose a coin stake both rivals can afford.", 400);
+    p.tokens -= stake;
+    rival.tokens -= stake;
+  }
+  enterGame(s, now, false, [p.id, rival.id]);
+  s.game.stake = { amount: stake, currency, players: [p.id, rival.id] };
   s.log =
     p.name +
     " challenged " +
-    s.players.find((x) => x.id === opponent).name +
+    rival.name +
+    " for " +
+    (currency === "trophy" ? "a trophy each" : stake + " coins each") +
     "!";
-  enterGame(s, now, false, [p.id, opponent]);
 }
 function finish(s, now, winner) {
   s.phase = "complete";
@@ -317,25 +425,55 @@ function conclude(s, now) {
       (r) => r.score === rank[0].score && r.finished === rank[0].finished,
     ),
     winners = rank[0].score > 0 ? top.map((r) => r.id) : [];
+  g.winners = winners;
+  g.coinAwards = s.players.map(() => 0);
+  g.trophyAwards = s.players.map(() => 0);
   if (g.sideDuel) {
-    for (const p of s.players) if (winners.includes(p.id)) p.tokens += 8;
+    const stake = g.stake || {
+        amount: 0,
+        currency: "coins",
+        players: g.participants,
+      },
+      single = winners.length === 1;
+    for (const [i, p] of s.players.entries())
+      if (stake.players.includes(p.id)) {
+        const amount = single
+          ? winners.includes(p.id)
+            ? stake.amount * 2
+            : 0
+          : stake.amount;
+        if (stake.currency === "trophy") {
+          p.trophies += amount;
+          g.trophyAwards[i] = amount - stake.amount;
+        } else {
+          p.tokens += amount;
+          g.coinAwards[i] = amount - stake.amount;
+        }
+      }
     s.phase = "side-result";
-    s.deadline = now + 5000;
-    s.log = winners.length
-      ? s.players
-          .filter((p) => winners.includes(p.id))
-          .map((p) => p.name)
-          .join(" & ") + " won 8 coins!"
-      : "A draw. Back to the festival!";
+    s.deadline = now + 6500;
+    s.log = single
+      ? s.players.find((p) => p.id === winners[0]).name + " won the showdown!"
+      : "A draw. Stakes returned.";
     s.event = { kind: "duel", title: "Rival showdown", text: s.log };
     return;
   }
+  const coinGame = C.games.find((x) => x.id === g.id)?.coinGame;
   for (const [i, p] of s.players.entries()) {
     p.total += g.scores[i];
-    p.tokens += Math.max(2, 6 - rank.findIndex((r) => r.id === p.id));
+    const earned = coinGame
+      ? g.progress[i].collected || 0
+      : g.progress[i].inputs > 0
+        ? [10, 6, 3, 2][rank.findIndex((r) => r.id === p.id)] || 0
+        : 0;
+    p.tokens += earned;
+    g.coinAwards[i] = earned;
     if (winners.includes(p.id)) {
       p.wins++;
-      p.trophies++;
+      if (!coinGame) {
+        p.trophies++;
+        g.trophyAwards[i] = 1;
+      }
     }
   }
   s.history.push({
@@ -398,15 +536,6 @@ function conclude(s, now) {
         .join(" & ") + " won this minigame!"
     : "A fresh chance next round.";
 }
-function fishEscape(v, now) {
-  if (v.hook && now - v.hook.at >= 4000) {
-    v.hook = null;
-    v.attempts++;
-    v.last = now;
-    v.feedback = "It got away! Reel before four seconds.";
-    if (v.attempts >= 5) v.finished = now;
-  }
-}
 function play(s, p, b, now) {
   const g = s.game,
     i = s.players.indexOf(p),
@@ -417,7 +546,9 @@ function play(s, p, b, now) {
     fail("Watch the two rivals in this round.");
   if (v.finished) fail("Your round is finished.");
   if (now - v.last < 130) fail("Give your last move a moment.");
-  if (g.id === "climb") {
+  if (G.handled(g.id)) {
+    G.play(g, i, b, now, fail);
+  } else if (g.id === "climb") {
     if (!directions.includes(b.value)) fail("Choose an arrow.", 400);
     if (b.value === g.sequence[v.step]) {
       v.step++;
@@ -474,46 +605,6 @@ function play(s, p, b, now) {
       v.showAt = now + 800;
       v.feedback = "Missed a beat. Watch the new pattern.";
     }
-  } else if (g.id === "fish") {
-    fishEscape(v, now);
-    if (v.finished) fail("All five casts are complete.");
-    if (now - v.last < 900 && !v.hook && v.attempts)
-      fail("Wait for the next cast.");
-    if (!v.hook) {
-      if (!["safe", "deep"].includes(b.risk))
-        fail("Choose safe or deep water.", 400);
-      const center = 0.5 + 0.2 * Math.sin(v.attempts * 2.1),
-        pos = 0.5 + 0.46 * Math.sin(((now - g.start) / 1000) * 2.1),
-        width = b.risk === "deep" ? 0.16 : 0.3,
-        accuracy = Math.max(0, 1 - Math.abs(center - pos) / width);
-      if (accuracy > 0.05) {
-        v.hook = { at: now, risk: b.risk, accuracy };
-        v.feedback = "Fish on! Reel in the green tension zone.";
-      } else {
-        v.attempts++;
-        v.catch = { score: 0, at: now };
-        v.feedback = "Missed the hook. Watch for gold.";
-      }
-    } else {
-      const tension =
-          0.5 + 0.46 * Math.sin(((now - v.hook.at) / 1000) * 3.2 - 1),
-        width = v.hook.risk === "deep" ? 0.14 : 0.25,
-        accuracy = Math.max(0, 1 - Math.abs(0.56 - tension) / width),
-        score = Math.round(
-          (v.hook.risk === "deep" ? 600 : 320) * v.hook.accuracy * accuracy,
-        );
-      g.scores[i] += score;
-      v.catch = { score, at: now, risk: v.hook.risk };
-      v.hook = null;
-      v.attempts++;
-      v.feedback =
-        score > 300
-          ? "A beauty! +" + score
-          : score
-            ? "Landed it! +" + score
-            : "Line slipped! Stay in the green.";
-    }
-    if (v.attempts >= 5) v.finished = now;
   } else if (g.id === "putt") {
     if (v.shot && now < v.shot.at + v.shot.duration + 300)
       fail("Let the ball finish rolling.");
@@ -556,7 +647,7 @@ function play(s, p, b, now) {
   p.participation++;
 }
 function advance(s, now = Date.now()) {
-  if (s.version !== 2) {
+  if (s.version !== 3) {
     s.phase = "expired";
     s.log = "This room used the earlier prototype. Start a fresh festival.";
     return;
@@ -571,7 +662,8 @@ function advance(s, now = Date.now()) {
       roll(s, p, now);
   } else if (s.phase === "rolling" && now >= s.deadline) travel(s, now);
   else if (s.phase === "walking" && now >= s.deadline) {
-    if (s.movement.remaining) {
+    if (s.movement.stopShop) land(s, now);
+    else if (s.movement.remaining) {
       s.phase = "choice";
       s.deadline = now + 18000;
       s.log =
@@ -581,7 +673,7 @@ function advance(s, now = Date.now()) {
     s.phase === "choice" &&
     (now >= s.deadline || (p.bot && now >= s.deadline - 16000))
   )
-    travel(s, now, pick(C.spaces[p.position].next));
+    travel(s, now, pick(routes(s, p.position)));
   else if (
     s.phase === "space" &&
     (now >= s.deadline || (p.bot && now >= s.event.at + 1800))
@@ -596,21 +688,33 @@ function advance(s, now = Date.now()) {
           p.items.push(item.id);
         }
       }
-      nextTurn(s, now);
+      resumeSpace(s, now);
     }
   } else if (s.phase === "side-result" && now >= s.deadline) nextTurn(s, now);
   else if (s.phase === "board-end" && now >= s.deadline) enterGame(s, now);
-  else if (s.phase === "intro" && now >= s.deadline) {
+  else if (s.phase === "intro") {
+    if (now >= s.game.preparedAt + 1000)
+      for (const x of s.players)
+        if (
+          x.bot &&
+          s.game.participants.includes(x.id) &&
+          !s.game.ready.includes(x.id)
+        )
+          s.game.ready.push(x.id);
+    if (
+      now >= s.deadline ||
+      s.game.participants.every((id) => s.game.ready.includes(id))
+    )
+      countdown(s, now);
+  } else if (s.phase === "countdown" && now >= s.deadline) {
     s.phase = "playing";
-    s.game.start = now;
-    s.game.end = now + s.game.duration;
     s.deadline = s.game.end;
-    for (const v of s.game.progress) v.showAt = now;
+    for (const v of s.game.progress) v.showAt = s.game.start;
   } else if (s.phase === "playing") {
     const g = s.game;
     for (const [i, x] of s.players.entries()) {
       const v = g.progress[i];
-      if (g.id === "fish") fishEscape(v, now);
+      if (g.participants.includes(x.id)) G.advance(g, i, now);
       if (
         x.bot &&
         g.participants.includes(x.id) &&
@@ -619,6 +723,10 @@ function advance(s, now = Date.now()) {
         now - v.last > 850
       ) {
         try {
+          if (G.handled(g.id)) {
+            const move = G.bot(g, i, now);
+            if (move) play(s, x, move, now);
+          }
           if (g.id === "climb")
             play(
               s,
@@ -642,8 +750,7 @@ function advance(s, now = Date.now()) {
               },
               now,
             );
-          if (g.id === "fish" && (v.hook || now - v.last > 1800))
-            play(s, x, { risk: rnd(3) ? "safe" : "deep" }, now);
+
           if (g.id === "putt")
             play(
               s,
@@ -679,7 +786,19 @@ function act(s, id, b, now = Date.now()) {
   const p = s.players.find((p) => p.id === id);
   if (!p) fail("Only room members can do that.", 403);
   if (b.action === "get") return;
-  if (b.action === "ready") {
+  if (b.action === "game-ready") {
+    if (
+      s.phase !== "intro" ||
+      b.round !== s.round ||
+      b.game !== s.game.id ||
+      b.start !== s.game.start ||
+      !s.game.participants.includes(id)
+    )
+      fail("That ready belongs to a different minigame.");
+    if (!s.game.ready.includes(id)) s.game.ready.push(id);
+    if (s.game.participants.every((x) => s.game.ready.includes(x)))
+      countdown(s, now);
+  } else if (b.action === "ready") {
     if (s.phase !== "waiting") fail("The party is already underway.");
     s.ready = s.ready.includes(id)
       ? s.ready.filter((v) => v !== id)
@@ -721,11 +840,11 @@ function act(s, id, b, now = Date.now()) {
     } else if (b.action === "challenge") {
       if (s.phase !== "space" || s.event.kind !== "duel")
         fail("Find a showdown space first.");
-      challenge(s, p, b.opponent, now);
+      challenge(s, p, b.opponent, now, b.stake, b.currency);
     } else if (b.action === "continue") {
       if (s.phase !== "space" || s.event.kind === "duel")
         fail("Finish this board event first.");
-      nextTurn(s, now);
+      resumeSpace(s, now);
     } else {
       const item = C.items.find((x) => x.id === b.item);
       if (!item) fail("Unknown item.", 400);
@@ -743,11 +862,38 @@ function act(s, id, b, now = Date.now()) {
         if (s.usedItem) fail("One item per turn.");
         const index = p.items.indexOf(item.id);
         if (index < 0) fail("You do not have that item.");
+        if (
+          item.id === "custom" &&
+          (!Number.isInteger(b.value) || b.value < 1 || b.value > 6)
+        )
+          fail("Pick a number from 1 to 6.", 400);
+        const target =
+          item.id === "swap"
+            ? s.players.find((x) => x.id === b.target && x.id !== p.id)
+            : null;
+        if (item.id === "swap" && !target)
+          fail("Choose another player to swap with.", 400);
         p.items.splice(index, 1);
+        if (item.id === "triple") p.triple = true;
+        if (item.id === "custom") p.custom = b.value;
+        if (item.id === "swap")
+          [p.position, target.position] = [target.position, p.position];
+        if (item.id === "warp") {
+          p.position = s.goal;
+          if (p.tokens >= 10) {
+            p.tokens -= 10;
+            p.trophies++;
+            s.goal =
+              C.trophyStops[
+                (C.trophyStops.indexOf(s.goal) + 1) % C.trophyStops.length
+              ];
+          }
+        }
+
         if (item.id === "boost") p.boost = 3;
         if (item.id === "double") p.double = true;
         if (item.id === "shield") p.shield = true;
-        if (item.id === "magnet") p.tokens += 6;
+
         s.usedItem = true;
         s.log = p.name + " used " + item.name + ".";
       }
@@ -786,8 +932,16 @@ function view(s, id, now = Date.now()) {
   out.you = id;
   out.serverTime = now;
   delete out.created;
+  delete out.usedGames;
+  out.routes = Object.fromEntries(
+    C.spaces
+      .filter((n) => n.next.length > 1)
+      .map((n) => [n.id, routes(s, n.id)]),
+  );
   if (out.game) {
     delete out.game.sequence;
+    delete out.game.beats;
+    if (G.handled(s.game.id)) out.game.cue = G.cue(s.game, now);
     out.game.progress = out.game.progress.map((v, i) => {
       if (i !== index) {
         delete v.pattern;

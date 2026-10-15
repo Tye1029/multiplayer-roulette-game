@@ -1,0 +1,590 @@
+/* Carnival V3: game controls and currency stay in the play surface. */
+.match-scene {
+  height: 570px;
+  aspect-ratio: auto;
+  max-height: none;
+  isolation: isolate;
+}
+.scene-wallet {
+  position: absolute;
+  top: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 12px;
+  background: #fff7e9ed;
+  border: 1px solid #edd7a6;
+  border-radius: 18px;
+  color: #47375a;
+  box-shadow: 0 4px 12px #3d40551c;
+  z-index: 3;
+}
+.scene-wallet span {
+  font-size: 9px;
+  text-transform: uppercase;
+  font-weight: 800;
+  max-width: 29px;
+  line-height: 1.1;
+}
+.scene-wallet b {
+  font-size: 19px;
+}
+.stat-icon {
+  width: 25px;
+  height: 25px;
+  vertical-align: middle;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+.scene-clock {
+  position: absolute;
+  right: 15px;
+  top: 17px;
+  background: #283b5cec;
+  color: #fff1cd;
+  padding: 8px 12px;
+  border-radius: 15px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  font-size: 15px;
+  z-index: 3;
+}
+.scene-clock[hidden] {
+  display: none;
+}
+.start-count {
+  position: absolute;
+  inset: 28% 0 auto;
+  text-align: center;
+  font-size: 100px;
+  font-weight: 1000;
+  color: #fff1b2;
+  -webkit-text-stroke: 3px #684197;
+  text-shadow:
+    0 8px #483059,
+    0 12px 30px #24294166;
+  pointer-events: none;
+  z-index: 8;
+}
+.start-count:empty {
+  display: none;
+}
+#scene-controls {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 48px 22px 20px;
+  display: flex;
+  justify-content: center;
+  background: linear-gradient(transparent, #22324cbb);
+  z-index: 4;
+  pointer-events: none;
+}
+#scene-controls:empty {
+  display: none;
+}
+#scene-controls > * {
+  pointer-events: auto;
+}
+#scene-controls .controls {
+  width: min(100%, 520px);
+  margin: 0;
+  color: white;
+  text-align: center;
+}
+#scene-controls button {
+  box-shadow:
+    0 4px 0 #26365166,
+    0 8px 20px #29364a26;
+  min-height: 48px;
+  border: 2px solid #ffffffa8;
+}
+#scene-controls .roll-button {
+  width: auto;
+  min-width: 200px;
+  border-radius: 25px;
+  min-height: 59px;
+}
+#scene-controls .action-hint {
+  font-size: 12px;
+  font-weight: 850;
+  text-shadow: 0 2px 4px #1a2b4b;
+  margin: 0 0 9px;
+}
+#scene-controls .primary {
+  padding: 12px 25px;
+}
+.lane-controls,
+.color-controls {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+.lane-controls button {
+  min-width: 65px;
+  padding: 10px 15px;
+}
+.color-controls button {
+  background: var(--pad);
+  color: #303952;
+  flex: 1;
+  padding: 10px 7px;
+}
+#scene-controls .arrow-grid {
+  display: flex;
+  gap: 9px;
+  justify-content: center;
+}
+#scene-controls .arrow-grid button {
+  height: 50px;
+  width: 64px;
+  min-width: 0;
+  background: #fff4df;
+  color: #33466c;
+}
+#scene-controls .next-arrows {
+  color: #fff6da;
+  background: #293e5dbb;
+  border-radius: 14px;
+  margin: 0 auto 10px;
+  padding: 4px 12px;
+  width: max-content;
+  font-size: 25px;
+}
+#scene-controls .memory-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 7px;
+}
+#scene-controls .memory-pad {
+  height: 52px;
+  font-size: 12px;
+  padding: 5px;
+}
+#scene-controls .memory-pad.flash {
+  opacity: 1;
+  transform: translateY(-5px);
+  box-shadow: 0 0 22px #fff8d8;
+}
+#scene-controls [data-replay] {
+  color: white;
+  min-height: 30px;
+  padding: 2px;
+  box-shadow: none;
+  border: 0;
+}
+#scene-controls .reverse-cue {
+  margin: 0 0 7px;
+}
+body[data-game="putt"] #scene-controls .controls {
+  display: grid;
+  grid-template-columns: 65px 1fr;
+  gap: 3px 10px;
+  text-align: left;
+}
+body[data-game="putt"] #scene-controls label {
+  margin: 0;
+  font-size: 11px;
+  align-self: center;
+  color: white;
+}
+body[data-game="putt"] #scene-controls input {
+  margin: 0;
+  min-height: 30px;
+}
+body[data-game="putt"] #scene-controls button {
+  grid-column: 1/-1;
+  margin-top: 4px;
+  min-height: 44px;
+}
+#scene-controls .reward-pill {
+  color: #293a56;
+  background: #fff4d8;
+}
+.score-strip {
+  gap: 10px;
+}
+.score-chip {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px;
+  min-width: 0;
+  text-align: left;
+}
+.score-chip canvas {
+  width: 47px;
+  height: 51px;
+  border-radius: 14px;
+  flex-shrink: 0;
+}
+.score-chip > div {
+  min-width: 0;
+}
+.score-chip strong {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+  font-size: 11px;
+}
+.score-chip .profile-resources {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 3px;
+}
+.profile-resources .stat-icon {
+  width: 22px;
+  height: 22px;
+}
+.profile-resources b {
+  font-size: 13px;
+  margin-right: 5px;
+}
+.score-chip small {
+  font-size: 10px;
+  display: block;
+  font-weight: 800;
+  margin-top: 3px;
+}
+.round-coins,
+.coin-award {
+  color: #856011;
+}
+.result-row canvas {
+  width: 40px;
+  height: 44px;
+  border-radius: 12px;
+}
+.result-row {
+  gap: 9px;
+}
+.coin-award {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+}
+.coin-award img {
+  width: 20px;
+  height: 20px;
+}
+.result-row b {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.ready-roster {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin: 18px 0;
+}
+.ready-roster span {
+  background: #eee8f2;
+  color: #756886;
+  border-radius: 12px;
+  padding: 8px 10px;
+  font-size: 12px;
+}
+.ready-roster .is-ready {
+  background: #d8f1d9;
+  color: #286044;
+}
+.briefing .game-instructions {
+  display: block !important;
+  font-size: 15px;
+  line-height: 1.6;
+}
+.briefing .small {
+  margin-top: 12px;
+}
+.shopkeeper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0;
+}
+.shopkeeper canvas {
+  width: 85px;
+  height: 95px;
+  border-radius: 25px;
+  background: #f8d9a0;
+}
+.shopkeeper b,
+.shopkeeper small {
+  display: block;
+}
+.shopkeeper small {
+  font-size: 11px;
+  max-width: 160px;
+}
+.event-shop small {
+  line-height: 1.5;
+}
+.duel-picker {
+  display: grid;
+  gap: 10px;
+}
+.duel-picker label {
+  font-size: 12px;
+  font-weight: 800;
+}
+.duel-picker select,
+.duel-picker input,
+dialog select {
+  max-width: 100%;
+  padding: 12px;
+  border: 1px solid #d6cddc;
+  border-radius: 12px;
+  background: #fff9ef;
+  color: #33455d;
+  font: inherit;
+}
+#score-popups {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 7;
+}
+.score-pop {
+  position: absolute;
+  left: 50%;
+  top: 34%;
+  font-size: 32px;
+  font-weight: 1000;
+  white-space: nowrap;
+  color: #ffec90;
+  -webkit-text-stroke: 0.5px #8b5f28;
+  text-shadow:
+    0 3px 0 #684235,
+    0 5px 10px #27334b66;
+  animation: score-burst 1.15s ease-out forwards;
+}
+@keyframes score-burst {
+  0% {
+    transform: translate(-50%, 10px) scale(0.7);
+    opacity: 0;
+  }
+  15% {
+    transform: translate(-50%, -8px) scale(1.18);
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -70px) scale(1);
+    opacity: 0;
+  }
+}
+body[data-phase="playing"] .side-panel .game-instructions {
+  display: block;
+}
+body[data-phase="playing"] .side-panel .countdown {
+  display: none;
+}
+body[data-phase="playing"] .game-tip {
+  display: none;
+}
+.scene-wallet:empty {
+  display: none;
+}
+@media (max-width: 700px) {
+  .match-scene,
+  body[data-phase="playing"] .match-scene {
+    height: 430px;
+    max-height: none;
+    aspect-ratio: auto;
+  }
+  .scene-badge {
+    max-width: 110px;
+    white-space: normal;
+    line-height: 1.2;
+  }
+  .scene-wallet {
+    top: 10px;
+    padding: 5px 8px;
+  }
+  .scene-wallet span {
+    display: none;
+  }
+  .scene-wallet b {
+    font-size: 17px;
+  }
+  .scene-clock {
+    top: 12px;
+    right: 10px;
+    font-size: 12px;
+    padding: 8px;
+  }
+  .scene-tools {
+    top: 10px;
+  }
+  .score-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+  }
+  .score-chip,
+  body[data-phase="playing"] .score-chip {
+    padding: 7px;
+    gap: 6px;
+  }
+  .score-chip canvas {
+    width: 39px;
+    height: 43px;
+  }
+  .profile-resources .stat-icon {
+    width: 20px;
+    height: 20px;
+  }
+  .score-chip strong {
+    font-size: 10px;
+  }
+  .profile-resources b {
+    font-size: 12px;
+    margin-right: 3px;
+  }
+  #scene-controls {
+    padding: 40px 12px 14px;
+  }
+  #scene-controls .arrow-grid {
+    gap: 7px;
+  }
+  #scene-controls .arrow-grid button {
+    width: 56px;
+  }
+  .color-controls {
+    gap: 5px;
+  }
+  .color-controls button {
+    font-size: 10px;
+  }
+  .lane-controls button {
+    min-width: 49px;
+    padding: 10px;
+  }
+  .briefing .game-instructions {
+    font-size: 13px;
+  }
+  .start-count {
+    font-size: 80px;
+  }
+  body[data-phase="playing"] .side-panel {
+    padding: 12px;
+  }
+  body[data-phase="playing"] .side-panel h2 {
+    display: none;
+  }
+  body[data-phase="playing"] .side-panel .game-instructions {
+    display: none;
+  }
+  body[data-phase="playing"] .side-panel .game-feedback {
+    margin: 0;
+    min-height: 0;
+    font-size: 12px;
+  }
+  .turn-message {
+    font-size: 12px;
+  }
+  .event-shop {
+    gap: 9px;
+  }
+  .event-shop button {
+    padding: 10px;
+  }
+  .scene-wallet .stat-icon {
+    width: 23px;
+    height: 23px;
+  }
+}
+@media (max-width: 360px) {
+  .match-scene,
+  body[data-phase="playing"] .match-scene {
+    height: 400px;
+  }
+  .scene-badge {
+    font-size: 7px;
+    max-width: 98px;
+  }
+  .scene-wallet {
+    left: 52%;
+  }
+  .scene-clock {
+    font-size: 11px;
+    padding: 7px;
+  }
+  .score-pop {
+    font-size: 26px;
+  }
+  .score-chip canvas {
+    width: 33px;
+    height: 38px;
+  }
+  #scene-controls .memory-pad {
+    font-size: 10px;
+  }
+  #scene-controls .next-arrows {
+    font-size: 22px;
+  }
+}
+@media (orientation: landscape) and (max-height: 500px) and (min-width: 650px) {
+  .match-scene,
+  body[data-phase="playing"] .match-scene {
+    height: 340px;
+  }
+  .match-layout {
+    grid-template-columns: minmax(0, 1fr) 270px;
+  }
+  .score-chip canvas {
+    width: 32px;
+    height: 36px;
+  }
+  .scene-wallet span {
+    display: none;
+  }
+  #scene-controls {
+    padding: 30px 12px 10px;
+  }
+  #scene-controls button {
+    min-height: 40px;
+  }
+  #scene-controls .next-arrows {
+    font-size: 21px;
+  }
+  .start-count {
+    font-size: 60px;
+  }
+  .scene-badge {
+    max-width: 110px;
+    font-size: 8px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .score-pop {
+    animation: none;
+    opacity: 1;
+    transform: translateX(-50%);
+  }
+  #scene-controls .memory-pad.flash {
+    transform: none;
+  }
+}
+
+#scene-controls .lane-controls button {
+  background: #fff3db;
+  color: #34466a;
+  border-radius: 16px;
+  font-weight: 900;
+}
+#scene-controls .color-controls button {
+  border-radius: 16px;
+  font-weight: 850;
+}
+#scene-controls .lane-controls button:active {
+  transform: translateY(3px);
+}

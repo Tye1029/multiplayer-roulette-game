@@ -1,4 +1,4 @@
-/* BOARDWALK_FESTIVAL_V2_1 — guest rooms, authoritative matches, local presentation. */
+/* BOARDWALK_CARNIVAL_V3 — guest rooms, authoritative matches, local presentation. */
 (() => {
   "use strict";
   const C = PartyCatalog,
@@ -62,11 +62,14 @@
       storage.get("boardwalk-motion") !== "off" &&
       !matchMedia("(prefers-reduced-motion: reduce)").matches,
     selected = "raccoon",
-    fishRisk = "safe",
     overview = false,
     pendingIntent = null,
     aim = { angle: (-65 * Math.PI) / 180, power: 0.5 },
-    audio;
+    audio,
+    musicOn = storage.get("boardwalk-music") !== "off",
+    lastCountdown = "",
+    popupKey = "",
+    previewObserver;
   const now = () => Date.now() + offset;
   function notify(message) {
     const box = $("#notice");
@@ -75,73 +78,24 @@
     clearTimeout(noticeTimer);
     noticeTimer = setTimeout(() => (box.hidden = true), 6000);
   }
+  const icon = (kind) =>
+    '<img class="stat-icon" src="/assets/party/images/' +
+    kind +
+    '.svg" alt="' +
+    kind +
+    '">';
   function tone(kind = "tap") {
-    if (!sound) return;
-    try {
-      audio ||= new AudioContext();
-      if (audio.state === "suspended") audio.resume();
-      const at = audio.currentTime;
-      if (["roll", "step", "splash"].includes(kind)) {
-        const count = kind === "roll" ? 7 : 1;
-        for (let n = 0; n < count; n++) {
-          const length = kind === "splash" ? 0.2 : 0.045,
-            buffer = audio.createBuffer(
-              1,
-              Math.ceil(audio.sampleRate * length),
-              audio.sampleRate,
-            ),
-            data = buffer.getChannelData(0);
-          for (let i = 0; i < data.length; i++)
-            data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
-          const source = audio.createBufferSource(),
-            filter = audio.createBiquadFilter(),
-            gain = audio.createGain();
-          source.buffer = buffer;
-          filter.type = "lowpass";
-          filter.frequency.value =
-            kind === "splash" ? 1400 : kind === "step" ? 500 : 2100;
-          gain.gain.setValueAtTime(
-            kind === "step" ? 0.025 : 0.045,
-            at + n * 0.12,
-          );
-          gain.gain.exponentialRampToValueAtTime(0.001, at + n * 0.12 + length);
-          source.connect(filter);
-          filter.connect(gain);
-          gain.connect(audio.destination);
-          source.start(at + n * 0.12);
-        }
-        return;
-      }
-      const notes =
-        kind === "win"
-          ? [523, 659, 784, 1046]
-          : kind === "coin"
-            ? [880, 1175]
-            : kind === "good"
-              ? [587, 784]
-              : kind === "error"
-                ? [220, 165]
-                : kind === "start"
-                  ? [392, 523, 784]
-                  : [440];
-      notes.forEach((f, i) => {
-        const o = audio.createOscillator(),
-          g = audio.createGain(),
-          time = at + i * 0.085;
-        o.type = kind === "error" ? "triangle" : "sine";
-        o.frequency.setValueAtTime(f, time);
-        g.gain.setValueAtTime(0, time);
-        g.gain.linearRampToValueAtTime(
-          kind === "tap" ? 0.025 : 0.04,
-          time + 0.008,
-        );
-        g.gain.exponentialRampToValueAtTime(0.0001, time + 0.3);
-        o.connect(g);
-        g.connect(audio.destination);
-        o.start(time);
-        o.stop(time + 0.31);
-      });
-    } catch {}
+    PartyAudio.set(sound, musicOn);
+    PartyAudio.play(kind, me()?.character || selected);
+  }
+  function popup(message) {
+    const host = $("#score-popups");
+    if (!host) return;
+    const e = document.createElement("div");
+    e.className = "score-pop";
+    e.textContent = message;
+    host.append(e);
+    setTimeout(() => e.remove(), 1200);
   }
   async function api(action, data = {}) {
     const body = { action, ...data };
@@ -216,10 +170,22 @@
     screen = "menu";
     panelKey = "";
     document.body.dataset.phase = "menu";
-    app.innerHTML = `<section class="festival-hero"><img class="festival-art" src="/assets/party/images/boardwalk-crew-v2.webp" alt="Riff, Cleo, Moss and Bolt race through the sunset festival" fetchpriority="high"><div class="festival-copy"><span class="eyebrow">WELCOME TO CORAL CARNIVAL</span><h1>Big laughs.<br>Little rivalries.</h1><p>Roll into a seaside party full of shortcuts, surprises, and one-more-round moments.</p><div class="hero-buttons"><button class="primary" data-create="party">Start a party ↗</button><button class="secondary" data-open-join>Join friends</button></div><div class="hero-facts"><span>2–4 players</span><span>6 rounds</span><span>Free to play</span></div></div></section><section class="mode-grid" aria-label="Choose a mode"><button class="mode-card" data-create="party"><div><span class="mode-meta">THE WHOLE ADVENTURE · 2–4 PLAYERS</span><h3>Roll with your crew.</h3><p>40 spaces. Two branching routes. Shops, surprises and rival showdowns.</p></div><span class="mode-arrow">↗</span></button><button class="mode-card" data-create="duel"><div><span class="mode-meta">JUST THE MINIGAMES · 1V1</span><h3>Settle the score.</h3><p>Jump into a best-of-three duel. Bring your favorite rival.</p></div><span class="mode-arrow">↗</span></button></section><section><div class="section-heading"><h2>Steal the show.</h2><p>Four games. Plenty of ways to outplay your friends.</p></div><div class="game-grid">${C.games.map((g) => `<button class="game-card" data-rules="${g.id}"><canvas class="game-art" data-preview="${g.id}" aria-hidden="true"></canvas><div class="game-card-body"><span class="eyebrow">${g.tag}</span><h3>${g.name}</h3><p>${g.description}</p></div></button>`).join("")}</div></section><section class="crew-section"><div class="section-heading"><h2>A crew with character.</h2><p>Four personalities. Equal footing.</p></div><div class="crew-grid">${C.characters.map((c) => `<div class="crew-card"><canvas data-character="${c.id}" aria-hidden="true"></canvas><div><h3>${c.name}</h3><span class="eyebrow">${c.kind}</span><p>${c.bio}</p></div></div>`).join("")}</div></section>`;
+    app.innerHTML = `<section class="festival-hero"><img class="festival-art" src="/assets/party/images/boardwalk-crew-v2.webp" alt="Riff, Cleo, Moss and Bolt race through the sunset festival" fetchpriority="high"><div class="festival-copy"><span class="eyebrow">WELCOME TO CORAL CARNIVAL</span><h1>Big laughs.<br>Little rivalries.</h1><p>Roll into a seaside party full of shortcuts, surprises, and one-more-round moments.</p><div class="hero-buttons"><button class="primary" data-create="party">Start a party ↗</button><button class="secondary" data-open-join>Join friends</button></div><div class="hero-facts"><span>2–4 players</span><span>8 rounds</span><span>Free to play</span></div></div></section><section class="mode-grid" aria-label="Choose a mode"><button class="mode-card" data-create="party"><div><span class="mode-meta">THE WHOLE ADVENTURE · 2–4 PLAYERS</span><h3>Roll with your crew.</h3><p>66 spaces. Three branching routes. Shops, surprises and rival showdowns.</p></div><span class="mode-arrow">↗</span></button><button class="mode-card" data-create="duel"><div><span class="mode-meta">JUST THE MINIGAMES · 1V1</span><h3>Settle the score.</h3><p>Jump into a best-of-three duel. Bring your favorite rival.</p></div><span class="mode-arrow">↗</span></button></section><section><div class="section-heading"><h2>Steal the show.</h2><p>Ten games. Plenty of ways to outplay your friends.</p></div><div class="game-grid">${C.games.map((g) => `<button class="game-card" data-rules="${g.id}"><canvas class="game-art" data-preview="${g.id}" aria-hidden="true"></canvas><div class="game-card-body"><span class="eyebrow">${g.tag}</span><h3>${g.name}</h3><p>${g.description}</p></div></button>`).join("")}</div></section><section class="crew-section"><div class="section-heading"><h2>A crew with character.</h2><p>Four personalities. Equal footing.</p></div><div class="crew-grid">${C.characters.map((c) => `<div class="crew-card"><canvas data-character="${c.id}" aria-hidden="true"></canvas><div><h3>${c.name}</h3><span class="eyebrow">${c.kind}</span><p>${c.bio}</p></div></div>`).join("")}</div></section>`;
+    previewObserver?.disconnect();
+    previewObserver = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries)
+          if (e.isIntersecting) {
+            const c = e.target;
+            S.render(c, c.dataset.preview, null, 2);
+            previewObserver.unobserve(c);
+          }
+      },
+      { rootMargin: "100px" },
+    );
     document
       .querySelectorAll("[data-preview]")
-      .forEach((c) => S.render(c, c.dataset.preview, null, 2));
+      .forEach((c) => previewObserver.observe(c));
     portraits(app);
   }
   function joinDialog() {
@@ -265,6 +231,7 @@
   function adopt(next, enter = false) {
     if (!next) return;
     if (room && room.id === next.id && next.revision < room.revision) return;
+    const previous = room;
     room = next;
     network = true;
     storage.set("boardwalk-room", room.id);
@@ -277,6 +244,21 @@
       memoryAt = v.showAt;
       memoryPattern = v.pattern;
     }
+    if (
+      previous?.game?.start === room.game?.start &&
+      room.phase === "playing"
+    ) {
+      const before = previous.game.scores[self] || 0,
+        delta = (room.game.scores[self] || 0) - before;
+      if (delta) {
+        popup(
+          (delta > 0 ? "+" : "") +
+            delta +
+            (gameDef()?.coinGame ? " coins" : " pts"),
+        );
+        tone(delta > 0 ? "coin" : "error");
+      }
+    }
     const cue = `${room.match}:${room.round}:${room.phase}`;
     if (cue !== lastCue) {
       if (room.phase === "playing") tone("start");
@@ -287,7 +269,22 @@
             ? "coin"
             : "tap",
         );
-      if (["round-end", "complete"].includes(room.phase)) tone("win");
+      if (["round-end", "side-result", "complete"].includes(room.phase)) {
+        const won =
+          room.phase === "complete"
+            ? room.winner === room.you
+            : room.game.winners?.includes(room.you);
+        tone(won ? "win" : "tap");
+        setTimeout(() => tone(won ? "yes" : "aww"), 350);
+      }
+      if (room.phase === "space")
+        tone(
+          room.event?.kind === "loss"
+            ? "aww"
+            : ["coins", "gift", "lucky"].includes(room.event?.kind)
+              ? "haha"
+              : "yup",
+        );
       lastCue = cue;
     }
     renderRoom();
@@ -351,15 +348,20 @@
   function renderRoom() {
     const r = room,
       mainKey = r.phase === "waiting" ? "lobby" : "match",
-      playing = ["playing", "intro", "round-end", "side-result"].includes(
-        r.phase,
-      );
+      playing = [
+        "playing",
+        "intro",
+        "countdown",
+        "round-end",
+        "side-result",
+      ].includes(r.phase);
     document.body.dataset.phase = r.phase;
     if (screen !== mainKey) {
+      previewObserver?.disconnect();
       screen = mainKey;
       panelKey = "";
       rosterKey = "";
-      app.innerHTML = `<div class="room-header"><div><span class="eyebrow">${r.mode === "duel" ? "QUICK DUEL" : "PARTY MATCH"} · CORAL CARNIVAL</span><h1 id="room-title"></h1></div><button class="room-code" id="share-code" title="Copy invite link">${esc(r.id)} ↗</button></div><div class="match-layout"><div><div class="scene-frame match-scene"><canvas id="party-scene" role="img" aria-label="Live three-dimensional party board and minigame"></canvas><span class="scene-badge" id="scene-label"></span><div class="scene-tools"><button data-map aria-label="Toggle whole board view" title="Whole board / follow player">⌖</button><button data-board-guide aria-label="Board space guide">?</button></div></div><div id="score-strip" class="score-strip"></div><p class="turn-message" id="turn-message" aria-live="polite"></p></div><aside class="side-panel"><div id="panel"></div><div class="countdown"><span id="timer-label"></span><strong class="timer" id="timer">—</strong></div><div class="round-progress" id="round-progress"></div><p class="live-status" id="connection"><i class="live-dot"></i><span>Connected · private room</span></p></aside></div>`;
+      app.innerHTML = `<div class="room-header"><div><span class="eyebrow">${r.mode === "duel" ? "QUICK DUEL" : "PARTY MATCH"} · CORAL CARNIVAL</span><h1 id="room-title"></h1></div><button class="room-code" id="share-code" title="Copy invite link">${esc(r.id)} ↗</button></div><div class="match-layout"><div><div class="scene-frame match-scene"><canvas id="party-scene" role="img" aria-label="Live three-dimensional party board and minigame"></canvas><span class="scene-badge" id="scene-label"></span><div class="scene-wallet" id="scene-wallet"></div><div class="scene-clock" id="scene-clock"></div><div id="start-count" class="start-count" aria-live="polite"></div><div id="score-popups" aria-live="polite"></div><div id="scene-controls"></div><div class="scene-tools"><button data-map aria-label="Toggle whole board view" title="Whole board / follow player">⌖</button><button data-board-guide aria-label="Board space guide">?</button></div></div><div id="score-strip" class="score-strip"></div><p class="turn-message" id="turn-message" aria-live="polite"></p></div><aside class="side-panel"><div id="panel"></div><div class="countdown"><span id="timer-label"></span><strong class="timer" id="timer">—</strong></div><div class="round-progress" id="round-progress"></div><p class="live-status" id="connection"><i class="live-dot"></i><span>Connected · private room</span></p></aside></div>`;
     }
     $("#room-title").textContent =
       r.phase === "waiting"
@@ -379,12 +381,15 @@
           : r.phase === "waiting"
             ? "YOUR SEAT IS WAITING"
             : "CORAL CARNIVAL";
-    $("#turn-message").textContent = r.log || "";
+    $("#turn-message").textContent = r.phase === "complete" ? "" : r.log || "";
+    $("#scene-wallet").innerHTML =
+      icon("coin") + "<b>" + me().tokens + "</b><span>your coins</span>";
+    document.body.dataset.game = playing ? r.game.id : "board";
     $(".scene-tools").hidden = playing;
     const rank = r.players
       .map(
         (p) =>
-          `${p.id}:${p.tokens}:${p.trophies}:${p.name}:${p.skin}:${r.game?.scores[r.players.indexOf(p)]}:${r.ready.includes(p.id)}:${r.turn}`,
+          `${p.id}:${p.tokens}:${p.trophies}:${p.name}:${p.skin}:${r.game?.scores[r.players.indexOf(p)]}:${r.ready.includes(p.id)}:${r.turn}:${r.phase}:${r.game?.coinAwards?.[r.players.indexOf(p)]}`,
       )
       .join("|");
     if (rank !== rosterKey) {
@@ -392,9 +397,10 @@
       $("#score-strip").innerHTML = r.players
         .map(
           (p, i) =>
-            `<div class="score-chip ${p.id === r.you ? "you" : ""} ${i === r.turn && !playing ? "active-turn" : ""}"><strong>${esc(p.name)}${p.id === r.you ? " · you" : ""}${p.bot ? " · bot" : ""}</strong><span>${r.phase === "playing" ? `${r.game.scores[i]} pts` : `★ ${p.trophies} <b>● ${p.tokens}</b>`}</span></div>`,
+            `<div class="score-chip ${p.id === r.you ? "you" : ""} ${i === r.turn && !playing ? "active-turn" : ""}"><canvas data-character="${p.character}" data-skin="${p.skin}" aria-hidden="true"></canvas><div><strong>${esc(p.name)}${p.id === r.you ? " · you" : ""}${p.bot ? " · bot" : ""}</strong><span class="profile-resources">${icon("coin")}<b>${p.tokens}</b>${icon("trophy")}<b>${p.trophies}</b></span>${r.phase === "playing" ? '<small class="live-points">' + r.game.scores[i] + (gameDef().coinGame ? " coins collected" : " pts") + "</small>" : ""}${["round-end", "side-result", "complete"].includes(r.phase) ? '<small class="round-coins">' + ((r.game.coinAwards?.[i] || 0) >= 0 ? "+" : "") + (r.game.coinAwards?.[i] || 0) + " coins</small>" : ""}</div></div>`,
         )
         .join("");
+      portraits($("#score-strip"));
       rosterKey = rank;
     }
     $("#round-progress").innerHTML = Array.from(
@@ -421,20 +427,22 @@
         me()?.tokens,
         v?.attempts,
         !!v?.finished,
-        !!v?.hook,
         v?.reverse,
         r.event?.bought,
         r.game?.start,
+        r.game?.ready?.join(","),
+        r.game?.id,
       ].join(":");
     if (key !== panelKey) {
       panelKey = key;
       const panel = $("#panel");
+      $("#scene-controls").replaceChildren();
       if (r.phase === "waiting")
-        panel.innerHTML = `<span class="eyebrow">${r.mode === "duel" ? "ONE FRIEND. ONE RIVALRY." : "SAVE A SEAT FOR YOUR FRIENDS"}</span><h2>${r.players.length}/${r.mode === "duel" ? 2 : 4} in the party</h2><div class="room-roster">${r.players.map((p) => `<div class="person"><canvas class="person-avatar" data-character="${p.character}" data-skin="${p.skin}" aria-hidden="true"></canvas><div><div class="person-name">${esc(p.name)}${p.id === r.you ? " · you" : ""}</div><div class="person-sub">${p.bot ? "Bot · always ready" : r.ready.includes(p.id) ? "Ready to play" : "Getting settled"}</div></div></div>`).join("")}</div><div class="stack"><button class="secondary" data-copy>Copy invite link ↗</button><button class="primary" data-action="ready">${r.ready.includes(r.you) ? "Ready ✓ · undo" : "I’m ready"}</button>${r.host === r.you ? `<button class="dark-button" data-action="start" ${r.players.length < 2 || r.players.some((p) => !p.bot && !r.ready.includes(p.id)) ? "disabled" : ""}>Start ${r.mode === "duel" ? "duel" : "party"}</button>${r.players.length < (r.mode === "duel" ? 2 : 4) ? '<button class="quiet" data-action="add-bot">Add a bot seat</button>' : ""}` : '<p class="small">Your host starts when everyone is ready.</p>'}<button class="text-button" data-leave>Leave room</button></div><p class="status-note">${r.mode === "duel" ? "First to two minigame wins." : "Six board rounds. Most trophies wins; total minigame points break a tie."}</p>`;
+        panel.innerHTML = `<span class="eyebrow">${r.mode === "duel" ? "ONE FRIEND. ONE RIVALRY." : "SAVE A SEAT FOR YOUR FRIENDS"}</span><h2>${r.players.length}/${r.mode === "duel" ? 2 : 4} in the party</h2><div class="room-roster">${r.players.map((p) => `<div class="person"><canvas class="person-avatar" data-character="${p.character}" data-skin="${p.skin}" aria-hidden="true"></canvas><div><div class="person-name">${esc(p.name)}${p.id === r.you ? " · you" : ""}</div><div class="person-sub">${p.bot ? "Bot · always ready" : r.ready.includes(p.id) ? "Ready to play" : "Getting settled"}</div></div></div>`).join("")}</div><div class="stack"><button class="secondary" data-copy>Copy invite link ↗</button><button class="primary" data-action="ready">${r.ready.includes(r.you) ? "Ready ✓ · undo" : "I’m ready"}</button>${r.host === r.you ? `<button class="dark-button" data-action="start" ${r.players.length < 2 || r.players.some((p) => !p.bot && !r.ready.includes(p.id)) ? "disabled" : ""}>Start ${r.mode === "duel" ? "duel" : "party"}</button>${r.players.length < (r.mode === "duel" ? 2 : 4) ? '<button class="quiet" data-action="add-bot">Add a bot seat</button>' : ""}` : '<p class="small">Your host starts when everyone is ready.</p>'}<button class="text-button" data-leave>Leave room</button></div><p class="status-note">${r.mode === "duel" ? "First to two minigame wins." : "Eight board rounds. Most trophies wins; total minigame points break a tie."}</p>`;
       else if (r.phase === "board")
         panel.innerHTML = `<span class="eyebrow">${mine ? "YOUR TURN" : esc(turn.name) + "’S TURN"}</span><h2>${mine ? "Make your move." : "A little suspense…"}</h2><p class="game-instructions">Roll 1–6. Follow the golden beacon: passing it with 10 coins earns a trophy.</p>${
           mine
-            ? `<button class="roll-button primary full" data-action="roll"><span class="die-icon">⚄</span> Roll ${me().double ? "two dice" : "the dice"}</button><p class="small pocket-label">YOUR POCKET · ONE ITEM BEFORE ROLLING</p><div class="inventory">${
+            ? `<button class="roll-button primary full" data-action="roll"><span class="die-icon">⚄</span> Roll ${me().triple ? "three dice" : me().double ? "two dice" : "the dice"}</button><p class="small pocket-label">YOUR POCKET · ONE ITEM BEFORE ROLLING</p><div class="inventory">${
                 me().items.length
                   ? me()
                       .items.map(
@@ -447,36 +455,41 @@
             : '<p class="status-note">Watch their roll. Your turn is coming.</p>'
         }<button class="text-button small" data-board-guide>Meet the board spaces</button>`;
       else if (r.phase === "rolling")
-        panel.innerHTML = `<span class="eyebrow">${esc(turn.name)} IS UP</span><h2>Let it roll.</h2><div class="dice-readout" id="dice-readout">🎲</div><p class="status-note">A little luck. A new adventure.</p>`;
+        panel.innerHTML = `<span class="eyebrow">${esc(turn.name)} IS UP</span><h2>Let it roll.</h2><p class="status-note">A little luck. A new adventure.</p>`;
       else if (r.phase === "walking")
         panel.innerHTML = `<span class="eyebrow">ON THE MOVE</span><h2>${esc(turn.name)} rolled ${r.dice?.values.join(" + ")}.</h2><p class="game-instructions">${r.movement.remaining ? "A crossroads is coming up." : "Let’s see where this lands."}</p><div class="travel-dots">${Array.from({ length: r.lastMove?.path.length - 1 || 1 }, () => "<i></i>").join("")}</div>`;
       else if (r.phase === "choice")
-        panel.innerHTML = `<span class="eyebrow">${mine ? "YOUR CHOICE" : esc(turn.name) + " IS CHOOSING"}</span><h2>A fork in the fun.</h2><p class="game-instructions">${r.movement.remaining} spaces left on this roll.</p>${mine ? `<div class="stack">${node.next.map((next, i) => `<button class="route-button" data-next="${next}">${i ? "Take " + C.spaces[next].district : "Stay on the promenade"}<small>${i ? "A shorter route with different spaces." : "Follow the outer route past the festival stops."}</small></button>`).join("")}</div>` : '<p class="status-note">Which way will they go?</p>'}`;
+        panel.innerHTML = `<span class="eyebrow">${mine ? "YOUR CHOICE" : esc(turn.name) + " IS CHOOSING"}</span><h2>A fork in the fun.</h2><p class="game-instructions">${r.movement.remaining} spaces left on this roll.</p>${mine ? `<div class="stack">${(r.routes?.[node.id] || node.next).map((next, i) => `<button class="route-button" data-next="${next}">${i ? "Take " + C.spaces[next].district : "Stay on the promenade"}<small>${i ? "A shorter route with different spaces." : "Follow the outer route past the festival stops."}</small></button>`).join("")}</div>` : '<p class="status-note">Which way will they go?</p>'}`;
       else if (r.phase === "space") {
         const e = r.event,
           info = C.spaceInfo[e.kind];
-        panel.innerHTML = `<div class="event-icon" style="--space:${info.color}">${info.icon}</div><span class="eyebrow">${esc(turn.name)} LANDED ON</span><h2>${info.name}</h2><p class="game-instructions">${esc(e.text)}</p>${mine && e.kind === "shop" ? `<div class="event-shop">${C.items.map((i) => `<button data-buy-item="${i.id}" ${e.bought || me().tokens < i.cost || me().items.length >= 3 ? "disabled" : ""}><strong>${i.name} <b>● ${i.cost}</b></strong><small>${i.description}</small></button>`).join("")}</div>` : ""}${
+        panel.innerHTML = `<div class="event-icon" style="--space:${info.color}">${info.icon}</div><span class="eyebrow">${esc(turn.name)} LANDED ON</span><h2>${info.name}</h2>${e.kind === "shop" ? '<div class="shopkeeper"><canvas data-character="shopkeeper" aria-hidden="true"></canvas><span><b>Poppy</b><small>Your friendly festival trader</small></span></div>' : ""}<p class="game-instructions">${esc(e.text)}</p>${mine && e.kind === "shop" ? `<div class="event-shop">${C.items.map((i) => `<button data-buy-item="${i.id}" ${e.bought || me().tokens < i.cost || me().items.length >= 3 ? "disabled" : ""}><strong>${i.name} <b>● ${i.cost}</b></strong><small>${i.description}</small></button>`).join("")}</div>` : ""}${
           mine && e.kind === "duel"
-            ? `<div class="stack">${r.players
+            ? `<div class="duel-picker"><label for="duel-rival">Pick your rival</label><select id="duel-rival">${r.players
                 .filter((p) => p.id !== r.you)
                 .map(
                   (p) =>
-                    `<button class="secondary" data-opponent="${esc(p.id)}">Challenge ${esc(p.name)} ↗</button>`,
+                    `<option value="${p.id}" data-coins="${p.tokens}" data-trophies="${p.trophies}">${esc(p.name)} · ${p.tokens} coins · ${p.trophies} trophies</option>`,
                 )
-                .join("")}</div>`
+                .join(
+                  "",
+                )}</select><label for="duel-currency">Battle for</label><select id="duel-currency"><option value="coins">Match coins</option>${r.round >= r.rounds - 2 && me().trophies > 0 ? '<option value="trophy">One trophy each</option>' : ""}</select><label for="duel-stake">Coins each · maximum 50</label><input id="duel-stake" type="number" min="0" max="${Math.min(50, me().tokens, r.players.find((p) => p.id !== r.you).tokens)}" value="${Math.min(5, me().tokens, r.players.find((p) => p.id !== r.you).tokens)}"><button class="primary" data-challenge>Challenge this rival ↗</button><p class="small">Both stakes go into the prize pool. A draw returns them.</p></div>`
             : mine
               ? '<button class="primary full" data-action="continue">On with the party ↗</button>'
               : '<p class="status-note">The adventure continues in a moment.</p>'
         }`;
       } else if (r.phase === "intro")
-        panel.innerHTML = `<span class="eyebrow">${r.game.sideDuel ? "RIVAL SHOWDOWN · WIN 8 COINS" : r.game.tiebreak ? "TIEBREAKER" : "NEXT UP"}</span><h2>${gameDef().name}</h2><p class="game-instructions">${gameDef().rules}</p><div class="reward-pill">${
-          r.game.sideDuel
-            ? r.players
-                .filter((p) => r.game.participants.includes(p.id))
-                .map((p) => esc(p.name))
-                .join(" vs ")
-            : "A fresh chance to take the lead"
-        }</div><p class="status-note">Starting together in a moment…</p>`;
+        panel.innerHTML = `<div class="briefing"><span class="eyebrow">${r.game.sideDuel ? "RIVAL SHOWDOWN" : gameDef().coinGame ? "KEEP EVERY COIN" : "UP NEXT"}</span><h2>${gameDef().name}</h2><p class="game-instructions">${gameDef().rules}</p><div class="ready-roster">${r.players
+          .filter((p) => r.game.participants.includes(p.id))
+          .map(
+            (p) =>
+              `<span class="${r.game.ready.includes(p.id) ? "is-ready" : ""}">${esc(p.name)} ${r.game.ready.includes(p.id) ? "✓" : "…"}</span>`,
+          )
+          .join(
+            "",
+          )}</div>${r.game.participants.includes(r.you) ? `<button class="primary full" data-action="game-ready" ${r.game.ready.includes(r.you) ? "disabled" : ""}>${r.game.ready.includes(r.you) ? "Ready ✓ · waiting for friends" : "I’m ready — let’s play"}</button>` : "<p>Cheer on the two rivals!</p>"}<p class="small">Everyone ready starts the countdown. Otherwise we start after 60 seconds.</p></div>`;
+      else if (r.phase === "countdown")
+        panel.innerHTML = `<h2>${gameDef().name}</h2><p>Get ready! Starting together…</p><p class="game-instructions">${gameDef().rules}</p>`;
       else if (r.phase === "playing") {
         const active = r.game.participants.includes(r.you);
         panel.innerHTML = `<span class="eyebrow">${r.game.sideDuel ? "RIVAL SHOWDOWN" : gameDef().tag}</span><h2>${gameDef().name}</h2><p class="game-instructions">${gameDef().rules}</p><div class="game-tip"><span>${gameDef().description}</span><button data-rules="${r.game.id}" aria-label="Minigame rules">?</button></div><div class="controls">${!active ? '<div class="reward-pill">Cheer on your friends!</div>' : v.finished ? '<div class="reward-pill">Your round is complete ✓</div><p class="status-note">Watch the others finish.</p>' : controls(r.game.id, v)}</div><div class="game-feedback" id="feedback" aria-live="polite"></div>`;
@@ -493,6 +506,11 @@
       } else
         panel.innerHTML =
           '<span class="eyebrow">A FRESH START</span><h2>This room has closed.</h2><p class="status-note">Start a new festival with your friends.</p><button class="primary" data-leave>Back to the boardwalk</button>';
+      const overlay = $("#scene-controls"),
+        controlNode =
+          panel.querySelector(".controls") ||
+          panel.querySelector(".roll-button");
+      if (controlNode) overlay.append(controlNode);
       portraits(panel);
     }
     if ($("#feedback")) $("#feedback").textContent = v?.feedback || "";
@@ -518,7 +536,15 @@
     if (id === "memory")
       return `${v.reverse ? '<div class="reverse-cue">↶ REPEAT IN REVERSE</div>' : ""}<div class="memory-grid">${["Blue", "Pink", "Mint", "Gold"].map((x, i) => `<button class="memory-pad" data-pad="${i}">${i + 1} · ${x}</button>`).join("")}</div><p id="memory-status" class="small" style="text-align:center;margin-top:8px">Watch the pattern</p><button class="text-button full" data-replay>Watch again</button>`;
     if (id === "fish")
-      return `${!v.hook ? `<div class="risk-picker"><button data-risk="safe" aria-pressed="${fishRisk === "safe"}">Shallows <small>Wider window</small></button><button data-risk="deep" aria-pressed="${fishRisk === "deep"}">Deep water <small>Bigger catch</small></button></div>` : '<div class="reverse-cue">FISH ON · REEL IN GREEN</div>'}<button class="primary full" id="reel" data-reel>${v.hook ? "Reel it in!" : "Set the hook"} · ${5 - v.attempts} left</button>`;
+      return '<div class="action-hint" id="cue-instruction">Watch your bobber</div><button class="primary" id="reel" data-control="reel">Reel!</button>';
+    if (["cascade", "dash"].includes(id))
+      return `<div class="action-hint" id="cue-instruction">${id === "cascade" ? "Catch coins · dodge crates" : "Dodge barrels · jump hurdles · duck flags"}</div><div class="lane-controls"><button data-control="left" aria-label="Move left">←</button>${id === "dash" ? '<button data-control="jump">Jump</button><button data-control="duck">Duck</button>' : ""}<button data-control="right" aria-label="Move right">→</button></div>`;
+    if (id === "hop")
+      return '<div class="action-hint" id="cue-instruction">Jump at the gold line</div><button class="primary" data-control="jump">Jump!</button>';
+    if (["lantern", "signal"].includes(id))
+      return `<div class="action-hint" id="cue-instruction">Watch the signal</div><div class="color-controls">${["Blue", "Pink", "Mint", "Gold"].map((c, i) => `<button data-control="${i}" style="--pad:${["#98d8f0", "#f2a5c5", "#9bdfb5", "#f7d675"][i]}">${i + 1} · ${c}</button>`).join("")}</div>`;
+    if (id === "treasure")
+      return '<div class="action-hint" id="cue-instruction">Choose your beach route</div><div class="lane-controls"><button data-control="0">Left</button><button data-control="1">Middle</button><button data-control="2">Right</button></div>';
     return `<label class="range-label" for="aim">Aim <output id="aim-value">${Math.round((aim.angle * 180) / Math.PI)}°</output></label><input id="aim" type="range" min="-170" max="-10" step="1" value="${Math.round((aim.angle * 180) / Math.PI)}"><label class="range-label" for="power">Power <output id="power-value">${Math.round(aim.power * 100)}%</output></label><input id="power" type="range" min="5" max="100" step="1" value="${Math.round(aim.power * 100)}"><button class="primary full" id="putt" data-putt>Putt · course ${Math.min(3, v.attempts + 1)} of 3</button>`;
   }
   function boardGuide() {
@@ -532,7 +558,7 @@
         )
         .join(
           "",
-        )}</div><p>Roll 1–6. Choose paths at the two crossroads. Collect trophies at the golden beacon for 10 coins. Most trophies after six rounds wins; minigame points break a tie.</p>`,
+        )}</div><p>Roll 1–6. Choose paths at three crossroads. Tide Gardens opens on high-tide turns. Collect trophies at the golden beacon for 10 coins. Most trophies after eight rounds wins; minigame points break a tie.</p>`,
     );
   }
   function ranking(round = false) {
@@ -548,15 +574,22 @@
             ? b.score - a.score
             : b.trophies - a.trophies || b.total - a.total,
         );
-    return `<div class="results-list">${list.map((p, i) => `<div class="result-row"><span class="place">${i + 1}</span><span class="person-name">${esc(p.name)}${p.id === r.you ? " · you" : ""}</span><b>${round ? p.score + " pts" : p.trophies + " 🏆"}</b></div>`).join("")}</div>`;
+    return `<div class="results-list">${list
+      .map((p, i) => {
+        const idx = r.players.findIndex((x) => x.id === p.id),
+          coins = r.game?.coinAwards?.[idx] || 0,
+          trophies = r.game?.trophyAwards?.[idx] || 0;
+        return `<div class="result-row"><span class="place">${i + 1}</span><canvas data-character="${p.character}" aria-hidden="true"></canvas><span class="person-name">${esc(p.name)}${round || r.phase === "complete" ? `<small class="coin-award">${icon("coin")} ${coins >= 0 ? "+" : ""}${coins} coins${trophies ? " · " + (trophies > 0 ? "+" : "") + trophies + " trophy" : ""}</small>` : ""}</span><b>${round ? p.score + (gameDef().coinGame ? " coins" : " pts") : icon("trophy") + p.trophies}</b></div>`;
+      })
+      .join("")}</div>`;
   }
   function pendingControls() {
-    const panel = $("#panel");
-    if (!panel) return;
+    const panel = app;
+    if (!room) return;
     panel.setAttribute("aria-busy", String(requestBusy));
     panel
       .querySelectorAll(
-        "[data-action],[data-route],[data-item],[data-buy-item],[data-direction],[data-replay],[data-leave],[data-next],[data-opponent]",
+        "[data-action],[data-route],[data-item],[data-buy-item],[data-direction],[data-replay],[data-leave],[data-next],[data-opponent],[data-challenge],[data-control]",
       )
       .forEach((b) => {
         if (requestBusy && !b.disabled) {
@@ -638,12 +671,12 @@
   }
   function settings() {
     openDialog(
-      `<span class="eyebrow">MAKE YOURSELF COMFORTABLE</span><h2>Your settings.</h2><label class="settings-row" for="sound"><span>Game sounds</span><input type="checkbox" id="sound" ${sound ? "checked" : ""}></label><label class="settings-row" for="motion"><span>Animated scenery</span><input type="checkbox" id="motion" ${motion ? "checked" : ""}></label><p class="small" style="margin-top:20px">Use touch or your keyboard. Arrow keys climb, 1–4 select lights, and Space reels or putts. Controls never change your character’s abilities.</p>`,
+      `<span class="eyebrow">MAKE YOURSELF COMFORTABLE</span><h2>Your settings.</h2><label class="settings-row" for="sound"><span>Game sounds</span><input type="checkbox" id="sound" ${sound ? "checked" : ""}></label><label class="settings-row" for="music"><span>Quiet festival music</span><input type="checkbox" id="music" ${musicOn ? "checked" : ""}></label><label class="settings-row" for="motion"><span>Animated scenery</span><input type="checkbox" id="motion" ${motion ? "checked" : ""}></label><p class="small" style="margin-top:20px">Use touch or your keyboard. Arrow keys climb, 1–4 select lights, and Space reels or putts. Controls never change your character’s abilities.</p>`,
     );
   }
   function how() {
     openDialog(
-      `<span class="eyebrow">A DAY AT CORAL CARNIVAL</span><h2>Bring your favorite rival.</h2><p><strong>Party Match:</strong> 2–4 players, six board rounds. Roll dice, choose paths, and visit item carts. Pass the glowing trophy with 10 match coins to collect it. Each minigame winner also earns a trophy.</p><p><strong>Quick Duel:</strong> 1v1 minigames. First to two wins takes the match. A tied series is settled with a rooftop race.</p><p><strong>Winning:</strong> Most trophies wins a party. Total minigame points break a tie; if those are equal, tied players enter a rooftop tiebreaker.</p><p><strong>Items:</strong> Rocket skates add 3 spaces, the coin magnet collects 6 coins, double dice give two rolls, and the rain shield blocks a loss. Use one item per turn.</p><p><strong>Your profile:</strong> Earn coins for cosmetic outfits. Board tokens cannot be purchased. No cash prizes, paid entries, or chip deposits are offered.</p><p><strong>Need to reconnect?</strong> Reload this page on the same browser. Board turns have a timer, so friends can keep playing during an interruption.</p>`,
+      `<span class="eyebrow">A DAY AT CORAL CARNIVAL</span><h2>Bring your favorite rival.</h2><p><strong>Party Match:</strong> 2–4 players, eight board rounds. Roll dice, choose paths, and visit item carts. Pass the glowing trophy with 10 match coins to collect it. Competitive minigame winners earn a trophy. In collection games, everyone keeps their coins.</p><p><strong>Quick Duel:</strong> 1v1 minigames. First to two wins takes the match. A tied series is settled with a rooftop race.</p><p><strong>Winning:</strong> Most trophies wins a party. Total minigame points break a tie; if those are equal, tied players enter a rooftop tiebreaker.</p><p><strong>Items:</strong> Buy single-use double/triple dice, a chosen roll, a position swap, a trophy compass, skates or a shield. Use one item before rolling. Passing a cart pauses your walk.</p><p><strong>Your profile:</strong> Earn coins for cosmetic outfits. Board tokens cannot be purchased. No cash prizes, paid entries, or chip deposits are offered.</p><p><strong>Need to reconnect?</strong> Reload this page on the same browser. Board turns have a timer, so friends can keep playing during an interruption.</p>`,
     );
   }
   async function copy() {
@@ -767,15 +800,6 @@
         await roomAction("challenge", { opponent: b.dataset.opponent });
         return;
       }
-      if (b.dataset.risk) {
-        fishRisk = b.dataset.risk;
-        document
-          .querySelectorAll("[data-risk]")
-          .forEach((x) =>
-            x.setAttribute("aria-pressed", String(x.dataset.risk === fishRisk)),
-          );
-        return;
-      }
       if (b.dataset.action) {
         await roomAction(b.dataset.action);
         return;
@@ -784,7 +808,51 @@
         await roomAction("move", { route: b.dataset.route });
         return;
       }
+      if (b.hasAttribute("data-challenge")) {
+        await roomAction("challenge", {
+          opponent: $("#duel-rival").value,
+          currency: $("#duel-currency").value,
+          stake:
+            $("#duel-currency").value === "trophy"
+              ? 1
+              : Number($("#duel-stake").value),
+        });
+        return;
+      }
+      if (b.dataset.control !== undefined) {
+        const value = /^[0-3]$/.test(b.dataset.control)
+          ? Number(b.dataset.control)
+          : b.dataset.control;
+        await roomAction("play", { value });
+        return;
+      }
+      if (b.dataset.useSpecial) {
+        const item = b.dataset.useSpecial;
+        await roomAction("item", {
+          item,
+          value: Number($("#item-number")?.value),
+          target: $("#item-target")?.value,
+        });
+        modal.close();
+        return;
+      }
       if (b.dataset.item) {
+        if (["custom", "swap"].includes(b.dataset.item)) {
+          const item = b.dataset.item;
+          openDialog(
+            `<h2>${C.items.find((x) => x.id === item).name}</h2>${
+              item === "custom"
+                ? '<label for="item-number">Choose your roll</label><input id="item-number" type="number" min="1" max="6" value="6">'
+                : `<label for="item-target">Choose a rival</label><select id="item-target">${room.players
+                    .filter((p) => p.id !== room.you)
+                    .map(
+                      (p) => `<option value="${p.id}">${esc(p.name)}</option>`,
+                    )
+                    .join("")}</select>`
+            }<button class="primary" data-use-special="${item}">Use item</button>`,
+          );
+          return;
+        }
         await roomAction("item", { item: b.dataset.item });
         return;
       }
@@ -802,10 +870,6 @@
       }
       if (b.hasAttribute("data-replay")) {
         await roomAction("play", { value: "replay" });
-        return;
-      }
-      if (b.hasAttribute("data-reel")) {
-        await roomAction("play", { risk: fishRisk });
         return;
       }
       if (b.hasAttribute("data-putt")) {
@@ -858,6 +922,21 @@
     }
   });
   document.addEventListener("change", (e) => {
+    if (["duel-rival", "duel-currency"].includes(e.target.id)) {
+      const op = $("#duel-rival").selectedOptions[0],
+        trophy = $("#duel-currency").value === "trophy",
+        input = $("#duel-stake");
+      input.disabled = trophy;
+      input.max = Math.min(50, me().tokens, Number(op.dataset.coins));
+      input.value = Math.min(Number(input.value), Number(input.max));
+      $("[data-challenge]").disabled =
+        trophy && Number(op.dataset.trophies) < 1;
+    }
+    if (e.target.id === "music") {
+      musicOn = e.target.checked;
+      storage.set("boardwalk-music", musicOn ? "on" : "off");
+      PartyAudio.set(sound, musicOn);
+    }
     if (e.target.id === "sound") {
       sound = e.target.checked;
       storage.set("boardwalk-sound", sound ? "on" : "off");
@@ -886,7 +965,27 @@
     if (room.game.id === "climb" && key) b = $(`[data-direction="${key}"]`);
     if (room.game.id === "memory" && /^[1-4]$/.test(e.key))
       b = $(`[data-pad="${Number(e.key) - 1}"]`);
-    if (e.code === "Space") b = $("#reel") || $("#putt");
+    if (
+      ["cascade", "dash"].includes(room.game.id) &&
+      ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)
+    )
+      b = $(
+        '[data-control="' +
+          {
+            ArrowLeft: "left",
+            ArrowRight: "right",
+            ArrowUp: "jump",
+            ArrowDown: "duck",
+          }[e.key] +
+          '"]',
+      );
+    if (
+      ["lantern", "signal", "treasure"].includes(room.game.id) &&
+      /^[1-4]$/.test(e.key)
+    )
+      b = $('[data-control="' + (Number(e.key) - 1) + '"]');
+    if (e.code === "Space")
+      b = $('[data-control="jump"]') || $("#reel") || $("#putt");
     if (b) {
       e.preventDefault();
       b.click();
@@ -909,7 +1008,10 @@
     const stamp = now(),
       r = room,
       kind =
-        r && ["intro", "playing", "round-end", "side-result"].includes(r.phase)
+        r &&
+        ["intro", "countdown", "playing", "round-end", "side-result"].includes(
+          r.phase,
+        )
           ? r.game?.id
           : "board";
     S.render(
@@ -918,7 +1020,7 @@
       r,
       (stamp + (kind === "fish" && r?.phase === "playing" ? latency : 0)) /
         1000,
-      { aim, pattern: memoryPattern, fishRisk, overview, motion },
+      { aim, pattern: memoryPattern, overview, motion },
     );
     if (!r) return;
     if (r.phase === "walking" && r.lastMove) {
@@ -953,6 +1055,30 @@
         r.phase === "complete"
           ? "✓"
           : Math.max(0, Math.ceil((r.deadline - stamp) / 1000)) + "s";
+    const clock = $("#scene-clock");
+    if (clock) {
+      clock.hidden = !["playing", "intro", "countdown"].includes(r.phase);
+      clock.textContent =
+        (r.phase === "intro" ? "AUTO START · " : "") +
+        Math.max(0, Math.ceil((r.deadline - stamp) / 1000)) +
+        "s";
+    }
+    const big = $("#start-count"),
+      n = Math.ceil((r.deadline - stamp) / 1000);
+    if (big) {
+      const show =
+        r.phase === "countdown" ||
+        (r.phase === "playing" && stamp - r.game.start < 700);
+      big.textContent = show
+        ? r.phase === "countdown"
+          ? Math.max(1, n)
+          : "GO!"
+        : "";
+      if (show && lastCountdown !== big.textContent) {
+        lastCountdown = big.textContent;
+        tone(r.phase === "countdown" ? "count" : "start");
+      }
+    }
     if (r.phase === "playing") {
       if (stamp >= r.game.end) {
         document.querySelectorAll(".controls button").forEach((b) => {
@@ -987,11 +1113,47 @@
           : "Putt · course " + Math.min(3, v.attempts + 1) + " of 3";
       }
       if ($("#reel"))
-        $("#reel").disabled =
-          requestBusy || !!(v.attempts && stamp - v.last < 900 && !v.hook);
+        $("#reel").disabled = requestBusy || v.actedBeat === r.game.cue?.index;
+      document
+        .querySelectorAll("[data-control]")
+        .forEach((b) => (b.disabled = requestBusy || !!v.finished));
+      if (["fish", "hop", "signal"].includes(r.game.id))
+        document
+          .querySelectorAll("[data-control]")
+          .forEach(
+            (b) =>
+              (b.disabled =
+                requestBusy ||
+                v.actedBeat === r.game.cue?.index ||
+                !!v.finished),
+          );
+      const cue = r.game.cue,
+        hint = $("#cue-instruction");
+      if (hint && cue) {
+        const dt = stamp - r.game.start - cue.at;
+        hint.textContent =
+          r.game.id === "signal"
+            ? dt < 0
+              ? "WAIT…" + (cue.fake && dt > -900 ? " · not yet!" : "")
+              : "GO · " + ["Blue", "Pink", "Mint", "Gold"][cue.color]
+            : r.game.id === "fish"
+              ? dt < -100
+                ? "Watch the ripples…"
+                : dt < cue.window
+                  ? "SPLASH! REEL NOW"
+                  : "Next bite…"
+              : r.game.id === "lantern"
+                ? "LAND ON " + ["BLUE", "PINK", "MINT", "GOLD"][cue.color]
+                : r.game.id === "hop"
+                  ? dt < -100
+                    ? "Wave approaching…"
+                    : "JUMP!"
+                  : hint.textContent;
+      }
     }
   }
   async function boot() {
+    PartyAudio.set(sound, musicOn);
     menu();
     requestAnimationFrame(frame);
     try {
