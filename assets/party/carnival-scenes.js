@@ -18,6 +18,7 @@ export function carnivalScenes(H) {
     mix,
     clamp,
   } = H;
+  const R = globalThis.PartyRules;
   const colors = ["#8fcce7", "#eaa5bf", "#93d3af", "#f7ce72"];
   function coin(parent, x, y, z, size = 0.34) {
     const g = new T.Group();
@@ -55,7 +56,13 @@ export function carnivalScenes(H) {
     for (const x of [-15, 15])
       for (let i = 0; i < 5; i++) {
         const z = -10 + i * 5;
-        tube(w.root, [x, 0.2, z], [x, 3.6, z], 0.055, "#8e7975");
+        tube(
+          w.root,
+          [x, kind === "lantern" ? -1.2 : 0.2, z],
+          [x, 3.6, z],
+          0.055,
+          "#8e7975",
+        );
         ball(w.root, x, 3.6, z, 0.25, 0.3, 0.25, "#ffeab3");
       }
     const title = label(
@@ -133,39 +140,41 @@ export function carnivalScenes(H) {
         w.objects.push(row);
       }
     } else if (kind === "lantern") {
-      // Open water below the separate platforms makes elimination a real fall.
-      const positions = [
-        [-4, -3],
-        [4, -3],
-        [-4, 4],
-        [4, 4],
-      ];
       for (let i = 0; i < 4; i++) {
-        const [x, z] = positions[i],
+        const [x, z] = R.lanternPositions[i],
           g = new T.Group();
-        g.position.set(x, 0.6, z);
+        g.position.set(x, 0, z);
         w.root.add(g);
-        cyl(g, 0, 0, 0, 3, 2.8, 0.65, "#ecdbb5", 32);
-        cyl(g, 0, 0.4, 0, 2.7, 2.7, 0.12, colors[i], 32);
-        for (let k = 0; k < 8; k++) {
-          const a = (k / 8) * Math.PI * 2;
-          ball(
-            g,
-            Math.cos(a) * 2.8,
-            0.5,
-            Math.sin(a) * 2.8,
-            0.12,
-            0.12,
-            0.12,
-            "#fff0c5",
-          );
-        }
+        const surface = box(g, 0, 0.35, 0, 6.2, 0.24, 6.2, colors[i]);
+        g.userData.surface = surface;
+        for (let k = -2.5; k <= 2.5; k += 0.5)
+          box(g, k, 0.48, 0, 0.025, 0.015, 6.1, "#fff0cf");
+        const number = label(String(i + 1), "#fff7dc", "#4d5773", 0.65);
+        number.position.set(0, 0.52, 1.8);
+        g.add(number);
         w.tiles.push(g);
+        for (const side of [-1, 1]) {
+          box(w.root, x + side * 3.26, 0.35, z, 0.28, 0.45, 6.7, "#866b5d");
+          box(w.root, x, 0.35, z + side * 3.26, 6.7, 0.45, 0.28, "#866b5d");
+          for (const edge of [-1, 1])
+            cyl(
+              w.root,
+              x + side * 3.26,
+              -0.8,
+              z + edge * 3.26,
+              0.17,
+              0.2,
+              2.8,
+              "#866b5d",
+              12,
+            );
+        }
       }
-      w.lantern = ball(w.root, 0, 6, 0, 0.8, 1, 0.8, colors[0]);
-      tube(w.root, [0, 6.8, 0], [0, 10, 0], 0.04, "#6f6377");
-      const arch = torus(w.root, 0, 4, -7, 5, 0.13, "#edb75e");
-      arch.scale.y = 0.7;
+      for (const x of [-7.1, 7.1])
+        tube(w.root, [x, -1, -7.1], [x, 5.5, -7.1], 0.14, "#947369");
+      tube(w.root, [-7.1, 5.5, -7.1], [7.1, 5.5, -7.1], 0.14, "#947369");
+      tube(w.root, [0, 5.5, -7.1], [0, 4.3, -7.1], 0.04, "#6f6377");
+      w.lantern = ball(w.root, 0, 3.6, -7.1, 0.6, 0.7, 0.6, colors[0]);
     } else if (kind === "hop") {
       box(w.root, 0, 0.34, -1, 30, 0.2, 20, "#68c3c9");
       w.wave = new T.Group();
@@ -284,21 +293,21 @@ export function carnivalScenes(H) {
       dt = g ? t * 1000 - g.start - beat.at : -1000;
     const ps = g?.progress || [],
       ended = s && ["round-end", "side-result"].includes(s.phase);
-    if (kind === "lantern")
+    if (kind === "lantern") {
+      const last = g?.lanternLast,
+        age = last ? t * 1000 - last.at : 2000;
+      const layout = (age < 1100 ? last.layout : beat.layout) || [0, 1, 2, 3];
       w.tiles.forEach((tile, index) => {
-        const hit = ps
-          .filter(
-            (v) =>
-              (v.chosen ?? ps.indexOf(v)) === index &&
-              v.eliminatedAt &&
-              t * 1000 - v.eliminatedAt < 1600,
-          )
-          .reduce((n, v) => Math.max(n, v.eliminatedAt), 0);
-        const q = hit ? clamp((t * 1000 - hit) / 1100) : 0;
-        tile.position.y = 0.6 - q * q * 8;
-        tile.rotation.z = q * 0.35;
-        tile.visible = q < 1;
+        let drop = 0;
+        if (last && index !== last.safeTile && age >= 0 && age < 1100)
+          drop =
+            age < 650 ? clamp(age / 650) ** 2 : 1 - clamp((age - 650) / 450);
+        tile.position.y = -drop * 7;
+        tile.rotation.x = drop * 0.12;
+        tile.visible = drop < 0.99;
+        tile.userData.surface.material = H.mat(colors[layout[index]]);
       });
+    }
     w.actors.forEach((a, i) => {
       const v = ps[i] || { lane: i % 3, chosen: i, moveAt: 0 },
         hit = t * 1000 - (v.hitAt || 0) < 700,
@@ -321,20 +330,18 @@ export function carnivalScenes(H) {
         if (kind === "treasure") y = 0.56;
       }
       if (kind === "lantern") {
-        const pos = [
-          [-4, -3],
-          [4, -3],
-          [-4, 4],
-          [4, 4],
-        ][v.chosen ?? i];
-        x = pos[0] + (i % 2 ? 1 : -1) * 0.7;
-        z = pos[1] + (i < 2 ? -0.5 : 0.5);
-        y = 1.1 + w.tiles[v.chosen ?? i].position.y - 0.6;
-        a.userData.landX = mix(a.userData.landX ?? x, x, 0.2);
-        a.userData.landZ = mix(a.userData.landZ ?? z, z, 0.2);
-        x = a.userData.landX;
-        z = a.userData.landZ;
-        mode = t * 1000 - v.moveAt < 500 ? "walk" : "idle";
+        const tile = v.chosen ?? i,
+          prev = v.fromLane ?? i,
+          q = clamp((t * 1000 - (v.moveAt || 0)) / 420),
+          ease = q * q * (3 - 2 * q);
+        const pos = R.lanternPositions[tile],
+          from = R.lanternPositions[prev];
+        x = mix(from[0], pos[0], ease) + (i % 2 ? 1 : -1) * 0.7;
+        z = mix(from[1], pos[1], ease) + (i < 2 ? -0.5 : 0.5);
+        y =
+          0.48 +
+          (q < 1 ? Math.sin(q * Math.PI) * 1.5 : w.tiles[tile].position.y);
+        mode = q < 1 ? "jump" : "idle";
       }
       if (kind === "hop") {
         x = (i - 1.5) * 6.6;
@@ -401,7 +408,7 @@ export function carnivalScenes(H) {
       });
     if (kind === "lantern") {
       w.lantern.material = H.mat(colors[beat.color]);
-      w.lantern.position.y = 6 + Math.sin(t * 1.5) * 0.2;
+      w.lantern.rotation.z = Math.sin(t * 1.5) * 0.03;
     }
     if (kind === "hop")
       w.wave.position.z = mix(-9, 7, clamp((dt + 2300) / 2900));

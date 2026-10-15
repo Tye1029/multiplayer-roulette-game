@@ -89,7 +89,7 @@ test("24 party games and six exclusive duels have distinct complete instructions
   );
   assert.equal(new Set(partyIds).size, 24);
 });
-test("board decisions allow 60 seconds and minigame results hold for 15", () => {
+test("board decisions allow 60 seconds and minigame results hold for 5", () => {
   const s = fixture("fish");
   s.phase = "round-end";
   s.deadline = 55000;
@@ -101,7 +101,7 @@ test("board decisions allow 60 seconds and minigame results hold for 15", () => 
   assert.equal(r.phase, "measuring");
   M.advance(r, r.deadline);
   assert.equal(r.phase, "round-end");
-  assert.equal(r.deadline - r.game.resultAt, 15000);
+  assert.equal(r.deadline - r.game.resultAt, 5000);
 });
 test("Treasure Tides sends one fast object at a time and spikes subtract only collected coins", () => {
   const s = fixture("treasure"),
@@ -233,7 +233,7 @@ test("all-bot skipping runs the rules, conserves escrow and rejects human showdo
   };
   M.act(s, "0", b, 20500);
   assert.equal(s.phase, "side-result");
-  assert.equal(s.deadline, 35500);
+  assert.equal(s.deadline, 25500);
   assert.ok(s.game.progress[1].inputs > 0 && s.game.progress[2].inputs > 0);
   assert.equal(s.players[1].tokens + s.players[2].tokens, 20);
   assert.throws(() => M.act(s, "0", b, 20600), /all-bot/);
@@ -298,7 +298,7 @@ test("bot skip remains valid across the automatic ready-to-countdown transition"
   assert.notEqual(request.start, g.start);
   M.act(s, "0", request, 20501);
   assert.equal(s.phase, "side-result");
-  assert.equal(s.deadline, 35501);
+  assert.equal(s.deadline, 25501);
   assert.equal(g.resultAt, 20501);
   assert.ok(g.progress[1].last <= 20501 && g.progress[2].last <= 20501);
 });

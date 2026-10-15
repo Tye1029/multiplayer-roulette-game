@@ -22,7 +22,7 @@ function player(p) {
     trophies: 0,
     wins: 0,
     total: 0,
-    items: ["boost"],
+    items: [],
     shield: false,
     participation: 0,
   };
@@ -32,7 +32,7 @@ function create(id, p, mode, now = Date.now(), rounds = 10) {
   if (mode === "party" && !C.turnOptions.includes(rounds))
     fail("Choose 10, 20, or 30 turns.", 400);
   return {
-    version: 6,
+    version: 7,
     id,
     host: p.id,
     mode,
@@ -64,14 +64,13 @@ function join(s, p) {
 function enterBoard(s, now) {
   s.phase = "board";
   s.turnIndex = 0;
-  s.turn = (s.startingSeat + s.round - 1) % s.players.length;
+  s.turn = s.startingSeat;
   s.usedItem = false;
   s.lastMove = null;
   s.dice = null;
   s.event = null;
   s.movement = null;
   s.deadline = now + 60000;
-  s.tide = s.round % 2;
   s.log = "Round " + s.round + ": roll the dice. Find your own route.";
 }
 function begin(s, now) {
@@ -88,7 +87,7 @@ function begin(s, now) {
     const j = rnd(i + 1);
     [s.gameOrder[i], s.gameOrder[j]] = [s.gameOrder[j], s.gameOrder[i]];
   }
-  s.version = 6;
+  s.version = 7;
   s.startingSeat = rnd(s.players.length);
   s.round = 1;
   s.history = [];
@@ -177,7 +176,7 @@ function enterGame(s, now, tiebreak = false, participants = null) {
 }
 function nextTurn(s, now) {
   s.turnIndex++;
-  s.turn = (s.startingSeat + s.round - 1 + s.turnIndex) % s.players.length;
+  s.turn = (s.startingSeat + s.turnIndex) % s.players.length;
   s.usedItem = false;
   s.event = null;
   s.dice = null;
@@ -249,7 +248,7 @@ function travel(s, now, chosen) {
 }
 function routes(s, id) {
   const n = C.spaces[id];
-  return id === C.tideJunction && s.tide === 0 ? [n.next[0]] : n.next;
+  return n.next;
 }
 function resumeSpace(s, now) {
   if (s.event?.returnToRoll) {
@@ -267,6 +266,27 @@ function resumeSpace(s, now) {
     s.event = null;
     travel(s, now);
   } else nextTurn(s, now);
+}
+function rideFerry(s, p, now) {
+  if (
+    s.phase !== "space" ||
+    s.event.kind !== "ferry" ||
+    p.position !== C.ferry.from
+  )
+    fail("Visit the ferry landing first.");
+  if (p.tokens < C.ferry.cost) fail("You need 4 coins for the ferry.");
+  p.tokens -= C.ferry.cost;
+  s.lastMove = {
+    player: p.id,
+    path: [p.position, C.ferry.to],
+    at: now,
+    duration: C.ferry.duration,
+    ferry: true,
+  };
+  p.position = C.ferry.to;
+  s.phase = "ferry";
+  s.deadline = now + C.ferry.duration;
+  s.log = p.name + " is sailing to the opposite shore.";
 }
 function trophyStop(s, now, returnToRoll = false) {
   const p = s.players[s.turn];
@@ -412,14 +432,10 @@ function land(s, now) {
     e.chance = { from: first.id, to: second.id, option, amount };
     s.deadline = now + 7500;
   }
-  if (kind === "event" && e.variant === 2) {
-    s.tide = 1 - s.tide;
-    e.text +=
-      " The tide " +
-      (s.tide ? "opened" : "closed") +
-      " the Tide Gardens shortcut!";
-  }
-  if (kind === "shop" || kind === "duel") s.deadline = now + 60000;
+  if (["shop", "duel", "ferry"].includes(kind)) s.deadline = now + 60000;
+  if (kind === "ferry")
+    e.text =
+      "Sail to the opposite shore for 4 coins, or stay here. The ferry ends your turn.";
   if (kind === "shop")
     e.text =
       C.shops[p.position].name +
@@ -482,7 +498,7 @@ function finish(s, now, winner) {
 function conclude(s, now) {
   const g = s.game;
   g.resultAt = now;
-  if (g.survival)
+  if (g.survival && g.id !== "cannon")
     for (const i of g.active) {
       const v = g.progress[i];
       if (v.inputs)
@@ -546,7 +562,7 @@ function conclude(s, now) {
         }
       }
     s.phase = "side-result";
-    s.deadline = now + 15000;
+    s.deadline = now + 5000;
     s.log = single
       ? s.players.find((p) => p.id === winners[0]).name + " won the showdown!"
       : "A draw. Stakes returned.";
@@ -589,7 +605,7 @@ function conclude(s, now) {
       return;
     }
     s.phase = "round-end";
-    s.deadline = now + 15000;
+    s.deadline = now + 5000;
     s.log = "Still tied. One more final showdown.";
     s.tieAgain = true;
     return;
@@ -623,7 +639,7 @@ function conclude(s, now) {
     s.tieAgain = true;
   }
   s.phase = "round-end";
-  s.deadline = now + 15000;
+  s.deadline = now + 5000;
   s.log = winners.length
     ? s.players
         .filter((p) => winners.includes(p.id))
@@ -745,7 +761,7 @@ function play(s, p, b, now) {
   p.participation++;
 }
 function advance(s, now = Date.now()) {
-  if (s.version !== 6) {
+  if (s.version !== 7) {
     s.phase = "expired";
     // The previous layout had IDs up to 65. Keep the retired room renderable
     // without translating its routes or carrying an old move into this board.
@@ -785,6 +801,15 @@ function advance(s, now = Date.now()) {
     s.phase === "space" &&
     (now >= s.deadline || (p.bot && now >= s.event.at + 1800))
   ) {
+    if (
+      s.event.kind === "ferry" &&
+      p.bot &&
+      p.tokens >= C.ferry.cost &&
+      rnd(2)
+    ) {
+      rideFerry(s, p, now);
+      return;
+    }
     if (s.event.kind === "duel")
       challenge(s, p, pick(s.players.filter((x) => x.id !== p.id)).id, now);
     else {
@@ -812,7 +837,8 @@ function advance(s, now = Date.now()) {
       }
       resumeSpace(s, now);
     }
-  } else if (s.phase === "side-result" && now >= s.deadline) nextTurn(s, now);
+  } else if (s.phase === "ferry" && now >= s.deadline) nextTurn(s, now);
+  else if (s.phase === "side-result" && now >= s.deadline) nextTurn(s, now);
   else if (s.phase === "board-end" && now >= s.deadline) enterGame(s, now);
   else if (s.phase === "intro") {
     if (now >= s.game.preparedAt + 1000)
@@ -920,7 +946,16 @@ function advance(s, now = Date.now()) {
         for (const i of g.active) {
           const v = g.progress[i];
           if (!v.eliminatedAt) {
-            if (v.inputs) g.scores[i] = Math.max(...g.scores) + 1000;
+            if (v.inputs) {
+              const bonus = Math.max(...g.scores) + 1000 - g.scores[i];
+              g.scores[i] += bonus;
+              v.popup = {
+                at: now,
+                value: bonus,
+                label: "LAST SURVIVOR +" + bonus,
+              };
+              v.feedback = v.popup.label;
+            }
             v.finished = now;
           }
         }
@@ -994,7 +1029,7 @@ function act(s, id, b, now = Date.now()) {
     s.game.end -= offset;
     s.game.resultAt = started;
     s.game.simAt = started;
-    s.deadline = started + 15000;
+    s.deadline = started + 5000;
     s.game.skipped = true;
   } else if (b.action === "game-ready") {
     if (
@@ -1055,6 +1090,7 @@ function act(s, id, b, now = Date.now()) {
       "item",
       "buy-item",
       "buy-trophy",
+      "ride-ferry",
       "accept-item",
       "continue",
       "challenge",
@@ -1074,6 +1110,8 @@ function act(s, id, b, now = Date.now()) {
       if (s.phase !== "space" || s.event.kind !== "duel")
         fail("Find a showdown space first.");
       challenge(s, p, b.opponent, now, b.stake, b.currency);
+    } else if (b.action === "ride-ferry") {
+      rideFerry(s, p, now);
     } else if (b.action === "buy-trophy") {
       if (
         s.phase !== "space" ||
@@ -1202,6 +1240,9 @@ function view(s, id, now = Date.now()) {
   if (index < 0) fail("Join this room to see the match.", 403);
   const { receipts, gameOrder, ...out } = structuredClone(s);
   out.you = id;
+  out.turnOrder = s.players.map(
+    (_, i) => ((s.startingSeat || 0) + i) % s.players.length,
+  );
   out.serverTime = now;
   delete out.created;
   delete out.usedGames;

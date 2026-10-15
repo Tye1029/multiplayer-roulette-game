@@ -1,6 +1,7 @@
 "use strict";
 const { randomInt: rnd } = require("node:crypto");
 const F = require("./festival-games");
+const R = require("../../../assets/party/rules");
 const ids = ["fish", "cascade", "lantern", "hop", "dash", "signal", "treasure"];
 const handled = (id) => ids.includes(id) || F.handled(id);
 function setup(g) {
@@ -8,15 +9,17 @@ function setup(g) {
   g.survival = g.id === "lantern";
   if (!handled(g.id)) return;
   const count =
-    g.id === "treasure"
-      ? 28
-      : g.id === "cascade"
-        ? 20
-        : g.id === "dash"
-          ? 14
-          : g.id === "fish"
-            ? 6
-            : 8;
+    g.id === "lantern"
+      ? 12
+      : g.id === "treasure"
+        ? 28
+        : g.id === "cascade"
+          ? 20
+          : g.id === "dash"
+            ? 14
+            : g.id === "fish"
+              ? 6
+              : 8;
   const interval = (g.duration - 2500) / count;
   g.beats = Array.from({ length: count }, (_, i) => ({
     index: i,
@@ -36,6 +39,18 @@ function setup(g) {
     rarity: rnd(100),
     fake: rnd(2) === 0,
   }));
+  if (g.id === "lantern")
+    g.beats.forEach((b, i) => {
+      b.at =
+        2400 + (g.duration - 5000) * (1 - Math.pow(1 - i / (count - 1), 1.23));
+      b.window = 650;
+      b.layout = [0, 1, 2, 3];
+      if (i >= 3)
+        for (let j = 3; j > 0; j--) {
+          const k = rnd(j + 1);
+          [b.layout[j], b.layout[k]] = [b.layout[k], b.layout[j]];
+        }
+    });
   if (g.id === "treasure")
     for (const b of g.beats) {
       b.window = 250;
@@ -50,6 +65,7 @@ function setup(g) {
         index: b.index,
         at: b.at + i * 240 + rnd(160),
         window: 1100,
+        size: 0.6 + rnd(81) / 100,
       })),
     );
   }
@@ -131,7 +147,16 @@ function advance(g, i, now) {
         if (n < 0) v.hitAt = due;
       }
     } else if (g.id === "lantern") {
-      if ((v.chosen ?? i) === b.color) {
+      g.lanternLast = {
+        at: due,
+        index: b.index,
+        layout: b.layout,
+        safeTile: R.lanternTile(b),
+      };
+      if (
+        (v.chosen ?? i) === R.lanternTile(b) &&
+        (!v.moveAt || v.moveAt + 420 <= due)
+      ) {
         if (v.inputs === 0) {
           v.resolved = b.index;
           continue;
@@ -193,7 +218,12 @@ function play(g, i, b, now, fail) {
       b.value >= (g.id === "lantern" ? 4 : 3)
     )
       fail("Choose a platform.", 400);
-    v.fromLane = v.chosen ?? 1;
+    if (g.id === "lantern") {
+      if (now - (v.moveAt || 0) < 420) fail("Land before jumping again.");
+      if (g.lanternLast && now - g.lanternLast.at < 1100)
+        fail("Wait for the hatches to rise.");
+    }
+    v.fromLane = v.chosen ?? (g.id === "lantern" ? i : 1);
     v.chosen = b.value;
     v.choiceBeat = beat.index;
     v.moveAt = now;
@@ -275,7 +305,15 @@ function bot(g, i, now) {
             : "duck",
     };
   }
-  if (g.id === "lantern") return { value: rnd(10) ? b.color : rnd(4) };
+  if (g.id === "lantern") {
+    if (
+      now - (v.moveAt || 0) < 450 ||
+      (g.lanternLast && now - g.lanternLast.at < 1100) ||
+      v.chosen === R.lanternTile(b)
+    )
+      return null;
+    return { value: rnd(12) ? R.lanternTile(b) : rnd(4) };
+  }
   if (g.id === "treasure")
     return { value: b.values[b.lane] > 0 ? b.lane : (b.lane + 1) % 3 };
   if (

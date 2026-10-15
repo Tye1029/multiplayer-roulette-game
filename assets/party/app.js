@@ -1,4 +1,4 @@
-/* BOARDWALK_CARNIVAL_V6 — guest rooms, authoritative matches, local presentation. */
+/* BOARDWALK_CARNIVAL_V7 — guest rooms, authoritative matches, local presentation. */
 (() => {
   "use strict";
   const C = PartyCatalog,
@@ -156,6 +156,8 @@
             `<button data-buy-item="${i.id}" ${e.bought || me().tokens < i.cost ? "disabled" : ""}>${itemImage(i.id)}<span><strong>${i.name} <b>${icon("coin")} ${i.cost}</b></strong><small>${i.description}</small>${me().items.length === 3 ? "<small>Choose an item to replace</small>" : ""}</span></button>`,
         )
         .join("")}</div>`;
+    if (e.kind === "ferry")
+      body += `<button class="primary full" data-action="ride-ferry" ${me().tokens < C.ferry.cost ? "disabled" : ""}>⛴ Sail to space ${C.ferry.to + 1} · ${C.ferry.cost} coins</button>`;
     if (trophy && !e.bought)
       body += `<button class="primary full" data-action="buy-trophy" ${me().tokens < 10 ? "disabled" : ""}>${icon("trophy")} Buy trophy · 10 coins</button>${me().tokens < 10 ? '<p class="small">You need 10 coins. You can still keep going.</p>' : ""}`;
     if (e.pendingItem)
@@ -490,8 +492,12 @@
       screen = mainKey;
       panelKey = "";
       rosterKey = "";
-      app.innerHTML = `<div class="room-header"><div><span class="eyebrow">${r.mode === "duel" ? "QUICK DUEL" : "PARTY MATCH"} · CORAL CARNIVAL</span><h1 id="room-title"></h1></div><button class="room-code" id="share-code" title="Copy invite link">${esc(r.id)} ↗</button></div><div class="match-layout"><div><div class="scene-frame match-scene"><canvas id="party-scene" role="img" aria-label="Live three-dimensional party board and minigame"></canvas><span class="scene-badge" id="scene-label"></span><div class="scene-wallet" id="scene-wallet"></div><div class="scene-clock" id="scene-clock"></div><div id="start-count" class="start-count" aria-live="polite"></div><div id="score-popups" aria-live="polite"></div><div id="scene-controls"></div><div id="space-inspector" class="space-inspector" hidden aria-live="polite"></div><div class="scene-tools"><button data-map aria-label="Toggle whole board view" title="Whole board / follow player">⌖</button><button data-board-guide aria-label="Board space guide">?</button></div></div><div id="score-strip" class="score-strip"></div><p class="turn-message" id="turn-message" aria-live="polite"></p></div><aside class="side-panel"><div id="panel"></div><div class="countdown"><span id="timer-label"></span><strong class="timer" id="timer">—</strong></div><div class="round-progress" id="round-progress"></div><p class="live-status" id="connection"><i class="live-dot"></i><span>Connected · private room</span></p></aside></div>`;
+      app.innerHTML = `<div class="room-header"><div><span class="eyebrow">${r.mode === "duel" ? "QUICK DUEL" : "PARTY MATCH"} · CORAL CARNIVAL</span><h1 id="room-title"></h1></div><button class="room-code" id="share-code" title="Copy invite link">${esc(r.id)} ↗</button></div><div class="match-layout"><div><div class="scene-frame match-scene"><canvas id="party-scene" role="img" aria-label="Live three-dimensional party board and minigame"></canvas><span class="scene-badge" id="scene-label"></span><div class="scene-wallet" id="scene-wallet"></div><div class="scene-clock" id="scene-clock"></div><div id="start-count" class="start-count" aria-live="polite"></div><div id="score-popups" aria-live="polite"></div><div id="scene-controls"></div><div id="space-inspector" class="space-inspector" hidden aria-live="polite"></div><div class="scene-tools"><button data-map aria-label="Toggle whole board view" title="Whole board / follow player">⌖</button><button data-board-guide aria-label="Board space guide">?</button></div></div><div id="score-strip" class="score-strip"></div><div id="roll-order" class="roll-order"></div><p class="turn-message" id="turn-message" aria-live="polite"></p></div><aside class="side-panel"><div id="panel"></div><div class="countdown"><span id="timer-label"></span><strong class="timer" id="timer">—</strong></div><div class="round-progress" id="round-progress"></div><p class="live-status" id="connection"><i class="live-dot"></i><span>Connected · private room</span></p></aside></div>`;
     }
+    $("#roll-order").innerHTML =
+      r.mode === "party" && r.phase !== "waiting"
+        ? `<b>Roll order</b> ${(r.turnOrder || []).map((seat, i) => `<span class="${seat === r.turn && !playing ? "current" : ""}">${i + 1}. ${esc(r.players[seat]?.name || "")}${i < r.turnIndex ? " ✓" : ""}</span>`).join(" → ")}<small>Everyone rolls, then one minigame.</small>`
+        : "";
     $("#room-title").textContent =
       r.phase === "waiting"
         ? "Get the crew together."
@@ -528,7 +534,7 @@
       $("#score-strip").innerHTML = r.players
         .map(
           (p, i) =>
-            `<div class="score-chip ${p.id === r.you ? "you" : ""} ${i === r.turn && !playing ? "active-turn" : ""}"><canvas data-character="${p.character}" data-skin="${p.skin}" aria-hidden="true"></canvas><div><strong>${esc(p.name)}${p.id === r.you ? " · you" : ""}${p.bot ? " · bot" : ""}</strong>${r.phase !== "waiting" ? `<small class="standing">${places[p.id]}${["st", "nd", "rd", "th"][places[p.id] - 1]} place</small>` : `<small>${p.characterPicked ? C.characters.find((c) => c.id === p.character)?.name : "Choosing…"}</small>`}<span class="profile-resources">${icon("coin")}<b>${p.tokens}</b>${icon("trophy")}<b>${p.trophies}</b></span>${pocket(p)}${p.shield ? '<small class="shield-note">Shield active</small>' : ""}${r.phase === "playing" ? '<small class="live-points">' + (r.game.id === "fish" ? (r.game.progress[i].catch ? "Fish landed ✓" : "Waiting for a bite") : r.game.scores[i] + (gameDef().coinGame ? " coins collected" : " pts")) + "</small>" : ""}${["round-end", "side-result", "complete"].includes(r.phase) ? '<small class="round-coins">' + ((r.game.coinAwards?.[i] || 0) >= 0 ? "+" : "") + (r.game.coinAwards?.[i] || 0) + " coins</small>" : ""}</div></div>`,
+            `<div class="score-chip ${p.id === r.you ? "you" : ""} ${i === r.turn && !playing ? "active-turn" : ""}"><canvas data-character="${p.character}" data-skin="${p.skin}" aria-hidden="true"></canvas><div><strong>${esc(p.name)}${p.id === r.you ? " · you" : ""}${p.bot ? " · bot" : ""}</strong>${r.phase !== "waiting" ? `<small class="standing">${places[p.id]}${["st", "nd", "rd", "th"][places[p.id] - 1]} place</small>` : `<small>${p.characterPicked ? C.characters.find((c) => c.id === p.character)?.name : "Choosing…"}</small>`}<span class="profile-resources">${icon("coin")}<b>${p.tokens}</b>${icon("trophy")}<b>${p.trophies}</b></span>${p.shield ? '<small class="shield-note">Shield active</small>' : ""}${r.phase === "playing" ? '<small class="live-points">' + (r.game.id === "fish" ? (r.game.progress[i].catch ? "Fish landed ✓" : "Waiting for a bite") : r.game.scores[i] + (gameDef().coinGame ? " coins collected" : " pts")) + "</small>" : ""}${["round-end", "side-result", "complete"].includes(r.phase) ? '<small class="round-coins">' + ((r.game.coinAwards?.[i] || 0) >= 0 ? "+" : "") + (r.game.coinAwards?.[i] || 0) + " coins</small>" : ""}</div>${pocket(p)}</div>`,
         )
         .join("");
       portraits($("#score-strip"));
@@ -600,6 +606,8 @@
         }<button class="text-button small" data-board-guide>Meet the board spaces</button>`;
       else if (r.phase === "rolling")
         panel.innerHTML = `<span class="eyebrow">${esc(turn.name)} IS UP</span><h2>Let it roll.</h2><p class="status-note">A little luck. A new adventure.</p>`;
+      else if (r.phase === "ferry")
+        panel.innerHTML = `<span class="eyebrow">FERRY CROSSING</span><h2>Across the bay.</h2><p>${esc(turn.name)} is sailing to the opposite shore. Next player rolls after docking.</p>`;
       else if (r.phase === "walking")
         panel.innerHTML = `<span class="eyebrow">ON THE MOVE</span><h2>${esc(turn.name)} rolled ${r.dice?.values.join(" + ")}.</h2><p class="game-instructions">${r.movement.remaining ? "A crossroads is coming up." : "Let’s see where this lands."}</p><div class="travel-dots">${Array.from({ length: r.lastMove?.path.length - 1 || 1 }, () => "<i></i>").join("")}</div>`;
       else if (r.phase === "choice")
@@ -628,9 +636,9 @@
         panel.innerHTML =
           '<span class="eyebrow">THE CREW IS READY</span><h2>Minigame time!</h2><p class="game-instructions">New game. Fresh rivalries. Everyone is in.</p>';
       else if (r.phase === "side-result")
-        panel.innerHTML = `<span class="eyebrow">RIVAL SHOWDOWN</span><h2>${esc(r.event.text)}</h2>${ranking(true)}<p class="status-note">Results stay for 15 seconds · then back to the board.</p>`;
+        panel.innerHTML = `<span class="eyebrow">RIVAL SHOWDOWN</span><h2>${esc(r.event.text)}</h2>${ranking(true)}<p class="status-note">Results stay for 5 seconds · then back to the board.</p>`;
       else if (r.phase === "round-end")
-        panel.innerHTML = `<span class="eyebrow">ROUND ${r.round} COMPLETE</span><h2>${r.tieAgain ? "One last showdown." : "That was a good round."}</h2>${ranking(true)}<p class="status-note">${r.tieAgain ? "The leaders are tied. One final minigame decides it." : "Take a breather · your next round starts after 15 seconds."}</p>`;
+        panel.innerHTML = `<span class="eyebrow">ROUND ${r.round} COMPLETE</span><h2>${r.tieAgain ? "One last showdown." : "That was a good round."}</h2>${ranking(true)}<p class="status-note">${r.tieAgain ? "The leaders are tied. One final minigame decides it." : "Take a breather · your next round starts after 5 seconds."}</p>`;
       else if (r.phase === "complete") {
         const winner = r.players.find((p) => p.id === r.winner);
         panel.innerHTML = `<span class="eyebrow">${winner?.id === r.you ? "YOU DID THAT." : "THAT’S A WRAP."}</span><h2>${winner ? esc(winner.name) + " takes the crown." : "Honors shared."}</h2>${ranking()}<div class="stack"><button class="primary" data-action="rematch" ${r.ready.includes(r.you) ? "disabled" : ""}>${r.ready.includes(r.you) ? "Rematch requested ✓" : "One more round?"}</button><button class="text-button" data-leave>Back to the boardwalk</button></div>`;
@@ -717,7 +725,7 @@
         )
         .join(
           "",
-        )}</div><p>Roll 1–6. Choose paths at three crossroads. Tide Gardens opens on high-tide turns. Collect trophies at the golden beacon for 10 coins. Most trophies after your selected number of turns wins; minigame points break a tie.</p>`,
+        )}</div><p>Roll 1–6. Choose paths at three crossroads. The Harbor Loop is always open; the ferry crosses to the opposite shore for four coins. Collect trophies at the golden beacon for 10 coins. Most trophies after your selected number of turns wins; minigame points break a tie.</p>`,
     );
   }
   function ranking(round = false) {
@@ -977,7 +985,7 @@
     if (!info) return;
     el.style.setProperty("--space", info.color);
     el.dataset.dock = inspectorDock;
-    el.innerHTML = `<button data-close-space aria-label="Close space details">×</button><strong><span>${info.icon}</span> ${info.name}</strong><small>Space ${n.id + 1} · ${n.district}</small><p>${info.description}${n.type === "trophy" && room?.goal !== n.id ? " The trophy is currently at another stop." : ""}${n.id === C.tideJunction && !room?.tide ? " Tide gardens opens next turn." : ""}</p>`;
+    el.innerHTML = `<button data-close-space aria-label="Close space details">×</button><strong><span>${info.icon}</span> ${info.name}</strong><small>Space ${n.id + 1} · ${n.district}</small><p>${info.description}${n.type === "trophy" && room?.goal !== n.id ? " The trophy is currently at another stop." : ""}</p>`;
   }
   document.addEventListener("pointerup", (e) => {
     if (e.target.id !== "party-scene" || document.body.dataset.game !== "board")
@@ -1491,20 +1499,27 @@
         document.querySelectorAll("[data-control]").forEach((b) => {
           const value = b.dataset.control;
           let waiting = false;
-          if (id === "bomb")
+          if (id === "bomb") {
             waiting =
               r.game.shared.holder !== own ||
-              stamp - r.game.shared.passedAt < 550;
-          if (
-            [
-              "simon",
-              "confetti",
-              "fencing",
-              "draft",
-              "ricochet",
-              "rope",
-            ].includes(id)
-          )
+              stamp < (r.game.shared.respawnAt || 0) ||
+              stamp - r.game.shared.passedAt < PartyRules.bombFlight;
+            const alive = r.game.active.filter(
+                (i) => !r.game.progress[i].eliminatedAt,
+              ),
+              slot = alive.indexOf(own),
+              to =
+                alive[
+                  (slot + (value === "left" ? -1 : 1) + alive.length) %
+                    alive.length
+                ];
+            b.textContent =
+              (value === "left" ? "← " : "") +
+              "Toss to " +
+              (r.players[to]?.name || "neighbor") +
+              (value === "right" ? " →" : "");
+          }
+          if (["simon", "confetti", "fencing", "draft", "rope"].includes(id))
             waiting ||= v.actedBeat === r.game.cue?.index;
           if (id === "tug" && value === "pull")
             waiting ||= stamp - (v.pullAt || 0) < 650;
@@ -1513,7 +1528,18 @@
           if (id === "balloon") waiting ||= stamp - (v.pumpAt || 0) < 350;
           if (id === "kart")
             waiting ||= stamp - v.moveAt < (v.boosted ? 600 : 230);
-          if (id === "cannon") waiting ||= stamp - (v.fireAt || 0) < 1200;
+          if (id === "cannon")
+            waiting ||= stamp - (v.fireAt || 0) < PartyRules.cannon.reload;
+          if (id === "ricochet")
+            waiting ||= stamp - (v.shot?.at || 0) < PartyRules.archery.cooldown;
+          if (id === "spotlight") {
+            waiting ||=
+              value === "run" && (stamp < (v.stunnedUntil || 0) || v.running);
+            b.setAttribute(
+              "aria-pressed",
+              String(value === (v.running ? "run" : "freeze")),
+            );
+          }
           if (id === "stack")
             waiting ||= stamp - (v.dropAt || r.game.start) < 700;
           if (id === "orchard" && /^[0-3]$/.test(value))
@@ -1523,10 +1549,27 @@
           b.disabled ||= waiting;
         });
       }
+      if (r.game.id === "lantern") {
+        const falling =
+          r.game.lanternLast && stamp - r.game.lanternLast.at < 1100;
+        const layout = (falling
+          ? r.game.lanternLast.layout
+          : r.game.cue?.layout) || [0, 1, 2, 3];
+        document.querySelectorAll("[data-control]").forEach((b) => {
+          const i = Number(b.dataset.control),
+            c = layout[i];
+          b.textContent = `${i + 1} · ${["Blue", "Pink", "Mint", "Gold"][c]}`;
+          b.style.setProperty(
+            "--pad",
+            ["#98d8f0", "#f2a5c5", "#9bdfb5", "#f7d675"][c],
+          );
+          b.disabled ||= falling || stamp - (v.moveAt || 0) < 420;
+        });
+      }
       const cue = r.game.cue,
         hint = $("#cue-instruction");
       if (hint && gameDef().engine === "festival")
-        hint.textContent = PartyFestivalUI.hint(r.game, v, stamp);
+        hint.textContent = PartyFestivalUI.hint(r.game, v, stamp, r.players);
       if (hint && cue && gameDef().engine !== "festival") {
         const dt = stamp - r.game.start - cue.at;
         hint.textContent =

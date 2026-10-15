@@ -60,7 +60,7 @@
       "Coconut Crossfire",
       "AIM + SURVIVE",
       "Four spinning cannons. One splashy showdown.",
-      "Your cannon rotates automatically. Tap Fire when its sight points at a rival. Coconuts travel through the arena; colliding shots cancel each other. Three hits knock a player out. Hits and survival score; last survivor earns a bonus. Firing has a 1.2 second reload.",
+      "Your cannon rotates automatically. Tap Fire when its sight points at a rival. Coconuts travel through the arena; colliding shots cancel each other. Three hits knock a player out. Each direct hit scores 250; the last survivor earns a clearly marked bonus. Firing has a 1.8 second reload.",
       [["fire", "Fire!"]],
     ],
     [
@@ -114,7 +114,7 @@
       "Sneaky Spotlight",
       "MOVE + FREEZE",
       "Race to the stage without being spotted.",
-      "Hold your pace with Run during green light. Press Freeze before the spotlight turns red; getting caught sends you back and breaks your stride. Amber gives a short warning. Reach the stage first for the largest finish bonus.",
+      "Tap Run once to keep moving. Tap Freeze to stop before red; amber gives 0.9 seconds of warning. Red catches cost 60 metres and stop you for one second. Tap Run again when green returns. Reach the stage first for the largest finish bonus.",
       [
         ["run", "Run"],
         ["freeze", "Freeze"],
@@ -178,11 +178,11 @@
     ],
     [
       "ricochet",
-      "Ricochet Rivals",
-      "1V1 · BANK SHOTS",
-      "Bank a ball into a moving target.",
-      "Your aim sweeps automatically. Fire when the reflected dotted sight crosses the moving target. One shot per target, eight targets; smaller bullseyes reward accuracy. The target changes speed in the second half.",
-      [["fire", "Bank shot"]],
+      "Boardwalk Bullseyes",
+      "1V1 · MOVING TARGETS",
+      "Loose an arrow. Lead the moving bullseye.",
+      "Your sight sweeps across a moving target. Shoot slightly ahead: arrows take 0.42 seconds to arrive. Gold scores 500, cream 300, pink 100; misses score zero. A new arrow is ready every 0.9 seconds.",
+      [["fire", "Loose arrow"]],
       true,
     ],
     [

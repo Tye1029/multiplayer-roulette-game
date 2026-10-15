@@ -180,9 +180,9 @@ test("route previews follow connected edges, include later forks and skip termin
       assert.notEqual(C.spaces[path.at(-1)].type, "shop");
     }
   }
-  s.players[0].position = 27;
+  s.players[0].position = 25;
   s.tide = 0;
-  assert.equal(C.routePreviews(s).length, 1);
+  assert.equal(C.routePreviews(s).length, 2);
   s.tide = 1;
   assert.equal(C.routePreviews(s).length, 2);
 });

@@ -269,6 +269,34 @@ async function playRound(pages, code, seen) {
       for (const p of pages) await wait(p, "body[data-phase=playing]");
     }
   }
+  if (game === "bomb") {
+    // Software-GPU screenshots can span multiple normal fuses. Give the input
+    // coverage fixture a long fuse, then pass right through every participant.
+    // V7's separate real-time browser/model tests cover flight and expiry.
+    s = await roomState(code);
+    s.game.shared.holder = s.game.active[0];
+    Object.assign(s.game.shared, {
+      from: s.game.shared.holder,
+      flight: null,
+      passedAt: 0,
+      popped: null,
+      poppedAt: 0,
+      respawnAt: 0,
+      fuseStarted: Date.now(),
+      fuseEnd: Date.now() + 240000,
+    });
+    s.game.progress.forEach((v) => {
+      v.health = 3;
+      v.eliminatedAt = 0;
+      v.finished = 0;
+    });
+    s.revision++;
+    await server.pg.query(
+      "UPDATE party_rooms SET state=$2::jsonb WHERE id=$1",
+      [code, JSON.stringify(s)],
+    );
+    await wake(pages);
+  }
   for (let i = 0; i < pages.length; i++) {
     if (!s.game.participants.includes(s.players[i].id)) continue;
     const p = pages[i];
@@ -290,20 +318,22 @@ async function playRound(pages, code, seen) {
     if (G.festival.handled(game)) {
       const state = await roomState(code),
         v = state.game.progress[i];
-      if (
-        game !== "bomb" ||
-        (state.game.shared.holder === i &&
-          Date.now() - state.game.shared.passedAt >= 600)
-      ) {
-        const def = C.games.find((g) => g.id === game);
-        const value =
-          game === "rope"
-            ? state.game.beats[0].high
-              ? "duck"
-              : "jump"
-            : def.controls[0][0];
-        await action(p, '[data-control="' + value + '"]:enabled', "play");
-      }
+      if (game === "bomb")
+        assert.equal(
+          state.game.shared.holder,
+          i,
+          "Each holder passes to the following player",
+        );
+      const def = C.games.find((g) => g.id === game),
+        value =
+          game === "bomb"
+            ? "right"
+            : game === "rope"
+              ? state.game.beats[0].high
+                ? "duck"
+                : "jump"
+              : def.controls[0][0];
+      await action(p, '[data-control="' + value + '"]:enabled', "play");
     } else if (G.handled(game)) {
       const state = await roomState(code),
         cue = state.game.beats[0];
@@ -394,7 +424,7 @@ try {
         await p.locator("[data-map]").click();
         await fit(p, "board-overview");
         await p.locator("[data-map]").click();
-        await action(p, "[data-item=boost]", "item");
+        assert.equal(s.players[0].items.length, 0, "No free starting items");
       }
       await action(p, "[data-action=roll]", "roll");
     } else if (s.phase === "rolling") {

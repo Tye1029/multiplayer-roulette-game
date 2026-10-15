@@ -19,12 +19,13 @@ jobs:
       - run: npm install --no-package-lock
       - run: npm install --no-save --no-package-lock @electric-sql/pglite@0.3.14 playwright@1.61.1
       - run: npx playwright install --with-deps chromium
-      - run: node --test scripts/party.test.mjs scripts/party-v5.test.mjs scripts/party-v6.test.mjs
+      - run: node --test scripts/party.test.mjs scripts/party-v5.test.mjs scripts/party-v6.test.mjs scripts/party-v7.test.mjs
       - run: npm run build
       - run: node scripts/party-browser.test.mjs
       - run: node scripts/party-v4-browser.test.mjs
       - run: node scripts/party-v5-browser.test.mjs
       - run: node scripts/party-v6-browser.test.mjs
+      - run: node scripts/party-v7-browser.test.mjs
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

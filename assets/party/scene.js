@@ -1,7 +1,8 @@
 import * as T from "./vendor/three.module.min.js";
-import { carnivalScenes } from "./carnival-scenes.js?v=BOARDWALK_CARNIVAL_V6";
-import { festivalScenes } from "./festival-scenes.js?v=BOARDWALK_CARNIVAL_V6";
+import { carnivalScenes } from "./carnival-scenes.js?v=BOARDWALK_CARNIVAL_V7";
+import { festivalScenes } from "./festival-scenes.js?v=BOARDWALK_CARNIVAL_V7";
 const C = globalThis.PartyCatalog,
+  R = globalThis.PartyRules,
   TAU = Math.PI * 2,
   clamp = (n, a = 0, b = 1) => Math.max(a, Math.min(b, n)),
   mix = (a, b, t) => a + (b - a) * t;
@@ -1184,14 +1185,26 @@ function addBoardDetails(w) {
       flag.rotation.z = Math.PI;
     }
   }
-  const n = C.spaces[C.tideJunction];
-  w.tideGate = new T.Group();
-  w.tideGate.position.set(n.x - 1.1, n.y, n.z);
-  w.root.add(w.tideGate);
-  box(w.tideGate, 0, 1.15, 0, 2.3, 0.22, 0.12, "#f0b875");
-  const l = label("TIDE GARDENS", "#fff5d7", "#557c82", 0.3);
-  l.position.set(n.x, n.y + 2.5, n.z);
+  const n = C.spaces[25],
+    l = label("HARBOR LOOP", "#fff5d7", "#557c82", 0.38);
+  l.position.set(n.x + 2, n.y + 2.4, n.z + 1);
   w.root.add(l);
+}
+function ferryPoint(q) {
+  const from = C.spaces[C.ferry.from],
+    to = C.spaces[C.ferry.to],
+    a = Math.atan2(from.z / 15, from.x / 20),
+    b = Math.atan2(to.z / 15, to.x / 20);
+  const point = (angle) =>
+    new T.Vector3(Math.cos(angle) * 26, 0.12, Math.sin(angle) * 22);
+  if (q < 0.15)
+    return new T.Vector3(from.x, from.y + 0.2, from.z).lerp(point(a), q / 0.15);
+  if (q > 0.85)
+    return point(b).lerp(
+      new T.Vector3(to.x, to.y + 0.2, to.z),
+      (q - 0.85) / 0.15,
+    );
+  return point(mix(a, b, (q - 0.15) / 0.7));
 }
 function boardWorld() {
   const w = world("board");
@@ -1487,7 +1500,53 @@ function boardWorld() {
   w.root.add(w.selectionTitle);
   w.goalTitle = label("TROPHY · 10 COINS", "#523f24", "#ffe494", 0.64);
   w.root.add(w.goalTitle);
-  w.goal = trophy(w.root, 0, 0, 0, 0.95);
+  for (const [id, p] of Object.entries(C.trophyPedestals)) {
+    const n = C.spaces[id];
+    cyl(w.root, p.x, n.y - 0.2, p.z, 1.1, 1.25, 0.8, "#ba966f", 24);
+    cyl(w.root, p.x, n.y + 0.22, p.z, 1.1, 1.1, 0.08, "#ffe2a1", 24);
+    tube(
+      w.root,
+      [n.x, n.y - 0.12, n.z],
+      [p.x, n.y - 0.12, p.z],
+      0.15,
+      "#e3b96e",
+    );
+  }
+  w.ferry = new T.Group();
+  w.root.add(w.ferry);
+  ball(w.ferry, 0, -0.25, 0, 1.1, 0.45, 1.7, "#65bbc9");
+  box(w.ferry, 0, 0.05, 0, 1.6, 0.17, 2.5, "#f3cd8f");
+  for (const x of [-0.85, 0.85]) {
+    box(w.ferry, x, 0.42, 0, 0.12, 0.6, 2.5, "#fff0c5");
+    tube(w.ferry, [x, 0.4, -0.8], [x, 2.2, -0.8], 0.05, "#b47d61");
+  }
+  box(w.ferry, 0, 2.2, -0.8, 2.1, 0.14, 1.1, "#f2a3ba");
+  for (const id of [C.ferry.from, C.ferry.to]) {
+    const n = C.spaces[id],
+      side = Math.sign(n.x);
+    box(w.root, n.x + side * 1.9, 0.32, n.z, 2.1, 0.35, 2.5, "#bd936b");
+    for (const dz of [-1, 1])
+      cyl(
+        w.root,
+        n.x + side * 2.6,
+        -0.35,
+        n.z + dz,
+        0.1,
+        0.13,
+        2,
+        "#95735f",
+        12,
+      );
+    const sign = label(
+      id === C.ferry.from ? "FERRY · 4 COINS" : "FERRY ARRIVAL",
+      "#fff5dc",
+      "#426f83",
+      0.4,
+    );
+    sign.position.set(n.x + side * 2.8, 2.3, n.z);
+    w.root.add(sign);
+  }
+  w.goal = trophy(w.root, 0, 0, 0, 0.78);
   w.goalRing = torus(w.root, 0, 0, 0, 0.85, 0.055, "#fff2a6");
   w.goalRing.rotation.x = Math.PI / 2;
   w.dice = [];
@@ -1637,6 +1696,16 @@ function updateBoard(w, s, t, extra) {
       a.rotation.y = Math.atan2(b.x - a1.x, b.z - a1.z);
       walking = true;
     }
+    if (m?.ferry && m.player === p.id && t * 1000 < m.at + m.duration) {
+      const q = clamp((t * 1000 - m.at) / m.duration),
+        pos = ferryPoint(q),
+        ahead = ferryPoint(Math.min(1, q + 0.003));
+      x = pos.x;
+      y = pos.y + 0.18;
+      z = pos.z;
+      a.rotation.y = Math.atan2(ahead.x - x, ahead.z - z);
+      walking = true;
+    }
     const crowd = ps.filter((v) => v.position === p.position).length;
     if (crowd > 1 && !walking) {
       const seat = ps
@@ -1657,7 +1726,9 @@ function updateBoard(w, s, t, extra) {
       a,
       t + i,
       walking
-        ? "walk"
+        ? m?.ferry
+          ? "idle"
+          : "walk"
         : s?.phase === "complete"
           ? p.id === s.winner
             ? "win"
@@ -1675,6 +1746,15 @@ function updateBoard(w, s, t, extra) {
     a.userData.nameLabel.visible =
       s?.phase !== "complete" && (crowd === 1 || i === s?.turn);
   });
+  w.ferry.visible = s?.phase === "ferry";
+  if (w.ferry.visible) {
+    const q = clamp((t * 1000 - m.at) / m.duration),
+      pos = ferryPoint(q),
+      ahead = ferryPoint(Math.min(1, q + 0.003));
+    w.ferry.position.copy(pos);
+    w.ferry.rotation.y = Math.atan2(ahead.x - pos.x, ahead.z - pos.z);
+    w.ferry.rotation.z = Math.sin(t * 5) * 0.02;
+  }
   const complete = s?.phase === "complete";
   w.podium.visible = complete;
   w.goal.visible = !complete;
@@ -1696,8 +1776,9 @@ function updateBoard(w, s, t, extra) {
   }
   const n = C.spaces[s?.goal] || C.spaces[C.trophyStops[0]];
   w.goalTitle.visible = !complete;
-  w.goalTitle.position.set(n.x, n.y + 3, n.z);
-  w.goal.position.set(n.x, n.y + 1.1 + Math.sin(t * 2) * 0.15, n.z);
+  const pedestal = C.trophyPedestals[n.id];
+  w.goalTitle.position.set(pedestal.x, n.y + 3, pedestal.z);
+  w.goal.position.set(pedestal.x, n.y + 0.3, pedestal.z);
   w.goal.rotation.y = t * 0.8;
   w.goalRing.position.set(n.x, n.y + 0.2, n.z);
   w.goalRing.scale.setScalar(1 + Math.sin(t * 2) * 0.06);
@@ -1714,7 +1795,6 @@ function updateBoard(w, s, t, extra) {
         0.55,
       ),
     );
-  if (w.tideGate) w.tideGate.rotation.z = s?.tide ? -0.9 : 0;
   const previewKey =
     s?.phase === "choice"
       ? JSON.stringify([s.routePreviews, extra.selectedRoute])
@@ -1791,7 +1871,7 @@ function updateBoard(w, s, t, extra) {
     const points = [
       C.spaces[s.players[s.turn].position],
       ...(s.routePreviews || []).flatMap((r) =>
-        r.landings.map((id) => C.spaces[id]),
+        r.paths.flat().map((id) => C.spaces[id]),
       ),
     ];
     const xs = points.map((p) => p.x),
@@ -1810,7 +1890,7 @@ function updateBoard(w, s, t, extra) {
   if (
     s &&
     !extra.overview &&
-    ["board", "rolling", "walking", "space"].includes(s.phase)
+    ["board", "rolling", "walking", "space", "ferry"].includes(s.phase)
   ) {
     const a = w.actors[s.turn];
     if (a) {
@@ -2071,10 +2151,11 @@ function updateFish(w, s, t) {
     w.ripples[i].forEach((ring, j) => {
       const phase = (t * 1.3 + j / 3) % 1;
       ring.visible = !!cue && dt > -2200 && dt < cue.window;
-      ring.scale.setScalar((splash ? 1.2 : 0.5) + phase * (splash ? 1.5 : 0.6));
-      ring.material = mat(
-        splash ? "#ffd16d" : ["#82d9ef", "#efabd0", "#a3e7bb", "#f6d587"][i],
+      ring.scale.setScalar(
+        (cue?.size || 0.7 + i * 0.18) *
+          ((splash ? 1.2 : 0.5) + phase * (splash ? 1.4 : 0.6)),
       );
+      ring.material = mat("#c9f0ee");
     });
     w.bobbers[i].position.y = -0.5 + Math.sin(t * 3 + i) * 0.07;
     const f = w.fishes[i];
@@ -2531,12 +2612,11 @@ function overlay(c, canvas, kind, s, t, extra) {
       title =
         (b.fake ? "CAPTAIN: " : "CAPTAIN SAYS: ") + b.action.toUpperCase();
     if (kind === "spotlight")
-      title =
-        dt < -650
-          ? "GREEN · RUN"
-          : dt < 0
-            ? "AMBER · FREEZE"
-            : "RED · STAY STILL";
+      title = {
+        green: "GREEN · TAP RUN",
+        amber: "AMBER · FREEZE NOW",
+        red: "RED · STAY FROZEN",
+      }[R.spotlight(s.game, t * 1000).color];
     if (kind === "bakery")
       title = v?.recipe
         ? v.recipe.map((n) => ["BLUE", "PINK", "MINT", "GOLD"][n]).join(" → ")
@@ -2667,11 +2747,13 @@ function render(canvas, kind, state, time = 0, extra = {}) {
     ) {
       const i = state.players.findIndex((p) => p.id === state.you),
         progress = [...state.game.progress];
-      progress[i] = { ...progress[i], ...input.fields };
+      if (input.pending) progress[i] = { ...progress[i], ...input.fields };
       let shared = state.game.shared;
       if (
         input.game === "bomb" &&
-        (input.pending || shared.from === i) &&
+        input.pending &&
+        shared.holder === i &&
+        !shared.respawnAt &&
         ["left", "right"].includes(input.value)
       ) {
         const active = state.game.active.filter(
@@ -2687,6 +2769,15 @@ function render(canvas, kind, state, time = 0, extra = {}) {
                 active.length
             ],
           passedAt: input.at,
+          flight: {
+            from: i,
+            to: active[
+              (slot + (input.value === "left" ? -1 : 1) + active.length) %
+                active.length
+            ],
+            at: input.at,
+            duration: R.bombFlight,
+          },
         };
       }
       state = { ...state, game: { ...state.game, progress, shared } };
@@ -2843,6 +2934,16 @@ function render(canvas, kind, state, time = 0, extra = {}) {
   } else if (kind !== "board" && width / height < 1) {
     view.extent = Math.max(view.extent, 22 / (width / height));
   }
+  if (kind === "spotlight" && state?.game && width / height < 1) {
+    const own = state.players.findIndex((p) => p.id === state.you),
+      slot = state.game.active.indexOf(own),
+      station = w.stations[slot];
+    if (station) {
+      view.target.set(station.root.position.x, 1, 0);
+      view.extent = 22;
+      view.position = [0, 27, 34];
+    }
+  }
   if (kind === "fish" && state?.phase === "measuring") {
     view.extent = Math.max(14, 22 / (width / height));
     view.target.set(0, 0.5, 1);
@@ -2856,7 +2957,7 @@ function render(canvas, kind, state, time = 0, extra = {}) {
     kind === "board" &&
     (extra.overview || !state || ["waiting", "board-end"].includes(state.phase))
   )
-    view.extent = Math.max(view.extent, 46 / (width / height));
+    view.extent = Math.max(view.extent, 54 / (width / height));
   w.motion = extra.motion !== false;
   overlay(sceneFrame(w, time, view, canvas), canvas, kind, state, time, extra);
 }

@@ -1,20 +1,17 @@
 "use strict";
 const { randomInt: rnd } = require("node:crypto");
 const defs = require("../../../assets/party/festival-catalog");
+const R = require("../../../assets/party/rules");
 const handled = (id) => defs.some((d) => d.id === id);
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 const TAU = Math.PI * 2;
 const active = (g) => g.active || g.progress.map((_, i) => i);
 const alive = (g) => active(g).filter((i) => !g.progress[i].eliminatedAt);
-const angle = (g, i, now) =>
-  ((now - g.start) * 0.00135 +
-    (active(g).indexOf(i) * TAU) / active(g).length) %
-  TAU;
+const angle = R.cannonAngle;
 const stackX = (g, v, now) =>
   Math.sin((now - g.start) / (650 - Math.min(200, v.step * 12))) * 2.5;
-const aimX = (g, now) => Math.sin((now - g.start) / 850) * 4;
-const targetX = (g, b, now) =>
-  Math.sin((now - g.start) / (b.index < 4 ? 1800 : 1250) + b.color) * 3.4;
+const aimX = R.arrowAim,
+  targetX = (g, b, now) => R.arrowTarget(g, now);
 function award(g, i, n, now, label) {
   const v = g.progress[i],
     before = g.scores[i];
@@ -56,7 +53,7 @@ function setup(g) {
       orchard: 10,
       rhythm: 18,
       boats: 9,
-      spotlight: 10,
+      spotlight: 8,
       volley: 10,
     }[g.id] || 8;
   const interval = (g.duration - 2000) / count;
@@ -73,6 +70,11 @@ function setup(g) {
     boost: rnd(3),
     high: rnd(4) === 0,
   }));
+  if (g.id === "spotlight")
+    g.beats.forEach((b, i) => {
+      b.at = 2600 + (i * (g.duration - 4600)) / count;
+      b.window = 900;
+    });
   if (g.id === "kart")
     for (const b of g.beats)
       if (b.boost === b.lane) b.boost = (b.lane + 1 + rnd(2)) % 3;
@@ -242,6 +244,7 @@ function settleBeat(g, b, now) {
 function tick(g, now) {
   const sh = g.shared;
   if (sh.lastTick === now) return;
+  const previousTick = sh.lastTick || g.start;
   sh.lastTick = now;
   if (["fencing", "draft"].includes(g.id))
     for (const b of g.beats) {
@@ -272,86 +275,137 @@ function tick(g, now) {
       sh.resolved = b.index;
     }
   if (g.id === "bomb") {
-    sh.fuseEnd ||= g.start + 3000 + g.beats[0].color * 300;
-    if (now >= sh.fuseEnd && sh.explosions < 10) {
+    if (sh.respawnAt && now >= sh.respawnAt) {
+      const ids = alive(g);
+      sh.holder = ids[rnd(Math.max(1, ids.length))] ?? sh.holder;
+      sh.from = sh.holder;
+      sh.passedAt = 0;
+      sh.flight = null;
+      sh.fuseStarted = sh.respawnAt;
+      sh.fuseEnd = sh.respawnAt + 5000 + rnd(1200);
+      sh.respawnAt = 0;
+    }
+    if (!sh.fuseEnd && !sh.respawnAt) {
+      sh.fuseStarted = g.start;
+      sh.fuseEnd = g.start + 6000;
+      sh.from = sh.holder;
+    }
+    if (!sh.respawnAt && now >= sh.fuseEnd && sh.explosions < 20) {
       const at = sh.fuseEnd,
-        holder = g.progress[sh.holder];
+        victim = sh.holder,
+        holder = g.progress[victim];
       holder.health--;
       holder.hitAt = at;
-      if (holder.health <= 0) out(g, sh.holder, at, "Bubble pop! You're out");
+      holder.feedback = "POP! Lost one heart";
+      if (holder.health <= 0)
+        out(g, victim, at, "Out of hearts — cheer on the others!");
       for (const i of alive(g))
-        if (i !== sh.holder) award(g, i, 180, at, "Bubble dodged! +180");
-      sh.explosions++;
-      sh.holder =
-        alive(g)[(sh.explosions + sh.holder) % Math.max(1, alive(g).length)] ??
-        sh.holder;
-      sh.fuseEnd =
-        at + 2300 + g.beats[sh.explosions % g.beats.length].color * 350;
+        if (i !== victim) award(g, i, 180, at, "Safe! +180");
+      sh.popped = {
+        at,
+        holder: victim,
+        flight: sh.flight ? { ...sh.flight } : null,
+      };
       sh.poppedAt = at;
+      sh.explosions++;
+      sh.respawnAt = at + R.bombPause;
+      sh.fuseEnd = 0;
     }
   }
   if (g.id === "cannon") {
-    const shots = sh.shots;
+    const shots = sh.shots,
+      events = [],
+      cfg = R.cannon;
+    for (const shot of shots) {
+      if (shot.done) continue;
+      const from = Math.max(previousTick, shot.at),
+        to = Math.min(now, shot.at + cfg.life);
+      if (to < from) continue;
+      for (const i of alive(g)) {
+        if (i === shot.owner) continue;
+        const p = R.cannonPosition(g, i),
+          x = shot.x + shot.dx * (from - shot.at) - p.x,
+          z = shot.z + shot.dz * (from - shot.at) - p.z;
+        const q = R.segmentHit(
+          x,
+          z,
+          shot.dx,
+          shot.dz,
+          cfg.bodyRadius + cfg.shotRadius,
+          to - from,
+        );
+        if (q !== null) events.push({ at: from + q, shot, target: i });
+      }
+    }
     for (let a = 0; a < shots.length; a++)
       for (let b = a + 1; b < shots.length; b++) {
         const x = shots[a],
           y = shots[b];
         if (x.done || y.done || x.owner === y.owner) continue;
-        const from = Math.max(x.at, y.at),
-          to = Math.min(now, x.at + 1500, y.at + 1500);
+        const from = Math.max(previousTick, x.at, y.at),
+          to = Math.min(now, x.at + cfg.life, y.at + cfg.life);
         if (to < from) continue;
-        // Swept relative-motion collision: cannot tunnel when polling is slow.
-        const vx = x.dx - y.dx,
-          vz = x.dz - y.dz;
-        const rx = x.x + x.dx * (from - x.at) - y.x - y.dx * (from - y.at);
-        const rz = x.z + x.dz * (from - x.at) - y.z - y.dz * (from - y.at);
-        const q = clamp(
-          -(rx * vx + rz * vz) / (vx * vx + vz * vz || 1),
-          0,
+        const q = R.segmentHit(
+          x.x + x.dx * (from - x.at) - y.x - y.dx * (from - y.at),
+          x.z + x.dz * (from - x.at) - y.z - y.dz * (from - y.at),
+          x.dx - y.dx,
+          x.dz - y.dz,
+          cfg.shotRadius * 2,
           to - from,
         );
-        if (Math.hypot(rx + vx * q, rz + vz * q) < 0.7) {
-          x.done = y.done = from + q;
-          x.cancelled = y.cancelled = true;
-          sh.burst = {
-            at: from + q,
-            x: x.x + x.dx * (from + q - x.at),
-            z: x.z + x.dz * (from + q - x.at),
-          };
-        }
+        if (q !== null) events.push({ at: from + q, shot: x, other: y });
       }
-    for (const shot of shots) {
-      if (shot.done) continue;
-      const maxT = Math.min(1500, now - shot.at);
-      for (const i of alive(g)) {
-        if (i === shot.owner) continue;
-        const pos = cannonPosition(g, i),
-          rx = pos.x - shot.x,
-          rz = pos.z - shot.z;
-        const q = clamp(
-          (rx * shot.dx + rz * shot.dz) /
-            (shot.dx * shot.dx + shot.dz * shot.dz),
-          0,
-          maxT,
-        );
-        if (Math.hypot(rx - shot.dx * q, rz - shot.dz * q) < 1) {
-          shot.done = shot.at + q;
-          const v = g.progress[i];
-          v.health--;
-          v.hitAt = shot.done;
-          award(g, shot.owner, 250, shot.done, "Coconut hit! +250");
-          if (v.health <= 0) out(g, i, shot.done, "Splashed out!");
-          break;
-        }
+    events.sort((a, b) => a.at - b.at);
+    sh.impacts ||= [];
+    for (const event of events) {
+      const { shot, other, target, at } = event;
+      if (
+        shot.done ||
+        other?.done ||
+        (target !== undefined && g.progress[target].eliminatedAt)
+      )
+        continue;
+      shot.done = at;
+      const impact = {
+        at,
+        x: shot.x + shot.dx * (at - shot.at),
+        z: shot.z + shot.dz * (at - shot.at),
+        owner: shot.owner,
+        target,
+        points: other ? 0 : 250,
+      };
+      sh.impacts.push(impact);
+      if (other) {
+        other.done = at;
+        shot.cancelled = other.cancelled = true;
+      } else {
+        const v = g.progress[target];
+        v.health--;
+        v.hitAt = at;
+        v.feedback = "Direct hit! Lost one heart";
+        award(g, shot.owner, 250, at, "DIRECT HIT +250");
+        if (v.health <= 0) out(g, target, at, "Cannon knocked out!");
       }
-      if (!shot.done && maxT === 1500) shot.done = shot.at + 1500;
     }
-    sh.shots = shots.filter((s) => now - (s.done || s.at) < 2000);
+    for (const shot of shots)
+      if (!shot.done && now >= shot.at + cfg.life)
+        shot.done = shot.at + cfg.life;
+    sh.shots = shots.filter((shot) => now - (shot.done || shot.at) < 1400);
+    sh.impacts = sh.impacts.filter((hit) => now - hit.at < 1400).slice(-12);
   }
 }
 function cannonPosition(g, i) {
-  const a = (active(g).indexOf(i) * TAU) / active(g).length;
-  return { x: Math.cos(a) * 7, z: Math.sin(a) * 7 };
+  return R.cannonPosition(g, i);
+}
+function caught(g, i, now) {
+  const v = g.progress[i];
+  v.running = false;
+  v.distance = Math.max(0, v.distance - 60);
+  v.stunnedUntil = now + 1000;
+  v.hitAt = now;
+  g.scores[i] = Math.round(v.distance);
+  v.feedback = "CAUGHT — back 60! Wait for green.";
+  v.popup = { at: now, value: -60, label: v.feedback };
 }
 function advance(g, i, now) {
   if (!handled(g.id)) return;
@@ -362,6 +416,36 @@ function advance(g, i, now) {
     dt = clamp(end - (v.lastTick || g.start), 0, g.duration);
   v.lastTick = end;
   v.stamina = Math.min(100, v.stamina + dt * 0.018);
+  if (
+    g.id === "ricochet" &&
+    v.shot &&
+    !v.shot.resolved &&
+    end >= v.shot.at + R.archery.flight
+  ) {
+    v.shot.resolved = true;
+    award(
+      g,
+      i,
+      v.shot.score,
+      v.shot.at + R.archery.flight,
+      v.shot.score === 500
+        ? "BULLSEYE +500"
+        : v.shot.score
+          ? "TARGET HIT +" + v.shot.score
+          : "Miss — aim ahead of the target",
+    );
+  }
+  if (g.id === "spotlight") {
+    if (v.running && end >= (v.stunnedUntil || 0)) {
+      const light = R.spotlight(g, end);
+      if (light.color === "red") caught(g, i, end);
+      else {
+        v.distance = Math.min(1200, v.distance + dt * 0.08);
+        g.scores[i] = Math.round(v.distance);
+        if (v.distance >= 1200) finishRace(g, i, end);
+      }
+    }
+  }
   if (g.id === "balloon") v.pressure = Math.max(0, v.pressure - dt * 0.002);
   for (const b of g.beats) {
     const due = g.start + b.at + b.window;
@@ -410,13 +494,6 @@ function advance(g, i, now) {
         v.feedback = "Delivery missed";
       }
       v.caught = null;
-    } else if (g.id === "spotlight") {
-      if (v.running) {
-        v.distance = Math.max(0, v.distance - 80);
-        v.hitAt = due;
-        v.running = false;
-      }
-      g.scores[i] = Math.round(v.distance);
     } else if (g.id === "boats") {
       if (Math.abs((v.braceAt || 0) - (g.start + b.at)) > b.window) {
         v.distance = Math.max(0, v.distance - 60);
@@ -442,7 +519,7 @@ function advance(g, i, now) {
     }
   }
   // Survival scoring uses elapsed survival time, so eliminated players never beat a survivor.
-  if (g.survival && v.inputs)
+  if (g.survival && g.id !== "cannon" && v.inputs)
     g.scores[i] = Math.max(g.scores[i], Math.floor((end - g.start) / 100));
 }
 function play(g, i, input, now, fail) {
@@ -496,8 +573,10 @@ function play(g, i, input, now, fail) {
   } else if (id === "bomb") {
     if (!["left", "right"].includes(value))
       fail("Choose a toss direction.", 400);
-    if (g.shared.holder !== i) fail("The bubble is with another player.");
-    if (now - g.shared.passedAt < 550) fail("The bubble is still in the air.");
+    if (g.shared.respawnAt) fail("A fresh bomb is coming.");
+    if (g.shared.holder !== i) fail("The bomb is with another player.");
+    if (g.shared.flight && now < g.shared.flight.at + R.bombFlight)
+      fail("The bomb is still in the air.");
     const players = alive(g),
       slot = players.indexOf(i),
       next =
@@ -507,20 +586,23 @@ function play(g, i, input, now, fail) {
     g.shared.from = i;
     g.shared.holder = next;
     g.shared.passedAt = now;
+    g.shared.flight = { from: i, to: next, at: now, duration: R.bombFlight };
     v.throwAt = now;
   } else if (id === "cannon") {
     if (value !== "fire") fail("Press Fire.", 400);
-    if (now - (v.fireAt || 0) < 1200) fail("Reloading!");
+    if (now - (v.fireAt || 0) < R.cannon.reload) fail("Reloading!");
     const a = angle(g, i, now),
-      p = cannonPosition(g, i);
+      p = cannonPosition(g, i),
+      cfg = R.cannon;
     g.shared.shots.push({
       owner: i,
       at: now,
-      x: p.x,
-      z: p.z,
-      dx: Math.cos(a) * 0.013,
-      dz: Math.sin(a) * 0.013,
+      x: p.x + Math.cos(a) * cfg.muzzle,
+      z: p.z + Math.sin(a) * cfg.muzzle,
+      dx: Math.cos(a) * cfg.speed,
+      dz: Math.sin(a) * cfg.speed,
     });
+    v.aimPaused = (v.aimPaused || 0) + (v.fireAt ? cfg.recoil : 0);
     v.fireAt = now;
   } else if (id === "rope" || id === "rhythm") {
     const expected =
@@ -649,22 +731,18 @@ function play(g, i, input, now, fail) {
     }
   } else if (id === "spotlight") {
     if (!["run", "freeze"].includes(value)) fail("Run or freeze.", 400);
-    if (value === "run" && now - (v.runAt || 0) < 330)
-      fail("Keep a steady running pace.");
-    if (value === "run") v.runAt = now;
-    const green = since < -650,
-      red = since >= 0;
-    v.running = value === "run";
-    if (value === "run" && green) {
-      v.distance += 65;
-      award(g, i, 65, now, "Sneaking closer");
-      v.moveAt = now;
-    } else if (value === "run" && red) {
-      v.distance = Math.max(0, v.distance - 80);
-      g.scores[i] = v.distance;
-      v.hitAt = now;
+    if (value === "freeze") {
+      v.running = false;
+      v.feedback = "Frozen — safe while the light is red.";
+    } else {
+      if (now < (v.stunnedUntil || 0)) fail("Recover before running again.");
+      if (R.spotlight(g, now).color === "red") caught(g, i, now);
+      else {
+        v.running = true;
+        v.runAt = now;
+        v.feedback = "Running — tap Freeze before red!";
+      }
     }
-    if (v.distance >= 1200) finishRace(g, i, now);
   } else if (id === "boats") {
     if (!["left", "right", "brace"].includes(value))
       fail("Paddle or brace.", 400);
@@ -741,24 +819,21 @@ function play(g, i, input, now, fail) {
       }
     }
   } else if (id === "ricochet") {
-    chooseOnce(["fire"]);
+    if (value !== "fire") fail("Loose an arrow.", 400);
+    if (v.shot && now - v.shot.at < R.archery.cooldown)
+      fail("Nocking the next arrow.");
     const hit = aimX(g, now),
-      target = targetX(g, b, now),
-      delta = Math.abs(hit - target);
-    const score =
-      delta < 0.35 ? 500 : delta < 0.8 ? 300 : delta < 1.4 ? 100 : 0;
-    award(
-      g,
-      i,
+      target = targetX(g, b, now + R.archery.flight),
+      score = R.arrowScore(hit, target);
+    v.shot = {
+      at: now,
+      hit,
+      target,
       score,
-      now,
-      score === 500
-        ? "Bullseye! +500"
-        : score
-          ? `Banked +${score}`
-          : "Wide shot",
-    );
-    v.shot = { at: now, hit, target, score, duration: 700 };
+      duration: R.archery.flight,
+      resolved: false,
+    };
+    v.feedback = "Arrow away…";
   } else if (id === "volley") {
     if (![0, 1, 2].includes(value)) fail("Choose a court lane.", 400);
     if (since < -300) {
@@ -804,7 +879,12 @@ function bot(g, i, now) {
     if (lane === v.lane) return null;
     value = lane < v.lane ? "left" : "right";
   } else if (id === "bomb") {
-    if (g.shared.holder !== i || now - g.shared.passedAt < 650) return null;
+    if (
+      g.shared.respawnAt ||
+      g.shared.holder !== i ||
+      (g.shared.flight && now - g.shared.flight.at < R.bombFlight + 200)
+    )
+      return null;
     value = rnd(2) ? "left" : "right";
   } else if (id === "cannon") {
     const pos = cannonPosition(g, i),
@@ -852,8 +932,11 @@ function bot(g, i, now) {
       path?.[1] - v.cell
     ];
   } else if (id === "balloon") value = v.pressure >= 70 ? "release" : "pump";
-  else if (id === "spotlight") value = dt < -850 ? "run" : "freeze";
-  else if (id === "rhythm") {
+  else if (id === "spotlight") {
+    const green = R.spotlight(g, now).color === "green";
+    if (green === !!v.running) return null;
+    value = green ? "run" : "freeze";
+  } else if (id === "rhythm") {
     if (dt < 40 || v.actedBeat === b.index) return null;
     value =
       b.color === 3
@@ -882,8 +965,8 @@ function bot(g, i, now) {
     value = v.stamina >= 25 ? "pull" : "rest";
   } else if (id === "ricochet") {
     if (
-      Math.abs(aimX(g, now) - targetX(g, b, now)) > 0.6 ||
-      v.actedBeat === b.index
+      Math.abs(aimX(g, now) - targetX(g, b, now + R.archery.flight)) > 0.4 ||
+      now - (v.shot?.at || 0) < R.archery.cooldown
     )
       return null;
     value = "fire";

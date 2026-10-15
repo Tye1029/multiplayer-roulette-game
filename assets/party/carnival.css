@@ -1048,3 +1048,58 @@ body[data-phase="playing"] .game-tip {
     min-height: 430px;
   }
 }
+
+/* V7: full-width inventory keeps three item images inside small profile cards. */
+.score-strip .score-chip {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+}
+.score-chip .profile-pocket {
+  grid-column: 1/-1;
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  margin: 4px 0 0;
+}
+.score-chip .profile-pocket button,
+.score-chip .profile-pocket .empty-pocket {
+  flex: 0 1 30px;
+  width: 30px;
+  min-width: 0;
+  min-height: 30px;
+  height: 30px;
+  margin: 0;
+  padding: 2px;
+}
+.score-chip .profile-pocket .item-image {
+  width: 100%;
+  height: 100%;
+  max-width: 26px;
+  max-height: 26px;
+  object-fit: contain;
+}
+.roll-order {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  font-size: 11px;
+  margin-top: 9px;
+  color: var(--ink);
+}
+.roll-order .current {
+  background: #f6dc9d;
+  border-radius: 7px;
+  padding: 3px 6px;
+  font-weight: 800;
+}
+.roll-order small {
+  flex-basis: 100%;
+  text-align: center;
+}
+[data-control][aria-pressed="true"] {
+  box-shadow: inset 0 0 0 3px #7450a3;
+}

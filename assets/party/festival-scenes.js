@@ -19,6 +19,7 @@ export function festivalScenes(H) {
     mix,
     clamp,
   } = H;
+  const R = globalThis.PartyRules;
   const palette = ["#83d5ed", "#f2a3c4", "#8fd5aa", "#f7cf72"],
     TAU = Math.PI * 2;
   const lanes = ["kart", "orchard", "volley", "boats", "spotlight"];
@@ -62,7 +63,11 @@ export function festivalScenes(H) {
   function cannon(parent, color) {
     const c = new T.Group();
     parent.add(c);
-    cyl(c, 0, 0.3, 0, 0.9, 1.1, 0.5, color, 20);
+    cyl(c, 0, 0.3, 0, R.cannon.bodyRadius, R.cannon.bodyRadius, 0.5, color, 24);
+    ring(c, 0, 0.05, 0, R.cannon.bodyRadius, "#fff2c1");
+    c.userData.hearts = [-1, 0, 1].map((x) =>
+      ball(c, x * 0.32, 2.65, 0, 0.11, 0.11, 0.11, "#f39aac"),
+    );
     const gun = new T.Group();
     c.add(gun);
     const barrel = cyl(gun, 0, 1, -0.45, 0.35, 0.44, 1.6, "#725d83", 20);
@@ -133,7 +138,16 @@ export function festivalScenes(H) {
         ),
       );
       w.projectiles = Array.from({ length: 24 }, () => {
-        const p = ball(w.root, 0, 1, 0, 0.28, 0.28, 0.28, "#bb8963");
+        const p = ball(
+          w.root,
+          0,
+          1,
+          0,
+          R.cannon.shotRadius,
+          R.cannon.shotRadius,
+          R.cannon.shotRadius,
+          "#bb8963",
+        );
         p.visible = false;
         return p;
       });
@@ -348,18 +362,19 @@ export function festivalScenes(H) {
         st.release = ball(p, 0, 2, 0, 1, 1.25, 1, color);
       } else if (id === "cannon") st.cannon = cannon(p, color);
       else {
-        cyl(p, 0, 0.25, 1, 3.1, 3.35, 0.45, "#e8cba0", 32);
-        cyl(p, 0, 0.51, 1, 2.95, 2.95, 0.08, color, 32);
+        if (id !== "bomb") {
+          cyl(p, 0, 0.25, 1, 3.1, 3.35, 0.45, "#e8cba0", 32);
+          cyl(p, 0, 0.51, 1, 2.95, 2.95, 0.08, color, 32);
+        } else {
+          ring(p, 0, 0.07, 0, 1, "#fff0c6");
+          st.hearts = [-1, 0, 1].map((x) =>
+            ball(p, x * 0.3, 2.6, 0, 0.1, 0.1, 0.1, "#f39aac"),
+          );
+        }
         if (
-          [
-            "confetti",
-            "draft",
-            "fuse",
-            "bakery",
-            "rhythm",
-            "ricochet",
-            "fencing",
-          ].includes(id)
+          ["confetti", "draft", "fuse", "bakery", "rhythm", "fencing"].includes(
+            id,
+          )
         ) {
           box(p, 0, 1.1, -0.8, 5.5, 0.25, 2.2, "#d4a77b");
           for (const x of [-2, 2])
@@ -425,13 +440,54 @@ export function festivalScenes(H) {
           });
           st.note = ball(p, 0, 2, -4, 0.3, 0.3, 0.3, "#ffda8a");
         } else if (id === "ricochet") {
-          st.target = torus(p, 0, 2, -5, 0.6, 0.17, "#e995ae");
-          torus(st.target, 0, 0, 0.03, 0.27, 0.12, "#ffe59b");
-          box(p, 0, 1, -4, 8, 0.7, 0.2, "#8f9fbe");
-          st.sight = ball(p, 0, 2, -5, 0.12, 0.12, 0.12, "#fff5b5");
-          st.ball = ball(p, 0, 1.5, 0, 0.18, 0.18, 0.18, "#f7dd96");
-          st.dots = Array.from({ length: 14 }, () =>
-            ball(p, 0, 1.5, 0, 0.045, 0.045, 0.045, "#fff3bd"),
+          st.target = new T.Group();
+          p.add(st.target);
+          st.target.position.set(0, 2, -5);
+          for (const [radius, color, depth] of [
+            [0.9, "#e995ae", 0],
+            [0.52, "#fff0ce", 0.015],
+            [0.22, "#f7c653", 0.03],
+          ]) {
+            const face = cyl(
+              st.target,
+              0,
+              0,
+              depth,
+              radius,
+              radius,
+              0.04,
+              color,
+              40,
+            );
+            face.rotation.x = Math.PI / 2;
+          }
+          tube(st.target, [0, -2, 0], [0, -0.9, 0], 0.06, "#82604e");
+          box(p, 0, 0.35, -5, 8, 0.18, 1, "#bd956e");
+          st.sight = torus(p, 0, 2, -4.94, 0.1, 0.022, "#fffefa");
+          st.bow = new T.Group();
+          p.add(st.bow);
+          st.bow.position.set(0, 1.5, 1.6);
+          for (let k = 0; k < 12; k++) {
+            const a = -1.2 + (k * 2.4) / 12,
+              b = -1.2 + ((k + 1) * 2.4) / 12;
+            tube(
+              st.bow,
+              [Math.cos(a) * 0.4, Math.sin(a) * 0.6, 0],
+              [Math.cos(b) * 0.4, Math.sin(b) * 0.6, 0],
+              0.04,
+              "#a06d48",
+            );
+          }
+          tube(st.bow, [0.145, -0.56, 0], [0.145, 0.56, 0], 0.012, "#fff0cc");
+          st.arrow = new T.Group();
+          p.add(st.arrow);
+          tube(st.arrow, [0, 0, 0.35], [0, 0, -0.35], 0.023, "#d7ab6a");
+          const head = cyl(st.arrow, 0, 0, -0.45, 0, 0.09, 0.23, "#d7e7ed", 4);
+          head.rotation.x = -Math.PI / 2;
+          for (const x of [-0.07, 0.07])
+            box(st.arrow, x, 0, 0.25, 0.13, 0.025, 0.22, "#e6a7bd");
+          st.dots = Array.from({ length: 10 }, () =>
+            ball(p, 0, 1.5, 0, 0.025, 0.025, 0.025, "#fff3bd"),
           );
         } else if (id === "simon") {
           st.order = sign(p, "AYE!", 0, 3.6, -2, 0.55);
@@ -517,9 +573,9 @@ export function festivalScenes(H) {
       st.root.visible = slot < count;
       if (circular)
         st.root.position.set(
-          Math.cos((slot / count) * TAU) * 7,
+          Math.cos((slot / count) * TAU) * R.cannon.radius,
           0.4,
-          Math.sin((slot / count) * TAU) * 7,
+          Math.sin((slot / count) * TAU) * R.cannon.radius,
         );
       else if (id === "kart") st.root.position.set(0, 0, 0);
       else st.root.position.set((slot - (count - 1) / 2) * spacing, 0, 0);
@@ -616,13 +672,18 @@ export function festivalScenes(H) {
         y = 0.75;
       } else if (id === "spotlight") {
         x = p.x;
-        z = 8 - Math.min(1, (v.distance || 0) / 1200) * 15;
+        const light = R.spotlight(g || { start: 0, cue: b }, now).color;
+        const extrapolate =
+          v.running && light !== "red"
+            ? clamp(now - (v.lastTick || now), 0, 250) * 0.08
+            : 0;
+        z = 8 - Math.min(1, ((v.distance || 0) + extrapolate) / 1200) * 15;
         st.lamp.material = mat(
-          dt < -650 ? "#95e3ad" : dt < 0 ? "#f8d46f" : "#ee8795",
+          { green: "#95e3ad", amber: "#f8d46f", red: "#ee8795" }[light],
         );
-        st.beam.visible = dt >= -650;
+        st.beam.visible = light !== "green";
         st.beam.position.z = z;
-        mode = v.running && dt < 0 ? "walk" : "idle";
+        mode = v.running && light !== "red" ? "walk" : "idle";
       } else if (id === "maze") {
         const cell = v.cell || 0,
           prev = v.previousCell ?? cell;
@@ -689,19 +750,33 @@ export function festivalScenes(H) {
         }
         mode = now - v.pumpAt < 300 ? "duck" : "idle";
       } else if (id === "cannon") {
-        const aim =
-          (((now - (v.fireAt || 0) < 250 ? v.fireAt : now) - (g?.start || 0)) *
-            0.00135 +
-            (slot * TAU) / count) %
-          TAU;
+        const aim = g
+          ? R.cannonAngle(g, i, now)
+          : t * 0.75 + (slot * TAU) / count;
         st.cannon.userData.gun.rotation.y = -aim - Math.PI / 2;
-        st.cannon.userData.gun.position.z =
-          Math.sin(clamp((now - (v.fireAt || 0)) / 300) * Math.PI) * 0.2;
-        x += Math.cos((slot * TAU) / count) * 1.6;
-        z = p.z + Math.sin((slot * TAU) / count) * 1.6;
+        st.cannon.userData.gun.scale.z =
+          1 -
+          Math.sin(clamp((now - (v.fireAt || 0)) / R.cannon.recoil) * Math.PI) *
+            0.12;
+        st.cannon.userData.hearts.forEach((h, j) => {
+          h.visible = j < (v.health ?? 3);
+        });
+        x = p.x;
+        z = p.z;
+        y = 1.05;
+        const hit = now - (v.hitAt || 0) < 450;
+        st.cannon.children[0].material = mat(hit ? "#fff3b0" : palette[slot]);
       } else if (id === "bomb") {
         z = p.z;
-        mode = now - v.throwAt < 550 || shared.holder === i ? "fish" : "idle";
+        y = 0.46;
+        mode =
+          now - v.throwAt < R.bombFlight ||
+          (shared.holder === i && !shared.respawnAt)
+            ? "fish"
+            : "idle";
+        st.hearts.forEach((h, j) => {
+          h.visible = j < (v.health ?? 3);
+        });
       } else if (id === "rope") {
         z = 1;
         y += Math.sin(clamp((now - (v.jumpAt || 0)) / 900) * Math.PI) * 2;
@@ -756,29 +831,30 @@ export function festivalScenes(H) {
         );
         mode = now - v.moveAt < 450 ? "fish" : "idle";
       } else if (id === "ricochet") {
-        const elapsed = now - (g?.start || 0),
-          aim = Math.sin(elapsed / 850) * 4,
-          target =
-            Math.sin(elapsed / (b.index < 4 ? 1800 : 1250) + b.color) * 3.4;
+        const game = g || { start: 0 },
+          aim = R.arrowAim(game, now),
+          target = R.arrowTarget(game, now);
         st.target.position.x = target;
         st.sight.position.x = aim;
+        st.bow.rotation.y = -Math.atan2(aim, 6.6);
         st.dots.forEach((d, j) => {
-          const q = j / 13;
-          d.position.set(
-            q < 0.5 ? mix(0, -aim, q * 2) : mix(-aim, aim, (q - 0.5) * 2),
-            1.5 + q * 0.5,
-            q < 0.5 ? mix(0, -4, q * 2) : mix(-4, -5, (q - 0.5) * 2),
-          );
+          const q = j / 9;
+          d.position.set(aim * q, 1.5 + q * 0.5, 1.6 - q * 6.6);
         });
-        const q = clamp((now - (v.shot?.at || 0)) / 700);
-        st.ball.visible = q < 1;
-        st.ball.position.set(
-          q < 0.5
-            ? mix(0, -(v.shot?.hit || 0), q * 2)
-            : mix(-(v.shot?.hit || 0), v.shot?.hit || 0, (q - 0.5) * 2),
+        const q = clamp((now - (v.shot?.at || 0)) / R.archery.flight);
+        st.arrow.visible = !!v.shot && q < 1;
+        st.arrow.position.set(
+          (v.shot?.hit || 0) * q,
           1.5 + q * 0.5,
-          q < 0.5 ? mix(0, -4, q * 2) : mix(-4, -5, (q - 0.5) * 2),
+          1.6 - q * 6.6,
         );
+        st.arrow.rotation.y = -Math.atan2(v.shot?.hit || 0, 6.6);
+        const fresh = v.popup && now - v.popup.at < 500 && v.popup.value > 0;
+        st.target.scale.setScalar(
+          fresh ? 1 + Math.sin(((now - v.popup.at) / 500) * Math.PI) * 0.08 : 1,
+        );
+        mode = now - (v.shot?.at || 0) < 420 ? "fish" : "idle";
+        z = 2.7;
       } else if (id === "tug") {
         x = slot === 0 ? -8 : 8;
         z = 0;
@@ -829,32 +905,55 @@ export function festivalScenes(H) {
       );
       a.scale.setScalar(id === "maze" ? 0.45 : id === "kart" ? 0.55 : 0.78);
       a.rotation.y =
-        id === "kart" ? Math.PI : circular ? Math.atan2(-x, -z) : 0.2;
+        id === "kart"
+          ? Math.PI
+          : id === "cannon"
+            ? st.cannon.userData.gun.rotation.y + Math.PI
+            : circular
+              ? Math.atan2(-x, -z)
+              : id === "spotlight"
+                ? Math.PI
+                : 0.2;
       animateCharacter(a, t + slot, mode);
     });
     if (circular) {
-      const slot = ids.indexOf(shared.holder ?? ids[0]),
-        from = ids.indexOf(shared.from ?? shared.holder ?? ids[0]);
-      const at = w.stations[Math.max(0, slot)].root.position,
-        prev = w.stations[Math.max(0, from)].root.position;
-      const q = clamp((now - (shared.passedAt || 0)) / 500),
-        ease = q * q * (3 - 2 * q);
-      w.bubble.visible = id === "bomb";
-      w.bubble.position.set(
-        mix(prev.x, at.x, ease),
-        1.55 + Math.sin(q * Math.PI) * 2,
-        mix(prev.z, at.z, ease),
-      );
-      w.bubble.rotation.z =
-        q < 1 ? Math.sin(q * Math.PI) * 1.5 : Math.sin(t * 2) * 0.035;
-      w.bubble.scale.setScalar(
-        1 + (shared.fuseEnd - now < 900 ? Math.sin(t * 18) * 0.045 : 0),
-      );
+      function bombPosition(holder, flight, at) {
+        const dst = w.stations[Math.max(0, ids.indexOf(holder))].root.position;
+        const dx = dst.x * 0.89,
+          dz = dst.z * 0.89;
+        if (!flight) return new T.Vector3(dx, 1.65, dz);
+        const src =
+          w.stations[Math.max(0, ids.indexOf(flight.from))].root.position;
+        const q = clamp((at - flight.at) / R.bombFlight),
+          ease = q * q * (3 - 2 * q);
+        return new T.Vector3(
+          mix(src.x * 0.89, dx, ease),
+          1.65 + Math.sin(q * Math.PI) * 1.8,
+          mix(src.z * 0.89, dz, ease),
+        );
+      }
+      w.bubble.visible = id === "bomb" && !shared.respawnAt;
+      const pos = bombPosition(shared.holder ?? ids[0], shared.flight, now);
+      const delta = clamp(t - (w.ballTime ?? t), 0, 0.06);
+      w.ballTime = t;
+      if (w.ballRound !== g?.start || !shared.flight) {
+        w.bubble.position.copy(pos);
+        w.ballRound = g?.start;
+      } else w.bubble.position.lerp(pos, 1 - Math.exp(-35 * delta));
+      const q = shared.flight
+        ? clamp((now - shared.flight.at) / R.bombFlight)
+        : 1;
+      w.bubble.rotation.z = Math.sin(q * Math.PI) * 1.2;
+      w.bubble.scale.setScalar(1);
       w.bombBody.material = mat(
         shared.fuseEnd - now < 900 ? "#78485c" : "#394058",
       );
       const fuse = shared.fuseEnd
-        ? clamp((shared.fuseEnd - now) / 3200, 0.05, 1)
+        ? clamp(
+            (shared.fuseEnd - now) / (shared.fuseEnd - shared.fuseStarted),
+            0.05,
+            1,
+          )
         : 1;
       w.fuse.scale.setScalar(fuse);
       w.fuse.position.set(0.07 * fuse, 0.4 + 0.18 * fuse, 0);
@@ -864,23 +963,38 @@ export function festivalScenes(H) {
       w.spark.visible = s?.phase === "playing";
       w.projectiles.forEach((p, j) => {
         const shot = shared.shots?.[j];
-        p.visible = !!shot && (!shot.done || now < shot.done);
+        p.visible =
+          id === "cannon" &&
+          !!shot &&
+          now >= shot.at &&
+          now < Math.min(shot.done || Infinity, shot.at + R.cannon.life);
         if (shot)
           p.position.set(
             shot.x + shot.dx * (now - shot.at),
-            1.45,
+            1.4,
             shot.z + shot.dz * (now - shot.at),
           );
       });
-      const burst =
-        id === "bomb"
-          ? { at: shared.poppedAt || 0, x: at.x, z: at.z }
-          : shared.burst;
-      w.burst.visible = !!burst && now - burst.at < 800;
+      const burst = id === "bomb" ? shared.popped : shared.impacts?.at(-1);
+      const age = burst ? (now - burst.at) / 1000 : 10;
+      w.burst.visible = age >= 0 && age < 0.85;
       if (burst) {
-        w.burst.position.set(burst.x, 1.8, burst.z);
-        w.burst.scale.setScalar(0.5 + clamp((now - burst.at) / 800) * 3);
-        w.burst.rotation.y = t * 3;
+        const origin =
+          id === "bomb"
+            ? bombPosition(burst.holder, burst.flight, burst.at)
+            : new T.Vector3(burst.x, 1.4, burst.z);
+        w.burst.position.copy(origin);
+        w.burst.rotation.set(0, 0, 0);
+        w.burst.scale.setScalar(1);
+        w.burst.children.forEach((p, j) => {
+          const angle = j * 2.399;
+          p.position.set(
+            Math.cos(angle) * age * 2.8,
+            Math.sin(j * 1.7) * age + age * 2 - age * age * 4,
+            Math.sin(angle) * age * 2.8,
+          );
+          p.scale.setScalar(Math.max(0, 1 - age / 0.85));
+        });
       }
     }
     if (id === "rope") {

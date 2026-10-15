@@ -66,7 +66,7 @@
       color: "#82d9ef",
       description: "Watch the ripples. Strike at the splash.",
       rules:
-        "Watch your own colored ripples. Reel as the gold ring appears; a quicker strike hooks a bigger fish. Early pulls scare it away, but another bite will come. Each player keeps one fish. When everyone finishes, the measuring boards reveal whose fish is longest.",
+        "Watch the ripples by your bobber. Reel when they splash; a quicker strike hooks a bigger fish. Early pulls scare it away, but another bite will come. Each player keeps one fish. When everyone finishes, the measuring boards reveal whose fish is longest.",
       unit: "cm",
     },
     {
@@ -97,9 +97,9 @@
       name: "Lantern Landing",
       tag: "REACTION + SURVIVAL",
       color: "#b9a7ff",
-      description: "Read the lantern. Find a safe floating platform.",
+      description: "Read the lantern. Find the safe harbor platform.",
       rules:
-        "Choose the platform matching the lantern before the bell. Wrong platforms sink! Keep moving through eight changing patterns; one wrong landing ends your run.",
+        "Jump to the color shown by the hanging lantern before the bell. After each bell the other platforms sink and return. From round four the platform colors shuffle; later bells come faster. Numbers label positions, so watch the actual colors. One wrong landing ends your run.",
       unit: "points",
     },
     {
@@ -189,20 +189,21 @@
     {
       id: "shield",
       name: "Rain shield",
-      cost: 4,
-      description: "One use: block the next coin-loss space.",
+      cost: 2,
+      description:
+        "One use: protect up to 3 coins at the next rain cloud. Costs 2 coins.",
     },
     {
       id: "double",
       name: "Double dice",
       cost: 7,
-      description: "One use: roll two dice this turn.",
+      description: "One use: roll two dice when used before a roll.",
     },
     {
       id: "triple",
       name: "Triple dice",
       cost: 12,
-      description: "One use: roll three dice this turn.",
+      description: "One use: roll three dice when used before a roll.",
     },
     {
       id: "custom",
@@ -313,6 +314,9 @@
             : "Lighthouse quay",
     };
   });
+  spaces[21].type = "ferry";
+  spaces[25].type = "junction";
+  spaces[27].type = "coins";
   const branches = [
     {
       from: 5,
@@ -322,15 +326,21 @@
       height: 0,
     },
     {
-      from: 27,
-      to: 33,
-      name: "Tide gardens",
+      from: 25,
+      to: 31,
+      name: "Harbor loop",
+      points: [
+        [22, 8.8],
+        [22, 21],
+        [5, 21],
+        [-2, 19],
+      ],
       types: ["coins", "gift", "lucky", "loss"],
       height: 0,
     },
     {
       from: 17,
-      to: 0,
+      to: 1,
       name: "Festival Crossing",
       types: [
         "coins",
@@ -357,8 +367,8 @@
       spaces.push({
         id: spaces.length,
         type,
-        x: (a.x + (b.x - a.x) * t) * inset,
-        z: (a.z + (b.z - a.z) * t) * inset,
+        x: branch.points?.[i]?.[0] ?? (a.x + (b.x - a.x) * t) * inset,
+        z: branch.points?.[i]?.[1] ?? (a.z + (b.z - a.z) * t) * inset,
         y: 0.65 + Math.sin(t * Math.PI) * branch.height,
         next: [i === branch.types.length - 1 ? branch.to : first + i + 1],
         district: branch.name,
@@ -409,7 +419,43 @@
     if (candidates[0])
       scenery.push({ kind, radius, x: candidates[0].x, z: candidates[0].z });
   }
+  const ferry = { from: 21, to: 5, cost: 4, duration: 3200 };
+  const trophyPedestals = Object.fromEntries(
+    spaces
+      .filter((n) => n.type === "trophy")
+      .map((n) => {
+        const candidates = [];
+        for (const radius of [2.6, 3, 3.5, 4])
+          for (let k = 0; k < 24; k++) {
+            const a = (k * Math.PI) / 12,
+              x = n.x + Math.cos(a) * radius,
+              z = n.z + Math.sin(a) * radius;
+            if (
+              pathDistance(x, z) > 1.55 &&
+              scenery.every((p) => Math.hypot(p.x - x, p.z - z) > p.radius + 1)
+            )
+              candidates.push({
+                x,
+                z,
+                y: n.y,
+                d: radius - Math.hypot(x, z) * 0.01,
+              });
+          }
+        candidates.sort((a, b) => a.d - b.d);
+        return [
+          n.id,
+          candidates[0] || { x: n.x * 1.18, z: n.z * 1.18, y: n.y },
+        ];
+      }),
+  );
   const spaceInfo = {
+    ferry: {
+      name: "Festival ferry",
+      icon: "⚓",
+      color: "#61c7ce",
+      description:
+        "Land here to choose a 4-coin ferry ride to the opposite shore. The ride ends your turn; your next roll starts there.",
+    },
     chance: {
       name: "Chance parade",
       icon: "↔",
@@ -570,8 +616,7 @@
   function routePreviews(state) {
     if (state.phase !== "choice" || !state.movement) return [];
     const origin = state.players[state.turn].position;
-    const exits = (id) =>
-      id === 27 && !state.tide ? [spaces[id].next[0]] : spaces[id].next;
+    const exits = (id) => spaces[id].next;
     return exits(origin).map((next, option) => {
       const paths = [];
       function walk(id, left, path) {
@@ -598,6 +643,8 @@
     skins,
     items,
     shops,
+    ferry,
+    trophyPedestals,
     routePreviews,
     spaces,
     spaceInfo,
@@ -606,7 +653,6 @@
     outerCount: types.length,
     trophyStops: spaces.filter((n) => n.type === "trophy").map((n) => n.id),
     branches,
-    tideJunction: 27,
     scenery,
     pathDistance,
     turnOptions: [10, 20, 30],
@@ -624,6 +670,6 @@
         ]),
       );
     },
-    version: "BOARDWALK_CARNIVAL_V6",
+    version: "BOARDWALK_CARNIVAL_V7",
   };
 });

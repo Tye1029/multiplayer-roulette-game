@@ -126,6 +126,7 @@ test("items enforce turn ownership, one use, coin costs and shop-only purchases"
       M.act(s, "0", { action: "buy-item", round: 1, item: "shield" }, 12000),
     /cart/,
   );
+  s.players[0].items = ["boost"]; // Explicit owned-item fixture; new matches start empty.
   M.act(s, "0", { action: "item", round: 1, item: "boost" }, 12000);
   assert.throws(
     () => M.act(s, "0", { action: "item", round: 1, item: "boost" }, 12200),
@@ -174,7 +175,7 @@ test("all space effects preserve nonnegative coins; gifts and shields have real 
   const loss = landing("loss");
   assert.equal(loss.players[0].tokens, 7);
   const gift = landing("gift");
-  assert.equal(gift.players[0].items.length, 2);
+  assert.equal(gift.players[0].items.length, 1);
   const lucky = landing("lucky");
   assert.ok(lucky.players[0].tokens >= 15 && lucky.players[0].tokens <= 19);
   const shield = fixture();
@@ -434,7 +435,7 @@ test("passing carts pause exactly once, buy exactly once, and resume the remaini
   assert.equal(s.turn, 0);
 });
 
-test("three connected junctions obey the tide gate and reject arbitrary teleports", () => {
+test("three connected junctions remain reachable with an always-open harbor route", () => {
   assert.equal(C.spaces.length, 50);
   assert.equal(C.spaces.filter((n) => n.next.length > 1).length, 3);
   const reachable = new Set([0]),
@@ -447,16 +448,11 @@ test("three connected junctions obey the tide gate and reject arbitrary teleport
       }
   assert.equal(reachable.size, 50);
   const s = fixture();
-  s.players[0].position = C.tideJunction;
+  s.players[0].position = 25;
   s.tide = 0;
-  assert.deepEqual(M.view(s, "0", 12000).routes[C.tideJunction], [
-    C.tideJunction + 1,
-  ]);
+  assert.deepEqual(M.view(s, "0", 12000).routes[25], C.spaces[25].next);
   s.tide = 1;
-  assert.deepEqual(
-    M.view(s, "0", 12000).routes[C.tideJunction],
-    C.spaces[C.tideJunction].next,
-  );
+  assert.deepEqual(M.view(s, "0", 12000).routes[25], C.spaces[25].next);
 });
 
 test("single-use triple dice, chosen dice and swaps enforce ownership and valid targets", () => {
@@ -1026,7 +1022,7 @@ test("board routes trade one step for risk and soundtrack has four full arrangem
   for (const b of C.branches) {
     assert.equal(
       (b.to - b.from + C.outerCount) % C.outerCount,
-      b.central ? 17 : 6,
+      b.central ? 18 : 6,
     );
     let n = C.spaces[b.from].next[1],
       count = 0,

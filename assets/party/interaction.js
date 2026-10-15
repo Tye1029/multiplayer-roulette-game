@@ -27,7 +27,7 @@
       ],
       lantern: [0, 1, 2, 3].map((v) => [
         v,
-        ["Blue", "Pink", "Mint", "Gold"][v],
+        ["Top left", "Top right", "Bottom left", "Bottom right"][v],
       ]),
       signal: [0, 1, 2, 3].map((v) => [v, ["Blue", "Pink", "Mint", "Gold"][v]]),
       treasure: [
@@ -124,13 +124,17 @@
       p.fields.fromLane =
         previous?.pending && previous.start === g.start
           ? (previous.fields.chosen ?? v.chosen ?? 1)
-          : (v.chosen ?? 1);
+          : (v.chosen ?? (g.id === "lantern" ? i : 1));
       p.fields.chosen = value;
     }
     if (g.id === "bomb") p.fields.throwAt = at;
     if (g.id === "fish") p.fields.reelAt = at;
     if (g.id === "putt") p.fields.swingAt = at;
-    if (g.id === "cannon") p.fields.fireAt = at;
+    if (g.id === "cannon") {
+      p.fields.aimPaused = (v.aimPaused || 0) + (v.fireAt ? 260 : 0);
+      p.fields.fireAt = at;
+    }
+    if (g.id === "spotlight") p.fields.running = value === "run";
     if (g.id === "boats")
       p.fields[value === "brace" ? "braceAt" : "strokeAt"] = at;
     if (g.id === "balloon") p.fields.pumpAt = at;
