@@ -1,6 +1,6 @@
-# Boardwalk — Coral Carnival V3
+# Boardwalk — Coral Carnival V4
 
-Preview: `/party.html?v=BOARDWALK_CARNIVAL_V3`.
+Preview: `/party.html?v=BOARDWALK_CARNIVAL_V4`.
 
 This is a separate social party game. The original site remains at `/`, and
 Boardwalk uses its own assets, API and `party_*` database tables. Match coins
@@ -23,7 +23,7 @@ this game update.
 
 ## Board and decisions
 
-- Eight rounds for two to four players; 66 spaces, three crossroads and a
+- Choose 10, 20 or 30 turns per player; 50 spaces, three crossroads and a
   tide-controlled shortcut. Direction arrows mark paths and their splits.
 - Centered animated server-owned dice, a closer following camera, an overview
   toggle, on-scene roll button, persistent coin HUD and illustrated profile cards.
@@ -35,8 +35,81 @@ this game update.
   Dice 10, Switcheroo 8, and Trophy Compass 18 match coins. Inventory holds three.
   Trophy travel does not waive the separate ten-coin trophy price.
 - Choose any rival and an affordable integer coin stake up to 50 each. During
-  rounds six through eight, both players can instead stake one trophy each.
+  the last three turns, both players can instead stake one trophy each.
   The server escrows both stakes; the winner gets the pool and draws refund it.
+
+## V4 board, selection and music
+
+The 38-space promenade has three four-space branches. Each branch travels five
+edges instead of six, saves exactly one step and contains one rain-cloud loss.
+Trophy location, shops and gifts make routes situational; a shortcut is not an
+entire district skip. The starting seat is random, then the first seat rotates
+once per full turn. Every player gets the chosen number of board turns.
+
+| Space type                      | Count |
+| ------------------------------- | ----: |
+| Payday +3                       |    15 |
+| Rain cloud -3 (floored at zero) |     9 |
+| Mystery parcel                  |     4 |
+| Item cart                       |     5 |
+| Trophy stop                     |     4 |
+| Lucky stop                      |     3 |
+| Rival showdown                  |     3 |
+| Crossroads                      |     3 |
+| Chance parade                   |     2 |
+| Festival event                  |     1 |
+| Start                           |     1 |
+
+The coin/loss spaces alone average +0.36 coins per uniformly sampled space,
+before gifts, lucky spaces, passing start, purchases and minigames. Actual route
+landings are not uniform; the simulation below exercises the real travel rules.
+Chance exchanges occupy 4% of spaces and conserve currency and trophies. Shops
+remain passing stops, not extra turns. Match coins reset and cannot be converted
+to profile coins or real-world value. Long matches intentionally leave room to
+buy items; these tests do not prove that every player strategy is equally strong.
+
+Boo is visibly a child in a patched sheet with cut eye holes and sneakers.
+Bones wears a suit and top hat; Sir Rowan is a human knight; Pippa is a princess.
+All eight characters have identical rules. Each human must explicitly choose in
+every lobby, including rematches. Atomic room locking rejects duplicate claims;
+bots select an unclaimed character. Changing a pick clears that player's ready
+state. Profile portraits do not reserve a match character.
+
+Space colors, silhouettes and painted pictograms distinguish outcomes. Clicking
+or tapping a tile adds a two-color ring, SELECTED sign and description card; the
+card docks opposite the selected part of the board. Larger signs mark Poppy's
+usable carts and the active trophy. Path clearance keeps plants off walking
+routes. Whole-board view fits both phone and desktop widths. Profile cards show
+current tied ranks, and the turn counter shows the number remaining.
+
+Four original sixteen-bar compositions replace the short repeating tune. Chord
+progressions, answering phrases, sparse bridge bars, bass, bells and instrumentation
+vary; shuffled theme selection avoids immediate repeats. Each theme lasts about
+36 seconds at 106 BPM. Sound remains optional, quiet and local to Boardwalk.
+
+### Economy/seat simulation
+
+Run: node scripts/party-balance.mjs (500 matches per configuration, 3,000 total).
+Bots have equal skill, random legal routes, shop purchases and item usage. Every
+match completed, every player received exactly 10/20/30 moves, and inventories,
+positions, integer coins and trophies stayed valid. No balances became negative.
+These are observed samples, not guaranteed future win rates.
+
+| Turns | Players | Seat win percentages      | Mean ending match coins |
+| ----- | ------- | ------------------------- | ----------------------: |
+| 10    | 2       | 51.8 / 48.2               |                   109.6 |
+| 10    | 4       | 28.4 / 22 / 27.2 / 22.4   |                    97.2 |
+| 20    | 2       | 51.2 / 48.8               |                   202.7 |
+| 20    | 4       | 26.8 / 25 / 24.4 / 23.8   |                   177.3 |
+| 30    | 2       | 51.8 / 48.2               |                   297.3 |
+| 30    | 4       | 24.8 / 23.4 / 24.6 / 27.2 |                     256 |
+
+A separate browser suite creates all three lengths, selects all four new
+characters, checks bot exclusivity, standings, tap/click descriptions, narrow
+layouts and the live Web Audio graph. Model/API coverage includes concurrent
+claims, invalid lengths, rematch picks and ties. The older expiry fixture now
+waits for the exact updated deadline response before holding polls; otherwise an
+in-flight stale poll could produce a false timer failure on a slow CI runner.
 
 ## Ten minigames
 
@@ -98,7 +171,7 @@ and refunds, all ten games, hidden future cues, stale/duplicate inputs, guest
 authentication, private rooms and atomic reward settlement. Thirty simulated
 two/four-player festivals check completion, balances and inventory bounds.
 
-Browser tests play an eight-round four-player festival, all ten game controls,
+Browser tests play a ten-turn four-player festival, all ten game controls,
 Quick Duel, reconnect, rematch and delayed requests across desktop, phone and
 landscape sizes. Isolated test fixtures shorten waiting and extend input windows
 for software-rendered browsers; scores are produced by the real action handler.
@@ -112,7 +185,7 @@ through normal UI actions without test-only state changes.
 
 Phone emulation is not a physical-device GPU benchmark. The browser-specific
 guest account system remains. The server owns scores, timing, moves and rewards;
-this does not make a browser skill game immune to input automation. V2 rooms
+this does not make a browser skill game immune to input automation. V3 rooms
 expire on this ruleset; existing profiles and earned cosmetic balances persist.
 
 ## Design references

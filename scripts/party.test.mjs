@@ -16,8 +16,17 @@ const person = (id) => ({
 function fixture(mode = "party", count = 2) {
   const s = M.create("ABC234", person("0"), mode, 10000);
   for (let i = 1; i < count; i++) M.join(s, person(String(i)));
+  s.players.forEach((p, i) =>
+    M.act(
+      s,
+      p.id,
+      { action: "pick-character", character: C.characters[i].id },
+      10500,
+    ),
+  );
   s.ready = s.players.map((p) => p.id);
   M.act(s, "0", { action: "start" }, 11000);
+  s.startingSeat = s.turn = 0;
   return s;
 }
 function gameFixture(id) {
@@ -118,7 +127,7 @@ test("items enforce turn ownership, one use, coin costs and shop-only purchases"
 });
 test("branch choices use real connected edges and preserve remaining dice steps", () => {
   const s = fixture();
-  s.players[0].position = 8;
+  s.players[0].position = 6;
   s.phase = "rolling";
   s.dice = { values: [3], total: 3 };
   s.movement = { remaining: 3 };
@@ -130,14 +139,14 @@ test("branch choices use real connected edges and preserve remaining dice steps"
     () => M.act(s, "0", { action: "choose", round: 1, next: 31 }, 12100),
     /highlighted/,
   );
-  M.act(s, "0", { action: "choose", round: 1, next: 48 }, 12200);
-  assert.deepEqual(s.lastMove.path, [8, 48, 49]);
+  M.act(s, "0", { action: "choose", round: 1, next: 38 }, 12200);
+  assert.deepEqual(s.lastMove.path, [6, 38, 39]);
   assert.equal(s.movement.remaining, 1);
-  assert.equal(s.players[0].position, 49);
+  assert.equal(s.players[0].position, 39);
   M.advance(s, s.deadline);
   assert.equal(s.event.kind, "shop");
   M.act(s, "0", { action: "continue", round: 1 }, s.deadline - 1000);
-  assert.deepEqual(s.lastMove.path, [49, 50]);
+  assert.deepEqual(s.lastMove.path, [39, 40]);
   assert.equal(s.movement.remaining, 0);
 });
 test("all space effects preserve nonnegative coins; gifts and shields have real effects", () => {
@@ -395,13 +404,13 @@ test("passing carts pause exactly once, buy exactly once, and resume the remaini
     /one item/,
   );
   M.act(s, "0", { action: "continue", round: 1 }, 14400);
-  assert.deepEqual(s.lastMove.path, [4, 5, 6, 7]);
-  assert.equal(s.movement.remaining, 0);
+  assert.deepEqual(s.lastMove.path, [4, 5, 6]);
+  assert.equal(s.movement.remaining, 1);
   assert.equal(s.turn, 0);
 });
 
 test("three connected junctions obey the tide gate and reject arbitrary teleports", () => {
-  assert.equal(C.spaces.length, 66);
+  assert.equal(C.spaces.length, 50);
   assert.equal(C.spaces.filter((n) => n.next.length > 1).length, 3);
   const reachable = new Set([0]),
     queue = [0];
@@ -411,13 +420,13 @@ test("three connected junctions obey the tide gate and reject arbitrary teleport
         reachable.add(id);
         queue.push(id);
       }
-  assert.equal(reachable.size, 66);
+  assert.equal(reachable.size, 50);
   const s = fixture();
-  s.players[0].position = 40;
+  s.players[0].position = C.tideJunction;
   s.tide = 0;
-  assert.deepEqual(M.view(s, "0", 12000).routes[40], [41]);
+  assert.deepEqual(M.view(s, "0", 12000).routes[C.tideJunction], [31]);
   s.tide = 1;
-  assert.deepEqual(M.view(s, "0", 12000).routes[40], [41, 60]);
+  assert.deepEqual(M.view(s, "0", 12000).routes[C.tideJunction], [31, 46]);
 });
 
 test("single-use triple dice, chosen dice and swaps enforce ownership and valid targets", () => {
@@ -552,14 +561,14 @@ test("coin and final-three-turn trophy duels escrow stakes and refund a tie once
     [10, 10],
   );
   const trophy = landing("duel");
-  trophy.round = 6;
+  trophy.round = trophy.rounds - 2;
   trophy.players.forEach((p) => (p.trophies = 1));
   M.act(
     trophy,
     "0",
     {
       action: "challenge",
-      round: 6,
+      round: trophy.round,
       opponent: "1",
       stake: 1,
       currency: "trophy",
@@ -620,11 +629,11 @@ test("all six new games validate inputs, server scores, hidden future cues and c
     }
   }
 });
-test("full four-player eight-round festival completes with varied minigames", () => {
+test("full four-player ten-turn festival completes with varied minigames", () => {
   const s = fixture("party", 4);
   let at = 12000,
     guard = 0;
-  while (s.phase !== "complete" && guard++ < 300) {
+  while (s.phase !== "complete" && guard++ < 600) {
     if (s.phase === "board")
       M.act(
         s,
@@ -688,7 +697,7 @@ test("full four-player eight-round festival completes with varied minigames", ()
     }
   }
   assert.equal(s.phase, "complete");
-  assert.equal(s.history.filter((h) => !h.tiebreak).length, 8);
+  assert.equal(s.history.filter((h) => !h.tiebreak).length, 10);
   assert.ok(
     new Set(s.history.filter((h) => !h.tiebreak).map((h) => h.game)).size >= 5,
   );
@@ -757,11 +766,38 @@ test("guest auth, room privacy, idempotent movement and atomic cosmetics in real
     );
     assert.equal((await call(2, "get", { room })).status, 403);
     await call(1, "join", { room });
+    // Both contenders race to claim one character under the real row lock.
+    const picks = await Promise.all(
+      [0, 1].map((i) =>
+        call(i, "pick-character", {
+          room,
+          character: "ghost",
+          requestId: uuid(),
+        }),
+      ),
+    );
+    assert.deepEqual(picks.map((p) => p.status).sort(), [200, 409]);
+    const loser = picks[0].status === 409 ? 0 : 1;
+    assert.equal(
+      (
+        await call(loser, "pick-character", {
+          room,
+          character: "knight",
+          requestId: uuid(),
+        })
+      ).status,
+      200,
+    );
     await call(0, "ready", { room, requestId: uuid() });
     await call(1, "ready", { room, requestId: uuid() });
     assert.equal(
       (await call(0, "start", { room, requestId: uuid() })).status,
       200,
+    );
+    // Fix the seat only for the movement/replay fixture below; creation randomizes it.
+    await server.pg.query(
+      "UPDATE party_rooms SET state=jsonb_set(jsonb_set(state,'{turn}','0'),'{startingSeat}','0') WHERE id=$1",
+      [room],
     );
     const requestId = uuid(),
       a = await call(0, "move", { room, round: 1, route: "scenic", requestId }),
@@ -862,7 +898,7 @@ test("thirty simulated festivals finish without stuck turns or negative balances
       "complete",
       "simulation " + run + " stopped in " + s.phase,
     );
-    assert.equal(s.history.filter((h) => !h.tiebreak).length, 8);
+    assert.equal(s.history.filter((h) => !h.tiebreak).length, 10);
     assert.ok(s.players.every((p) => p.items.length <= 3));
   }
   assert.equal(seen.size, C.games.length);
@@ -884,4 +920,85 @@ test("a depleted showdown pool preserves the unplayed coin games", () => {
   s.deadline = 12200;
   M.advance(s, 12200);
   assert.ok(C.games.find((g) => g.id === s.game.id).coinGame);
+});
+
+test("V4 lengths, exclusive picks, rematch selection and standings are authoritative", () => {
+  for (const turns of C.turnOptions)
+    assert.equal(
+      M.create("ABC234", person("0"), "party", 10000, turns).rounds,
+      turns,
+    );
+  for (const bad of [0, 8, 11, 31, "20", null, Infinity])
+    assert.throws(
+      () => M.create("ABC234", person("0"), "party", 10000, bad),
+      /10, 20, or 30/,
+    );
+  const s = M.create("ABC234", person("0"), "party", 10000, 30);
+  M.join(s, person("1"));
+  assert.throws(
+    () => M.act(s, "0", { action: "ready" }, 11000),
+    /Pick your character/,
+  );
+  M.act(s, "0", { action: "pick-character", character: "ghost" }, 11000);
+  assert.throws(
+    () =>
+      M.act(s, "1", { action: "pick-character", character: "ghost" }, 11000),
+    /already been picked/,
+  );
+  M.act(s, "1", { action: "pick-character", character: "skeleton" }, 11000);
+  for (const p of s.players) M.act(s, p.id, { action: "ready" }, 11000);
+  M.act(s, "0", { action: "start" }, 11000);
+  assert.throws(
+    () =>
+      M.act(s, "0", { action: "pick-character", character: "knight" }, 12000),
+    /before the match/,
+  );
+  s.phase = "complete";
+  s.ready = [];
+  M.act(s, "0", { action: "rematch" }, 12000);
+  M.act(s, "1", { action: "rematch" }, 12000);
+  assert.equal(s.phase, "waiting");
+  assert.equal(s.rounds, 30);
+  assert.ok(s.players.every((p) => !p.characterPicked));
+  assert.deepEqual(
+    C.standings([
+      { id: "a", trophies: 2, total: 4 },
+      { id: "b", trophies: 2, total: 4 },
+      { id: "c", trophies: 1, total: 999 },
+    ]),
+    { a: 1, b: 1, c: 3 },
+  );
+});
+test("board routes trade one step for risk and soundtrack has four full arrangements", () => {
+  for (const b of C.branches) {
+    assert.equal(b.to - b.from, 6);
+    let n = C.spaces[b.from].next[1],
+      count = 0,
+      loss = 0;
+    while (n !== b.to) {
+      loss += C.spaces[n].type === "loss";
+      n = C.spaces[n].next[0];
+      count++;
+      assert.ok(count < 10);
+    }
+    assert.equal(count, 4);
+    assert.equal(loss, 1);
+  }
+  assert.equal(C.spaces.filter((n) => n.type === "chance").length, 2);
+  assert.equal(C.characters.length, 8);
+  assert.equal(new Set(C.characters.map((c) => c.id)).size, 8);
+  const score = require("../assets/party/soundtrack");
+  const signatures = score.themes.map((_, i) =>
+    JSON.stringify(
+      Array.from({ length: score.stepsPerTheme }, (_, j) => score.notes(i, j)),
+    ),
+  );
+  assert.equal(new Set(signatures).size, 4);
+  for (let i = 0; i < 4; i++)
+    for (let j = 0; j < 128; j++)
+      for (const [note, len, volume] of score.notes(i, j)) {
+        assert.ok(note >= 24 && note <= 96);
+        assert.ok(len > 0 && len <= 1);
+        assert.ok(volume > 0 && volume <= 0.3);
+      }
 });

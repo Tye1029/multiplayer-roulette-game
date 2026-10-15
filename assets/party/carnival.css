@@ -588,3 +588,157 @@ body[data-phase="playing"] .game-tip {
 #scene-controls .lane-controls button:active {
   transform: translateY(3px);
 }
+
+/* Carnival V4: lobby selection, board inspection and persistent standings. */
+.turn-options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 22px;
+}
+.turn-options button {
+  padding: 20px 8px;
+}
+.turn-options strong {
+  font-size: 21px;
+}
+.turn-options small {
+  display: block;
+  margin-top: 8px;
+}
+.lobby-characters {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  margin: 12px 0 20px;
+}
+.lobby-characters .character-choice {
+  padding: 5px 2px;
+  min-width: 0;
+}
+.lobby-characters canvas {
+  width: 100%;
+  height: auto;
+  max-height: 85px;
+  object-fit: contain;
+}
+.lobby-characters strong {
+  font-size: 12px;
+}
+.lobby-characters small {
+  font-size: 10px;
+  display: block;
+  overflow-wrap: anywhere;
+}
+.character-choice[aria-pressed="true"] {
+  border-color: #177e76;
+  box-shadow: 0 0 0 2px #177e76;
+  background: #dff4df;
+}
+.lobby-characters button:disabled {
+  opacity: 0.5;
+  filter: grayscale(0.65);
+}
+.round-progress {
+  flex-wrap: wrap;
+  gap: 3px;
+}
+.turns-left {
+  flex: 0 0 100%;
+  font-size: 13px;
+  color: #37435f;
+  margin: 0 0 6px;
+}
+.round-progress i {
+  min-width: 3px;
+}
+.score-chip .standing {
+  display: block;
+  font-size: 12px;
+  font-weight: 850;
+  color: #68502a;
+}
+.score-chip {
+  min-width: 0;
+}
+.score-chip > div {
+  min-width: 0;
+}
+.score-chip strong {
+  overflow-wrap: anywhere;
+}
+.space-inspector {
+  position: absolute;
+  left: 16px;
+  top: 68px;
+  width: min(290px, calc(100% - 32px));
+  padding: 14px 38px 12px 14px;
+  background: #fff8e9f5;
+  box-shadow: 0 8px 28px #28384b30;
+  border: 3px solid var(--space);
+  border-radius: 18px;
+  z-index: 8;
+  color: #293d52;
+  pointer-events: auto;
+}
+.space-inspector[hidden] {
+  display: none;
+}
+.space-inspector[data-dock="bottom"] {
+  top: auto;
+  bottom: 88px;
+}
+.space-inspector strong {
+  font-size: 16px;
+  display: block;
+}
+.space-inspector strong span {
+  display: inline-grid;
+  place-items: center;
+  background: var(--space);
+  border-radius: 8px;
+  min-width: 28px;
+  min-height: 28px;
+}
+.space-inspector small {
+  display: block;
+  margin: 5px 0;
+  color: #506079;
+}
+.space-inspector p {
+  font-size: 13px;
+  line-height: 1.4;
+  margin: 6px 0 0;
+}
+.space-inspector > button {
+  position: absolute;
+  right: 4px;
+  top: 4px;
+  width: 32px;
+  min-height: 32px;
+  padding: 0;
+  font-size: 24px;
+  background: transparent;
+  color: #34455c;
+}
+.match-scene canvas {
+  touch-action: manipulation;
+}
+@media (max-width: 600px) {
+  .crew-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .score-chip .standing {
+    font-size: 10px;
+  }
+  .space-inspector {
+    top: 59px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+  .turn-options {
+    gap: 6px;
+  }
+  .turn-options strong {
+    font-size: 17px;
+  }
+}

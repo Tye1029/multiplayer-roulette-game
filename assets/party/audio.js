@@ -9,18 +9,26 @@
     musicOn = true,
     next = 0,
     step = 0;
-  const scale = [0, 2, 4, 7, 9, 12, 14, 16],
-    melody = [
-      0, 2, 4, 2, 1, 3, 5, 3, 2, 4, 6, 4, 3, 2, 1, 4, 0, 2, 4, 7, 6, 4, 3, 1, 2,
-      3, 5, 4, 2, 1, 0, 1,
-    ];
+  const score = globalThis.PartySoundtrack;
+  let theme = 0,
+    bag = [];
+  function nextTheme() {
+    if (!bag.length) {
+      bag = [0, 1, 2, 3].filter((n) => n !== theme);
+      for (let i = bag.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [bag[i], bag[j]] = [bag[j], bag[i]];
+      }
+    }
+    theme = bag.pop();
+  }
   function init() {
     if (ctx) return;
     ctx = new AudioContext();
     fx = ctx.createGain();
     music = ctx.createGain();
     fx.gain.value = 0.22;
-    music.gain.value = 0.075;
+    music.gain.value = 0.065;
     fx.connect(ctx.destination);
     music.connect(ctx.destination);
   }
@@ -53,7 +61,16 @@
   }
   function voice(word = "yup", character = "raccoon") {
     if (!ctx || !enabled) return;
-    const pitches = { raccoon: 310, fox: 380, frog: 225, robot: 260 },
+    const pitches = {
+        raccoon: 310,
+        fox: 380,
+        frog: 225,
+        robot: 260,
+        ghost: 410,
+        skeleton: 205,
+        knight: 290,
+        princess: 365,
+      },
       base = pitches[character] || 310;
     const syllables =
       word === "haha"
@@ -134,19 +151,12 @@
   }
   function schedule() {
     if (!ctx || !unlocked || !enabled || !musicOn || document.hidden) return;
-    const beat = 60 / 106 / 2;
+    const beat = 60 / score.bpm / 2;
+    if (next < ctx.currentTime) next = ctx.currentTime + 0.08;
     while (next < ctx.currentTime + 0.5) {
-      const bar = Math.floor(step / 8) % 4,
-        root = [48, 53, 55, 48][bar],
-        m = melody[step % melody.length],
-        freq = (n) => 440 * 2 ** ((n - 69) / 12);
-      note(freq(root + 12 + scale[m]), next, 0.3, 0.24, music, "sine");
-      if (step % 4 === 0)
-        note(freq(root - 12), next, 0.48, 0.32, music, "triangle");
-      if (step % 2 === 0) {
-        note(freq(root + 7), next, 0.18, 0.065, music, "triangle");
-        note(freq(root + 4), next, 0.18, 0.065, music, "triangle");
-      }
+      if (step % score.stepsPerTheme === 0) nextTheme();
+      for (const [midi, len, volume, type] of score.notes(theme, step))
+        note(440 * 2 ** ((midi - 69) / 12), next, len, volume, music, type);
       step++;
       next += beat;
     }
@@ -157,7 +167,7 @@
     if (ctx) {
       fx.gain.setTargetAtTime(on ? 0.22 : 0, ctx.currentTime, 0.04);
       music.gain.setTargetAtTime(
-        on && background ? 0.075 : 0,
+        on && background ? 0.065 : 0,
         ctx.currentTime,
         0.2,
       );

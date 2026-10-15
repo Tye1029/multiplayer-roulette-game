@@ -40,7 +40,7 @@ async function page(width) {
 }
 async function fit(p, name) {
   await p.screenshot({
-    path: path.join(out, "v3-" + name + ".png"),
+    path: path.join(out, "v4-" + name + ".png"),
     fullPage: true,
   });
   assert.equal(
@@ -72,7 +72,10 @@ async function signup(p, name, mode = "party") {
     .click();
   await p.locator("#nickname").fill(name);
   await p.getByRole("button", { name: "Let’s play", exact: false }).click();
+  if (mode === "party") await p.locator('[data-turns="10"]').click();
   await wait(p, "#share-code");
+  assert.equal(await p.locator("[data-action=ready]").isDisabled(), true);
+  await action(p, "[data-pick-character=ghost]", "pick-character");
   return new URL(p.url()).searchParams.get("room");
 }
 async function join(p, code, name, char) {
@@ -83,6 +86,11 @@ async function join(p, code, name, char) {
   await p.locator("[data-character-choice=" + char + "]").click();
   await p.getByRole("button", { name: "Let’s play", exact: false }).click();
   await wait(p, "#share-code");
+  assert.equal(
+    await p.locator("[data-pick-character=ghost]").isDisabled(),
+    true,
+  );
+  await action(p, "[data-pick-character=" + char + "]", "pick-character");
 }
 async function wake(pages) {
   await Promise.all(
@@ -126,18 +134,23 @@ async function action(p, selector, action) {
 async function checkExpiredControls(pages, code) {
   const p = pages[0],
     s = await roomState(code);
-  s.deadline = s.game.end = Date.now() + 2500;
+  s.deadline = s.game.end = Date.now() + 10000;
+  s.revision++;
   await server.pg.query("UPDATE party_rooms SET state=$2::jsonb WHERE id=$1", [
     code,
     JSON.stringify(s),
   ]);
   const refreshed = p.waitForResponse(
-    (r) =>
+    async (r) =>
       r.url().includes("/party-action") &&
-      r.request().postDataJSON()?.action === "get",
+      r.request().postDataJSON()?.action === "get" &&
+      (await r.json()).game?.deadline === s.deadline,
   );
   await wake(pages);
   await (await refreshed).finished();
+  await p.waitForFunction(
+    () => parseInt(document.querySelector("#timer").textContent) <= 10,
+  );
   let release,
     plays = 0;
   const held = new Promise((resolve) => {
@@ -156,7 +169,10 @@ async function checkExpiredControls(pages, code) {
     await route.continue();
   });
   try {
-    await p.waitForTimeout(3200);
+    await p.waitForFunction(
+      () => document.querySelector("#timer").textContent === "0s",
+      { timeout: 20000 },
+    );
     assert.equal(await p.locator("#timer").innerText(), "0s");
     const buttons = p.locator(".controls button");
     assert.ok(
@@ -313,7 +329,7 @@ try {
       pages[i],
       code,
       ["River", "Juniper", "Pip", "Sky"][i],
-      C.characters[i].id,
+      C.characters[i + 4].id,
     );
   await pages[0].getByRole("heading", { name: "4/4 in the party" }).waitFor();
   await fit(pages[0], "lobby-desktop");
@@ -424,8 +440,18 @@ try {
   assert.ok(profile.coins >= 12);
   assert.equal(profile.stats.played, 1);
   for (const p of pages) await action(p, "[data-action=rematch]", "rematch");
-  await wait(pages[0], "[data-action=roll]");
+  await wait(pages[0], "[data-pick-character]");
   assert.equal((await roomState(code)).match, 2);
+  for (let i = 0; i < 4; i++) {
+    await action(
+      pages[i],
+      "[data-pick-character=" + C.characters[i].id + "]",
+      "pick-character",
+    );
+    await action(pages[i], "[data-action=ready]", "ready");
+  }
+  await action(pages[0], "[data-action=start]:enabled", "start");
+  await wait(pages[0], "body[data-phase=board]");
   // Isolated missing-game fixtures keep the real handler, ready flow, inputs,
   // and rendering. Only the minigame selection is controlled for coverage.
   for (const def of C.games.filter((g) => !seen.has(g.id))) {
@@ -512,7 +538,7 @@ try {
   await delayed.context().close();
   assert.deepEqual(errors, []);
   console.log(
-    "PASS: eight-round four-player festival, on-scene dice and controls, crossroads, passing shops, stakes, all ten minigames, readiness, live duel, reconnect, rewards, rematch, slow requests and desktop/mobile/landscape layouts. " +
+    "PASS: ten-turn four-player festival, on-scene dice and controls, crossroads, passing shops, stakes, all ten minigames, readiness, live duel, reconnect, rewards, rematch, slow requests and desktop/mobile/landscape layouts. " +
       out,
   );
 } finally {

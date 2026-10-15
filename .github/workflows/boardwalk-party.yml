@@ -9,8 +9,8 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    # Eight board rounds, optional rival duels and ten rendered minigames.
-    timeout-minutes: 25
+    # Ten board turns, optional rival duels and ten rendered minigames.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -22,6 +22,7 @@ jobs:
       - run: node --test scripts/party.test.mjs
       - run: npm run build
       - run: node scripts/party-browser.test.mjs
+      - run: node scripts/party-v4-browser.test.mjs
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

@@ -1,5 +1,5 @@
 import * as T from "./vendor/three.module.min.js";
-import { carnivalScenes } from "./carnival-scenes.js?v=BOARDWALK_CARNIVAL_V3";
+import { carnivalScenes } from "./carnival-scenes.js?v=BOARDWALK_CARNIVAL_V4";
 const C = globalThis.PartyCatalog,
   TAU = Math.PI * 2,
   clamp = (n, a = 0, b = 1) => Math.max(a, Math.min(b, n)),
@@ -129,7 +129,109 @@ function discIcon(p, text, x, y, z, color) {
   m.rotation.x = -Math.PI / 2;
   return m;
 }
+const spaceTextures = new Map();
+function spaceSymbol(parent, n) {
+  if (!spaceTextures.has(n.type)) {
+    const cv = document.createElement("canvas");
+    cv.width = cv.height = 128;
+    const c = cv.getContext("2d");
+    c.strokeStyle = c.fillStyle = "#253d55";
+    c.lineWidth = 7;
+    c.lineCap = "round";
+    c.lineJoin = "round";
+    const line = (x, y, a, b) => {
+      c.beginPath();
+      c.moveTo(x, y);
+      c.lineTo(a, b);
+      c.stroke();
+    };
+    if (n.type === "shop") {
+      c.fillRect(30, 57, 68, 45);
+      c.clearRect(55, 73, 20, 29);
+      for (let i = 0; i < 4; i++) {
+        c.fillStyle = i % 2 ? "#fff9dd" : "#253d55";
+        c.fillRect(22 + i * 21, 29, 21, 30);
+      }
+      c.strokeRect(22, 29, 84, 30);
+    } else if (n.type === "gift") {
+      c.strokeRect(28, 43, 72, 57);
+      line(64, 39, 64, 100);
+      line(28, 63, 100, 63);
+      for (const x of [47, 81]) {
+        c.beginPath();
+        c.ellipse(x, 31, 17, 10, x < 64 ? 0.6 : -0.6, 0, TAU);
+        c.stroke();
+      }
+    } else if (n.type === "duel") {
+      line(32, 25, 93, 96);
+      line(96, 25, 35, 96);
+      line(25, 77, 49, 98);
+      line(79, 98, 103, 77);
+    } else if (n.type === "loss") {
+      for (const [x, y, r] of [
+        [42, 50, 19],
+        [63, 40, 23],
+        [85, 53, 18],
+      ]) {
+        c.beginPath();
+        c.arc(x, y, r, 0, TAU);
+        c.fill();
+      }
+      for (const x of [39, 64, 89]) line(x, 84, x - 7, 99);
+    } else if (n.type === "trophy") {
+      c.beginPath();
+      c.moveTo(39, 27);
+      c.lineTo(89, 27);
+      c.lineTo(82, 66);
+      c.quadraticCurveTo(64, 88, 46, 66);
+      c.closePath();
+      c.fill();
+      line(64, 73, 64, 98);
+      line(45, 100, 83, 100);
+      c.strokeRect(27, 34, 74, 25);
+    } else if (n.type === "lucky") {
+      for (const [x, y] of [
+        [48, 43],
+        [80, 43],
+        [48, 75],
+        [80, 75],
+      ]) {
+        c.beginPath();
+        c.arc(x, y, 19, 0, TAU);
+        c.fill();
+      }
+      line(66, 75, 81, 105);
+    } else {
+      c.font = "900 " + (n.type === "coins" ? 52 : 72) + "px system-ui";
+      c.textAlign = "center";
+      c.textBaseline = "middle";
+      c.fillText(C.spaceInfo[n.type].icon, 64, 67);
+    }
+    const tex = new T.CanvasTexture(cv);
+    tex.colorSpace = T.SRGBColorSpace;
+    spaceTextures.set(
+      n.type,
+      new T.MeshBasicMaterial({
+        map: tex,
+        transparent: true,
+        depthWrite: false,
+      }),
+    );
+  }
+  const m = mesh(
+    parent,
+    geo("space-icon", () => new T.PlaneGeometry(0.78, 0.78)),
+    spaceTextures.get(n.type),
+    n.x,
+    n.y + 0.21,
+    n.z,
+  );
+  m.rotation.x = -Math.PI / 2;
+  return m;
+}
 function mascot(id, skin = "classic") {
+  if (["ghost", "skeleton", "knight", "princess"].includes(id))
+    return costumeMascot(id, skin);
   const merchant = id === "shopkeeper";
   if (merchant) id = "frog";
   const root = new T.Group(),
@@ -356,6 +458,223 @@ function mascot(id, skin = "classic") {
     box(rig, 0, 0.85, 0.41, 0.23, 0.19, 0.04, "#e49865");
   }
   root.userData = { ...root.userData, rig, head, legs, arms, id };
+  return root;
+}
+function costumeMascot(id, skin) {
+  const root = new T.Group(),
+    rig = new T.Group(),
+    head = new T.Group(),
+    legs = [],
+    arms = [];
+  root.add(rig);
+  rig.add(head);
+  head.position.y = 1.83;
+  const def = C.characters.find((c) => c.id === id),
+    coat =
+      skin === "sunset"
+        ? "#ed9b67"
+        : skin === "electric"
+          ? "#8874d2"
+          : skin === "champion"
+            ? "#e4b949"
+            : def.accent;
+  const bone = "#fff0cf",
+    face = id === "princess" ? "#af7048" : "#efb78e",
+    metal = "#b8d5e0";
+  for (const side of [-1, 1]) {
+    const leg = new T.Group();
+    leg.position.set(side * 0.23, 0.55, 0);
+    rig.add(leg);
+    cyl(
+      leg,
+      0,
+      -0.14,
+      0,
+      0.12,
+      0.13,
+      0.34,
+      id === "ghost" ? face : id === "knight" ? metal : coat,
+      12,
+    );
+    ball(
+      leg,
+      0,
+      -0.38,
+      0.13,
+      0.22,
+      0.14,
+      0.3,
+      id === "ghost"
+        ? "#bd775c"
+        : id === "skeleton"
+          ? "#35334c"
+          : id === "knight"
+            ? "#789aaa"
+            : "#f6c964",
+    );
+    if (id === "ghost") {
+      box(leg, 0, -0.29, 0.27, 0.25, 0.04, 0.08, "#fff6dd");
+      box(leg, 0, -0.38, 0.32, 0.28, 0.035, 0.04, "#fff6dd");
+    }
+    legs.push(leg);
+    const arm = new T.Group();
+    arm.position.set(side * 0.43, 1.28, 0);
+    rig.add(arm);
+    ball(
+      arm,
+      side * 0.07,
+      -0.2,
+      0,
+      0.16,
+      0.3,
+      0.17,
+      id === "ghost" ? bone : id === "knight" ? metal : coat,
+    );
+    ball(
+      arm,
+      side * 0.1,
+      -0.43,
+      0.06,
+      0.14,
+      0.16,
+      0.14,
+      id === "skeleton" ? bone : face,
+    );
+    arms.push(arm);
+  }
+  ball(
+    rig,
+    0,
+    1,
+    0,
+    0.43,
+    0.55,
+    0.34,
+    id === "ghost" ? bone : id === "knight" ? metal : coat,
+  );
+  if (id === "ghost") {
+    // An unmistakable homemade costume: cloth drape, cut holes, patch and exposed shoes.
+    cyl(rig, 0, 1.02, 0, 0.46, 0.67, 1.12, "#fff8e7", 28);
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * TAU;
+      ball(
+        rig,
+        Math.cos(a) * 0.54,
+        0.48,
+        Math.sin(a) * 0.54,
+        0.16,
+        0.12,
+        0.16,
+        "#fff8e7",
+      );
+    }
+    ball(head, 0, -0.07, 0, 0.51, 0.57, 0.46, "#fff8e7");
+    for (const side of [-1, 1]) {
+      ball(head, side * 0.19, -0.06, 0.429, 0.116, 0.17, 0.035, "#50404a");
+      ball(head, side * 0.19, -0.07, 0.461, 0.055, 0.082, 0.012, "#201e30");
+    }
+    for (const x of [-0.34, 0, 0.34])
+      tube(rig, [x, 0.62, 0.49], [x * 0.75, 1.42, 0.42], 0.018, "#e6ddcc");
+    box(rig, 0.28, 0.86, 0.527, 0.22, 0.22, 0.018, coat);
+    for (const y of [0.78, 0.86, 0.94])
+      box(rig, 0.28, y, 0.54, 0.27, 0.012, 0.012, bone);
+    // A tied corner and the child's small hands keep it playful rather than supernatural.
+    ball(head, 0.42, 0.31, -0.04, 0.15, 0.12, 0.13, "#eee2cf");
+  } else {
+    ball(head, 0, 0, 0, 0.51, 0.49, 0.44, id === "skeleton" ? bone : face);
+    for (const side of [-1, 1]) {
+      if (id === "skeleton")
+        ball(head, side * 0.2, 0.04, 0.4, 0.16, 0.19, 0.065, "#39344c");
+      else {
+        ball(head, side * 0.19, 0.02, 0.405, 0.13, 0.14, 0.05, "#fff5dc");
+        ball(head, side * 0.18, 0.02, 0.45, 0.065, 0.09, 0.025, "#2d3447");
+        ball(head, side * 0.19, 0.06, 0.469, 0.022, 0.025, 0.012, "white");
+      }
+    }
+    if (id === "skeleton") {
+      ball(head, 0, -0.15, 0.46, 0.055, 0.07, 0.025, "#39344c");
+      box(head, 0, -0.3, 0.36, 0.5, 0.18, 0.15, bone);
+      for (let i = -2; i <= 2; i++)
+        box(head, i * 0.075, -0.29, 0.445, 0.014, 0.13, 0.01, "#9e907b");
+      cyl(head, 0, 0.48, 0, 0.62, 0.62, 0.08, "#303248");
+      cyl(head, 0, 0.79, 0, 0.36, 0.4, 0.56, "#303248");
+      cyl(head, 0, 0.55, 0, 0.4, 0.41, 0.09, "#bb7bb4");
+      box(rig, 0, 1.17, 0.335, 0.2, 0.54, 0.04, bone);
+      for (const side of [-1, 1]) {
+        const lapel = box(
+          rig,
+          side * 0.17,
+          1.2,
+          0.35,
+          0.13,
+          0.43,
+          0.07,
+          "#646079",
+        );
+        lapel.rotation.z = side * -0.35;
+        ball(rig, side * 0.085, 1.41, 0.38, 0.09, 0.05, 0.03, "#bd7daf");
+      }
+      for (const y of [0.85, 1.02])
+        ball(rig, 0, y, 0.36, 0.04, 0.04, 0.025, "#efc56b");
+    } else if (id === "knight") {
+      ball(head, 0, 0.15, -0.1, 0.57, 0.52, 0.43, metal);
+      box(head, 0, 0.39, 0.32, 0.8, 0.15, 0.17, "#e0edf0");
+      for (const side of [-1, 1])
+        box(head, side * 0.43, -0.06, 0.25, 0.16, 0.59, 0.27, metal);
+      tube(head, [0, 0.49, 0], [0, 0.88, -0.14], 0.1, coat);
+      ball(head, 0, 0.83, -0.25, 0.12, 0.17, 0.27, coat);
+      for (const side of [-1, 1])
+        ball(rig, side * 0.46, 1.36, 0, 0.26, 0.17, 0.25, metal);
+      box(rig, 0, 1.15, 0.35, 0.57, 0.46, 0.08, "#dce9ec");
+      box(rig, 0, 1.16, 0.401, 0.09, 0.31, 0.025, coat);
+      box(rig, 0, 1.2, 0.401, 0.32, 0.08, 0.025, coat);
+      const cape = box(rig, 0, 0.96, -0.35, 0.69, 0.85, 0.05, coat);
+      cape.rotation.x = -0.13;
+      const shield = cyl(arms[0], -0.1, -0.28, 0.15, 0.29, 0.29, 0.08, coat, 6);
+      shield.rotation.x = Math.PI / 2;
+      ball(arms[0], -0.1, -0.28, 0.21, 0.09, 0.09, 0.04, "#eac15e");
+    } else {
+      ball(head, 0, 0.22, -0.13, 0.56, 0.43, 0.45, "#493048");
+      for (const side of [-1, 1]) {
+        ball(head, side * 0.44, -0.2, -0.02, 0.17, 0.5, 0.25, "#493048");
+        ball(head, side * 0.35, -0.15, 0.32, 0.09, 0.05, 0.03, "#d98b7d");
+        ball(head, side * 0.49, -0.15, 0.15, 0.055, 0.07, 0.04, "#efc861");
+      }
+      ball(head, -0.21, 0.31, 0.33, 0.29, 0.15, 0.17, "#493048");
+      cyl(rig, 0, 0.65, 0, 0.3, 0.69, 0.65, coat, 24);
+      cyl(rig, 0, 0.34, 0, 0.68, 0.68, 0.08, "#ffedc7", 24);
+      for (const side of [-1, 1])
+        ball(rig, side * 0.42, 1.35, 0, 0.21, 0.2, 0.21, "#f3b4cd");
+      box(rig, 0, 1.02, 0.34, 0.49, 0.08, 0.07, "#edc369");
+      ball(rig, 0, 1.3, 0.36, 0.08, 0.1, 0.03, "#6ed8d3");
+      cyl(head, 0, 0.51, 0, 0.31, 0.34, 0.15, "#f4c65b");
+      for (let i = 0; i < 5; i++) {
+        const a = (i / 5) * TAU;
+        cyl(
+          head,
+          Math.cos(a) * 0.29,
+          0.68,
+          Math.sin(a) * 0.29,
+          0,
+          0.085,
+          0.26,
+          "#f4c65b",
+          4,
+        );
+        ball(
+          head,
+          Math.cos(a) * 0.29,
+          0.8,
+          Math.sin(a) * 0.29,
+          0.045,
+          0.045,
+          0.045,
+          "#7bcdcb",
+        );
+      }
+    }
+  }
+  root.userData = { rig, head, legs, arms, id };
   return root;
 }
 function animateCharacter(m, t, mode = "idle", amount = 1) {
@@ -682,7 +1001,13 @@ function trophy(p, x, y, z, scale = 1) {
   }
   return g;
 }
-function shopCart(w, n) {
+function shopCart(w, tile) {
+  const len = Math.hypot(tile.x, tile.z),
+    n = {
+      ...tile,
+      x: tile.x - (tile.x / len) * 3.1 - 1.7,
+      z: tile.z - (tile.z / len) * 3.1 + 1.4,
+    };
   box(w.root, n.x + 1, n.y - 0.12, n.z - 0.7, 4, 0.25, 3.7, "#cfad7d");
   if (n.y > 1)
     for (const x of [n.x - 0.6, n.x + 2.6])
@@ -709,14 +1034,25 @@ function shopCart(w, n) {
       1.5,
       i % 2 ? "#fff0d0" : "#e596a8",
     );
-  const name = label("POPPY’S", "#5e436b", "#fff1c6", 0.27);
-  name.position.set(0, 2.05, 0.5);
+  const name = label("POPPY’S ITEMS", "#fff7df", "#76416b", 0.64);
+  name.position.set(0, 3.05, 0.2);
   g.add(name);
   const merchant = mascot("shopkeeper");
   merchant.scale.setScalar(0.65);
   merchant.position.set(n.x + 1.7, n.y + 0.1, n.z - 2);
   w.root.add(merchant);
   w.shopkeepers.push(merchant);
+}
+function nearPath(x, z, r = 2.3) {
+  return C.spaces.some((a) =>
+    a.next.some((id) => {
+      const b = C.spaces[id],
+        dx = b.x - a.x,
+        dz = b.z - a.z,
+        t = clamp(((x - a.x) * dx + (z - a.z) * dz) / (dx * dx + dz * dz));
+      return Math.hypot(x - a.x - t * dx, z - a.z - t * dz) < r;
+    }),
+  );
 }
 function addBoardDetails(w) {
   // Broad plazas and planted districts fill the enlarged island without covering paths.
@@ -728,6 +1064,7 @@ function addBoardDetails(w) {
     [4, 11],
     [-12, 9],
   ]) {
+    if (nearPath(x, z, 3.2)) continue;
     cyl(w.root, x, 0.43, z, 2.4, 2.4, 0.06, "#e9d6ac", 32);
     for (let i = 0; i < 7; i++) {
       const a = (i / 7) * TAU;
@@ -757,9 +1094,10 @@ function addBoardDetails(w) {
       box(w.root, x + d, 0.6, z, 0.1, 0.5, 0.45, "#766666");
   }
   for (let i = 0; i < 36; i++) {
-    const n = C.spaces[i % 48],
+    const n = C.spaces[i % C.outerCount],
       x = n.x * 0.85,
       z = n.z * 0.85;
+    if (nearPath(x, z, 2.2)) continue;
     if (i % 3 === 0) palm(w, x, z, 0.45 + (i % 4) * 0.08);
     else {
       ball(w.root, x, 0.6, z, 0.45, 0.24, 0.4, "#6fb17d");
@@ -778,6 +1116,7 @@ function addBoardDetails(w) {
   }
   for (let i = 0; i < 4; i++) {
     const x = -4 + i * 2.5;
+    if (nearPath(x, -12, 2.8)) continue;
     building(
       w,
       x,
@@ -790,23 +1129,23 @@ function addBoardDetails(w) {
   }
   for (let j = 0; j < 3; j++) {
     const z = -3 + j * 3;
-    for (const x of [-11, 12]) {
+    for (const x of [-6, 6]) {
       tube(w.root, [x, 0.5, z], [x, 3.6, z], 0.05, "#786e72");
     }
-    tube(w.root, [-11, 3.6, z], [12, 3.6, z], 0.014, "#ded2bc");
+    tube(w.root, [-6, 3.6, z], [6, 3.6, z], 0.014, "#ded2bc");
     for (let i = 0; i < 20; i++) {
       const flag = mesh(
         w.root,
         new T.ConeGeometry(0.16, 0.4, 3),
         ["#f6cb69", "#ea9aba", "#86c7b4"][i % 3],
-        -10.5 + i * 1.15,
+        -5.5 + i * 0.58,
         3.3,
         z,
       );
       flag.rotation.z = Math.PI;
     }
   }
-  const n = C.spaces[40];
+  const n = C.spaces[C.tideJunction];
   w.tideGate = new T.Group();
   w.tideGate.position.set(n.x - 1.1, n.y, n.z);
   w.root.add(w.tideGate);
@@ -916,10 +1255,35 @@ function boardWorld() {
       }
     }
     const info = C.spaceInfo[n.type];
-    cyl(w.root, n.x, n.y, n.z, 0.96, 1, 0.22, "#fff0d0", 32);
-    cyl(w.root, n.x, n.y + 0.15, n.z, 0.84, 0.84, 0.1, info.color, 32);
-    const mark = discIcon(w.root, info.icon, n.x, n.y + 0.207, n.z, "#28465c");
-    mark.scale.setScalar(1.55);
+    const sides = {
+      coins: 32,
+      loss: 4,
+      gift: 4,
+      shop: 6,
+      chance: 8,
+      duel: 3,
+      lucky: 12,
+      event: 5,
+      junction: 6,
+      trophy: 10,
+      start: 32,
+    }[n.type];
+    const base = cyl(w.root, n.x, n.y, n.z, 1.08, 1.12, 0.22, "#fff8df", sides);
+    const top = cyl(
+      w.root,
+      n.x,
+      n.y + 0.15,
+      n.z,
+      0.95,
+      0.95,
+      0.1,
+      info.color,
+      sides,
+    );
+    if (["loss", "gift"].includes(n.type))
+      base.rotation.y = top.rotation.y = Math.PI / 4;
+    const mark = spaceSymbol(w.root, n);
+    mark.scale.setScalar(1.85);
     for (const to of n.next) {
       const end = C.spaces[to],
         dx = end.x - n.x,
@@ -943,11 +1307,6 @@ function boardWorld() {
       w.root.add(sign);
     }
     if (n.type === "shop") shopCart(w, n);
-    if (["chance", "duel", "event"].includes(n.type)) {
-      const small = label(info.name.toUpperCase(), "#33455d", "#fff3d6", 0.24);
-      small.position.set(n.x, n.y + 1.8, n.z - 0.9);
-      w.root.add(small);
-    }
   }
   const pond = ball(w.root, 0, 0.41, 0, 3.7, 0.06, 2.1, "#4bafbe");
   pond.receiveShadow = true;
@@ -967,6 +1326,7 @@ function boardWorld() {
   for (let i = 0; i < 24; i++) {
     const x = -7 + (i % 6) * 2.4,
       z = i < 12 ? -5.9 : 5.7;
+    if (nearPath(x, z, 1.8)) continue;
     ball(w.root, x, 0.47, z, 0.25, 0.1, 0.25, "#4fa482");
     for (let j = 0; j < 3; j++)
       ball(
@@ -991,7 +1351,7 @@ function boardWorld() {
   lighthouse(w, 10.1, 0.2);
   building(w, 0, -5.2, 1.18, "#f3a58f", "#9e85cb", "ARCADE");
   building(w, -8, -3.9, 0.66, "#8bc4b7", "#f4b75c", "SNACKS");
-  building(w, 5, -5.2, 0.63, "#b5a5da", "#ec9c83", "ITEMS");
+  building(w, 5, -5.2, 0.63, "#b5a5da", "#ec9c83", "KITES");
   building(w, -3.2, 5.3, 0.55, "#edc269", "#f39c9b", "POST");
   for (const [x, z, s] of [
     [-9, 1, 0.8],
@@ -1002,7 +1362,7 @@ function boardWorld() {
     [2, 5.3, 0.65],
     [-4, 1.3, 0.55],
   ])
-    palm(w, x, z, s);
+    if (!nearPath(x, z, 2.5)) palm(w, x, z, s);
   for (let i = 0; i < 24; i++) {
     const a = (i / 24) * TAU,
       x = Math.cos(a) * 21.8,
@@ -1053,6 +1413,14 @@ function boardWorld() {
   for (let i = 0; i < 6; i++)
     cloud(w, -25 + i * 10, 9 + (i % 2) * 3, -20 - (i % 3) * 4, 1.5 + (i % 2));
   addBoardDetails(w);
+  w.selection = torus(w.root, 0, 0, 0, 1.24, 0.085, "#fff2a6");
+  w.selection.rotation.x = -Math.PI / 2;
+  w.selectionOuter = torus(w.root, 0, 0, 0, 1.4, 0.07, "#8e3ed0");
+  w.selectionOuter.rotation.x = -Math.PI / 2;
+  w.selectionTitle = label("SELECTED", "#fff7df", "#7941a8", 0.45);
+  w.root.add(w.selectionTitle);
+  w.goalTitle = label("TROPHY · 10 COINS", "#523f24", "#ffe494", 0.64);
+  w.root.add(w.goalTitle);
   w.goal = trophy(w.root, 0, 0, 0, 0.95);
   w.goalRing = torus(w.root, 0, 0, 0, 0.85, 0.055, "#fff2a6");
   w.goalRing.rotation.x = Math.PI / 2;
@@ -1151,7 +1519,7 @@ function boardWorld() {
 function roster(w, state) {
   const ps =
       state?.players ||
-      C.characters.map((p, i) => ({
+      C.characters.slice(0, 4).map((p, i) => ({
         id: p.id,
         name: p.name,
         character: p.id,
@@ -1181,7 +1549,8 @@ function roster(w, state) {
 function updateBoard(w, s, t, extra) {
   roster(w, s);
   const ps =
-      s?.players || C.characters.map((p, i) => ({ id: p.id, position: i * 8 })),
+      s?.players ||
+      C.characters.slice(0, 4).map((p, i) => ({ id: p.id, position: i * 8 })),
     m = s?.lastMove;
   w.actors.forEach((a, i) => {
     const p = ps[i],
@@ -1204,8 +1573,11 @@ function updateBoard(w, s, t, extra) {
     }
     const crowd = ps.filter((v) => v.position === p.position).length;
     if (crowd > 1 && !walking) {
-      x += (i % 2 ? 1 : -1) * 0.35;
-      z += (i < 2 ? 1 : -1) * 0.25;
+      const seat = ps
+        .filter((v) => v.position === p.position)
+        .findIndex((v) => v.id === p.id);
+      x += Math.cos((seat / crowd) * TAU) * 0.64;
+      z += Math.sin((seat / crowd) * TAU) * 0.55;
     }
     a.position.set(x, y, z);
     a.scale.setScalar(0.72);
@@ -1228,7 +1600,8 @@ function updateBoard(w, s, t, extra) {
             : "idle",
       extra.motion === false ? 0 : 1,
     );
-    a.userData.nameLabel.visible = s?.phase !== "complete";
+    a.userData.nameLabel.visible =
+      s?.phase !== "complete" && (crowd === 1 || i === s?.turn);
   });
   const complete = s?.phase === "complete";
   w.podium.visible = complete;
@@ -1242,7 +1615,16 @@ function updateBoard(w, s, t, extra) {
       winner.rotation.y = 0.5;
     }
   }
-  const n = C.spaces[s?.goal ?? 8];
+  const chosen = C.spaces[extra.selectedSpace];
+  w.selectionTitle.visible = !!chosen;
+  if (chosen) w.selectionTitle.position.set(chosen.x, chosen.y + 1.4, chosen.z);
+  for (const ring of [w.selection, w.selectionOuter]) {
+    ring.visible = !!chosen;
+    if (chosen) ring.position.set(chosen.x, chosen.y + 0.24, chosen.z);
+  }
+  const n = C.spaces[s?.goal ?? C.trophyStops[0]];
+  w.goalTitle.visible = !complete;
+  w.goalTitle.position.set(n.x, n.y + 3, n.z);
   w.goal.position.set(n.x, n.y + 1.1 + Math.sin(t * 2) * 0.15, n.z);
   w.goal.rotation.y = t * 0.8;
   w.goalRing.position.set(n.x, n.y + 0.2, n.z);
@@ -1929,7 +2311,7 @@ function overlay(c, canvas, kind, s, t, extra) {
   }
   c.restore();
 }
-function fallback(canvas, kind, s) {
+function fallback(canvas, kind, s, extra = {}) {
   const c = canvas.getContext("2d"),
     W = canvas.width,
     H = canvas.height;
@@ -1951,6 +2333,11 @@ function fallback(canvas, kind, s) {
       c.beginPath();
       c.arc(...xy(n), W / 70, 0, TAU);
       c.fill();
+      if (n.id === extra.selectedSpace) {
+        c.strokeStyle = "#ffffff";
+        c.lineWidth = 4;
+        c.stroke();
+      }
     }
     for (const [i, p] of (s?.players || []).entries()) {
       const [x, y] = xy(C.spaces[p.position]);
@@ -1986,6 +2373,7 @@ function render(canvas, kind, state, time = 0, extra = {}) {
     width,
     height,
     extra.overview,
+    extra.selectedSpace,
   ].join(":");
   if (
     extra.motion === false &&
@@ -1996,7 +2384,7 @@ function render(canvas, kind, state, time = 0, extra = {}) {
     return;
   canvas.dataset.stillFrame = stillKey;
   if (!engine()) {
-    fallback(canvas, kind, state);
+    fallback(canvas, kind, state, extra);
     overlay(canvas.getContext("2d"), canvas, kind, state, time, extra);
     return;
   }
@@ -2055,6 +2443,11 @@ function render(canvas, kind, state, time = 0, extra = {}) {
   } else if (kind !== "board" && width / height < 1) {
     view.extent = Math.max(view.extent, 22 / (width / height));
   }
+  if (
+    kind === "board" &&
+    (extra.overview || !state || ["waiting", "board-end"].includes(state.phase))
+  )
+    view.extent = Math.max(view.extent, 46 / (width / height));
   w.motion = extra.motion !== false;
   overlay(sceneFrame(w, time, view, canvas), canvas, kind, state, time, extra);
 }
@@ -2113,4 +2506,47 @@ const extras = carnivalScenes({
   mix,
   clamp,
 });
-globalThis.PartyScene = { render, portrait };
+function spaceAt(canvas, x, y) {
+  const w = worlds.get("board");
+  if (!w?.built) {
+    const r = canvas.getBoundingClientRect();
+    let nearest = null,
+      distance = Infinity;
+    for (const n of C.spaces) {
+      const d = Math.hypot(
+        x - r.left - r.width / 2 - (n.x * r.width) / 46,
+        y - r.top - r.height / 2 - (n.z * r.height) / 36,
+      );
+      if (d < Math.max(8, r.width / 70) && d < distance) {
+        distance = d;
+        nearest = n.id;
+      }
+    }
+    return nearest;
+  }
+  const r = canvas.getBoundingClientRect(),
+    ray = new T.Raycaster();
+  ray.setFromCamera(
+    new T.Vector2(
+      ((x - r.left) / r.width) * 2 - 1,
+      1 - ((y - r.top) / r.height) * 2,
+    ),
+    w.camera,
+  );
+  let closest = null,
+    distance = Infinity;
+  for (const n of C.spaces) {
+    const point = ray.ray.intersectPlane(
+      new T.Plane(new T.Vector3(0, 1, 0), -n.y - 0.22),
+      new T.Vector3(),
+    );
+    if (!point) continue;
+    const d = ray.ray.origin.distanceTo(point);
+    if (Math.hypot(point.x - n.x, point.z - n.z) <= 1.15 && d < distance) {
+      closest = n.id;
+      distance = d;
+    }
+  }
+  return closest;
+}
+globalThis.PartyScene = { render, portrait, spaceAt };

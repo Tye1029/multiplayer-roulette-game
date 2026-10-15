@@ -219,6 +219,42 @@
         "One use: travel to the current trophy stop. Buying its trophy still costs 10 coins.",
     },
   ];
+  const additions = [
+    {
+      id: "ghost",
+      name: "Boo",
+      kind: "Sheet kid",
+      color: "#fff6df",
+      accent: "#8e79cc",
+      bio: "Two eye holes. One very unconvincing ghost.",
+    },
+    {
+      id: "skeleton",
+      name: "Bones",
+      kind: "Dapper skeleton",
+      color: "#fff0cb",
+      accent: "#393852",
+      bio: "Dressed to impress. Rattling with confidence.",
+    },
+    {
+      id: "knight",
+      name: "Sir Rowan",
+      kind: "Human knight",
+      color: "#c6dce6",
+      accent: "#348ea8",
+      bio: "A brave heart and a slightly oversized helmet.",
+    },
+    {
+      id: "princess",
+      name: "Pippa",
+      kind: "Princess",
+      color: "#af7048",
+      accent: "#df77ab",
+      bio: "A crown, a competitive streak, and no royal shortcuts.",
+    },
+  ];
+  characters.push(...additions);
+  // 38 promenade spaces + three four-space branches. Each branch saves one step.
   const types = [
     "start",
     "coins",
@@ -226,120 +262,98 @@
     "gift",
     "shop",
     "coins",
-    "chance",
+    "junction",
+    "coins",
+    "loss",
+    "duel",
+    "trophy",
+    "coins",
+    "coins",
     "lucky",
+    "loss",
+    "chance",
+    "coins",
+    "shop",
+    "junction",
+    "coins",
+    "gift",
+    "loss",
+    "trophy",
+    "coins",
+    "event",
+    "coins",
+    "loss",
+    "lucky",
+    "shop",
+    "coins",
     "junction",
     "coins",
     "duel",
     "loss",
     "trophy",
-    "coins",
-    "event",
-    "gift",
-    "shop",
-    "loss",
-    "coins",
-    "chance",
-    "coins",
-    "duel",
-    "lucky",
-    "coins",
-    "junction",
-    "loss",
-    "trophy",
-    "gift",
-    "shop",
-    "event",
-    "coins",
-    "chance",
-    "coins",
-    "loss",
-    "duel",
-    "lucky",
-    "coins",
-    "trophy",
-    "event",
-    "shop",
-    "junction",
-    "coins",
-    "loss",
     "gift",
     "chance",
-    "coins",
-    "duel",
     "coins",
   ];
   const spaces = types.map((type, i) => {
-    const a = Math.PI * 0.73 + (i / 48) * Math.PI * 2;
+    const a = Math.PI * 0.73 + (i / types.length) * Math.PI * 2;
     return {
       id: i,
       type,
-      x: Math.cos(a) * (19.5 + 1.2 * Math.sin(a * 3)),
-      z: Math.sin(a) * (14.5 + 0.8 * Math.cos(a * 2)),
+      x: Math.cos(a) * 19.5,
+      z: Math.sin(a) * 14.5,
       y: 0.65,
-      next: [(i + 1) % 48],
+      next: [(i + 1) % types.length],
       district:
-        i < 16
+        i < 13
           ? "Sunset promenade"
-          : i < 32
+          : i < 26
             ? "Carnival gardens"
             : "Lighthouse quay",
     };
   });
-  const branch = (from, to, coords, name) => {
-    const first = spaces.length;
-    spaces[from].next.push(first);
-    coords.forEach(([x, z, y, type], i) =>
+  const branches = [
+    {
+      from: 6,
+      to: 12,
+      name: "Skybridge",
+      types: ["coins", "shop", "trophy", "loss"],
+      height: 1.5,
+    },
+    {
+      from: 18,
+      to: 24,
+      name: "Festival lane",
+      types: ["coins", "gift", "duel", "loss"],
+      height: 0,
+    },
+    {
+      from: 30,
+      to: 36,
+      name: "Tide gardens",
+      types: ["coins", "shop", "lucky", "loss"],
+      height: 0,
+    },
+  ];
+  for (const branch of branches) {
+    const a = spaces[branch.from],
+      b = spaces[branch.to],
+      first = spaces.length;
+    a.next.push(first);
+    branch.types.forEach((type, i) => {
+      const t = (i + 1) / 5,
+        inset = 1 - Math.sin(t * Math.PI) * 0.11;
       spaces.push({
-        id: first + i,
+        id: spaces.length,
         type,
-        x,
-        z,
-        y,
-        next: [i === coords.length - 1 ? to : first + i + 1],
-        district: name,
-      }),
-    );
-  };
-  branch(
-    8,
-    20,
-    [
-      [-15, -5, 1.1, "coins"],
-      [-12, -6, 2, "shop"],
-      [-9, -7, 3, "trophy"],
-      [-6, -8, 3, "chance"],
-      [-3, -10, 2, "gift"],
-      [0, -12, 1.1, "duel"],
-    ],
-    "Skybridge",
-  );
-  branch(
-    24,
-    36,
-    [
-      [10, -7, 0.65, "coins"],
-      [7, -5, 0.65, "event"],
-      [5, -1, 0.65, "chance"],
-      [7, 2, 0.65, "shop"],
-      [10, 5, 0.65, "trophy"],
-      [12, 8, 0.65, "gift"],
-    ],
-    "Festival lane",
-  );
-  branch(
-    40,
-    4,
-    [
-      [7, 10, 0.7, "gift"],
-      [3, 8, 0.7, "coins"],
-      [-2, 7, 0.7, "duel"],
-      [-7, 8, 0.7, "shop"],
-      [-11, 7, 0.7, "chance"],
-      [-15, 5, 0.7, "lucky"],
-    ],
-    "Tide gardens",
-  );
+        x: (a.x + (b.x - a.x) * t) * inset,
+        z: (a.z + (b.z - a.z) * t) * inset,
+        y: 0.65 + Math.sin(t * Math.PI) * branch.height,
+        next: [i === 3 ? branch.to : first + i + 1],
+        district: branch.name,
+      });
+    });
+  }
   const spaceInfo = {
     chance: {
       name: "Chance parade",
@@ -487,8 +501,25 @@
     spaceInfo,
     holes,
     hole: holes[0],
-    outerCount: 48,
-    trophyStops: [12, 26, 37, 50, 58],
-    version: "BOARDWALK_CARNIVAL_V3",
+    outerCount: types.length,
+    trophyStops: spaces.filter((n) => n.type === "trophy").map((n) => n.id),
+    branches,
+    tideJunction: 30,
+    turnOptions: [10, 20, 30],
+    standings(players, mode = "party") {
+      const score = (p) => (mode === "duel" ? p.wins : p.trophies);
+      return Object.fromEntries(
+        players.map((p) => [
+          p.id,
+          1 +
+            players.filter(
+              (q) =>
+                score(q) > score(p) ||
+                (score(q) === score(p) && q.total > p.total),
+            ).length,
+        ]),
+      );
+    },
+    version: "BOARDWALK_CARNIVAL_V4",
   };
 });

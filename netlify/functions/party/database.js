@@ -44,7 +44,7 @@ function createStore(injectedPool,clock=Date.now){
   async function create(p,b){return tx(async c=>{await c.query('SELECT pg_advisory_xact_lock(hashtext($1))',['party-create:'+p.id]);const prior=(await c.query('SELECT state FROM party_rooms WHERE owner_id=$1 AND request_id=$2',[p.id,b.requestId])).rows[0];if(prior)return M.view(prior.state,p.id,clock());
     const active=(await c.query("SELECT id FROM party_rooms WHERE owner_id=$1 AND updated_at>NOW()-INTERVAL '30 minutes' AND state->>'phase' NOT IN ('complete','expired')",[p.id])).rows;if(active.length>=3)M.fail('Finish your existing party before creating another.');
     let id;do{id=Array.from(crypto.randomBytes(6),n=>'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[n%32]).join('');}while((await c.query('SELECT id FROM party_rooms WHERE id=$1',[id])).rows.length);
-    const s=M.create(id,p,b.mode,clock());await c.query('INSERT INTO party_rooms(id,owner_id,request_id,state) VALUES($1,$2,$3,$4::jsonb)',[id,p.id,b.requestId,JSON.stringify(s)]);return M.view(s,p.id,clock());});}
+    const s=M.create(id,p,b.mode,clock(),b.rounds);await c.query('INSERT INTO party_rooms(id,owner_id,request_id,state) VALUES($1,$2,$3,$4::jsonb)',[id,p.id,b.requestId,JSON.stringify(s)]);return M.view(s,p.id,clock());});}
   async function action(p,b){return tx(async c=>{const row=(await c.query('SELECT state FROM party_rooms WHERE id=$1 FOR UPDATE',[b.room])).rows[0];if(!row)M.fail('Room not found. Check the six-letter code.',404);const s=row.state;
     if(b.action==='leave'&&s.receipts.includes(p.id+':'+b.requestId))return null;
     if(b.action==='join')M.join(s,p);if(!s.players.some(x=>x.id===p.id))M.fail('Join this room to see it.',403);

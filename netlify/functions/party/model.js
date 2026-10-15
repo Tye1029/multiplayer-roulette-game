@@ -14,6 +14,7 @@ function player(p) {
     id: p.id,
     name: p.name,
     character: p.character,
+    characterPicked: !!p.characterPicked,
     skin: p.skin || "classic",
     bot: !!p.bot,
     position: 0,
@@ -26,10 +27,12 @@ function player(p) {
     participation: 0,
   };
 }
-function create(id, p, mode, now = Date.now()) {
+function create(id, p, mode, now = Date.now(), rounds = 10) {
   if (!["party", "duel"].includes(mode)) fail("Choose a party or a duel.", 400);
+  if (mode === "party" && !C.turnOptions.includes(rounds))
+    fail("Choose 10, 20, or 30 turns.", 400);
   return {
-    version: 3,
+    version: 4,
     id,
     host: p.id,
     mode,
@@ -37,7 +40,7 @@ function create(id, p, mode, now = Date.now()) {
     players: [player(p)],
     ready: [],
     round: 0,
-    rounds: mode === "duel" ? 3 : 8,
+    rounds: mode === "duel" ? 3 : rounds,
     match: 1,
     revision: 1,
     deadline: now + 1800000,
@@ -60,7 +63,8 @@ function join(s, p) {
 }
 function enterBoard(s, now) {
   s.phase = "board";
-  s.turn = 0;
+  s.turnIndex = 0;
+  s.turn = (s.startingSeat + s.round - 1) % s.players.length;
   s.usedItem = false;
   s.lastMove = null;
   s.dice = null;
@@ -74,12 +78,18 @@ function begin(s, now) {
   if (s.players.length < 2) fail("Invite a friend or add a bot first.");
   if (s.players.some((p) => !p.bot && !s.ready.includes(p.id)))
     fail("Everyone needs to be ready.");
+  if (
+    s.players.some((p) => !p.characterPicked) ||
+    new Set(s.players.map((p) => p.character)).size !== s.players.length
+  )
+    fail("Everyone must choose a different character.");
   s.gameOrder = C.games.map((g) => g.id);
   for (let i = s.gameOrder.length - 1; i > 0; i--) {
     const j = rnd(i + 1);
     [s.gameOrder[i], s.gameOrder[j]] = [s.gameOrder[j], s.gameOrder[i]];
   }
-  s.version = 3;
+  s.version = 4;
+  s.startingSeat = rnd(s.players.length);
   s.round = 1;
   s.history = [];
   s.winner = null;
@@ -157,12 +167,13 @@ function enterGame(s, now, tiebreak = false, participants = null) {
       : "Everyone is in. Time to play!";
 }
 function nextTurn(s, now) {
-  s.turn++;
+  s.turnIndex++;
+  s.turn = (s.startingSeat + s.round - 1 + s.turnIndex) % s.players.length;
   s.usedItem = false;
   s.event = null;
   s.dice = null;
   s.movement = null;
-  s.phase = s.turn >= s.players.length ? "board-end" : "board";
+  s.phase = s.turnIndex >= s.players.length ? "board-end" : "board";
   s.deadline = now + (s.phase === "board" ? 25000 : 2500);
 }
 function roll(s, p, now) {
@@ -230,7 +241,7 @@ function travel(s, now, chosen) {
 }
 function routes(s, id) {
   const n = C.spaces[id];
-  return id === 40 && s.tide === 0 ? [n.next[0]] : n.next;
+  return id === C.tideJunction && s.tide === 0 ? [n.next[0]] : n.next;
 }
 function resumeSpace(s, now) {
   if (s.event?.kind === "shop" && s.movement?.remaining) {
@@ -292,7 +303,13 @@ function land(s, now) {
     e.variant = variant;
     if (variant === 0) {
       const from = p.position;
-      p.position = pick([4, 12, 20, 28].filter((x) => x !== from));
+      p.position = pick(
+        C.spaces
+          .filter(
+            (n) => n.type === "coins" && n.id < C.outerCount && n.id !== from,
+          )
+          .map((n) => n.id),
+      );
       s.lastMove = {
         player: p.id,
         path: [from, p.position],
@@ -647,7 +664,7 @@ function play(s, p, b, now) {
   p.participation++;
 }
 function advance(s, now = Date.now()) {
-  if (s.version !== 3) {
+  if (s.version !== 4) {
     s.phase = "expired";
     s.log = "This room used the earlier prototype. Start a fresh festival.";
     return;
@@ -798,8 +815,23 @@ function act(s, id, b, now = Date.now()) {
     if (!s.game.ready.includes(id)) s.game.ready.push(id);
     if (s.game.participants.every((x) => s.game.ready.includes(x)))
       countdown(s, now);
+  } else if (b.action === "pick-character") {
+    if (s.phase !== "waiting")
+      fail("Choose your character before the match starts.");
+    if (!C.characters.some((c) => c.id === b.character))
+      fail("Choose a character from the crew.", 400);
+    if (
+      s.players.some(
+        (x) => x.id !== id && x.characterPicked && x.character === b.character,
+      )
+    )
+      fail("That character has already been picked. Choose another.");
+    p.character = b.character;
+    p.characterPicked = true;
+    s.ready = s.ready.filter((x) => x !== id);
   } else if (b.action === "ready") {
     if (s.phase !== "waiting") fail("The party is already underway.");
+    if (!p.characterPicked) fail("Pick your character first.");
     s.ready = s.ready.includes(id)
       ? s.ready.filter((v) => v !== id)
       : [...s.ready, id];
@@ -814,7 +846,13 @@ function act(s, id, b, now = Date.now()) {
       id: "bot:" + crypto.randomUUID(),
       name: ["Pip", "Dizzy", "Nova"][n - 1] || "Pip",
       bot: true,
-      character: C.characters[n % 4].id,
+      character: pick(
+        C.characters.filter(
+          (c) =>
+            !s.players.some((p) => p.characterPicked && p.character === c.id),
+        ),
+      ).id,
+      characterPicked: true,
     });
   } else if (
     [
@@ -920,7 +958,15 @@ function act(s, id, b, now = Date.now()) {
     if (!s.ready.includes(id)) s.ready.push(id);
     if (s.players.every((x) => x.bot || s.ready.includes(x.id))) {
       s.match++;
-      begin(s, now);
+      s.phase = "waiting";
+      s.round = 0;
+      s.ready = [];
+      s.game = null;
+      s.deadline = now + 1800000;
+      s.players = s.players.map((p) =>
+        player({ ...p, characterPicked: p.bot }),
+      );
+      s.log = "New match, new picks! Choose your character and get ready.";
     }
   } else fail("Unknown room action.", 400);
   s.revision++;
