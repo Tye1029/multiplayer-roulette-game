@@ -224,6 +224,8 @@ async function playRound(pages, code, seen) {
         window: 240000,
       },
     ];
+    if (game === "fish")
+      s.game.fishBeats = s.players.map(() => [{ ...s.game.beats[0] }]);
   }
   await server.pg.query("UPDATE party_rooms SET state=$2::jsonb WHERE id=$1", [
     code,
@@ -411,13 +413,23 @@ try {
           sawDuel = true;
         }
         const opponent = s.players.find((x) => x.id !== s.players[s.turn].id);
-        await p.locator("#duel-rival").selectOption(opponent.id);
+        await p
+          .locator(`input[name="duel-rival"][value="${opponent.id}"]`)
+          .check({ force: true });
         await action(p, "[data-challenge]", "challenge");
       } else {
         await wait(p, "[data-action=continue]");
+        if (
+          s.event.kind === "trophy-purchase" &&
+          s.players[s.turn].tokens >= 10
+        )
+          await action(p, "[data-action=buy-trophy]", "buy-trophy");
         if (s.event.kind === "shop" && !sawShop) {
           await fit(p, "item-cart");
-          if (await p.locator("[data-buy-item]:enabled").count())
+          if (
+            s.players[s.turn].items.length < 3 &&
+            (await p.locator("[data-buy-item]:enabled").count())
+          )
             await action(p, "[data-buy-item]:enabled >> nth=0", "buy-item");
           sawShop = true;
         }
@@ -433,6 +445,7 @@ try {
         "countdown",
         "round-end",
         "side-result",
+        "measuring",
       ].includes(s.phase)
     )
       await expire(code, pages);

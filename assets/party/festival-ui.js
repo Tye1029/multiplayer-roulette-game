@@ -17,13 +17,13 @@ globalThis.PartyFestivalUI = {
       case "kart":
         return `${Math.round(v.distance || 0)} m · ${v.boosted ? "BOOST · steering takes longer" : "green pads boost · barrels slow"}`;
       case "bomb":
-        return `BUBBLE WITH PLAYER ${(g.active || []).indexOf(g.shared.holder) + 1} · ${Math.max(0, (g.shared.fuseEnd - now) / 1000).toFixed(1)}s · ${v.health} hearts`;
+        return `BOMB WITH PLAYER ${(g.active || []).indexOf(g.shared.holder) + 1} · ${Math.max(0, (g.shared.fuseEnd - now) / 1000).toFixed(1)}s · ${v.health} hearts`;
       case "cannon":
         return `${v.health} hearts · Aim at a rival · ${now - (v.fireAt || 0) < 1200 ? "reloading…" : "FIRE when lined up"}`;
       case "rope":
         return (
           (b.high ? "HIGH ROPE · DUCK" : "LOW ROPE · JUMP") +
-          (dt < -100 ? " · approaching…" : " NOW!")
+          (dt < -350 ? " · approaching…" : " NOW!")
         );
       case "stack":
         return `LEVEL ${v.step || 0} · ${Math.round(((v.width || 3) / 3) * 100)}% landing area`;
@@ -48,7 +48,7 @@ globalThis.PartyFestivalUI = {
       case "fencing":
         return v.locked
           ? "LOCKED · rival's choice stays secret until the bell"
-          : "ATTACK > FEINT > BLOCK > ATTACK";
+          : "ROCK beats SCISSORS · PAPER beats ROCK · SCISSORS beats PAPER";
       case "tug":
         return `STAMINA ${Math.round(v.stamina)} · ${Math.abs(((now - g.start) % 1600) / 1600 - 0.5) < 0.24 ? "PULL NOW!" : "wait for the gold pulse"}`;
       case "ricochet":

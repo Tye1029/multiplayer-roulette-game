@@ -66,8 +66,8 @@
       color: "#82d9ef",
       description: "Watch the ripples. Strike at the splash.",
       rules:
-        "Watch your bobber. Ripples grow before the splash; press Reel while the gold ring appears. Early pulls scare the fish. Six bites: rarer catches and faster strikes earn more points.",
-      unit: "points",
+        "Watch your own colored ripples. Reel as the gold ring appears; a quicker strike hooks a bigger fish. Early pulls scare it away, but another bite will come. Each player keeps one fish. When everyone finishes, the measuring boards reveal whose fish is longest.",
+      unit: "cm",
     },
     {
       id: "memory",
@@ -218,10 +218,10 @@
     },
     {
       id: "warp",
-      name: "Trophy compass",
+      name: "Trophy taxi",
       cost: 18,
       description:
-        "One use: travel to the current trophy stop. Buying its trophy still costs 10 coins.",
+        "One use: fly straight to the trophy host, then choose whether to buy a trophy for 10 coins. Your dice roll is still available.",
     },
   ];
   const additions = [
@@ -319,7 +319,7 @@
       to: 11,
       name: "Skybridge",
       types: ["coins", "gift", "trophy", "loss"],
-      height: 1.5,
+      height: 0,
     },
     {
       from: 27,
@@ -446,7 +446,8 @@
       name: "Mystery parcel",
       icon: "✦",
       color: "#c69af2",
-      description: "Get a random item, or 4 coins if your pockets are full.",
+      description:
+        "Get a random item. If your three pockets are full, choose one to replace or leave the gift.",
     },
     lucky: {
       name: "Lucky break",
@@ -477,7 +478,8 @@
       name: "Trophy stop",
       icon: "★",
       color: "#ffc954",
-      description: "Pass the glowing stop with 10 coins to collect a trophy.",
+      description:
+        "Stop at the glowing host and choose whether to buy a trophy for 10 coins, then finish your roll.",
     },
   };
   const holes = [
@@ -547,11 +549,56 @@
       sand: [{ x: 380, y: 500, w: 180, h: 45 }],
     },
   ];
+  const shops = {
+    4: {
+      name: "Dice & Dash",
+      keeper: "Poppy",
+      stock: ["double", "triple", "boost", "custom"],
+    },
+    15: {
+      name: "Poppy’s Provisions",
+      keeper: "Poppy",
+      stock: ["shield", "swap", "boost"],
+    },
+    26: {
+      name: "Golden Getaways",
+      keeper: "Poppy",
+      stock: ["warp", "custom", "triple", "shield"],
+    },
+  };
+  // Preview every possible landing if another junction is reached during this roll.
+  function routePreviews(state) {
+    if (state.phase !== "choice" || !state.movement) return [];
+    const origin = state.players[state.turn].position;
+    const exits = (id) =>
+      id === 27 && !state.tide ? [spaces[id].next[0]] : spaces[id].next;
+    return exits(origin).map((next, option) => {
+      const paths = [];
+      function walk(id, left, path) {
+        if (paths.length >= 64 || path.length > 30) return;
+        if (left <= 0 && spaces[id].type !== "shop") {
+          paths.push(path);
+          return;
+        }
+        for (const to of exits(id))
+          walk(to, Math.max(1, left) - 1, [...path, to]);
+      }
+      walk(next, state.movement.remaining - 1, [origin, next]);
+      return {
+        next,
+        option,
+        paths,
+        landings: [...new Set(paths.map((p) => p.at(-1)))],
+      };
+    });
+  }
   return {
     characters,
     games,
     skins,
     items,
+    shops,
+    routePreviews,
     spaces,
     spaceInfo,
     holes,
@@ -577,6 +624,6 @@
         ]),
       );
     },
-    version: "BOARDWALK_CARNIVAL_V5",
+    version: "BOARDWALK_CARNIVAL_V6",
   };
 });

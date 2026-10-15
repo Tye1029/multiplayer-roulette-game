@@ -111,8 +111,27 @@ export function festivalScenes(H) {
       cyl(w.root, 0, 0.1, 0, 9.7, 10, 0.55, "#d6af85", 48);
       cyl(w.root, 0, 0.4, 0, 9.4, 9.4, 0.08, "#8dbec1", 48);
       ring(w.root, 0, 0.49, 0, 8, "#fff0b7");
-      w.bubble = ball(w.root, 0, 2, 0, 0.6, 0.6, 0.6, "#e8a4cb");
-      w.fuse = tube(w.bubble, [0, 0.5, 0], [0.25, 0.85, 0], 0.055, "#f5cd79");
+      w.bubble = new T.Group();
+      w.root.add(w.bubble);
+      w.bombBody = ball(w.bubble, 0, 0, 0, 0.34, 0.36, 0.34, "#394058");
+      ball(w.bubble, -0.1, 0.12, 0.27, 0.08, 0.12, 0.025, "#8a91af");
+      cyl(w.bubble, 0, 0.36, 0, 0.12, 0.14, 0.13, "#b3a084", 12);
+      w.fuse = tube(w.bubble, [0, 0.4, 0], [0.14, 0.76, 0], 0.025, "#e7c38d");
+      w.spark = new T.Group();
+      w.bubble.add(w.spark);
+      ball(w.spark, 0, 0, 0, 0.085, 0.085, 0.085, "#ffe8a1");
+      w.sparks = Array.from({ length: 6 }, (_, i) =>
+        ball(
+          w.spark,
+          Math.cos(i) * 0.15,
+          Math.sin(i) * 0.15,
+          0,
+          0.025,
+          0.025,
+          0.025,
+          i % 2 ? "#ffa859" : "#fff3ae",
+        ),
+      );
       w.projectiles = Array.from({ length: 24 }, () => {
         const p = ball(w.root, 0, 1, 0, 0.28, 0.28, 0.28, "#bb8963");
         p.visible = false;
@@ -418,9 +437,52 @@ export function festivalScenes(H) {
           st.order = sign(p, "AYE!", 0, 3.6, -2, 0.55);
           st.hat = cyl(p, 0, 3, -2, 0.5, 0.75, 0.35, "#f1d292", 5);
         } else if (id === "fencing") {
-          st.foam = tube(p, [0, 1.2, 1], [1.4, 2, 0], 0.14, color);
-          st.shield = cyl(p, -1.2, 1.2, 1, 0.5, 0.5, 0.12, "#f4d88e", 16);
-          st.shield.rotation.x = Math.PI / 2;
+          st.hands = ["ROCK", "PAPER", "SCISSORS"].map((name, j) => {
+            const card = new T.Group();
+            p.add(card);
+            card.position.set((j - 1) * 1.9, 1.6, 0);
+            box(card, 0, 0, -0.12, 1.65, 1.9, 0.14, "#fff0cf");
+            if (j === 0) {
+              const rock = new T.Mesh(
+                new T.IcosahedronGeometry(0.5, 0),
+                mat("#9c92ba"),
+              );
+              card.add(rock);
+            }
+            if (j === 1) {
+              box(card, 0, 0.08, 0.05, 0.7, 1, 0.08, "#fffefa");
+              for (let n = 0; n < 4; n++)
+                box(
+                  card,
+                  0,
+                  0.35 - n * 0.18,
+                  0.11,
+                  0.45,
+                  0.035,
+                  0.025,
+                  "#8db6c8",
+                );
+            }
+            if (j === 2) {
+              for (const side of [-1, 1]) {
+                const blade = box(
+                  card,
+                  side * 0.17,
+                  0.22,
+                  0.03,
+                  0.12,
+                  0.85,
+                  0.08,
+                  "#a6b6c6",
+                );
+                blade.rotation.z = side * 0.38;
+                torus(card, side * 0.2, -0.35, 0.04, 0.19, 0.065, "#a67ac4");
+              }
+              ball(card, 0, -0.03, 0.1, 0.08, 0.08, 0.06, "#f3c76e");
+            }
+            sign(card, name, 0, -0.72, 0.15, 0.19);
+            return card;
+          });
         }
       }
       st.scoreBar = box(p, 0, 0.65, 10, 4, 0.08, 0.18, "#fff1b8");
@@ -639,7 +701,7 @@ export function festivalScenes(H) {
         z = p.z + Math.sin((slot * TAU) / count) * 1.6;
       } else if (id === "bomb") {
         z = p.z;
-        mode = now - v.throwAt < 400 ? "fish" : "idle";
+        mode = now - v.throwAt < 550 || shared.holder === i ? "fish" : "idle";
       } else if (id === "rope") {
         z = 1;
         y += Math.sin(clamp((now - (v.jumpAt || 0)) / 900) * Math.PI) * 2;
@@ -724,13 +786,19 @@ export function festivalScenes(H) {
         mode = now - v.pullAt < 500 ? "fish" : "idle";
       } else if (id === "fencing") {
         const reveal = v.reveal,
-          fresh = now - (reveal?.at || 0) < 900;
-        st.foam.rotation.y =
-          fresh && reveal.value === "attack"
-            ? Math.sin(((now - reveal.at) / 900) * Math.PI)
-            : -0.3;
-        st.shield.scale.setScalar(fresh && reveal.value === "block" ? 1.3 : 1);
-        mode = fresh ? (reveal.value === "block" ? "duck" : "fish") : "idle";
+          fresh = now - (reveal?.at || 0) < 1800;
+        st.hands.forEach((card, j) => {
+          const selected = ["rock", "paper", "scissors"][j] === reveal?.value;
+          const scale = fresh ? (selected ? 1.15 : 0.55) : 0.85;
+          card.scale.lerp(new T.Vector3(scale, scale, scale), 0.18);
+          card.position.y = mix(
+            card.position.y,
+            fresh && selected ? 2.3 : 1.6,
+            0.18,
+          );
+          card.rotation.y = fresh ? 0 : Math.sin(t * 1.5 + j) * 0.04;
+        });
+        mode = fresh ? "fish" : "idle";
       }
       if (now - (v.hitAt || 0) < 650 || v.failedAt) mode = "sad";
       if (st.cannon) st.cannon.visible = true;
@@ -746,7 +814,19 @@ export function festivalScenes(H) {
         a.rotation.z = fall * 1.4;
         a.visible = fall < 1;
       } else a.rotation.z = 0;
-      a.position.set(x, y, z);
+      const smooth =
+        a.userData.positionTime === undefined
+          ? 1
+          : 1 -
+            Math.exp(
+              -20 * Math.min(0.06, Math.max(0, t - a.userData.positionTime)),
+            );
+      a.userData.positionTime = t;
+      a.position.set(
+        mix(a.position.x, x, smooth),
+        y,
+        mix(a.position.z, z, smooth),
+      );
       a.scale.setScalar(id === "maze" ? 0.45 : id === "kart" ? 0.55 : 0.78);
       a.rotation.y =
         id === "kart" ? Math.PI : circular ? Math.atan2(-x, -z) : 0.2;
@@ -757,17 +837,31 @@ export function festivalScenes(H) {
         from = ids.indexOf(shared.from ?? shared.holder ?? ids[0]);
       const at = w.stations[Math.max(0, slot)].root.position,
         prev = w.stations[Math.max(0, from)].root.position;
-      const q = clamp((now - (shared.passedAt || 0)) / 450);
+      const q = clamp((now - (shared.passedAt || 0)) / 500),
+        ease = q * q * (3 - 2 * q);
       w.bubble.visible = id === "bomb";
       w.bubble.position.set(
-        mix(prev.x, at.x, q),
-        2 + Math.sin(q * Math.PI) * 3,
-        mix(prev.z, at.z, q),
+        mix(prev.x, at.x, ease),
+        1.55 + Math.sin(q * Math.PI) * 2,
+        mix(prev.z, at.z, ease),
       );
-      w.bubble.scale.setScalar(1 + Math.sin(t * 14) * 0.07);
-      w.bubble.material = mat(
-        shared.fuseEnd - now < 900 ? "#f0809d" : "#aab0ef",
+      w.bubble.rotation.z =
+        q < 1 ? Math.sin(q * Math.PI) * 1.5 : Math.sin(t * 2) * 0.035;
+      w.bubble.scale.setScalar(
+        1 + (shared.fuseEnd - now < 900 ? Math.sin(t * 18) * 0.045 : 0),
       );
+      w.bombBody.material = mat(
+        shared.fuseEnd - now < 900 ? "#78485c" : "#394058",
+      );
+      const fuse = shared.fuseEnd
+        ? clamp((shared.fuseEnd - now) / 3200, 0.05, 1)
+        : 1;
+      w.fuse.scale.setScalar(fuse);
+      w.fuse.position.set(0.07 * fuse, 0.4 + 0.18 * fuse, 0);
+      w.spark.position.set(0.14 * fuse, 0.4 + 0.36 * fuse, 0);
+      w.spark.scale.setScalar(0.8 + Math.sin(t * 36) * 0.2);
+      w.spark.rotation.z = t * 9;
+      w.spark.visible = s?.phase === "playing";
       w.projectiles.forEach((p, j) => {
         const shot = shared.shots?.[j];
         p.visible = !!shot && (!shot.done || now < shot.done);

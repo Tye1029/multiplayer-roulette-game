@@ -98,6 +98,8 @@ test("board decisions allow 60 seconds and minigame results hold for 15", () => 
   const r = fixture("fish");
   play(r, 0, "reel", 22200);
   M.advance(r, 55000);
+  assert.equal(r.phase, "measuring");
+  M.advance(r, r.deadline);
   assert.equal(r.phase, "round-end");
   assert.equal(r.deadline - r.game.resultAt, 15000);
 });
@@ -171,7 +173,7 @@ test("finish bonuses rank earlier racers higher, exact-time ties share placement
 });
 test("sealed duel moves and future confetti outcomes are absent from every public view", () => {
   const s = fixture("fencing", 2);
-  play(s, 0, "attack", 21000);
+  play(s, 0, "rock", 21000);
   for (const who of ["0", "1"]) {
     const pub = M.view(s, who, 21100);
     assert.equal(pub.game.privateChoices, undefined);
@@ -181,11 +183,11 @@ test("sealed duel moves and future confetti outcomes are absent from every publi
     assert.equal(pub.game.progress[0].reveal, undefined);
   }
   assert.equal(M.view(s, "0", 21100).game.progress[0].locked, true);
-  play(s, 1, "feint", 21100);
+  play(s, 1, "scissors", 21100);
   M.advance(s, 22251);
   assert.equal(s.game.scores[0], 300);
   assert.equal(s.game.scores[1], 0);
-  assert.throws(() => play(s, 0, "attack", 21200), /Wait/);
+  assert.throws(() => play(s, 0, "rock", 21200), /Wait/);
   const c = fixture("confetti");
   assert.equal(M.view(c, "0", 21000).game.cue.trap, undefined);
 });
@@ -251,6 +253,10 @@ test("all 30 games complete under sparse polls, validate controls and keep finit
     s.players.forEach((p) => (p.bot = true));
     for (let time = 20000; time <= 57000 && s.phase === "playing"; time += 1100)
       M.advance(s, time);
+    if (def.id === "fish") {
+      assert.equal(s.phase, "measuring");
+      M.advance(s, s.deadline);
+    }
     assert.equal(s.phase, "round-end", def.id);
     assert.ok(
       g.progress.some((v) => v.inputs > 0),

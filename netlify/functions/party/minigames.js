@@ -43,6 +43,16 @@ function setup(g) {
       b.values[b.lane] = rnd(5) === 0 ? -3 : rnd(4) === 0 ? 4 : 2;
     }
   if (g.id === "signal") for (const b of g.beats) b.at += rnd(650);
+  if (g.id === "fish") {
+    g.fishBase = 70 + rnd(16);
+    g.fishBeats = g.progress.map((_, i) =>
+      g.beats.map((b) => ({
+        index: b.index,
+        at: b.at + i * 240 + rnd(160),
+        window: 1100,
+      })),
+    );
+  }
   for (const v of g.progress)
     Object.assign(v, {
       lane: 1,
@@ -58,9 +68,11 @@ function setup(g) {
       duckAt: 0,
     });
 }
-function cue(g, now) {
+function cue(g, now, i = 0) {
   if (F.handled(g.id)) return F.cue(g, now);
-  return g.beats?.find((b) => now - g.start <= b.at + b.window) || null;
+  if (g.id === "fish" && g.progress[i]?.catch) return null;
+  const beats = g.id === "fish" ? g.fishBeats[i] : g.beats;
+  return beats?.find((b) => now - g.start <= b.at + b.window) || null;
 }
 function award(g, i, value, now, label) {
   const v = g.progress[i];
@@ -91,7 +103,8 @@ function advance(g, i, now) {
   if (!handled(g.id)) return;
   const v = g.progress[i];
   if (v.finished) return;
-  for (const b of g.beats) {
+  const beats = g.id === "fish" ? g.fishBeats[i] : g.beats;
+  for (const b of beats) {
     const due = g.start + b.at + b.window;
     if (now < due || b.index <= v.resolved) continue;
     const active = v.inputs > 0 && due - v.last < 6500;
@@ -159,7 +172,7 @@ function advance(g, i, now) {
 function play(g, i, b, now, fail) {
   if (F.handled(g.id)) return F.play(g, i, b, now, fail);
   const v = g.progress[i],
-    beat = cue(g, now);
+    beat = cue(g, now, i);
   if (!beat || v.finished) fail("Your round is finished.");
   if (["cascade", "dash"].includes(g.id)) {
     if (g.id === "cascade" && b.value === "stay") {
@@ -212,26 +225,30 @@ function play(g, i, b, now, fail) {
       v.combo++;
       let score = Math.round(180 + 220 * (1 - Math.max(0, dt) / beat.window));
       if (g.id === "fish") {
-        score =
-          (beat.rarity < 65 ? 150 : beat.rarity < 90 ? 300 : 600) +
-          Math.round(150 * (1 - Math.max(0, dt) / beat.window));
+        score = Math.round(
+          25 + g.fishBase * (1 - Math.max(0, dt) / beat.window),
+        );
         v.catch = {
           at: now,
           score,
+          length: score,
           rarity:
-            beat.rarity < 65
+            score < 50
               ? "Sunny sprat"
-              : beat.rarity < 90
+              : score < 80
                 ? "Coral snapper"
                 : "Festival koi",
         };
+        v.finished = now + 1800;
       }
       award(
         g,
         i,
         score,
         now,
-        "+" + score + (g.id === "fish" ? " · " + v.catch.rarity : " Perfect!"),
+        g.id === "fish"
+          ? "Fish landed! Wait for the measure…"
+          : "+" + score + " Perfect!",
       );
     }
   }
@@ -239,7 +256,7 @@ function play(g, i, b, now, fail) {
 function bot(g, i, now) {
   if (F.handled(g.id)) return F.bot(g, i, now);
   const v = g.progress[i],
-    b = cue(g, now);
+    b = cue(g, now, i);
   if (!b) return null;
   if (g.id === "cascade") {
     const best = b.values.indexOf(Math.max(...b.values));

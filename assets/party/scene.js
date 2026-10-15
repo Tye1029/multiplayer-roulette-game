@@ -1,6 +1,6 @@
 import * as T from "./vendor/three.module.min.js";
-import { carnivalScenes } from "./carnival-scenes.js?v=BOARDWALK_CARNIVAL_V5";
-import { festivalScenes } from "./festival-scenes.js?v=BOARDWALK_CARNIVAL_V5";
+import { carnivalScenes } from "./carnival-scenes.js?v=BOARDWALK_CARNIVAL_V6";
+import { festivalScenes } from "./festival-scenes.js?v=BOARDWALK_CARNIVAL_V6";
 const C = globalThis.PartyCatalog,
   TAU = Math.PI * 2,
   clamp = (n, a = 0, b = 1) => Math.max(a, Math.min(b, n)),
@@ -679,42 +679,69 @@ function costumeMascot(id, skin) {
   return root;
 }
 function animateCharacter(m, t, mode = "idle", amount = 1) {
+  mode = m.userData.resultMode || mode;
   const u = m.userData,
+    blend =
+      u.poseAt === undefined
+        ? 1
+        : 1 - Math.exp(-14 * Math.min(0.06, Math.max(0, t - u.poseAt))),
     walk = mode === "walk",
     win = mode === "win" || mode === "jump",
     fish = mode === "fish",
     climb = mode === "climb";
-  u.rig.position.y =
+  u.poseAt = t;
+  u.rig.position.y = mix(
+    u.rig.position.y,
     (walk
       ? Math.abs(Math.sin(t * 10)) * 0.1
       : win
         ? Math.abs(Math.sin(t * 4)) * 0.24
-        : Math.sin(t * 2) * 0.018) * amount;
-  u.rig.rotation.z = mode === "sad" ? Math.sin(t * 1.8) * 0.08 : 0;
-  u.head.rotation.x = mode === "sad" ? 0.28 : mode === "fish" ? -0.08 : 0;
-  u.rig.scale.y = mode === "duck" ? 0.7 : 1;
-  u.head.rotation.z = Math.sin(t * 1.8) * 0.035;
+        : Math.sin(t * 2) * 0.018) * amount,
+    blend,
+  );
+  u.rig.rotation.z = mix(
+    u.rig.rotation.z,
+    mode === "sad" ? Math.sin(t * 1.8) * 0.08 : 0,
+    blend,
+  );
+  u.head.rotation.x = mix(
+    u.head.rotation.x,
+    mode === "sad" ? 0.28 : mode === "fish" ? -0.08 : 0,
+    blend,
+  );
+  u.rig.scale.y = mix(u.rig.scale.y, mode === "duck" ? 0.7 : 1, blend);
+  u.head.rotation.z = mix(u.head.rotation.z, Math.sin(t * 1.8) * 0.035, blend);
   u.legs.forEach(
     (l, i) =>
-      (l.rotation.x =
+      (l.rotation.x = mix(
+        l.rotation.x,
         (walk
           ? Math.sin(t * 10 + i * Math.PI) * 0.6
           : climb
             ? Math.sin(t * 5 + i * Math.PI) * 0.4
-            : 0) * amount),
+            : 0) * amount,
+        blend,
+      )),
   );
   u.arms.forEach((a, i) => {
-    a.rotation.x =
+    a.rotation.x = mix(
+      a.rotation.x,
       (walk
         ? -Math.sin(t * 10 + i * Math.PI) * 0.65
         : climb
           ? -1.6 + Math.sin(t * 5 + i * Math.PI) * 0.55
           : fish
             ? -1.0
-            : 0) * amount;
-    a.rotation.z = win
-      ? (i ? 1 : -1) * (1.8 + Math.sin(t * 6) * 0.2)
-      : Math.sin(t * 2 + i) * 0.06;
+            : 0) * amount,
+      blend,
+    );
+    a.rotation.z = mix(
+      a.rotation.z,
+      win
+        ? (i ? 1 : -1) * (1.8 + Math.sin(t * 6) * 0.2)
+        : Math.sin(t * 2 + i) * 0.06,
+      blend,
+    );
   });
   if (u.tail) u.tail.rotation.z = Math.sin(t * 3) * 0.1;
 }
@@ -1040,7 +1067,12 @@ function shopCart(w, tile) {
       1.5,
       i % 2 ? "#fff0d0" : "#e596a8",
     );
-  const name = label("POPPY’S ITEMS", "#fff7df", "#76416b", 0.64);
+  const name = label(
+    C.shops[tile.id].name.toUpperCase(),
+    "#fff7df",
+    "#76416b",
+    0.64,
+  );
   name.position.set(0, 3.05, 0.2);
   g.add(name);
   const merchant = mascot("shopkeeper");
@@ -1221,7 +1253,9 @@ function boardWorld() {
       }
       if (n.id >= C.outerCount || next >= C.outerCount) {
         for (const side of [-1, 1]) {
-          const v = new T.Vector3(-d.z, 0, d.x).multiplyScalar(side * 0.66);
+          const v = new T.Vector3(-d.z, 0, d.x)
+            .normalize()
+            .multiplyScalar(side * 1.53);
           tube(
             w.root,
             a
@@ -1613,7 +1647,12 @@ function updateBoard(w, s, t, extra) {
     }
     a.position.set(x, y, z);
     a.scale.setScalar(0.72);
-    if (!walking) a.rotation.y = 0.28;
+    if (!walking)
+      a.rotation.y +=
+        Math.atan2(
+          Math.sin(0.28 - a.rotation.y),
+          Math.cos(0.28 - a.rotation.y),
+        ) * 0.15;
     animateCharacter(
       a,
       t + i,
@@ -1626,7 +1665,8 @@ function updateBoard(w, s, t, extra) {
           : s?.phase === "space" && s.event?.player === p.id
             ? s.event.kind === "loss"
               ? "sad"
-              : ["coins", "gift", "lucky", "trophy"].includes(s.event.kind)
+              : ["coins", "gift", "lucky"].includes(s.event.kind) ||
+                  (s.event.kind === "trophy-purchase" && s.event.bought)
                 ? "win"
                 : "idle"
             : "idle",
@@ -1675,16 +1715,102 @@ function updateBoard(w, s, t, extra) {
       ),
     );
   if (w.tideGate) w.tideGate.rotation.z = s?.tide ? -0.9 : 0;
+  const previewKey =
+    s?.phase === "choice"
+      ? JSON.stringify([s.routePreviews, extra.selectedRoute])
+      : "";
+  if (w.previewKey !== previewKey) {
+    if (w.routePreview) {
+      w.root.remove(w.routePreview);
+      w.routePreview.traverse((o) => {
+        if (o.isLine) {
+          o.geometry.dispose();
+          o.material.dispose();
+        }
+        if (o.isSprite) {
+          o.material.map?.dispose();
+          o.material.dispose();
+        }
+      });
+    }
+    w.routePreview = new T.Group();
+    w.root.add(w.routePreview);
+    w.previewKey = previewKey;
+    if (s?.phase === "choice")
+      for (const route of s.routePreviews || []) {
+        const color = route.option ? "#e89750" : "#8765cd",
+          selected =
+            extra.selectedRoute == null || extra.selectedRoute === route.next;
+        for (const path of route.paths) {
+          const geometry = new T.BufferGeometry().setFromPoints(
+            path.map((id) => {
+              const n = C.spaces[id];
+              return new T.Vector3(n.x, n.y + 0.33, n.z);
+            }),
+          );
+          const line = new T.Line(
+            geometry,
+            new T.LineBasicMaterial({
+              color,
+              transparent: true,
+              opacity: selected ? 1 : 0.35,
+            }),
+          );
+          w.routePreview.add(line);
+        }
+        for (const id of route.landings) {
+          const n = C.spaces[id],
+            ring = torus(
+              w.routePreview,
+              n.x,
+              n.y + 0.32,
+              n.z,
+              1.2,
+              selected ? 0.1 : 0.05,
+              color,
+            );
+          ring.rotation.x = Math.PI / 2;
+          const sign = label(
+            (route.option ? "B" : "A") + " · " + C.spaceInfo[n.type].name,
+            "#fff",
+            color,
+            0.42,
+          );
+          sign.position.set(n.x, n.y + 1.35, n.z);
+          w.routePreview.add(sign);
+        }
+      }
+  }
   let target = new T.Vector3(0, 0, 0),
     extent = 39;
   if (complete) {
     target.set(0, 1.6, 3.4);
     extent = 14;
   }
+  if (s?.phase === "choice") {
+    const points = [
+      C.spaces[s.players[s.turn].position],
+      ...(s.routePreviews || []).flatMap((r) =>
+        r.landings.map((id) => C.spaces[id]),
+      ),
+    ];
+    const xs = points.map((p) => p.x),
+      zs = points.map((p) => p.z);
+    target.set(
+      (Math.min(...xs) + Math.max(...xs)) / 2,
+      1,
+      (Math.min(...zs) + Math.max(...zs)) / 2,
+    );
+    extent = Math.max(
+      18,
+      Math.max(...xs) - Math.min(...xs) + 9,
+      Math.max(...zs) - Math.min(...zs) + 9,
+    );
+  }
   if (
     s &&
     !extra.overview &&
-    ["board", "rolling", "walking", "choice", "space"].includes(s.phase)
+    ["board", "rolling", "walking", "space"].includes(s.phase)
   ) {
     const a = w.actors[s.turn];
     if (a) {
@@ -1826,11 +1952,13 @@ function fishWorld() {
   w.bobbers = [];
   w.fishes = [];
   w.ripples = [];
+  w.rulers = [];
+  w.measureMarkers = [];
   for (let i = 0; i < 4; i++) {
     const x = (i - 1.5) * 5.2;
-    box(w.root, x, 0.15, 0, 2.3, 0.35, 6, "#d4ab76");
+    box(w.root, x, 0.15, 0, 3.8, 0.35, 6, "#d4ab76");
     for (let j = 0; j < 12; j++)
-      box(w.root, x, 0.35, -2.7 + j * 0.48, 2.3, 0.025, 0.045, "#ac805c");
+      box(w.root, x, 0.35, -2.7 + j * 0.48, 3.8, 0.025, 0.045, "#ac805c");
     for (const side of [-1, 1]) {
       cyl(w.root, x + side * 1, 0.0, 2.5, 0.12, 0.15, 2, "#8f7660");
       cyl(w.root, x + side * 1, 0, -2, 0.12, 0.15, 2, "#8f7660");
@@ -1841,7 +1969,16 @@ function fishWorld() {
     tube(rod, [0.25, 0.8, 0.1], [0.3, 2, 2.2], 0.035, "#34475c");
     tube(rod, [0.3, 2, 2.2], [0.3, -0.9, 3.6], 0.008, "#fff4ce");
     w.rods.push(rod);
-    const bob = ball(w.root, x + 0.3, -0.5, 4.8, 0.11, 0.19, 0.11, "#f27b77");
+    const bob = ball(
+      w.root,
+      x + 0.3,
+      -0.5,
+      4.8,
+      0.11,
+      0.19,
+      0.11,
+      ["#60bddf", "#e783ad", "#76c794", "#eec059"][i],
+    );
     w.bobbers.push(bob);
     const rings = Array.from({ length: 3 }, () => {
       const ring = torus(w.root, x + 0.3, -0.56, 4.8, 0.8, 0.025, "#fff2cd");
@@ -1866,6 +2003,41 @@ function fishWorld() {
     fish.visible = false;
     w.root.add(fish);
     w.fishes.push(fish);
+    const ruler = new T.Group();
+    ruler.position.set(x, 0.39, 1.9);
+    w.root.add(ruler);
+    box(ruler, 0, 0, 0, 3.2, 0.06, 0.65, "#fff1cb");
+    for (let n = 0; n <= 12; n++)
+      box(
+        ruler,
+        -1.4 + (n * 2.8) / 12,
+        0.04,
+        0.19,
+        0.025,
+        0.025,
+        n % 3 === 0 ? 0.27 : 0.14,
+        "#755b53",
+      );
+    const zero = label(
+      "0             60            120 cm",
+      "#644e53",
+      "#fff1cb",
+      0.21,
+    );
+    zero.position.set(0, 0.06, 0.72);
+    ruler.add(zero);
+    const marker = box(ruler, -1.4, 0.09, 0, 0.04, 0.06, 0.7, "#bc668d");
+    ruler.visible = false;
+    w.rulers.push(ruler);
+    w.measureMarkers.push(marker);
+    const owner = label(
+      ["BLUE", "PINK", "MINT", "GOLD"][i],
+      "#33465a",
+      ["#a9e4f3", "#f8c3d9", "#b1e9c8", "#ffe39b"][i],
+      0.29,
+    );
+    owner.position.set(x, 0.5, -1.3);
+    w.root.add(owner);
   }
   lighthouse(w, 12, -6);
   building(w, -10, -5, 0.9, "#f3b489", "#98bba7", "FRESH CATCH");
@@ -1881,36 +2053,65 @@ function updateFish(w, s, t) {
     a.scale.setScalar(1);
     const v = s?.game?.progress[i],
       age = v?.catch ? (t * 1000 - v.catch.at) / 1000 : 10;
-    animateCharacter(a, t + i, age < 1.5 && v?.catch?.score ? "fish" : "idle");
+    animateCharacter(
+      a,
+      t + i,
+      (age < 1.8 && v?.catch?.score) || t * 1000 - (v?.reelAt || 0) < 650
+        ? "fish"
+        : "idle",
+    );
+    const reelAge = Math.min(age, (t * 1000 - (v?.reelAt || 0)) / 1000);
     w.rods[i].rotation.x =
-      age < 1.8
-        ? -0.65 * Math.sin(Math.PI * clamp(age / 1.8))
+      reelAge < 1.8
+        ? -0.65 * Math.sin(Math.PI * clamp(reelAge / 1.8))
         : Math.sin(t * 1.4 + i) * 0.02;
-    const cue = s?.game?.cue,
+    const cue = s?.game?.cues?.[i] || (!s ? { at: 3000, window: 1100 } : null),
       dt = t * 1000 - (s?.game?.start || 0) - (cue?.at || 0),
       splash = cue && dt >= 0 && dt < cue.window;
     w.ripples[i].forEach((ring, j) => {
       const phase = (t * 1.3 + j / 3) % 1;
       ring.visible = !!cue && dt > -2200 && dt < cue.window;
       ring.scale.setScalar((splash ? 1.2 : 0.5) + phase * (splash ? 1.5 : 0.6));
-      ring.material = mat(splash ? "#ffd16d" : "#f3f5dd");
+      ring.material = mat(
+        splash ? "#ffd16d" : ["#82d9ef", "#efabd0", "#a3e7bb", "#f6d587"][i],
+      );
     });
     w.bobbers[i].position.y = -0.5 + Math.sin(t * 3 + i) * 0.07;
     const f = w.fishes[i];
-    f.visible = !!v?.catch?.score && age >= 0 && age < 1.8;
+    w.bobbers[i].visible = !v?.catch;
+    w.rods[i].visible = !v?.catch || age < 1.8;
+    f.visible = !!v?.catch?.score && age >= 0;
     if (f.visible) {
+      const q = clamp(age / 1.6),
+        ease = q * q * (3 - 2 * q),
+        size = ((v.catch.length || v.catch.score) / 120) * 2.8;
+      f.scale.setScalar(size);
       f.position.set(
-        a.position.x + 0.3,
-        -0.3 + Math.sin((age / 1.8) * Math.PI) * 2.5,
-        4.8 - age * 2,
+        mix(a.position.x + 0.3, a.position.x - 1.4 + size * 0.55, ease),
+        mix(-0.4, 0.48 + size * 0.19, ease) + Math.sin(q * Math.PI) * 2.8,
+        mix(4.8, 1.8, ease),
       );
-      f.rotation.z = t * 4;
+      f.rotation.z =
+        q < 1
+          ? Math.sin(q * Math.PI) * -0.4
+          : Math.sin(t * 18) * 0.08 * Math.exp(-Math.max(0, age - 1.6) * 1.3);
+      f.rotation.y = q < 1 ? Math.sin(q * Math.PI) * 0.25 : 0;
     }
+    const measure =
+      s?.phase === "measuring" ||
+      ["round-end", "side-result"].includes(s?.phase);
+    w.rulers[i].visible = measure && !!v?.catch;
+    if (measure)
+      w.measureMarkers[i].position.x =
+        -1.4 +
+        ((v?.catch?.length || 0) / 120) *
+          2.8 *
+          clamp((t * 1000 - (s.game.measureAt || 0) - 500) / 4000);
   });
   return {
     target: new T.Vector3(0, 0.4, 0),
-    extent: 18,
-    position: [13, 17, 29],
+    extent: s?.phase === "measuring" ? 26 : 18,
+    position: s?.phase === "measuring" ? [0, 26, 22] : [13, 17, 29],
   };
 }
 function memoryWorld() {
@@ -2190,7 +2391,11 @@ function updatePutt(w, s, t, extra) {
     animateCharacter(
       a,
       t,
-      shot && t * 1000 - shot.at < 700 ? "fish" : v?.finished ? "win" : "idle",
+      (shot && t * 1000 - shot.at < 700) || t * 1000 - (v?.swingAt || 0) < 700
+        ? "fish"
+        : v?.finished
+          ? "win"
+          : "idle",
       0.6,
     );
     if (!a.userData.club) {
@@ -2447,6 +2652,46 @@ function fallback(canvas, kind, s, extra = {}) {
 }
 function render(canvas, kind, state, time = 0, extra = {}) {
   if (!canvas) return;
+  if (kind !== "board" && state?.game) {
+    if (["intro", "countdown"].includes(state.phase))
+      time = state.game.start / 1000;
+    const input = extra.localInput;
+    if (
+      state.phase === "playing" &&
+      input &&
+      !input.rejected &&
+      input.game === state.game.id &&
+      input.start === state.game.start &&
+      time * 1000 - input.at >= 0 &&
+      time * 1000 - input.at < 900
+    ) {
+      const i = state.players.findIndex((p) => p.id === state.you),
+        progress = [...state.game.progress];
+      progress[i] = { ...progress[i], ...input.fields };
+      let shared = state.game.shared;
+      if (
+        input.game === "bomb" &&
+        (input.pending || shared.from === i) &&
+        ["left", "right"].includes(input.value)
+      ) {
+        const active = state.game.active.filter(
+            (j) => !state.game.progress[j].eliminatedAt,
+          ),
+          slot = active.indexOf(i);
+        shared = {
+          ...shared,
+          from: i,
+          holder:
+            active[
+              (slot + (input.value === "left" ? -1 : 1) + active.length) %
+                active.length
+            ],
+          passedAt: input.at,
+        };
+      }
+      state = { ...state, game: { ...state.game, progress, shared } };
+    }
+  }
   const width = canvas.clientWidth || 600,
     height = canvas.clientHeight || 440,
     d = Math.min(devicePixelRatio || 1, 1.6);
@@ -2521,18 +2766,18 @@ function render(canvas, kind, state, time = 0, extra = {}) {
         state.game.participants.includes(a.userData.playerId) &&
         !(v?.eliminatedAt && time * 1000 - v.eliminatedAt >= 1100);
     }
-  if (state && ["round-end", "side-result"].includes(state.phase))
+  if (state)
     for (const a of w.actors) {
-      a.rotation.y = 0.3;
-      animateCharacter(
-        a,
-        time,
-        state.game.winners?.includes(a.userData.playerId) ? "win" : "sad",
-      );
+      a.userData.resultMode = ["round-end", "side-result"].includes(state.phase)
+        ? state.game.winners?.includes(a.userData.playerId)
+          ? "win"
+          : "sad"
+        : null;
     }
   if (
     state &&
     width / height < 1 &&
+    !(kind === "fish" && state.phase === "measuring") &&
     [
       "cascade",
       "dash",
@@ -2597,6 +2842,15 @@ function render(canvas, kind, state, time = 0, extra = {}) {
     }
   } else if (kind !== "board" && width / height < 1) {
     view.extent = Math.max(view.extent, 22 / (width / height));
+  }
+  if (kind === "fish" && state?.phase === "measuring") {
+    view.extent = Math.max(14, 22 / (width / height));
+    view.target.set(0, 0.5, 1);
+  }
+  if (kind === "fencing" && state?.game) {
+    view.extent = Math.max(12, 15 / (width / height));
+    view.target.set(0, 1, 1);
+    view.position = [3, 18, 25];
   }
   if (
     kind === "board" &&

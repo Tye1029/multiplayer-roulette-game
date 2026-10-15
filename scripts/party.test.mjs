@@ -142,6 +142,10 @@ test("items enforce turn ownership, one use, coin costs and shop-only purchases"
     /one item/,
   );
   M.act(shop, "0", { action: "continue", round: 1 }, 12500);
+  assert.equal(shop.phase, "walking");
+  assert.equal(shop.players[0].position, 5);
+  M.advance(shop, shop.deadline);
+  M.advance(shop, shop.deadline);
   assert.equal(shop.turn, 1);
 });
 test("branch choices use connected edges and preserve remaining dice steps", () => {
@@ -189,7 +193,7 @@ test("all space effects preserve nonnegative coins; gifts and shields have real 
     );
   }
 });
-test("passing the current trophy spends exactly ten coins and moves the host", () => {
+test("passing the trophy pauses for a purchase before spending ten coins and moving the host", () => {
   const s = fixture();
   s.players[0].position = C.trophyStops[0] - 1;
   s.phase = "rolling";
@@ -197,6 +201,11 @@ test("passing the current trophy spends exactly ten coins and moves the host", (
   s.movement = { remaining: 1 };
   s.deadline = 12000;
   M.advance(s, 12000);
+  assert.equal(s.players[0].trophies, 0);
+  assert.equal(s.players[0].tokens, 10);
+  M.advance(s, s.deadline);
+  assert.equal(s.event.kind, "trophy-purchase");
+  M.act(s, "0", { action: "buy-trophy", round: 1 }, s.deadline - 1000);
   assert.equal(s.players[0].trophies, 1);
   assert.equal(s.players[0].tokens, 0);
   assert.equal(s.goal, C.trophyStops[1]);
@@ -321,18 +330,19 @@ test("three putting courses use deterministic physics, sum scores and prevent ex
     /finished/,
   );
 });
-test("ripple fishing accepts six timed bites, rejects early and duplicate pulls, and bounds rewards", () => {
+test("ripple fishing keeps one timed catch, rejects early and duplicate pulls, and bounds its length", () => {
   const s = gameFixture("fish"),
     v = s.game.progress[0];
-  for (const beat of s.game.beats) {
+  for (const beat of s.game.fishBeats[0].slice(0, 1)) {
     const at = s.game.start + beat.at + 200;
     M.advance(s, at);
     input(s, "0", "reel", at, { score: 999999, timestamp: 0 });
-    assert.throws(() => input(s, "0", "reel", at + 150), /next signal/);
+    assert.throws(() => input(s, "0", "reel", at + 150), /finished/);
     M.advance(s, s.game.start + beat.at + beat.window + 1);
   }
-  assert.equal(v.attempts, 6);
-  assert.ok(s.game.scores[0] >= 900 && s.game.scores[0] <= 4500);
+  assert.equal(v.attempts, 1);
+  assert.ok(s.game.scores[0] >= 25 && s.game.scores[0] <= 110);
+  assert.equal(v.catch.length, s.game.scores[0]);
   const early = gameFixture("fish");
   input(early, "0", "reel", early.game.start + 200);
   assert.equal(early.game.scores[0], 0);
@@ -481,6 +491,11 @@ test("single-use triple dice, chosen dice and swaps enforce ownership and valid 
     if (item === "swap") {
       assert.equal(s.players[0].position, 20);
       assert.equal(s.players[1].position, 0);
+    }
+    if (item === "warp") {
+      assert.equal(s.event.kind, "trophy-purchase");
+      assert.equal(s.players[0].trophies, 0);
+      M.act(s, "0", { action: "continue", round: 1 }, 12300);
     }
     M.act(s, "0", { action: "roll", round: 1, total: 999 }, 12400);
     if (item === "triple") {

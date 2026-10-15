@@ -1,4 +1,4 @@
-/* BOARDWALK_CARNIVAL_V5 — guest rooms, authoritative matches, local presentation. */
+/* BOARDWALK_CARNIVAL_V6 — guest rooms, authoritative matches, local presentation. */
 (() => {
   "use strict";
   const C = PartyCatalog,
@@ -44,7 +44,6 @@
     panelKey = "",
     rosterKey = "",
     offset = 0,
-    latency = 0,
     polling = false,
     pollTimer,
     requestBusy = false,
@@ -59,6 +58,14 @@
     lastFrame = 0,
     selectedSpace = null,
     inspectorDock = "top";
+  let inputMode = matchMedia("(pointer: coarse)").matches
+      ? "touch"
+      : "keyboard",
+    localInput = null,
+    lastInputAt = 0,
+    playSending = false,
+    playQueue = [],
+    selectedRoute = null;
   let sound = storage.get("boardwalk-sound") !== "off",
     motion =
       storage.get("boardwalk-motion") !== "off" &&
@@ -84,6 +91,96 @@
     '.svg" alt="' +
     kind +
     '">';
+  const itemImage = (id) =>
+    `<img class="item-image" src="/assets/party/images/items/${id}.svg" alt="${esc(C.items.find((i) => i.id === id)?.name)}">`;
+  function pocket(p) {
+    return `<div class="profile-pocket" aria-label="${esc(p.name)}’s items">${Array.from({ length: 3 }, (_, i) => (p.items[i] ? `<button data-item-info="${p.items[i]}" title="${esc(C.items.find((x) => x.id === p.items[i]).name)}">${itemImage(p.items[i])}</button>` : '<span class="empty-pocket" aria-label="Empty item slot">·</span>')).join("")}</div>`;
+  }
+  function controlsGuide(id) {
+    const list = PartyInteraction.controls(id, C.games),
+      keys = PartyInteraction.bindings(id, C.games);
+    const label = (key) =>
+      ({
+        ArrowUp: "↑",
+        ArrowDown: "↓",
+        ArrowLeft: "←",
+        ArrowRight: "→",
+        Space: "Space",
+      })[key] || key;
+    return `<div class="control-guide"><strong>${inputMode === "touch" ? "TOUCH CONTROLS" : "KEYBOARD + MOUSE"}</strong><p>${id === "putt" ? "Adjust the aim and power sliders, then " : ""}${inputMode === "touch" ? "tap the on-screen buttons:" : "click the buttons or use:"}</p><div>${list
+      .map(
+        ([value, name]) =>
+          `<span>${
+            inputMode === "touch"
+              ? ""
+              : `<kbd>${Object.keys(keys)
+                  .filter((k) => keys[k] === value)
+                  .map(label)
+                  .join(" / ")}</kbd> `
+          }${esc(name)}</span>`,
+      )
+      .join("")}</div></div>`;
+  }
+  function rivalCards(name = "duel-rival") {
+    return `<div class="rival-cards" role="group" aria-label="Choose a rival">${room.players
+      .filter((p) => p.id !== room.you)
+      .map(
+        (p, i) =>
+          `<label class="rival-card"><input type="radio" name="${name}" value="${p.id}" ${i === 0 ? "checked" : ""}><canvas data-character="${p.character}" data-skin="${p.skin}" aria-hidden="true"></canvas><strong>${esc(p.name)}</strong><small>${p.tokens} coins · ${p.trophies} trophies</small></label>`,
+      )
+      .join("")}</div>`;
+  }
+  function chosenRival(name = "duel-rival") {
+    return room.players.find(
+      (p) => p.id === $(`input[name="${name}"]:checked`)?.value,
+    );
+  }
+  function routeButtons(r) {
+    return `<div class="route-choices">${(r.routePreviews || []).map((route, i) => `<button class="route-button" data-next="${route.next}" data-preview-route="${route.next}" style="--route:${i ? "#e89750" : "#8765cd"}"><b>${i ? "B" : "A"} · ${i ? C.spaces[route.next].district : "Promenade"}</b><small>Land on ${route.landings.map((id) => `${C.spaceInfo[C.spaces[id].type].name} · ${id + 1}`).join(" or ")}</small>${route.landings.length > 1 ? "<small>Another path choice ahead</small>" : ""}</button>`).join("")}</div>`;
+  }
+  function eventPanel(r, mine, turn) {
+    const e = r.event,
+      trophy = e.kind === "trophy-purchase",
+      info = trophy ? C.spaceInfo.trophy : C.spaceInfo[e.kind];
+    let body = `<div class="event-icon" style="--space:${info.color}">${info.icon}</div><span class="eyebrow">${esc(turn.name)} ${e.kind === "shop" || trophy ? "IS VISITING" : "LANDED ON"}</span><h2>${trophy ? "A trophy for your collection?" : e.kind === "shop" ? C.shops[turn.position].name : info.name}</h2>`;
+    if (e.kind === "shop" || trophy)
+      body += `<div class="shopkeeper"><canvas data-character="shopkeeper" aria-hidden="true"></canvas><span><b>${trophy ? "The trophy host" : "Poppy"}</b><small>${trophy ? "10 coins · your choice" : "A different selection at each store"}</small></span></div>`;
+    body += `<p class="game-instructions">${esc(e.text)}</p>`;
+    if (!mine)
+      return body + '<p class="status-note">Their choice is coming up.</p>';
+    if (e.kind === "shop")
+      body += `<div class="event-shop">${C.shops[turn.position].stock
+        .map((id) => C.items.find((i) => i.id === id))
+        .map(
+          (i) =>
+            `<button data-buy-item="${i.id}" ${e.bought || me().tokens < i.cost ? "disabled" : ""}>${itemImage(i.id)}<span><strong>${i.name} <b>${icon("coin")} ${i.cost}</b></strong><small>${i.description}</small>${me().items.length === 3 ? "<small>Choose an item to replace</small>" : ""}</span></button>`,
+        )
+        .join("")}</div>`;
+    if (trophy && !e.bought)
+      body += `<button class="primary full" data-action="buy-trophy" ${me().tokens < 10 ? "disabled" : ""}>${icon("trophy")} Buy trophy · 10 coins</button>${me().tokens < 10 ? '<p class="small">You need 10 coins. You can still keep going.</p>' : ""}`;
+    if (e.pendingItem)
+      body += `<div class="gift-offer">${itemImage(e.pendingItem)}<h3>${C.items.find((i) => i.id === e.pendingItem).name}</h3><p>Choose an item to replace:</p>${replacementButtons("accept-item", e.pendingItem)}</div>`;
+    if (e.kind === "duel") {
+      const rival = r.players.find((p) => p.id !== r.you),
+        max = Math.min(50, me().tokens, rival.tokens);
+      return (
+        body +
+        `<div class="duel-picker"><h3>Choose your rival</h3>${rivalCards()}<label for="duel-currency">Battle for</label><select id="duel-currency"><option value="coins">Match coins</option>${r.round >= r.rounds - 2 && me().trophies > 0 ? '<option value="trophy">One trophy each</option>' : ""}</select><label for="duel-stake">Coins each · maximum 50</label><input id="duel-stake" type="number" min="0" max="${max}" value="${Math.min(5, max)}"><button class="primary" data-challenge>Challenge this rival ↗</button><p class="small">Winner takes both stakes. A draw returns them.</p></div>`
+      );
+    }
+    return (
+      body +
+      `<button class="${trophy && !e.bought ? "secondary" : "primary"} full" data-action="continue">${e.pendingItem ? "Leave this item" : e.kind === "shop" ? "Leave shop →" : trophy && !e.bought ? "Keep my coins · continue →" : "Continue →"}</button>`
+    );
+  }
+  function replacementButtons(action, item) {
+    return `<div class="replace-items">${me()
+      .items.map(
+        (id, i) =>
+          `<button data-replace-item="${item}" data-replace-action="${action}" data-replace-index="${i}">${itemImage(id)}<span>Replace ${C.items.find((v) => v.id === id).name}</span></button>`,
+      )
+      .join("")}</div>`;
+  }
   function tone(kind = "tap") {
     PartyAudio.set(sound, musicOn);
     PartyAudio.play(kind, me()?.character || selected);
@@ -135,7 +232,6 @@
         const sample = result.game.serverTime - (started + received) / 2;
         offset = offset ? offset * 0.7 + sample * 0.3 : sample;
       }
-      latency = latency * 0.7 + Math.min(500, elapsed / 2) * 0.3;
     }
     return result;
   }
@@ -247,6 +343,13 @@
     if (room && room.id === next.id && next.revision < room.revision) return;
     const previous = room;
     room = next;
+    if (
+      room.phase === "choice" &&
+      (previous?.phase !== "choice" || previous?.turn !== room.turn)
+    ) {
+      selectedRoute = null;
+      selectedSpace = null;
+    }
     network = true;
     storage.set("boardwalk-room", room.id);
     const url = new URL(location.href);
@@ -264,7 +367,11 @@
     ) {
       const before = previous.game.scores[self] || 0,
         delta = (room.game.scores[self] || 0) - before;
-      if (delta) {
+      if (
+        delta &&
+        room.game.id !== "fish" &&
+        (!room.game.survival || Math.abs(delta) >= 100)
+      ) {
         popup(
           (delta > 0 ? "+" : "") +
             delta +
@@ -317,7 +424,14 @@
     if (room)
       pollTimer = setTimeout(
         poll,
-        delay ?? (room.phase === "playing" ? 850 : 1400),
+        delay ??
+          (room.phase === "countdown"
+            ? 180
+            : room.phase === "playing"
+              ? 450
+              : room.phase === "walking"
+                ? 400
+                : 1000),
       );
   }
   async function poll() {
@@ -368,6 +482,7 @@
         "countdown",
         "round-end",
         "side-result",
+        "measuring",
       ].includes(r.phase);
     document.body.dataset.phase = r.phase;
     if (screen !== mainKey) {
@@ -405,7 +520,7 @@
     const rank = r.players
       .map(
         (p) =>
-          `${p.id}:${p.tokens}:${p.trophies}:${p.name}:${p.skin}:${p.character}:${p.characterPicked}:${places[p.id]}:${r.game?.scores[r.players.indexOf(p)]}:${r.ready.includes(p.id)}:${r.turn}:${r.phase}:${r.game?.coinAwards?.[r.players.indexOf(p)]}`,
+          `${p.id}:${p.items.join(",")}:${p.shield}:${p.tokens}:${p.trophies}:${p.name}:${p.skin}:${p.character}:${p.characterPicked}:${places[p.id]}:${r.game?.scores[r.players.indexOf(p)]}:${r.ready.includes(p.id)}:${r.turn}:${r.phase}:${r.game?.coinAwards?.[r.players.indexOf(p)]}`,
       )
       .join("|");
     if (rank !== rosterKey) {
@@ -413,7 +528,7 @@
       $("#score-strip").innerHTML = r.players
         .map(
           (p, i) =>
-            `<div class="score-chip ${p.id === r.you ? "you" : ""} ${i === r.turn && !playing ? "active-turn" : ""}"><canvas data-character="${p.character}" data-skin="${p.skin}" aria-hidden="true"></canvas><div><strong>${esc(p.name)}${p.id === r.you ? " · you" : ""}${p.bot ? " · bot" : ""}</strong>${r.phase !== "waiting" ? `<small class="standing">${places[p.id]}${["st", "nd", "rd", "th"][places[p.id] - 1]} place</small>` : `<small>${p.characterPicked ? C.characters.find((c) => c.id === p.character)?.name : "Choosing…"}</small>`}<span class="profile-resources">${icon("coin")}<b>${p.tokens}</b>${icon("trophy")}<b>${p.trophies}</b></span>${r.phase === "playing" ? '<small class="live-points">' + r.game.scores[i] + (gameDef().coinGame ? " coins collected" : " pts") + "</small>" : ""}${["round-end", "side-result", "complete"].includes(r.phase) ? '<small class="round-coins">' + ((r.game.coinAwards?.[i] || 0) >= 0 ? "+" : "") + (r.game.coinAwards?.[i] || 0) + " coins</small>" : ""}</div></div>`,
+            `<div class="score-chip ${p.id === r.you ? "you" : ""} ${i === r.turn && !playing ? "active-turn" : ""}"><canvas data-character="${p.character}" data-skin="${p.skin}" aria-hidden="true"></canvas><div><strong>${esc(p.name)}${p.id === r.you ? " · you" : ""}${p.bot ? " · bot" : ""}</strong>${r.phase !== "waiting" ? `<small class="standing">${places[p.id]}${["st", "nd", "rd", "th"][places[p.id] - 1]} place</small>` : `<small>${p.characterPicked ? C.characters.find((c) => c.id === p.character)?.name : "Choosing…"}</small>`}<span class="profile-resources">${icon("coin")}<b>${p.tokens}</b>${icon("trophy")}<b>${p.trophies}</b></span>${pocket(p)}${p.shield ? '<small class="shield-note">Shield active</small>' : ""}${r.phase === "playing" ? '<small class="live-points">' + (r.game.id === "fish" ? (r.game.progress[i].catch ? "Fish landed ✓" : "Waiting for a bite") : r.game.scores[i] + (gameDef().coinGame ? " coins collected" : " pts")) + "</small>" : ""}${["round-end", "side-result", "complete"].includes(r.phase) ? '<small class="round-coins">' + ((r.game.coinAwards?.[i] || 0) >= 0 ? "+" : "") + (r.game.coinAwards?.[i] || 0) + " coins</small>" : ""}</div></div>`,
         )
         .join("");
       portraits($("#score-strip"));
@@ -447,6 +562,8 @@
         !!v?.finished,
         v?.reverse,
         r.event?.bought,
+        r.event?.pendingItem,
+        r.event?.kind,
         r.game?.start,
         r.game?.ready?.join(","),
         r.game?.id,
@@ -467,14 +584,14 @@
             "",
           )}</div><div class="stack"><button class="secondary" data-copy>Copy invite link ↗</button><button class="primary" data-action="ready" ${!me().characterPicked ? "disabled" : ""}>${r.ready.includes(r.you) ? "Ready ✓ · undo" : "I’m ready"}</button>${r.host === r.you ? `<button class="dark-button" data-action="start" ${r.players.length < 2 || r.players.some((p) => !p.characterPicked || (!p.bot && !r.ready.includes(p.id))) ? "disabled" : ""}>Start ${r.mode === "duel" ? "duel" : "party"}</button>${r.players.length < (r.mode === "duel" ? 2 : 4) ? '<button class="quiet" data-action="add-bot">Add a bot seat</button>' : ""}` : '<p class="small">Your host starts when everyone is ready.</p>'}<button class="text-button" data-leave>Leave room</button></div><p class="status-note">${r.mode === "duel" ? "First to two minigame wins." : `${r.rounds} turns per player. Most trophies wins; total minigame points break a tie. Random first player; turn order rotates each turn.`}</p>`;
       else if (r.phase === "board")
-        panel.innerHTML = `<span class="eyebrow">${mine ? "YOUR TURN" : esc(turn.name) + "’S TURN"}</span><h2>${mine ? "Make your move." : "A little suspense…"}</h2><p class="game-instructions">Roll 1–6. Follow the golden beacon: passing it with 10 coins earns a trophy.</p>${
+        panel.innerHTML = `<span class="eyebrow">${mine ? "YOUR TURN" : esc(turn.name) + "’S TURN"}</span><h2>${mine ? "Make your move." : "A little suspense…"}</h2><p class="game-instructions">Roll 1–6. Visit the golden beacon and choose whether to buy a trophy for 10 coins.</p>${
           mine
             ? `<button class="roll-button primary full" data-action="roll"><span class="die-icon">⚄</span> Roll ${me().triple ? "three dice" : me().double ? "two dice" : "the dice"}</button><p class="small pocket-label">YOUR POCKET · ONE ITEM BEFORE ROLLING</p><div class="inventory">${
                 me().items.length
                   ? me()
                       .items.map(
                         (id) =>
-                          `<button data-item="${id}" ${r.usedItem ? "disabled" : ""} title="${C.items.find((x) => x.id === id).description}">${C.items.find((x) => x.id === id).name}</button>`,
+                          `<button data-item="${id}" ${r.usedItem ? "disabled" : ""} title="${C.items.find((x) => x.id === id).description}">${itemImage(id)}<span>${C.items.find((x) => x.id === id).name}</span></button>`,
                       )
                       .join("")
                   : '<span class="small">Visit an item cart or find a parcel.</span>'
@@ -486,25 +603,9 @@
       else if (r.phase === "walking")
         panel.innerHTML = `<span class="eyebrow">ON THE MOVE</span><h2>${esc(turn.name)} rolled ${r.dice?.values.join(" + ")}.</h2><p class="game-instructions">${r.movement.remaining ? "A crossroads is coming up." : "Let’s see where this lands."}</p><div class="travel-dots">${Array.from({ length: r.lastMove?.path.length - 1 || 1 }, () => "<i></i>").join("")}</div>`;
       else if (r.phase === "choice")
-        panel.innerHTML = `<span class="eyebrow">${mine ? "YOUR CHOICE" : esc(turn.name) + " IS CHOOSING"}</span><h2>A fork in the fun.</h2><p class="game-instructions">${r.movement.remaining} spaces left on this roll.</p>${mine ? `<div class="stack">${(r.routes?.[node.id] || node.next).map((next, i) => `<button class="route-button" data-next="${next}">${i ? "Take " + C.spaces[next].district : "Stay on the promenade"}<small>${i ? "A shorter route with different spaces." : "Follow the outer route past the festival stops."}</small></button>`).join("")}</div>` : '<p class="status-note">Which way will they go?</p>'}`;
+        panel.innerHTML = `<span class="eyebrow">${mine ? "YOUR CHOICE" : esc(turn.name) + " IS CHOOSING"}</span><h2>A fork in the fun.</h2><p class="game-instructions">${r.movement.remaining} spaces left. Colored rings show where each route ends.</p>${mine ? routeButtons(r) : "<p>Watch their choice.</p>"}`;
       else if (r.phase === "space") {
-        const e = r.event,
-          info = C.spaceInfo[e.kind];
-        panel.innerHTML = `<div class="event-icon" style="--space:${info.color}">${info.icon}</div><span class="eyebrow">${esc(turn.name)} LANDED ON</span><h2>${info.name}</h2>${e.kind === "shop" ? '<div class="shopkeeper"><canvas data-character="shopkeeper" aria-hidden="true"></canvas><span><b>Poppy</b><small>Your friendly festival trader</small></span></div>' : ""}<p class="game-instructions">${esc(e.text)}</p>${mine && e.kind === "shop" ? `<div class="event-shop">${C.items.map((i) => `<button data-buy-item="${i.id}" ${e.bought || me().tokens < i.cost || me().items.length >= 3 ? "disabled" : ""}><strong>${i.name} <b>● ${i.cost}</b></strong><small>${i.description}</small></button>`).join("")}</div>` : ""}${
-          mine && e.kind === "duel"
-            ? `<div class="duel-picker"><label for="duel-rival">Pick your rival</label><select id="duel-rival">${r.players
-                .filter((p) => p.id !== r.you)
-                .map(
-                  (p) =>
-                    `<option value="${p.id}" data-coins="${p.tokens}" data-trophies="${p.trophies}">${esc(p.name)} · ${p.tokens} coins · ${p.trophies} trophies</option>`,
-                )
-                .join(
-                  "",
-                )}</select><label for="duel-currency">Battle for</label><select id="duel-currency"><option value="coins">Match coins</option>${r.round >= r.rounds - 2 && me().trophies > 0 ? '<option value="trophy">One trophy each</option>' : ""}</select><label for="duel-stake">Coins each · maximum 50</label><input id="duel-stake" type="number" min="0" max="${Math.min(50, me().tokens, r.players.find((p) => p.id !== r.you).tokens)}" value="${Math.min(5, me().tokens, r.players.find((p) => p.id !== r.you).tokens)}"><button class="primary" data-challenge>Challenge this rival ↗</button><p class="small">Both stakes go into the prize pool. A draw returns them.</p></div>`
-            : mine
-              ? '<button class="primary full" data-action="continue">On with the party ↗</button>'
-              : '<p class="status-note">The adventure continues in a moment.</p>'
-        }`;
+        panel.innerHTML = eventPanel(r, mine, turn);
       } else if (r.phase === "intro")
         panel.innerHTML = `<div class="briefing"><span class="eyebrow">${r.game.sideDuel ? "RIVAL SHOWDOWN" : gameDef().coinGame ? "KEEP EVERY COIN" : "UP NEXT"}</span><h2>${gameDef().name}</h2><p class="game-instructions">${gameDef().rules}</p><div class="ready-roster">${r.players
           .filter((p) => r.game.participants.includes(p.id))
@@ -520,7 +621,10 @@
       else if (r.phase === "playing") {
         const active = r.game.participants.includes(r.you);
         panel.innerHTML = `<span class="eyebrow">${r.game.sideDuel ? "RIVAL SHOWDOWN" : gameDef().tag}</span><h2>${gameDef().name}</h2><p class="game-instructions">${gameDef().rules}</p><div class="game-tip"><span>${gameDef().description}</span><button data-rules="${r.game.id}" aria-label="Minigame rules">?</button></div><div class="controls">${!active ? '<div class="reward-pill">Cheer on your friends!</div>' : v.finished ? '<div class="reward-pill">Your round is complete ✓</div><p class="status-note">Watch the others finish.</p>' : controls(r.game.id, v)}</div><div class="game-feedback" id="feedback" aria-live="polite"></div>`;
-      } else if (r.phase === "board-end")
+      } else if (r.phase === "measuring")
+        panel.innerHTML =
+          '<span class="eyebrow">THE BIG MEASURE</span><h2>Whose catch is longest?</h2><p class="game-instructions">One fish each. Watch the measuring boards reveal the sizes.</p><div id="fish-measurements" class="measurements"></div>';
+      else if (r.phase === "board-end")
         panel.innerHTML =
           '<span class="eyebrow">THE CREW IS READY</span><h2>Minigame time!</h2><p class="game-instructions">New game. Fresh rivalries. Everyone is in.</p>';
       else if (r.phase === "side-result")
@@ -533,11 +637,15 @@
       } else
         panel.innerHTML =
           '<span class="eyebrow">A FRESH START</span><h2>This room has closed.</h2><p class="status-note">Start a new festival with your friends.</p><button class="primary" data-leave>Back to the boardwalk</button>';
+      if (["intro", "countdown", "playing"].includes(r.phase))
+        panel.insertAdjacentHTML("beforeend", controlsGuide(r.game.id));
       const overlay = $("#scene-controls"),
         controlNode =
           panel.querySelector(".controls") ||
-          panel.querySelector(".roll-button");
+          panel.querySelector(".roll-button") ||
+          panel.querySelector(".route-choices");
       if (controlNode) overlay.append(controlNode);
+      if (r.phase === "measuring") overlay.append($("#fish-measurements"));
       if (
         ["intro", "countdown", "playing"].includes(r.phase) &&
         r.game?.sideDuel &&
@@ -550,6 +658,7 @@
           '<button class="secondary full" data-action="skip-bots">Skip bot showdown → Results</button>',
         );
       portraits(panel);
+      portraits(overlay);
     }
     if ($("#feedback")) $("#feedback").textContent = v?.feedback || "";
     if ($("#next-arrows"))
@@ -633,7 +742,7 @@
         const idx = r.players.findIndex((x) => x.id === p.id),
           coins = r.game?.coinAwards?.[idx] || 0,
           trophies = r.game?.trophyAwards?.[idx] || 0;
-        return `<div class="result-row"><span class="place">${round ? p.resultPlace || i + 1 : i + 1}</span><canvas data-character="${p.character}" aria-hidden="true"></canvas><span class="person-name">${esc(p.name)}${round || r.phase === "complete" ? `<small class="coin-award">${icon("coin")} ${coins >= 0 ? "+" : ""}${coins} coins${trophies ? " · " + (trophies > 0 ? "+" : "") + trophies + " trophy" : ""}</small>` : ""}</span><b>${round ? p.score + (gameDef().coinGame ? " coins" : " pts") : icon("trophy") + p.trophies}</b></div>`;
+        return `<div class="result-row"><span class="place">${round ? p.resultPlace || i + 1 : i + 1}</span><canvas data-character="${p.character}" aria-hidden="true"></canvas><span class="person-name">${esc(p.name)}${round || r.phase === "complete" ? `<small class="coin-award">${icon("coin")} ${coins >= 0 ? "+" : ""}${coins} coins${trophies ? " · " + (trophies > 0 ? "+" : "") + trophies + " trophy" : ""}</small>` : ""}</span><b>${round ? p.score + (gameDef().unit === "cm" ? " cm" : gameDef().coinGame ? " coins" : " pts") : icon("trophy") + p.trophies}</b></div>`;
       })
       .join("")}</div>`;
   }
@@ -655,7 +764,92 @@
         }
       });
   }
+  function setInputMode(mode) {
+    if (mode === inputMode) return;
+    inputMode = mode;
+    document.querySelectorAll(".control-guide").forEach((node) => {
+      if (room?.game) node.outerHTML = controlsGuide(room.game.id);
+    });
+  }
+  function submitPlay(data) {
+    const r = room,
+      at = now();
+    if (
+      !r ||
+      r.phase !== "playing" ||
+      at >= r.game.end ||
+      at < r.game.start ||
+      modal.open
+    )
+      return;
+    const v = r.game.progress[r.players.findIndex((p) => p.id === r.you)];
+    if (
+      v.finished ||
+      !r.game.participants.includes(r.you) ||
+      at - lastInputAt < 140 ||
+      playQueue.length >= 3
+    )
+      return;
+    lastInputAt = at;
+    localInput = PartyInteraction.predict(r, data.value, at, localInput);
+    const prediction = localInput;
+    tone(
+      {
+        rope: "jump",
+        hop: "jump",
+        rhythm: "drum",
+        cannon: "cannon",
+        boats: "paddle",
+        stack: "block",
+      }[r.game.id] || "tap",
+    );
+    playQueue.push({
+      at,
+      prediction,
+      body: {
+        room: r.id,
+        match: r.match,
+        round: r.round,
+        game: r.game.id,
+        start: r.game.start,
+        ...data,
+      },
+    });
+    drainPlays();
+  }
+  async function drainPlays() {
+    if (playSending) return;
+    playSending = true;
+    try {
+      while (playQueue.length) {
+        const input = playQueue.shift(),
+          b = input.body;
+        if (
+          room?.id !== b.room ||
+          room?.match !== b.match ||
+          room?.game?.start !== b.start ||
+          room.phase !== "playing" ||
+          now() - input.at > 1000
+        ) {
+          input.prediction.rejected = true;
+          continue;
+        }
+        try {
+          const result = await api("play", b);
+          input.prediction.pending = false;
+          if (room?.id === b.room && result.game) adopt(result.game);
+        } catch (error) {
+          input.prediction.rejected = true;
+          if (error.status === 409) schedule(0);
+          else notify(error.message);
+        }
+      }
+    } finally {
+      playSending = false;
+    }
+  }
   async function roomAction(action, data = {}) {
+    if (action === "play") return submitPlay(data);
     if (requestBusy || !room) return;
     if (action === "play" && now() >= room.game?.end) {
       schedule(0);
@@ -740,7 +934,7 @@
   }
   function how() {
     openDialog(
-      `<span class="eyebrow">A DAY AT CORAL CARNIVAL</span><h2>Bring your favorite rival.</h2><p><strong>Party Match:</strong> 2–4 players, 10, 20, or 30 turns per player. Roll dice, choose paths, and visit item carts. Pass the glowing trophy with 10 match coins to collect it. Competitive minigame winners earn a trophy. In collection games, everyone keeps their coins.</p><p><strong>Quick Duel:</strong> 1v1 minigames. First to two wins takes the match. A tied series is settled with Circuit Sprint.</p><p><strong>Winning:</strong> Most trophies wins a party. Placement points (1,000 / 650 / 400 / 250 per minigame) break a tie; if those are equal, two tied players enter Circuit Sprint; larger ties enter Rooftop Rally.</p><p><strong>Items:</strong> Buy single-use double/triple dice, a chosen roll, a position swap, a trophy compass, skates or a shield. Use one item before rolling. Passing a cart pauses your walk.</p><p><strong>Your profile:</strong> Earn coins for cosmetic outfits. Board tokens cannot be purchased. No cash prizes, paid entries, or chip deposits are offered.</p><p><strong>Need to reconnect?</strong> Reload this page on the same browser. Board turns have a timer, so friends can keep playing during an interruption.</p>`,
+      `<span class="eyebrow">A DAY AT CORAL CARNIVAL</span><h2>Bring your favorite rival.</h2><p><strong>Party Match:</strong> 2–4 players, 10, 20, or 30 turns per player. Roll dice, choose paths, and visit item carts. Stop at the glowing trophy host and choose whether to buy one for 10 match coins. Minigames award coins, not trophies; trophy-staked 1v1 duels transfer the staked trophies. In collection games, everyone keeps their coins.</p><p><strong>Quick Duel:</strong> 1v1 minigames. First to two wins takes the match. A tied series is settled with Circuit Sprint.</p><p><strong>Winning:</strong> Most trophies wins a party. Placement points (1,000 / 650 / 400 / 250 per minigame) break a tie; if those are equal, two tied players enter Circuit Sprint; larger ties enter Rooftop Rally.</p><p><strong>Items:</strong> Buy single-use double/triple dice, a chosen roll, a position swap, a Trophy Taxi, skates or a shield. Carry up to three; replace an item when buying or receiving a new one. Use one item before rolling. Each store has different stock. Visiting a cart pauses your walk, and you always move onward after leaving.</p><p><strong>Your profile:</strong> Earn coins for cosmetic outfits. Board tokens cannot be purchased. No cash prizes, paid entries, or chip deposits are offered.</p><p><strong>Need to reconnect?</strong> Reload this page on the same browser. Board turns have a timer, so friends can keep playing during an interruption.</p>`,
     );
   }
   async function copy() {
@@ -799,6 +993,8 @@
   document.addEventListener("click", async (e) => {
     const b = e.target.closest("button");
     if (!b || b.disabled) return;
+    if (e.detail > 0 && Date.now() - Number(b.dataset.directAt || 0) < 1000)
+      return;
     try {
       if (b.classList.contains("modal-close")) {
         modal.close();
@@ -864,7 +1060,7 @@
       if (b.dataset.rules) {
         const g = C.games.find((g) => g.id === b.dataset.rules);
         openDialog(
-          `<span class="eyebrow">${g.tag}</span><h2>${g.name}</h2><p>${g.rules}</p><p class="small">Find this minigame in Party Match or Quick Duel. Everyone gets the same rules and time limit.</p>`,
+          `<span class="eyebrow">${g.tag}</span><h2>${g.name}</h2><p>${g.rules}</p>${controlsGuide(g.id)}<p class="small">Find this minigame in Party Match or Quick Duel. Everyone gets the same rules and time limit.</p>`,
         );
         return;
       }
@@ -913,7 +1109,7 @@
       }
       if (b.hasAttribute("data-challenge")) {
         await roomAction("challenge", {
-          opponent: $("#duel-rival").value,
+          opponent: chosenRival()?.id,
           currency: $("#duel-currency").value,
           stake:
             $("#duel-currency").value === "trophy"
@@ -934,7 +1130,7 @@
         await roomAction("item", {
           item,
           value: Number($("#item-number")?.value),
-          target: $("#item-target")?.value,
+          target: chosenRival("item-target")?.id,
         });
         modal.close();
         return;
@@ -946,12 +1142,7 @@
             `<h2>${C.items.find((x) => x.id === item).name}</h2>${
               item === "custom"
                 ? '<label for="item-number">Choose your roll</label><input id="item-number" type="number" min="1" max="6" value="6">'
-                : `<label for="item-target">Choose a rival</label><select id="item-target">${room.players
-                    .filter((p) => p.id !== room.you)
-                    .map(
-                      (p) => `<option value="${p.id}">${esc(p.name)}</option>`,
-                    )
-                    .join("")}</select>`
+                : `<h3>Choose a rival</h3>${rivalCards("item-target")}`
             }<button class="primary" data-use-special="${item}">Use item</button>`,
           );
           return;
@@ -959,7 +1150,29 @@
         await roomAction("item", { item: b.dataset.item });
         return;
       }
+      if (b.dataset.itemInfo) {
+        const item = C.items.find((i) => i.id === b.dataset.itemInfo);
+        openDialog(
+          `${itemImage(item.id)}<h2>${item.name}</h2><p>${item.description}</p>`,
+        );
+        return;
+      }
+      if (b.dataset.replaceItem) {
+        await roomAction(b.dataset.replaceAction, {
+          item: b.dataset.replaceItem,
+          replace: Number(b.dataset.replaceIndex),
+        });
+        if (modal.open) modal.close();
+        return;
+      }
       if (b.dataset.buyItem) {
+        if (me().items.length === 3) {
+          const item = C.items.find((i) => i.id === b.dataset.buyItem);
+          openDialog(
+            `${itemImage(item.id)}<h2>Make room for ${item.name}</h2><p>Choose an item to replace. The purchase costs ${item.cost} coins.</p>${replacementButtons("buy-item", item.id)}`,
+          );
+          return;
+        }
         await roomAction("buy-item", { item: b.dataset.buyItem });
         return;
       }
@@ -1025,15 +1238,14 @@
     }
   });
   document.addEventListener("change", (e) => {
-    if (["duel-rival", "duel-currency"].includes(e.target.id)) {
-      const op = $("#duel-rival").selectedOptions[0],
+    if (e.target.name === "duel-rival" || e.target.id === "duel-currency") {
+      const op = chosenRival(),
         trophy = $("#duel-currency").value === "trophy",
         input = $("#duel-stake");
       input.disabled = trophy;
-      input.max = Math.min(50, me().tokens, Number(op.dataset.coins));
+      input.max = Math.min(50, me().tokens, op.tokens);
       input.value = Math.min(Number(input.value), Number(input.max));
-      $("[data-challenge]").disabled =
-        trophy && Number(op.dataset.trophies) < 1;
+      $("[data-challenge]").disabled = trophy && op.trophies < 1;
     }
     if (e.target.id === "music") {
       musicOn = e.target.checked;
@@ -1050,6 +1262,35 @@
       storage.set("boardwalk-motion", motion ? "on" : "off");
     }
   });
+  document.addEventListener("pointerdown", (e) => {
+    setInputMode(e.pointerType === "touch" ? "touch" : "keyboard");
+    const b = e.target.closest(
+      "[data-control],[data-direction],[data-pad],[data-putt]",
+    );
+    if (
+      !b ||
+      b.disabled ||
+      room?.phase !== "playing" ||
+      modal.open ||
+      e.button > 0
+    )
+      return;
+    b.dataset.directAt = Date.now();
+    b.classList.remove("input-pulse");
+    void b.offsetWidth;
+    b.classList.add("input-pulse");
+    const raw = b.dataset.control ?? b.dataset.direction ?? b.dataset.pad;
+    submitPlay(
+      b.hasAttribute("data-putt")
+        ? { ...aim }
+        : { value: /^[0-3]$/.test(raw) ? Number(raw) : raw },
+    );
+  });
+  for (const event of ["pointerover", "focusin"])
+    document.addEventListener(event, (e) => {
+      const button = e.target.closest("[data-preview-route]");
+      if (button) selectedRoute = Number(button.dataset.previewRoute);
+    });
   document.addEventListener("keydown", (e) => {
     if (
       modal.open ||
@@ -1058,55 +1299,21 @@
       e.repeat
     )
       return;
-    const key = {
-      ArrowUp: "up",
-      ArrowDown: "down",
-      ArrowLeft: "left",
-      ArrowRight: "right",
-    }[e.key];
-    let b;
-    if (room.game.id === "climb" && key) b = $(`[data-direction="${key}"]`);
-    if (room.game.id === "memory" && /^[1-4]$/.test(e.key))
-      b = $(`[data-pad="${Number(e.key) - 1}"]`);
-    if (
-      ["cascade", "dash"].includes(room.game.id) &&
-      ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)
-    )
-      b = $(
-        '[data-control="' +
-          {
-            ArrowLeft: "left",
-            ArrowRight: "right",
-            ArrowUp: "jump",
-            ArrowDown: "duck",
-          }[e.key] +
-          '"]',
-      );
-    if (
-      ["lantern", "signal", "treasure"].includes(room.game.id) &&
-      /^[1-4]$/.test(e.key)
-    )
-      b = $('[data-control="' + (Number(e.key) - 1) + '"]');
-    if (gameDef().engine === "festival") {
-      if (key)
-        b =
-          $('[data-control="' + key + '"]') ||
-          $(
-            '[data-control="' +
-              (key === "up" ? "jump" : key === "down" ? "duck" : key) +
-              '"]',
-          );
-      if (/^[1-4]$/.test(e.key))
-        b = $('[data-control="' + (Number(e.key) - 1) + '"]');
-    }
-    if (e.code === "Space")
-      b =
-        $('[data-control="jump"]') ||
-        $("#reel") ||
-        $("#putt") ||
-        $(
-          '[data-control="fire"], [data-control="drop"], [data-control="pump"], [data-control="pull"], [data-control="serve"]',
-        );
+    setInputMode("keyboard");
+    const value = PartyInteraction.bindings(room.game.id, C.games)[
+      e.code === "Space" ? "Space" : e.key
+    ];
+    const b =
+      value === undefined
+        ? null
+        : room.game.id === "climb"
+          ? $(`[data-direction="${value}"]`)
+          : room.game.id === "memory"
+            ? $(`[data-pad="${value}"]`)
+            : room.game.id === "putt"
+              ? $("#putt")
+              : $(`[data-control="${value}"]`);
+
     if (b) {
       e.preventDefault();
       b.click();
@@ -1122,7 +1329,7 @@
     requestAnimationFrame(frame);
     if (
       document.hidden ||
-      time - lastFrame < (room?.phase === "playing" ? 28 : 33)
+      time - lastFrame < (room?.phase === "playing" ? 15 : 33)
     )
       return;
     lastFrame = time;
@@ -1130,20 +1337,39 @@
       r = room,
       kind =
         r &&
-        ["intro", "countdown", "playing", "round-end", "side-result"].includes(
-          r.phase,
-        )
+        [
+          "intro",
+          "countdown",
+          "playing",
+          "round-end",
+          "side-result",
+          "measuring",
+        ].includes(r.phase)
           ? r.game?.id
           : "board";
-    S.render(
-      $("#party-scene"),
-      kind,
-      r,
-      (stamp + (kind === "fish" && r?.phase === "playing" ? latency : 0)) /
-        1000,
-      { aim, pattern: memoryPattern, overview, motion, selectedSpace },
-    );
+    S.render($("#party-scene"), kind, r, stamp / 1000, {
+      aim,
+      pattern: memoryPattern,
+      overview,
+      motion,
+      selectedSpace,
+      selectedRoute,
+      localInput,
+    });
     if (!r) return;
+    if (r.phase === "measuring" && $("#fish-measurements")) {
+      const q = Math.min(
+        1,
+        Math.max(0, (stamp - r.game.measureAt - 500) / 4000),
+      );
+      $("#fish-measurements").innerHTML = r.players
+        .filter((p) => r.game.participants.includes(p.id))
+        .map((p) => {
+          const v = r.game.progress[r.players.indexOf(p)];
+          return `<div><b>${esc(p.name)}</b><span>${v.catch ? Math.round(v.catch.length * q) + " cm" : "No catch"}</span><i style="--measure:${(((v.catch?.length || 0) * q) / 120) * 100}%"></i></div>`;
+        })
+        .join("");
+    }
     if (r.phase === "walking" && r.lastMove) {
       const step = Math.floor((stamp - r.lastMove.at) / 440),
         key =
@@ -1188,7 +1414,7 @@
       n = Math.ceil((r.deadline - stamp) / 1000);
     if (big) {
       const show =
-        r.phase === "countdown" ||
+        (r.phase === "countdown" && stamp < r.game.start) ||
         (r.phase === "playing" && stamp - r.game.start < 700);
       big.textContent = show
         ? r.phase === "countdown"
@@ -1208,6 +1434,17 @@
         return;
       }
       const v = r.game.progress[r.players.findIndex((p) => p.id === r.you)];
+      if (
+        r.game.id === "climb" &&
+        $("#next-arrows") &&
+        localInput?.pending &&
+        !localInput.rejected &&
+        localInput.start === r.game.start &&
+        localInput.fields.next
+      )
+        $("#next-arrows").textContent = localInput.fields.next
+          .map((x) => ({ up: "↑", down: "↓", left: "←", right: "→" })[x])
+          .join(" ");
       if (r.game.id === "memory") {
         const a = Math.floor((stamp - v.showAt) / 650),
           watch = stamp < v.showAt + memoryPattern.length * 650 + 300;

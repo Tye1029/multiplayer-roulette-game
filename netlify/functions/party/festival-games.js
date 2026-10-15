@@ -188,7 +188,7 @@ function settleBeat(g, b, now) {
         g.privateChoices[c]?.beat === b.index
           ? g.privateChoices[c].value
           : undefined;
-    const wins = { attack: "feint", feint: "block", block: "attack" };
+    const wins = { rock: "scissors", scissors: "paper", paper: "rock" };
     for (const [i, value, rival] of [
       [a, av, cv],
       [c, cv, av],
@@ -547,7 +547,7 @@ function play(g, i, input, now, fail) {
     }
     chooseOnce(id === "rope" ? ["jump", "duck"] : ["left", "right"]);
     const good =
-      since >= -100 &&
+      since >= (id === "rope" ? -350 : -100) &&
       since <= b.window &&
       (value === expected || (id === "rhythm" && b.color === 3));
     if (good) {
@@ -710,7 +710,7 @@ function play(g, i, input, now, fail) {
       }
     }
   } else if (["fencing", "draft"].includes(id)) {
-    const opts = id === "fencing" ? ["attack", "block", "feint"] : [0, 1, 2];
+    const opts = id === "fencing" ? ["rock", "paper", "scissors"] : [0, 1, 2];
     chooseOnce(opts);
     g.privateChoices[i] = { value, beat: b.index };
     v.feedback = "Locked in · choices reveal together";
@@ -875,7 +875,7 @@ function bot(g, i, now) {
   else if (id === "bakery")
     value =
       v.cursor === 3 ? "serve" : g.orders[v.order % g.orders.length][v.cursor];
-  else if (id === "fencing") value = ["attack", "block", "feint"][rnd(3)];
+  else if (id === "fencing") value = ["rock", "paper", "scissors"][rnd(3)];
   else if (id === "tug") {
     const phase = ((now - g.start) % 1600) / 1600;
     if (phase < 0.4 || phase > 0.65) return null;

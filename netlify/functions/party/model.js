@@ -32,7 +32,7 @@ function create(id, p, mode, now = Date.now(), rounds = 10) {
   if (mode === "party" && !C.turnOptions.includes(rounds))
     fail("Choose 10, 20, or 30 turns.", 400);
   return {
-    version: 5,
+    version: 6,
     id,
     host: p.id,
     mode,
@@ -88,7 +88,7 @@ function begin(s, now) {
     const j = rnd(i + 1);
     [s.gameOrder[i], s.gameOrder[j]] = [s.gameOrder[j], s.gameOrder[i]];
   }
-  s.version = 5;
+  s.version = 6;
   s.startingSeat = rnd(s.players.length);
   s.round = 1;
   s.history = [];
@@ -205,6 +205,7 @@ function travel(s, now, chosen) {
     m = s.movement,
     path = [p.position];
   m.stopShop = false;
+  m.stopTrophy = false;
   let node = C.spaces[p.position],
     choice = chosen;
   while (m.remaining > 0) {
@@ -218,13 +219,9 @@ function travel(s, now, chosen) {
     m.remaining--;
     path.push(next);
     if (next === 0) p.tokens += 4;
-    if (next === s.goal && p.tokens >= 10) {
-      p.tokens -= 10;
-      p.trophies++;
-      s.goal =
-        C.trophyStops[
-          (C.trophyStops.indexOf(s.goal) + 1) % C.trophyStops.length
-        ];
+    if (next === s.goal) {
+      m.stopTrophy = true;
+      break;
     }
     if (node.type === "shop") {
       m.stopShop = true;
@@ -241,7 +238,9 @@ function travel(s, now, chosen) {
     p.position = path.at(-1);
     s.phase = "walking";
     s.deadline = now + s.lastMove.duration;
-    s.log = p.name + " rolled " + s.dice.values.join(" + ") + ".";
+    s.log = s.dice
+      ? p.name + " rolled " + s.dice.values.join(" + ") + "."
+      : p.name + " is moving on.";
   } else {
     s.phase = "choice";
     s.deadline = now + 60000;
@@ -253,10 +252,55 @@ function routes(s, id) {
   return id === C.tideJunction && s.tide === 0 ? [n.next[0]] : n.next;
 }
 function resumeSpace(s, now) {
-  if (s.event?.kind === "shop" && s.movement?.remaining) {
+  if (s.event?.returnToRoll) {
+    s.event = null;
+    s.phase = "board";
+    s.deadline = now + 60000;
+    return;
+  }
+  if (s.event?.kind === "shop")
+    s.movement.remaining = Math.max(1, s.movement.remaining);
+  if (
+    ["shop", "trophy-purchase"].includes(s.event?.kind) &&
+    s.movement?.remaining
+  ) {
     s.event = null;
     travel(s, now);
   } else nextTurn(s, now);
+}
+function trophyStop(s, now, returnToRoll = false) {
+  const p = s.players[s.turn];
+  s.phase = "space";
+  s.deadline = now + 60000;
+  s.event = {
+    kind: "trophy-purchase",
+    player: p.id,
+    at: now,
+    returnToRoll,
+    title: "A trophy for your collection?",
+    text: "Buy this trophy for 10 coins, or keep your coins and carry on.",
+    bought: false,
+  };
+  s.log = p.name + " is visiting the trophy host.";
+}
+function offerItem(s, p, item, now) {
+  if (p.items.length < 3) {
+    p.items.push(item);
+    return true;
+  }
+  s.event.pendingItem = item;
+  s.event.text += " Your pockets are full. Replace an item or leave this one.";
+  s.deadline = now + 60000;
+  return false;
+}
+function storeItem(p, item, replace) {
+  if (p.items.length < 3) {
+    p.items.push(item);
+    return;
+  }
+  if (!Number.isInteger(replace) || replace < 0 || replace >= p.items.length)
+    fail("Choose one of your three items to replace.", 400);
+  p.items[replace] = item;
 }
 function land(s, now) {
   const p = s.players[s.turn],
@@ -289,22 +333,17 @@ function land(s, now) {
     }
   }
   if (kind === "gift") {
-    if (p.items.length < 3) {
-      const item = pick(C.items);
-      p.items.push(item.id);
-      e.text = "Found " + item.name + "!";
-    } else {
-      p.tokens += 4;
-      e.text = "Pockets full. Take 4 coins instead.";
-    }
+    const item = pick(C.items);
+    e.text = "Found " + item.name + "!";
+    offerItem(s, p, item.id, now);
   }
   if (kind === "lucky") {
     const n = 5 + rnd(5);
     p.tokens += n;
     e.text = "Lucky you! +" + n + " coins.";
-    if (p.items.length < 3 && rnd(3) === 0) {
-      p.items.push("shield");
+    if (rnd(3) === 0) {
       e.text += " A rain shield, too.";
+      offerItem(s, p, "shield", now);
     }
   }
   if (kind === "event") {
@@ -383,8 +422,11 @@ function land(s, now) {
   if (kind === "shop" || kind === "duel") s.deadline = now + 60000;
   if (kind === "shop")
     e.text =
-      "Poppy’s traveling cart! Buy one item or keep going" +
-      (e.passing ? " with " + s.movement.remaining + " spaces left." : ".");
+      C.shops[p.position].name +
+      " · Buy one item or leave. " +
+      (e.passing
+        ? s.movement.remaining + " spaces remain."
+        : "Your roll ends on the next space after leaving.");
   if (kind === "trophy")
     e.text =
       p.position === s.goal
@@ -527,10 +569,6 @@ function conclude(s, now) {
     g.coinAwards[i] = earned;
     if (winners.includes(p.id)) {
       p.wins++;
-      if (!coinGame) {
-        p.trophies++;
-        g.trophyAwards[i] = 1;
-      }
     }
   }
   s.history.push({
@@ -707,7 +745,7 @@ function play(s, p, b, now) {
   p.participation++;
 }
 function advance(s, now = Date.now()) {
-  if (s.version !== 5) {
+  if (s.version !== 6) {
     s.phase = "expired";
     // The previous layout had IDs up to 65. Keep the retired room renderable
     // without translating its routes or carrying an old move into this board.
@@ -730,7 +768,8 @@ function advance(s, now = Date.now()) {
       roll(s, p, now);
   } else if (s.phase === "rolling" && now >= s.deadline) travel(s, now);
   else if (s.phase === "walking" && now >= s.deadline) {
-    if (s.movement.stopShop) land(s, now);
+    if (s.movement.stopTrophy) trophyStop(s, now);
+    else if (s.movement.stopShop) land(s, now);
     else if (s.movement.remaining) {
       s.phase = "choice";
       s.deadline = now + 60000;
@@ -749,11 +788,26 @@ function advance(s, now = Date.now()) {
     if (s.event.kind === "duel")
       challenge(s, p, pick(s.players.filter((x) => x.id !== p.id)).id, now);
     else {
-      if (s.event.kind === "shop" && p.bot && p.items.length < 3) {
-        const item = pick(C.items);
+      if (
+        s.event.kind === "trophy-purchase" &&
+        p.bot &&
+        p.tokens >= 10 &&
+        !s.event.bought
+      ) {
+        p.tokens -= 10;
+        p.trophies++;
+        s.goal =
+          C.trophyStops[
+            (C.trophyStops.indexOf(s.goal) + 1) % C.trophyStops.length
+          ];
+      }
+      if (s.event.pendingItem && p.bot) storeItem(p, s.event.pendingItem, 0);
+      if (s.event.kind === "shop" && p.bot && !s.event.bought) {
+        const itemId = pick(C.shops[p.position].stock);
+        const item = C.items.find((i) => i.id === itemId);
         if (p.tokens >= item.cost) {
           p.tokens -= item.cost;
-          p.items.push(item.id);
+          storeItem(p, item.id, 0);
         }
       }
       resumeSpace(s, now);
@@ -876,7 +930,14 @@ function advance(s, now = Date.now()) {
       now >= g.end ||
       active.every((v) => v.finished && now >= v.finished + 1500)
     )
-      conclude(s, now);
+      if (g.id === "fish") {
+        s.phase = "measuring";
+        g.measureAt = now;
+        s.deadline = now + 6500;
+        s.log = "Reels down! Measuring everyone's catch.";
+      } else conclude(s, now);
+  } else if (s.phase === "measuring" && now >= s.deadline) {
+    conclude(s, now);
   } else if (s.phase === "round-end" && now >= s.deadline) {
     if (s.tieAgain) {
       s.tieAgain = false;
@@ -993,6 +1054,8 @@ function act(s, id, b, now = Date.now()) {
       "choose",
       "item",
       "buy-item",
+      "buy-trophy",
+      "accept-item",
       "continue",
       "challenge",
     ].includes(b.action)
@@ -1011,6 +1074,35 @@ function act(s, id, b, now = Date.now()) {
       if (s.phase !== "space" || s.event.kind !== "duel")
         fail("Find a showdown space first.");
       challenge(s, p, b.opponent, now, b.stake, b.currency);
+    } else if (b.action === "buy-trophy") {
+      if (
+        s.phase !== "space" ||
+        s.event.kind !== "trophy-purchase" ||
+        s.event.bought ||
+        p.position !== s.goal
+      )
+        fail("Visit the trophy host to buy a trophy.");
+      if (p.tokens < 10) fail("You need 10 coins for this trophy.");
+      p.tokens -= 10;
+      p.trophies++;
+      s.goal =
+        C.trophyStops[
+          (C.trophyStops.indexOf(s.goal) + 1) % C.trophyStops.length
+        ];
+      s.event.bought = true;
+      s.event.text =
+        "One trophy packed! The host is moving to the next golden stop.";
+      s.deadline = now + 2500;
+    } else if (b.action === "accept-item") {
+      if (s.phase !== "space" || !s.event.pendingItem)
+        fail("There is no item waiting.");
+      storeItem(p, s.event.pendingItem, b.replace);
+      s.event.text =
+        "Packed " +
+        C.items.find((i) => i.id === s.event.pendingItem).name +
+        ".";
+      delete s.event.pendingItem;
+      s.deadline = now + 2500;
     } else if (b.action === "continue") {
       if (s.phase !== "space" || s.event.kind === "duel")
         fail("Finish this board event first.");
@@ -1021,10 +1113,11 @@ function act(s, id, b, now = Date.now()) {
       if (b.action === "buy-item") {
         if (s.phase !== "space" || s.event.kind !== "shop" || s.event.bought)
           fail("Visit an item cart to buy one item.");
-        if (p.items.length >= 3) fail("Your pockets are full.");
+        if (!C.shops[p.position]?.stock.includes(item.id))
+          fail("This shop does not stock that item.");
         if (p.tokens < item.cost) fail("Not enough match coins.");
+        storeItem(p, item.id, b.replace);
         p.tokens -= item.cost;
-        p.items.push(item.id);
         s.event.bought = true;
         s.event.text = "Packed " + item.name + ". Ready for your next turn!";
       } else {
@@ -1049,15 +1142,16 @@ function act(s, id, b, now = Date.now()) {
         if (item.id === "swap")
           [p.position, target.position] = [target.position, p.position];
         if (item.id === "warp") {
+          const from = p.position;
           p.position = s.goal;
-          if (p.tokens >= 10) {
-            p.tokens -= 10;
-            p.trophies++;
-            s.goal =
-              C.trophyStops[
-                (C.trophyStops.indexOf(s.goal) + 1) % C.trophyStops.length
-              ];
-          }
+          s.lastMove = {
+            player: p.id,
+            path: [from, p.position],
+            at: now,
+            duration: 1400,
+            warp: true,
+          };
+          trophyStop(s, now, true);
         }
 
         if (item.id === "boost") p.boost = 3;
@@ -1116,6 +1210,7 @@ function view(s, id, now = Date.now()) {
       .filter((n) => n.next.length > 1)
       .map((n) => [n.id, routes(s, n.id)]),
   );
+  out.routePreviews = C.routePreviews(s);
   if (out.game) {
     delete out.game.sequence;
     delete out.game.orders;
@@ -1123,9 +1218,13 @@ function view(s, id, now = Date.now()) {
     delete out.game.simAt;
     delete out.game.simulating;
     delete out.game.beats;
+    delete out.game.fishBeats;
+    delete out.game.fishBase;
     if (G.festival.handled(s.game.id))
       G.publicView(s.game, out.game, now, index);
-    if (G.handled(s.game.id)) out.game.cue = G.cue(s.game, now);
+    if (G.handled(s.game.id)) out.game.cue = G.cue(s.game, now, index);
+    if (s.game.id === "fish")
+      out.game.cues = s.players.map((_, i) => G.cue(s.game, now, i));
     out.game.progress = out.game.progress.map((v, i) => {
       if (i !== index) {
         delete v.pattern;
