@@ -1622,7 +1622,7 @@ function updateBoard(w, s, t, extra) {
     ring.visible = !!chosen;
     if (chosen) ring.position.set(chosen.x, chosen.y + 0.24, chosen.z);
   }
-  const n = C.spaces[s?.goal ?? C.trophyStops[0]];
+  const n = C.spaces[s?.goal] || C.spaces[C.trophyStops[0]];
   w.goalTitle.visible = !complete;
   w.goalTitle.position.set(n.x, n.y + 3, n.z);
   w.goal.position.set(n.x, n.y + 1.1 + Math.sin(t * 2) * 0.15, n.z);

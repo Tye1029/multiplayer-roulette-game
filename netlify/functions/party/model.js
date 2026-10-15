@@ -666,6 +666,14 @@ function play(s, p, b, now) {
 function advance(s, now = Date.now()) {
   if (s.version !== 4) {
     s.phase = "expired";
+    // The previous layout had IDs up to 65. Keep the retired room renderable
+    // without translating its routes or carrying an old move into this board.
+    s.goal = C.trophyStops[0];
+    s.lastMove = null;
+    s.movement = null;
+    s.dice = null;
+    s.game = null;
+    for (const p of s.players) p.position = 0;
     s.log = "This room used the earlier prototype. Start a fresh festival.";
     return;
   }

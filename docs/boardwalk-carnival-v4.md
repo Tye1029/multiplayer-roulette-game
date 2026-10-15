@@ -187,6 +187,9 @@ Phone emulation is not a physical-device GPU benchmark. The browser-specific
 guest account system remains. The server owns scores, timing, moves and rewards;
 this does not make a browser skill game immune to input automation. V3 rooms
 expire on this ruleset; existing profiles and earned cosmetic balances persist.
+Retired rooms reset only their obsolete board positions, movement and scene
+references before displaying the expired-room exit. A browser regression covers
+reloading a 66-space room with a trophy at space 58 and a move through space 65.
 
 ## Design references
 

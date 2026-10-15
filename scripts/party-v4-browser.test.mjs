@@ -111,6 +111,26 @@ try {
       PartyAudio.voice("yup", "ghost");
     });
     await p.waitForTimeout(500);
+    if (turns === 30) {
+      const legacy = await state();
+      legacy.version = 3;
+      legacy.goal = 58;
+      legacy.players.forEach((player) => (player.position = 65));
+      legacy.lastMove = {
+        player: legacy.players[0].id,
+        path: [64, 65],
+        at: Date.now(),
+        duration: 30000,
+      };
+      await server.pg.query(
+        "UPDATE party_rooms SET state=$2::jsonb WHERE id=$1",
+        [code, JSON.stringify(legacy)],
+      );
+      await p.reload();
+      await p.locator("body[data-phase=expired]").waitFor();
+      await p.locator("[data-leave]").click();
+      await p.locator("[data-create=party]").first().waitFor();
+    }
     await context.close();
   }
   assert.deepEqual(errors, []);

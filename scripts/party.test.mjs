@@ -71,6 +71,25 @@ test("rooms enforce readiness, capacity and host ownership", () => {
   assert.throws(() => M.act(s, "1", { action: "start" }, 11000), /host/);
   assert.throws(() => M.act(s, "0", { action: "start" }, 11000), /ready/);
 });
+test("retired 66-space rooms expire without invalid render positions or stale moves", () => {
+  const s = fixture();
+  s.version = 3;
+  s.goal = 58;
+  s.players[0].position = 65;
+  s.lastMove = { player: "0", path: [64, 65], at: 12000, duration: 3000 };
+  const balances = s.players.map((p) => p.tokens);
+  M.advance(s, 12000);
+  const v = M.view(s, "0", 12000);
+  assert.equal(v.phase, "expired");
+  assert.ok(C.spaces[v.goal]);
+  assert.ok(v.players.every((p) => C.spaces[p.position]));
+  assert.equal(v.lastMove, null);
+  assert.equal(v.game, null);
+  assert.deepEqual(
+    v.players.map((p) => p.tokens),
+    balances,
+  );
+});
 test("dice are server-owned, uniform, single-use and animate before movement", () => {
   const counts = [0, 0, 0, 0, 0, 0];
   for (let i = 0; i < 12000; i++) {
