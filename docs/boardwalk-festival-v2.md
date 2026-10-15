@@ -1,6 +1,6 @@
 # Boardwalk — Coral Carnival V2
 
-Preview: /party.html?v=BOARDWALK_FESTIVAL_V2
+Preview: /party.html?v=BOARDWALK_FESTIVAL_V2_1
 
 This iteration prioritizes the board, skill games, characters and presentation.
 The cosmetic store is removed from the main navigation and results; existing
@@ -76,8 +76,11 @@ timeouts, full six-round completion, authentication, replay protection and
 atomic existing balances. Browser tests play a full four-player festival and
 a separate duel through actual UI inputs, refresh a guest session, rematch,
 test delayed network responses, and inspect desktop, phone and landscape
-layouts. Test-only phase deadlines shorten idle waiting; scores are not injected
-in these flows. The protected-game build validators remain unchanged.
+layouts. Test-only deadlines shorten idle waiting and extend input time while
+four software-rendered browsers take screenshots. A separate real-clock check
+holds the next network response, verifies that expired controls stop submitting
+inputs, and then verifies recovery. Scores are not injected in these flows.
+The protected-game build validators remain unchanged.
 
 Emulated phone layouts are not a physical-device GPU benchmark. Guest accounts
 remain browser-specific, and client automation remains possible in skill games.

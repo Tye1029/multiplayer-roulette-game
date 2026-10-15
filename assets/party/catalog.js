@@ -363,6 +363,6 @@
     holes,
     hole: holes[0],
     trophyStops: [8, 16, 24, 34],
-    version: "BOARDWALK_FESTIVAL_V2",
+    version: "BOARDWALK_FESTIVAL_V2_1",
   };
 });

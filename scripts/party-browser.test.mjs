@@ -99,20 +99,86 @@ async function expire(code, pages) {
   await wake(pages);
 }
 async function action(p, selector, action) {
-  const response = p.waitForResponse(
-    (r) =>
-      r.url().includes("/party-action") &&
-      r.request().postDataJSON()?.action === action,
-    { timeout: 20000 },
-  );
-  await p.locator(selector).click();
-  const r = await response;
+  const [r] = await Promise.all([
+    p.waitForResponse(
+      (r) =>
+        r.url().includes("/party-action") &&
+        r.request().postDataJSON()?.action === action,
+      { timeout: 20000 },
+    ),
+    p.locator(selector).click(),
+  ]);
   assert.equal(r.status(), 200, action + " HTTP");
   return (await r.json()).game;
+}
+async function checkExpiredControls(pages, code) {
+  const p = pages[0],
+    s = await roomState(code);
+  s.deadline = s.game.end = Date.now() + 2500;
+  await server.pg.query("UPDATE party_rooms SET state=$2::jsonb WHERE id=$1", [
+    code,
+    JSON.stringify(s),
+  ]);
+  const refreshed = p.waitForResponse(
+    (r) =>
+      r.url().includes("/party-action") &&
+      r.request().postDataJSON()?.action === "get",
+  );
+  await wake(pages);
+  await (await refreshed).finished();
+  let release,
+    plays = 0;
+  const held = new Promise((resolve) => {
+    release = resolve;
+  });
+  const count = (r) => {
+    if (
+      r.url().includes("/party-action") &&
+      r.postDataJSON()?.action === "play"
+    )
+      plays++;
+  };
+  p.on("request", count);
+  await p.route("**/.netlify/functions/party-action", async (route) => {
+    if (route.request().postDataJSON()?.action === "get") await held;
+    await route.continue();
+  });
+  try {
+    await p.waitForTimeout(3200);
+    assert.equal(await p.locator("#timer").innerText(), "0s");
+    const buttons = p.locator(".controls button");
+    assert.ok(
+      await buttons.count(),
+      "expired round still has its controls while reconnecting",
+    );
+    assert.equal(
+      await buttons.evaluateAll((bs) => bs.every((b) => b.disabled)),
+      true,
+    );
+    await buttons.first().evaluate((b) => b.click());
+    await p.keyboard.press("ArrowUp");
+    await p.keyboard.press("1");
+    await p.keyboard.press("Space");
+    assert.equal(plays, 0, "expired controls do not submit late inputs");
+  } finally {
+    release();
+    p.off("request", count);
+    await p.unrouteAll({ behavior: "wait" });
+  }
+  await wake(pages);
+  await wait(p, "body:not([data-phase=playing])");
 }
 async function playRound(pages, code, seen) {
   let s = await roomState(code);
   const game = s.game.id;
+  // Four software-rendered browsers and screenshots can exceed the real round
+  // timer on CI. Give this isolated UI fixture time to exercise every player;
+  // expire() still takes the normal authoritative end-of-round path afterward.
+  s.deadline = s.game.end = Date.now() + 240000;
+  await server.pg.query("UPDATE party_rooms SET state=$2::jsonb WHERE id=$1", [
+    code,
+    JSON.stringify(s),
+  ]);
   await wake(pages);
   for (const p of pages) await wait(p, "body[data-phase=playing]");
   for (let i = 0; i < pages.length; i++) {
@@ -175,6 +241,8 @@ async function playRound(pages, code, seen) {
         before.find((c) => c.name === "boardwalk_session").value,
         after.find((c) => c.name === "boardwalk_session").value,
       );
+      await checkExpiredControls(pages, code);
+      return;
     }
   }
   await expire(code, pages);

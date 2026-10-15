@@ -1,4 +1,4 @@
-/* BOARDWALK_FESTIVAL_V2 — guest rooms, authoritative matches, local presentation. */
+/* BOARDWALK_FESTIVAL_V2_1 — guest rooms, authoritative matches, local presentation. */
 (() => {
   "use strict";
   const C = PartyCatalog,
@@ -570,6 +570,10 @@
   }
   async function roomAction(action, data = {}) {
     if (requestBusy || !room) return;
+    if (action === "play" && now() >= room.game?.end) {
+      schedule(0);
+      return;
+    }
     requestBusy = true;
     pendingControls();
     const id = room.id;
@@ -596,6 +600,11 @@
               : "good"
           : "tap",
       );
+    } catch (error) {
+      // A round can end while an input is in flight. Reconcile immediately
+      // instead of leaving expired controls visible until the next poll.
+      if (error.status === 409) schedule(0);
+      throw error;
     } finally {
       requestBusy = false;
       pendingControls();
@@ -945,6 +954,12 @@
           ? "✓"
           : Math.max(0, Math.ceil((r.deadline - stamp) / 1000)) + "s";
     if (r.phase === "playing") {
+      if (stamp >= r.game.end) {
+        document.querySelectorAll(".controls button").forEach((b) => {
+          b.disabled = true;
+        });
+        return;
+      }
       const v = r.game.progress[r.players.findIndex((p) => p.id === r.you)];
       if (r.game.id === "memory") {
         const a = Math.floor((stamp - v.showAt) / 650),
