@@ -533,9 +533,11 @@
         ? "Get the crew together."
         : r.phase === "complete"
           ? "That’s one for the history books."
-          : playing
-            ? gameDef().name
-            : `Turn ${r.round} of ${r.rounds} · Coral Carnival`;
+          : r.phase === "finale"
+            ? "The grand finale."
+            : playing
+              ? gameDef().name
+              : `Turn ${r.round} of ${r.rounds} · Coral Carnival`;
     $("#scene-label").textContent =
       r.phase === "complete"
         ? "ONE MORE ROUND?"
@@ -550,7 +552,9 @@
     $("#scene-wallet").innerHTML =
       icon("coin") + "<b>" + me().tokens + "</b><span>your coins</span>";
     document.body.dataset.game = playing ? r.game.id : "board";
-    $(".scene-tools").hidden = playing;
+    $(".scene-tools").hidden =
+      playing ||
+      ["order-roll", "order-reveal", "finale", "complete"].includes(r.phase);
     renderSpaceInspector(playing);
     const places = C.standings(r.players, r.mode);
     const rank = r.players

@@ -2976,25 +2976,77 @@ function overlay(c, canvas, kind, s, t, extra) {
           c.globalAlpha = 1;
         }
         if (["finale", "complete"].includes(s.phase)) {
+          const cardWidth = Math.min(94, w / s.players.length - 10),
+            cx = clamp(x, cardWidth / 2 + 4, w - cardWidth / 2 - 4);
+          c.fillStyle = "#fff3d9ed";
+          c.beginPath();
+          c.roundRect(cx - cardWidth / 2, y - 35, cardWidth, 35, 8);
+          c.fill();
           text(
             c,
-            p.trophies + " trophies · " + p.tokens + " coins",
-            x,
-            y + 12,
-            w < 500 ? 9 : 13,
-            "#4d3c66",
+            p.trophies + " trophies",
+            cx,
+            y - 21,
+            w < 500 ? 10 : 12,
+            "#6a4c7e",
+          );
+          text(
+            c,
+            p.tokens + " coins",
+            cx,
+            y - 7,
+            w < 500 ? 10 : 12,
+            "#6a4c7e",
           );
           if (s.phase === "complete")
             text(
               c,
               "#" + C.standings(s.players, s.mode)[p.id],
-              x,
-              y - 10,
+              cx,
+              y - 43,
               19,
               "#6d4f87",
             );
         }
       }
+  }
+  if (s?.phase === "finale") {
+    const age = t * 1000 - s.finale.at,
+      index = Math.floor((age - 2500) / 6500),
+      award = s.finale.awards[index],
+      width = Math.min(w - 28, 430);
+    c.fillStyle = "#fff2d8ed";
+    c.beginPath();
+    c.roundRect((w - width) / 2, 70, width, 75, 16);
+    c.fill();
+    const title =
+      age < 2500
+        ? "THE BONUS TROPHIES"
+        : age >= 22000
+          ? "AND THE WINNER IS…"
+          : award?.title.toUpperCase() || "THE GRAND FINALE";
+    text(c, title, w / 2, 94, w < 500 ? 14 : 18, "#6d4b84");
+    let detail =
+      age < 2500
+        ? "Who made their mark on the festival?"
+        : age >= 22000
+          ? String(Math.max(1, Math.ceil((30000 - age) / 1000)))
+          : award?.applied
+            ? award.winners.length
+              ? award.winners
+                  .map((id) => s.players.find((p) => p.id === id).name)
+                  .join(" + ")
+              : "No award this time"
+            : award?.description || "One last celebration";
+    if (detail.length > 44) detail = detail.slice(0, 41) + "…";
+    text(
+      c,
+      detail,
+      w / 2,
+      123,
+      age >= 22000 ? 26 : w < 500 ? 11 : 14,
+      "#5a4867",
+    );
   }
   if (s?.phase === "selection") {
     const q = clamp((t * 1000 - s.selectionAt) / 4600),

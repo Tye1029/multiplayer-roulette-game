@@ -598,7 +598,7 @@ export function expansionScenes(H) {
       };
     if (id === "band")
       return {
-        target: new T.Vector3(0, -3, -1),
+        target: new T.Vector3(0, -1, -1),
         extent: 23,
         position: [0, 15, 32],
       };
