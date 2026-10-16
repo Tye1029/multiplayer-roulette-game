@@ -272,6 +272,8 @@
 .drag-help {
   pointer-events: none;
   background: #fff8e8ec;
+  color: #3d3a57;
+  text-shadow: none;
   padding: 10px 16px;
   border-radius: 14px;
   font-size: 12px;
