@@ -3079,31 +3079,6 @@ function overlay(c, canvas, kind, s, t, extra) {
     c.roundRect((w - ww) / 2 + 12, top + 53, ww - 24, 43, 10);
     c.stroke();
   }
-  if (s?.phase === "finale") {
-    const age = t * 1000 - s.finale.at,
-      idx = Math.floor((age - 2500) / 6500),
-      award = s.finale.awards[idx];
-    if (age >= 22000)
-      text(
-        c,
-        age >= 28500
-          ? "THE FESTIVAL CHAMPION…"
-          : String(Math.max(1, Math.ceil((28500 - age) / 1300))),
-        w / 2,
-        h * 0.25,
-        age >= 28500 ? 17 : 56,
-        "#694781",
-      );
-    else if (award)
-      text(
-        c,
-        award.applied ? award.title.toUpperCase() : "AND THE TROPHY GOES TO…",
-        w / 2,
-        h * 0.26,
-        w < 440 ? 12 : 19,
-        "#694781",
-      );
-  }
   if (
     (s?.phase === "complete" ||
       s?.phase === "trophy-flight" ||
