@@ -279,7 +279,7 @@
     screen = "menu";
     panelKey = "";
     document.body.dataset.phase = "menu";
-    app.innerHTML = `<section class="festival-hero"><img class="festival-art" src="/assets/party/images/boardwalk-crew-v2.webp" alt="Riff, Cleo, Moss and Bolt race through the sunset festival" fetchpriority="high"><div class="festival-copy"><span class="eyebrow">WELCOME TO CORAL CARNIVAL</span><h1>Big laughs.<br>Little rivalries.</h1><p>Roll into a seaside party full of shortcuts, surprises, and one-more-round moments.</p><div class="hero-buttons"><button class="primary" data-create="party">Start a party ↗</button><button class="secondary" data-open-join>Join friends</button></div><div class="hero-facts"><span>2–4 players</span><span>10 / 20 / 30 turns</span><span>Free to play</span></div></div></section><section class="mode-grid" aria-label="Choose a mode"><button class="mode-card" data-create="party"><div><span class="mode-meta">THE WHOLE ADVENTURE · 2–4 PLAYERS</span><h3>Roll with your crew.</h3><p>50 spaces. A central crossing and two scenic detours. Shops, surprises and rival showdowns.</p></div><span class="mode-arrow">↗</span></button><button class="mode-card" data-create="duel"><div><span class="mode-meta">JUST THE MINIGAMES · 1V1</span><h3>Settle the score.</h3><p>Jump into a best-of-three duel. Bring your favorite rival.</p></div><span class="mode-arrow">↗</span></button></section><section><div class="section-heading"><h2>Steal the show.</h2><p>30 games. 24 party challenges and six exclusive duels.</p></div><div class="game-grid">${C.games.map((g) => `<button class="game-card" data-rules="${g.id}"><canvas class="game-art" data-preview="${g.id}" aria-hidden="true"></canvas><div class="game-card-body"><span class="eyebrow">${g.tag}</span><h3>${g.name}</h3><p>${g.description}</p></div></button>`).join("")}</div></section><section class="crew-section"><div class="section-heading"><h2>A crew with character.</h2><p>Eight personalities. One of each per match.</p></div><div class="crew-grid">${C.characters.map((c) => `<div class="crew-card"><canvas data-character="${c.id}" aria-hidden="true"></canvas><div><h3>${c.name}</h3><span class="eyebrow">${c.kind}</span><p>${c.bio}</p></div></div>`).join("")}</div></section>`;
+    app.innerHTML = `<section class="festival-hero"><img class="festival-art" src="/assets/party/images/boardwalk-crew-v2.webp" alt="Riff, Cleo, Moss and Bolt race through the sunset festival" fetchpriority="high"><div class="festival-copy"><span class="eyebrow">WELCOME TO CORAL CARNIVAL</span><h1>Big laughs.<br>Little rivalries.</h1><p>Roll into a seaside party full of shortcuts, surprises, and one-more-round moments.</p><div class="hero-buttons"><button class="primary" data-create="party">Start a party ↗</button><button class="secondary" data-open-join>Join friends</button></div><div class="hero-facts"><span>2–4 players</span><span>10 / 20 / 30 turns</span><span>Free to play</span></div></div></section><section class="mode-grid" aria-label="Choose a mode"><button class="mode-card" data-create="party"><div><span class="mode-meta">THE WHOLE ADVENTURE · 2–4 PLAYERS</span><h3>Roll with your crew.</h3><p>50 spaces. A central crossing and two scenic detours. Shops, surprises and rival showdowns.</p></div><span class="mode-arrow">↗</span></button><button class="mode-card" data-create="duel"><div><span class="mode-meta">JUST THE MINIGAMES · 1V1</span><h3>Settle the score.</h3><p>Jump into a best-of-three duel. Bring your favorite rival.</p></div><span class="mode-arrow">↗</span></button></section><section><div class="section-heading"><h2>Steal the show.</h2><p>${C.games.length} games. ${C.games.filter((g) => !g.duelOnly).length} party challenges and ${C.games.filter((g) => g.duelOnly).length} exclusive duels.</p></div><div class="game-grid">${C.games.map((g) => `<button class="game-card" data-rules="${g.id}"><canvas class="game-art" data-preview="${g.id}" aria-hidden="true"></canvas><div class="game-card-body"><span class="eyebrow">${g.tag}</span><h3>${g.name}</h3><p>${g.description}</p></div></button>`).join("")}</div></section><section class="crew-section"><div class="section-heading"><h2>A crew with character.</h2><p>Eight personalities. One of each per match.</p></div><div class="crew-grid">${C.characters.map((c) => `<div class="crew-card"><canvas data-character="${c.id}" aria-hidden="true"></canvas><div><h3>${c.name}</h3><span class="eyebrow">${c.kind}</span><p>${c.bio}</p></div></div>`).join("")}</div></section>`;
     previewObserver?.disconnect();
     previewObserver = new IntersectionObserver(
       (entries) => {
@@ -1464,7 +1464,7 @@
         );
       const el = $("#putt-status");
       if (el)
-        el.textContent = `${active.name} · course ${Math.min(3, p.course + 1)} / 3 · ${remaining}s · ${active.id === r.you ? "Drag back and release to putt" : "Watch their shot"}`;
+        el.textContent = `${active.name} · course ${Math.min(3, p.course + 1)} / 3 · ${remaining}s · ${active.id === r.you ? (r.game.progress[p.turn].shot && stamp < r.game.progress[p.turn].shot.at + r.game.progress[p.turn].shot.duration + 250 ? "Ball rolling…" : "Drag back and release to putt") : "Watch their shot"}`;
     }
     if (r.phase === "measuring" && $("#fish-measurements")) {
       const q = Math.min(
@@ -1590,8 +1590,11 @@
         let locked = false;
         if (id === "math") locked = v.locked || r.game.cue?.reveal;
         if (id === "puzzle") locked = b.classList.contains("empty");
-        if (id === "safe-panel") locked = b.classList.contains("removed");
-        if (id === "safe-wires") locked = b.classList.contains("cut");
+        if (id === "safe-panel")
+          locked =
+            b.classList.contains("removed") || stamp - (v.toolAt || 0) < 350;
+        if (id === "safe-wires")
+          locked = b.classList.contains("cut") || stamp - (v.toolAt || 0) < 350;
         if (id === "safe-dial") locked = stamp - (v.checkAt || 0) < 700;
         if (id === "basket") locked = v.shot && stamp - v.shot.at < 1550;
         if (id === "baseball") locked = v.actedBeat === r.game.cue?.index;

@@ -69,6 +69,12 @@ turns, with 30 seconds per player per course and mouse/touch drag controls.
 - Full four-player ten-turn browser match, all 39 minigames, rematch, rival duels,
   reconnect, delayed requests, desktop, phone and landscape layouts.
 - V4–V8 focused browser suites, including actual new-game pointer/button inputs.
+- A real-clock ten-turn Netlify match reached the final ceremony and persisted
+  its reward. It exposed a missing-cue render error after Confetti's final
+  signal; that is fixed and covered by a focused browser regression.
+- Putt waits for the ball to stop before accepting another drag, and safe tool
+  controls reflect the server cooldown. Fixture resets await the actual rendered
+  round and share the test database's transaction queue.
 - 600 simulated boards across 10/20/30 turns and two/four players: every player
   received the selected turn count; all matches completed; balances, inventories
   and board positions remained valid. This is a regression sample, not proof

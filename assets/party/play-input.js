@@ -11,6 +11,19 @@
       keys = new Set();
     function eligible() {
       const r = get();
+      if (r?.game?.id === "putt") {
+        const i = r.players.findIndex((p) => p.id === r.you),
+          v = r.game.progress[i],
+          t = r.game.putt,
+          at = clock();
+        if (
+          t.turn !== i ||
+          at < r.game.start + t.offset ||
+          at >= r.game.start + t.offset + 30000 ||
+          (v.shot && at < v.shot.at + v.shot.duration + 250)
+        )
+          return null;
+      }
       return r?.phase === "playing" &&
         clock() >= r.game.start &&
         clock() < r.game.end &&

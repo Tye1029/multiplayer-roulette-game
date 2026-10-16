@@ -98,6 +98,35 @@ async function wake(pages) {
   );
   await pages[0].waitForTimeout(180);
 }
+async function renderedRound(pages, start) {
+  // A DB fixture update is not a browser acknowledgement. Probe the real
+  // rendered state so inputs cannot race an earlier in-flight snapshot.
+  for (const p of pages)
+    await p.evaluate(() => {
+      if (window.__roundRenderProbe) return;
+      window.__roundRenderProbe = true;
+      const render = PartyScene.render;
+      PartyScene.render = function (...args) {
+        window.__renderedPartyRound = {
+          start: args[2]?.game?.start,
+          phase: args[2]?.phase,
+          revision: args[2]?.revision,
+        };
+        return render.apply(this, args);
+      };
+    });
+  await wake(pages);
+  await Promise.all(
+    pages.map((p) =>
+      p.waitForFunction(
+        (start) =>
+          window.__renderedPartyRound?.start === start &&
+          window.__renderedPartyRound?.phase === "playing",
+        start,
+      ),
+    ),
+  );
+}
 async function roomState(code) {
   return (
     await server.pg.query("SELECT state FROM party_rooms WHERE id=$1", [code])
@@ -228,6 +257,9 @@ async function playRound(pages, code, seen) {
   // timer on CI. Give this isolated UI fixture time to exercise every player;
   // expire() still takes the normal authoritative end-of-round path afterward.
   s.deadline = s.game.end = Date.now() + 240000;
+  // This fixture covers every client's controls under a software GPU. Real
+  // telegraphs, hazard timing and elimination are exercised by V8's tests.
+  if (game === "volcano") s.game.rocks.forEach((r) => (r.at += 240000));
   if (
     G.handled(game) &&
     Array.isArray(s.game.beats) &&
@@ -325,10 +357,26 @@ async function playRound(pages, code, seen) {
       const fresh = await roomState(code),
         previousInputs = fresh.game.progress.map((v) => v.inputs);
       fresh.game.start = Date.now() - 1000;
+      fresh.game.progress = previousInputs.map((inputs) => ({
+        inputs,
+        last: 0,
+        finished: null,
+        shot: null,
+        step: 0,
+        combo: 0,
+        bonus: 0,
+        attempts: 0,
+        reverse: false,
+        pattern: [0, 1, 2],
+        cursor: 0,
+        level: 3,
+        showAt: fresh.game.start,
+        feedback: "",
+      }));
       G.setup(fresh.game);
-      fresh.game.progress.forEach((v, j) => (v.inputs = previousInputs[j]));
+      if (game === "volcano") fresh.game.rocks.forEach((r) => (r.at += 240000));
       fresh.phase = "playing";
-      fresh.deadline = fresh.game.end;
+      fresh.deadline = fresh.game.end = Date.now() + 240000;
       fresh.revision++;
       if (game === "putt")
         Object.assign(fresh.game.putt, { slot: i, turn: i, offset: 0 });
@@ -336,8 +384,7 @@ async function playRound(pages, code, seen) {
         "UPDATE party_rooms SET state=$2::jsonb WHERE id=$1",
         [code, JSON.stringify(fresh)],
       );
-      await wake(pages);
-      await wait(p, "body[data-phase=playing]");
+      await renderedRound(pages, fresh.game.start);
       if (["bumper", "volcano", "putt"].includes(game)) {
         const box = await p.locator("#party-scene").boundingBox(),
           x = box.x + box.width * 0.5,

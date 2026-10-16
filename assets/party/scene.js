@@ -2887,7 +2887,7 @@ function overlay(c, canvas, kind, s, t, extra) {
       title =
         "TARGET " +
         (v?.recipe || []).map((n) => ["↑", "→", "↓", "←"][n]).join("  ");
-    if (kind === "confetti")
+    if (kind === "confetti" && b)
       title =
         ["BLUE", "PINK", "MINT"][b.color % 3] +
         (dt >= -180 ? " · READY!" : " · CHARGING…");
@@ -2990,14 +2990,7 @@ function overlay(c, canvas, kind, s, t, extra) {
             w < 500 ? 10 : 12,
             "#6a4c7e",
           );
-          text(
-            c,
-            p.tokens + " coins",
-            cx,
-            y - 7,
-            w < 500 ? 10 : 12,
-            "#6a4c7e",
-          );
+          text(c, p.tokens + " coins", cx, y - 7, w < 500 ? 10 : 12, "#6a4c7e");
           if (s.phase === "complete")
             text(
               c,

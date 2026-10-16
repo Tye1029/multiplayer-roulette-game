@@ -69,7 +69,18 @@ export async function startPartyServer({
   await new Promise((r) => server.listen(port, "127.0.0.1", r));
   return {
     origin: `http://127.0.0.1:${server.address().port}`,
-    pg,
+    // Fixture SQL shares the handler's single-connection transaction queue.
+    // Otherwise a polling transaction can overwrite a fixture mid-update.
+    pg: {
+      query: async (sql, params) => {
+        const client = await pool.connect();
+        try {
+          return await client.query(sql, params);
+        } finally {
+          client.release();
+        }
+      },
+    },
     pool,
     store,
     tick: (ms) => (delta += ms),

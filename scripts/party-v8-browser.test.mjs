@@ -219,6 +219,14 @@ try {
       }
     }
   }
+  // The last confetti signal can expire before the round timer. Rendering
+  // that real interval must not dereference a missing cue and stall frames.
+  const lastSignal = game("confetti");
+  lastSignal.game.beats = [{ index: 0, at: 0, window: 100, color: 0 }];
+  await install(lastSignal);
+  await page.waitForTimeout(600);
+  await shot("confetti-after-last-signal", 390);
+  assert.deepEqual(errors, [], "empty cue at the end of Confetti Factory");
   for (const phase of [
     "order-roll",
     "selection",
