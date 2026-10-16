@@ -13,7 +13,7 @@ globalThis.PartyFestivalUI = {
           (dt < -600 ? " · watch…" : "!")
         );
       case "confetti":
-        return `POT ${v.pot || 0} · Popper ${b.lane + 1} pays double · ${v.actedBeat === b.index ? "next draw soon" : "pick or bank"}`;
+        return `${["BLUE", "PINK", "MINT"][b.color % 3]} · ${v.actedBeat === b.index ? "Order complete" : dt >= -180 ? "READY — FIRE!" : "Charging… wait for READY"}`;
       case "kart":
         return `${Math.round(v.distance || 0)} m · ${v.boosted ? "BOOST · steering takes longer" : "green pads boost · barrels slow"}`;
       case "bomb":

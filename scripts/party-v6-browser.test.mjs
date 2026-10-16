@@ -45,6 +45,8 @@ try {
   base.ready = base.players.map((p) => p.id);
   M.begin(base, Date.now());
   base.turn = base.startingSeat = 0;
+  base.phase = "board";
+  base.turnIndex = 0;
   await server.pg.query(
     "INSERT INTO party_rooms(id,owner_id,request_id,state) VALUES($1,$2,$3,$4::jsonb)",
     [base.id, profile.id, crypto.randomUUID(), JSON.stringify(base)],
@@ -155,7 +157,7 @@ try {
   assert.equal((await state()).players[0].position, 5);
   // Full gift pockets offer the same replacement interface without a purchase.
   s = structuredClone(base);
-  s.players[0].position = 3;
+  s.players[0].position = 18;
   s.players[0].items = ["boost", "shield", "swap"];
   s.movement = { remaining: 0 };
   s.phase = "walking";
@@ -168,6 +170,7 @@ try {
   // An explicit trophy purchase and selectable rival profiles.
   s = structuredClone(base);
   s.players[0].position = 9;
+  s.players[0].tokens = 20;
   s.movement = { remaining: 1 };
   s.dice = { values: [1], total: 1 };
   s.phase = "rolling";
@@ -205,9 +208,14 @@ try {
   await install(s);
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.waitForTimeout(250);
-  const frameA = await page.locator("#party-scene").screenshot();
+  // Element screenshots also capture sibling DOM overlays over the canvas.
+  // The countdown digits must tick; only the underlying arena must be frozen.
+  const freezeCapture = {
+    style: "#scene-clock,#start-count{visibility:hidden!important}",
+  };
+  const frameA = await page.locator("#party-scene").screenshot(freezeCapture);
   await page.waitForTimeout(300);
-  const frameB = await page.locator("#party-scene").screenshot();
+  const frameB = await page.locator("#party-scene").screenshot(freezeCapture);
   await fs.writeFile(path.join(out, "v6-countdown-a.png"), frameA);
   await fs.writeFile(path.join(out, "v6-countdown-b.png"), frameB);
   console.log("Countdown", (await state()).phase);

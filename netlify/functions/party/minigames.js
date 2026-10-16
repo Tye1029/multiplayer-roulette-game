@@ -1,25 +1,29 @@
 "use strict";
 const { randomInt: rnd } = require("node:crypto");
 const F = require("./festival-games");
+const E = require("./expansion-games"),
+  P = require("./putting");
+const X = require("../../../assets/party/expansion-rules");
 const R = require("../../../assets/party/rules");
-const ids = ["fish", "cascade", "lantern", "hop", "dash", "signal", "treasure"];
-const handled = (id) => ids.includes(id) || F.handled(id);
+const ids = ["fish", "cascade", "lantern", "hop", "dash", "signal"];
+const handled = (id) =>
+  id === "putt" || ids.includes(id) || F.handled(id) || E.handled(id);
 function setup(g) {
+  if (g.id === "putt") return P.setup(g);
+  if (E.handled(g.id)) return E.setup(g);
   if (F.handled(g.id)) return F.setup(g);
   g.survival = g.id === "lantern";
   if (!handled(g.id)) return;
   const count =
     g.id === "lantern"
       ? 12
-      : g.id === "treasure"
-        ? 28
-        : g.id === "cascade"
-          ? 20
-          : g.id === "dash"
-            ? 14
-            : g.id === "fish"
-              ? 6
-              : 8;
+      : g.id === "cascade"
+        ? 30
+        : g.id === "dash"
+          ? 14
+          : g.id === "fish"
+            ? 6
+            : 8;
   const interval = (g.duration - 2500) / count;
   g.beats = Array.from({ length: count }, (_, i) => ({
     index: i,
@@ -34,8 +38,9 @@ function setup(g) {
     kind: ["barrel", "hurdle", "bunting"][rnd(3)],
     values: Array.from({ length: 3 }, () => {
       const n = rnd(10);
-      return n < 2 ? -1 : n < 5 ? 3 : 1;
+      return n < 2 ? -3 : n < 5 ? 3 : 1;
     }),
+    size: ["small", "medium", "large"][rnd(3)],
     rarity: rnd(100),
     fake: rnd(2) === 0,
   }));
@@ -51,21 +56,14 @@ function setup(g) {
           [b.layout[j], b.layout[k]] = [b.layout[k], b.layout[j]];
         }
     });
-  if (g.id === "treasure")
-    for (const b of g.beats) {
-      b.window = 250;
-      b.values = [0, 0, 0];
-      b.values[b.lane] = rnd(5) === 0 ? -3 : rnd(4) === 0 ? 4 : 2;
-    }
   if (g.id === "signal") for (const b of g.beats) b.at += rnd(650);
   if (g.id === "fish") {
-    g.fishBase = 70 + rnd(16);
     g.fishBeats = g.progress.map((_, i) =>
       g.beats.map((b) => ({
         index: b.index,
         at: b.at + i * 240 + rnd(160),
         window: 1100,
-        size: 0.6 + rnd(81) / 100,
+        size: 0.55 + rnd(76) / 100,
       })),
     );
   }
@@ -85,6 +83,7 @@ function setup(g) {
     });
 }
 function cue(g, now, i = 0) {
+  if (E.handled(g.id)) return E.cue(g, now);
   if (F.handled(g.id)) return F.cue(g, now);
   if (g.id === "fish" && g.progress[i]?.catch) return null;
   const beats = g.id === "fish" ? g.fishBeats[i] : g.beats;
@@ -95,7 +94,7 @@ function award(g, i, value, now, label) {
   const before = g.scores[i];
   g.scores[i] = Math.max(0, before + value);
   value = g.scores[i] - before;
-  if (["cascade", "treasure"].includes(g.id)) v.collected += value;
+  if (["cascade"].includes(g.id)) v.collected += value;
   v.popup = {
     at: now,
     value,
@@ -115,6 +114,8 @@ function miss(g, i, now, label) {
   }
 }
 function advance(g, i, now) {
+  if (g.id === "putt") return P.advance(g, i, now);
+  if (E.handled(g.id)) return E.advance(g, i, now);
   if (F.handled(g.id)) return F.advance(g, i, now);
   if (!handled(g.id)) return;
   const v = g.progress[i];
@@ -125,26 +126,13 @@ function advance(g, i, now) {
     if (now < due || b.index <= v.resolved) continue;
     const active = v.inputs > 0 && due - v.last < 6500;
     if (g.id === "cascade") {
-      if (active) {
+      if (v.inputs > 0) {
         const n = b.values[v.lane];
-        if (n > 0 && due >= (v.stunnedUntil || 0))
-          award(g, i, n, due, "+" + n + " coins");
+        if (n > 0) award(g, i, n, due, "+" + n + " coins");
         else if (n < 0) {
-          v.stunnedUntil = due + 1100;
-          miss(g, i, due, "Crate! Keep moving");
+          award(g, i, -3, due, "Spike ball! −3 coins");
+          v.hitAt = due;
         }
-      }
-    } else if (g.id === "treasure") {
-      const n = b.values[v.chosen ?? 1];
-      if (v.inputs > 0 && n) {
-        award(
-          g,
-          i,
-          n,
-          due,
-          n > 0 ? "+" + n + " coins" : "Spike ball! -3 coins",
-        );
-        if (n < 0) v.hitAt = due;
       }
     } else if (g.id === "lantern") {
       g.lanternLast = {
@@ -169,7 +157,11 @@ function advance(g, i, now) {
           due,
           "Safe landing! +" + (150 + v.combo * 25),
         );
-      } else miss(g, i, due, "Wrong platform!");
+      } else {
+        v.fallTile =
+          v.moveAt && v.moveAt + 420 > due ? v.fromLane : (v.chosen ?? i);
+        miss(g, i, due, "Wrong platform!");
+      }
     } else if (g.id === "dash") {
       const action = b.kind === "hurdle" ? v.jumpAt : v.duckAt;
       const safe =
@@ -195,6 +187,8 @@ function advance(g, i, now) {
   if (v.resolved === g.beats.length - 1) v.finished ||= now;
 }
 function play(g, i, b, now, fail) {
+  if (g.id === "putt") return P.play(g, i, b, now, fail);
+  if (E.handled(g.id)) return E.play(g, i, b, now, fail);
   if (F.handled(g.id)) return F.play(g, i, b, now, fail);
   const v = g.progress[i],
     beat = cue(g, now, i);
@@ -211,7 +205,7 @@ function play(g, i, b, now, fail) {
       if (now - v[key] < 900) fail("Land before moving again.");
       v[key] = now;
     } else fail("Choose a valid movement.", 400);
-  } else if (["lantern", "treasure"].includes(g.id)) {
+  } else if (["lantern"].includes(g.id)) {
     if (
       !Number.isInteger(b.value) ||
       b.value < 0 ||
@@ -222,15 +216,16 @@ function play(g, i, b, now, fail) {
       if (now - (v.moveAt || 0) < 420) fail("Land before jumping again.");
       if (g.lanternLast && now - g.lanternLast.at < 1100)
         fail("Wait for the hatches to rise.");
+      if (b.value === (v.chosen ?? i)) {
+        v.feedback = "Holding this platform";
+        return;
+      }
     }
     v.fromLane = v.chosen ?? (g.id === "lantern" ? i : 1);
     v.chosen = b.value;
     v.choiceBeat = beat.index;
     v.moveAt = now;
-    v.feedback =
-      g.id === "treasure"
-        ? "Route chosen. Watch the tide!"
-        : "Ready on your platform.";
+    v.feedback = "Ready on your platform.";
   } else {
     if (v.actedBeat === beat.index) fail("Wait for the next signal.");
     if (
@@ -240,13 +235,15 @@ function play(g, i, b, now, fail) {
       fail("Choose a signal color.", 400);
     if (g.id !== "signal" && b.value !== (g.id === "fish" ? "reel" : "jump"))
       fail("Choose the highlighted action.", 400);
-    const dt = now - (g.start + beat.at);
+    const dt =
+      now - (g.start + beat.at - (g.id === "hop" ? X.waveLead(beat.size) : 0));
     v.actedBeat = beat.index;
     v.attempts++;
     v.jumpAt = g.id === "hop" ? now : v.jumpAt;
+    if (g.id === "hop") v.jumpDuration = X.waveJump(beat.size);
     if (
-      dt < -100 ||
-      dt > beat.window ||
+      dt < (g.id === "hop" ? -140 : -100) ||
+      dt > (g.id === "hop" ? 140 : beat.window) ||
       (g.id === "signal" && b.value !== beat.color)
     ) {
       if (g.id === "signal") g.scores[i] = Math.max(0, g.scores[i] - 100);
@@ -256,7 +253,8 @@ function play(g, i, b, now, fail) {
       let score = Math.round(180 + 220 * (1 - Math.max(0, dt) / beat.window));
       if (g.id === "fish") {
         score = Math.round(
-          25 + g.fishBase * (1 - Math.max(0, dt) / beat.window),
+          Math.round(beat.size * 75) *
+            (0.85 + 0.15 * (1 - Math.max(0, dt) / beat.window)),
         );
         v.catch = {
           at: now,
@@ -284,6 +282,8 @@ function play(g, i, b, now, fail) {
   }
 }
 function bot(g, i, now) {
+  if (g.id === "putt") return P.bot(g, i, now);
+  if (E.handled(g.id)) return E.bot(g, i, now);
   if (F.handled(g.id)) return F.bot(g, i, now);
   const v = g.progress[i],
     b = cue(g, now, i);
@@ -314,10 +314,8 @@ function bot(g, i, now) {
       return null;
     return { value: rnd(12) ? R.lanternTile(b) : rnd(4) };
   }
-  if (g.id === "treasure")
-    return { value: b.values[b.lane] > 0 ? b.lane : (b.lane + 1) % 3 };
   if (
-    now < g.start + b.at + 100 ||
+    now < g.start + b.at + (g.id === "hop" ? -X.waveLead(b.size) : 100) ||
     now > g.start + b.at + b.window ||
     v.actedBeat === b.index
   )
@@ -333,6 +331,15 @@ module.exports = {
   play,
   bot,
   cue,
-  publicView: F.publicView,
+  publicView(g, out, now, viewer) {
+    if (E.handled(g.id)) E.publicView(g, out, now, viewer);
+    else if (F.handled(g.id)) F.publicView(g, out, now, viewer);
+    if (g.id === "cascade")
+      out.drops = g.beats.filter(
+        (b) =>
+          now - g.start >= b.at + b.window - 2000 &&
+          now - g.start < b.at + b.window + 350,
+      );
+  },
   festival: F,
 };

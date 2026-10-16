@@ -18,6 +18,9 @@ function fixture(id) {
   s.ready = ps.map((p) => p.id);
   M.begin(s, 10000);
   s.startingSeat = s.turn = 0;
+  s.turnIndex = 0;
+  if (s.mode === "party") s.phase = "board";
+  else if (s.phase === "selection") M.advance(s, s.deadline);
   if (id) {
     s.phase = "board-end";
     s.deadline = 11000;
@@ -92,7 +95,9 @@ test("four players retain one roll order across rounds; only the fourth complete
       assert.equal(s.turnIndex, index + 1);
     }
     M.advance(s, s.deadline);
-    assert.equal(s.phase, "intro");
+    assert.equal(s.phase, "selection");
+    M.advance(s,s.deadline);
+    assert.equal(s.phase,"intro");
     s.phase = "round-end";
     s.deadline = 50000 + round * 10000;
     M.advance(s, s.deadline);
@@ -309,6 +314,7 @@ test("lantern has twelve accelerating bells, positional color shuffles and real 
   assert.equal(g.beats.length, 12);
   assert.ok(g.beats[11].at - g.beats[10].at < g.beats[1].at - g.beats[0].at);
   for (const b of g.beats) assert.deepEqual([...b.layout].sort(), [0, 1, 2, 3]);
+  g.beats[0].color=3;
   const b = g.beats[0],
     due = g.start + b.at + b.window;
   play(g, 0, R.lanternTile(b), due - 420);
@@ -320,9 +326,9 @@ test("lantern has twelve accelerating bells, positional color shuffles and real 
   assert.ok(g.progress[1].eliminatedAt);
   assert.throws(() => play(g, 0, 2, due + 500), /hatches/);
 });
-test("fishing ripple size varies independently of the single-catch length rules", () => {
+test("fishing ripple sizes retain a bounded visible range", () => {
   const g = fixture("fish").game,
     sizes = g.fishBeats.flat().map((b) => b.size);
   assert.ok(new Set(sizes).size > 1);
-  assert.ok(sizes.every((n) => n >= 0.6 && n <= 1.4));
+  assert.ok(sizes.every((n) => n >= 0.55 && n <= 1.3));
 });

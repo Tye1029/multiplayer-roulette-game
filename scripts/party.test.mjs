@@ -27,6 +27,9 @@ function fixture(mode = "party", count = 2) {
   s.ready = s.players.map((p) => p.id);
   M.act(s, "0", { action: "start" }, 11000);
   s.startingSeat = s.turn = 0;
+  s.turnIndex = 0;
+  if (s.mode === "party") s.phase = "board";
+  else if (s.phase === "selection") M.advance(s, s.deadline);
   return s;
 }
 function gameFixture(id) {
@@ -194,7 +197,7 @@ test("all space effects preserve nonnegative coins; gifts and shields have real 
     );
   }
 });
-test("passing the trophy pauses for a purchase before spending ten coins and moving the host", () => {
+test("passing the trophy pauses for a purchase before spending twenty coins and moving the host", () => {
   const s = fixture();
   s.players[0].position = C.trophyStops[0] - 1;
   s.phase = "rolling";
@@ -206,6 +209,7 @@ test("passing the trophy pauses for a purchase before spending ten coins and mov
   assert.equal(s.players[0].tokens, 10);
   M.advance(s, s.deadline);
   assert.equal(s.event.kind, "trophy-purchase");
+  s.players[0].tokens=20;
   M.act(s, "0", { action: "buy-trophy", round: 1 }, s.deadline - 1000);
   assert.equal(s.players[0].trophies, 1);
   assert.equal(s.players[0].tokens, 0);
@@ -227,6 +231,7 @@ test("board duels restrict inputs to the two rivals and resume the same board ro
     12100,
   );
   assert.equal(s.game.sideDuel, true);
+  M.advance(s, s.deadline);
   M.advance(s, s.deadline);
   M.advance(s, s.deadline);
   s.game.id = "climb";
@@ -255,6 +260,7 @@ test("board duels restrict inputs to the two rivals and resume the same board ro
     },
     12000,
   );
+  M.advance(four, four.deadline);
   M.advance(four, four.deadline);
   M.advance(four, four.deadline);
   assert.throws(() => input(four, "2", "up", four.game.start + 500), /Watch/);
@@ -304,32 +310,17 @@ test("memory hides other and future patterns; reverse mode changes the correct o
     input(s, "0", x, 29000 + i * 200);
   assert.equal(s.game.scores[0], 550);
 });
-test("three putting courses use deterministic physics, sum scores and prevent extra shots", () => {
-  const s = gameFixture("putt");
-  assert.throws(
-    () => input(s, "0", null, 21000, { angle: NaN, power: 1 }),
-    /valid/,
-  );
-  let now = 21000,
-    total = 0;
-  for (let i = 0; i < 3; i++) {
-    input(s, "0", null, now, { angle: -1.5, power: 0.4, score: 99999 });
-    const v = s.game.progress[0];
-    assert.equal(v.shot.course, i);
-    assert.ok(v.shot.frames.length > 3);
-    assert.ok(s.game.scores[0] >= total);
-    total = s.game.scores[0];
-    assert.throws(
-      () => input(s, "0", null, now + 200, { angle: -1, power: 0.5 }),
-      /rolling|finished/,
-    );
-    now += v.shot.duration + 600;
-  }
-  assert.ok(total <= 3000);
-  assert.throws(
-    () => input(s, "0", null, now, { angle: -1, power: 0.5 }),
-    /finished/,
-  );
+test("three putting courses use deterministic physics, sum scores and reject concurrent shots",()=>{
+ const s=gameFixture("putt"),g=s.game;
+ assert.throws(()=>input(s,"0","putt",21000,{angle:NaN,power:1}),/aim/);
+ let at=21000;for(let course=0;course<3;course++){
+   for(let player=0;player<2;player++){
+     at=Math.max(at,g.start+g.putt.offset+1000);const before=g.scores[player];input(s,String(player),"putt",at,{angle:-1.5,power:.4,score:99999});const v=g.progress[player];assert.equal(v.shot.course,course);assert.ok(v.shot.frames.length>3);
+     assert.throws(()=>input(s,String(player),"putt",at+200,{angle:-1,power:.5}),/stop|finished/);
+     at=g.start+g.putt.offset+30000;M.advance(s,at);assert.ok(g.scores[player]>=before&&g.scores[player]<6000);
+   }
+ }
+ assert.ok(g.progress.every(v=>v.finished));assert.throws(()=>input(s,"0","putt",at+400,{angle:-1,power:.5}),/finished|accepting/);
 });
 test("ripple fishing keeps one timed catch, rejects early and duplicate pulls, and bounds its length", () => {
   const s = gameFixture("fish"),
@@ -581,6 +572,7 @@ test("coin and final-three-turn trophy duels escrow stakes and refund a tie once
   );
   M.advance(s, s.deadline);
   M.advance(s, s.deadline);
+  M.advance(s, s.deadline);
   M.advance(s, s.game.end + 1);
   assert.deepEqual(
     s.players.map((p) => p.tokens),
@@ -612,6 +604,7 @@ test("coin and final-three-turn trophy duels escrow stakes and refund a tie once
   );
   M.advance(trophy, trophy.deadline);
   M.advance(trophy, trophy.deadline);
+  M.advance(trophy, trophy.deadline);
   trophy.game.scores = [100, 0];
   M.advance(trophy, trophy.game.end + 1);
   assert.deepEqual(
@@ -621,14 +614,13 @@ test("coin and final-three-turn trophy duels escrow stakes and refund a tie once
   assert.deepEqual(trophy.game.trophyAwards, [1, -1]);
 });
 
-test("all six new games validate inputs, server scores, hidden future cues and coin awards", () => {
+test("all five lane and timing games validate inputs, server scores, hidden future cues and coin awards", () => {
   for (const id of [
     "cascade",
     "lantern",
     "hop",
     "dash",
     "signal",
-    "treasure",
   ]) {
     const s = gameFixture(id),
       g = s.game,
@@ -639,9 +631,7 @@ test("all six new games validate inputs, server scores, hidden future cues and c
       ? "left"
       : id === "hop"
         ? "jump"
-        : id === "treasure"
-          ? 0
-          : b.color;
+        : b.color;
     input(s, "0", value, g.start + b.at + 200, {
       score: 999999,
       coins: 999999,
@@ -684,60 +674,18 @@ test("full four-player ten-turn festival completes with varied minigames", () =>
         (at += 500),
       );
     else if (s.phase === "playing") {
-      for (const [i, p] of s.players.entries()) {
-        if (!s.game.participants.includes(p.id)) continue;
-        const v = s.game.progress[i];
-        at = Math.max(at, s.game.start + 400);
-        if (s.game.id === "climb") {
-          for (let n = 0; n < (i === 0 ? 5 : 1); n++)
-            input(s, p.id, s.game.sequence[v.step], (at += 200));
-        } else if (s.game.id === "putt")
-          input(s, p.id, null, (at += 200), {
-            angle: -1.3 - i * 0.2,
-            power: 0.5,
-          });
-        else if (G.festival.handled(s.game.id)) {
-          for (
-            let time = at;
-            time < Math.min(s.game.end, at + 3000);
-            time += 300
-          ) {
-            G.advance(s.game, i, time);
-            const move = G.bot(s.game, i, time);
-            if (move) {
-              try {
-                input(s, p.id, move.value, time);
-              } catch (e) {
-                if (!e.status) throw e;
-              }
-            }
-          }
-        } else if (G.handled(s.game.id)) {
-          const beat = s.game.beats[0];
-          at = s.game.start + beat.at + 200;
-          const value = ["cascade", "dash"].includes(s.game.id)
-            ? "left"
-            : s.game.id === "fish"
-              ? "reel"
-              : s.game.id === "hop"
-                ? "jump"
-                : s.game.id === "treasure"
-                  ? 1
-                  : beat.color;
-          input(s, p.id, value, at);
-        } else {
-          at = Math.max(at, v.showAt + v.pattern.length * 650 + 400);
-          for (let n = 0; n < (i === 0 ? 3 : 1); n++)
-            input(
-              s,
-              p.id,
-              v.pattern[v.reverse ? v.pattern.length - 1 - v.cursor : v.cursor],
-              (at += 200),
-            );
+      const g=s.game;
+      for(let tick=Math.max(at,g.start+400);tick<=g.end+1&&s.phase==="playing";tick+=400){
+        M.advance(s,tick);if(s.phase!=="playing")break;
+        for(const [i,p] of s.players.entries()){
+          const v=g.progress[i];if(v.finished||!g.participants.includes(p.id))continue;
+          const move=G.handled(g.id)?G.bot(g,i,tick):g.id==="climb"?{value:g.sequence[v.step]}:tick>v.showAt+v.pattern.length*650+300?{value:v.pattern[v.reverse?v.pattern.length-1-v.cursor:v.cursor]}:null;
+          if(move)try{input(s,p.id,move.value,tick,move);}catch(e){if(!e.status)throw e;}
         }
+        at=tick;
       }
-      at = s.game.end + 1;
-      M.advance(s, at);
+      at=Math.max(at,g.end+1);M.advance(s,at);
+
     } else {
       at = s.deadline + 1;
       M.advance(s, at);
@@ -841,9 +789,9 @@ test("guest auth, room privacy, idempotent movement and atomic cosmetics in real
       (await call(0, "start", { room, requestId: uuid() })).status,
       200,
     );
-    // Fix the seat only for the movement/replay fixture below; creation randomizes it.
+    // Isolate board movement/replay from the separately tested opening roll ceremony.
     await server.pg.query(
-      "UPDATE party_rooms SET state=jsonb_set(jsonb_set(state,'{turn}','0'),'{startingSeat}','0') WHERE id=$1",
+      "UPDATE party_rooms SET state=state || '{\"turn\":0,\"startingSeat\":0,\"turnIndex\":0,\"phase\":\"board\"}'::jsonb WHERE id=$1",
       [room],
     );
     const requestId = uuid(),

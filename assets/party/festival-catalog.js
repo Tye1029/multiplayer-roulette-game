@@ -25,15 +25,14 @@
     ],
     [
       "confetti",
-      "Confetti Roulette",
-      "RISK + BANK",
-      "Three party poppers. One big surprise.",
-      "Pick a party popper: two add to your unbanked pot, one bursts and empties it. Bank instead to keep your pot safely, but miss that draw. The sparkling popper pays double. Hidden poppers are freshly mixed each draw; this is a luck game, with no coins staked.",
+      "Confetti Factory",
+      "COLOR + TIMING",
+      "Charge the colors. Cue the celebration.",
+      "Watch the color order above the poppers. When the charge reaches READY, fire the matching blue, pink, or mint popper. Correct launches build a streak; wrong colors or early launches cost 50 points. One launch per order.",
       [
-        [0, "Popper 1"],
-        [1, "Popper 2"],
-        [2, "Popper 3"],
-        ["bank", "Bank pot"],
+        [0, "Blue popper"],
+        [1, "Pink popper"],
+        [2, "Mint popper"],
       ],
     ],
     [

@@ -107,6 +107,7 @@ async function expire(code, pages) {
   const s = await roomState(code);
   s.deadline = Date.now() - 1;
   if (s.phase === "playing") s.game.end = Date.now() - 1;
+  if (s.phase === "finale") s.finale.at = Date.now() - 31000;
   if (s.phase === "countdown") {
     s.game.start = Date.now() - 1;
     s.game.end = s.game.start + s.game.duration;
@@ -175,15 +176,27 @@ async function checkExpiredControls(pages, code) {
     );
     assert.equal(await p.locator("#timer").innerText(), "0s");
     const buttons = p.locator(".controls button");
-    assert.ok(
-      await buttons.count(),
-      "expired round still has its controls while reconnecting",
-    );
-    assert.equal(
-      await buttons.evaluateAll((bs) => bs.every((b) => b.disabled)),
-      true,
-    );
-    await buttons.first().evaluate((b) => b.click());
+    if (await buttons.count()) {
+      assert.equal(
+        await buttons.evaluateAll((bs) => bs.every((b) => b.disabled)),
+        true,
+      );
+      await buttons.first().evaluate((b) => b.click());
+    } else {
+      assert.ok(
+        ["bumper", "volcano", "putt"].includes(s.game.id),
+        "pointer games have drag controls",
+      );
+      const box = await p.locator("#party-scene").boundingBox();
+      await p.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      await p.mouse.down();
+      await p.mouse.move(
+        box.x + box.width / 2 + 45,
+        box.y + box.height / 2 + 35,
+      );
+      await p.waitForTimeout(250);
+      await p.mouse.up();
+    }
     await p.keyboard.press("ArrowUp");
     await p.keyboard.press("1");
     await p.keyboard.press("Space");
@@ -215,7 +228,12 @@ async function playRound(pages, code, seen) {
   // timer on CI. Give this isolated UI fixture time to exercise every player;
   // expire() still takes the normal authoritative end-of-round path afterward.
   s.deadline = s.game.end = Date.now() + 240000;
-  if (G.handled(game)) {
+  if (
+    G.handled(game) &&
+    Array.isArray(s.game.beats) &&
+    C.games.find((d) => d.id === game).engine !== "expansion" &&
+    game !== "putt"
+  ) {
     s.game.beats = [
       {
         ...s.game.beats[0],
@@ -300,6 +318,68 @@ async function playRound(pages, code, seen) {
   for (let i = 0; i < pages.length; i++) {
     if (!s.game.participants.includes(s.players[i].id)) continue;
     const p = pages[i];
+    const expansion = C.games.find((d) => d.id === game).engine === "expansion";
+    if (expansion || game === "putt") {
+      // Each player's isolated input gets a fresh clock after the screenshots.
+      // V8 tests separately exercise real timers, movement, collisions and scoring.
+      const fresh = await roomState(code),
+        previousInputs = fresh.game.progress.map((v) => v.inputs);
+      fresh.game.start = Date.now() - 1000;
+      G.setup(fresh.game);
+      fresh.game.progress.forEach((v, j) => (v.inputs = previousInputs[j]));
+      fresh.phase = "playing";
+      fresh.deadline = fresh.game.end;
+      fresh.revision++;
+      if (game === "putt")
+        Object.assign(fresh.game.putt, { slot: i, turn: i, offset: 0 });
+      await server.pg.query(
+        "UPDATE party_rooms SET state=$2::jsonb WHERE id=$1",
+        [code, JSON.stringify(fresh)],
+      );
+      await wake(pages);
+      await wait(p, "body[data-phase=playing]");
+      if (["bumper", "volcano", "putt"].includes(game)) {
+        const box = await p.locator("#party-scene").boundingBox(),
+          x = box.x + box.width * 0.5,
+          y = box.y + box.height * 0.45;
+        const reply = p.waitForResponse(
+          (r) =>
+            r.url().includes("party-action") &&
+            r.request().postDataJSON()?.action === "play",
+        );
+        await p.mouse.move(x, y);
+        await p.mouse.down();
+        await p.mouse.move(x + 45, y + 35, { steps: 6 });
+        await p.waitForTimeout(200);
+        await p.mouse.up();
+        const result = await reply;
+        assert.equal(result.status(), 200, await result.text());
+      } else {
+        let value = 0;
+        if (game === "safe-panel") {
+          const type = fresh.game.secrets[i].heist.screws[0].type;
+          await p.locator(`[data-tool="${type}"]`).click();
+          await p.waitForTimeout(160);
+          value = `screw:0:${type}`;
+        }
+        if (game === "safe-wires") value = "card:open";
+        if (game === "safe-dial") value = 8;
+        if (game === "puzzle") {
+          const blank = fresh.game.progress[i].tiles.indexOf(0);
+          value = fresh.game.progress[i].tiles.findIndex((_, j) =>
+            require("../assets/party/expansion-rules").adjacent(blank, j),
+          );
+        }
+        if (game === "basket") value = "shoot";
+        if (game === "baseball") value = "swing";
+        await action(p, `[data-control="${value}"]:enabled`, "play");
+      }
+      assert.ok(
+        (await roomState(code)).game.progress[i].inputs > previousInputs[i],
+        game + " real player input",
+      );
+      continue;
+    }
     if (game === "climb") {
       await wait(p, "#next-arrows");
       for (let n = 0; n < (i === 0 ? 5 : 2); n++) {
@@ -308,12 +388,6 @@ async function playRound(pages, code, seen) {
         await action(p, "[data-direction=" + dir + "]", "play");
         await p.waitForTimeout(150);
       }
-    }
-    if (game === "putt") {
-      await wait(p, "#aim");
-      await p.locator("#aim").fill("-62");
-      await p.locator("#power").fill("57");
-      await action(p, "[data-putt]", "play");
     }
     if (G.festival.handled(game)) {
       const state = await roomState(code),
@@ -343,13 +417,7 @@ async function playRound(pages, code, seen) {
         await action(p, '[data-control="right"]', "play");
       } else {
         const value =
-          game === "fish"
-            ? "reel"
-            : game === "hop"
-              ? "jump"
-              : game === "treasure"
-                ? cue.values.indexOf(Math.max(...cue.values))
-                : cue.color;
+          game === "fish" ? "reel" : game === "hop" ? "jump" : cue.color;
         await action(p, '[data-control="' + value + '"]:enabled', "play");
       }
     }
@@ -414,7 +482,15 @@ try {
         [code, JSON.stringify(s)],
       );
     }
-    if (s.phase === "board") {
+    if (s.phase === "order-roll") {
+      await wake(pages);
+      for (const seat of s.orderPending)
+        await action(
+          pages[seat],
+          '[data-action="order-roll"]:enabled',
+          "order-roll",
+        );
+    } else if (s.phase === "board") {
       const p = pages[s.turn];
       await wake(pages);
       await wait(p, "[data-action=roll]");
@@ -462,9 +538,11 @@ try {
         await wait(p, "[data-action=continue]");
         if (
           s.event.kind === "trophy-purchase" &&
-          s.players[s.turn].tokens >= 10
-        )
+          s.players[s.turn].tokens >= 20
+        ) {
           await action(p, "[data-action=buy-trophy]", "buy-trophy");
+          continue;
+        }
         if (s.event.kind === "shop" && !sawShop) {
           await fit(p, "item-cart");
           if (
@@ -487,6 +565,10 @@ try {
         "round-end",
         "side-result",
         "measuring",
+        "order-reveal",
+        "selection",
+        "trophy-flight",
+        "finale",
       ].includes(s.phase)
     )
       await expire(code, pages);
@@ -522,6 +604,19 @@ try {
     await action(pages[i], "[data-action=ready]", "ready");
   }
   await action(pages[0], "[data-action=start]:enabled", "start");
+  for (let tries = 0; tries < 40; tries++) {
+    const opening = await roomState(code);
+    if (opening.phase === "board") break;
+    if (opening.phase === "order-roll") {
+      await wake(pages);
+      for (const seat of opening.orderPending)
+        await action(
+          pages[seat],
+          '[data-action="order-roll"]:enabled',
+          "order-roll",
+        );
+    } else await expire(code, pages);
+  }
   await wait(pages[0], "body[data-phase=board]");
   // Isolated missing-game fixtures keep the real handler, ready flow, inputs,
   // and rendering. Only the minigame selection is controlled for coverage.
@@ -545,6 +640,7 @@ try {
       [code, JSON.stringify(state)],
     );
     await wake(pages);
+    await expire(code, pages);
     await wait(pages[0], "body[data-phase=intro]");
     await readyGame(pages, code);
     await expire(code, pages);
@@ -617,7 +713,7 @@ try {
   await delayed.context().close();
   assert.deepEqual(errors, []);
   console.log(
-    "PASS: ten-turn four-player festival, on-scene dice and controls, crossroads, passing shops, stakes, all 30 minigames, readiness, live duel, reconnect, rewards, rematch, slow requests and desktop/mobile/landscape layouts. " +
+    "PASS: ten-turn four-player festival, on-scene dice and controls, crossroads, passing shops, stakes, all 39 minigames, readiness, live duel, reconnect, rewards, rematch, slow requests and desktop/mobile/landscape layouts. " +
       out,
   );
 } finally {

@@ -10,6 +10,7 @@ export function carnivalScenes(H) {
     tube,
     torus,
     label,
+    mascot,
     roster,
     animateCharacter,
     palm,
@@ -81,63 +82,53 @@ export function carnivalScenes(H) {
     const w = common(kind);
     w.props = [];
     w.tiles = [];
-    if (["cascade", "treasure"].includes(kind)) {
+    if (kind === "cascade") {
       w.objects = [];
-      w.waves = [];
       for (let p = 0; p < 4; p++) {
         const base = (p - 1.5) * 7;
-        if (kind === "cascade") {
-          box(w.root, base, 0.55, -1, 6.6, 0.5, 21, "#616d85");
-          for (let z = -10; z < 9; z += 0.65)
-            box(w.root, base, 0.83, z, 6.35, 0.05, 0.06, "#b3c0c6");
-          for (const side of [-1, 1])
-            box(w.root, base + side * 3.25, 1, -1, 0.12, 0.4, 21, "#f1c582");
-        } else {
-          box(w.root, base, 0.35, 1, 6.5, 0.35, 16, "#f1dca8");
-          const wave = box(w.root, base, 0.66, -6, 6.4, 0.25, 1.1, "#75cdce");
-          w.waves.push(wave);
-        }
-        const row = [];
+        box(w.root, base, 0.5, 6, 6.5, 0.45, 4.7, "#ceaa88");
+        for (let j = 0; j < 8; j++)
+          box(w.root, base, 0.74, 4 + j * 0.55, 6.4, 0.025, 0.03, "#ac886d");
+        for (const side of [-1, 1])
+          tube(
+            w.root,
+            [base + side * 3.2, 0.7, 6],
+            [base + side * 3.2, 10, 6],
+            0.07,
+            "#c79b73",
+          );
+        box(w.root, base, 10.2, 6, 6.7, 0.25, 2, "#ddb2d5");
+        for (let slot = 0; slot < 3; slot++)
+          for (let lane = 0; lane < 3; lane++) {
+            const g = new T.Group();
+            w.root.add(g);
+            const prize = coin(g, 0, 0, 0, 0.4),
+              bundle = coin(g, 0.25, 0.3, 0, 0.3),
+              spike = new T.Group();
+            g.add(spike);
+            ball(spike, 0, 0, 0, 0.42, 0.42, 0.42, "#6d657d");
+            for (let j = 0; j < 8; j++) {
+              const a = (j / 8) * Math.PI * 2,
+                m = cyl(
+                  spike,
+                  Math.cos(a) * 0.46,
+                  Math.sin(a) * 0.46,
+                  0,
+                  0,
+                  0.13,
+                  0.35,
+                  "#e1d5be",
+                  5,
+                );
+              m.rotation.z = a - Math.PI / 2;
+            }
+            w.objects.push({ g, prize, bundle, spike, p, lane, slot });
+          }
         for (let lane = 0; lane < 3; lane++) {
           const x = base + (lane - 1) * 1.9;
-          box(w.root, x, 0.86, 6, 1.7, 0.12, 0.45, "#f6d478");
-          const g = new T.Group();
-          w.root.add(g);
-          const prize = coin(g, 0, 0, 0, 0.4);
-          const crate = box(g, 0, 0, 0, 0.8, 0.8, 0.8, "#9b735f");
-          box(crate, 0, 0, 0.42, 0.65, 0.12, 0.04, "#e7c09c");
-          const bundle = coin(g, 0.25, 0.3, 0, 0.3);
-          const spike = new T.Group();
-          g.add(spike);
-          ball(spike, 0, 0, 0, 0.45, 0.45, 0.45, "#79677e");
-          for (let j = 0; j < 8; j++) {
-            const a = (j / 8) * Math.PI * 2;
-            const thorn = cyl(
-              spike,
-              Math.cos(a) * 0.47,
-              Math.sin(a) * 0.47,
-              0,
-              0,
-              0.13,
-              0.35,
-              "#e0c7b5",
-              5,
-            );
-            thorn.rotation.z = a - Math.PI / 2;
-          }
-          row.push({ g, prize, crate, bundle, spike });
-          if (kind === "treasure") {
-            const sign = label(
-              ["LEFT", "MID", "RIGHT"][lane],
-              "#6a4d6b",
-              "#fff0c6",
-              0.21,
-            );
-            sign.position.set(x, 1.3, -3);
-            w.root.add(sign);
-          }
+          const ring = torus(w.root, x, 0.77, 6, 0.66, 0.035, "#f9de89");
+          ring.rotation.x = Math.PI / 2;
         }
-        w.objects.push(row);
       }
     } else if (kind === "lantern") {
       for (let i = 0; i < 4; i++) {
@@ -170,24 +161,55 @@ export function carnivalScenes(H) {
             );
         }
       }
-      for (const x of [-7.1, 7.1])
-        tube(w.root, [x, -1, -7.1], [x, 5.5, -7.1], 0.14, "#947369");
-      tube(w.root, [-7.1, 5.5, -7.1], [7.1, 5.5, -7.1], 0.14, "#947369");
-      tube(w.root, [0, 5.5, -7.1], [0, 4.3, -7.1], 0.04, "#6f6377");
-      w.lantern = ball(w.root, 0, 3.6, -7.1, 0.6, 0.7, 0.6, colors[0]);
+      box(w.root, 0, 0.2, -9, 5, 0.5, 3, "#bda080");
+      w.marshal = mascot("shopkeeper");
+      w.marshal.position.set(0, 0.48, -9);
+      w.marshal.scale.setScalar(1.15);
+      w.root.add(w.marshal);
+      w.flagGroup = new T.Group();
+      w.marshal.userData.arms[1].add(w.flagGroup);
+      tube(w.flagGroup, [0, -0.35, 0], [0, 1.6, 0], 0.035, "#f4dbb3");
+      w.flag = box(w.flagGroup, 0.45, 1.3, 0, 0.9, 0.6, 0.035, colors[0]);
     } else if (kind === "hop") {
-      box(w.root, 0, 0.34, -1, 30, 0.2, 20, "#68c3c9");
+      box(w.root, 0, 0.28, 5, 33, 0.14, 13, "#f2d99f");
+      for (let k = 0; k < 100; k++) {
+        const x = Math.sin(k * 87) * 15,
+          z = 1 + (k % 17) * 0.55;
+        ball(
+          w.root,
+          x,
+          0.38,
+          z,
+          0.035,
+          0.015,
+          0.055,
+          k % 2 ? "#d5b47e" : "#fff0cb",
+        );
+      }
+      box(w.root, 0, 0.32, -7, 33, 0.1, 12, "#69c7cc");
+      for (let k = 0; k < 5; k++)
+        box(w.root, 0, 0.38, -1 - k * 0.3, 33, 0.02, 0.08, "#daead3");
       w.wave = new T.Group();
       w.root.add(w.wave);
-      for (let x = -13; x < 14; x += 0.6) {
-        const crest = ball(w.wave, x, 0.55, 0, 0.55, 0.8, 0.5, "#77d5d7");
-        ball(w.wave, x, 0.95, 0.1, 0.4, 0.2, 0.3, "#e0f5dc");
+      for (let x = -16; x < 17; x += 0.65) {
+        ball(w.wave, x, 0.3, 0, 0.65, 0.55, 0.8, "#65bbcd");
+        ball(w.wave, x, 0.66, 0.28, 0.6, 0.4, 0.45, "#8fdbde");
+        ball(w.wave, x, 0.86, 0.49, 0.5, 0.13, 0.29, "#eef3d6");
       }
+      box(w.root, 0, 0.42, 3.5, 29, 0.025, 0.12, "#e1b663");
       for (let i = 0; i < 4; i++) {
         const x = (i - 1.5) * 6.6;
-        cyl(w.root, x, 0.5, 3.5, 2.7, 2.9, 0.8, "#efd5a0", 32);
-        cyl(w.root, x, 0.94, 3.5, 2.5, 2.5, 0.12, colors[i], 32);
-        box(w.root, x, 1.03, 4.3, 4.5, 0.04, 0.18, "#ffe28f");
+        const shell = ball(
+          w.root,
+          x + 2.7,
+          0.4,
+          7,
+          0.18,
+          0.08,
+          0.13,
+          "#f5e9d6",
+        );
+        shell.rotation.y = i;
       }
     } else if (kind === "dash") {
       w.obstacles = [];
@@ -311,14 +333,14 @@ export function carnivalScenes(H) {
     w.actors.forEach((a, i) => {
       const v = ps[i] || { lane: i % 3, chosen: i, moveAt: 0 },
         hit = t * 1000 - (v.hitAt || 0) < 700,
-        jump = clamp((t * 1000 - (v.jumpAt || 0)) / 900),
+        jump = clamp((t * 1000 - (v.jumpAt || 0)) / (v.jumpDuration || 900)),
         duck = t * 1000 - (v.duckAt || 0) < 850;
       let x = (i - 1.5) * 7,
         z = 6.5,
         y = 1,
         mode = "idle";
-      if (["cascade", "dash", "treasure"].includes(kind)) {
-        const lane = kind === "treasure" ? (v.chosen ?? 1) : v.lane,
+      if (["cascade", "dash"].includes(kind)) {
+        const lane = v.lane,
           previous = v.fromLane ?? lane;
         const q = clamp((t * 1000 - (v.moveAt || 0)) / 250);
         x += (mix(previous, lane, q) - 1) * 1.9;
@@ -327,7 +349,6 @@ export function carnivalScenes(H) {
           y += Math.sin(jump * Math.PI) * 1.6;
           if (duck) mode = "duck";
         }
-        if (kind === "treasure") y = 0.56;
       }
       if (kind === "lantern") {
         const tile = v.chosen ?? i,
@@ -346,7 +367,7 @@ export function carnivalScenes(H) {
       if (kind === "hop") {
         x = (i - 1.5) * 6.6;
         z = 3.5;
-        y = 1.05 + Math.sin(jump * Math.PI) * 2;
+        y = 0.42 + Math.sin(jump * Math.PI) * 2.1;
         mode = jump > 0 && jump < 1 ? "jump" : "idle";
       }
       if (kind === "signal") {
@@ -361,7 +382,16 @@ export function carnivalScenes(H) {
       }
       if (v.eliminatedAt) {
         const q = clamp((t * 1000 - v.eliminatedAt) / 1100);
-        y = 1.1 - q * q * 8;
+        if (kind === "hop") {
+          z = 3.5 - q * 13;
+          y = 0.3 + Math.sin(q * Math.PI) * 0.4;
+          a.rotation.x = -q * 1.2;
+        } else {
+          const pos = R.lanternPositions[v.fallTile ?? v.chosen ?? i];
+          x = pos[0] + (i % 2 ? 0.65 : -0.65);
+          z = pos[1] + (i < 2 ? -0.4 : 0.4);
+          y = 0.48 - q * q * 8;
+        }
         a.rotation.z = q;
         a.visible = q < 1;
       } else a.rotation.z = 0;
@@ -378,40 +408,51 @@ export function carnivalScenes(H) {
           : mode,
       );
     });
-    if (["cascade", "treasure"].includes(kind))
-      w.objects.forEach((row, p) => {
-        row.forEach((o, lane) => {
-          const value = beat.values[lane];
-          o.g.visible =
-            !ended &&
-            value !== 0 &&
-            (!s?.game || s.game.participants.includes(s.players[p]?.id));
-          o.g.position.set(
-            (p - 1.5) * 7 + (lane - 1) * 1.9,
-            kind === "cascade" ? 1.5 : 1.2,
-            kind === "cascade"
-              ? mix(-9, 6, clamp((dt + 2500) / (2500 + beat.window)))
-              : mix(-7, 6, clamp((dt + 1000) / (1000 + beat.window))),
-          );
-          o.prize.visible = value > 0;
-          o.bundle.visible = value >= 3;
-          o.crate.visible = value < 0 && kind === "cascade";
-          o.spike.visible = value < 0 && kind === "treasure";
-          o.spike.rotation.z = t * 3;
-          o.prize.rotation.y = t * 2.5;
-          o.bundle.rotation.y = -t * 3;
-          if (kind === "treasure")
-            o.g.position.y = 1.2 + Math.sin(t * 2 + lane) * 0.1;
-        });
-        if (kind === "treasure")
-          w.waves[p].position.z = mix(-7, 7, clamp((dt + 2000) / 3000));
+    if (kind === "cascade") {
+      const drops = g?.drops || [
+        { index: 0, at: 3000, window: 1000, values: [1, 3, -3] },
+      ];
+      w.objects.forEach((o) => {
+        const drop = drops.find((b) => b.index % 3 === o.slot),
+          due = (g?.start || 0) + (drop?.at || 0) + (drop?.window || 0),
+          age = t * 1000 - (due - 2000),
+          q = clamp(age / 2000);
+        o.g.visible =
+          !!drop &&
+          !ended &&
+          age >= 0 &&
+          age < 2200 &&
+          (!g || g.active.includes(o.p));
+        const value = drop?.values[o.lane] || 0;
+        o.g.position.set(
+          (o.p - 1.5) * 7 + (o.lane - 1) * 1.9,
+          10.2 - 8.4 * q * q,
+          6,
+        );
+        if (age > 2000) {
+          o.g.position.y = 1.8 - (age - 2000) / 110;
+          o.g.scale.setScalar(1 - clamp((age - 2000) / 200));
+        } else o.g.scale.setScalar(1);
+        o.prize.visible = value > 0;
+        o.bundle.visible = value >= 3;
+        o.spike.visible = value < 0;
+        o.prize.rotation.y = t * 2.4;
+        o.spike.rotation.z = t * 3;
       });
-    if (kind === "lantern") {
-      w.lantern.material = H.mat(colors[beat.color]);
-      w.lantern.rotation.z = Math.sin(t * 1.5) * 0.03;
     }
-    if (kind === "hop")
-      w.wave.position.z = mix(-9, 7, clamp((dt + 2300) / 2900));
+    if (kind === "lantern") {
+      w.flag.material = H.mat(colors[beat.color]);
+      animateCharacter(w.marshal, t, "win", 0.65);
+      w.flagGroup.rotation.z = Math.sin(t * 2) * 0.08;
+    }
+    if (kind === "hop") {
+      const height = { small: 0.7, medium: 1, large: 1.4 }[beat.size] || 1;
+      w.wave.position.z = 3.5 + dt * 0.0055;
+      w.wave.scale.y = height;
+      w.wave.children.forEach((m, j) => {
+        m.rotation.z = Math.sin(t * 2 + j * 0.2) * 0.04;
+      });
+    }
     if (kind === "dash")
       w.obstacles.forEach((o, p) => {
         for (const [name, mesh] of Object.entries(o)) {

@@ -1,6 +1,7 @@
+import { expansionScenes } from "./expansion-scenes.js?v=BOARDWALK_CARNIVAL_V8";
 import * as T from "./vendor/three.module.min.js";
-import { carnivalScenes } from "./carnival-scenes.js?v=BOARDWALK_CARNIVAL_V7";
-import { festivalScenes } from "./festival-scenes.js?v=BOARDWALK_CARNIVAL_V7";
+import { carnivalScenes } from "./carnival-scenes.js?v=BOARDWALK_CARNIVAL_V8";
+import { festivalScenes } from "./festival-scenes.js?v=BOARDWALK_CARNIVAL_V8";
 const C = globalThis.PartyCatalog,
   R = globalThis.PartyRules,
   TAU = Math.PI * 2,
@@ -1498,7 +1499,7 @@ function boardWorld() {
   w.selectionOuter.rotation.x = -Math.PI / 2;
   w.selectionTitle = label("SELECTED", "#fff7df", "#7941a8", 0.45);
   w.root.add(w.selectionTitle);
-  w.goalTitle = label("TROPHY · 10 COINS", "#523f24", "#ffe494", 0.64);
+  w.goalTitle = label("TROPHY · 20 COINS", "#523f24", "#ffe494", 0.64);
   w.root.add(w.goalTitle);
   for (const [id, p] of Object.entries(C.trophyPedestals)) {
     const n = C.spaces[id];
@@ -1546,7 +1547,23 @@ function boardWorld() {
     sign.position.set(n.x + side * 2.8, 2.3, n.z);
     w.root.add(sign);
   }
-  w.goal = trophy(w.root, 0, 0, 0, 0.78);
+  w.goal = trophy(w.root, 0, 0, 0, 0.62);
+  w.trophyHost = mascot("shopkeeper");
+  w.trophyHost.scale.setScalar(0.65);
+  w.root.add(w.trophyHost);
+  w.hostWings = [-1, 1].map((side) => {
+    const wing = ball(
+      w.trophyHost,
+      side * 0.8,
+      1.4,
+      -0.2,
+      0.7,
+      0.12,
+      0.4,
+      "#fff0c9",
+    );
+    return wing;
+  });
   w.goalRing = torus(w.root, 0, 0, 0, 0.85, 0.055, "#fff2a6");
   w.goalRing.rotation.x = Math.PI / 2;
   w.dice = [];
@@ -1780,6 +1797,29 @@ function updateBoard(w, s, t, extra) {
   w.goalTitle.position.set(pedestal.x, n.y + 3, pedestal.z);
   w.goal.position.set(pedestal.x, n.y + 0.3, pedestal.z);
   w.goal.rotation.y = t * 0.8;
+  w.trophyHost.position.set(pedestal.x, n.y + 0.3, pedestal.z);
+  w.trophyHost.rotation.y = 0.4;
+  w.goal.position.x += 0.7;
+  w.goal.position.y += 0.7;
+  animateCharacter(w.trophyHost, t, "fish", 0.6);
+  w.hostWings.forEach(
+    (wing, i) => (wing.rotation.z = (i ? 1 : -1) * Math.sin(t * 8) * 0.35),
+  );
+  if (s?.phase === "trophy-flight") {
+    const flight = s.trophyFlight,
+      age = t * 1000 - flight.at,
+      q = clamp((age - 2200) / 4000),
+      ease = q * q * (3 - 2 * q),
+      from = C.trophyPedestals[flight.from],
+      to = C.trophyPedestals[flight.to];
+    const x = mix(from.x, to.x, ease),
+      z = mix(from.z, to.z, ease),
+      y = 0.95 + Math.sin(q * Math.PI) * 7;
+    w.trophyHost.position.set(x, y, z);
+    w.trophyHost.rotation.y = Math.atan2(to.x - from.x, to.z - from.z);
+    w.goal.position.set(x + 0.65, y + 1, z);
+    w.goalTitle.visible = false;
+  }
   w.goalRing.position.set(n.x, n.y + 0.2, n.z);
   w.goalRing.scale.setScalar(1 + Math.sin(t * 2) * 0.06);
   w.diceData = s?.phase === "rolling" ? s.dice : null;
@@ -1863,6 +1903,10 @@ function updateBoard(w, s, t, extra) {
   }
   let target = new T.Vector3(0, 0, 0),
     extent = 39;
+  if (s?.phase === "trophy-flight") {
+    target.copy(w.trophyHost.position);
+    extent = 22;
+  }
   if (complete) {
     target.set(0, 1.6, 3.4);
     extent = 14;
@@ -1909,6 +1953,95 @@ function updateBoard(w, s, t, extra) {
   return { target: w.center, extent: w.size, position: [27, 33, 35] };
 }
 
+function ceremonyWorld() {
+  const w = world("ceremony");
+  if (w.built) return w;
+  w.built = true;
+  water(w);
+  box(w.root, 0, 0.1, 0, 27, 1, 15, "#b88e79");
+  for (let x = -13; x < 14; x += 0.55)
+    box(w.root, x, 0.63, 0, 0.025, 0.03, 14.5, "#806875");
+  box(w.root, 0, 0.8, -5, 24, 0.4, 4, "#7e628f");
+  for (const x of [-12, 12]) {
+    tube(w.root, [x, 0.6, -5], [x, 9, -5], 0.17, "#e4ba73");
+    palm(w, x * 1.2, -8, 1.3);
+  }
+  tube(w.root, [-12, 9, -5], [12, 9, -5], 0.15, "#e4ba73");
+  for (let i = 0; i < 13; i++)
+    ball(
+      w.root,
+      -11 + i * 1.8,
+      8.6,
+      -5,
+      0.17,
+      0.23,
+      0.17,
+      ["#e6acd2", "#a8dece", "#ffe8a1"][i % 3],
+    );
+  const title = label("CORAL CARNIVAL", "#fff0c8", "#7f548f", 0.9);
+  title.position.set(0, 7, -5);
+  w.root.add(title);
+  w.award = trophy(w.root, 0, 5, 0, 0.8);
+  w.dice = boardWorld().dice.map((d) => {
+    const clone = d.clone();
+    w.root.add(clone);
+    return clone;
+  });
+  return w;
+}
+function updateCeremony(w, s, t) {
+  roster(w, s);
+  const opening = s.phase.startsWith("order-"),
+    age = t * 1000 - (s.finale?.at || 0),
+    index = Math.floor((age - 2500) / 6500),
+    award = s.finale?.awards[index];
+  w.actors.forEach((a, i) => {
+    const p = s.players[i],
+      winner = s.phase === "complete" && p.id === s.winner,
+      received = !opening && award?.applied && award.winners.includes(p.id),
+      reveal = !opening && award?.applied;
+    const targetX = (i - (s.players.length - 1) / 2) * 4.5,
+      targetZ = winner ? 2.2 : 0;
+    if (!a.userData.stagePlaced) {
+      a.position.set(targetX, 0.64, 0);
+      a.userData.stagePlaced = true;
+    }
+    a.position.x = mix(a.position.x, targetX, 0.12);
+    a.position.z = mix(a.position.z, targetZ, 0.08);
+    a.position.y = 0.64;
+    a.scale.setScalar(1.1);
+    a.rotation.y = 0.05;
+    a.userData.nameLabel.visible = true;
+    animateCharacter(
+      a,
+      t,
+      winner || received
+        ? "win"
+        : s.phase === "complete" || (reveal && !received)
+          ? "sad"
+          : !opening && age > 2500
+            ? "fish"
+            : "idle",
+      0.85,
+    );
+  });
+  w.award.visible = !opening && s.phase !== "complete" && !!award;
+  if (award) {
+    const cycle = age - 2500 - index * 6500,
+      q = clamp((cycle - 2500) / 1400),
+      first = s.players.findIndex((p) => award.winners.includes(p.id)),
+      x = (Math.max(0, first) - (s.players.length - 1) / 2) * 4.5;
+    w.award.position.set(
+      mix(0, x, q),
+      mix(5, 3.5, q) + Math.sin(q * Math.PI),
+      0,
+    );
+    w.award.rotation.y = t;
+  }
+  w.diceData = opening && s.dice && t * 1000 - s.dice.at < 2600 ? s.dice : null;
+  w.dice.forEach((d, i) => (d.visible = !!w.diceData && i === 0));
+  return { target: new T.Vector3(0, 2, 0), extent: 21, position: [0, 12, 29] };
+}
 function climbWorld() {
   const w = world("climb");
   if (w.built) return w;
@@ -2335,18 +2468,135 @@ function puttWorld(index) {
   w.conv = conv;
   box(w.root, 0, -0.25, 0, 34, 1.3, 34, "#eac898");
   box(w.root, 0, 0.41, 0, 33.7, 0.08, 33.7, "#b3cc91");
-  box(w.root, 0, 0.42, 0, 21, 0.16, 22, "#80bd94");
-  for (let i = 0; i < 11; i++)
-    box(
-      w.root,
+  const shape = new T.Shape();
+  h.floor.forEach(([x, z], i) => {
+    const a = conv([x, z]);
+    i ? shape.lineTo(a[0], -a[1]) : shape.moveTo(a[0], -a[1]);
+  });
+  const green = new T.Mesh(new T.ShapeGeometry(shape), mat("#80bd94"));
+  green.rotation.x = -Math.PI / 2;
+  green.position.y = 0.52;
+  green.receiveShadow = true;
+  w.root.add(green);
+  for (const water of h.water || []) {
+    const [x, z] = conv([water.x + water.w / 2, water.y + water.h / 2]);
+    box(w.root, x, 0.535, z, water.w / 25, 0.025, water.h / 25, "#72bfc8");
+    for (let j = 0; j < 5; j++)
+      box(
+        w.root,
+        x,
+        0.55,
+        z - water.h / 65 + (j * water.h) / 125,
+        water.w / 30,
+        0.012,
+        0.025,
+        "#b7e1db",
+      );
+  }
+  for (const hill of h.terrain || []) {
+    const [x, z] = conv([hill.x, hill.y]);
+    const geo = new T.PlaneGeometry(
+        (hill.rx * 2) / 25,
+        (hill.ry * 2) / 25,
+        18,
+        18,
+      ),
+      pos = geo.attributes.position;
+    for (let j = 0; j < pos.count; j++) {
+      const px = pos.getX(j) * 25 + hill.x,
+        py = -pos.getY(j) * 25 + hill.y;
+      pos.setZ(
+        j,
+        Math.max(
+          -0.035,
+          globalThis.PuttPhysics.terrainAt(h, px, py).height / 25,
+        ),
+      );
+    }
+    geo.computeVertexNormals();
+    const m = new T.Mesh(geo, mat(hill.height > 0 ? "#8fc49b" : "#72ab86"));
+    m.rotation.x = -Math.PI / 2;
+    m.position.set(x, 0.54, z);
+    w.root.add(m);
+  }
+  for (const ramp of h.ramps || []) {
+    const p = new T.Group(),
+      [x, z] = conv([ramp.x, ramp.y]);
+    p.position.set(x, 0.55, z);
+    p.rotation.y = -ramp.angle;
+    w.root.add(p);
+    const surface = box(
+      p,
+      -ramp.length / 50,
+      ramp.height / 50,
       0,
-      0.51,
-      -10 + i * 2,
-      20.7,
-      0.015,
-      0.8,
-      i % 2 ? "#8cc79d" : "#86c098",
+      ramp.length / 25,
+      0.08,
+      ramp.width / 25,
+      "#d6ae74",
     );
+    surface.rotation.z = Math.atan2(ramp.height, ramp.length);
+    for (let j = 0; j < 4; j++)
+      box(
+        p,
+        -0.6 - j * 0.7,
+        0.12 + j * 0.01,
+        0,
+        0.12,
+        0.02,
+        ramp.width / 28,
+        "#f9e4ad",
+      );
+  }
+  if (h.gate) {
+    const [x, z] = conv([h.gate.x, h.gate.y]);
+    w.gate = box(
+      w.root,
+      x,
+      0.85,
+      z,
+      (h.gate.length * 2) / 25,
+      0.3,
+      0.35,
+      "#dd9cae",
+    );
+    cyl(w.root, x, 0.8, z, 0.22, 0.3, 0.8, "#f8d18b");
+  }
+  for (const belt of h.conveyors || []) {
+    const [x, z] = conv([belt.x + belt.w / 2, belt.y + belt.h / 2]);
+    box(w.root, x, 0.56, z, belt.w / 25, 0.05, belt.h / 25, "#9d93b1");
+    for (let j = 0; j < 10; j++) {
+      const m = box(
+        w.root,
+        x - belt.w / 50 + (j * belt.w) / 250,
+        0.61,
+        z,
+        0.045,
+        0.025,
+        belt.h / 25,
+        "#ded2c5",
+      );
+      const start = m.position.x;
+      w.animated.push((t) => (m.position.x = start + (t % 1) * 0.3));
+    }
+  }
+  if (h.portal) {
+    const [x, z] = conv(h.portal.mouth),
+      [ex, ez] = conv(h.portal.exit);
+    ball(w.root, x, 0.9, z - 0.65, 1.3, 0.9, 1.5, "#b4abc9");
+    ball(w.root, x, 0.83, z + 0.5, 1.05, 0.5, 0.75, "#c9bed7");
+    ball(w.root, x, 0.65, z + 0.95, 0.7, 0.3, 0.12, "#5c536e");
+    for (const dx of [-0.55, 0.55]) {
+      ball(w.root, x + dx, 1.65, z - 0.4, 0.26, 0.27, 0.26, "#d7c8de");
+      ball(w.root, x + dx, 1.7, z - 0.18, 0.08, 0.1, 0.05, "#3e435d");
+    }
+    cyl(w.root, ex, 0.58, ez, 0.65, 0.65, 0.1, "#706387");
+    for (let j = 1; j <= 12; j++) {
+      const p = globalThis.PuttPhysics.portalPoint(h, j / 12),
+        [px, pz] = conv(p);
+      cyl(w.root, px, 0.6, pz, 0.42, 0.42, 0.1, "#a39abb", 16);
+    }
+  }
   const vertices = h.floor;
   for (let i = 0; i < vertices.length; i++) {
     const a = conv(vertices[i]),
@@ -2428,12 +2678,14 @@ function puttWorld(index) {
 }
 function updatePutt(w, s, t, extra) {
   roster(w, s);
-  const i = Math.max(0, s?.players.findIndex((p) => p.id === s.you) ?? 0),
+  const i = s?.game?.putt?.turn ?? 0,
     v = s?.game?.progress[i],
     shot = v?.shot,
     h = C.holes[Number(w.name.slice(4))];
-  let position = h.tee,
+  let position = v?.ball || h.tee,
+    elevation = 0,
     rolling = false;
+  if (w.gate) w.gate.rotation.y = -t * h.gate.speed;
   if (shot && shot.course === Number(w.name.slice(4))) {
     const elapsed = t * 1000 - shot.at;
     if (elapsed <= shot.duration + 450) {
@@ -2448,16 +2700,26 @@ function updatePutt(w, s, t, extra) {
         }
       const q = clamp((elapsed - a[0]) / (b[0] - a[0] || 1));
       position = [mix(a[1], b[1], q), mix(a[2], b[2], q)];
+      elevation = mix(a[4] || 0, b[4] || 0, q) / 25;
       w.ball.scale.setScalar(0.22 * mix(a[3], b[3], q));
     }
   }
   const [x, z] = w.conv(position);
-  w.ball.position.set(x, 0.76, z);
+  w.ball.position.set(
+    x,
+    0.76 +
+      elevation +
+      Math.max(
+        globalThis.PuttPhysics.terrainAt(h, ...position).height / 25,
+        globalThis.PuttPhysics.rampHeight(h, ...position) / 25,
+      ),
+    z,
+  );
   if (!rolling) w.ball.scale.setScalar(0.22);
   const aim = extra.aim || { angle: -1.2, power: 0.5 },
-    tee = w.conv(h.tee);
+    tee = w.conv(v?.ball || h.tee);
   w.aimDots.forEach((p, j) => {
-    p.visible = !rolling && !v?.finished;
+    p.visible = !rolling && !v?.finished && (!s || s.players[i].id === s.you);
     p.position.set(
       tee[0] + Math.cos(aim.angle) * (j + 1) * aim.power * 0.55,
       0.57,
@@ -2491,7 +2753,7 @@ function updatePutt(w, s, t, extra) {
         ? -Math.sin(((t * 1000 - shot.at) / 700) * Math.PI)
         : 0;
   });
-  return { target: new T.Vector3(0, 0, 0), extent: 28, position: [15, 31, 30] };
+  return { target: new T.Vector3(0, 0, 0), extent: 31, position: [0, 36, 22] };
 }
 function sceneFrame(w, t, view, canvas) {
   const r = engine(),
@@ -2625,7 +2887,10 @@ function overlay(c, canvas, kind, s, t, extra) {
       title =
         "TARGET " +
         (v?.recipe || []).map((n) => ["↑", "→", "↓", "←"][n]).join("  ");
-    if (kind === "confetti") title = "UNBANKED POT · " + (v?.pot || 0);
+    if (kind === "confetti")
+      title =
+        ["BLUE", "PINK", "MINT"][b.color % 3] +
+        (dt >= -180 ? " · READY!" : " · CHARGING…");
     if (kind === "rhythm" && b)
       title =
         b.color === 3 ? "BOTH DRUMS" : b.color % 2 ? "RIGHT DRUM" : "LEFT DRUM";
@@ -2650,10 +2915,7 @@ function overlay(c, canvas, kind, s, t, extra) {
     text(c, "×" + v.combo + " COMBO", w / 2, 90, 13, "#243e58");
   }
   if (kind === "putt") {
-    const course =
-      v?.shot && t * 1000 < v.shot.at + v.shot.duration + 450
-        ? v.shot.course
-        : Math.min(2, v?.attempts || 0);
+    const course = Math.min(2, s?.game?.putt?.course || 0);
     text(c, "COURSE " + (course + 1) + " / 3", w / 2, 90, 11, "#24465c");
   }
   if (
@@ -2674,7 +2936,128 @@ function overlay(c, canvas, kind, s, t, extra) {
       12,
     );
   }
-  if (s?.phase === "complete" && extra.motion !== false) {
+  if (kind === "board" && s) {
+    const scene = worlds.get(
+      ["order-roll", "order-reveal", "finale", "complete"].includes(s.phase)
+        ? "ceremony"
+        : "board",
+    );
+    if (scene?.camera)
+      for (const [i, p] of s.players.entries()) {
+        const a = scene.actors[i];
+        if (!a) continue;
+        const pos = a.position.clone();
+        pos.y += 3;
+        pos.project(scene.camera);
+        const x = (pos.x * 0.5 + 0.5) * w,
+          y = (-pos.y * 0.5 + 0.5) * h;
+        const popup = p.boardPopup,
+          age = popup ? t * 1000 - popup.at : 9999;
+        if (
+          age >= 0 &&
+          age < 2100 &&
+          !["finale", "complete"].includes(s.phase)
+        ) {
+          c.globalAlpha = clamp(1 - age / 2100);
+          c.strokeStyle = "#fff8df";
+          c.lineWidth = 4;
+          c.font = "900 20px system-ui";
+          c.textAlign = "center";
+          const value = (popup.value > 0 ? "+" : "") + popup.value + " coins";
+          c.strokeText(value, x, y - age / 75);
+          text(
+            c,
+            value,
+            x,
+            y - age / 75,
+            20,
+            popup.value > 0 ? "#397b5c" : "#b34e64",
+          );
+          c.globalAlpha = 1;
+        }
+        if (["finale", "complete"].includes(s.phase)) {
+          text(
+            c,
+            p.trophies + " trophies · " + p.tokens + " coins",
+            x,
+            y + 12,
+            w < 500 ? 9 : 13,
+            "#4d3c66",
+          );
+          if (s.phase === "complete")
+            text(
+              c,
+              "#" + C.standings(s.players, s.mode)[p.id],
+              x,
+              y - 10,
+              19,
+              "#6d4f87",
+            );
+        }
+      }
+  }
+  if (s?.phase === "selection") {
+    const q = clamp((t * 1000 - s.selectionAt) / 4600),
+      position = 28 * (1 - (1 - q) ** 3),
+      center = Math.floor(position),
+      offset = position - center,
+      ww = Math.min(w - 32, 360),
+      top = h * 0.25;
+    c.fillStyle = "#fff2d8f5";
+    c.beginPath();
+    c.roundRect((w - ww) / 2, top - 30, ww, 205, 20);
+    c.fill();
+    text(c, "NEXT MINIGAME", w / 2, top - 8, 12, "#6b4d82");
+    c.save();
+    c.beginPath();
+    c.rect((w - ww) / 2 + 5, top, ww - 10, 150);
+    c.clip();
+    for (let j = center - 2; j <= center + 3; j++) {
+      if (j < 0 || j >= s.selection.length) continue;
+      const y = top + 75 + (j - position) * 43,
+        def = C.games.find((g) => g.id === s.selection[j]);
+      c.globalAlpha = clamp(1 - Math.abs(y - top - 75) / 95, 0.12, 1);
+      text(c, def?.name || "", w / 2, y + 6, w < 440 ? 15 : 18, "#684986");
+    }
+    c.restore();
+    c.globalAlpha = 1;
+    c.strokeStyle = "#d5a348";
+    c.lineWidth = 3;
+    c.beginPath();
+    c.roundRect((w - ww) / 2 + 12, top + 53, ww - 24, 43, 10);
+    c.stroke();
+  }
+  if (s?.phase === "finale") {
+    const age = t * 1000 - s.finale.at,
+      idx = Math.floor((age - 2500) / 6500),
+      award = s.finale.awards[idx];
+    if (age >= 22000)
+      text(
+        c,
+        age >= 28500
+          ? "THE FESTIVAL CHAMPION…"
+          : String(Math.max(1, Math.ceil((28500 - age) / 1300))),
+        w / 2,
+        h * 0.25,
+        age >= 28500 ? 17 : 56,
+        "#694781",
+      );
+    else if (award)
+      text(
+        c,
+        award.applied ? award.title.toUpperCase() : "AND THE TROPHY GOES TO…",
+        w / 2,
+        h * 0.26,
+        w < 440 ? 12 : 19,
+        "#694781",
+      );
+  }
+  if (
+    (s?.phase === "complete" ||
+      s?.phase === "trophy-flight" ||
+      (s?.phase === "finale" && s.finale.awards.some((a) => a.applied))) &&
+    extra.motion !== false
+  ) {
     for (let i = 0; i < 55; i++) {
       const x = (i * 139) % w,
         y = ((t * 65 + i * 43) % (h + 40)) - 20;
@@ -2818,8 +3201,16 @@ function render(canvas, kind, state, time = 0, extra = {}) {
   }
   let w, view;
   if (kind === "board") {
-    w = boardWorld();
-    view = updateBoard(w, state, time, extra);
+    if (
+      state &&
+      ["order-roll", "order-reveal", "finale", "complete"].includes(state.phase)
+    ) {
+      w = ceremonyWorld();
+      view = updateCeremony(w, state, time);
+    } else {
+      w = boardWorld();
+      view = updateBoard(w, state, time, extra);
+    }
   } else if (kind === "climb") {
     w = climbWorld();
     view = updateClimb(w, state, time);
@@ -2829,23 +3220,17 @@ function render(canvas, kind, state, time = 0, extra = {}) {
   } else if (kind === "memory") {
     w = memoryWorld();
     view = updateMemory(w, state, time, extra);
-  } else if (
-    ["cascade", "lantern", "hop", "dash", "signal", "treasure"].includes(kind)
-  ) {
+  } else if (["cascade", "lantern", "hop", "dash", "signal"].includes(kind)) {
     w = extras.build(kind);
     view = extras.update(w, state, time, extra);
+  } else if (C.games.find((g) => g.id === kind)?.engine === "expansion") {
+    w = expansion.build(kind);
+    view = expansion.update(w, state, time, extra);
   } else if (C.games.find((g) => g.id === kind)?.engine === "festival") {
     w = festival.build(kind);
     view = festival.update(w, state, time, extra);
   } else {
-    const v =
-        state?.game?.progress[
-          state.players.findIndex((p) => p.id === state.you)
-        ],
-      index =
-        v?.shot && time * 1000 < v.shot.at + v.shot.duration + 450
-          ? v.shot.course
-          : Math.min(2, v?.attempts || 0);
+    const index = Math.min(2, state?.game?.putt?.course || 0);
     w = puttWorld(index || 0);
     view = updatePutt(w, state, time, extra);
   }
@@ -2854,6 +3239,7 @@ function render(canvas, kind, state, time = 0, extra = {}) {
       const i = state.players.findIndex((p) => p.id === a.userData.playerId),
         v = state.game.progress[i];
       a.visible =
+        (kind !== "putt" || i === state.game.putt?.turn) &&
         state.game.participants.includes(a.userData.playerId) &&
         !(v?.eliminatedAt && time * 1000 - v.eliminatedAt >= 1100);
     }
@@ -2872,7 +3258,6 @@ function render(canvas, kind, state, time = 0, extra = {}) {
     [
       "cascade",
       "dash",
-      "treasure",
       "hop",
       "fish",
       "kart",
@@ -2934,6 +3319,21 @@ function render(canvas, kind, state, time = 0, extra = {}) {
   } else if (kind !== "board" && width / height < 1) {
     view.extent = Math.max(view.extent, 22 / (width / height));
   }
+  if (
+    C.games.find((g) => g.id === kind)?.engine === "expansion" &&
+    state?.game &&
+    width / height < 1 &&
+    !["band", "bumper", "volcano", "math"].includes(kind)
+  ) {
+    const own = state.players.findIndex((p) => p.id === state.you),
+      slot = state.game.active.indexOf(own),
+      actor = w.actors[own];
+    if (actor) {
+      view.target.set(actor.position.x, 1, -2);
+      view.extent = 18;
+      view.position = [0, 18, 32];
+    }
+  }
   if (kind === "spotlight" && state?.game && width / height < 1) {
     const own = state.players.findIndex((p) => p.id === state.you),
       slot = state.game.active.indexOf(own),
@@ -2959,7 +3359,17 @@ function render(canvas, kind, state, time = 0, extra = {}) {
   )
     view.extent = Math.max(view.extent, 54 / (width / height));
   w.motion = extra.motion !== false;
-  overlay(sceneFrame(w, time, view, canvas), canvas, kind, state, time, extra);
+  const context = sceneFrame(w, time, view, canvas);
+  overlay(context, canvas, kind, state, time, extra);
+  if (C.games.find((g) => g.id === kind)?.engine === "expansion") {
+    context.save();
+    context.scale(
+      canvas.width / canvas.clientWidth,
+      canvas.height / canvas.clientHeight,
+    );
+    expansion.overlay(context, canvas, w, state, time);
+    context.restore();
+  }
 }
 function portrait(canvas, id, skin = "classic") {
   const key = id + skin;
@@ -3037,6 +3447,44 @@ const festival = festivalScenes({
   mix,
   clamp,
 });
+const expansion = expansionScenes({
+  T,
+  C,
+  world,
+  water,
+  box,
+  ball,
+  cyl,
+  tube,
+  torus,
+  label,
+  mascot,
+  roster,
+  animateCharacter,
+  palm,
+  building,
+  cloud,
+  mat,
+  mix,
+  clamp,
+});
+function groundAt(canvas, x, y, kind) {
+  const w = worlds.get(kind);
+  if (!w?.built) return null;
+  const r = canvas.getBoundingClientRect(),
+    ray = new T.Raycaster();
+  ray.setFromCamera(
+    new T.Vector2(
+      ((x - r.left) / r.width) * 2 - 1,
+      1 - ((y - r.top) / r.height) * 2,
+    ),
+    w.camera,
+  );
+  return ray.ray.intersectPlane(
+    new T.Plane(new T.Vector3(0, 1, 0), -0.6),
+    new T.Vector3(),
+  );
+}
 function spaceAt(canvas, x, y) {
   const w = worlds.get("board");
   if (!w?.built) {
@@ -3080,4 +3528,4 @@ function spaceAt(canvas, x, y) {
   }
   return closest;
 }
-globalThis.PartyScene = { render, portrait, spaceAt };
+globalThis.PartyScene = { render, portrait, spaceAt, groundAt };

@@ -19,6 +19,8 @@ function fixture(id) {
   s.ready = people.map((p) => p.id);
   M.begin(s, 10000);
   s.turn = s.startingSeat = 0;
+  s.turnIndex = 0;
+  s.phase = "board";
   if (id) {
     s.phase = "board-end";
     s.deadline = 11000;
@@ -82,11 +84,13 @@ test("trophy host requires an explicit affordable purchase and rejects double pu
   assert.equal(s.event.kind, "trophy-purchase");
   assert.equal(s.movement.remaining, 2);
   assert.equal(s.players[0].tokens, 10);
+  s.players[0].tokens=20;
   act(s, "buy-trophy", {}, 14000);
   assert.equal(s.players[0].trophies, 1);
   assert.equal(s.players[0].tokens, 0);
   assert.throws(() => act(s, "buy-trophy", {}, 14100), /host/);
-  act(s, "continue", {}, 14200);
+  assert.equal(s.phase,"trophy-flight");
+  M.advance(s,s.deadline);
   assert.equal(s.players[0].position, 12);
 });
 test("declining or timing out a trophy keeps coins and resumes the original roll", () => {
@@ -133,7 +137,7 @@ test("a shop cannot consume the final landing; departure moves onto the next nor
   for (const [position, next] of [
     [4, 5],
     [15, 16],
-    [26, 27],
+    [39, 40],
   ]) {
     const s = fixture();
     visit(s, position);
@@ -149,7 +153,7 @@ test("full pockets offer gift replacement and declining preserves the original i
   for (const accept of [true, false]) {
     const s = fixture();
     s.players[0].items = ["boost", "shield", "swap"];
-    visit(s, 3);
+    visit(s, 18);
     const item = s.event.pendingItem;
     assert.ok(item);
     assert.equal(s.deadline, 72000);
@@ -198,6 +202,7 @@ test("fishing gives separate public bite cues, one catch, and a measuring phase 
   assert.equal(view.game.fishBeats, undefined);
   assert.equal(view.game.fishBase, undefined);
   assert.notEqual(view.game.cues[0].at, view.game.cues[1].at);
+  s.game.fishBeats.forEach(beats=>beats[0].size=1);
   for (let i = 0; i < 4; i++) {
     const at = 20000 + s.game.fishBeats[i][0].at + 100 + i * 100;
     act(s, "play", { value: "reel", score: 999999 }, at, String(i));

@@ -45,6 +45,8 @@ try {
   base.ready = base.players.map((p) => p.id);
   M.begin(base, Date.now());
   base.turn = base.startingSeat = 0;
+  base.phase = "board";
+  base.turnIndex = 0;
   await server.pg.query(
     "INSERT INTO party_rooms(id,owner_id,request_id,state) VALUES($1,$2,$3,$4::jsonb)",
     [base.id, profile.id, crypto.randomUUID(), JSON.stringify(base)],

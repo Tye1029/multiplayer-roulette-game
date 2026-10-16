@@ -57,6 +57,13 @@ try {
     assert.equal(await p.locator("[data-pick-character]:disabled").count(), 1);
     await p.locator("[data-action=ready]").click();
     await p.locator("[data-action=start]:enabled").click();
+    for (let attempts = 0; attempts < 100; attempts++) {
+      const opening = await state();
+      if (opening.phase === "board") break;
+      const roll = p.locator('[data-action="order-roll"]:enabled');
+      if (await roll.count()) await roll.click();
+      await p.waitForTimeout(500);
+    }
     await p.locator("body[data-phase=board]").waitFor();
     const s = await state();
     s.deadline = Date.now() + 180000;

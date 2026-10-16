@@ -30,11 +30,6 @@
         ["Top left", "Top right", "Bottom left", "Bottom right"][v],
       ]),
       signal: [0, 1, 2, 3].map((v) => [v, ["Blue", "Pink", "Mint", "Gold"][v]]),
-      treasure: [
-        [0, "Left"],
-        [1, "Middle"],
-        [2, "Right"],
-      ],
       putt: [["putt", "Putt"]],
     };
     return custom[id] || catalog.find((g) => g.id === id)?.controls || [];
@@ -71,6 +66,8 @@
       "launch",
     ].find((v) => list.some(([x]) => x === v));
     if (primary) map.Space = primary;
+    if (id === "band")
+      for (const [i, k] of ["d", "f", "j", "k"].entries()) map[k] = i;
     return map;
   }
   function predict(state, value, at, previous) {
@@ -120,11 +117,11 @@
         Math.min(2, from + (value === "left" ? -1 : 1)),
       );
     }
-    if (["lantern", "treasure"].includes(g.id) && Number.isInteger(value)) {
+    if (g.id === "lantern" && Number.isInteger(value)) {
       p.fields.fromLane =
         previous?.pending && previous.start === g.start
           ? (previous.fields.chosen ?? v.chosen ?? 1)
-          : (v.chosen ?? (g.id === "lantern" ? i : 1));
+          : (v.chosen ?? i);
       p.fields.chosen = value;
     }
     if (g.id === "bomb") p.fields.throwAt = at;

@@ -192,10 +192,14 @@ export function festivalScenes(H) {
       for (const x of [-8, 8]) ring(w.root, x, 0.3, 0, 2, "#ffdb8b");
     }
     if (id === "kart") {
+      w.roadDashes = [];
+      for (const x of [-1.75, 1.75])
+        for (let j = 0; j < 18; j++)
+          w.roadDashes.push(
+            box(w.root, x, 0.47, -30 + j * 3, 0.09, 0.025, 1.5, "#fff1c8"),
+          );
+      box(w.root, 0, 0.32, -14, 12, 0.15, 58, "#7d8b9d");
       box(w.root, 0, 0.28, 0, 11.2, 0.3, 25, "#73879c");
-      for (const x of [-1.8, 1.8])
-        for (let z = -11; z < 12; z += 1.4)
-          box(w.root, x, 0.46, z, 0.09, 0.03, 0.75, "#fff0c6");
       for (const side of [-1, 1])
         for (let j = 0; j < 32; j++)
           box(
@@ -208,10 +212,12 @@ export function festivalScenes(H) {
             0.72,
             j % 2 ? "#f1d7bc" : "#cf8d9e",
           );
+      w.finishGate = new T.Group();
+      w.root.add(w.finishGate);
       for (let x = -5; x < 5; x += 0.8)
         for (let row = 0; row < 2; row++)
           box(
-            w.root,
+            w.finishGate,
             x,
             0.47,
             -10 + row * 0.5,
@@ -221,8 +227,8 @@ export function festivalScenes(H) {
             (Math.round(x / 0.8) + row) % 2 ? "#fff3d4" : "#58657e",
           );
       for (const x of [-6.4, 6.4])
-        tube(w.root, [x, 0.4, -10], [x, 4.6, -10], 0.15, "#a484a7");
-      sign(w.root, "CORAL GRAND PRIX", 0, 4.8, -10, 0.65);
+        tube(w.finishGate, [x, 0.4, -10], [x, 4.6, -10], 0.15, "#a484a7");
+      sign(w.finishGate, "FINISH", 0, 4.8, -10, 0.65);
       for (const side of [-1, 1])
         for (let n = 0; n < 4; n++) {
           box(w.root, side * 8.4, 0.8, -7 + n * 4, 2.4, 0.4, 2.5, "#d1ad83");
@@ -360,6 +366,9 @@ export function festivalScenes(H) {
         st.pump = box(p, 1.5, 0.9, 1, 0.6, 1.1, 0.6, "#e6bc7d");
         box(st.pump, 0, 0.65, 0, 1, 0.14, 0.2, "#796980");
         st.release = ball(p, 0, 2, 0, 1, 1.25, 1, color);
+        st.shreds = Array.from({ length: 12 }, (_, j) =>
+          box(p, 0, 3, 0, 0.12, 0.22, 0.04, j % 2 ? color : "#fff0d0"),
+        );
       } else if (id === "cannon") st.cannon = cannon(p, color);
       else {
         if (id !== "bomb") {
@@ -407,6 +416,13 @@ export function festivalScenes(H) {
             }
             sign(item, String(j + 1), 0, 0.9, 0, 0.23);
             st.objects.push(item);
+            if (id === "confetti") {
+              st.paper ||= [];
+              for (let k = 0; k < 8; k++) {
+                const m = box(p, 0, 0, 0, 0.12, 0.2, 0.03, palette[k % 4]);
+                st.paper.push({ m, popper: j, k });
+              }
+            }
           }
         } else if (id === "fuse") {
           for (let j = 0; j < 3; j++) {
@@ -440,6 +456,25 @@ export function festivalScenes(H) {
           });
           st.note = ball(p, 0, 2, -4, 0.3, 0.3, 0.3, "#ffda8a");
         } else if (id === "ricochet") {
+          box(p, 0, 0.3, -2, 7, 0.4, 11, "#c49978");
+          for (let z = -7; z < 4; z += 0.45)
+            box(p, 0, 0.52, z, 6.9, 0.025, 0.025, "#94705d");
+          for (const x of [-3.4, 3.4])
+            tube(p, [x, 0.5, -7], [x, 4.8, -7], 0.1, "#fff1ce");
+          box(p, 0, 4.8, -7.8, 7.2, 0.17, 0.7, palette[slot]);
+          for (let k = 0; k < 10; k++)
+            box(
+              p,
+              -3.2 + k * 0.7,
+              4.58,
+              -7.4,
+              0.34,
+              0.3,
+              0.1,
+              k % 2 ? "#fff0d1" : palette[slot],
+            );
+          box(p, 0, 2.2, -7, 6.8, 3.3, 0.15, "#6c7d99");
+          sign(p, "BOARDWALK BULLSEYES", 0, 5.5, -5, 0.32);
           st.target = new T.Group();
           p.add(st.target);
           st.target.position.set(0, 2, -5);
@@ -487,7 +522,7 @@ export function festivalScenes(H) {
           for (const x of [-0.07, 0.07])
             box(st.arrow, x, 0, 0.25, 0.13, 0.025, 0.22, "#e6a7bd");
           st.dots = Array.from({ length: 10 }, () =>
-            ball(p, 0, 1.5, 0, 0.025, 0.025, 0.025, "#fff3bd"),
+            ball(p, 0, 1.5, 0, 0.075, 0.075, 0.075, "#ffe679"),
           );
         } else if (id === "simon") {
           st.order = sign(p, "AYE!", 0, 3.6, -2, 0.55);
@@ -608,7 +643,26 @@ export function festivalScenes(H) {
       if (id === "kart") {
         const distance = v.distance || 0;
         x = (lane - 1) * 3.5 + (slot % 2 ? 0.92 : -0.92);
-        z = 5 - (distance / 4200) * 15 + Math.floor(slot / 2) * 2.65;
+        const leader = Math.max(
+          ...ids.map((j) => g?.progress[j].distance || 0),
+        );
+        z =
+          2 +
+          clamp((leader - distance) / 70, 0, 7) +
+          Math.floor(slot / 2) * 1.7;
+        if (slot === 0) {
+          const raceTime = Math.min(now, g?.end || now);
+          w.roadDashes.forEach(
+            (m, j) =>
+              (m.position.z =
+                -34 +
+                (((j % 18) * 3 + (raceTime - (g?.start || 0)) * 0.014) % 54)),
+          );
+          w.finishGate.visible = !!g && g.end - now < 5500;
+          w.finishGate.position.z = g
+            ? mix(-15, 15, clamp(1 - (g.end - now) / 5500))
+            : -15;
+        }
         st.kart.position.set(x - p.x, 0.1 + Math.sin(t * 14 + slot) * 0.025, z);
         st.kart.rotation.z =
           move < 1
@@ -708,7 +762,14 @@ export function festivalScenes(H) {
         st.blocks.forEach((m, j) => {
           m.visible = j < blocks.length;
           if (blocks[j]) {
-            m.position.x = blocks[j].x;
+            const q = clamp((now - blocks[j].at) / 480),
+              ease = q * q;
+            m.position.x = mix(
+              blocks[j].dropX ?? blocks[j].x,
+              blocks[j].x,
+              ease,
+            );
+            m.position.y = 0.9 + j * 0.35 + (1 - ease) * 2.4;
             m.scale.x = blocks[j].width;
             m.rotation.z = Math.sin(t * 2 + j) * 0.005 * j;
           }
@@ -724,12 +785,12 @@ export function festivalScenes(H) {
           st.falling.rotation.z = q * 1.2;
           st.falling.scale.x = v.width / 3;
         }
-        st.moving.visible = !v.finished;
+        st.moving.visible = !v.finished && now - (v.dropAt || 0) > 480;
         st.moving.position.set(
           Math.sin(
             (now - (g?.start || 0)) / (650 - Math.min(200, (v.step || 0) * 12)),
           ) * 2.5,
-          1.4 + blocks.length * 0.35,
+          3.3 + blocks.length * 0.35,
           0,
         );
         st.moving.scale.x = (v.width || 3) / 3;
@@ -737,6 +798,20 @@ export function festivalScenes(H) {
         mode = now - v.dropAt < 600 ? "win" : "idle";
       } else if (id === "balloon") {
         const scale = 0.25 + (v.pressure || 0) / 70;
+        st.balloon.visible = now - (v.hitAt || 0) >= 700;
+        st.shreds.forEach((m, j) => {
+          const age = now - (v.hitAt || 0),
+            q = clamp(age / 800),
+            a = (j / 12) * TAU;
+          m.visible = age >= 0 && age < 800;
+          m.position.set(
+            Math.cos(a) * q * 2,
+            3 + Math.sin(a) * q * 2 - q * q * 3,
+            Math.sin(a * 2) * q,
+          );
+          m.rotation.z = q * 8 + j;
+          m.scale.setScalar(1 - q);
+        });
         st.balloon.scale.setScalar(scale);
         st.balloon.position.y = 2.3 + scale;
         st.balloon.rotation.z = Math.sin(t * 2) * 0.1;
@@ -748,7 +823,12 @@ export function festivalScenes(H) {
           st.release.position.y = 3 + (now - release.at) / 220;
           st.release.scale.setScalar(0.25 + release.size / 70);
         }
-        mode = now - v.pumpAt < 300 ? "duck" : "idle";
+        x = p.x + 1.5;
+        z = 2;
+        y = 0.6;
+        const pump = clamp((now - (v.pumpAt || 0)) / 350);
+        y -= Math.sin(pump * Math.PI) * 0.15;
+        mode = now < (v.stunnedUntil || 0) ? "sad" : pump < 1 ? "fish" : "idle";
       } else if (id === "cannon") {
         const aim = g
           ? R.cannonAngle(g, i, now)
@@ -793,9 +873,27 @@ export function festivalScenes(H) {
         }
       } else if (id === "confetti" || id === "draft") {
         st.objects.forEach((o, j) => {
-          o.rotation.z = j === b.lane ? Math.sin(t * 5) * 0.06 : 0;
-          o.scale.setScalar(j === b.lane ? 1.1 : 1);
+          const chosen = id === "confetti" ? b.color % 3 : b.lane;
+          o.rotation.z = j === chosen ? Math.sin(t * 5) * 0.06 : 0;
+          o.scale.setScalar(j === chosen ? 1.12 : 1);
+          if (id === "confetti" && j === v.popper && now - v.popperAt < 250)
+            o.scale.y =
+              1 - Math.sin(clamp((now - v.popperAt) / 250) * Math.PI) * 0.2;
         });
+        if (st.paper)
+          st.paper.forEach(({ m, popper, k }) => {
+            const age = now - (v.popperAt || 0),
+              q = clamp(age / 1400),
+              a = (k / 8) * TAU;
+            m.visible = popper === v.popper && age >= 0 && age < 1400;
+            m.position.set(
+              (popper - 1) * 1.6 + Math.cos(a) * q,
+              2 + q * 5 - q * q * 5,
+              -0.8 + Math.sin(a) * q,
+            );
+            m.rotation.z = t * 5 + k;
+            m.scale.setScalar(1 - q * 0.6);
+          });
         mode = now - v.moveAt < 550 ? "win" : "idle";
       } else if (id === "fuse") {
         st.objects.forEach(

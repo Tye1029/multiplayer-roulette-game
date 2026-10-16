@@ -68,9 +68,9 @@ test("50 connected spaces include a central crossing, three shops and clear land
       );
     }
 });
-test("24 party games and six exclusive duels have distinct complete instructions and controls", () => {
-  assert.equal(C.games.length, 30);
-  assert.equal(new Set(C.games.map((g) => g.id)).size, 30);
+test("33 party games and six exclusive duels have distinct complete instructions and controls", () => {
+  assert.equal(C.games.length, 39);
+  assert.equal(new Set(C.games.map((g) => g.id)).size, 39);
   assert.equal(C.games.filter((g) => g.duelOnly).length, 6);
   for (const d of C.games) {
     assert.ok(d.rules.length > 100);
@@ -78,7 +78,7 @@ test("24 party games and six exclusive duels have distinct complete instructions
   }
   const s = fixture("fish");
   s.usedGames = [];
-  for (let n = 0; n < 24; n++) {
+  for (let n = 0; n < 33; n++) {
     s.phase = "board-end";
     s.deadline = 12000 + n;
     M.advance(s, s.deadline);
@@ -87,7 +87,7 @@ test("24 party games and six exclusive duels have distinct complete instructions
   const partyIds = s.usedGames.filter(
     (id) => !C.games.find((g) => g.id === id).duelOnly,
   );
-  assert.equal(new Set(partyIds).size, 24);
+  assert.equal(new Set(partyIds).size, 33);
 });
 test("board decisions allow 60 seconds and minigame results hold for 5", () => {
   const s = fixture("fish");
@@ -103,34 +103,11 @@ test("board decisions allow 60 seconds and minigame results hold for 5", () => {
   assert.equal(r.phase, "round-end");
   assert.equal(r.deadline - r.game.resultAt, 5000);
 });
-test("Treasure Tides sends one fast object at a time and spikes subtract only collected coins", () => {
-  const s = fixture("treasure"),
-    g = s.game,
-    v = g.progress[0];
-  assert.equal(g.beats.length, 28);
-  assert.ok(g.beats.every((b) => b.values.filter(Boolean).length === 1));
-  assert.ok(g.beats[1].at - g.beats[0].at < 1300);
-  g.beats[0].values = [4, 0, 0];
-  g.beats[0].lane = 0;
-  play(s, 0, 0, 21100);
-  G.advance(g, 0, 22251);
-  assert.equal(v.collected, 4);
-  assert.equal(g.scores[0], 4);
-  const b = g.beats[1];
-  b.values = [-3, 0, 0];
-  b.lane = 0;
-  G.advance(g, 0, g.start + b.at + b.window + 1);
-  assert.equal(v.collected, 1);
-  assert.equal(v.popup.value, -3);
-  const next = g.beats[2];
-  next.values = [-3, 0, 0];
-  G.advance(g, 0, g.start + next.at + next.window + 1);
-  assert.equal(v.collected, 0);
-  assert.equal(g.scores[0], 0);
-  const before = s.players[0].tokens;
-  M.advance(s, g.end);
-  assert.equal(s.players[0].tokens - before, v.collected);
-  assert.equal(g.coinAwards[0], v.collected);
+test("Coin Cascade spikes subtract only collected coins", () => {
+ const s=fixture("cascade"),g=s.game,v=g.progress[0];g.beats[0].values=[4,0,0];play(s,0,"left",21100);
+ G.advance(g,0,g.start+g.beats[0].at+g.beats[0].window);assert.equal(v.collected,4);
+ for(let i=1;i<3;i++){g.beats[i].values=[-3,0,0];G.advance(g,0,g.start+g.beats[i].at+g.beats[i].window);assert.equal(v.collected,i===1?1:0);}
+ assert.equal(g.scores[0],0);const before=s.players[0].tokens;M.advance(s,g.end);assert.equal(s.players[0].tokens-before,v.collected);assert.equal(g.coinAwards[0],v.collected);
 });
 test("Lantern Landing eliminates on one wrong platform; an eliminated player cannot move", () => {
   const s = fixture("lantern"),
@@ -241,7 +218,7 @@ test("all-bot skipping runs the rules, conserves escrow and rejects human showdo
   h.game.sideDuel = true;
   assert.throws(() => M.act(h, "0", b, 20500), /all-bot/);
 });
-test("all 30 games complete under sparse polls, validate controls and keep finite authoritative scores", () => {
+test("all 39 games complete under sparse polls, validate controls and keep finite authoritative scores", () => {
   for (const def of C.games) {
     const s = fixture(def.id, def.duelOnly ? 2 : 4),
       g = s.game;
@@ -251,7 +228,7 @@ test("all 30 games complete under sparse polls, validate controls and keep finit
         (e) => e.status === 400 || e.status === 409,
       );
     s.players.forEach((p) => (p.bot = true));
-    for (let time = 20000; time <= 57000 && s.phase === "playing"; time += 1100)
+    for (let time = 20000; time <= g.end + 2000 && s.phase === "playing"; time += 1100)
       M.advance(s, time);
     if (def.id === "fish") {
       assert.equal(s.phase, "measuring");

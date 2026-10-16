@@ -56,7 +56,7 @@
       color: "#a6e6b5",
       description: "Three courses. Banks, bumps and big shots.",
       rules:
-        "Play one shot on each of three different courses. Set aim and power; bank off the walls. Each course adds up to 1,000 points. All three scores count.",
+        "Take turns on three courses. Each player has 30 seconds per course. Drag back from your ball and release to putt; longer drags hit harder. Keep shooting after your ball stops. Use ramps, banks, slopes, moving gates and the hippo shortcut; water costs a stroke. Hole out quickly with fewer shots for more points.",
       unit: "points",
     },
     {
@@ -88,7 +88,7 @@
       color: "#ffd16d",
       description: "Chase the showers. Keep every coin.",
       rules:
-        "Move between three conveyor lanes. Catch coins at the basket line and dodge crates. Gold bundles are worth three. Everyone keeps all the coins they collect.",
+        "Move between three catch lanes under the coin shower. Gold bundles are worth three; spike balls remove three collected coins. Everyone keeps all the coins they collect.",
       unit: "coins",
       coinGame: true,
     },
@@ -132,22 +132,16 @@
         "Wait for GO, then tap the matching color as fast as you can. Ignore WAIT and the fake signals. A false start loses points. Eight signals decide the winner.",
       unit: "points",
     },
-    {
-      id: "treasure",
-      name: "Treasure Tides",
-      tag: "COIN COLLECTION",
-      color: "#91d3ad",
-      description: "Chase the tide. Dodge the spikes.",
-      rules:
-        "Coins arrive quickly in one lane at a time. Move under them before they reach your basket. Gold coins give two, bundles four; spiked balls take three collected coins. Everyone keeps their final collection.",
-      unit: "coins",
-      coinGame: true,
-    },
   );
   games.push(
     ...(typeof module === "object" && module.exports
       ? require("./festival-catalog")
       : globalThis.PartyFestivalCatalog),
+  );
+  games.push(
+    ...(typeof module === "object" && module.exports
+      ? require("./expansion-catalog")
+      : globalThis.PartyExpansionCatalog),
   );
   const skins = [
     {
@@ -220,9 +214,9 @@
     {
       id: "warp",
       name: "Trophy taxi",
-      cost: 18,
+      cost: 25,
       description:
-        "One use: fly straight to the trophy host, then choose whether to buy a trophy for 10 coins. Your dice roll is still available.",
+        "One use: fly straight to the trophy host, then choose whether to buy a trophy for 20 coins. Your dice roll is still available.",
     },
   ];
   const additions = [
@@ -265,7 +259,7 @@
     "start",
     "coins",
     "loss",
-    "gift",
+    "coins",
     "shop",
     "junction",
     "coins",
@@ -315,6 +309,7 @@
     };
   });
   spaces[21].type = "ferry";
+  spaces[26].type = "coins";
   spaces[25].type = "junction";
   spaces[27].type = "coins";
   const branches = [
@@ -335,7 +330,7 @@
         [5, 21],
         [-2, 19],
       ],
-      types: ["coins", "gift", "lucky", "loss"],
+      types: ["coins", "shop", "lucky", "loss"],
       height: 0,
     },
     {
@@ -525,75 +520,17 @@
       icon: "★",
       color: "#ffc954",
       description:
-        "Stop at the glowing host and choose whether to buy a trophy for 10 coins, then finish your roll.",
+        "Stop at the glowing host and choose whether to buy a trophy for 20 coins, then finish your roll.",
     },
   };
+  const golf =
+    typeof module === "object" && module.exports
+      ? require("../../shared/games/mini-golf-courses")
+      : globalThis.PuttCourses;
   const holes = [
-    {
-      floor: [
-        [100, 90],
-        [620, 90],
-        [620, 630],
-        [100, 630],
-      ],
-      tee: [230, 545],
-      cup: [500, 160],
-      walls: [
-        [
-          [100, 340],
-          [375, 340],
-        ],
-      ],
-      bumpers: [{ x: 480, y: 385, r: 26 }],
-      sand: [{ x: 405, y: 215, w: 175, h: 55 }],
-    },
-    {
-      floor: [
-        [100, 90],
-        [620, 90],
-        [620, 630],
-        [100, 630],
-      ],
-      tee: [490, 550],
-      cup: [220, 170],
-      walls: [
-        [
-          [300, 250],
-          [620, 250],
-        ],
-        [
-          [100, 430],
-          [350, 430],
-        ],
-      ],
-      bumpers: [{ x: 445, y: 350, r: 30 }],
-      sand: [{ x: 120, y: 280, w: 110, h: 90 }],
-    },
-    {
-      floor: [
-        [100, 90],
-        [620, 90],
-        [620, 630],
-        [100, 630],
-      ],
-      tee: [180, 550],
-      cup: [540, 140],
-      walls: [
-        [
-          [300, 280],
-          [300, 500],
-        ],
-        [
-          [420, 90],
-          [420, 230],
-        ],
-      ],
-      bumpers: [
-        { x: 465, y: 400, r: 32 },
-        { x: 185, y: 240, r: 28 },
-      ],
-      sand: [{ x: 380, y: 500, w: 180, h: 45 }],
-    },
+    golf.get("skybridge").holes[0],
+    golf.get("harbor").holes[1],
+    golf.get("fair").holes[0],
   ];
   const shops = {
     4: {
@@ -606,12 +543,24 @@
       keeper: "Poppy",
       stock: ["shield", "swap", "boost"],
     },
-    26: {
+    39: {
       name: "Golden Getaways",
       keeper: "Poppy",
       stock: ["warp", "custom", "triple", "shield"],
     },
   };
+  function distanceTo(from, target) {
+    const queue = [[from, 0]],
+      seen = new Set();
+    for (let i = 0; i < queue.length; i++) {
+      const [id, steps] = queue[i];
+      if (id === target) return steps;
+      if (seen.has(id)) continue;
+      seen.add(id);
+      for (const next of spaces[id].next) queue.push([next, steps + 1]);
+    }
+    return Infinity;
+  }
   // Preview every possible landing if another junction is reached during this roll.
   function routePreviews(state) {
     if (state.phase !== "choice" || !state.movement) return [];
@@ -621,7 +570,7 @@
       const paths = [];
       function walk(id, left, path) {
         if (paths.length >= 64 || path.length > 30) return;
-        if (left <= 0 && spaces[id].type !== "shop") {
+        if (left <= 0 && !["shop", "trophy"].includes(spaces[id].type)) {
           paths.push(path);
           return;
         }
@@ -632,6 +581,7 @@
       return {
         next,
         option,
+        trophyDistance: 1 + distanceTo(next, state.goal),
         paths,
         landings: [...new Set(paths.map((p) => p.at(-1)))],
       };
@@ -646,6 +596,7 @@
     ferry,
     trophyPedestals,
     routePreviews,
+    distanceTo,
     spaces,
     spaceInfo,
     holes,
@@ -665,11 +616,14 @@
             players.filter(
               (q) =>
                 score(q) > score(p) ||
-                (score(q) === score(p) && q.total > p.total),
+                (score(q) === score(p) &&
+                  (q.total > p.total ||
+                    (q.total === p.total &&
+                      (q.tokens || 0) > (p.tokens || 0)))),
             ).length,
         ]),
       );
     },
-    version: "BOARDWALK_CARNIVAL_V7",
+    version: "BOARDWALK_CARNIVAL_V8",
   };
 });

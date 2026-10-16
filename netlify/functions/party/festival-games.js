@@ -56,6 +56,10 @@ function setup(g) {
       spotlight: 8,
       volley: 10,
     }[g.id] || 8;
+  if (g.id === "kart") {
+    g.duration = 60000;
+    g.end = g.start + g.duration;
+  }
   const interval = (g.duration - 2000) / count;
   g.beats = Array.from({ length: count }, (_, index) => ({
     index,
@@ -557,18 +561,30 @@ function play(g, i, input, now, fail) {
     v.pose = value;
     v.moveAt = now;
   } else if (id === "confetti") {
-    chooseOnce([0, 1, 2, "bank"]);
-    if (value === "bank") {
-      award(g, i, v.pot, now, `Banked +${v.pot}`);
-      v.pot = 0;
-    } else if (value === g.beats[b.index].trap) {
-      v.pot = 0;
-      v.hitAt = now;
-      v.feedback = "POP! Unbanked pot gone";
+    chooseOnce([0, 1, 2]);
+    v.popper = value;
+    v.popperAt = now;
+    v.moveAt = now;
+    const good = value === b.color % 3 && since >= -180 && since <= b.window;
+    if (good) {
+      v.combo++;
+      award(
+        g,
+        i,
+        200 + Math.min(6, v.combo) * 40,
+        now,
+        "CONFETTI! +" + (200 + Math.min(6, v.combo) * 40),
+      );
     } else {
-      v.pot += value === b.lane ? 400 : 200;
-      v.feedback = `Pot: ${v.pot} · bank next draw?`;
-      v.moveAt = now;
+      v.combo = 0;
+      v.hitAt = now;
+      award(
+        g,
+        i,
+        -50,
+        now,
+        value !== b.color % 3 ? "Wrong color!" : "Wait for READY!",
+      );
     }
   } else if (id === "bomb") {
     if (!["left", "right"].includes(value))
@@ -667,7 +683,7 @@ function play(g, i, input, now, fail) {
     } else {
       v.width = overlap;
       v.step++;
-      v.stack.push({ x: (x + last) / 2, width: overlap, at: now });
+      v.stack.push({ x: (x + last) / 2, dropX: x, width: overlap, at: now });
       award(g, i, 100 + Math.round(overlap * 70), now, `Level ${v.step}!`);
     }
   } else if (id === "orchard") {
@@ -710,6 +726,7 @@ function play(g, i, input, now, fail) {
   } else if (id === "balloon") {
     if (!["pump", "release"].includes(value)) fail("Pump or release.", 400);
     if (now - (v.pumpAt || 0) < 350) fail("Let the pump recover.");
+    if (now < (v.stunnedUntil || 0)) fail("Startled! Give yourself a second.");
     v.pumpAt = now;
     if (value === "release") {
       award(
@@ -726,7 +743,8 @@ function play(g, i, input, now, fail) {
       if (v.pressure > 85 && rnd(100) < (v.pressure - 80) * 3) {
         v.pressure = 0;
         v.hitAt = now;
-        v.feedback = "POP! That balloon was too big";
+        v.stunnedUntil = now + 1000;
+        v.feedback = "POP! Take a breath…";
       }
     }
   } else if (id === "spotlight") {
@@ -873,8 +891,10 @@ function bot(g, i, now) {
   if (id === "simon") {
     if (b.fake || dt < 50 || v.actedBeat === b.index) return null;
     value = b.action;
-  } else if (id === "confetti") value = v.pot >= 600 ? "bank" : rnd(3);
-  else if (id === "kart") {
+  } else if (id === "confetti") {
+    if (dt < 40) return null;
+    value = b.color % 3;
+  } else if (id === "kart") {
     const lane = b.boost !== b.lane ? b.boost : (b.lane + 1) % 3;
     if (lane === v.lane) return null;
     value = lane < v.lane ? "left" : "right";

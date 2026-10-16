@@ -1,4 +1,4 @@
-/* BOARDWALK_CARNIVAL_V7 — guest rooms, authoritative matches, local presentation. */
+/* BOARDWALK_CARNIVAL_V8 — guest rooms, authoritative matches, local presentation. */
 (() => {
   "use strict";
   const C = PartyCatalog,
@@ -97,6 +97,11 @@
     return `<div class="profile-pocket" aria-label="${esc(p.name)}’s items">${Array.from({ length: 3 }, (_, i) => (p.items[i] ? `<button data-item-info="${p.items[i]}" title="${esc(C.items.find((x) => x.id === p.items[i]).name)}">${itemImage(p.items[i])}</button>` : '<span class="empty-pocket" aria-label="Empty item slot">·</span>')).join("")}</div>`;
   }
   function controlsGuide(id) {
+    if (id === "putt")
+      return '<div class="control-guide"><strong>DRAG TO PUTT</strong><p>Press on the course, drag back in the opposite direction of your shot, then release. A longer drag means more power. Only the active player can shoot.</p></div>';
+    if (["bumper", "volcano"].includes(id))
+      return '<div class="control-guide"><strong>TOUCH / MOUSE / KEYBOARD</strong><p>Hold and drag in the direction you want to move. Release to coast. On a keyboard, use arrows or WASD. Avoid the danger areas.</p></div>';
+
     const list = PartyInteraction.controls(id, C.games),
       keys = PartyInteraction.bindings(id, C.games);
     const label = (key) =>
@@ -136,7 +141,7 @@
     );
   }
   function routeButtons(r) {
-    return `<div class="route-choices">${(r.routePreviews || []).map((route, i) => `<button class="route-button" data-next="${route.next}" data-preview-route="${route.next}" style="--route:${i ? "#e89750" : "#8765cd"}"><b>${i ? "B" : "A"} · ${i ? C.spaces[route.next].district : "Promenade"}</b><small>Land on ${route.landings.map((id) => `${C.spaceInfo[C.spaces[id].type].name} · ${id + 1}`).join(" or ")}</small>${route.landings.length > 1 ? "<small>Another path choice ahead</small>" : ""}</button>`).join("")}</div>`;
+    return `<div class="route-choices">${(r.routePreviews || []).map((route, i) => `<button class="route-button" data-next="${route.next}" data-preview-route="${route.next}" style="--route:${i ? "#e89750" : "#8765cd"}"><b>${i ? "B" : "A"} · ${i ? C.spaces[route.next].district : "Promenade"}</b><small>Land on ${route.landings.map((id) => `${C.spaceInfo[C.spaces[id].type].name} · ${id + 1}`).join(" or ")}</small>${`<small class="${route.trophyDistance === Math.min(...r.routePreviews.map((p) => p.trophyDistance)) ? "quickest" : ""}">Trophy: ${route.trophyDistance} spaces ${route.trophyDistance === Math.min(...r.routePreviews.map((p) => p.trophyDistance)) ? "· quickest route" : ""}</small>`}${route.landings.length > 1 ? "<small>Another path choice ahead</small>" : ""}</button>`).join("")}</div>`;
   }
   function eventPanel(r, mine, turn) {
     const e = r.event,
@@ -144,7 +149,7 @@
       info = trophy ? C.spaceInfo.trophy : C.spaceInfo[e.kind];
     let body = `<div class="event-icon" style="--space:${info.color}">${info.icon}</div><span class="eyebrow">${esc(turn.name)} ${e.kind === "shop" || trophy ? "IS VISITING" : "LANDED ON"}</span><h2>${trophy ? "A trophy for your collection?" : e.kind === "shop" ? C.shops[turn.position].name : info.name}</h2>`;
     if (e.kind === "shop" || trophy)
-      body += `<div class="shopkeeper"><canvas data-character="shopkeeper" aria-hidden="true"></canvas><span><b>${trophy ? "The trophy host" : "Poppy"}</b><small>${trophy ? "10 coins · your choice" : "A different selection at each store"}</small></span></div>`;
+      body += `<div class="shopkeeper"><canvas data-character="shopkeeper" aria-hidden="true"></canvas><span><b>${trophy ? "The trophy host" : "Poppy"}</b><small>${trophy ? "20 coins · your choice" : "A different selection at each store"}</small></span></div>`;
     body += `<p class="game-instructions">${esc(e.text)}</p>`;
     if (!mine)
       return body + '<p class="status-note">Their choice is coming up.</p>';
@@ -159,7 +164,7 @@
     if (e.kind === "ferry")
       body += `<button class="primary full" data-action="ride-ferry" ${me().tokens < C.ferry.cost ? "disabled" : ""}>⛴ Sail to space ${C.ferry.to + 1} · ${C.ferry.cost} coins</button>`;
     if (trophy && !e.bought)
-      body += `<button class="primary full" data-action="buy-trophy" ${me().tokens < 10 ? "disabled" : ""}>${icon("trophy")} Buy trophy · 10 coins</button>${me().tokens < 10 ? '<p class="small">You need 10 coins. You can still keep going.</p>' : ""}`;
+      body += `<button class="primary full" data-action="buy-trophy" ${me().tokens < 20 ? "disabled" : ""}>${icon("trophy")} Buy trophy · 20 coins</button>${me().tokens < 20 ? '<p class="small">You need 20 coins. You can still keep going.</p>' : ""}`;
     if (e.pendingItem)
       body += `<div class="gift-offer">${itemImage(e.pendingItem)}<h3>${C.items.find((i) => i.id === e.pendingItem).name}</h3><p>Choose an item to replace:</p>${replacementButtons("accept-item", e.pendingItem)}</div>`;
     if (e.kind === "duel") {
@@ -369,6 +374,27 @@
     ) {
       const before = previous.game.scores[self] || 0,
         delta = (room.game.scores[self] || 0) - before;
+      const prior = previous.game.progress[self],
+        current = room.game.progress[self];
+      if (
+        current.hitAt &&
+        current.hitAt !== prior.hitAt &&
+        [
+          "bumper",
+          "volcano",
+          "safe-panel",
+          "safe-wires",
+          "band",
+          "balloon",
+        ].includes(room.game.id)
+      )
+        tone(
+          room.game.id === "bumper"
+            ? "bounce"
+            : room.game.id === "balloon"
+              ? "pop"
+              : "error",
+        );
       if (
         delta &&
         room.game.id !== "fish" &&
@@ -385,7 +411,11 @@
     const cue = `${room.match}:${room.round}:${room.phase}`;
     if (cue !== lastCue) {
       if (room.phase === "playing") tone("start");
-      if (room.phase === "rolling") tone("roll");
+      if (["rolling", "order-reveal"].includes(room.phase)) tone("roll");
+      if (room.phase === "trophy-flight") {
+        tone("crowd");
+        tone("win");
+      }
       if (room.phase === "space")
         tone(
           ["coins", "lucky", "gift"].includes(room.event?.kind)
@@ -556,6 +586,8 @@
       node = C.spaces[turn?.position || 0],
       key = [
         r.phase,
+        r.orderRolls?.map((a) => a.join(",")).join("|"),
+        r.finale?.awards.map((a) => a.applied).join(","),
         r.round,
         r.match,
         r.turn,
@@ -588,9 +620,19 @@
           })
           .join(
             "",
-          )}</div><div class="stack"><button class="secondary" data-copy>Copy invite link ↗</button><button class="primary" data-action="ready" ${!me().characterPicked ? "disabled" : ""}>${r.ready.includes(r.you) ? "Ready ✓ · undo" : "I’m ready"}</button>${r.host === r.you ? `<button class="dark-button" data-action="start" ${r.players.length < 2 || r.players.some((p) => !p.characterPicked || (!p.bot && !r.ready.includes(p.id))) ? "disabled" : ""}>Start ${r.mode === "duel" ? "duel" : "party"}</button>${r.players.length < (r.mode === "duel" ? 2 : 4) ? '<button class="quiet" data-action="add-bot">Add a bot seat</button>' : ""}` : '<p class="small">Your host starts when everyone is ready.</p>'}<button class="text-button" data-leave>Leave room</button></div><p class="status-note">${r.mode === "duel" ? "First to two minigame wins." : `${r.rounds} turns per player. Most trophies wins; total minigame points break a tie. Random first player; turn order rotates each turn.`}</p>`;
+          )}</div><div class="stack"><button class="secondary" data-copy>Copy invite link ↗</button><button class="primary" data-action="ready" ${!me().characterPicked ? "disabled" : ""}>${r.ready.includes(r.you) ? "Ready ✓ · undo" : "I’m ready"}</button>${r.host === r.you ? `<button class="dark-button" data-action="start" ${r.players.length < 2 || r.players.some((p) => !p.characterPicked || (!p.bot && !r.ready.includes(p.id))) ? "disabled" : ""}>Start ${r.mode === "duel" ? "duel" : "party"}</button>${r.players.length < (r.mode === "duel" ? 2 : 4) ? '<button class="quiet" data-action="add-bot">Add a bot seat</button>' : ""}` : '<p class="small">Your host starts when everyone is ready.</p>'}<button class="text-button" data-leave>Leave room</button></div><p class="status-note">${r.mode === "duel" ? "First to two minigame wins." : `${r.rounds} turns per player. Most trophies wins; total minigame points break a tie. Everyone rolls for turn order before the first round. That order lasts all match.`}</p>`;
+      else if (["order-roll", "order-reveal"].includes(r.phase))
+        panel.innerHTML = `<span class="eyebrow">WHO GOES FIRST?</span><h2>Roll for the order.</h2><p>Highest roll goes first. Tied players roll again.</p><div class="order-rolls">${r.players.map((p, i) => `<span><b>${esc(p.name)}</b><strong class="order-die">${r.orderRolls[i].join(" · ") || "…"}</strong></span>`).join("")}</div>${r.phase === "order-roll" && r.orderPending.includes(r.players.findIndex((p) => p.id === r.you)) ? '<button class="roll-button primary full" data-action="order-roll">Roll for turn order</button>' : '<p class="status-note">Waiting for the other opening rolls…</p>'}`;
+      else if (r.phase === "selection")
+        panel.innerHTML =
+          '<span class="eyebrow">FESTIVAL PICKER</span><h2>What’s next?</h2><p class="selection-note">The minigame wheel is slowing down…</p>';
+      else if (r.phase === "trophy-flight")
+        panel.innerHTML = `<span class="eyebrow">A TROPHY FOR ${esc(turn.name)}</span><h2>Make some noise!</h2><p class="trophy-banner">${icon("trophy")} +1 trophy</p><p>The host is carrying the next trophy to a new stop.</p>`;
+      else if (r.phase === "finale")
+        panel.innerHTML =
+          '<span class="eyebrow">THE GRAND FINALE</span><h2>One last celebration.</h2><div id="finale-card" class="finale-summary"></div><p>Three bonus trophies, then the final standings. Shared category records each receive a trophy.</p>';
       else if (r.phase === "board")
-        panel.innerHTML = `<span class="eyebrow">${mine ? "YOUR TURN" : esc(turn.name) + "’S TURN"}</span><h2>${mine ? "Make your move." : "A little suspense…"}</h2><p class="game-instructions">Roll 1–6. Visit the golden beacon and choose whether to buy a trophy for 10 coins.</p>${
+        panel.innerHTML = `<span class="eyebrow">${mine ? "YOUR TURN" : esc(turn.name) + "’S TURN"}</span><h2>${mine ? "Make your move." : "A little suspense…"}</h2><p class="game-instructions">Roll 1–6. Visit the golden beacon and choose whether to buy a trophy for 20 coins.</p>${
           mine
             ? `<button class="roll-button primary full" data-action="roll"><span class="die-icon">⚄</span> Roll ${me().triple ? "three dice" : me().double ? "two dice" : "the dice"}</button><p class="small pocket-label">YOUR POCKET · ONE ITEM BEFORE ROLLING</p><div class="inventory">${
                 me().items.length
@@ -669,10 +711,7 @@
       portraits(overlay);
     }
     if ($("#feedback")) $("#feedback").textContent = v?.feedback || "";
-    if ($("#next-arrows"))
-      $("#next-arrows").textContent = (v?.next || [])
-        .map((x) => ({ up: "↑", down: "↓", left: "←", right: "→" })[x])
-        .join(" ");
+    showArrows(v?.next || []);
     $("#timer-label").textContent =
       r.phase === "waiting"
         ? "Room stays open"
@@ -683,10 +722,26 @@
             : ["board", "choice", "space"].includes(r.phase)
               ? "Your turn"
               : "Next up";
+    PartyPlayInput.bind($("#party-scene"), () => room, submitPlay, now, aim);
+    if (C.games.find((g) => g.id === r.game?.id)?.engine === "expansion")
+      PartyExpansionUI.tick(r, now());
     pendingControls();
+  }
+  function showArrows(next) {
+    const el = $("#next-arrows");
+    if (!el || el.dataset.sequence === next.join(",")) return;
+    el.dataset.sequence = next.join(",");
+    el.innerHTML = next
+      .map(
+        (x, i) =>
+          `<span style="animation-delay:${i * 35}ms" aria-label="${x}">${{ up: "↑", down: "↓", left: "←", right: "→" }[x]}</span>`,
+      )
+      .join("");
   }
   function controls(id, v) {
     const def = C.games.find((g) => g.id === id);
+    if (def?.engine === "expansion")
+      return PartyExpansionUI.controls(room.game, v);
     if (def?.engine === "festival")
       return (
         '<div class="action-hint" id="cue-instruction">Watch the arena</div><div class="festival-controls">' +
@@ -705,14 +760,12 @@
     if (id === "fish")
       return '<div class="action-hint" id="cue-instruction">Watch your bobber</div><button class="primary" id="reel" data-control="reel">Reel!</button>';
     if (["cascade", "dash"].includes(id))
-      return `<div class="action-hint" id="cue-instruction">${id === "cascade" ? "Catch coins · dodge crates" : "Dodge barrels · jump hurdles · duck flags"}</div><div class="lane-controls"><button data-control="left" aria-label="Move left">←</button>${id === "dash" ? '<button data-control="jump">Jump</button><button data-control="duck">Duck</button>' : ""}<button data-control="right" aria-label="Move right">→</button></div>`;
+      return `<div class="action-hint" id="cue-instruction">${id === "cascade" ? "Catch coins · dodge spike balls" : "Dodge barrels · jump hurdles · duck flags"}</div><div class="lane-controls"><button data-control="left" aria-label="Move left">←</button>${id === "dash" ? '<button data-control="jump">Jump</button><button data-control="duck">Duck</button>' : ""}<button data-control="right" aria-label="Move right">→</button></div>`;
     if (id === "hop")
       return '<div class="action-hint" id="cue-instruction">Jump at the gold line</div><button class="primary" data-control="jump">Jump!</button>';
     if (["lantern", "signal"].includes(id))
       return `<div class="action-hint" id="cue-instruction">Watch the signal</div><div class="color-controls">${["Blue", "Pink", "Mint", "Gold"].map((c, i) => `<button data-control="${i}" style="--pad:${["#98d8f0", "#f2a5c5", "#9bdfb5", "#f7d675"][i]}">${i + 1} · ${c}</button>`).join("")}</div>`;
-    if (id === "treasure")
-      return '<div class="action-hint" id="cue-instruction">Catch the coins · dodge spike balls</div><div class="lane-controls"><button data-control="0">Left</button><button data-control="1">Middle</button><button data-control="2">Right</button></div>';
-    return `<label class="range-label" for="aim">Aim <output id="aim-value">${Math.round((aim.angle * 180) / Math.PI)}°</output></label><input id="aim" type="range" min="-170" max="-10" step="1" value="${Math.round((aim.angle * 180) / Math.PI)}"><label class="range-label" for="power">Power <output id="power-value">${Math.round(aim.power * 100)}%</output></label><input id="power" type="range" min="5" max="100" step="1" value="${Math.round(aim.power * 100)}"><button class="primary full" id="putt" data-putt>Putt · course ${Math.min(3, v.attempts + 1)} of 3</button>`;
+    return '<div class="putt-hint" id="putt-status">Drag back on the course and release to putt. Longer drag = more power.</div>';
   }
   function boardGuide() {
     openDialog(
@@ -725,7 +778,7 @@
         )
         .join(
           "",
-        )}</div><p>Roll 1–6. Choose paths at three crossroads. The Harbor Loop is always open; the ferry crosses to the opposite shore for four coins. Collect trophies at the golden beacon for 10 coins. Most trophies after your selected number of turns wins; minigame points break a tie.</p>`,
+        )}</div><p>Roll 1–6. Choose paths at three crossroads. The Harbor Loop is always open; the ferry crosses to the opposite shore for four coins. Collect trophies at the golden beacon for 20 coins. Most trophies after your selected number of turns wins; minigame points break a tie.</p>`,
     );
   }
   function ranking(round = false) {
@@ -743,14 +796,16 @@
         .sort((a, b) =>
           round
             ? (a.resultPlace || 99) - (b.resultPlace || 99) || b.score - a.score
-            : b.trophies - a.trophies || b.total - a.total,
+            : b.trophies - a.trophies ||
+              b.total - a.total ||
+              b.tokens - a.tokens,
         );
     return `<div class="results-list">${list
       .map((p, i) => {
         const idx = r.players.findIndex((x) => x.id === p.id),
           coins = r.game?.coinAwards?.[idx] || 0,
           trophies = r.game?.trophyAwards?.[idx] || 0;
-        return `<div class="result-row"><span class="place">${round ? p.resultPlace || i + 1 : i + 1}</span><canvas data-character="${p.character}" aria-hidden="true"></canvas><span class="person-name">${esc(p.name)}${round || r.phase === "complete" ? `<small class="coin-award">${icon("coin")} ${coins >= 0 ? "+" : ""}${coins} coins${trophies ? " · " + (trophies > 0 ? "+" : "") + trophies + " trophy" : ""}</small>` : ""}</span><b>${round ? p.score + (gameDef().unit === "cm" ? " cm" : gameDef().coinGame ? " coins" : " pts") : icon("trophy") + p.trophies}</b></div>`;
+        return `<div class="result-row"><span class="place">${round ? p.resultPlace || i + 1 : C.standings(r.players, r.mode)[p.id]}</span><canvas data-character="${p.character}" aria-hidden="true"></canvas><span class="person-name">${esc(p.name)}${round ? `<small class="coin-award">${icon("coin")} ${coins >= 0 ? "+" : ""}${coins} coins${trophies ? " · " + (trophies > 0 ? "+" : "") + trophies + " trophy" : ""}</small>` : `<small class="coin-award">${icon("coin")} ${p.tokens} coins · ${p.total} pts</small>`}</span><b>${round ? p.score + (gameDef().unit === "cm" ? " cm" : gameDef().coinGame ? " coins" : " pts") : icon("trophy") + p.trophies}</b></div>`;
       })
       .join("")}</div>`;
   }
@@ -801,16 +856,25 @@
     lastInputAt = at;
     localInput = PartyInteraction.predict(r, data.value, at, localInput);
     const prediction = localInput;
-    tone(
-      {
-        rope: "jump",
-        hop: "jump",
-        rhythm: "drum",
-        cannon: "cannon",
-        boats: "paddle",
-        stack: "block",
-      }[r.game.id] || "tap",
-    );
+    if (data.value !== "steer")
+      tone(
+        {
+          rope: "jump",
+          hop: "jump",
+          rhythm: "drum",
+          cannon: "cannon",
+          boats: "paddle",
+          stack: "block",
+          basket: "bounce",
+          baseball: "bat",
+          "safe-panel": "tool",
+          "safe-wires": "tool",
+          "safe-dial": "tool",
+          puzzle: "block",
+          math: "tap",
+          band: "drum",
+        }[r.game.id] || "tap",
+      );
     playQueue.push({
       at,
       prediction,
@@ -1127,7 +1191,7 @@
         return;
       }
       if (b.dataset.control !== undefined) {
-        const value = /^[0-3]$/.test(b.dataset.control)
+        const value = /^[0-9]$/.test(b.dataset.control)
           ? Number(b.dataset.control)
           : b.dataset.control;
         await roomAction("play", { value });
@@ -1291,7 +1355,7 @@
     submitPlay(
       b.hasAttribute("data-putt")
         ? { ...aim }
-        : { value: /^[0-3]$/.test(raw) ? Number(raw) : raw },
+        : { value: /^[0-9]$/.test(raw) ? Number(raw) : raw },
     );
   });
   for (const event of ["pointerover", "focusin"])
@@ -1365,6 +1429,39 @@
       localInput,
     });
     if (!r) return;
+    if (r.phase === "finale" && $("#finale-card")) {
+      const age = stamp - r.finale.at,
+        index = Math.floor((age - 2500) / 6500),
+        award = r.finale.awards[index];
+      const key = index + ":" + !!award?.applied;
+      if ($("#finale-card").dataset.key !== key) {
+        $("#finale-card").dataset.key = key;
+        $("#finale-card").innerHTML =
+          age < 2500
+            ? "<h3>The bonus trophies…</h3><p>Who made their mark on the festival?</p>"
+            : award
+              ? `<small>${award.description}</small><h3>${award.title}</h3><p>${award.applied ? award.winners.map((id) => esc(r.players.find((p) => p.id === id).name)).join(" & ") || "No winner this time" : "And the trophy goes to…"}</p>${award.applied ? `<b>${award.value} · +1 trophy each</b>` : ""}`
+              : "<h3>And the festival champion is…</h3><p>Counting every trophy.</p>";
+        if (award?.applied) {
+          tone("crowd");
+          tone("win");
+        }
+      }
+    }
+    PartyExpansionUI.tick(r, stamp);
+    if (r.game?.id === "band") PartyAudio.band?.(r, stamp);
+    else PartyAudio.band?.(null, stamp);
+    if (r.phase === "playing" && r.game.id === "putt") {
+      const p = r.game.putt,
+        active = r.players[p.turn],
+        remaining = Math.max(
+          0,
+          Math.ceil((r.game.start + p.offset + 30000 - stamp) / 1000),
+        );
+      const el = $("#putt-status");
+      if (el)
+        el.textContent = `${active.name} · course ${Math.min(3, p.course + 1)} / 3 · ${remaining}s · ${active.id === r.you ? "Drag back and release to putt" : "Watch their shot"}`;
+    }
     if (r.phase === "measuring" && $("#fish-measurements")) {
       const q = Math.min(
         1,
@@ -1413,9 +1510,15 @@
     const clock = $("#scene-clock");
     if (clock) {
       clock.hidden = !["playing", "intro", "countdown"].includes(r.phase);
+      const end =
+        r.phase === "playing" && r.game.id === "putt"
+          ? r.game.start + r.game.putt.offset + 30000
+          : r.phase === "playing" && r.game.id === "math"
+            ? r.game.start + r.game.cue.at + (r.game.cue.reveal ? 13000 : 10000)
+            : r.deadline;
       clock.textContent =
         (r.phase === "intro" ? "AUTO START · " : "") +
-        Math.max(0, Math.ceil((r.deadline - stamp) / 1000)) +
+        Math.max(0, Math.ceil((end - stamp) / 1000)) +
         "s";
     }
     const big = $("#start-count"),
@@ -1450,9 +1553,7 @@
         localInput.start === r.game.start &&
         localInput.fields.next
       )
-        $("#next-arrows").textContent = localInput.fields.next
-          .map((x) => ({ up: "↑", down: "↓", left: "←", right: "→" })[x])
-          .join(" ");
+        showArrows(localInput.fields.next);
       if (r.game.id === "memory") {
         const a = Math.floor((stamp - v.showAt) / 650),
           watch = stamp < v.showAt + memoryPattern.length * 650 + 300;
@@ -1480,9 +1581,18 @@
       }
       if ($("#reel"))
         $("#reel").disabled = requestBusy || v.actedBeat === r.game.cue?.index;
-      document
-        .querySelectorAll("[data-control]")
-        .forEach((b) => (b.disabled = requestBusy || !!v.finished));
+      document.querySelectorAll("[data-control]").forEach((b) => {
+        const id = r.game.id;
+        let locked = false;
+        if (id === "math") locked = v.locked || r.game.cue?.reveal;
+        if (id === "puzzle") locked = b.classList.contains("empty");
+        if (id === "safe-panel") locked = b.classList.contains("removed");
+        if (id === "safe-wires") locked = b.classList.contains("cut");
+        if (id === "safe-dial") locked = stamp - (v.checkAt || 0) < 700;
+        if (id === "basket") locked = v.shot && stamp - v.shot.at < 1550;
+        if (id === "baseball") locked = v.actedBeat === r.game.cue?.index;
+        b.disabled = requestBusy || !!v.finished || !!locked;
+      });
       if (["fish", "hop", "signal"].includes(r.game.id))
         document
           .querySelectorAll("[data-control]")
@@ -1525,7 +1635,9 @@
             waiting ||= stamp - (v.pullAt || 0) < 650;
           if (id === "boats" && value !== "brace")
             waiting ||= stamp - (v.strokeAt || 0) < 450;
-          if (id === "balloon") waiting ||= stamp - (v.pumpAt || 0) < 350;
+          if (id === "balloon")
+            waiting ||=
+              stamp - (v.pumpAt || 0) < 350 || stamp < (v.stunnedUntil || 0);
           if (id === "kart")
             waiting ||= stamp - v.moveAt < (v.boosted ? 600 : 230);
           if (id === "cannon")
@@ -1586,9 +1698,11 @@
               : r.game.id === "lantern"
                 ? "LAND ON " + ["BLUE", "PINK", "MINT", "GOLD"][cue.color]
                 : r.game.id === "hop"
-                  ? dt < -100
-                    ? "Wave approaching…"
-                    : "JUMP!"
+                  ? Math.abs(dt + PartyExpansionRules.waveLead(cue.size)) < 140
+                    ? "JUMP NOW · " + cue.size.toUpperCase() + " WAVE"
+                    : dt < 0
+                      ? cue.size.toUpperCase() + " wave approaching…"
+                      : "Keep watching the tide"
                   : hint.textContent;
       }
     }

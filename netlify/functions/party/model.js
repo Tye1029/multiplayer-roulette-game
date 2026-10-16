@@ -1,8 +1,8 @@
 "use strict";
 const crypto = require("node:crypto"),
   C = require("../../../assets/party/catalog"),
-  physics = require("../../../shared/games/mini-golf-physics"),
-  G = require("./minigames");
+  G = require("./minigames"),
+  Ceremony = require("./ceremony");
 const rnd = (n) => crypto.randomInt(n),
   pick = (xs) => xs[rnd(xs.length)],
   fail = (message, status = 409) => {
@@ -21,6 +21,8 @@ function player(p) {
     tokens: 10,
     trophies: 0,
     wins: 0,
+    coinsEarned: 0,
+    spacesMoved: 0,
     total: 0,
     items: [],
     shield: false,
@@ -32,7 +34,7 @@ function create(id, p, mode, now = Date.now(), rounds = 10) {
   if (mode === "party" && !C.turnOptions.includes(rounds))
     fail("Choose 10, 20, or 30 turns.", 400);
   return {
-    version: 7,
+    version: 8,
     id,
     host: p.id,
     mode,
@@ -64,7 +66,7 @@ function join(s, p) {
 function enterBoard(s, now) {
   s.phase = "board";
   s.turnIndex = 0;
-  s.turn = s.startingSeat;
+  s.turn = s.turnOrder?.[0] ?? s.startingSeat;
   s.usedItem = false;
   s.lastMove = null;
   s.dice = null;
@@ -87,7 +89,7 @@ function begin(s, now) {
     const j = rnd(i + 1);
     [s.gameOrder[i], s.gameOrder[j]] = [s.gameOrder[j], s.gameOrder[i]];
   }
-  s.version = 7;
+  s.version = 8;
   s.startingSeat = rnd(s.players.length);
   s.round = 1;
   s.history = [];
@@ -101,7 +103,10 @@ function begin(s, now) {
   s.tide = 0;
   s.players = s.players.map(player);
   s.receipts = [];
-  if (s.mode === "party") enterBoard(s, now);
+  s.turnOrder = null;
+  s.finale = null;
+  s.pendingFinale = false;
+  if (s.mode === "party") Ceremony.startOrder(s, now);
   else enterGame(s, now);
 }
 function nextGame(s, sideDuel) {
@@ -167,6 +172,15 @@ function enterGame(s, now, tiebreak = false, participants = null) {
     .map((p, i) => (s.game.participants.includes(p.id) ? i : null))
     .filter((i) => i !== null);
   G.setup(s.game);
+  s.game.end = s.game.start + s.game.duration;
+  s.phase = "selection";
+  s.selectionAt = now;
+  s.deadline = now + 4800;
+  const pool = C.games.filter((g) =>
+    sideDuel || s.mode === "duel" ? g.duelOnly : !g.duelOnly,
+  );
+  s.selection = Array.from({ length: 28 }, () => pick(pool).id);
+  s.selection.push(s.game.id);
   s.lastMove = null;
   s.event = null;
   if (!sideDuel)
@@ -176,7 +190,9 @@ function enterGame(s, now, tiebreak = false, participants = null) {
 }
 function nextTurn(s, now) {
   s.turnIndex++;
-  s.turn = (s.startingSeat + s.turnIndex) % s.players.length;
+  s.turn =
+    s.turnOrder?.[s.turnIndex % s.players.length] ??
+    (s.startingSeat + s.turnIndex) % s.players.length;
   s.usedItem = false;
   s.event = null;
   s.dice = null;
@@ -217,7 +233,11 @@ function travel(s, now, chosen) {
     node = C.spaces[next];
     m.remaining--;
     path.push(next);
-    if (next === 0) p.tokens += 4;
+    if (next === 0) {
+      p.tokens += 4;
+      p.coinsEarned += 4;
+      p.boardPopup = { at: now, value: 4 };
+    }
     if (next === s.goal) {
       m.stopTrophy = true;
       break;
@@ -234,6 +254,7 @@ function travel(s, now, chosen) {
       at: now,
       duration: (path.length - 1) * 440 + 300,
     };
+    p.spacesMoved += path.length - 1;
     p.position = path.at(-1);
     s.phase = "walking";
     s.deadline = now + s.lastMove.duration;
@@ -257,10 +278,10 @@ function resumeSpace(s, now) {
     s.deadline = now + 60000;
     return;
   }
-  if (s.event?.kind === "shop")
+  if (["shop", "trophy-purchase", "trophy"].includes(s.event?.kind))
     s.movement.remaining = Math.max(1, s.movement.remaining);
   if (
-    ["shop", "trophy-purchase"].includes(s.event?.kind) &&
+    ["shop", "trophy-purchase", "trophy"].includes(s.event?.kind) &&
     s.movement?.remaining
   ) {
     s.event = null;
@@ -288,6 +309,18 @@ function rideFerry(s, p, now) {
   s.deadline = now + C.ferry.duration;
   s.log = p.name + " is sailing to the opposite shore.";
 }
+function buyTrophy(s, p, now) {
+  p.tokens -= 20;
+  p.trophies++;
+  const from = s.goal;
+  s.goal =
+    C.trophyStops[(C.trophyStops.indexOf(from) + 1) % C.trophyStops.length];
+  s.trophyFlight = { from, to: s.goal, player: p.id, at: now, duration: 6200 };
+  s.event.bought = true;
+  s.event.text = "A new trophy! The host is flying to the next golden stop.";
+  s.phase = "trophy-flight";
+  s.deadline = now + 6200;
+}
 function trophyStop(s, now, returnToRoll = false) {
   const p = s.players[s.turn];
   s.phase = "space";
@@ -298,7 +331,7 @@ function trophyStop(s, now, returnToRoll = false) {
     at: now,
     returnToRoll,
     title: "A trophy for your collection?",
-    text: "Buy this trophy for 10 coins, or keep your coins and carry on.",
+    text: "Buy this trophy for 20 coins, or keep your coins and carry on.",
     bought: false,
   };
   s.log = p.name + " is visiting the trophy host.";
@@ -340,6 +373,8 @@ function land(s, now) {
   const e = s.event;
   if (kind === "coins") {
     p.tokens += 3;
+    p.coinsEarned += 3;
+    p.boardPopup = { at: now, value: 3 };
     e.text = "+3 coins. A little festival spending money.";
   }
   if (kind === "loss") {
@@ -349,17 +384,21 @@ function land(s, now) {
     } else {
       const loss = Math.min(3, p.tokens);
       p.tokens -= loss;
+      p.boardPopup = { at: now, value: -loss };
       e.text = "A passing rain cloud cost " + loss + " coins.";
     }
   }
   if (kind === "gift") {
     const item = pick(C.items);
-    e.text = "Found " + item.name + "!";
+    e.item = item.id;
+    e.text = "Found " + item.name + "! " + item.description;
     offerItem(s, p, item.id, now);
   }
   if (kind === "lucky") {
     const n = 5 + rnd(5);
     p.tokens += n;
+    p.coinsEarned += n;
+    p.boardPopup = { at: now, value: n };
     e.text = "Lucky you! +" + n + " coins.";
     if (rnd(3) === 0) {
       e.text += " A rain shield, too.";
@@ -388,7 +427,11 @@ function land(s, now) {
       e.text =
         "Tide taxi! A free ride to " + C.spaces[p.position].district + ".";
     } else if (variant === 1) {
-      for (const x of s.players) x.tokens += 3;
+      for (const x of s.players) {
+        x.tokens += 3;
+        x.coinsEarned += 3;
+        x.boardPopup = { at: now, value: 3 };
+      }
       e.text = "Coin shower! Everyone gets 3 coins.";
     } else {
       let n = 0;
@@ -398,6 +441,8 @@ function land(s, now) {
           n++;
         }
       p.tokens += n;
+      p.coinsEarned += n;
+      p.boardPopup = { at: now, value: n };
       e.text = "Festival collection! Your friends chipped in " + n + " coins.";
     }
   }
@@ -446,7 +491,7 @@ function land(s, now) {
   if (kind === "trophy")
     e.text =
       p.position === s.goal
-        ? "Save up 10 coins to buy a trophy when you pass."
+        ? "Save up 20 coins to buy a trophy when you pass."
         : "The trophy host has moved. Follow the golden beacon.";
   s.log = p.name + " · " + e.text;
 }
@@ -559,7 +604,9 @@ function conclude(s, now) {
         } else {
           p.tokens += amount;
           g.coinAwards[i] = amount - stake.amount;
+          p.coinsEarned += Math.max(0, g.coinAwards[i]);
         }
+        if (single && winners.includes(p.id)) p.wins++;
       }
     s.phase = "side-result";
     s.deadline = now + 5000;
@@ -582,6 +629,7 @@ function conclude(s, now) {
         ? [10, 6, 3, 2][g.placements[i] - 1] || 0
         : 0;
     p.tokens += earned;
+    p.coinsEarned += earned;
     g.coinAwards[i] = earned;
     if (winners.includes(p.id)) {
       p.wins++;
@@ -619,7 +667,9 @@ function conclude(s, now) {
     finish(s, now, leaders[0].id);
     return;
   }
-  if (s.round >= s.rounds) {
+  if (s.round >= s.rounds && s.mode === "party") {
+    s.pendingFinale = true;
+  } else if (s.round >= s.rounds) {
     const ranking = [...s.players].sort(
         (a, b) => b.trophies - a.trophies || b.total - a.total,
       ),
@@ -719,49 +769,13 @@ function play(s, p, b, now) {
       v.showAt = now + 800;
       v.feedback = "Missed a beat. Watch the new pattern.";
     }
-  } else if (g.id === "putt") {
-    if (v.shot && now < v.shot.at + v.shot.duration + 300)
-      fail("Let the ball finish rolling.");
-    if (v.attempts >= 3) fail("All three attempts are complete.");
-    if (
-      !Number.isFinite(b.angle) ||
-      b.angle < -Math.PI ||
-      b.angle > Math.PI ||
-      !Number.isFinite(b.power) ||
-      b.power < 0.05 ||
-      b.power > 1
-    )
-      fail("Choose valid aim and power.", 400);
-    const course = v.attempts,
-      h = C.holes[course],
-      shot = physics.simulate(h, h.tee, b.angle, b.power, now),
-      score = shot.holed
-        ? 1000
-        : Math.max(
-            0,
-            Math.round(
-              900 -
-                Math.hypot(
-                  shot.position[0] - h.cup[0],
-                  shot.position[1] - h.cup[1],
-                ) *
-                  1.6,
-            ),
-          );
-    g.scores[i] += score;
-    v.shot = { ...shot, at: now, course };
-    v.attempts++;
-    v.feedback = shot.holed
-      ? "Hole in one! +1,000"
-      : score + " points. Next course coming up.";
-    if (v.attempts === 3) v.finished = now + shot.duration;
   }
   v.last = now;
   v.inputs++;
   p.participation++;
 }
 function advance(s, now = Date.now()) {
-  if (s.version !== 7) {
+  if (s.version !== 8) {
     s.phase = "expired";
     // The previous layout had IDs up to 65. Keep the retired room renderable
     // without translating its routes or carrying an old move into this board.
@@ -779,7 +793,19 @@ function advance(s, now = Date.now()) {
     return;
   }
   const p = s.players[s.turn];
-  if (s.phase === "board") {
+  if (["order-roll", "order-reveal"].includes(s.phase)) {
+    Ceremony.advanceOrder(s, now, enterBoard, fail);
+  } else if (s.phase === "finale") {
+    Ceremony.advanceFinale(s, now, finish);
+  } else if (s.phase === "trophy-flight" && now >= s.deadline) {
+    resumeSpace(s, now);
+  } else if (s.phase === "selection" && now >= s.deadline) {
+    s.phase = "intro";
+    s.game.preparedAt = now;
+    s.deadline = now + 60000;
+    s.game.start = now + 63000;
+    s.game.end = s.game.start + s.game.duration;
+  } else if (s.phase === "board") {
     if (now >= s.deadline || (p?.bot && now >= s.deadline - 58000))
       roll(s, p, now);
   } else if (s.phase === "rolling" && now >= s.deadline) travel(s, now);
@@ -791,6 +817,9 @@ function advance(s, now = Date.now()) {
       s.deadline = now + 60000;
       s.log =
         p.name + " has " + s.movement.remaining + " spaces left. Pick a path.";
+    } else if (C.spaces[p.position].type === "trophy") {
+      s.movement.remaining = 1;
+      travel(s, now);
     } else land(s, now);
   } else if (
     s.phase === "choice" &&
@@ -816,15 +845,11 @@ function advance(s, now = Date.now()) {
       if (
         s.event.kind === "trophy-purchase" &&
         p.bot &&
-        p.tokens >= 10 &&
+        p.tokens >= 20 &&
         !s.event.bought
       ) {
-        p.tokens -= 10;
-        p.trophies++;
-        s.goal =
-          C.trophyStops[
-            (C.trophyStops.indexOf(s.goal) + 1) % C.trophyStops.length
-          ];
+        buyTrophy(s, p, now);
+        return;
       }
       if (s.event.pendingItem && p.bot) storeItem(p, s.event.pendingItem, 0);
       if (s.event.kind === "shop" && p.bot && !s.event.bought) {
@@ -889,11 +914,10 @@ function advance(s, now = Date.now()) {
         !v.finished &&
         now < g.end &&
         now - v.last >
-          (G.festival.handled(g.id)
+          (G.festival.handled(g.id) ||
+          C.games.find((d) => d.id === g.id)?.engine === "expansion"
             ? v.botWait || 280
-            : g.id === "treasure"
-              ? 350
-              : 850)
+            : 850)
       ) {
         try {
           if (G.handled(g.id)) {
@@ -921,14 +945,6 @@ function advance(s, now = Date.now()) {
                     ]
                   : rnd(4),
               },
-              now,
-            );
-
-          if (g.id === "putt")
-            play(
-              s,
-              x,
-              { angle: -1.2 - rnd(8) / 10, power: 0.3 + rnd(55) / 100 },
               now,
             );
         } catch (e) {
@@ -974,7 +990,10 @@ function advance(s, now = Date.now()) {
   } else if (s.phase === "measuring" && now >= s.deadline) {
     conclude(s, now);
   } else if (s.phase === "round-end" && now >= s.deadline) {
-    if (s.tieAgain) {
+    if (s.pendingFinale) {
+      s.pendingFinale = false;
+      Ceremony.startFinale(s, now);
+    } else if (s.tieAgain) {
       s.tieAgain = false;
       enterGame(s, now, true);
     } else {
@@ -988,7 +1007,9 @@ function act(s, id, b, now = Date.now()) {
   const p = s.players.find((p) => p.id === id);
   if (!p) fail("Only room members can do that.", 403);
   if (b.action === "get") return;
-  if (b.action === "skip-bots") {
+  if (b.action === "order-roll") {
+    Ceremony.rollOrder(s, s.players.indexOf(p), now, fail);
+  } else if (b.action === "skip-bots") {
     if (
       !["intro", "countdown", "playing"].includes(s.phase) ||
       !s.game?.sideDuel ||
@@ -1120,17 +1141,8 @@ function act(s, id, b, now = Date.now()) {
         p.position !== s.goal
       )
         fail("Visit the trophy host to buy a trophy.");
-      if (p.tokens < 10) fail("You need 10 coins for this trophy.");
-      p.tokens -= 10;
-      p.trophies++;
-      s.goal =
-        C.trophyStops[
-          (C.trophyStops.indexOf(s.goal) + 1) % C.trophyStops.length
-        ];
-      s.event.bought = true;
-      s.event.text =
-        "One trophy packed! The host is moving to the next golden stop.";
-      s.deadline = now + 2500;
+      if (p.tokens < 20) fail("You need 20 coins for this trophy.");
+      buyTrophy(s, p, now);
     } else if (b.action === "accept-item") {
       if (s.phase !== "space" || !s.event.pendingItem)
         fail("There is no item waiting.");
@@ -1240,9 +1252,9 @@ function view(s, id, now = Date.now()) {
   if (index < 0) fail("Join this room to see the match.", 403);
   const { receipts, gameOrder, ...out } = structuredClone(s);
   out.you = id;
-  out.turnOrder = s.players.map(
-    (_, i) => ((s.startingSeat || 0) + i) % s.players.length,
-  );
+  out.turnOrder =
+    s.turnOrder ||
+    s.players.map((_, i) => ((s.startingSeat || 0) + i) % s.players.length);
   out.serverTime = now;
   delete out.created;
   delete out.usedGames;
@@ -1253,6 +1265,8 @@ function view(s, id, now = Date.now()) {
   );
   out.routePreviews = C.routePreviews(s);
   if (out.game) {
+    delete out.game.secrets;
+    delete out.game.questions;
     delete out.game.sequence;
     delete out.game.orders;
     delete out.game.privateChoices;
@@ -1261,8 +1275,7 @@ function view(s, id, now = Date.now()) {
     delete out.game.beats;
     delete out.game.fishBeats;
     delete out.game.fishBase;
-    if (G.festival.handled(s.game.id))
-      G.publicView(s.game, out.game, now, index);
+    if (G.handled(s.game.id)) G.publicView(s.game, out.game, now, index);
     if (G.handled(s.game.id)) out.game.cue = G.cue(s.game, now, index);
     if (s.game.id === "fish")
       out.game.cues = s.players.map((_, i) => G.cue(s.game, now, i));

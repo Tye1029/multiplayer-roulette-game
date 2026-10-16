@@ -12,6 +12,9 @@
   const score = globalThis.PartySoundtrack;
   let theme = 0,
     bag = [];
+  let bandActive = false,
+    bandKey = "",
+    scheduledNotes = new Set();
   function nextTheme() {
     if (!bag.length) {
       bag = [0, 1, 2, 3].filter((n) => n !== theme);
@@ -160,6 +163,25 @@
       if (kind === "paddle") noise(at, 0.18, 0.13, 1600);
       return;
     }
+    if (kind === "crowd") {
+      for (let i = 0; i < 18; i++) {
+        noise(at + i * 0.055, 0.34, 0.025, 650 + i * 95);
+        note(370 + (i % 5) * 65, at + i * 0.06, 0.25, 0.018, fx, "triangle");
+      }
+      return;
+    }
+    if (["bounce", "bat", "tool", "zap", "engine"].includes(kind)) {
+      noise(at, 0.07, 0.13, kind === "zap" ? 3200 : 800);
+      note(
+        kind === "bounce" ? 170 : kind === "bat" ? 680 : 240,
+        at,
+        0.13,
+        0.12,
+        fx,
+        "triangle",
+      );
+      return;
+    }
     if (kind === "step") {
       noise(at, 0.04, 0.12, 500);
       return;
@@ -183,7 +205,15 @@
     notes.forEach((n, i) => note(n, at + i * 0.09, 0.24, 0.2, fx));
   }
   function schedule() {
-    if (!ctx || !unlocked || !enabled || !musicOn || document.hidden) return;
+    if (
+      !ctx ||
+      !unlocked ||
+      !enabled ||
+      !musicOn ||
+      bandActive ||
+      document.hidden
+    )
+      return;
     const beat = 60 / score.bpm / 2;
     if (next < ctx.currentTime) next = ctx.currentTime + 0.08;
     while (next < ctx.currentTime + 0.5) {
@@ -224,5 +254,28 @@
       ctx.resume();
     }
   });
-  globalThis.PartyAudio = { play, set, voice };
+  function band(state, stamp) {
+    bandActive = state?.phase === "playing" && state.game?.id === "band";
+    if (!bandActive || !ctx || !unlocked || !enabled || document.hidden) return;
+    const g = state.game,
+      key = g.start + ":" + g.song;
+    if (key !== bandKey) {
+      bandKey = key;
+      scheduledNotes = new Set();
+    }
+    for (const n of g.notes || []) {
+      const delay = (g.start + n.at - stamp) / 1000;
+      if (delay < -0.08 || delay > 0.3 || scheduledNotes.has(n.index)) continue;
+      scheduledNotes.add(n.index);
+      const at = ctx.currentTime + Math.max(0, delay),
+        freq = 440 * 2 ** ((n.midi - 69) / 12);
+      // Three original melodies, four audible instruments, all locked to the chart.
+      note(freq, at, 0.32, 0.12, fx, "triangle");
+      note(freq / 2, at, 0.25, 0.07, fx, "sine");
+      if (n.index % 2 === 0) note(freq * 1.5, at, 0.22, 0.035, fx, "triangle");
+      noise(at, 0.055, 0.045, n.index % 4 === 0 ? 650 : 2200);
+      if (n.index % 4 === 0) note(90, at, 0.18, 0.14, fx, "sine");
+    }
+  }
+  globalThis.PartyAudio = { play, set, voice, band };
 })();
