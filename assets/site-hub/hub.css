@@ -1,0 +1,96 @@
+:root{--xan-accent:#ed555d;--hub-bg:#101114;--hub-panel:#1b1d22;--hub-line:#34363d;--hub-text:#f4f3f0;--hub-muted:#a4a6af;color-scheme:dark}
+/* Keep unavailable controls clear without showing an OS loading spinner. */
+body :is(button:disabled,input:disabled,select:disabled,[aria-disabled=true]){cursor:default!important}
+:root[data-theme=light]{--hub-bg:#eeeff2;--hub-panel:#fff;--hub-line:#ced0d7;--hub-text:#202126;--hub-muted:#5a5e68;color-scheme:light}
+.xan-bar,.xan-dialog,.xan-popover,#simpleTestHome{font-family:Inter,ui-sans-serif,system-ui,sans-serif!important;color:var(--hub-text)!important}
+body>header.xan-bar{position:sticky;top:0;z-index:2147483100;display:grid!important;grid-template-columns:1fr auto 1fr;align-items:center;min-height:70px;padding:12px clamp(14px,4vw,48px);gap:12px;background:var(--hub-bg);border-bottom:1px solid var(--hub-line)}
+.xan-brand{grid-column:2;font-size:21px;font-weight:900;letter-spacing:.06em;color:var(--hub-text);text-decoration:none;white-space:nowrap}.xan-brand b{color:var(--xan-accent)}
+.xan-account{grid-column:1;grid-row:1;font-size:12px;color:var(--hub-muted)}.xan-account strong{display:block;color:var(--hub-text);font-size:16px;font-variant-numeric:tabular-nums}
+.xan-tools{grid-column:3;grid-row:1;display:flex;justify-content:flex-end;gap:8px;align-items:center}.xan-tools button,.xan-tools a,.xan-dialog button,.hub-row button,.xan-popover button{border:1px solid var(--hub-line);background:var(--hub-panel);color:var(--hub-text);border-radius:9px;padding:10px 13px;min-height:42px;font:600 13px/1.2 system-ui;cursor:pointer;text-decoration:none}
+.xan-tools [data-unread=true]{color:#ffb8bc;border-color:#ed555d;box-shadow:0 0 0 3px #ed555d24}.xan-tools svg{width:20px;height:20px;vertical-align:middle;fill:none;stroke:currentColor;stroke-width:1.8}
+.xan-tools :where(a).hub-all{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;height:42px;min-height:42px}
+.xan-popover{position:fixed;top:72px;right:16px;z-index:2147483201;width:min(350px,calc(100vw - 32px));max-height:75vh;overflow:auto;padding:18px;border:1px solid var(--hub-line);border-radius:14px;background:var(--hub-panel);box-shadow:0 16px 60px #0008}
+.xan-popover[hidden]{display:none}.xan-popover h2{font-size:17px;margin:0 0 15px}.xan-popover label{display:flex;align-items:center;justify-content:space-between;padding:13px 0;border-bottom:1px solid var(--hub-line);font-size:14px}.xan-popover input{width:20px;height:20px;accent-color:var(--xan-accent)}.xan-popover>button{width:100%;margin-top:10px;text-align:left}.xan-popover a{display:block;color:var(--hub-text);padding:12px 0;text-decoration:none;border-bottom:1px solid var(--hub-line)}.xan-popover small{display:block;color:var(--hub-muted);margin-top:5px}
+.xan-dialog{width:min(510px,calc(100vw - 28px));max-height:90vh;overflow:auto;border:1px solid var(--hub-line);border-radius:18px;background:var(--hub-panel);padding:25px;box-shadow:0 24px 80px #0009}.xan-dialog::backdrop{background:#000b}.xan-dialog h2{font-size:24px;margin:0 0 12px}.xan-dialog p{color:var(--hub-muted);line-height:1.6}.xan-dialog textarea{box-sizing:border-box;width:100%;min-height:140px;padding:12px;background:var(--hub-bg);color:var(--hub-text);border:1px solid var(--hub-line);border-radius:9px;font:15px/1.5 system-ui}.xan-dialog .hub-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:16px}.xan-dialog button.primary{background:#ba3440;border-color:#ba3440;color:white}.hub-status{min-height:22px;font-size:13px}
+body>.topbar,body>.page>header,#gameMenuButton,#gameMenuBtn,#menuBtn,.game-menu-button,.game-menu-btn,.duel-eyebrow,.game-tag{display:none!important}
+#simpleTestHome{top:70px!important;padding:32px clamp(15px,4vw,48px) 70px!important;background:var(--hub-bg)!important;z-index:2147483000!important}
+#simpleTestHome .sth-card{width:min(1180px,100%)!important;margin:0 auto!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}
+#simpleTestHome .sth-card>h1{font-size:clamp(30px,4vw,46px)!important;font-weight:800!important;letter-spacing:-.045em!important;color:var(--hub-text)!important;margin:12px 0!important}
+#simpleTestHome .sth-card>p{font-size:15px!important;color:var(--hub-muted)!important;margin-bottom:28px!important}.hub-kicker{font-size:11px;font-weight:800;letter-spacing:.2em;color:var(--xan-accent)}
+.hub-key{padding:20px;border:1px solid var(--hub-line);border-radius:13px;margin-bottom:28px;max-width:600px;background:var(--hub-panel)}.hub-key[hidden]{display:none}.hub-key label{color:var(--hub-text)!important}#simpleApiKey{color:var(--hub-text)!important;background:var(--hub-bg)!important}#simpleSaveKey{background:#b93843!important;color:white!important}
+#simpleTestHome .sth-games{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:18px!important}.hub-tile{position:relative;min-width:0;aspect-ratio:1;overflow:hidden;border-radius:15px;background:#292c34;border:1px solid #454750}
+#simpleTestHome .sth-game{width:100%;height:100%;padding:0;border:0!important;background:transparent!important;transform:none!important;position:relative;color:white!important;border-radius:0!important;isolation:isolate}.sth-game::before{display:none}.sth-game img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2;transition:transform .25s ease}.sth-game::after{content:'';position:absolute;inset:0;background:linear-gradient(0deg,#08090bee,transparent 80%);z-index:-1}.sth-game:hover img{transform:scale(1.04)}.sth-game .hub-title{position:absolute;left:18px;right:16px;bottom:18px;font-size:clamp(16px,1.7vw,23px);font-weight:800;line-height:1.1;text-shadow:0 2px 8px #000}.sth-game .hub-title small{display:block;color:#c5c5ce;font-size:10px;letter-spacing:.12em;margin-bottom:8px;font-weight:600}.sth-game:disabled{filter:grayscale(1)!important;opacity:.4!important;cursor:not-allowed}.hub-info{position:absolute;z-index:2;top:11px;right:11px;width:32px;height:32px;border-radius:50%;background:#111c;border:1px solid #ffffff70;color:white;font:italic 700 17px Georgia;cursor:pointer}
+.hub-open{margin-top:40px}.hub-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px solid var(--hub-line);padding-bottom:14px}.hub-heading h2{font-size:23px;margin:0}.hub-heading span{color:var(--hub-muted);font-size:12px}.hub-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:15px;align-items:center;padding:18px 2px;border-bottom:1px solid var(--hub-line)}.hub-row strong{font-size:15px}.hub-row small{display:block;color:var(--hub-muted);font-size:12px;margin-top:5px}.hub-row .hub-wager{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}.hub-row .hub-buttons{display:flex;gap:5px}.hub-row .hub-cancel{color:#ff9fa6}.hub-empty{padding:25px 0!important;color:var(--hub-muted)!important;line-height:1.6;font-size:14px!important}
+:root[data-theme=light] body{background:var(--hub-bg)!important;color:var(--hub-text)}:root[data-theme=light] .duel-screen,:root[data-theme=light] .duel-card,:root[data-theme=light] .lobby-card,:root[data-theme=light] .rival-card{background:var(--hub-panel)!important;color:var(--hub-text)!important}
+@media(max-width:800px){#simpleTestHome .sth-games{grid-template-columns:repeat(2,minmax(0,1fr))!important}.xan-bar{gap:7px;padding:10px 12px}.xan-brand{font-size:17px}.xan-account{font-size:10px}.xan-account strong{font-size:12px}.xan-tools{gap:4px}.xan-tools button,.xan-tools a{padding:8px;font-size:11px}.hub-row{gap:8px}.hub-row .hub-wager{font-size:12px}.hub-row button{padding:8px;font-size:11px}.sth-game .hub-title{left:12px;bottom:14px}.xan-tools .hub-all{max-width:48px;text-align:center}}
+@media(prefers-reduced-motion:reduce){.sth-game img{transition:none}}
+
+/* Isolate launcher typography and visibility from retired game styles. */
+#simpleTestHome .sth-game{display:block!important;text-transform:none!important;font-family:inherit!important;text-shadow:none!important}
+#simpleTestHome .hub-title{font-family:Inter,ui-sans-serif,system-ui,sans-serif!important;text-transform:none!important;font-weight:750!important}
+#simpleTestHome .sth-card>h1{font-family:Inter,ui-sans-serif,system-ui,sans-serif!important;text-transform:none!important;text-shadow:none!important;font-weight:750!important}
+.xan-bar *,.xan-popover *,.xan-dialog *{font-family:Inter,ui-sans-serif,system-ui,sans-serif!important;text-shadow:none!important;text-transform:none!important;box-shadow:none}
+.xan-account{text-align:left}.xan-bar button{box-shadow:none!important}.hub-info{font-family:Georgia,serif!important;text-transform:none!important;box-shadow:none!important;padding:0!important;min-height:32px!important}
+body:has(#simpleTestHome:not([hidden])) #rnbDock{display:none!important}
+#simpleTestHome .sth-game img.hub-foreground{object-fit:contain;inset:8% 8% 20%;width:84%;height:72%;z-index:-1;filter:drop-shadow(0 10px 10px #000a)}
+#simpleTestHome .hub-title{z-index:1}
+body>header.xan-bar .xan-brand{font-weight:900!important}
+@media(max-width:800px){body>header.xan-bar{padding:10px 12px;gap:7px}}
+/* XAN_HUB_V4_20261011: one create-and-join format across game routes. */
+.hub-game-entry,.hub-game-open{font-family:Inter,ui-sans-serif,system-ui,sans-serif!important;color:var(--hub-text);max-width:1180px;margin:0 auto 24px;text-align:left}
+.hub-game-entry{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:20px;padding:24px 0;border-bottom:1px solid var(--hub-line)}
+.hub-game-entry h1{margin:5px 0 0!important;font:750 clamp(24px,4vw,36px)/1.15 Inter,system-ui!important;letter-spacing:-.03em!important;text-transform:none!important;text-shadow:none!important;color:var(--hub-text)!important}
+.hub-create-controls{display:flex;align-items:flex-end;gap:12px}.hub-create-controls label,.hub-create-controls .duel-compact-field>label{display:block;margin:0 0 7px;font:600 11px system-ui;color:var(--hub-muted)}
+.hub-create-controls input{box-sizing:border-box;width:160px!important;min-height:46px;border:1px solid var(--hub-line)!important;border-radius:8px;background:var(--hub-panel)!important;color:var(--hub-text)!important;padding:10px;font:700 17px system-ui!important}
+.hub-create-controls button:is(#duelCreateBtn,#create,[type=submit]){min-height:46px!important;padding:12px 25px!important;background:var(--xan-accent)!important;border:0!important;border-radius:8px!important;color:#121418!important;font:750 14px system-ui!important;text-transform:none!important;box-shadow:none!important;white-space:nowrap}
+.hub-create-controls .duel-wager-control{display:flex}.hub-create-controls .duel-wager-control input{border-radius:0}.hub-create-controls [data-wager-step]{width:30px;min-width:30px;background:var(--hub-panel);border:1px solid var(--hub-line)}
+.hub-game-entry>#duelStatus{flex:1 0 100%;background:none!important;margin:0!important}.hub-game-open{margin-top:28px;padding-bottom:25px}.hub-game-preview{height:clamp(180px,26vw,300px);max-width:1180px;margin:0 auto 24px;border:1px solid var(--hub-line);border-radius:14px;background-position:center;background-size:cover;box-shadow:inset 0 0 0 1000px #0003}
+#duelScreen>.duel-header,#duelScreen .duel-top-actions,#duelScreen .duel-create-card,#duelScreen .duel-join-card{display:none!important}
+#duelScreen:not(.hub-has-game) .duel-grid{display:none!important}#duelScreen .duel-grid{display:block!important}#duelScreen .duel-live-card{padding:0!important;background:none!important;border:0!important}
+#duelScreen{padding:0 24px 35px!important;max-width:1280px!important;margin-inline:auto!important;background:var(--hub-bg)!important;border:0!important;box-shadow:none!important}
+body:has(#duelScreen:not([hidden])){background:var(--hub-bg)!important}#duelScreen .duel-side-stack{display:none!important}
+.lobby-card #balance,.lobby-card .open-heading,.lobby-card #openGames{display:none!important}.lobby-card>h2{font-size:20px}.lobby-card .character-picker legend{display:none}.lobby-card #wagerHint{margin-top:16px}
+.four-online #welcome{position:static!important;max-width:none!important;width:auto!important;margin:0!important;padding:0!important;border:0!important;background:transparent!important;color:var(--hub-text)!important;box-shadow:none!important;overflow:visible!important}
+.four-online #welcome:not([open]){display:none!important}.four-online #join-form{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px;margin:0;padding:0}.four-online #join-form label{order:0}.four-online #join-form button[type=submit]{order:1}.four-online #join-form #profile-status{order:2;flex-basis:100%;margin:0;font-size:12px}
+.four-online #join-form>:is(h1,h2,p:not(#profile-status),.profile-card,a),.four-online #join-form>div:not(#profile-status){display:none!important}
+.four-online .page-header>div,.four-online:not(:has(#welcome[open])) .hub-create-controls:empty{display:none}.four-online .page-header{justify-content:flex-end;padding:0!important;margin:0 0 12px!important}
+.four-online:has(#welcome[open]) :is(.table-meta,.gun-picker,.player-bars,.control-deck,#roulette-four>footer){display:none!important}.four-online:has(#welcome[open]) #scene{height:300px;min-height:300px;background:url('/assets/site-hub/images/roulette-four.webp') center 54%/cover}.four-online:has(#welcome[open]) #scene>*{display:none!important}
+@media(max-width:600px){#duelScreen{padding:0 12px 24px!important}.hub-game-entry{gap:16px;padding:20px 0}.hub-create-controls{width:100%;gap:9px}.hub-create-controls .duel-compact-field{flex:1}.hub-create-controls input{width:100%!important;min-width:70px}.hub-create-controls .duel-wager-control{width:100%}.hub-create-controls button:is(#duelCreateBtn,#create,[type=submit]){padding:12px 20px!important}.hub-game-open .hub-heading h2{font-size:21px}.four-online #join-form{width:100%}.four-online #join-form label{flex:1}.four-online #join-form #four-wager{width:100%!important}}
+.hub-game-entry,.hub-game-open,.hub-game-preview{box-sizing:border-box;width:100%}
+#duelScreen:not([hidden]){display:block!important}
+.four-online #join-form>.profile-name{display:none!important}
+.hub-create-controls #duelCreateBtn{width:auto!important;flex:none}
+.hub-game-heading h1::after{content:none!important}.hub-game-entry~.masthead{display:none!important}
+.four-online:has(#welcome[open]){background:var(--hub-bg)!important}
+.four-online .hub-create-controls{width:340px;max-width:100%}.four-online #join-form>label{display:grid;gap:7px;margin:0;flex:1;font:600 11px system-ui;color:var(--hub-muted)}.four-online #join-form>button[type=submit]{width:auto;flex:none}.four-online #join-form #profile-status{color:var(--hub-muted)}
+.hub-game-preview.hub-summit-preview{height:auto;max-width:1100px;box-shadow:none}
+.hub-game-preview[hidden]{display:none!important}
+#duelScreen.hub-has-game>.hub-game-entry{display:none}
+#duelScreen .m68-header{display:grid!important}
+#duelScreen.hub-has-game .m68-lane{height:clamp(260px,calc(100dvh - 370px),500px)}
+@media(max-width:600px){#duelScreen.hub-has-game .m68-lane{height:clamp(220px,calc(100dvh - 540px),350px)}}
+/* LIGHT_PALETTE_V2: slate-blue surfaces, warm ivory cards and distinct accents. */
+:root[data-theme=light]{--hub-bg:#e3eaf0;--hub-panel:#f7f1e7;--hub-line:#b0bdc9;--hub-text:#23384b;--hub-muted:#526679}
+:root[data-theme=light] body,:root[data-theme=light] #simpleTestHome{background:radial-gradient(ellipse at top left,#c7dce7,transparent 65%),linear-gradient(140deg,#e8edf1,#dbdfe9 65%,#e8ded1)!important}
+:root[data-theme=light] body>header.xan-bar{background:#d1dfe8;border-bottom:1px solid #96afc0;box-shadow:0 4px 20px #314c6118}
+:root[data-theme=light] .xan-brand b,:root[data-theme=light] .hub-kicker{color:color-mix(in srgb,var(--xan-accent) 65%,#23384b)}
+:root[data-theme=light] .hub-key,:root[data-theme=light] .hub-game-entry{background:linear-gradient(120deg,#f6ebdc,#e2edf0);border:1px solid #b6c6cf;border-radius:14px;padding:22px}
+:root[data-theme=light] .hub-open,:root[data-theme=light] .hub-game-open{padding:22px;background:#f3eddfb8;border:1px solid #c2c8c7;border-radius:16px}
+:root[data-theme=light] .hub-tile{border-color:#8d9fac;box-shadow:0 7px 18px #30445422}
+:root[data-theme=light] .xan-tools button,:root[data-theme=light] .xan-tools a,:root[data-theme=light] .hub-row button{background:#e4edf1;border-color:#9eb6c6;color:#243f53}
+:root[data-theme=light] .xan-popover,:root[data-theme=light] .xan-dialog{background:linear-gradient(150deg,#f7efdf,#e1edf1);box-shadow:0 18px 55px #243c4f33}
+:root[data-theme=light] .hub-row{background:#e2eaf066;margin-top:8px;border-radius:9px;padding:15px 10px}
+:root[data-theme=light] .hub-game-heading h1,:root[data-theme=light] .hub-heading h2{color:#23384b!important}
+:root[data-theme=light] #duelScreen{background:transparent!important}
+@media(max-width:600px){:root[data-theme=light] .hub-game-entry,:root[data-theme=light] .hub-open,:root[data-theme=light] .hub-game-open{padding:15px}}
+
+/* The preview provider forces display on its iframe; hide the injected wrapper. */
+[data-netlify-deploy-id]{display:none!important}
+@media(max-width:480px){body>header.xan-bar{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);padding:10px;gap:6px}.xan-brand{font-size:14px;letter-spacing:.035em}.xan-account{min-width:0;overflow-wrap:anywhere}.xan-account>button{max-width:100%;white-space:normal}.xan-tools .hub-all{display:none}.xan-tools button{width:34px;min-width:34px;padding:6px}.xan-account strong{font-size:11px}}
+
+@media(max-width:480px){.xan-account .hub-wallet{padding:4px 3px;font-size:9px;letter-spacing:-.02em;white-space:nowrap}.xan-account .rps-pick-character{margin:3px 0;padding:4px 5px!important;font-size:9px!important;min-height:0}}
+
+.xan-dialog .hub-debug-data{display:block;width:100%;min-height:260px;max-height:45dvh;resize:vertical;box-sizing:border-box;font:12px/1.6 ui-monospace,monospace;white-space:pre;overflow:auto}.xan-dialog .hub-actions{flex-wrap:wrap}
+
+/* LUCKY_SCRATCH_V1 — the two game collections share the existing tile layout. */
+.hub-section-title{margin:30px 0 16px;font:700 clamp(22px,4vw,30px) system-ui;letter-spacing:-.03em;color:var(--hub-text)}.hub-single-games{margin-bottom:30px}.hub-single-games .sth-game{display:block;text-decoration:none}

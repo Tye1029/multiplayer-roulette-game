@@ -1,0 +1,7 @@
+/* Two-player table uses the same seated TV-headed cast as the four-player table. */
+.rr-duel-cast{position:absolute;inset:150px 0 auto;height:370px;z-index:3;pointer-events:none}
+.rr-duel-seat{position:absolute;top:0;width:31%;height:100%;filter:brightness(.65);transition:filter .25s}
+.rr-duel-seat.left{left:-2%}.rr-duel-seat.right{right:-2%}.rr-duel-seat.active{filter:brightness(.95)}
+.rr-duel-person{position:absolute;inset:0;background-image:var(--cast);background-size:200% var(--cast-rows);background-position:var(--cast-x) var(--cast-y);background-repeat:no-repeat}
+.rr-duel-tv{position:absolute;left:var(--screen-x);top:var(--screen-y);width:var(--screen-w);height:var(--screen-h);overflow:hidden;background:#18252a;box-shadow:0 0 12px #9cdbea22}.rr-duel-tv img{width:100%;height:100%;object-fit:cover;filter:sepia(.35) saturate(.6)}
+@media(max-width:560px){.rr-duel-cast{top:161px;height:235px}.rr-duel-seat{width:36%}.rr-duel-seat.left{left:-6%}.rr-duel-seat.right{right:-6%}}

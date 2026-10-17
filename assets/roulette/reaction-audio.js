@@ -19,14 +19,6 @@
       '/assets/roulette/audio-data/relief-sigh-3-2.b64'
     ]
   ]);
-  const CHAIR_FALL_SOURCE = Object.freeze([
-    '/assets/roulette/audio-data/body-chair-fall-1.b64',
-    '/assets/roulette/audio-data/body-chair-fall-2.b64',
-    '/assets/roulette/audio-data/body-chair-fall-3a.b64',
-    '/assets/roulette/audio-data/body-chair-fall-3b-1.b64',
-    '/assets/roulette/audio-data/body-chair-fall-3b-2.b64',
-    '/assets/roulette/audio-data/body-chair-fall-4.b64'
-  ]);
   const INITIAL_BLANKS = 5;
   const MAX_BLANKS_FOR_RELIEF = 3;
   const RELIEF_CHANCE_PER_THOUSAND = 300;
@@ -106,6 +98,7 @@
   }
 
   function audioSource(parts) {
+    if(typeof parts==='string')return Promise.resolve(parts);
     const key = sourceKey(parts);
     if (!sourceCache.has(key)) {
       sourceCache.set(key, Promise.all(parts.map(path =>
@@ -122,8 +115,9 @@
     return sourceCache.get(key);
   }
 
-  function preload() {
-    for (const source of [...RELIEF_SOURCES, CHAIR_FALL_SOURCE]) {
+  function preload(selection = '') {
+    if (!global.RouletteAudio?.shouldWarmForInteraction(selection)) return;
+    for (const source of RELIEF_SOURCES) {
       audioSource(source).catch(() => {});
     }
   }
@@ -165,7 +159,7 @@
     seenShots.add(key);
 
     if (/live|shot|bullet|fatal/.test(outcome)) {
-      schedule(() => playSource(CHAIR_FALL_SOURCE, 0.52), LIVE_DELAY_MS);
+      schedule(() => {playSource('/assets/site-hub/audio/glass-break.ogg',.5);const scene=document.querySelector('[data-roulette-game]');const index=String(game?.creator?.userId)===String(state.lastActorId)?0:1;global.RouletteScreenCrack?.(scene?.querySelectorAll?.('.rr-duel-tv')?.[index]||scene,false);}, LIVE_DELAY_MS);
       return;
     }
     if (!/blank|dry|safe|click/.test(outcome)) return;
@@ -192,7 +186,8 @@
     global.rouletteShotSequence = wrappedShotSequence;
   }
 
-  document.addEventListener('pointerdown', preload, { once: true, capture: true });
+  document.addEventListener('pointerdown', preload, { capture: true });
+  document.addEventListener('keydown', preload, { capture: true });
   global.addEventListener('pagehide', () => {
     for (const timer of timers) clearTimeout(timer);
     timers.clear();
@@ -201,6 +196,7 @@
   }, { once: true });
 
   global.RouletteReactionAudio = Object.freeze({
+    preload,
     blanksRemaining,
     queueReaction,
     diagnostics: () => ({ seenShots: seenShots.size, playing: Boolean(activeClip) })

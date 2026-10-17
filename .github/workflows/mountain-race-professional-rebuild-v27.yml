@@ -1,0 +1,112 @@
+name: Summit Sprint Professional Rebuild V27
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: summit-sprint-professional-rebuild-v27-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate-professional-rebuild:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+
+      - name: Use Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build exact Netlify output
+        run: npm run build
+
+      - name: Validate V27 professional PNG rebuild
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check scripts/patch-mountain-race-art-assets-v27.mjs
+          node --check scripts/patch-mountain-race-professional-rebuild-v27.mjs
+          node --check scripts/validate-mountain-race-professional-rebuild-v27.mjs
+          node scripts/validate-mountain-race-professional-rebuild-v27.mjs
+
+          node scripts/validate-mountain-race-input-rebase-v8.mjs
+          node scripts/validate-mountain-race-fast-ack-v9.mjs
+          node scripts/validate-mountain-race-terminal-poll-v10.mjs
+          node scripts/validate-mountain-race-lifecycle-guard-v11.mjs
+          node scripts/validate-mountain-race-state-sync.mjs
+          node scripts/validate-mountain-race-start-stability.mjs
+          node scripts/validate-mountain-race-gameplay-visibility.mjs
+          node scripts/validate-mountain-race-load-performance.mjs
+
+          grep -Fq 'MOUNTAIN_RACE_PROFESSIONAL_REBUILD_V27' assets/mountain-race/mountain-race.css
+          grep -Fq 'MOUNTAIN_RACE_PROFESSIONAL_REBUILD_V27' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'class="mr-cliff-art"' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'class="mr-start-art"' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'class="mr-hold-art"' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'class="mr-summit-art"' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'visual=27' index.html
+
+          test -s assets/mountain-race/images/summit-sprint-sky-v27.png
+          test -s assets/mountain-race/images/summit-sprint-cliff-left-mobile-v27.png
+          test -s assets/mountain-race/images/summit-sprint-cliff-right-mobile-v27.png
+          test -s assets/mountain-race/images/summit-sprint-cliff-left-desktop-v27.png
+          test -s assets/mountain-race/images/summit-sprint-cliff-right-desktop-v27.png
+          test -s assets/mountain-race/images/summit-sprint-start-left-v27.png
+          test -s assets/mountain-race/images/summit-sprint-start-right-v27.png
+          test -s assets/mountain-race/images/summit-sprint-summit-left-v27.png
+          test -s assets/mountain-race/images/summit-sprint-summit-right-v27.png
+          test -s assets/mountain-race/images/summit-sprint-hold-1-v27.png
+          test -s assets/mountain-race/images/summit-sprint-hold-8-v27.png
+
+          test -s assets/safe-cracker/safe-cracker.js
+          test -s assets/safe-cracker/safe-cracker.css
+          test -s assets/roulette/turn-animation.js
+          test -s assets/roulette/turn-fire.js
+          test -s assets/roulette/audio-bindings.js
+
+      - name: Verify live Netlify V27 deployment
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          url='https://deploy-preview-20--famous-piroshki-b621da.netlify.app/'
+          for attempt in $(seq 1 72); do
+            page="$(curl -fsSL --max-time 20 "${url}?summit_professional_v27=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            runtime="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race-multiplayer.js?visual=27&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            styles="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race.css?visual=27&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            sky_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-sky-v27.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            mobile_left_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-cliff-left-mobile-v27.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            mobile_right_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-cliff-right-mobile-v27.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            desktop_left_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-cliff-left-desktop-v27.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            start_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-start-left-v27.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            summit_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-summit-left-v27.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            hold_headers="$(curl -fsSI --max-time 20 "${url}assets/mountain-race/images/summit-sprint-hold-8-v27.png?commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+
+            if grep -Fq 'visual=27' <<<"$page" && \
+               grep -Fq 'MOUNTAIN_RACE_PROFESSIONAL_REBUILD_V27' <<<"$runtime" && \
+               grep -Fq 'class="mr-cliff-art"' <<<"$runtime" && \
+               grep -Fq 'MOUNTAIN_RACE_PROFESSIONAL_REBUILD_V27' <<<"$styles" && \
+               grep -Fqi 'content-type: image/png' <<<"$sky_headers" && \
+               grep -Fqi 'content-type: image/png' <<<"$mobile_left_headers" && \
+               grep -Fqi 'content-type: image/png' <<<"$mobile_right_headers" && \
+               grep -Fqi 'content-type: image/png' <<<"$desktop_left_headers" && \
+               grep -Fqi 'content-type: image/png' <<<"$start_headers" && \
+               grep -Fqi 'content-type: image/png' <<<"$summit_headers" && \
+               grep -Fqi 'content-type: image/png' <<<"$hold_headers"; then
+              echo "Verified live Summit Sprint Professional Rebuild V27 at ${url}"
+              exit 0
+            fi
+            echo "Waiting for Netlify Summit Sprint Professional Rebuild V27 (${attempt}/72)..."
+            sleep 10
+          done
+          echo 'Netlify did not serve the Summit Sprint V27 professional PNG rebuild.' >&2
+          exit 1

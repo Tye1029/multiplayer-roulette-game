@@ -1,0 +1,10 @@
+HAND OF DOOM — built-in image generation prompts
+
+Saved asset: assets/rps/images/coliseum.png
+Use case: stylized-concept. Asset type: wide background illustration for a fast Rock Paper Scissors anime duel browser game. Create a beautifully detailed cinematic anime Roman coliseum at night packed with thousands of cheering fans, huge layered stone arches, theatrical blazing braziers and pyrotechnic fountains at the sides, gold sparks, dramatic warm orange and crimson floodlights with a contrasting cool blue side. The sandy arena floor occupies the lower third with a clear open central stage to overlay two animated fighters. Epic serious gladiator movie atmosphere that humorously overstates the importance of rock paper scissors. Rich hand-painted animation background, sharp silhouettes, atmospheric stadium depth, no text, no UI, no foreground characters. Landscape 16:9 composition. Preserve a clear readable central area, fires at the left and right edges, entire coliseum composition.
+
+Saved asset: assets/rps/images/gladiator.png
+Use case: stylized-concept. Asset type: transparent full body character sprite for a Rock Paper Scissors anime gladiator duel browser game. One adult male anime gladiator with wild dark hair, expressive intense eyes, bronze shoulder armor, red tunic and flowing crimson cape, leather boots and fingerless gauntlets. Exaggerated self-serious swagger. Standing with BOTH hands deliberately hidden BEHIND HIS BACK preparing a rock paper scissors reveal, chest forward, shoulders turned slightly toward the right, legs planted wide. Full body from hair to boots entirely inside frame with clear margin. Detailed clean cel-shaded anime game art, strong ink lines, warm orange rim light, dramatic but funny, not photorealistic, no weapon, no text, no floor, isolated on genuinely transparent background. Single character only.
+
+Mode: built-in image_gen. Original outputs retained under Codex generated_images.
+Project PNGs optimized and downsampled with original aspect ratios preserved.

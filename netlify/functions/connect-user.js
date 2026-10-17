@@ -41,6 +41,8 @@ exports.handler = async (event) => {
     const siteUser = await resolveSiteUser(visitor, body.visitorId);
     const record = await recordConnect(siteUser, "save-key", { lastWithdrawal: body.lastWithdrawal });
 
+    let referralError;
+    if(body.referralCode){try{await require('./site-hub/referrals').claim({id:String(visitor.id),name:visitor.name},body.referralCode);}catch(e){referralError=e.status?e.message:'Your account is connected. Add your referral code from Settings when the service returns.';}}
     const serverBalance = getRecordBalance(record);
 
     return json(headers, 200, {
@@ -48,7 +50,8 @@ exports.handler = async (event) => {
       user: visitor,
       serverBalance,
       record: publicRecord(record, serverBalance),
-      siteUserId: record.userId
+      siteUserId: record.userId,
+      ...(referralError?{referralError}:{})
     });
   } catch (error) {
     console.error("[connect-user] Error:", error.message || error);

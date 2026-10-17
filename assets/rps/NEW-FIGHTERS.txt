@@ -1,0 +1,29 @@
+Generated with the built-in image generation tool, October 11, 2026.
+Final assets: images/{kael,ren,sora,nyx}.png and images/{kael,ren,sora,nyx}-cuts.png.
+Small picker portraits: images/portraits/*.webp.
+
+Atlas prompt template:
+Create a square 3 x 3 production anime arena animation atlas matching lyra-cuts.png's
+linework, warm dramatic rimlight, and finish, with a distinct consistent new fighter.
+Equal square cells, no gutters, borders, labels, or text, pure black background.
+Reading order: over-shoulder lookback/fist by face; intense eye closeup; screaming rage;
+absurd streaming tears; character's own foreshortened rock fist; open five-finger paper
+palm; two-finger scissors V; cheering victory/fist raised; shocked disbelief/head clutch.
+No floating hand icons. Matching wrist armor and anatomically clear gestures.
+
+Character designs:
+Kael: adult man, dark brown skin, white curled mohawk, teal sash, black iron crescent armor.
+Ren: adult man, long black ponytail, eyebrow scar, crimson scarf, ivory segmented armor.
+Sora: adult woman, silver bob, emerald eyes, navy/silver armor, cobalt scarf.
+Nyx: adult woman, dark brown skin, long red braids, obsidian/copper armor, orange sash.
+
+Standing-sprite prompt template:
+Use that fighter's generated atlas as reference. One full-body transparent game sprite
+of the exact character, matching face, hair, armor, anime shading and warm rimlight.
+Arena idle stance, three-quarter profile facing right, feet apart, both hands concealed
+behind lower back, entire body and feet visible, centered with transparent margin.
+No text, arena, or extra props. Portrait canvas.
+
+Postprocessing: preserve aspect ratio, bound standing sprites to 600 x 900, optimize PNG;
+index atlas colors to reduce payload; create 100 x 150 maximum WebP picker portraits.
+Original generated images remain in the Codex generated_images directory.

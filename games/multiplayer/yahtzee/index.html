@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101114"><title>Yahtzee · Xan Duels</title>
+<!-- YAHTZEE_DUEL_V3_20261011 -->
+<link rel="icon" href="/assets/yahtzee/dice.svg?v=2" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/site-hub/hub.css?v=6">
+<link rel="stylesheet" href="/assets/yahtzee/game.css?v=5">
+<script src="/assets/site-hub/preferences.js?v=2"></script>
+<script defer src="/assets/site-hub/public-polish.js?v=XAN_GAME_DISCOVERY_V2"></script><script defer src="/assets/site-hub/progression.js?v=XAN_GAME_DISCOVERY_V2"></script><script defer src="/assets/site-hub/game-menu.js?v=XAN_SITE_REFINEMENT_V1"></script><script defer src="/assets/site-hub/hub.js?v=XAN_GAME_DISCOVERY_V2"></script>
+<script defer src="/assets/yahtzee/rules.js?v=3"></script>
+<script defer src="/assets/yahtzee/audio.js?v=1"></script>
+<script defer src="/assets/yahtzee/game.js?v=3&unified=1"></script>
+<link rel="stylesheet" href="/assets/site-hub/game-menu.css?v=XAN_PUBLIC_POLISH_V2"><link rel="stylesheet" href="/assets/site-hub/public-polish.css?v=XAN_RESULT_BALANCE_V1"><link rel="stylesheet" href="/assets/site-hub/mobile.css?v=XAN_MOBILE_V1">
+</head>
+<body class="yahtzee-page">
+<main id="yahtzee">
+  <header class="yd-heading"><div class="yd-title"><span class="yd-mark" aria-hidden="true">⚄</span><h1>Yahtzee</h1></div><div class="yd-heading-actions"><span id="connection" role="status">Connecting…</span><button id="dice-color" class="yd-quiet">Dice color</button><button id="help" class="yd-quiet">How to play</button><button id="leave" class="yd-quiet" hidden>Leave game</button></div></header>
+  <section id="lobby" class="yd-lobby" aria-label="Game setup">
+    <div class="yd-lobby-actions"><button class="yd-primary" id="create" disabled>Create game</button><button class="yd-secondary" id="practice" disabled><span aria-hidden="true">♟</span> Test with bot</button></div>
+    <form id="join-form"><label class="sr-only" for="join-code">Room code</label><input id="join-code" maxlength="8" placeholder="Room code" autocomplete="off" spellcheck="false" autocapitalize="characters" required><button id="join" class="yd-secondary" disabled>Join game</button></form>
+    <p id="identity-status" class="yd-muted"></p><a id="connect" href="/" hidden>Connect your API key on the home page →</a>
+  </section>
+  <section id="waiting" class="yd-waiting" hidden>
+    <div><span class="yd-muted">Room <button id="copy-code" class="yd-code"></button></span><p id="waiting-text">Waiting for an opponent</p></div>
+    <div class="yd-waiting-actions"><button id="invite" class="yd-secondary">Copy invite</button><button id="add-bot" class="yd-secondary">Add test bot</button><button id="start" class="yd-primary" disabled>Start game</button></div>
+    <input id="invite-link" aria-label="Invite link" readonly hidden>
+  </section>
+  <section class="yd-match" aria-label="Match scoreboard">
+    <div class="yd-player" id="me-player"><span class="yd-avatar" id="me-avatar">Y</span><div><strong id="me-name">You</strong><small id="me-status">Ready to play</small></div><b id="me-total">0</b></div>
+    <div class="yd-clock"><span id="round">ROUND 1 / 13</span><strong id="clock">30<span>s</span></strong><div class="yd-clock-track"><i id="time-bar"></i></div></div>
+  </section>
+  <div class="yd-layout">
+    <section class="yd-arena" aria-label="Live dice">
+      <div class="yd-lane yd-rival-lane"><div class="yd-rival-identity" id="opponent-player"><span class="yd-avatar" id="opponent-avatar">?</span><strong id="opponent-name">Opponent</strong><small id="opponent-status">Open seat</small></div><header><span>OPPONENT’S DICE</span><span id="opponent-rolls">0 / 3 rolls</span></header><div class="yd-dice-row" id="opponent-dice" aria-label="Opponent dice"></div><p id="opponent-move" class="yd-lane-status">Waiting for opponent</p></div>
+      <div class="yd-table-divider"><span>VS</span></div>
+      <div class="yd-lane yd-own-lane"><header><span>YOUR DICE</span><span id="my-rolls">0 / 3 rolls</span></header><div class="yd-dice-row" id="dice" aria-label="Your dice"></div><p id="hold-hint" class="yd-lane-status">Roll to begin</p></div>
+      <div class="yd-controls"><div><h2 id="prompt">Roll. Hold. Score.</h2><p id="hint">Both players play each round together.</p></div><div class="yd-control-actions"><button id="roll" class="yd-primary" disabled>Roll dice <span>↻</span></button></div></div>
+      <div id="countdown" class="yd-countdown" role="status" hidden><span>GET READY</span><strong id="countdown-number">3</strong><p>Roll together. Make every point count.</p></div>
+      <div class="yd-round-banner" id="round-banner" role="status" hidden></div><div id="burst" aria-hidden="true"></div>
+    </section>
+    <section class="yd-scorecard" id="score-panel" aria-label="Scorecard">
+      <header><div><h2>Scorecard</h2><p id="score-instruction">Click a category to bank your points.</p></div></header>
+      <div class="yd-column-head"><span>CATEGORY</span><span>YOU</span><span>OPPONENT</span></div>
+      <div id="scores"></div>
+      <div class="yd-score-summary"><span>Upper section <small>63 earns +35</small></span><b id="my-upper">0 / 63</b><b id="their-upper">0 / 63</b></div>
+      <div class="yd-score-summary"><span>Bonuses</span><b id="my-bonuses">0</b><b id="their-bonuses">0</b></div>
+      <div class="yd-score-summary yd-grand-total"><span>TOTAL</span><b id="my-card-total">0</b><b id="their-card-total">0</b></div>
+    </section>
+  </div>
+  <p id="notice" role="status" aria-live="polite"></p><button id="retry" class="yd-secondary" hidden>Retry last move</button>
+  <section class="hub-open hub-game-open" aria-label="Open games"><div class="hub-heading"><h2>Open Games</h2></div><div data-hub-games><p class="hub-empty">Connect your public API key to see open games.</p></div><p data-hub-lobby-status class="hub-status" role="status"></p></section>
+  <noscript>This game needs JavaScript enabled.</noscript>
+</main>
+<dialog id="help-dialog" class="yd-dialog"><button class="yd-close" aria-label="Close rules">×</button><h2>How to play</h2><ol><li>Both players get <b>30 seconds per round</b>. Roll five dice, click the ones you want to keep, and reroll the rest up to twice.</li><li>The scorecard previews your available points after every roll. Click a category to bank it. Each category can be used once; blank previews mean zero.</li><li>Reach 63 in Ones–Sixes for a 35-point bonus. Five matching dice score 50 in Yahtzee. Further Yahtzees give +100 if your Yahtzee box already holds 50; Joker placement is enforced.</li><li>The next round begins when both players bank, or when time expires. On timeout, your best available score is banked automatically. Without a roll, an empty category gets zero.</li><li>Highest total after 13 rounds wins. You can watch the opponent’s dice and scores live.</li></ol><button class="yd-primary yd-done">Got it</button></dialog>
+<dialog id="zero-dialog" class="yd-dialog"><h2>Use this category for zero?</h2><p id="zero-text"></p><button class="yd-primary" id="confirm-zero">Bank zero</button><button class="yd-quiet" id="cancel-zero">Keep rolling</button></dialog>
+<dialog id="leave-dialog" class="yd-dialog"><h2>Leave this game?</h2><p>This closes the match for both players. Reloading the page keeps your place.</p><button id="confirm-leave" class="yd-primary">Leave game</button><button id="stay" class="yd-quiet">Keep playing</button></dialog>
+<dialog id="color-dialog" class="yd-dialog"><h2>Your dice</h2><p>Pick a color. Saved on this device, just for your dice.</p><div id="dice-colors" class="yd-colors" aria-label="Dice colors"></div><button id="color-done" class="yd-primary">Done</button></dialog>
+<dialog id="result-dialog" class="yd-dialog yd-results"><h2 id="result-title">The final count</h2><p id="result-subtitle">Every category. Every point.</p><div id="tally-totals" class="yd-tally-totals"></div><div id="tally-columns" class="yd-tally-columns"></div><div id="tally-rows" class="yd-tally-rows" aria-label="Final score breakdown"></div><p id="tally-announcement" class="sr-only" aria-live="polite"></p><div id="standings" hidden></div><button id="skip-tally" class="yd-quiet">Show totals</button><div id="result-actions" hidden><button id="rematch" class="yd-primary">Rematch</button><p id="rematch-status"></p><button id="replay-tally" class="yd-quiet">Replay tally</button><button id="review" class="yd-quiet">View scorecards</button><button id="result-new" class="yd-quiet">Create a new game</button></div></dialog>
+</body></html>

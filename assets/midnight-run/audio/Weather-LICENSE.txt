@@ -1,0 +1,23 @@
+Midnight Run recorded weather
+
+rain-soft.ogg and thunder-distant.ogg are edited excerpts of:
+Gentle Rain Mix (2018), esh9419, 2018-02-06
+https://freesound.org/people/esh9419/sounds/417616/
+Licensed CC0 1.0 Universal:
+https://creativecommons.org/publicdomain/zero/1.0/
+
+The creator identifies source recordings as their Rainstorm V2 and
+Rain heavy 1 (rural) by jmbphilmes, both CC0.
+Downloaded from the public high-quality preview:
+https://cdn.freesound.org/previews/417/417616_3285887-hq.mp3
+
+Edits: rain excerpt at 60-84 seconds, 100 Hz high-pass and 3400 Hz
+low-pass, gain adjustment and one-second seam crossfade (23-second loop).
+Thunder excerpt at 34-48 seconds, 45 Hz high-pass and 950 Hz low-pass,
+gain adjustment and softened attack/four-second release.
+Both resampled to stereo 32 kHz and encoded Ogg Vorbis quality 3.
+Playback gain is deliberately low and independent of gameplay outcomes.
+
+SHA-256:
+rain-soft.ogg 02c33ba4e8fa83b3cd1e6313a118cb0e582d0a7d442dd91e8442dc79e914f4bb
+thunder-distant.ogg 8a55014528af77b8cd205b8d051003ee99c3bcb48db3caac26f1b922d737ae92

@@ -36,7 +36,7 @@
   let lastTurnId = '';
   let hammerVariant = 0;
   let dryVariant = 0;
-  let pollTimer = 0;
+
 
   function fade(element, target, duration) {
     if (!element) return;
@@ -48,8 +48,8 @@
     const milliseconds = Math.max(16, Number(duration) || 16);
     const step = now => {
       if (element.__rrMixFadeToken !== token) return;
-      const progress = Math.min(1, (now - began) / milliseconds);
-      element.volume = start + (end - start) * progress;
+      const progress = Math.max(0, Math.min(1, (now - began) / milliseconds));
+      element.volume = Math.max(0, Math.min(1, start + (end - start) * progress));
       if (progress < 1) requestAnimationFrame(step);
     };
     requestAnimationFrame(step);
@@ -328,37 +328,6 @@
     return null;
   }
 
-  function syncTurnMovement() {
-    const game = currentGame();
-    const gameId = String(game?.gameId || '');
-    const turnId = String(game?.rouletteState?.turnId || '');
-    if (!gameId || game?.status !== 'playing' || !turnId) {
-      lastGameId = gameId;
-      lastTurnId = turnId;
-      return;
-    }
-    if (
-      gameId === lastGameId &&
-      lastTurnId &&
-      turnId !== lastTurnId &&
-      performance.now() >= chamberSpinUntil &&
-      claimAction('turn-move', `${gameId}:${turnId}`, 12000)
-    ) {
-      stopGroup('turn-move', 45);
-      playClip(TABLE_MOVE, {
-        group: 'turn-move',
-        volume: 0.052,
-        rate: 1.06,
-        start: 0.14,
-        duration: 0.82,
-        fadeIn: 0.04,
-        fadeOut: 0.22
-      });
-    }
-    lastGameId = gameId;
-    lastTurnId = turnId;
-  }
-
   // Remove the manager's exported chamber/shot entry points. The manager still owns
   // ambience and state cues; this policy owns opening, shot, and quiet turn movement.
   const {
@@ -379,14 +348,16 @@
     ...baseAudio,
     openingSpin,
     shotSequence,
-    turnRotate() { return null; }
+    turnRotate({ duration = 1020, rotationToken = '', gameId = '', turnId = '' } = {}) {
+      if (!rotationToken || !claimAction('approved-turn', rotationToken, 12000)) return false;
+      lastGameId = gameId; lastTurnId = turnId;
+      playClip(TABLE_MOVE, {
+        group: 'turn-move', replaceGroup: true, volume: 0.075, rate: 1,
+        start: 0.14, duration: duration / 1000, fadeIn: 0.035, fadeOut: 0.24
+      });
+      return true;
+    }
   });
-
-  const poll = () => {
-    syncTurnMovement();
-    pollTimer = global.setTimeout(poll, 300);
-  };
-  poll();
 
   global.RouletteAudioMixPolicy = Object.freeze({
     openingSpin,
@@ -404,7 +375,7 @@
   });
 
   global.addEventListener('pagehide', () => {
-    clearTimeout(pollTimer);
+
     for (const group of [...timers.keys()]) clearTimers(group);
     for (const group of [...groups.keys()]) stopGroup(group, 40);
     claimedActions.clear();

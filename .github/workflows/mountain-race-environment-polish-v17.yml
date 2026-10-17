@@ -1,0 +1,90 @@
+name: Summit Sprint Environment Polish V17
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: summit-sprint-environment-polish-v17-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate-environment-polish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+
+      - name: Use Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build exact Netlify output
+        run: npm run build
+
+      - name: Verify environment polish and authoritative protections
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check scripts/patch-mountain-race-environment-polish-v17.mjs
+          node --check scripts/validate-mountain-race-environment-polish-v17.mjs
+          node --check assets/mountain-race/mountain-race-multiplayer.js
+          node scripts/validate-mountain-race-environment-polish-v17.mjs
+          node scripts/validate-mountain-race-raster-cliff-v16.mjs
+          node scripts/validate-mountain-race-daylight-terrain-v15.mjs
+          node scripts/validate-mountain-race-visual-rebuild-v14.mjs
+          node scripts/validate-mountain-race-input-rebase-v8.mjs
+          node scripts/validate-mountain-race-terminal-poll-v10.mjs
+          node scripts/validate-mountain-race-lifecycle-guard-v11.mjs
+          grep -Fq 'MOUNTAIN_RACE_ENVIRONMENT_POLISH_V17' index.html
+          grep -Fq 'environment=17' index.html
+          grep -Fq 'function createMountainDetailRasterV17()' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'function createGrassTextureV17()' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'function ensureMountainRaceEnvironmentV17(root)' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'class="mr-environment-v17"' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'class="mr-cloud-bank-v17 near"' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'class="mr-wind-v17"' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq -- '--mr-mountain-detail-v17' assets/mountain-race/mountain-race.css
+          grep -Fq -- '--mr-grass-texture-v17' assets/mountain-race/mountain-race.css
+          grep -Fq '@keyframes mrCloudDriftNearV17' assets/mountain-race/mountain-race.css
+          grep -Fq '@keyframes mrWindStreakV17' assets/mountain-race/mountain-race.css
+          grep -Fq '.mr-climber.standing-on-summit::after' assets/mountain-race/mountain-race.css
+          grep -Fq 'standing-on-summit' assets/mountain-race/mountain-race-multiplayer.js
+          test -s assets/safe-cracker/safe-cracker.js
+          test -s assets/roulette/turn-animation.js
+
+      - name: Verify live Netlify Environment Polish V17 deployment
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          url='https://deploy-preview-20--famous-piroshki-b621da.netlify.app/'
+          for attempt in $(seq 1 48); do
+            page="$(curl -fsSL --max-time 20 "${url}?summit_environment_polish_v17=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            runtime="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race-multiplayer.js?visual=14&terrain=15&texture=16&environment=17&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            styles="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race.css?visual=14&terrain=15&texture=16&environment=17&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            if grep -Fq 'MOUNTAIN_RACE_ENVIRONMENT_POLISH_V17' <<<"$page" && \
+               grep -Fq 'environment=17' <<<"$page" && \
+               grep -Fq 'MOUNTAIN_RACE_ENVIRONMENT_POLISH_V17' <<<"$runtime" && \
+               grep -Fq 'function createMountainDetailRasterV17()' <<<"$runtime" && \
+               grep -Fq 'function createGrassTextureV17()' <<<"$runtime" && \
+               grep -Fq 'class="mr-environment-v17"' <<<"$runtime" && \
+               grep -Fq 'class="mr-wind-v17"' <<<"$runtime" && \
+               grep -Fq 'MOUNTAIN_RACE_ENVIRONMENT_POLISH_V17' <<<"$styles" && \
+               grep -Fq -- '--mr-mountain-detail-v17' <<<"$styles" && \
+               grep -Fq '@keyframes mrCloudDriftNearV17' <<<"$styles"; then
+              echo 'Verified live Summit Sprint Environment Polish V17 deployment.'
+              exit 0
+            fi
+            echo "Waiting for Netlify Environment Polish V17 deployment (${attempt}/48)..."
+            sleep 10
+          done
+          echo 'Netlify did not serve Summit Sprint Environment Polish V17.' >&2
+          exit 1

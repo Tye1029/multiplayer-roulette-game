@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#17181b">
+  <meta name="referrer" content="same-origin">
+  <title>Rock Paper Scissors · Xan Duels</title>
+  <!-- HAND_OF_DOOM_V4_20261010 · RPS_LOBBY_COPY_20261011 -->
+  <link rel="stylesheet" href="/assets/rps/arena.css?v=5">
+  <script src="/shared/games/rps-model.js?v=5" defer></script>
+  <script src="/assets/rps/audio.js?v=5" defer></script>
+  <script src="/assets/rps/cinema.js?v=5" defer></script>
+  <script src="/assets/rps/debug.js?v=5" defer></script>
+  <script src="/assets/rps/arena.js?v=XAN_SITE_REFINEMENT_V1" defer></script>
+<link rel="stylesheet" href="/assets/rps/cinema.css?v=5">
+<link rel="stylesheet" href="/assets/site-hub/hub.css?v=6"><script src="/assets/site-hub/preferences.js?v=2"></script><script defer src="/assets/site-hub/public-polish.js?v=XAN_GAME_DISCOVERY_V2"></script><script defer src="/assets/site-hub/progression.js?v=XAN_GAME_DISCOVERY_V2"></script><script defer src="/assets/site-hub/game-menu.js?v=XAN_SITE_REFINEMENT_V1"></script><script defer src="/assets/site-hub/hub.js?v=XAN_GAME_DISCOVERY_V2"></script><link rel="stylesheet" href="/assets/site-hub/game-menu.css?v=XAN_PUBLIC_POLISH_V2"><link rel="stylesheet" href="/assets/site-hub/public-polish.css?v=XAN_RESULT_BALANCE_V1"><link rel="stylesheet" href="/assets/site-hub/mobile.css?v=XAN_MOBILE_V1">
+</head>
+<body>
+  <main>
+    <div class="masthead"><div><p class="eyebrow">THE COLOSSEUM</p><h1>Rock Paper Scissors</h1><p class="intro">Two gladiators. Three hand gestures. Absolutely no chill.</p></div></div>
+    <section id="invitations" class="invitations" aria-label="Duel invitations" aria-live="polite" hidden></section>
+    <div class="layout">
+      <section class="game-column" aria-label="Duel arena">
+        <div class="arena-toolbar"><span id="modeLabel">THE COLOSSEUM</span><div><button id="leave" hidden>Leave duel</button><button id="sound" aria-pressed="false" title="Enable music, crowd and announcer">Sound off</button><button id="motion" aria-pressed="false">Calm camera</button><button id="debug" aria-expanded="false" aria-controls="debug-panel">Debug</button></div></div>
+        <div class="scoreboard"><div><strong id="nameA">You</strong><span id="lockA">HAND CONCEALED</span><div class="win-seals" id="sealsA" aria-label="Round wins"></div></div><div class="score"><b id="scoreA">0</b><span>:</span><b id="scoreB">0</b><small>BEST OF THREE</small></div><div><strong id="nameB">Your opponent</strong><span id="lockB">HAND CONCEALED</span><div class="win-seals" id="sealsB" aria-label="Round wins"></div></div></div>
+        <div class="arena" id="arena" data-shot="wide" data-variant="0">
+          <div class="arena-scenery"></div><div id="crowdMotion" class="crowd-motion" aria-hidden="true"></div><div id="embers" class="embers" aria-hidden="true"></div><div class="vignette"></div>
+
+          <div class="fighter fighter-a"><img id="fighterA" src="/assets/rps/images/gladiator.png?v=1" alt="Maximus, the crimson gladiator" width="600" height="900"></div>
+          <div class="fighter fighter-b"><img id="fighterB" src="/assets/rps/images/voss.png?v=5" alt="Voss, the iron veteran" width="600" height="900"></div>
+          <div class="versus" aria-hidden="true">VS<span>FOR ETERNAL<br>BRAGGING RIGHTS</span></div>
+          <div class="cinema" aria-hidden="true"><div class="pose-panel"><div class="atlas" id="poseA"></div></div><div class="pose-panel"><div class="atlas" id="poseB"></div></div><strong id="editWord"></strong></div>
+          <div class="speed-lines" aria-hidden="true"></div>
+          <div class="hands" id="hands" aria-hidden="true"><div id="handA"><div class="atlas" id="revealA"></div><span></span></div><b>VS</b><div id="handB"><div class="atlas" id="revealB"></div><span></span></div></div><div class="reactions"><div class="reaction-frame"><div class="atlas" id="reactionA" role="img"></div></div><div class="reaction-frame"><div class="atlas" id="reactionB" role="img"></div></div></div><div class="impact-ring" aria-hidden="true"></div>
+          <div class="arena-glow" aria-hidden="true"></div>
+          <div class="confetti" id="confetti" aria-hidden="true"></div>
+          <div class="round-banner"><small id="roundLabel">THE SMALLEST BATTLE. THE BIGGEST PRODUCTION.</small><strong id="callout">ARE YOU NOT ENTERTAINED?</strong><span id="subcallout">Enter the arena. Hide your hand. Make history.</span></div>
+        </div>
+        <div class="announcer"><span>THE ANNOUNCER</span><p id="announcer" aria-live="polite">“Thousands have gathered to watch you choose a hand.”</p></div>
+        <div class="play-panel"><div class="pick-heading"><h2 id="pickTitle">Enter the arena to play.</h2><span id="roundHint">Rock beats scissors. You know the drill.</span></div><div class="choices" id="choices">
+          <button data-choice="rock" disabled><span class="choice-art"><img src="/assets/rps/images/rock-icon.png?v=5" width="256" height="256" alt="" /></span><span><b>ROCK</b><small>Crushes scissors</small></span><kbd>1</kbd></button>
+          <button data-choice="paper" disabled><span class="choice-art"><img src="/assets/rps/images/paper-icon.png?v=5" width="256" height="256" alt="" /></span><span><b>PAPER</b><small>Wraps rock</small></span><kbd>2</kbd></button>
+          <button data-choice="scissors" disabled><span class="choice-art"><img src="/assets/rps/images/scissors-icon.png?v=5" width="256" height="256" alt="" /></span><span><b>SCISSORS</b><small>Cuts paper</small></span><kbd>3</kbd></button>
+        </div><div class="match-actions" id="matchActions" hidden><button id="rematch" class="primary">Demand a rematch</button><button id="backLobby">Back to lobby</button></div><p id="payout" class="payout" hidden role="status"></p><p class="status" id="status" role="status">First to two round wins. Ties replay immediately.</p><div id="roundHistory" class="history" aria-label="Round history"></div></div>
+        <section id="debug-panel" class="debug-panel" hidden aria-label="Arena debug"><div class="debug-heading"><h2>Arena debug</h2><button id="close-debug">Close debug</button></div><p>Session diagnostics. Keys, tokens and concealed hands are excluded.</p><div class="debug-actions"><button id="refresh-debug">Refresh report</button><button id="copy-debug">Copy report</button><button id="download-debug">Download report</button></div><textarea id="debug-report" readonly aria-label="Debug report" spellcheck="false"></textarea><p id="debug-status" role="status"></p></section>
+      </section>
+      <aside>
+        <section class="lobby-card"><h2>Challenge an opponent</h2><p>Quick duels. Ridiculous drama. First to two wins.</p>
+          <div id="identity" class="identity">Practice is ready. Connect for live 1v1.</div>
+          <a id="siteLogin" href="/">Sign in on the main site</a>
+          <fieldset class="character-picker"><legend>Your gladiator</legend><div id="characters" class="characters"></div><p id="characterHint">Your look, your dramatic entrance.</p></fieldset>
+          <label for="wager">Wager per player · Chips</label><input id="wager" type="number" min="10000" max="50000" step="1000" value="10000" required><p id="wagerHint" class="lobby-status">10,000–50,000 Chips per player. Leaving a funded duel forfeits your stake. A locked hand wins if the opponent times out.</p><p id="balance" class="lobby-status"></p><div class="lobby-buttons"><button id="create" class="primary">Challenge A New Opponent <span>↗</span></button><button id="practice">Quick practice <small>Local bot · no key</small></button><button id="remoteBot">Remote Network Bot <small>Server practice</small></button></div>
+          <p id="lobbyStatus" class="lobby-status" role="status">Connect for online play, or try quick practice.</p>
+          <div class="invite" id="invite" hidden><label for="arenaCode">Challenge an opponent</label><div class="input-row"><input id="arenaCode" readonly><button id="copy">Copy link</button></div></div>
+          <form id="joinForm"><label for="joinCode">Have an arena code?</label><div class="input-row"><input id="joinCode" placeholder="12-character code" maxlength="12" autocomplete="off"><button id="join" disabled>Join</button></div></form>
+          <div class="open-heading"><h3>Open Games</h3><button id="refresh" disabled>Refresh</button></div><div id="openGames" class="open-games">Connect to see live challenges.</div>
+        </section>
+        <section class="rival-card"><p class="eyebrow">A LITTLE UNFINISHED BUSINESS</p><h2>Your arch rival</h2><strong id="archName">No rival yet</strong><p id="archStats">Your most-played human opponent appears here.</p><button id="challengeRival" disabled>Challenge your rival <span>⚔</span></button><p class="rival-note">Invites appear here when your rival opens the arena. They expire after 15 minutes.</p><details><summary>Match records</summary><div id="rivalList"></div><small>Completed human duels count. Bot practice stays off the record.</small></details></section>
+      </aside>
+    </div>
+
+  </main>
+</body>
+</html>
