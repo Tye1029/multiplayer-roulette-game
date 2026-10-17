@@ -350,7 +350,7 @@ async function playRound(pages, code, seen) {
   for (let i = 0; i < pages.length; i++) {
     if (!s.game.participants.includes(s.players[i].id)) continue;
     const p = pages[i];
-    const expansion = C.games.find((d) => d.id === game).engine === "expansion";
+    const expansion = ["expansion","midway"].includes(C.games.find((d) => d.id === game).engine);
     if (expansion || game === "putt") {
       // Each player's isolated input gets a fresh clock after the screenshots.
       // V8 tests separately exercise real timers, movement, collisions and scoring.
@@ -417,6 +417,9 @@ async function playRound(pages, code, seen) {
             require("../assets/party/expansion-rules").adjacent(blank, j),
           );
         }
+        if (game === "pizza") value = "shape:0";
+        if (game === "mine") value = "down";
+        if (game === "robots") value = "punch";
         if (game === "basket") value = "shoot";
         if (game === "baseball") value = "swing";
         await action(p, `[data-control="${value}"]:enabled`, "play");
@@ -760,7 +763,7 @@ try {
   await delayed.context().close();
   assert.deepEqual(errors, []);
   console.log(
-    "PASS: ten-turn four-player festival, on-scene dice and controls, crossroads, passing shops, stakes, all 39 minigames, readiness, live duel, reconnect, rewards, rematch, slow requests and desktop/mobile/landscape layouts. " +
+    "PASS: ten-turn four-player festival, on-scene dice and controls, crossroads, passing shops, stakes, all 43 minigames, readiness, live duel, reconnect, rewards, rematch, slow requests and desktop/mobile/landscape layouts. " +
       out,
   );
 } finally {

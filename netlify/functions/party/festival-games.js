@@ -230,6 +230,14 @@ function settleBeat(g, b, now) {
         g.privateChoices[c]?.beat === b.index
           ? g.privateChoices[c].value
           : undefined;
+    sh.cookieReveal = {
+      at: now,
+      round: b.index,
+      values: b.values.map((n, j) => n + (j === b.lane ? sh.jackpot : 0)),
+      gold: b.lane,
+      picks: { [a]: av ?? null, [c]: cv ?? null },
+      awards: {},
+    };
     for (const [i, val] of [
       [a, av],
       [c, cv],
@@ -237,6 +245,7 @@ function settleBeat(g, b, now) {
       const amount =
         val == null ? 0 : b.values[val] + (val === b.lane ? sh.jackpot : 0);
       const n = (av === cv ? Math.floor(amount / 2) : amount) * 100;
+      sh.cookieReveal.awards[i] = n;
       award(g, i, n, now, av === cv ? `Shared tray +${n}` : `Cookies +${n}`);
       g.progress[i].reveal = { value: val, at: now };
     }
@@ -806,6 +815,12 @@ function play(g, i, input, now, fail) {
       }
     }
   } else if (["fencing", "draft"].includes(id)) {
+    if (
+      id === "draft" &&
+      g.shared.cookieReveal &&
+      now - g.shared.cookieReveal.at < 1100
+    )
+      fail("Watch both picks reveal first.");
     const opts = id === "fencing" ? ["rock", "paper", "scissors"] : [0, 1, 2];
     chooseOnce(opts);
     g.privateChoices[i] = { value, beat: b.index };

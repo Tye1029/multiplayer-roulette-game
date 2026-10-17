@@ -1,7 +1,8 @@
-import { expansionScenes } from "./expansion-scenes.js?v=BOARDWALK_CARNIVAL_V8";
+import { midwayScenes } from "./midway-scenes.js?v=BOARDWALK_CARNIVAL_V9";
+import { expansionScenes } from "./expansion-scenes.js?v=BOARDWALK_CARNIVAL_V9";
 import * as T from "./vendor/three.module.min.js";
-import { carnivalScenes } from "./carnival-scenes.js?v=BOARDWALK_CARNIVAL_V8";
-import { festivalScenes } from "./festival-scenes.js?v=BOARDWALK_CARNIVAL_V8";
+import { carnivalScenes } from "./carnival-scenes.js?v=BOARDWALK_CARNIVAL_V9";
+import { festivalScenes } from "./festival-scenes.js?v=BOARDWALK_CARNIVAL_V9";
 const C = globalThis.PartyCatalog,
   R = globalThis.PartyRules,
   TAU = Math.PI * 2,
@@ -3243,6 +3244,12 @@ function render(canvas, kind, state, time = 0, extra = {}) {
   } else if (["cascade", "lantern", "hop", "dash", "signal"].includes(kind)) {
     w = extras.build(kind);
     view = extras.update(w, state, time, extra);
+  } else if (
+    C.games.find((g) => g.id === kind)?.engine === "midway" ||
+    kind === "draft"
+  ) {
+    w = midway.build(kind);
+    view = midway.update(w, state, time, extra);
   } else if (C.games.find((g) => g.id === kind)?.engine === "expansion") {
     w = expansion.build(kind);
     view = expansion.update(w, state, time, extra);
@@ -3337,7 +3344,9 @@ function render(canvas, kind, state, time = 0, extra = {}) {
       }
     }
   } else if (kind !== "board" && width / height < 1) {
-    view.extent = Math.max(view.extent, 22 / (width / height));
+    const span =
+      C.games.find((g) => g.id === kind)?.engine === "midway" ? 30 : 22;
+    view.extent = Math.max(view.extent, span / (width / height));
   }
   if (
     C.games.find((g) => g.id === kind)?.engine === "expansion" &&
@@ -3381,6 +3390,18 @@ function render(canvas, kind, state, time = 0, extra = {}) {
   w.motion = extra.motion !== false;
   const context = sceneFrame(w, time, view, canvas);
   overlay(context, canvas, kind, state, time, extra);
+  if (
+    C.games.find((g) => g.id === kind)?.engine === "midway" ||
+    kind === "draft"
+  ) {
+    context.save();
+    context.scale(
+      canvas.width / canvas.clientWidth,
+      canvas.height / canvas.clientHeight,
+    );
+    midway.overlay(context, canvas, w, state, time);
+    context.restore();
+  }
   if (C.games.find((g) => g.id === kind)?.engine === "expansion") {
     context.save();
     context.scale(
@@ -3447,6 +3468,27 @@ const extras = carnivalScenes({
   clamp,
 });
 const festival = festivalScenes({
+  T,
+  C,
+  world,
+  water,
+  box,
+  ball,
+  cyl,
+  tube,
+  torus,
+  label,
+  mascot,
+  roster,
+  animateCharacter,
+  palm,
+  building,
+  cloud,
+  mat,
+  mix,
+  clamp,
+});
+const midway = midwayScenes({
   T,
   C,
   world,

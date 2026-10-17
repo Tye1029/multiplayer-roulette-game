@@ -57,6 +57,7 @@ function create(id, p, mode, now = Date.now(), rounds = 10) {
 }
 function join(s, p) {
   if (s.players.some((x) => x.id === p.id)) return;
+  if (s.practice) fail("This test session uses bot seats.", 403);
   if (s.phase !== "waiting") fail("This party has already started.");
   if (s.players.length >= (s.mode === "duel" ? 2 : 4))
     fail("This room is full.");
@@ -129,17 +130,25 @@ function countdown(s, now) {
   s.game.start = s.deadline;
   s.game.end = s.deadline + s.game.duration;
 }
-function enterGame(s, now, tiebreak = false, participants = null) {
+function enterGame(
+  s,
+  now,
+  tiebreak = false,
+  participants = null,
+  forced = null,
+) {
   s.phase = "intro";
   s.deadline = now + 60000;
   const sideDuel = !!participants,
     duration = sideDuel ? 20000 : 35000;
   s.game = {
-    id: tiebreak
-      ? s.mode === "duel" || s.tied?.length === 2
-        ? "fuse"
-        : "climb"
-      : nextGame(s, sideDuel),
+    id:
+      forced ||
+      (tiebreak
+        ? s.mode === "duel" || s.tied?.length === 2
+          ? "fuse"
+          : "climb"
+        : nextGame(s, sideDuel)),
     start: now + 63000,
     end: now + 63000 + duration,
     ready: [],
@@ -199,6 +208,78 @@ function nextTurn(s, now) {
   s.movement = null;
   s.phase = s.turnIndex >= s.players.length ? "board-end" : "board";
   s.deadline = now + (s.phase === "board" ? 60000 : 2500);
+}
+function testStart(s, game, now) {
+  const def = C.games.find((g) => g.id === game);
+  if (game !== "board" && !def) fail("Choose an available minigame.", 400);
+  s.practice = true;
+  s.testGame = game;
+  s.players = [s.players.find((p) => p.id === s.host)];
+  s.players[0].characterPicked = true;
+  const count = def?.duelOnly ? 2 : 4;
+  while (s.players.length < count) {
+    const char = C.characters.find(
+      (c) => !s.players.some((p) => p.character === c.id),
+    );
+    s.players.push(
+      player({
+        id: "bot:" + crypto.randomUUID(),
+        name: ["Pip", "Dizzy", "Nova"][s.players.length - 1],
+        character: char.id,
+        bot: true,
+        characterPicked: true,
+      }),
+    );
+  }
+  s.ready = [s.host];
+  s.game = null;
+  begin(s, now);
+  s.turnOrder = s.players.map((_, i) => i);
+  s.startingSeat = 0;
+  if (game === "board") {
+    enterBoard(s, now);
+    s.players[0].tokens = 50;
+  } else {
+    enterGame(s, now, false, null, game);
+    s.phase = "intro";
+    s.deadline = now + 60000;
+    s.game.ready = s.players.filter((p) => p.bot).map((p) => p.id);
+  }
+  s.log = "Test session · rewards and records are not saved";
+}
+function debug(s, id, b, now) {
+  if (!s.practice || id !== s.host)
+    fail(
+      "Debug changes are only available to the host of a test session.",
+      403,
+    );
+  if (b.op === "game" || b.op === "restart")
+    testStart(s, b.op === "restart" ? s.testGame : b.target, now);
+  else if (b.op === "finish") {
+    if (s.phase !== "playing") fail("Start a minigame first.");
+    s.game.end = now;
+    advance(s, now);
+  } else if (b.op === "space") {
+    if (!Number.isInteger(b.space) || !C.spaces[b.space])
+      fail("Choose a board space.", 400);
+    s.testGame = "board";
+    s.game = null;
+    enterBoard(s, now);
+    s.turn = s.players.findIndex((p) => p.id === id);
+    s.players[s.turn].position = b.space;
+    s.players[s.turn].tokens = Math.max(50, s.players[s.turn].tokens);
+  } else if (b.op === "roll") {
+    if (
+      s.phase !== "board" ||
+      s.players[s.turn].id !== id ||
+      !Number.isInteger(b.value) ||
+      b.value < 1 ||
+      b.value > 6
+    )
+      fail("Choose a test roll from 1 to 6 on your board turn.");
+    s.players[s.turn].custom = b.value;
+    roll(s, s.players[s.turn], now);
+  } else fail("Choose a debug action.", 400);
 }
 function roll(s, p, now) {
   const values = p.custom
@@ -915,7 +996,9 @@ function advance(s, now = Date.now()) {
         now < g.end &&
         now - v.last >
           (G.festival.handled(g.id) ||
-          C.games.find((d) => d.id === g.id)?.engine === "expansion"
+          ["expansion", "midway"].includes(
+            C.games.find((d) => d.id === g.id)?.engine,
+          )
             ? v.botWait || 280
             : 850)
       ) {
@@ -990,6 +1073,7 @@ function advance(s, now = Date.now()) {
   } else if (s.phase === "measuring" && now >= s.deadline) {
     conclude(s, now);
   } else if (s.phase === "round-end" && now >= s.deadline) {
+    if (s.practice && s.testGame !== "board") return;
     if (s.pendingFinale) {
       s.pendingFinale = false;
       Ceremony.startFinale(s, now);
@@ -1007,6 +1091,10 @@ function act(s, id, b, now = Date.now()) {
   const p = s.players.find((p) => p.id === id);
   if (!p) fail("Only room members can do that.", 403);
   if (b.action === "get") return;
+  if (b.action === "debug") {
+    debug(s, id, b, now);
+    return;
+  }
   if (b.action === "order-roll") {
     Ceremony.rollOrder(s, s.players.indexOf(p), now, fail);
   } else if (b.action === "skip-bots") {
@@ -1221,7 +1309,7 @@ function act(s, id, b, now = Date.now()) {
       fail("That move belongs to an earlier round.");
     play(s, p, b, now);
   } else if (b.action === "leave") {
-    if (!["waiting", "complete", "expired"].includes(s.phase))
+    if (!s.practice && !["waiting", "complete", "expired"].includes(s.phase))
       fail(
         "Your seat is kept until this match ends. You can reconnect from this device.",
       );
@@ -1293,4 +1381,4 @@ function view(s, id, now = Date.now()) {
   }
   return out;
 }
-module.exports = { create, join, begin, act, advance, view, fail };
+module.exports = { create, join, begin, act, advance, view, fail, testStart };

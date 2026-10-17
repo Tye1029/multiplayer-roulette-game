@@ -527,7 +527,7 @@ export function expansionScenes(H) {
           st.pitcher.position.x = x + 0.65;
           animateCharacter(st.pitcher, t, q < 0.1 ? "fish" : "idle");
           const h = v.batHit,
-            hit = h?.pitch === b?.index && h.points && now >= h.at;
+            hit = h && b && h.pitch === b.index && h.points && now >= h.at;
           st.ball.visible =
             (!!b && dt > -duration && dt < 500) || (!!hit && now - h.at < 1300);
           if (hit) {

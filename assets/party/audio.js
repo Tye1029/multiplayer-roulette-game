@@ -121,6 +121,33 @@
   function play(kind = "tap", character) {
     if (!unlocked || !enabled || document.hidden) return;
     const at = ctx.currentTime;
+    if (["punch", "whack", "dig", "oven", "serve", "headpop"].includes(kind)) {
+      if (kind === "punch") {
+        noise(at, 0.055, 0.09, 600);
+        note(145, at, 0.08, 0.12, fx, "triangle");
+      }
+      if (kind === "whack") {
+        noise(at, 0.09, 0.12, 950);
+        note(250, at, 0.1, 0.15, fx, "triangle");
+      }
+      if (kind === "dig") {
+        noise(at, 0.12, 0.11, 1800);
+        note(540, at, 0.07, 0.07, fx, "triangle");
+      }
+      if (kind === "oven") {
+        note(380, at, 0.12, 0.07, fx);
+        noise(at, 0.2, 0.03, 700);
+      }
+      if (kind === "serve")
+        [660, 880, 1100].forEach((f, i) =>
+          note(f, at + i * 0.07, 0.2, 0.1, fx),
+        );
+      if (kind === "headpop")
+        [220, 330, 500, 740, 980].forEach((f, i) =>
+          note(f, at + i * 0.045, 0.18, 0.14, fx, "triangle"),
+        );
+      return;
+    }
     if (["yes", "aww", "haha", "yup"].includes(kind)) {
       voice(kind, character);
       return;

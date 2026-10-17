@@ -68,9 +68,9 @@ test("50 connected spaces include a central crossing, three shops and clear land
       );
     }
 });
-test("33 party games and six exclusive duels have distinct complete instructions and controls", () => {
-  assert.equal(C.games.length, 39);
-  assert.equal(new Set(C.games.map((g) => g.id)).size, 39);
+test("37 party games and six exclusive duels have distinct complete instructions and controls", () => {
+  assert.equal(C.games.length, 43);
+  assert.equal(new Set(C.games.map((g) => g.id)).size, 43);
   assert.equal(C.games.filter((g) => g.duelOnly).length, 6);
   for (const d of C.games) {
     assert.ok(d.rules.length > 100);
@@ -78,7 +78,7 @@ test("33 party games and six exclusive duels have distinct complete instructions
   }
   const s = fixture("fish");
   s.usedGames = [];
-  for (let n = 0; n < 33; n++) {
+  for (let n = 0; n < 37; n++) {
     s.phase = "board-end";
     s.deadline = 12000 + n;
     M.advance(s, s.deadline);
@@ -87,7 +87,7 @@ test("33 party games and six exclusive duels have distinct complete instructions
   const partyIds = s.usedGames.filter(
     (id) => !C.games.find((g) => g.id === id).duelOnly,
   );
-  assert.equal(new Set(partyIds).size, 33);
+  assert.equal(new Set(partyIds).size, 37);
 });
 test("board decisions allow 60 seconds and minigame results hold for 5", () => {
   const s = fixture("fish");

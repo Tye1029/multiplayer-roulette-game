@@ -381,7 +381,7 @@ test("golf gives only one player thirty seconds per course, uses real course fea
   assert.ok(C.holes.some((h) => h.portal && h.conveyors));
   assert.ok(C.holes.some((h) => h.gate));
 });
-test("all 39 games finish under sparse polling and redact secrets for each viewer", () => {
+test("all catalog games finish under sparse polling and redact secrets for each viewer", () => {
   for (const def of C.games) {
     const s = fixture(def.id),
       g = s.game;

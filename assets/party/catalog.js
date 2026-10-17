@@ -143,6 +143,11 @@
       ? require("./expansion-catalog")
       : globalThis.PartyExpansionCatalog),
   );
+  games.push(
+    ...(typeof module === "object" && module.exports
+      ? require("./midway-catalog")
+      : globalThis.PartyMidwayCatalog),
+  );
   const skins = [
     {
       id: "classic",

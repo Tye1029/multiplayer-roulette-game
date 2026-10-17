@@ -77,6 +77,7 @@
     musicOn = storage.get("boardwalk-music") !== "off",
     lastCountdown = "",
     previewObserver;
+  let robotBurst = null;
   const now = () => Date.now() + offset;
   function notify(message) {
     const box = $("#notice");
@@ -97,6 +98,11 @@
     return `<div class="profile-pocket" aria-label="${esc(p.name)}’s items">${Array.from({ length: 3 }, (_, i) => (p.items[i] ? `<button data-item-info="${p.items[i]}" title="${esc(C.items.find((x) => x.id === p.items[i]).name)}">${itemImage(p.items[i])}</button>` : '<span class="empty-pocket" aria-label="Empty item slot">·</span>')).join("")}</div>`;
   }
   function controlsGuide(id) {
+    if (id === "pizza")
+      return '<div class="control-guide"><strong>BUILD · BAKE · SERVE</strong><p>Tap the dough, cheese and topping buttons to match your ticket. Bake for 5 seconds, then Serve. Tap a topping again to remove it.</p></div>';
+    if (id === "mine")
+      return '<div class="control-guide"><strong>TAP TO DIG · ARROWS / WASD</strong><p>Tap a tile beside your miner, or the direction buttons. Carry three minerals, then return to depth 0 and Sell. Deeper rock needs more swings.</p></div>';
+
     if (id === "putt")
       return '<div class="control-guide"><strong>DRAG TO PUTT</strong><p>Press on the course, drag back in the opposite direction of your shot, then release. A longer drag means more power. Only the active player can shoot.</p></div>';
     if (["bumper", "volcano"].includes(id))
@@ -279,7 +285,7 @@
     screen = "menu";
     panelKey = "";
     document.body.dataset.phase = "menu";
-    app.innerHTML = `<section class="festival-hero"><img class="festival-art" src="/assets/party/images/boardwalk-crew-v2.webp" alt="Riff, Cleo, Moss and Bolt race through the sunset festival" fetchpriority="high"><div class="festival-copy"><span class="eyebrow">WELCOME TO CORAL CARNIVAL</span><h1>Big laughs.<br>Little rivalries.</h1><p>Roll into a seaside party full of shortcuts, surprises, and one-more-round moments.</p><div class="hero-buttons"><button class="primary" data-create="party">Start a party ↗</button><button class="secondary" data-open-join>Join friends</button></div><div class="hero-facts"><span>2–4 players</span><span>10 / 20 / 30 turns</span><span>Free to play</span></div></div></section><section class="mode-grid" aria-label="Choose a mode"><button class="mode-card" data-create="party"><div><span class="mode-meta">THE WHOLE ADVENTURE · 2–4 PLAYERS</span><h3>Roll with your crew.</h3><p>50 spaces. A central crossing and two scenic detours. Shops, surprises and rival showdowns.</p></div><span class="mode-arrow">↗</span></button><button class="mode-card" data-create="duel"><div><span class="mode-meta">JUST THE MINIGAMES · 1V1</span><h3>Settle the score.</h3><p>Jump into a best-of-three duel. Bring your favorite rival.</p></div><span class="mode-arrow">↗</span></button></section><section><div class="section-heading"><h2>Steal the show.</h2><p>${C.games.length} games. ${C.games.filter((g) => !g.duelOnly).length} party challenges and ${C.games.filter((g) => g.duelOnly).length} exclusive duels.</p></div><div class="game-grid">${C.games.map((g) => `<button class="game-card" data-rules="${g.id}"><canvas class="game-art" data-preview="${g.id}" aria-hidden="true"></canvas><div class="game-card-body"><span class="eyebrow">${g.tag}</span><h3>${g.name}</h3><p>${g.description}</p></div></button>`).join("")}</div></section><section class="crew-section"><div class="section-heading"><h2>A crew with character.</h2><p>Eight personalities. One of each per match.</p></div><div class="crew-grid">${C.characters.map((c) => `<div class="crew-card"><canvas data-character="${c.id}" aria-hidden="true"></canvas><div><h3>${c.name}</h3><span class="eyebrow">${c.kind}</span><p>${c.bio}</p></div></div>`).join("")}</div></section>`;
+    app.innerHTML = `<section class="festival-hero"><img class="festival-art" src="/assets/party/images/boardwalk-crew-v2.webp" alt="Riff, Cleo, Moss and Bolt race through the sunset festival" fetchpriority="high"><div class="festival-copy"><span class="eyebrow">WELCOME TO CORAL CARNIVAL</span><h1>Big laughs.<br>Little rivalries.</h1><p>Roll into a seaside party full of shortcuts, surprises, and one-more-round moments.</p><div class="hero-buttons"><button class="primary" data-create="party">Start a party ↗</button><button class="secondary" data-open-join>Join friends</button></div><div class="hero-facts"><span>2–4 players</span><span>10 / 20 / 30 turns</span><span>Free to play</span></div></div></section><section class="mode-grid" aria-label="Choose a mode"><button class="mode-card" data-create="party"><div><span class="mode-meta">THE WHOLE ADVENTURE · 2–4 PLAYERS</span><h3>Roll with your crew.</h3><p>50 spaces. A central crossing and two scenic detours. Shops, surprises and rival showdowns.</p></div><span class="mode-arrow">↗</span></button><button class="mode-card" data-create="duel"><div><span class="mode-meta">JUST THE MINIGAMES · 1V1</span><h3>Settle the score.</h3><p>Jump into a best-of-three duel. Bring your favorite rival.</p></div><span class="mode-arrow">↗</span></button></section><section><div class="section-heading"><h2>Steal the show.</h2><button class="quiet" data-test-game="board">Test the board</button><p>${C.games.length} games. ${C.games.filter((g) => !g.duelOnly).length} party challenges and ${C.games.filter((g) => g.duelOnly).length} exclusive duels.</p></div><div class="game-grid">${C.games.map((g) => `<button class="game-card" data-rules="${g.id}"><canvas class="game-art" data-preview="${g.id}" aria-hidden="true"></canvas><div class="game-card-body"><span class="eyebrow">${g.tag}</span><h3>${g.name}</h3><p>${g.description}</p></div></button>`).join("")}</div></section><section class="crew-section"><div class="section-heading"><h2>A crew with character.</h2><p>Eight personalities. One of each per match.</p></div><div class="crew-grid">${C.characters.map((c) => `<div class="crew-card"><canvas data-character="${c.id}" aria-hidden="true"></canvas><div><h3>${c.name}</h3><span class="eyebrow">${c.kind}</span><p>${c.bio}</p></div></div>`).join("")}</div></section>`;
     previewObserver?.disconnect();
     previewObserver = new IntersectionObserver(
       (entries) => {
@@ -336,6 +342,56 @@
       entryBusy = false;
     }
   }
+  async function testGame(id) {
+    if (!profile) {
+      signup({ testGame: id });
+      return;
+    }
+    if (entryBusy) return;
+    if (
+      room &&
+      !room.practice &&
+      !["waiting", "complete", "expired"].includes(room.phase)
+    ) {
+      window.open(
+        "/party.html?test=" + encodeURIComponent(id),
+        "_blank",
+        "noopener",
+      );
+      return;
+    }
+    entryBusy = true;
+    try {
+      let result;
+      if (room?.practice)
+        result = await api("debug", {
+          room: room.id,
+          match: room.match,
+          op: "game",
+          target: id,
+        });
+      else
+        result = await api("create", {
+          mode: "party",
+          rounds: 10,
+          practice: true,
+          testGame: id,
+        });
+      modal.close();
+      selectedSpace = null;
+      panelKey = "";
+      robotBurst = null;
+      adopt(result.game, true);
+    } finally {
+      entryBusy = false;
+    }
+  }
+  function debugDialog(selectedGame) {
+    const r = room;
+    openDialog(
+      `<span class="eyebrow">BOARDWALK DEBUG</span><h2>${r?.game ? esc(gameDef().name) : "Board tools"}</h2><p class="test-note">${r?.practice ? "Test session · account rewards and records are not saved." : "Open a separate test session to use debug controls."}</p>${r ? `<p class="small">Phase: ${esc(r.phase)} · Turn ${r.round} · Revision ${r.revision}</p>` : ""}<div class="debug-controls">${r?.practice ? `<div class="debug-buttons"><button data-debug-op="restart">Restart test</button><button data-debug-op="finish" ${r.phase !== "playing" ? "disabled" : ""}>Finish minigame</button><button data-test-game="board">Reset board</button></div><label>Jump to board space<select id="debug-space">${C.spaces.map((n) => `<option value="${n.id}">${n.id + 1} · ${C.spaceInfo[n.type].name}</option>`).join("")}</select></label><button data-debug-op="space">Go to space · 50 coins</button><div class="debug-buttons">${[1, 2, 3, 4, 5, 6].map((n) => `<button data-debug-roll="${n}" ${r.phase !== "board" || r.players[r.turn].id !== r.you ? "disabled" : ""}>Roll ${n}</button>`).join("")}</div><button class="text-button" data-leave>End test · return to menu</button>` : '<button class="primary" data-test-game="board">Open board test</button>'}<label>Choose a minigame<select id="debug-game">${C.games.map((g) => `<option value="${g.id}" ${g.id === (selectedGame || r?.game?.id) ? "selected" : ""}>${g.name}</option>`).join("")}</select></label><button class="primary" data-debug-play>Play selected game</button></div>`,
+    );
+  }
   async function join(code) {
     if (!profile) {
       signup({ code });
@@ -361,6 +417,7 @@
     storage.set("boardwalk-room", room.id);
     const url = new URL(location.href);
     url.searchParams.set("room", room.id);
+    url.searchParams.delete("test");
     history.replaceState(null, "", url);
     const self = room.players.findIndex((p) => p.id === room.you),
       v = room.game?.progress[self];
@@ -377,6 +434,16 @@
       const prior = previous.game.progress[self],
         current = room.game.progress[self];
       if (
+        current.robotResult?.at &&
+        current.robotResult.at !== prior.robotResult?.at
+      ) {
+        tone("headpop");
+        tone("crowd");
+        tone(current.robotResult.won ? "yes" : "aww");
+      }
+      if (room.game.id === "mine" && current.cargo.length > prior.cargo.length)
+        tone("coin");
+      if (
         current.hitAt &&
         current.hitAt !== prior.hitAt &&
         [
@@ -386,6 +453,7 @@
           "safe-wires",
           "band",
           "balloon",
+          "moles",
         ].includes(room.game.id)
       )
         tone(
@@ -460,7 +528,9 @@
           (room.phase === "countdown"
             ? 180
             : room.phase === "playing"
-              ? 450
+              ? room.game.id === "moles"
+                ? 180
+                : 450
               : room.phase === "walking"
                 ? 400
                 : 1000),
@@ -522,7 +592,7 @@
       screen = mainKey;
       panelKey = "";
       rosterKey = "";
-      app.innerHTML = `<div class="room-header"><div><span class="eyebrow">${r.mode === "duel" ? "QUICK DUEL" : "PARTY MATCH"} · CORAL CARNIVAL</span><h1 id="room-title"></h1></div><button class="room-code" id="share-code" title="Copy invite link">${esc(r.id)} ↗</button></div><div class="match-layout"><div><div class="scene-frame match-scene"><canvas id="party-scene" role="img" aria-label="Live three-dimensional party board and minigame"></canvas><span class="scene-badge" id="scene-label"></span><div class="scene-wallet" id="scene-wallet"></div><div class="scene-clock" id="scene-clock"></div><div id="start-count" class="start-count" aria-live="polite"></div><div id="score-popups" aria-live="polite"></div><div id="scene-controls"></div><div id="space-inspector" class="space-inspector" hidden aria-live="polite"></div><div class="scene-tools"><button data-map aria-label="Toggle whole board view" title="Whole board / follow player">⌖</button><button data-board-guide aria-label="Board space guide">?</button></div></div><div id="score-strip" class="score-strip"></div><div id="roll-order" class="roll-order"></div><p class="turn-message" id="turn-message" aria-live="polite"></p></div><aside class="side-panel"><div id="panel"></div><div class="countdown"><span id="timer-label"></span><strong class="timer" id="timer">—</strong></div><div class="round-progress" id="round-progress"></div><p class="live-status" id="connection"><i class="live-dot"></i><span>Connected · private room</span></p></aside></div>`;
+      app.innerHTML = `<div class="room-header"><div><span class="eyebrow">${r.practice ? "TEST SESSION" : r.mode === "duel" ? "QUICK DUEL" : "PARTY MATCH"} · CORAL CARNIVAL</span><h1 id="room-title"></h1></div><button class="room-code" id="share-code" title="Copy invite link">${esc(r.id)} ↗</button></div><div class="match-layout"><div><div class="scene-frame match-scene"><canvas id="party-scene" role="img" aria-label="Live three-dimensional party board and minigame"></canvas><span class="scene-badge" id="scene-label"></span><div class="scene-wallet" id="scene-wallet"></div><div class="scene-clock" id="scene-clock"></div><div id="start-count" class="start-count" aria-live="polite"></div><div id="score-popups" aria-live="polite"></div><div id="scene-controls"></div><div id="space-inspector" class="space-inspector" hidden aria-live="polite"></div><div class="scene-tools"><button data-debug title="Debug tools">Debug</button><button data-map aria-label="Toggle whole board view" title="Whole board / follow player">⌖</button><button data-board-guide aria-label="Board space guide">?</button></div></div><div id="score-strip" class="score-strip"></div><div id="roll-order" class="roll-order"></div><p class="turn-message" id="turn-message" aria-live="polite"></p></div><aside class="side-panel"><div id="panel"></div><div class="countdown"><span id="timer-label"></span><strong class="timer" id="timer">—</strong></div><div class="round-progress" id="round-progress"></div><p class="live-status" id="connection"><i class="live-dot"></i><span>Connected · private room</span></p></aside></div>`;
     }
     $("#roll-order").innerHTML =
       r.mode === "party" && r.phase !== "waiting"
@@ -552,9 +622,12 @@
     $("#scene-wallet").innerHTML =
       icon("coin") + "<b>" + me().tokens + "</b><span>your coins</span>";
     document.body.dataset.game = playing ? r.game.id : "board";
-    $(".scene-tools").hidden =
+    const hideBoardTools =
       playing ||
       ["order-roll", "order-reveal", "finale", "complete"].includes(r.phase);
+    $(".scene-tools").hidden = false;
+    $("[data-map]").hidden = hideBoardTools;
+    $("[data-board-guide]").hidden = hideBoardTools;
     renderSpaceInspector(playing);
     const places = C.standings(r.players, r.mode);
     const rank = r.players
@@ -691,6 +764,19 @@
       } else
         panel.innerHTML =
           '<span class="eyebrow">A FRESH START</span><h2>This room has closed.</h2><p class="status-note">Start a new festival with your friends.</p><button class="primary" data-leave>Back to the boardwalk</button>';
+      if (r.practice) {
+        if (r.phase === "round-end") {
+          panel.querySelector(".status-note")?.remove();
+          panel.insertAdjacentHTML(
+            "beforeend",
+            `<div class="stack"><button class="primary" data-test-game="${r.testGame}">Play again</button><button class="secondary" data-debug>Choose another game / Debug</button><button class="text-button" data-leave>Back to all minigames</button></div>`,
+          );
+        }
+        panel.insertAdjacentHTML(
+          "beforeend",
+          '<p class="test-note">Test session · rewards and records are not saved</p>',
+        );
+      }
       if (["intro", "countdown", "playing"].includes(r.phase))
         panel.insertAdjacentHTML("beforeend", controlsGuide(r.game.id));
       const overlay = $("#scene-controls"),
@@ -729,6 +815,7 @@
     PartyPlayInput.bind($("#party-scene"), () => room, submitPlay, now, aim);
     if (C.games.find((g) => g.id === r.game?.id)?.engine === "expansion")
       PartyExpansionUI.tick(r, now());
+    PartyMidwayUI.tick(r, now());
     pendingControls();
   }
   function showArrows(next) {
@@ -744,6 +831,8 @@
   }
   function controls(id, v) {
     const def = C.games.find((g) => g.id === id);
+    if (def?.engine === "midway" || id === "draft")
+      return PartyMidwayUI.controls(id);
     if (def?.engine === "expansion")
       return PartyExpansionUI.controls(room.game, v);
     if (def?.engine === "festival")
@@ -838,6 +927,26 @@
       if (room?.game) node.outerHTML = controlsGuide(room.game.id);
     });
   }
+  function flushRobot() {
+    if (
+      !robotBurst?.count ||
+      !room ||
+      robotBurst.key !== room.game?.start ||
+      room.phase !== "playing"
+    ) {
+      if (robotBurst?.key !== room?.game?.start) robotBurst = null;
+      return;
+    }
+    if (now() - lastInputAt < 240 || playQueue.length >= 3) return;
+    const stage = PartyMidwayRules.robotStage(room.game, now());
+    if (!stage.fighting || stage.index !== robotBurst.stage) {
+      robotBurst = null;
+      return;
+    }
+    const count = Math.min(4, robotBurst.count);
+    robotBurst.count -= count;
+    submitPlay({ value: "punch", count, stage: stage.index });
+  }
   function submitPlay(data) {
     const r = room,
       at = now();
@@ -851,16 +960,51 @@
       return;
     const v = r.game.progress[r.players.findIndex((p) => p.id === r.you)];
     if (
+      r.game.id === "robots" &&
+      data.value === "punch" &&
+      data.count === undefined
+    ) {
+      const i = r.players.findIndex((p) => p.id === r.you),
+        stage = PartyMidwayRules.robotStage(r.game, at);
+      if (
+        !stage.fighting ||
+        !PartyMidwayRules.robotPairs(r.game, stage.index).some(
+          (p) => p.length === 2 && p.includes(i),
+        )
+      )
+        return;
+      if (
+        !robotBurst ||
+        robotBurst.key !== r.game.start ||
+        robotBurst.stage !== stage.index
+      )
+        robotBurst = { key: r.game.start, stage: stage.index, count: 0, at: 0 };
+      if (at - robotBurst.at < 60 || robotBurst.count >= 8) return;
+      robotBurst.at = at;
+      robotBurst.count++;
+      const punchNumber =
+        localInput?.start === r.game.start &&
+        localInput.fields.robotStage === stage.index
+          ? (localInput.fields.punchNumber || 0) + 1
+          : 1;
+      localInput = PartyInteraction.predict(r, "punch", at, localInput);
+      localInput.fields.punchNumber = punchNumber;
+      localInput.fields.robotStage = stage.index;
+      tone("punch");
+      return;
+    }
+    if (
       v.finished ||
       !r.game.participants.includes(r.you) ||
-      at - lastInputAt < 140 ||
+      (r.game.id !== "pizza" && at - lastInputAt < 140) ||
       playQueue.length >= 3
     )
       return;
     lastInputAt = at;
-    localInput = PartyInteraction.predict(r, data.value, at, localInput);
+    if (r.game.id !== "robots")
+      localInput = PartyInteraction.predict(r, data.value, at, localInput);
     const prediction = localInput;
-    if (data.value !== "steer")
+    if (data.value !== "steer" && r.game.id !== "robots")
       tone(
         {
           rope: "jump",
@@ -877,6 +1021,15 @@
           puzzle: "block",
           math: "tap",
           band: "drum",
+          mine: "dig",
+          pizza:
+            data.value === "serve"
+              ? "serve"
+              : data.value === "bake"
+                ? "oven"
+                : "tap",
+          moles: "whack",
+          robots: "punch",
         }[r.game.id] || "tap",
       );
     playQueue.push({
@@ -911,6 +1064,15 @@
           continue;
         }
         try {
+          if (room.game.id === "pizza") {
+            const v =
+              room.game.progress[
+                room.players.findIndex((p) => p.id === room.you)
+              ];
+            const delay = Math.max(0, 150 - (now() - v.last));
+            if (delay)
+              await new Promise((resolve) => setTimeout(resolve, delay));
+          }
           const result = await api("play", b);
           input.prediction.pending = false;
           if (room?.id === b.room && result.game) adopt(result.game);
@@ -1010,7 +1172,7 @@
   }
   function how() {
     openDialog(
-      `<span class="eyebrow">A DAY AT CORAL CARNIVAL</span><h2>Bring your favorite rival.</h2><p><strong>Party Match:</strong> 2–4 players, 10, 20, or 30 turns per player. Roll dice, choose paths, and visit item carts. Stop at the glowing trophy host and choose whether to buy one for 10 match coins. Minigames award coins, not trophies; trophy-staked 1v1 duels transfer the staked trophies. In collection games, everyone keeps their coins.</p><p><strong>Quick Duel:</strong> 1v1 minigames. First to two wins takes the match. A tied series is settled with Circuit Sprint.</p><p><strong>Winning:</strong> Most trophies wins a party. Placement points (1,000 / 650 / 400 / 250 per minigame) break a tie; if those are equal, two tied players enter Circuit Sprint; larger ties enter Rooftop Rally.</p><p><strong>Items:</strong> Buy single-use double/triple dice, a chosen roll, a position swap, a Trophy Taxi, skates or a shield. Carry up to three; replace an item when buying or receiving a new one. Use one item before rolling. Each store has different stock. Visiting a cart pauses your walk, and you always move onward after leaving.</p><p><strong>Your profile:</strong> Earn coins for cosmetic outfits. Board tokens cannot be purchased. No cash prizes, paid entries, or chip deposits are offered.</p><p><strong>Need to reconnect?</strong> Reload this page on the same browser. Board turns have a timer, so friends can keep playing during an interruption.</p>`,
+      `<span class="eyebrow">A DAY AT CORAL CARNIVAL</span><h2>Bring your favorite rival.</h2><p><strong>Party Match:</strong> 2–4 players, 10, 20, or 30 turns per player. Roll dice, choose paths, and visit item carts. Stop at the glowing trophy host and choose whether to buy one for 20 match coins. Minigames award coins, not trophies; trophy-staked 1v1 duels transfer the staked trophies. In collection games, everyone keeps their coins.</p><p><strong>Quick Duel:</strong> 1v1 minigames. First to two wins takes the match. A tied series is settled with Circuit Sprint.</p><p><strong>Winning:</strong> Most trophies wins a party. Placement points (1,000 / 650 / 400 / 250 per minigame) break a tie; if those are equal, two tied players enter Circuit Sprint; larger ties enter Rooftop Rally.</p><p><strong>Items:</strong> Buy single-use double/triple dice, a chosen roll, a position swap, a Trophy Taxi, skates or a shield. Carry up to three; replace an item when buying or receiving a new one. Use one item before rolling. Each store has different stock. Visiting a cart pauses your walk, and you always move onward after leaving.</p><p><strong>Your profile:</strong> Earn coins for cosmetic outfits. Board tokens cannot be purchased. No cash prizes, paid entries, or chip deposits are offered.</p><p><strong>Need to reconnect?</strong> Reload this page on the same browser. Board turns have a timer, so friends can keep playing during an interruption.</p>`,
     );
   }
   async function copy() {
@@ -1027,7 +1189,11 @@
     }
   }
   async function leave() {
-    if (room && !["waiting", "complete", "expired"].includes(room.phase)) {
+    if (
+      room &&
+      !room.practice &&
+      !["waiting", "complete", "expired"].includes(room.phase)
+    ) {
       notify(
         "Your match is still active. Your seat will be here when you reconnect.",
       );
@@ -1035,6 +1201,7 @@
     }
     if (room && room.phase !== "expired")
       await api("leave", { room: room.id, match: room.match });
+    modal.close();
     clearTimeout(pollTimer);
     storage.remove("boardwalk-room");
     const url = new URL(location.href);
@@ -1074,6 +1241,30 @@
     try {
       if (b.classList.contains("modal-close")) {
         modal.close();
+        return;
+      }
+      if (b.dataset.testGame) {
+        await testGame(b.dataset.testGame);
+        return;
+      }
+      if (b.hasAttribute("data-debug")) {
+        debugDialog(b.dataset.debugGame);
+        return;
+      }
+      if (b.hasAttribute("data-debug-play")) {
+        await testGame($("#debug-game").value);
+        return;
+      }
+      if (b.dataset.debugOp || b.dataset.debugRoll) {
+        const data = {
+          op: b.dataset.debugOp || "roll",
+          space: Number($("#debug-space")?.value),
+          value: Number(b.dataset.debugRoll),
+        };
+        await roomAction("debug", data);
+        modal.close();
+        panelKey = "";
+        renderRoom();
         return;
       }
       if (b.dataset.create) {
@@ -1136,7 +1327,7 @@
       if (b.dataset.rules) {
         const g = C.games.find((g) => g.id === b.dataset.rules);
         openDialog(
-          `<span class="eyebrow">${g.tag}</span><h2>${g.name}</h2><p>${g.rules}</p>${controlsGuide(g.id)}<p class="small">Find this minigame in Party Match or Quick Duel. Everyone gets the same rules and time limit.</p>`,
+          `<span class="eyebrow">${g.tag}</span><h2>${g.name}</h2><p>${g.rules}</p>${controlsGuide(g.id)}<div class="game-test-buttons"><button class="primary" data-test-game="${g.id}">Play minigame</button><button class="secondary" data-debug data-debug-game="${g.id}">Debug tools</button></div><p class="small">Play immediately with bots in a separate test session.</p>`,
         );
         return;
       }
@@ -1295,6 +1486,7 @@
         if (intent?.mode) await create(intent.mode);
         if (intent?.code) await join(intent.code);
         if (intent?.wardrobe) await wardrobe();
+        if (intent?.testGame) await testGame(intent.testGame);
       } else await join($("#room-input").value.trim().toUpperCase());
     } catch (error) {
       if ($("#form-error")) $("#form-error").textContent = error.message;
@@ -1453,6 +1645,8 @@
       }
     }
     PartyExpansionUI.tick(r, stamp);
+    PartyMidwayUI.tick(r, stamp);
+    flushRobot();
     if (r.game?.id === "band") PartyAudio.band?.(r, stamp);
     else PartyAudio.band?.(null, stamp);
     if (r.phase === "playing" && r.game.id === "putt") {
@@ -1588,6 +1782,14 @@
       document.querySelectorAll("[data-control]").forEach((b) => {
         const id = r.game.id;
         let locked = false;
+        if (gameDef().engine === "midway" || id === "draft")
+          locked = PartyMidwayUI.locked(
+            r.game,
+            v,
+            b,
+            stamp,
+            r.players.findIndex((p) => p.id === r.you),
+          );
         if (id === "math") locked = v.locked || r.game.cue?.reveal;
         if (id === "puzzle") locked = b.classList.contains("empty");
         if (id === "safe-panel")
@@ -1636,6 +1838,8 @@
               (r.players[to]?.name || "neighbor") +
               (value === "right" ? " →" : "");
           }
+          if (id === "draft")
+            waiting ||= PartyMidwayUI.locked(r.game, v, b, stamp, own);
           if (["simon", "confetti", "fencing", "draft", "rope"].includes(id))
             waiting ||= v.actedBeat === r.game.cue?.index;
           if (id === "tug" && value === "pull")
@@ -1724,7 +1928,7 @@
       const code =
         new URL(location.href).searchParams.get("room") ||
         storage.get("boardwalk-room");
-      if (code) {
+      if (code && !new URL(location.href).searchParams.has("test")) {
         try {
           const r = await api("get", { room: code });
           adopt(r.game, true);
@@ -1740,5 +1944,14 @@
       if (new URL(location.href).searchParams.has("room")) joinDialog();
     }
   }
-  boot();
+  boot().then(async () => {
+    const id = new URL(location.href).searchParams.get("test");
+    if (id && (id === "board" || C.games.some((g) => g.id === id))) {
+      try {
+        await testGame(id);
+      } catch (e) {
+        notify(e.message);
+      }
+    }
+  });
 })();

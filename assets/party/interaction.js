@@ -64,10 +64,13 @@
       "pull",
       "serve",
       "launch",
+      "punch",
     ].find((v) => list.some(([x]) => x === v));
     if (primary) map.Space = primary;
     if (id === "band")
       for (const [i, k] of ["d", "f", "j", "k"].entries()) map[k] = i;
+    if (id === "mine")
+      Object.assign(map, { w: "up", a: "left", s: "down", d: "right" });
     return map;
   }
   function predict(state, value, at, previous) {

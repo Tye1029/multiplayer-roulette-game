@@ -1,14 +1,20 @@
 "use strict";
 const { randomInt: rnd } = require("node:crypto");
 const F = require("./festival-games");
+const W = require("./midway-games");
 const E = require("./expansion-games"),
   P = require("./putting");
 const X = require("../../../assets/party/expansion-rules");
 const R = require("../../../assets/party/rules");
 const ids = ["fish", "cascade", "lantern", "hop", "dash", "signal"];
 const handled = (id) =>
-  id === "putt" || ids.includes(id) || F.handled(id) || E.handled(id);
+  id === "putt" ||
+  ids.includes(id) ||
+  F.handled(id) ||
+  E.handled(id) ||
+  W.handled(id);
 function setup(g) {
+  if (W.handled(g.id)) return W.setup(g);
   if (g.id === "putt") return P.setup(g);
   if (E.handled(g.id)) return E.setup(g);
   if (F.handled(g.id)) return F.setup(g);
@@ -83,6 +89,7 @@ function setup(g) {
     });
 }
 function cue(g, now, i = 0) {
+  if (W.handled(g.id)) return W.cue(g, now);
   if (E.handled(g.id)) return E.cue(g, now);
   if (F.handled(g.id)) return F.cue(g, now);
   if (g.id === "fish" && g.progress[i]?.catch) return null;
@@ -114,6 +121,7 @@ function miss(g, i, now, label) {
   }
 }
 function advance(g, i, now) {
+  if (W.handled(g.id)) return W.advance(g, i, now);
   if (g.id === "putt") return P.advance(g, i, now);
   if (E.handled(g.id)) return E.advance(g, i, now);
   if (F.handled(g.id)) return F.advance(g, i, now);
@@ -187,6 +195,7 @@ function advance(g, i, now) {
   if (v.resolved === g.beats.length - 1) v.finished ||= now;
 }
 function play(g, i, b, now, fail) {
+  if (W.handled(g.id)) return W.play(g, i, b, now, fail);
   if (g.id === "putt") return P.play(g, i, b, now, fail);
   if (E.handled(g.id)) return E.play(g, i, b, now, fail);
   if (F.handled(g.id)) return F.play(g, i, b, now, fail);
@@ -282,6 +291,7 @@ function play(g, i, b, now, fail) {
   }
 }
 function bot(g, i, now) {
+  if (W.handled(g.id)) return W.bot(g, i, now);
   if (g.id === "putt") return P.bot(g, i, now);
   if (E.handled(g.id)) return E.bot(g, i, now);
   if (F.handled(g.id)) return F.bot(g, i, now);
@@ -332,7 +342,8 @@ module.exports = {
   bot,
   cue,
   publicView(g, out, now, viewer) {
-    if (E.handled(g.id)) E.publicView(g, out, now, viewer);
+    if (W.handled(g.id)) W.publicView(g, out, now, viewer);
+    else if (E.handled(g.id)) E.publicView(g, out, now, viewer);
     else if (F.handled(g.id)) F.publicView(g, out, now, viewer);
     if (g.id === "cascade")
       out.drops = g.beats.filter(

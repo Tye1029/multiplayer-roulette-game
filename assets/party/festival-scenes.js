@@ -380,48 +380,25 @@ export function festivalScenes(H) {
             ball(p, x * 0.3, 2.6, 0, 0.1, 0.1, 0.1, "#f39aac"),
           );
         }
-        if (
-          ["confetti", "draft", "fuse", "bakery", "rhythm", "fencing"].includes(
-            id,
-          )
-        ) {
+        if (["confetti", "fuse", "bakery", "rhythm", "fencing"].includes(id)) {
           box(p, 0, 1.1, -0.8, 5.5, 0.25, 2.2, "#d4a77b");
           for (const x of [-2, 2])
             box(p, x, 0.6, -0.8, 0.15, 1, 1.8, "#a68371");
         }
-        if (["confetti", "draft"].includes(id)) {
+        if (id === "confetti") {
           for (let j = 0; j < 3; j++) {
             const item = new T.Group();
             p.add(item);
             item.position.set((j - 1) * 1.6, 1.3, -0.8);
-            if (id === "confetti") {
-              cyl(item, 0, 0.3, 0, 0.3, 0.43, 0.7, palette[j], 16);
-              torus(item, 0, 0.7, 0, 0.31, 0.07, "#fff2c9").rotation.x =
-                Math.PI / 2;
-            } else {
-              cyl(item, 0, 0.03, 0, 0.6, 0.6, 0.08, "#fff2d0", 20);
-              for (let c = 0; c < 4; c++) {
-                cyl(
-                  item,
-                  ((c % 2) - 0.5) * 0.4,
-                  0.12 + Math.floor(c / 2) * 0.15,
-                  0,
-                  0.22,
-                  0.22,
-                  0.12,
-                  "#be8d59",
-                  14,
-                );
-              }
-            }
+            cyl(item, 0, 0.3, 0, 0.3, 0.43, 0.7, palette[j], 16);
+            torus(item, 0, 0.7, 0, 0.31, 0.07, "#fff2c9").rotation.x =
+              Math.PI / 2;
             sign(item, String(j + 1), 0, 0.9, 0, 0.23);
             st.objects.push(item);
-            if (id === "confetti") {
-              st.paper ||= [];
-              for (let k = 0; k < 8; k++) {
-                const m = box(p, 0, 0, 0, 0.12, 0.2, 0.03, palette[k % 4]);
-                st.paper.push({ m, popper: j, k });
-              }
+            st.paper ||= [];
+            for (let k = 0; k < 8; k++) {
+              const m = box(p, 0, 0, 0, 0.12, 0.2, 0.03, palette[k % 4]);
+              st.paper.push({ m, popper: j, k });
             }
           }
         } else if (id === "fuse") {
@@ -871,12 +848,12 @@ export function festivalScenes(H) {
             y += Math.sin(clamp((now - v.moveAt) / 700) * Math.PI) * 1.5;
           x += v.pose === "left" ? -0.7 : v.pose === "right" ? 0.7 : 0;
         }
-      } else if (id === "confetti" || id === "draft") {
+      } else if (id === "confetti") {
         st.objects.forEach((o, j) => {
-          const chosen = id === "confetti" ? b.color % 3 : b.lane;
+          const chosen = b.color % 3;
           o.rotation.z = j === chosen ? Math.sin(t * 5) * 0.06 : 0;
           o.scale.setScalar(j === chosen ? 1.12 : 1);
-          if (id === "confetti" && j === v.popper && now - v.popperAt < 250)
+          if (j === v.popper && now - v.popperAt < 250)
             o.scale.y =
               1 - Math.sin(clamp((now - v.popperAt) / 250) * Math.PI) * 0.2;
         });

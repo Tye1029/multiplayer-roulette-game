@@ -250,6 +250,8 @@ try {
       r.url().includes("party-action") &&
       r.request().postDataJSON()?.action === "play",
   );
+  // Keep the original assertion visible if an earlier check closes the page.
+  response.catch(() => {});
   await page.keyboard.press("Space");
   await page.waitForTimeout(170);
   const feedback = await page.evaluate(() => ({
@@ -305,7 +307,14 @@ try {
   await page.waitForTimeout(160);
   await shot("bomb-flight", 390);
   // Touch instructions update from actual touch input; all local item assets are served.
-  await page.touchscreen.tap(30, 30);
+  // Tap the game itself. A viewport corner can hit the brand navigation after
+  // screenshots or auto-scrolling, which reloads the page and resets input mode.
+  await page.locator("#party-scene").tap({ position: { x: 20, y: 90 } });
+  await page.waitForFunction(() =>
+    document
+      .querySelector(".control-guide")
+      ?.textContent.includes("TOUCH CONTROLS"),
+  );
   assert.match(
     await page.locator(".control-guide").innerText(),
     /TOUCH CONTROLS/,

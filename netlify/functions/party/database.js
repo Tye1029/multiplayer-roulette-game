@@ -30,7 +30,7 @@ function createStore(injectedPool,clock=Date.now){
     else{const skin=C.skins.find(x=>x.id===b.skin);if(!skin)M.fail('Unknown outfit.',400);if(!row.owned.includes(skin.id)){if(b.action!=='purchase')M.fail('Unlock that outfit first.');if(row.coins<skin.price)M.fail('Earn more coins to unlock this outfit.');await c.query('UPDATE party_profiles SET coins=coins-$2,owned=$3::jsonb WHERE id=$1',[p.id,skin.price,JSON.stringify([...row.owned,skin.id])]);}await c.query('UPDATE party_profiles SET skin=$2 WHERE id=$1',[p.id,skin.id]);}
     return true;
   });}
-  async function reward(c,s){if(s.phase!=='complete')return;const day=new Date(clock()).toISOString().slice(0,10);
+  async function reward(c,s){if(s.phase!=='complete'||s.practice)return;const day=new Date(clock()).toISOString().slice(0,10);
     // Stable lock order prevents deadlocks when two rooms finish together.
     for(const p of [...s.players].filter(p=>!p.bot).sort((a,b)=>a.id.localeCompare(b.id))){await c.query('SELECT id FROM party_profiles WHERE id=$1 FOR UPDATE',[p.id]);
       if((await c.query('SELECT coins FROM party_rewards WHERE player_id=$1 AND room_id=$2 AND match_no=$3',[p.id,s.id,s.match])).rows.length)continue;
@@ -44,7 +44,7 @@ function createStore(injectedPool,clock=Date.now){
   async function create(p,b){return tx(async c=>{await c.query('SELECT pg_advisory_xact_lock(hashtext($1))',['party-create:'+p.id]);const prior=(await c.query('SELECT state FROM party_rooms WHERE owner_id=$1 AND request_id=$2',[p.id,b.requestId])).rows[0];if(prior)return M.view(prior.state,p.id,clock());
     const active=(await c.query("SELECT id FROM party_rooms WHERE owner_id=$1 AND updated_at>NOW()-INTERVAL '30 minutes' AND state->>'phase' NOT IN ('complete','expired')",[p.id])).rows;if(active.length>=3)M.fail('Finish your existing party before creating another.');
     let id;do{id=Array.from(crypto.randomBytes(6),n=>'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[n%32]).join('');}while((await c.query('SELECT id FROM party_rooms WHERE id=$1',[id])).rows.length);
-    const s=M.create(id,p,b.mode,clock(),b.rounds);await c.query('INSERT INTO party_rooms(id,owner_id,request_id,state) VALUES($1,$2,$3,$4::jsonb)',[id,p.id,b.requestId,JSON.stringify(s)]);return M.view(s,p.id,clock());});}
+    const s=M.create(id,p,b.mode,clock(),b.rounds);if(b.practice===true)M.testStart(s,b.testGame,clock());await c.query('INSERT INTO party_rooms(id,owner_id,request_id,state) VALUES($1,$2,$3,$4::jsonb)',[id,p.id,b.requestId,JSON.stringify(s)]);return M.view(s,p.id,clock());});}
   async function action(p,b){return tx(async c=>{const row=(await c.query('SELECT state FROM party_rooms WHERE id=$1 FOR UPDATE',[b.room])).rows[0];if(!row)M.fail('Room not found. Check the six-letter code.',404);const s=row.state;
     if(b.action==='leave'&&s.receipts.includes(p.id+':'+b.requestId))return null;
     if(b.action==='join')M.join(s,p);if(!s.players.some(x=>x.id===p.id))M.fail('Join this room to see it.',403);
