@@ -771,3 +771,60 @@ body[data-phase="playing"] .scene-tools {
     transition: none;
   }
 }
+
+#debug-report {
+  width: 100%;
+  min-height: 120px;
+  max-height: 240px;
+  resize: vertical;
+  font:
+    11px/1.4 ui-monospace,
+    monospace;
+  background: #fff8ec;
+  color: #354158;
+  border: 1px solid #bbaeca;
+  border-radius: 9px;
+  padding: 10px;
+}
+#debug-copy-status {
+  font-size: 12px;
+  color: #4e6856;
+}
+body[data-phase="playing"] #scene-controls {
+  bottom: 48px;
+}
+body[data-game="memory"] .memory-grid {
+  gap: 6px;
+}
+body[data-game="memory"] #memory-status {
+  margin: 3px !important;
+}
+body[data-game="memory"] [data-replay] {
+  padding: 3px;
+  min-height: 24px;
+}
+
+body[data-game="putt"] #scene-controls .controls {
+  display: block;
+  text-align: center;
+}
+body[data-game="putt"] .putt-hint {
+  display: inline-block;
+  width: auto;
+  max-width: 95%;
+  padding: 8px 14px;
+  background: #304559dd;
+  color: #fff4dc;
+  font-size: 12px;
+  border-radius: 14px;
+}
+body[data-game="putt"] .putt-hint[hidden] {
+  display: none;
+}
+#scene-controls #memory-status {
+  color: #fff4dc;
+}
+
+#scene-controls .small {
+  color: #fff3df;
+}

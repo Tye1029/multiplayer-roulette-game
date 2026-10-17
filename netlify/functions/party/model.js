@@ -2,6 +2,7 @@
 const crypto = require("node:crypto"),
   C = require("../../../assets/party/catalog"),
   G = require("./minigames"),
+  R = require("../../../assets/party/rules"),
   Ceremony = require("./ceremony");
 const rnd = (n) => crypto.randomInt(n),
   pick = (xs) => xs[rnd(xs.length)],
@@ -823,8 +824,10 @@ function play(s, p, b, now) {
     }
     if (!Number.isInteger(b.value) || b.value < 0 || b.value > 3)
       fail("Choose a light.", 400);
-    if (now < v.showAt + v.pattern.length * 650 + 300)
+    if (now < v.showAt + R.memoryReady + v.pattern.length * R.memoryBeat + 300)
       fail("Watch the pattern first.");
+    v.padAt = now;
+    v.pad = b.value;
     const expected =
       v.pattern[v.reverse ? v.pattern.length - 1 - v.cursor : v.cursor];
     if (b.value === expected) {
@@ -1016,7 +1019,8 @@ function advance(s, now = Date.now()) {
             );
           if (
             g.id === "memory" &&
-            now > v.showAt + v.pattern.length * 650 + 300
+            now >
+              v.showAt + R.memoryReady + v.pattern.length * R.memoryBeat + 300
           )
             play(
               s,
@@ -1368,6 +1372,18 @@ function view(s, id, now = Date.now()) {
     if (s.game.id === "fish")
       out.game.cues = s.players.map((_, i) => G.cue(s.game, now, i));
     out.game.progress = out.game.progress.map((v, i) => {
+      if (s.game.id === "memory") {
+        const age = now - v.showAt - R.memoryReady;
+        const n = Math.floor(age / R.memoryBeat);
+        v.demoPad =
+          s.phase === "playing" &&
+          n >= 0 &&
+          n < v.pattern.length &&
+          age % R.memoryBeat < R.memoryFlash
+            ? v.pattern[n]
+            : null;
+        v.demoAt = v.showAt + R.memoryReady + n * R.memoryBeat;
+      }
       if (i !== index) {
         delete v.pattern;
         delete v.cursor;
@@ -1375,7 +1391,11 @@ function view(s, id, now = Date.now()) {
         return v;
       }
       v.next = s.game.sequence.slice(v.step, v.step + 4);
-      if (now >= v.showAt + v.pattern.length * 650 + 300) delete v.pattern;
+      if (
+        now >=
+        v.showAt + R.memoryReady + v.pattern.length * R.memoryBeat + 300
+      )
+        delete v.pattern;
       return v;
     });
   }

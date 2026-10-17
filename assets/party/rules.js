@@ -75,6 +75,17 @@
     return (beat.layout || [0, 1, 2, 3]).indexOf(beat.color);
   }
   return {
+    memoryReady: 1200,
+    memoryBeat: 650,
+    memoryFlash: 460,
+    fishSpecies: [
+      "Sunlit perch",
+      "Coral snapper",
+      "Blue tang",
+      "Silver trout",
+      "Moon puffer",
+      "Festival koi",
+    ],
     clamp,
     cannon,
     cannonPosition,

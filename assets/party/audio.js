@@ -12,6 +12,9 @@
   const score = globalThis.PartySoundtrack;
   let theme = 0,
     bag = [];
+  let memoryActive = false,
+    memoryKey = "",
+    memoryNotes = new Set();
   let bandActive = false,
     bandKey = "",
     scheduledNotes = new Set();
@@ -152,6 +155,13 @@
       voice(kind, character);
       return;
     }
+    if (kind === "reel") {
+      for (let i = 0; i < 7; i++) {
+        noise(at + i * 0.055, 0.028, 0.08, 1500);
+        note(620 + i * 45, at + i * 0.055, 0.045, 0.04, fx, "triangle");
+      }
+      return;
+    }
     if (kind === "roll") {
       for (let i = 0; i < 11; i++)
         noise(at + i * 0.105, 0.045, 0.28 * (1 - i / 15), 1800 - i * 80);
@@ -214,7 +224,10 @@
       return;
     }
     if (kind === "splash") {
-      noise(at, 0.3, 0.3, 1800);
+      noise(at, 0.34, 0.19, 1200);
+      [480, 620, 390, 760].forEach((hz, i) =>
+        note(hz, at + 0.08 + i * 0.065, 0.12, 0.045, fx),
+      );
       return;
     }
     const notes =
@@ -238,6 +251,7 @@
       !enabled ||
       !musicOn ||
       bandActive ||
+      memoryActive ||
       document.hidden
     )
       return;
@@ -304,5 +318,55 @@
       if (n.index % 4 === 0) note(90, at, 0.18, 0.14, fx, "sine");
     }
   }
-  globalThis.PartyAudio = { play, set, voice, band };
+  function pad(n, at = ctx?.currentTime) {
+    if (
+      !ctx ||
+      !unlocked ||
+      !enabled ||
+      document.hidden ||
+      !Number.isInteger(n)
+    )
+      return;
+    const f = [392, 494, 587, 784][n];
+    if (!f) return;
+    note(f, at, 0.36, 0.14, fx, "triangle");
+    note(f * 2, at, 0.2, 0.035, fx);
+    noise(at, 0.035, 0.025, 750);
+  }
+  function memory(state, stamp, pattern) {
+    memoryActive =
+      state?.game?.id === "memory" &&
+      ["intro", "countdown", "playing"].includes(state.phase);
+    if (
+      !memoryActive ||
+      state.phase !== "playing" ||
+      !ctx ||
+      !unlocked ||
+      !enabled ||
+      document.hidden
+    )
+      return;
+    const i = state.players.findIndex((p) => p.id === state.you),
+      v = state.game.progress[i],
+      R = globalThis.PartyRules,
+      key = state.game.start + ":" + v.showAt;
+    if (key !== memoryKey) {
+      memoryKey = key;
+      memoryNotes.clear();
+    }
+    for (let j = 0; j < pattern.length; j++) {
+      const delay =
+        (v.showAt + R.memoryReady + j * R.memoryBeat - stamp) / 1000;
+      if (delay < -0.08 || delay > 0.25 || memoryNotes.has(j)) continue;
+      memoryNotes.add(j);
+      const at = ctx.currentTime + Math.max(0, delay);
+      pad(pattern[j], at);
+      if (musicOn) {
+        note([98, 123.5, 146.8, 196][pattern[j]], at, 0.55, 0.2, music, "sine");
+        note(196, at + 0.325, 0.15, 0.09, music, "triangle");
+        noise(at, 0.07, 0.026, 500);
+      }
+    }
+  }
+  globalThis.PartyAudio = { play, set, voice, band, pad, memory };
 })();

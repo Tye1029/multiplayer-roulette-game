@@ -212,8 +212,7 @@ test("fishing gives separate public bite cues, one catch, and a measuring phase 
       /finished/,
     );
   }
-  assert.ok(s.game.scores[0] > s.game.scores[1]);
-  assert.ok(s.game.scores[1] > s.game.scores[2]);
+  assert.deepEqual(s.game.scores, [75, 75, 75, 75], "identical ripple sizes yield identical lengths within the bite window");
   assert.ok(
     s.game.progress.every((v) => v.catch.length >= 25 && v.catch.length <= 110),
   );

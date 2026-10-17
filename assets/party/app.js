@@ -1,4 +1,4 @@
-/* BOARDWALK_CARNIVAL_V8 — guest rooms, authoritative matches, local presentation. */
+/* BOARDWALK_CARNIVAL_V10 — guest rooms, authoritative matches, local presentation. */
 (() => {
   "use strict";
   const C = PartyCatalog,
@@ -386,10 +386,75 @@
       entryBusy = false;
     }
   }
+  function debugReport() {
+    const r = room,
+      game = r?.game;
+    return JSON.stringify(
+      {
+        build: C.version || "BOARDWALK_CARNIVAL_V10",
+        time: new Date().toISOString(),
+        scene: globalThis.PartyScene?.diagnostics(),
+        viewport: {
+          width: innerWidth,
+          height: innerHeight,
+          dpr: devicePixelRatio,
+        },
+        browser: navigator.userAgent,
+        connected: network,
+        room: r?.id,
+        phase: r?.phase,
+        revision: r?.revision,
+        round: r?.round,
+        turn: r?.turn,
+        serverTime: r?.serverTime,
+        localTime: now(),
+        test: !!r?.practice,
+        own: r?.players.findIndex((p) => p.id === r.you),
+        players: r?.players.map((p) => ({
+          character: p.character,
+          bot: p.bot,
+          position: p.position,
+          tokens: p.tokens,
+          trophies: p.trophies,
+        })),
+        game,
+        localInput: localInput
+          ? {
+              game: localInput.game,
+              value: localInput.value,
+              at: localInput.at,
+              serverAt: localInput.serverAt,
+              pending: localInput.pending,
+              rejected: localInput.rejected,
+            }
+          : null,
+      },
+      (key, value) => {
+        if (
+          [
+            "pattern",
+            "sequence",
+            "secrets",
+            "orders",
+            "privateChoices",
+            "beats",
+            "cues",
+            "questions",
+            "next",
+          ].includes(key)
+        )
+          return undefined;
+        if (key === "frames")
+          return { count: value.length, first: value[0], last: value.at(-1) };
+        return value;
+      },
+      2,
+    );
+  }
   function debugDialog(selectedGame) {
     const r = room;
     openDialog(
-      `<span class="eyebrow">BOARDWALK DEBUG</span><h2>${r?.game ? esc(gameDef().name) : "Board tools"}</h2><p class="test-note">${r?.practice ? "Test session · account rewards and records are not saved." : "Open a separate test session to use debug controls."}</p>${r ? `<p class="small">Phase: ${esc(r.phase)} · Turn ${r.round} · Revision ${r.revision}</p>` : ""}<div class="debug-controls">${r?.practice ? `<div class="debug-buttons"><button data-debug-op="restart">Restart test</button><button data-debug-op="finish" ${r.phase !== "playing" ? "disabled" : ""}>Finish minigame</button><button data-test-game="board">Reset board</button></div><label>Jump to board space<select id="debug-space">${C.spaces.map((n) => `<option value="${n.id}">${n.id + 1} · ${C.spaceInfo[n.type].name}</option>`).join("")}</select></label><button data-debug-op="space">Go to space · 50 coins</button><div class="debug-buttons">${[1, 2, 3, 4, 5, 6].map((n) => `<button data-debug-roll="${n}" ${r.phase !== "board" || r.players[r.turn].id !== r.you ? "disabled" : ""}>Roll ${n}</button>`).join("")}</div><button class="text-button" data-leave>End test · return to menu</button>` : '<button class="primary" data-test-game="board">Open board test</button>'}<label>Choose a minigame<select id="debug-game">${C.games.map((g) => `<option value="${g.id}" ${g.id === (selectedGame || r?.game?.id) ? "selected" : ""}>${g.name}</option>`).join("")}</select></label><button class="primary" data-debug-play>Play selected game</button></div>`,
+      `<span class="eyebrow">BOARDWALK DEBUG</span><h2>${r?.game ? esc(gameDef().name) : "Board tools"}</h2><p class="test-note">${r?.practice ? "Test session · account rewards and records are not saved." : "Open a separate test session to use debug controls."}</p>${r ? `<p class="small">Phase: ${esc(r.phase)} · Turn ${r.round} · Revision ${r.revision}</p>` : ""}<div class="debug-controls"><button data-copy-debug>Copy debug information</button><span id="debug-copy-status" role="status"></span><textarea id="debug-report" aria-label="Debug information" readonly>${esc(debugReport())}</textarea>${r?.practice ? `<div class="debug-buttons"><button data-debug-op="restart">Restart test</button><button data-debug-op="finish" ${r.phase !== "playing" ? "disabled" : ""}>Finish minigame</button><button data-test-game="board">Reset board</button></div><label>Jump to board space<select id="debug-space">${C.spaces.map((n) => `<option value="${n.id}">${n.id + 1} · ${C.spaceInfo[n.type].name}</option>`).join("")}</select></label><button data-debug-op="space">Go to space · 50 coins</button><div class="debug-buttons">${[1, 2, 3, 4, 5, 6].map((n) => `<button data-debug-roll="${n}" ${r.phase !== "board" || r.players[r.turn].id !== r.you ? "disabled" : ""}>Roll ${n}</button>`).join("")}</div><button class="text-button" data-leave>End test · return to menu</button>` : '<button class="primary" data-test-game="board">Open board test</button>'}<label>Choose a minigame<select id="debug-game">${C.games.map((g) => `<option value="${g.id}" ${g.id === (selectedGame || r?.game?.id) ? "selected" : ""}>${g.name}</option>`).join("")}</select></label><button class="primary" data-debug-play>Play selected game</button></div>`,
     );
   }
   async function join(code) {
@@ -441,6 +506,22 @@
         tone("crowd");
         tone(current.robotResult.won ? "yes" : "aww");
       }
+      if (
+        room.game.id === "putt" &&
+        room.game.putt.holeEvent?.at !== previous.game.putt.holeEvent?.at &&
+        room.game.putt.holeEvent
+      ) {
+        tone("win");
+        tone("crowd");
+      }
+      if (
+        room.game.id === "fish" &&
+        current.catch?.at !== prior.catch?.at &&
+        current.catch
+      ) {
+        tone("splash");
+        tone("yup");
+      }
       if (room.game.id === "mine" && current.cargo.length > prior.cargo.length)
         tone("coin");
       if (
@@ -454,6 +535,8 @@
           "band",
           "balloon",
           "moles",
+          "cascade",
+          "hop",
         ].includes(room.game.id)
       )
         tone(
@@ -476,6 +559,16 @@
         tone(delta > 0 ? "coin" : "error");
       }
     }
+    if (
+      room.game?.id === "lantern" &&
+      previous?.game?.start === room.game.start &&
+      room.game.progress.some(
+        (v, i) =>
+          v.eliminatedAt &&
+          v.eliminatedAt !== previous.game.progress[i]?.eliminatedAt,
+      )
+    )
+      tone("splash");
     const cue = `${room.match}:${room.round}:${room.phase}`;
     if (cue !== lastCue) {
       if (room.phase === "playing") tone("start");
@@ -996,7 +1089,8 @@
     if (
       v.finished ||
       !r.game.participants.includes(r.you) ||
-      (r.game.id !== "pizza" && at - lastInputAt < 140) ||
+      at - lastInputAt <
+        (["pizza", "memory", "climb"].includes(r.game.id) ? 45 : 140) ||
       playQueue.length >= 3
     )
       return;
@@ -1004,9 +1098,14 @@
     if (r.game.id !== "robots")
       localInput = PartyInteraction.predict(r, data.value, at, localInput);
     const prediction = localInput;
-    if (data.value !== "steer" && r.game.id !== "robots")
+    if (r.game.id === "memory" && Number.isInteger(data.value))
+      PartyAudio.pad?.(data.value);
+    if (data.value !== "steer" && !["robots", "memory"].includes(r.game.id))
       tone(
         {
+          climb: "step",
+          fish: "reel",
+          lantern: "jump",
           rope: "jump",
           hop: "jump",
           rhythm: "drum",
@@ -1064,7 +1163,7 @@
           continue;
         }
         try {
-          if (room.game.id === "pizza") {
+          if (["pizza", "memory", "climb"].includes(room.game.id)) {
             const v =
               room.game.progress[
                 room.players.findIndex((p) => p.id === room.you)
@@ -1075,6 +1174,10 @@
           }
           const result = await api("play", b);
           input.prediction.pending = false;
+          input.prediction.serverAt =
+            result.game?.game?.progress[
+              result.game.players.findIndex((p) => p.id === result.game.you)
+            ]?.last;
           if (room?.id === b.room && result.game) adopt(result.game);
         } catch (error) {
           input.prediction.rejected = true;
@@ -1245,6 +1348,21 @@
       }
       if (b.dataset.testGame) {
         await testGame(b.dataset.testGame);
+        return;
+      }
+      if (b.hasAttribute("data-copy-debug")) {
+        const report = $("#debug-report");
+        report.value = debugReport();
+        try {
+          await navigator.clipboard.writeText(report.value);
+          $("#debug-copy-status").textContent =
+            "Copied · paste this into our chat.";
+        } catch {
+          report.focus();
+          report.select();
+          $("#debug-copy-status").textContent =
+            "Select and copy the report below.";
+        }
         return;
       }
       if (b.hasAttribute("data-debug")) {
@@ -1647,6 +1765,7 @@
     PartyExpansionUI.tick(r, stamp);
     PartyMidwayUI.tick(r, stamp);
     flushRobot();
+    PartyAudio.memory?.(r, stamp, memoryPattern);
     if (r.game?.id === "band") PartyAudio.band?.(r, stamp);
     else PartyAudio.band?.(null, stamp);
     if (r.phase === "playing" && r.game.id === "putt") {
@@ -1657,8 +1776,9 @@
           Math.ceil((r.game.start + p.offset + 30000 - stamp) / 1000),
         );
       const el = $("#putt-status");
+      if (el) el.hidden = active.id !== r.you;
       if (el)
-        el.textContent = `${active.name} · course ${Math.min(3, p.course + 1)} / 3 · ${remaining}s · ${active.id === r.you ? (r.game.progress[p.turn].shot && stamp < r.game.progress[p.turn].shot.at + r.game.progress[p.turn].shot.duration + 250 ? "Ball rolling…" : "Drag back and release to putt") : "Watch their shot"}`;
+        el.textContent = `${active.name} · course ${Math.min(3, p.course + 1)} / 3 · ${remaining}s · ${active.id === r.you ? (r.game.progress[p.turn].shot && stamp < r.game.progress[p.turn].shot.at + r.game.progress[p.turn].shot.duration + 250 ? "Ball rolling…" : "Drag back and release to putt") : ""}`;
     }
     if (r.phase === "measuring" && $("#fish-measurements")) {
       const q = Math.min(
@@ -1753,8 +1873,15 @@
       )
         showArrows(localInput.fields.next);
       if (r.game.id === "memory") {
-        const a = Math.floor((stamp - v.showAt) / 650),
-          watch = stamp < v.showAt + memoryPattern.length * 650 + 300;
+        const a = Math.floor(
+            (stamp - v.showAt - PartyRules.memoryReady) / PartyRules.memoryBeat,
+          ),
+          watch =
+            stamp <
+            v.showAt +
+              PartyRules.memoryReady +
+              memoryPattern.length * PartyRules.memoryBeat +
+              300;
         document.querySelectorAll("[data-pad]").forEach((p) => {
           p.disabled = watch || requestBusy;
           p.classList.toggle(
@@ -1762,12 +1889,16 @@
             a >= 0 &&
               a < memoryPattern.length &&
               memoryPattern[a] === Number(p.dataset.pad) &&
-              (stamp - v.showAt) % 650 < 460,
+              (stamp - v.showAt - PartyRules.memoryReady) %
+                PartyRules.memoryBeat <
+                PartyRules.memoryFlash,
           );
         });
         if ($("#memory-status"))
           $("#memory-status").textContent = watch
-            ? "Watch… then repeat."
+            ? stamp < v.showAt + PartyRules.memoryReady
+              ? "Ready… Go! Watch the lights."
+              : "Watch… then repeat."
             : `Your turn · ${v.cursor || 0}/${v.level} lights`;
       }
       if ($("#putt")) {
@@ -1790,6 +1921,7 @@
             stamp,
             r.players.findIndex((p) => p.id === r.you),
           );
+        if (id === "cascade") locked = stamp < (v.stunUntil || 0);
         if (id === "math") locked = v.locked || r.game.cue?.reveal;
         if (id === "puzzle") locked = b.classList.contains("empty");
         if (id === "safe-panel")
@@ -1907,13 +2039,20 @@
                   ? "SPLASH! REEL NOW"
                   : "Next bite…"
               : r.game.id === "lantern"
-                ? "LAND ON " + ["BLUE", "PINK", "MINT", "GOLD"][cue.color]
+                ? stamp <
+                  Math.max(
+                    r.game.start + cue.at - 1800,
+                    (r.game.lanternLast?.at || 0) + 1100,
+                  ) +
+                    280
+                  ? "Watch the host’s card…"
+                  : "LAND ON " + ["BLUE", "PINK", "MINT", "GOLD"][cue.color]
                 : r.game.id === "hop"
                   ? Math.abs(dt + PartyExpansionRules.waveLead(cue.size)) < 140
-                    ? "JUMP NOW · " + cue.size.toUpperCase() + " WAVE"
+                    ? "JUMP NOW · " + cue.size.toUpperCase() + " LOG"
                     : dt < 0
-                      ? cue.size.toUpperCase() + " wave approaching…"
-                      : "Keep watching the tide"
+                      ? cue.size.toUpperCase() + " driftwood approaching…"
+                      : "Watch the next roller"
                   : hint.textContent;
       }
     }

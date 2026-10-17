@@ -333,7 +333,7 @@ test("ripple fishing keeps one timed catch, rejects early and duplicate pulls, a
     M.advance(s, s.game.start + beat.at + beat.window + 1);
   }
   assert.equal(v.attempts, 1);
-  assert.ok(s.game.scores[0] >= 25 && s.game.scores[0] <= 110);
+  assert.ok(s.game.scores[0] >= 23 && s.game.scores[0] <= 120);
   assert.equal(v.catch.length, s.game.scores[0]);
   const early = gameFixture("fish");
   input(early, "0", "reel", early.game.start + 200);

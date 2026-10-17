@@ -104,9 +104,9 @@ test("board decisions allow 60 seconds and minigame results hold for 5", () => {
   assert.equal(r.deadline - r.game.resultAt, 5000);
 });
 test("Coin Cascade spikes subtract only collected coins", () => {
- const s=fixture("cascade"),g=s.game,v=g.progress[0];g.beats[0].values=[4,0,0];play(s,0,"left",21100);
+ const s=fixture("cascade"),g=s.game,v=g.progress[0];g.beats.forEach((b,i)=>b.at=2000+i*2500);g.beats[0].values=[4,0,0];play(s,0,"left",21100);
  G.advance(g,0,g.start+g.beats[0].at+g.beats[0].window);assert.equal(v.collected,4);
- for(let i=1;i<3;i++){g.beats[i].values=[-3,0,0];G.advance(g,0,g.start+g.beats[i].at+g.beats[i].window);assert.equal(v.collected,i===1?1:0);}
+ for(let i=1;i<3;i++){g.beats[i].at=g.beats[0].at+i*2500;g.beats[i].values=[-3,0,0];G.advance(g,0,g.start+g.beats[i].at+g.beats[i].window);assert.equal(v.collected,i===1?1:0);}
  assert.equal(g.scores[0],0);const before=s.players[0].tokens;M.advance(s,g.end);assert.equal(s.players[0].tokens-before,v.collected);assert.equal(g.coinAwards[0],v.collected);
 });
 test("Lantern Landing eliminates on one wrong platform; an eliminated player cannot move", () => {

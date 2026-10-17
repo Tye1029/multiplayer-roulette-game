@@ -330,5 +330,5 @@ test("fishing ripple sizes retain a bounded visible range", () => {
   const g = fixture("fish").game,
     sizes = g.fishBeats.flat().map((b) => b.size);
   assert.ok(new Set(sizes).size > 1);
-  assert.ok(sizes.every((n) => n >= 0.55 && n <= 1.3));
+  assert.ok(sizes.every((n) => n >= 0.30 && n <= 1.60));
 });

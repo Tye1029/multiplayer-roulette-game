@@ -69,6 +69,12 @@ function advance(g, i, now) {
     if (shot.at + shot.duration <= deadline) {
       v.ball = [...shot.position];
       v.holed = shot.holed;
+      if (shot.holed)
+        g.putt.holeEvent = {
+          player: i,
+          course: t.course,
+          at: shot.at + shot.duration,
+        };
       if (shot.penalty) v.strokes += shot.penalty;
     } else {
       const frame =

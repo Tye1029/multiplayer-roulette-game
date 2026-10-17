@@ -105,6 +105,11 @@
       if (g.maze?.[cell]?.includes(to)) p.fields.cell = to;
     }
     if (value === "jump") p.fields.jumpAt = at;
+    if (g.id === "hop")
+      p.fields.jumpDuration =
+        globalThis.PartyExpansionRules?.waveJump(g.cue?.size) || 680;
+    if (g.id === "memory" && Number.isInteger(value))
+      Object.assign(p.fields, { pad: value, padAt: at });
     if (value === "duck") p.fields.duckAt = at;
     if (
       ["cascade", "dash", "kart", "orchard"].includes(g.id) &&
@@ -140,5 +145,28 @@
     if (g.id === "balloon") p.fields.pumpAt = at;
     return p;
   }
-  return { controls, bindings, predict };
+  function presentation(v, input) {
+    if (
+      input.pending ||
+      input.rejected ||
+      v.last !== input.serverAt ||
+      !["fish", "memory", "cascade", "hop", "lantern"].includes(input.game)
+    )
+      return v;
+    // An accepted response must not restart a jump or lane transition that is
+    // already visible locally. Preserve only pose clocks, never scores/outcomes.
+    const out = { ...v };
+    for (const key of ["jumpAt", "duckAt", "padAt"])
+      if (input.fields[key] && v[key] === input.serverAt)
+        out[key] = input.fields[key];
+    if (input.game === "fish" && v.catch?.at === input.serverAt)
+      out.reelAt = input.at;
+    if (
+      (input.game === "cascade" && v.lane === input.fields.lane) ||
+      (input.game === "lantern" && v.chosen === input.fields.chosen)
+    )
+      out.moveAt = input.at;
+    return out;
+  }
+  return { controls, bindings, predict, presentation };
 });

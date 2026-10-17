@@ -28,7 +28,7 @@ function setup(g) {
         : g.id === "dash"
           ? 14
           : g.id === "fish"
-            ? 6
+            ? 4
             : 8;
   const interval = (g.duration - 2500) / count;
   g.beats = Array.from({ length: count }, (_, i) => ({
@@ -50,6 +50,16 @@ function setup(g) {
     rarity: rnd(100),
     fake: rnd(2) === 0,
   }));
+  // Always leave a safe lane, even across overlapping falling rows.
+  if (g.id === "cascade")
+    g.beats.forEach((b, i) => {
+      const previous = g.beats.slice(0, i).filter((x) => b.at - x.at < 2200);
+      let hazards = previous.reduce(
+        (n, x) => n + x.values.filter((v) => v < 0).length,
+        0,
+      );
+      b.values = b.values.map((n) => (n < 0 && ++hazards > 2 ? 1 : n));
+    });
   if (g.id === "lantern")
     g.beats.forEach((b, i) => {
       b.at =
@@ -67,9 +77,10 @@ function setup(g) {
     g.fishBeats = g.progress.map((_, i) =>
       g.beats.map((b) => ({
         index: b.index,
-        at: b.at + i * 240 + rnd(160),
+        at: b.at + 1500 + i * 180 + rnd(140),
         window: 1100,
-        size: 0.55 + rnd(76) / 100,
+        size: 0.3 + rnd(131) / 100,
+        species: rnd(R.fishSpecies.length),
       })),
     );
   }
@@ -134,12 +145,13 @@ function advance(g, i, now) {
     if (now < due || b.index <= v.resolved) continue;
     const active = v.inputs > 0 && due - v.last < 6500;
     if (g.id === "cascade") {
-      if (v.inputs > 0) {
+      if (v.inputs > 0 && due >= (v.stunUntil || 0)) {
         const n = b.values[v.lane];
         if (n > 0) award(g, i, n, due, "+" + n + " coins");
         else if (n < 0) {
           award(g, i, -3, due, "Spike ball! −3 coins");
           v.hitAt = due;
+          v.stunUntil = due + 2000;
         }
       }
     } else if (g.id === "lantern") {
@@ -203,6 +215,8 @@ function play(g, i, b, now, fail) {
     beat = cue(g, now, i);
   if (!beat || v.finished) fail("Your round is finished.");
   if (["cascade", "dash"].includes(g.id)) {
+    if (g.id === "cascade" && now < (v.stunUntil || 0))
+      fail("Shake off the stars first.");
     if (g.id === "cascade" && b.value === "stay") {
       /* Keep the basket in this lane. */
     } else if (["left", "right"].includes(b.value)) {
@@ -261,20 +275,14 @@ function play(g, i, b, now, fail) {
       v.combo++;
       let score = Math.round(180 + 220 * (1 - Math.max(0, dt) / beat.window));
       if (g.id === "fish") {
-        score = Math.round(
-          Math.round(beat.size * 75) *
-            (0.85 + 0.15 * (1 - Math.max(0, dt) / beat.window)),
-        );
+        // The visible ripple is an honest indication of the fish's size.
+        score = Math.round(beat.size * 75);
         v.catch = {
           at: now,
           score,
           length: score,
-          rarity:
-            score < 50
-              ? "Sunny sprat"
-              : score < 80
-                ? "Coral snapper"
-                : "Festival koi",
+          species: beat.species,
+          rarity: R.fishSpecies[beat.species] || R.fishSpecies[0],
         };
         v.finished = now + 1800;
       }

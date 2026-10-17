@@ -44,9 +44,9 @@
       name: "Rooftop Rally",
       tag: "REFLEXES + COMBOS",
       color: "#ae9fff",
-      description: "Find your rhythm. Fly over the rooftops.",
+      description: "Follow the ledges. Race to the mountain summit.",
       rules:
-        "Match the arrows to climb 24 ledges. New five-ledge milestones earn a bonus. Finish order earns separate point bonuses; first place always scores more than later finishers. Every six ledges is a checkpoint; mistakes break your combo and drop you toward it.",
+        "Match the arrows shown on your next mountain ledges to climb 24 holds. New five-ledge milestones earn a bonus. Finish order earns separate point bonuses; first place always scores more than later finishers. Every six ledges is a checkpoint; mistakes break your combo and drop you toward it.",
       unit: "points",
     },
     {
@@ -66,7 +66,7 @@
       color: "#82d9ef",
       description: "Watch the ripples. Strike at the splash.",
       rules:
-        "Watch the ripples by your bobber. Reel when they splash; a quicker strike hooks a bigger fish. Early pulls scare it away, but another bite will come. Each player keeps one fish. When everyone finishes, the measuring boards reveal whose fish is longest.",
+        "Watch the ripples by your bobber. Larger ripples mean larger fish; reel when the bobber splashes. Early pulls scare it away, but another bite will come. Each player keeps one fish. When everyone finishes, the measuring boards reveal whose fish is longest.",
       unit: "cm",
     },
     {
@@ -88,7 +88,7 @@
       color: "#ffd16d",
       description: "Chase the showers. Keep every coin.",
       rules:
-        "Move between three catch lanes under the coin shower. Gold bundles are worth three; spike balls remove three collected coins. Everyone keeps all the coins they collect.",
+        "Move between three catch lanes under the coin shower. Gold bundles are worth three; spike balls remove three collected coins and stun you for two seconds. There is always a safe lane. Everyone keeps all the coins they collect.",
       unit: "coins",
       coinGame: true,
     },
@@ -97,9 +97,9 @@
       name: "Lantern Landing",
       tag: "REACTION + SURVIVAL",
       color: "#b9a7ff",
-      description: "Read the lantern. Find the safe harbor platform.",
+      description: "Read the host’s card. Find the safe harbor platform.",
       rules:
-        "Jump to the color shown by the hanging lantern before the bell. After each bell the other platforms sink and return. From round four the platform colors shuffle; later bells come faster. Numbers label positions, so watch the actual colors. One wrong landing ends your run.",
+        "Jump to the color shown on the host’s card before the bell. After each bell the other platforms sink and return. From round four the platform colors shuffle; later bells come faster. Numbers label positions, so watch the actual colors. One wrong landing ends your run.",
       unit: "points",
     },
     {
@@ -107,9 +107,9 @@
       name: "Tidal Hop",
       tag: "JUMP + TIMING",
       color: "#8bd9dc",
-      description: "Jump the tide. Land a perfect rhythm.",
+      description: "Hop the driftwood. Find your beach rhythm.",
       rules:
-        "Jump when the rolling wave reaches the gold line. The waves speed up. Precise jumps score more; three splashes end your run.",
+        "Hop over driftwood rolling up the beach. Jump just before it reaches your gold ring; bigger logs need an earlier jump. The on-screen cue marks the timing window. Precise jumps score more; three bumps end your run.",
       unit: "points",
     },
     {
@@ -536,7 +536,12 @@
     golf.get("skybridge").holes[0],
     golf.get("harbor").holes[1],
     golf.get("fair").holes[0],
-  ];
+  ].map((h, i) =>
+    (typeof module === "object" && module.exports
+      ? require("./golf-shapes")
+      : globalThis.PartyGolfShapes
+    ).decorate(h, i),
+  );
   const shops = {
     4: {
       name: "Dice & Dash",
@@ -629,6 +634,6 @@
         ]),
       );
     },
-    version: "BOARDWALK_CARNIVAL_V8",
+    version: "BOARDWALK_CARNIVAL_V10",
   };
 });
