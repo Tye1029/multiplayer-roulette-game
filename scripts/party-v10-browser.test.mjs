@@ -178,10 +178,20 @@ try {
     if (id === "hop") {
       const b = latest.game.cue,
         lead = { small: 260, medium: 340, large: 430 }[b.size];
-      await waitUntil(() => Date.now() >= latest.game.start + b.at - lead);
+      // Follow the same synchronized presentation clock as the player. A live
+      // server and the test host can differ by more than this timing window.
+      const target = latest.game.start + b.at - lead;
+      await page.waitForFunction(
+        (at) => PartyScene.diagnostics().renderStamp >= at,
+        target,
+        { polling: "raf" },
+      );
       await click("[data-control=jump]", "play");
       assert.ok(latest.game.progress[own].jumpAt);
-      assert.ok(latest.game.scores[own] > 0);
+      assert.ok(
+        latest.game.scores[own] > 0,
+        `Jump received ${latest.game.progress[own].last - target}ms from the target: ${latest.game.progress[own].feedback}`,
+      );
     }
     if (id === "putt") {
       await page.setViewportSize({ width: 1440, height: 1000 });

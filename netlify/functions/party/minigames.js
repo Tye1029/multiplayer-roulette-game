@@ -266,7 +266,9 @@ function play(g, i, b, now, fail) {
     if (g.id === "hop") v.jumpDuration = X.waveJump(beat.size);
     if (
       dt < (g.id === "hop" ? -140 : -100) ||
-      dt > (g.id === "hop" ? 140 : beat.window) ||
+      // A locally timed jump arrives after its visible takeoff. Keep the early
+      // bound strict, but allow a small delivery margin using server time only.
+      dt > (g.id === "hop" ? 320 : beat.window) ||
       (g.id === "signal" && b.value !== beat.color)
     ) {
       if (g.id === "signal") g.scores[i] = Math.max(0, g.scores[i] - 100);

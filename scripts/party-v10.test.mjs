@@ -187,3 +187,16 @@ test("instant hop prediction follows the same size-dependent airborne time", () 
     assert.ok(s.game.scores[0] > 0);
   }
 });
+test("hop tolerates delivery delay without trusting client timestamps or duplicate jumps", () => {
+  const X = require("../assets/party/expansion-rules");
+  for (const delta of [-141, -140, 175, 320, 321]) {
+    const s = fixture("hop"),
+      b = s.game.beats[0];
+    const at = s.game.start + b.at - X.waveLead(b.size) + delta;
+    input(s, 0, "jump", at, { clientAt: at - delta, inputAt: at - delta });
+    assert.equal(s.game.scores[0] > 0, delta >= -140 && delta <= 320);
+    const score = s.game.scores[0];
+    assert.throws(() => input(s, 0, "jump", at + 131), /next signal/);
+    assert.equal(s.game.scores[0], score);
+  }
+});
