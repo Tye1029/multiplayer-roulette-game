@@ -8,7 +8,7 @@ function createHandler(store = database) {
         headers: {
           "Content-Type": "application/json",
           "Cache-Control": "no-store",
-          "X-Party-Build": "BOARDWALK_CARNIVAL_V10",
+          "X-Party-Build": "BOARDWALK_CARNIVAL_V11",
           ...extra,
         },
       });

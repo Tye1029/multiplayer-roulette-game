@@ -128,7 +128,6 @@ try {
     : process.env.PARTY_PHASES_ONLY
       ? []
       : [
-          "cascade",
           "hop",
           "lantern",
           "balloon",

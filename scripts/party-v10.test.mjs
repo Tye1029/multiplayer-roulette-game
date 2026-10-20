@@ -38,9 +38,9 @@ test("a real golf shot creates one hole celebration and cannot score twice", () 
     () => input(s, 0, "putt", at + 400, { angle: 0, power: 0.06 }),
     /cup/,
   );
-  G.advance(g, 0, at + 750);
+  G.advance(g, 0, at + 1700);
   const score = g.scores[0];
-  G.advance(g, 0, at + 900);
+  G.advance(g, 0, at + 1900);
   assert.equal(g.scores[0], score);
   assert.ok(score > 0);
 });
@@ -75,28 +75,21 @@ function input(s, i, value, at, extra = {}) {
     at,
   );
 }
-test("accepted delayed replies preserve pose clocks without overriding authoritative outcomes", () => {
-  const v = { last: 1250, jumpAt: 1250, step: 4, score: 25 },
-    input = {
-      game: "hop",
-      at: 1000,
-      serverAt: 1250,
-      pending: false,
-      fields: { jumpAt: 1000, score: 99999 },
-    };
+test("accepted delayed replies preserve lane clocks without overriding authoritative outcomes", () => {
+  const v = { last: 1250, moveAt: 1250, chosen: 2, score: 25 };
+  const input = {
+    game: "lantern",
+    at: 1000,
+    serverAt: 1250,
+    pending: false,
+    fields: { chosen: 2, score: 99999 },
+  };
   const shown = I.presentation(v, input);
-  assert.equal(shown.jumpAt, 1000);
+  assert.equal(shown.moveAt, 1000);
   assert.equal(shown.score, 25);
-  assert.equal(v.jumpAt, 1250);
-  assert.equal(I.presentation({ ...v, last: 1400 }, input).jumpAt, 1250);
-  assert.equal(I.presentation(v, { ...input, rejected: true }).jumpAt, 1250);
-  assert.equal(
-    I.presentation(
-      { last: 1250, lane: 2, moveAt: 1250 },
-      { ...input, game: "cascade", fields: { lane: 2 } },
-    ).moveAt,
-    1000,
-  );
+  assert.equal(v.moveAt, 1250);
+  assert.equal(I.presentation({ ...v, last: 1400 }, input).moveAt, 1250);
+  assert.equal(I.presentation(v, { ...input, rejected: true }).moveAt, 1250);
 });
 test("Afterglow has an authoritative preparation beat, visible current steps, and sealed other patterns", () => {
   const s = fixture("memory"),
@@ -114,44 +107,6 @@ test("Afterglow has an authoritative preparation beat, visible current steps, an
   current.forEach((n, j) => input(s, 0, n, open + 200 * (j + 1)));
   assert.ok(v.showAt > open);
   assert.equal(v.cursor, 0);
-});
-test("500 Cascade layouts leave a safe lane across overlapping rows", () => {
-  for (let n = 0; n < 500; n++) {
-    const g = fixture("cascade").game;
-    for (const b of g.beats) {
-      const visible = g.beats.filter((x) => x.at <= b.at && x.at > b.at - 2200);
-      // The visible collision approach lasts 2s; a disappearing row lasts .2s.
-      const hazards = visible.reduce(
-        (n, x) => n + x.values.filter((v) => v < 0).length,
-        0,
-      );
-      assert.ok(
-        hazards <= 2,
-        "never three simultaneous spike balls per player",
-      );
-      assert.ok(
-        [0, 1, 2].some((lane) => visible.every((x) => x.values[lane] >= 0)),
-      );
-    }
-  }
-});
-test("Cascade stun cannot be bypassed and grants immunity while the player cannot move", () => {
-  const s = fixture("cascade"),
-    g = s.game,
-    v = g.progress[0];
-  g.scores[0] = v.collected = 10;
-  v.inputs = 1;
-  g.beats[0].values = [1, -3, 1];
-  const due = g.start + g.beats[0].at + g.beats[0].window;
-  G.advance(g, 0, due);
-  assert.equal(g.scores[0], 7);
-  assert.equal(v.stunUntil, due + 2000);
-  assert.throws(() => input(s, 0, "left", due + 300), /stars/);
-  g.beats[1].values = [1, -3, 1];
-  G.advance(g, 0, g.start + g.beats[1].at + g.beats[1].window);
-  assert.equal(g.scores[0], 7);
-  input(s, 0, "left", due + 2001);
-  assert.equal(v.lane, 0);
 });
 test("Fish have four spaced bites, honest lengths, and six landed species", () => {
   for (let species = 0; species < 6; species++) {
@@ -178,25 +133,39 @@ test("instant hop prediction follows the same size-dependent airborne time", () 
         s.game.start + b.at - globalThis.PartyExpansionRules.waveLead(size),
       view = M.view(s, s.host, at);
     const prediction = I.predict(view, "jump", at);
-    input(s, 0, "jump", at);
+    input(s, 0, "jump", at + 100);
     assert.equal(
       prediction.fields.jumpDuration,
       s.game.progress[0].jumpDuration,
     );
     assert.equal(prediction.fields.jumpAt, at);
+    G.advance(s.game, 0, s.game.start + b.at + 180);
     assert.ok(s.game.scores[0] > 0);
   }
 });
-test("hop tolerates delivery delay without trusting client timestamps or duplicate jumps", () => {
-  const X = require("../assets/party/expansion-rules");
-  for (const delta of [-141, -140, 175, 320, 321]) {
-    const s = fixture("hop"),
-      b = s.game.beats[0];
-    const at = s.game.start + b.at - X.waveLead(b.size) + delta;
-    input(s, 0, "jump", at, { clientAt: at - delta, inputAt: at - delta });
-    assert.equal(s.game.scores[0] > 0, delta >= -140 && delta <= 320);
-    const score = s.game.scores[0];
-    assert.throws(() => input(s, 0, "jump", at + 131), /next signal/);
-    assert.equal(s.game.scores[0], score);
-  }
+test("hop scores physical clearance, rejects duplicate jumps and ignores forged input clocks", () => {
+  for (const size of ["small", "medium", "large"])
+    for (const delta of [-200, -80, 0, 80, 150]) {
+      const s = fixture("hop"),
+        b = s.game.beats[0];
+      b.size = size;
+      b.speed = 0.009;
+      const contact = s.game.start + b.at,
+        at = contact - R.hopDuration(size) / 2 + delta + 100;
+      input(s, 0, "jump", at, {
+        clientAt: contact - 400,
+        inputAt: contact - 400,
+      });
+      assert.equal(
+        s.game.scores[0],
+        0,
+        "points wait until the obstacle passes",
+      );
+      assert.throws(
+        () => input(s, 0, "jump", at + 131),
+        /next signal|next log/,
+      );
+      G.advance(s.game, 0, contact + 180);
+      assert.equal(s.game.scores[0] > 0, R.hopClear(b, contact, at - 100));
+    }
 });

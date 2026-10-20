@@ -270,7 +270,7 @@ async function playRound(pages, code, seen) {
       {
         ...s.game.beats[0],
         index: 0,
-        at: Date.now() - s.game.start - 300,
+        at: Date.now() - s.game.start + (game === "hop" ? 180000 : -300),
         window: 240000,
       },
     ];
@@ -350,7 +350,9 @@ async function playRound(pages, code, seen) {
   for (let i = 0; i < pages.length; i++) {
     if (!s.game.participants.includes(s.players[i].id)) continue;
     const p = pages[i];
-    const expansion = ["expansion","midway"].includes(C.games.find((d) => d.id === game).engine);
+    const expansion = ["expansion", "midway"].includes(
+      C.games.find((d) => d.id === game).engine,
+    );
     if (expansion || game === "putt") {
       // Each player's isolated input gets a fresh clock after the screenshots.
       // V8 tests separately exercise real timers, movement, collisions and scoring.
@@ -461,7 +463,7 @@ async function playRound(pages, code, seen) {
     } else if (G.handled(game)) {
       const state = await roomState(code),
         cue = state.game.beats[0];
-      if (["cascade", "dash"].includes(game)) {
+      if (game === "dash") {
         await action(p, '[data-control="left"]', "play");
         await p.waitForTimeout(180);
         await action(p, '[data-control="right"]', "play");
@@ -763,7 +765,7 @@ try {
   await delayed.context().close();
   assert.deepEqual(errors, []);
   console.log(
-    "PASS: ten-turn four-player festival, on-scene dice and controls, crossroads, passing shops, stakes, all 43 minigames, readiness, live duel, reconnect, rewards, rematch, slow requests and desktop/mobile/landscape layouts. " +
+    "PASS: ten-turn four-player festival, on-scene dice and controls, crossroads, passing shops, stakes, all 42 minigames, readiness, live duel, reconnect, rewards, rematch, slow requests and desktop/mobile/landscape layouts. " +
       out,
   );
 } finally {

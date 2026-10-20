@@ -41,7 +41,7 @@
   const games = [
     {
       id: "climb",
-      name: "Rooftop Rally",
+      name: "Mountain Climber",
       tag: "REFLEXES + COMBOS",
       color: "#ae9fff",
       description: "Follow the ledges. Race to the mountain summit.",
@@ -66,7 +66,7 @@
       color: "#82d9ef",
       description: "Watch the ripples. Strike at the splash.",
       rules:
-        "Watch the ripples by your bobber. Larger ripples mean larger fish; reel when the bobber splashes. Early pulls scare it away, but another bite will come. Each player keeps one fish. When everyone finishes, the measuring boards reveal whose fish is longest.",
+        "You have one minute. Watch the ripples by your bobber: larger rings mean larger fish. Reel at the splash. Early pulls scare it away, but another bite will come. Each player keeps one fish. When everyone finishes, the measuring boards reveal whose fish is longest.",
       unit: "cm",
     },
     {
@@ -76,22 +76,11 @@
       color: "#ffb5ca",
       description: "Own the dance floor. Then reverse the beat.",
       rules:
-        "Watch the lights, then repeat them. Build a combo for extra points. From five lights, alternate patterns must be repeated in reverse. A mistake costs 50 points and breaks your combo.",
+        "Watch the lights, then repeat them. Two special remix rounds ask you to repeat the pattern backwards for double points. The banner tells you when. Any mistake costs only 50 points and breaks your combo. Get ready before every new pattern.",
       unit: "points",
     },
   ];
   games.push(
-    {
-      id: "cascade",
-      name: "Coin Cascade",
-      tag: "COIN COLLECTION",
-      color: "#ffd16d",
-      description: "Chase the showers. Keep every coin.",
-      rules:
-        "Move between three catch lanes under the coin shower. Gold bundles are worth three; spike balls remove three collected coins and stun you for two seconds. There is always a safe lane. Everyone keeps all the coins they collect.",
-      unit: "coins",
-      coinGame: true,
-    },
     {
       id: "lantern",
       name: "Lantern Landing",
@@ -99,7 +88,7 @@
       color: "#b9a7ff",
       description: "Read the host’s card. Find the safe harbor platform.",
       rules:
-        "Jump to the color shown on the host’s card before the bell. After each bell the other platforms sink and return. From round four the platform colors shuffle; later bells come faster. Numbers label positions, so watch the actual colors. One wrong landing ends your run.",
+        "Jump to the final color on the host’s card before the bell. Sometimes the host briefly flashes a decoy, then switches it! The final card always gives you time to react. Other platforms drop and return; later colors shuffle. One wrong landing ends your run.",
       unit: "points",
     },
     {
@@ -109,7 +98,7 @@
       color: "#8bd9dc",
       description: "Hop the driftwood. Find your beach rhythm.",
       rules:
-        "Hop over driftwood rolling up the beach. Jump just before it reaches your gold ring; bigger logs need an earlier jump. The on-screen cue marks the timing window. Precise jumps score more; three bumps end your run.",
+        "Hop over driftwood washing up from the sea. Watch its size and speed and jump before it crosses your gold ring. Clear the whole log for points. Three bumps end your run.",
       unit: "points",
     },
     {
@@ -634,6 +623,6 @@
         ]),
       );
     },
-    version: "BOARDWALK_CARNIVAL_V10",
+    version: "BOARDWALK_CARNIVAL_V11",
   };
 });

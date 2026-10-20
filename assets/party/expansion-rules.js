@@ -31,7 +31,7 @@
   const hoop = (g, now) => Math.sin((now - g.start) / 1200) * 2.3;
   const ballFlight = 1050;
   const waveJump = (size) =>
-    ({ small: 520, medium: 680, large: 860 })[size] || 680;
+    ({ small: 600, medium: 820, large: 1040 })[size] || 820;
   const waveLead = (size) => waveJump(size) / 2;
   const mathRound = (g, now) =>
     Math.min(4, Math.max(0, Math.floor((now - g.start) / 13000)));

@@ -171,6 +171,8 @@ function enterGame(
       finished: null,
       shot: null,
       reverse: false,
+      patternRound: 0,
+      reverseCount: 0,
       pattern: Array.from({ length: 3 }, () => rnd(4)),
       cursor: 0,
       level: 3,
@@ -835,9 +837,18 @@ function play(s, p, b, now) {
       v.feedback = "Keep going";
       if (v.cursor === v.pattern.length) {
         v.combo++;
-        g.scores[i] += v.level * 100 + v.combo * 50;
+        const reward = (v.level * 100 + v.combo * 50) * (v.reverse ? 2 : 1);
+        g.scores[i] += reward;
+        v.popup = {
+          at: now,
+          value: reward,
+          label: v.reverse ? "REVERSE ×2! +" + reward : "Pattern! +" + reward,
+        };
         v.level = Math.min(8, v.level + 1);
-        v.reverse = v.level >= 5 && v.combo % 2 === 0;
+        v.patternRound = (v.patternRound || 0) + 1;
+        v.reverse =
+          [2, 4].includes(v.patternRound) && (v.reverseCount || 0) < 2;
+        if (v.reverse) v.reverseCount = (v.reverseCount || 0) + 1;
         v.pattern = Array.from({ length: v.level }, () => rnd(4));
         v.cursor = 0;
         v.showAt = now + 800;
@@ -849,6 +860,9 @@ function play(s, p, b, now) {
       g.scores[i] = Math.max(0, g.scores[i] - 50);
       v.combo = 0;
       v.cursor = 0;
+      v.patternRound = (v.patternRound || 0) + 1;
+      v.reverse = [2, 4].includes(v.patternRound) && (v.reverseCount || 0) < 2;
+      if (v.reverse) v.reverseCount = (v.reverseCount || 0) + 1;
       v.pattern = Array.from({ length: v.level }, () => rnd(4));
       v.showAt = now + 800;
       v.feedback = "Missed a beat. Watch the new pattern.";
@@ -859,6 +873,12 @@ function play(s, p, b, now) {
   p.participation++;
 }
 function advance(s, now = Date.now()) {
+  if (s.game?.id === "cascade") {
+    s.phase = "expired";
+    s.game = null;
+    s.log = "Coin Cascade has retired. Start a fresh festival.";
+    return;
+  }
   if (s.version !== 8) {
     s.phase = "expired";
     // The previous layout had IDs up to 65. Keep the retired room renderable

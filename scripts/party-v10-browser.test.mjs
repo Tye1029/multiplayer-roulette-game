@@ -88,7 +88,6 @@ try {
     "climb",
     "fish",
     "memory",
-    "cascade",
     "lantern",
     "hop",
     "putt",
@@ -151,23 +150,6 @@ try {
       }
       assert.ok(latest.game.scores[own] > 0);
     }
-    if (id === "cascade") {
-      await page.route("**/.netlify/functions/party-action", async (route) => {
-        if (route.request().postDataJSON()?.action === "play")
-          await new Promise((r) => setTimeout(r, 350));
-        await route.continue();
-      });
-      await click("[data-control=left]", "play");
-      await page.waitForTimeout(80);
-      assert.ok(
-        Math.abs((await diag()).actors[own].position[0] - (-12.4 + own * 7)) <
-          0.3,
-        "acknowledgement must not restart a visible lane move",
-      );
-      await page.unrouteAll({ behavior: "wait" });
-      assert.equal(latest.game.progress[own].lane, 0);
-      await page.waitForTimeout(1000);
-    }
     if (id === "lantern") {
       await page.waitForTimeout(850);
       assert.equal((await diag()).cardVisible, true);
@@ -177,7 +159,7 @@ try {
     }
     if (id === "hop") {
       const b = latest.game.cue,
-        lead = { small: 260, medium: 340, large: 430 }[b.size];
+        lead = { small: 300, medium: 410, large: 520 }[b.size];
       // Follow the same synchronized presentation clock as the player. A live
       // server and the test host can differ by more than this timing window.
       const target = latest.game.start + b.at - lead;
@@ -188,6 +170,7 @@ try {
       );
       await click("[data-control=jump]", "play");
       assert.ok(latest.game.progress[own].jumpAt);
+      await waitUntil(() => latest.game.progress[own].resolved >= b.index);
       assert.ok(
         latest.game.scores[own] > 0,
         `Jump received ${latest.game.progress[own].last - target}ms from the target: ${latest.game.progress[own].feedback}`,
@@ -241,7 +224,7 @@ try {
       report.scene.triangles,
       "triangles",
     );
-    assert.equal(report.build, "BOARDWALK_CARNIVAL_V10");
+    assert.equal(report.build, "BOARDWALK_CARNIVAL_V11");
     assert.equal(report.game.id, id);
     assert.ok(report.scene.renderer);
     assert.equal(report.game.sequence, undefined);
@@ -320,12 +303,6 @@ try {
       assert.equal(a.visible, true);
       assert.ok(a.position.every(Number.isFinite));
     }
-    await fixture("cascade", (g) => {
-      g.progress[0].hitAt = Date.now() - 100;
-      g.progress[0].stunUntil = Date.now() + 4000;
-    });
-    await shot("cascade-stun", 390);
-    assert.ok(await page.locator("[data-control=left]").isDisabled());
   }
   assert.deepEqual(errors, []);
   console.log(

@@ -6,7 +6,7 @@ const E = require("./expansion-games"),
   P = require("./putting");
 const X = require("../../../assets/party/expansion-rules");
 const R = require("../../../assets/party/rules");
-const ids = ["fish", "cascade", "lantern", "hop", "dash", "signal"];
+const ids = ["fish", "lantern", "hop", "dash", "signal"];
 const handled = (id) =>
   id === "putt" ||
   ids.includes(id) ||
@@ -18,18 +18,14 @@ function setup(g) {
   if (g.id === "putt") return P.setup(g);
   if (E.handled(g.id)) return E.setup(g);
   if (F.handled(g.id)) return F.setup(g);
+  if (g.id === "fish") {
+    g.duration = 60000;
+    g.end = g.start + g.duration;
+  }
   g.survival = g.id === "lantern";
   if (!handled(g.id)) return;
   const count =
-    g.id === "lantern"
-      ? 12
-      : g.id === "cascade"
-        ? 30
-        : g.id === "dash"
-          ? 14
-          : g.id === "fish"
-            ? 4
-            : 8;
+    g.id === "lantern" ? 10 : g.id === "dash" ? 14 : g.id === "fish" ? 4 : 8;
   const interval = (g.duration - 2500) / count;
   g.beats = Array.from({ length: count }, (_, i) => ({
     index: i,
@@ -47,24 +43,16 @@ function setup(g) {
       return n < 2 ? -3 : n < 5 ? 3 : 1;
     }),
     size: ["small", "medium", "large"][rnd(3)],
+    speed: 0.007 + rnd(6) * 0.001,
     rarity: rnd(100),
     fake: rnd(2) === 0,
   }));
-  // Always leave a safe lane, even across overlapping falling rows.
-  if (g.id === "cascade")
-    g.beats.forEach((b, i) => {
-      const previous = g.beats.slice(0, i).filter((x) => b.at - x.at < 2200);
-      let hazards = previous.reduce(
-        (n, x) => n + x.values.filter((v) => v < 0).length,
-        0,
-      );
-      b.values = b.values.map((n) => (n < 0 && ++hazards > 2 ? 1 : n));
-    });
   if (g.id === "lantern")
     g.beats.forEach((b, i) => {
-      b.at =
-        2400 + (g.duration - 5000) * (1 - Math.pow(1 - i / (count - 1), 1.23));
+      b.at = 2400 + (i * (g.duration - 5500)) / (count - 1);
       b.window = 650;
+      b.fake = i === 2 || i === 5 || i === 8;
+      b.decoy = (b.color + 1 + rnd(3)) % 4;
       b.layout = [0, 1, 2, 3];
       if (i >= 3)
         for (let j = 3; j > 0; j--) {
@@ -105,14 +93,28 @@ function cue(g, now, i = 0) {
   if (F.handled(g.id)) return F.cue(g, now);
   if (g.id === "fish" && g.progress[i]?.catch) return null;
   const beats = g.id === "fish" ? g.fishBeats[i] : g.beats;
-  return beats?.find((b) => now - g.start <= b.at + b.window) || null;
+  const b = beats?.find((b) => now - g.start <= b.at + b.window) || null;
+  if (g.id === "lantern" && b) {
+    const reveal = Math.max(
+      g.start + b.at - 1800,
+      (g.lanternLast?.at || 0) + 1100,
+    );
+    const card = {
+      ...b,
+      color: b.fake && now < reveal + 850 ? b.decoy : b.color,
+      reveal,
+    };
+    delete card.decoy;
+    delete card.fake;
+    return card;
+  }
+  return b;
 }
 function award(g, i, value, now, label) {
   const v = g.progress[i];
   const before = g.scores[i];
   g.scores[i] = Math.max(0, before + value);
   value = g.scores[i] - before;
-  if (["cascade"].includes(g.id)) v.collected += value;
   v.popup = {
     at: now,
     value,
@@ -141,20 +143,10 @@ function advance(g, i, now) {
   if (v.finished) return;
   const beats = g.id === "fish" ? g.fishBeats[i] : g.beats;
   for (const b of beats) {
-    const due = g.start + b.at + b.window;
+    const due = g.start + b.at + (g.id === "hop" ? 180 : b.window);
     if (now < due || b.index <= v.resolved) continue;
     const active = v.inputs > 0 && due - v.last < 6500;
-    if (g.id === "cascade") {
-      if (v.inputs > 0 && due >= (v.stunUntil || 0)) {
-        const n = b.values[v.lane];
-        if (n > 0) award(g, i, n, due, "+" + n + " coins");
-        else if (n < 0) {
-          award(g, i, -3, due, "Spike ball! −3 coins");
-          v.hitAt = due;
-          v.stunUntil = due + 2000;
-        }
-      }
-    } else if (g.id === "lantern") {
+    if (g.id === "lantern") {
       g.lanternLast = {
         at: due,
         index: b.index,
@@ -182,6 +174,21 @@ function advance(g, i, now) {
           v.moveAt && v.moveAt + 420 > due ? v.fromLane : (v.chosen ?? i);
         miss(g, i, due, "Wrong platform!");
       }
+    } else if (g.id === "hop") {
+      const contact = g.start + b.at;
+      if (v.hopAttempt?.index === b.index && R.hopClear(b, contact, v.jumpAt)) {
+        v.combo++;
+        const accuracy = Math.abs(
+          v.jumpAt - (contact - R.hopDuration(b.size) / 2),
+        );
+        award(
+          g,
+          i,
+          Math.max(180, Math.round(400 - accuracy * 0.7)),
+          contact,
+          "Clean hop!",
+        );
+      } else miss(g, i, contact, "Bumped by the driftwood!");
     } else if (g.id === "dash") {
       const action = b.kind === "hurdle" ? v.jumpAt : v.duckAt;
       const safe =
@@ -214,12 +221,8 @@ function play(g, i, b, now, fail) {
   const v = g.progress[i],
     beat = cue(g, now, i);
   if (!beat || v.finished) fail("Your round is finished.");
-  if (["cascade", "dash"].includes(g.id)) {
-    if (g.id === "cascade" && now < (v.stunUntil || 0))
-      fail("Shake off the stars first.");
-    if (g.id === "cascade" && b.value === "stay") {
-      /* Keep the basket in this lane. */
-    } else if (["left", "right"].includes(b.value)) {
+  if (g.id === "dash") {
+    if (["left", "right"].includes(b.value)) {
       v.fromLane = v.lane;
       v.lane = Math.max(0, Math.min(2, v.lane + (b.value === "left" ? -1 : 1)));
       v.moveAt = now;
@@ -251,6 +254,20 @@ function play(g, i, b, now, fail) {
     v.feedback = "Ready on your platform.";
   } else {
     if (v.actedBeat === beat.index) fail("Wait for the next signal.");
+    if (g.id === "hop") {
+      if (beat.index <= v.resolved) fail("Wait for the next log.");
+      if (b.value !== "jump") fail("Choose Jump.", 400);
+      if (now - v.jumpAt < (v.jumpDuration || 600))
+        fail("Land before jumping again.");
+      v.actedBeat = beat.index;
+      v.attempts++;
+      v.jumpDuration = R.hopDuration(beat.size);
+      // Fixed server-owned delivery credit. No client clock or outcome is trusted.
+      v.jumpAt = now - 100;
+      v.hopAttempt = { index: beat.index, size: beat.size };
+      v.feedback = "Jump!";
+      return;
+    }
     if (
       g.id === "signal" &&
       (!Number.isInteger(b.value) || b.value < 0 || b.value > 3)
@@ -258,17 +275,12 @@ function play(g, i, b, now, fail) {
       fail("Choose a signal color.", 400);
     if (g.id !== "signal" && b.value !== (g.id === "fish" ? "reel" : "jump"))
       fail("Choose the highlighted action.", 400);
-    const dt =
-      now - (g.start + beat.at - (g.id === "hop" ? X.waveLead(beat.size) : 0));
+    const dt = now - (g.start + beat.at);
     v.actedBeat = beat.index;
     v.attempts++;
-    v.jumpAt = g.id === "hop" ? now : v.jumpAt;
-    if (g.id === "hop") v.jumpDuration = X.waveJump(beat.size);
     if (
-      dt < (g.id === "hop" ? -140 : -100) ||
-      // A locally timed jump arrives after its visible takeoff. Keep the early
-      // bound strict, but allow a small delivery margin using server time only.
-      dt > (g.id === "hop" ? 320 : beat.window) ||
+      dt < -100 ||
+      dt > beat.window ||
       (g.id === "signal" && b.value !== beat.color)
     ) {
       if (g.id === "signal") g.scores[i] = Math.max(0, g.scores[i] - 100);
@@ -308,10 +320,6 @@ function bot(g, i, now) {
   const v = g.progress[i],
     b = cue(g, now, i);
   if (!b) return null;
-  if (g.id === "cascade") {
-    const best = b.values.indexOf(Math.max(...b.values));
-    return { value: best < v.lane ? "left" : best > v.lane ? "right" : "stay" };
-  }
   if (g.id === "dash") {
     if (b.lane !== v.lane) return { value: b.lane === 0 ? "right" : "left" };
     return {
@@ -355,12 +363,11 @@ module.exports = {
     if (W.handled(g.id)) W.publicView(g, out, now, viewer);
     else if (E.handled(g.id)) E.publicView(g, out, now, viewer);
     else if (F.handled(g.id)) F.publicView(g, out, now, viewer);
-    if (g.id === "cascade")
-      out.drops = g.beats.filter(
-        (b) =>
-          now - g.start >= b.at + b.window - 2000 &&
-          now - g.start < b.at + b.window + 350,
-      );
+    if (g.id === "hop")
+      out.rollers = g.beats.filter((b) => {
+        const z = 3.5 + (now - g.start - b.at) * b.speed;
+        return z >= -23 && z <= 27;
+      });
   },
   festival: F,
 };

@@ -1,7 +1,7 @@
 import {
   surfaceMaterial,
   island,
-} from "./surface-art.js?v=BOARDWALK_CARNIVAL_V10";
+} from "./surface-art.js?v=BOARDWALK_CARNIVAL_V11";
 export function carnivalScenes(H) {
   const {
     T,
@@ -25,22 +25,12 @@ export function carnivalScenes(H) {
   } = H;
   const R = globalThis.PartyRules;
   const colors = ["#8fcce7", "#eaa5bf", "#93d3af", "#f7ce72"];
-  function coin(parent, x, y, z, size = 0.34) {
-    const g = new T.Group();
-    parent.add(g);
-    g.position.set(x, y, z);
-    const m = cyl(g, 0, 0, 0, size, size, 0.12, "#f9ca53", 20);
-    m.rotation.x = Math.PI / 2;
-    const rim = torus(g, 0, 0, 0.075, size * 0.77, 0.035, "#fff2ae");
-    ball(g, 0, 0, 0.09, size * 0.22, size * 0.42, 0.03, "#e09a2f");
-    return g;
-  }
   function common(kind) {
     const w = world(kind);
     if (w.built) return w;
     w.built = true;
     water(w);
-    if (["cascade", "lantern", "hop"].includes(kind)) {
+    if (["lantern", "hop"].includes(kind)) {
       w.water.material = surfaceMaterial(
         T,
         "water",
@@ -98,7 +88,7 @@ export function carnivalScenes(H) {
             0.12,
             j % 2 ? "#eab4a7" : "#fff1ce",
           );
-          if (j % 3 === 0) {
+          if (j % 3 === 0 && Math.abs(x) > 16) {
             box(w.root, x, 0.5, z - 1, 1.4, 0.1, 2.2, colors[j % 4]);
             const parasol = cyl(
               w.root,
@@ -115,7 +105,8 @@ export function carnivalScenes(H) {
           }
         }
         // Weathered coastal boulders, a lifeguard hut and a rope boundary.
-        for (let j = 0; j < 12; j++)
+        for (let j = 0; j < 12; j++) {
+          if (Math.abs(-18 + j * 3.3) < 15) continue;
           ball(
             w.root,
             -18 + j * 3.3,
@@ -126,13 +117,15 @@ export function carnivalScenes(H) {
             0.7,
             j % 2 ? "#b8bcb0" : "#c7c5b3",
           );
-        building(w, 16, -10, 0.75, "#f0c198", "#88b7be", "SURF WATCH");
-        for (let j = 0; j < 4; j++) {
-          const x = -11 + j * 7.4;
-          tube(w.root, [x, 0.3, 9], [x, 1.3, 9], 0.065, "#b38c66");
-          if (j < 3)
-            tube(w.root, [x, 1.1, 9], [x + 7.4, 1.1, 9], 0.027, "#e6cf9c");
         }
+        building(w, 16, -10, 0.75, "#f0c198", "#88b7be", "SURF WATCH");
+        for (const x of [-15, 15])
+          for (let j = 0; j < 4; j++) {
+            const z = -8 + j * 7;
+            tube(w.root, [x, 0.3, z], [x, 1.3, z], 0.065, "#b38c66");
+            if (j < 3)
+              tube(w.root, [x, 1.1, z], [x, 1.1, z + 7], 0.027, "#e6cf9c");
+          }
       } else if (kind === "lantern") {
         island(
           T,
@@ -166,50 +159,12 @@ export function carnivalScenes(H) {
         }
         w.scene.background = new T.Color("#a1bdc5");
         w.scene.fog.color.set("#a1bdc5");
-      } else {
-        island(
-          T,
-          w.root,
-          surfaceMaterial(T, "sand", "#e4c19f", 8),
-          0,
-          0.1,
-          0,
-          24,
-          18,
-          1,
-        );
-        for (let j = 0; j < 9; j++) {
-          const x = -20 + j * 5;
-          box(w.root, x, 1, -7, 4, 2, 4, colors[j % 4]);
-          cyl(
-            w.root,
-            x,
-            2.9,
-            -7,
-            0,
-            3,
-            1.9,
-            j % 2 ? "#d5a5bf" : "#f1cb83",
-            4,
-          ).rotation.y = Math.PI / 4;
-          const sign = label(
-            ["PRIZES", "ARCADE", "TOKENS"][j % 3],
-            "#fff1d2",
-            "#72546d",
-            0.4,
-          );
-          sign.position.set(x, 2, -4.9);
-          w.root.add(sign);
-        }
-        for (let j = 0; j < 18; j++)
-          ball(w.root, -20 + j * 2.4, 5, -5, 0.12, 0.16, 0.12, colors[j % 4]);
-        tube(w.root, [-21, 5, -5], [21, 5, -5], 0.025, "#93775d");
       }
     } else if (kind !== "lantern") {
       box(w.root, 0, -0.4, 0, 35, 1, 35, "#e8ce9a");
       box(w.root, 0, 0.13, 0, 34.5, 0.1, 34.5, "#8ec9a0");
     } else box(w.root, 0, -0.4, -14, 35, 1, 6, "#e8ce9a");
-    if (!["cascade", "lantern", "hop"].includes(kind))
+    if (!["lantern", "hop"].includes(kind))
       for (let i = 0; i < 9; i++) {
         palm(w, -15 + i * 3.7, -13, 0.65 + (i % 3) * 0.12);
         if (i % 2 === 0)
@@ -224,7 +179,7 @@ export function carnivalScenes(H) {
           );
       }
     for (let i = 0; i < 5; i++) cloud(w, -20 + i * 10, 10, -22, 2);
-    if (!["cascade", "lantern", "hop"].includes(kind))
+    if (!["lantern", "hop"].includes(kind))
       for (const x of [-15, 15])
         for (let i = 0; i < 5; i++) {
           const z = -10 + i * 5;
@@ -253,65 +208,7 @@ export function carnivalScenes(H) {
     const w = common(kind);
     w.props = [];
     w.tiles = [];
-    if (kind === "cascade") {
-      w.objects = [];
-      for (let p = 0; p < 4; p++) {
-        const base = (p - 1.5) * 7;
-        box(w.root, base, 0.5, 6, 6.5, 0.45, 4.7, "#ceaa88");
-        for (let j = 0; j < 8; j++)
-          box(w.root, base, 0.74, 4 + j * 0.55, 6.4, 0.025, 0.03, "#ac886d");
-        for (const side of [-1, 1])
-          tube(
-            w.root,
-            [base + side * 3.2, 0.7, 6],
-            [base + side * 3.2, 10, 6],
-            0.07,
-            "#c79b73",
-          );
-        box(w.root, base, 11.2, 6, 6.7, 2, 2.2, colors[p]);
-        box(w.root, base, 11.4, 7.15, 5.8, 1.15, 0.08, "#625475");
-        const sign = label("COIN SHOWER", "#fff1c4", null, 0.45);
-        sign.position.set(base, 11.6, 7.24);
-        w.root.add(sign);
-        for (let lane = 0; lane < 3; lane++) {
-          const x = base + (lane - 1) * 1.9;
-          cyl(w.root, x, 10.2, 6, 0.55, 0.7, 0.5, "#e7b55d");
-          cyl(w.root, x, 9.94, 6, 0.43, 0.43, 0.04, "#5d4c66");
-          ball(w.root, x, 12.3, 6, 0.18, 0.18, 0.18, "#fff0a7");
-        }
-        for (let slot = 0; slot < 3; slot++)
-          for (let lane = 0; lane < 3; lane++) {
-            const g = new T.Group();
-            w.root.add(g);
-            const prize = coin(g, 0, 0, 0, 0.4),
-              bundle = coin(g, 0.25, 0.3, 0, 0.3),
-              spike = new T.Group();
-            g.add(spike);
-            ball(spike, 0, 0, 0, 0.42, 0.42, 0.42, "#6d657d");
-            for (let j = 0; j < 8; j++) {
-              const a = (j / 8) * Math.PI * 2,
-                m = cyl(
-                  spike,
-                  Math.cos(a) * 0.46,
-                  Math.sin(a) * 0.46,
-                  0,
-                  0,
-                  0.13,
-                  0.35,
-                  "#e1d5be",
-                  5,
-                );
-              m.rotation.z = a - Math.PI / 2;
-            }
-            w.objects.push({ g, prize, bundle, spike, p, lane, slot });
-          }
-        for (let lane = 0; lane < 3; lane++) {
-          const x = base + (lane - 1) * 1.9;
-          const ring = torus(w.root, x, 0.77, 6, 0.66, 0.035, "#f9de89");
-          ring.rotation.x = Math.PI / 2;
-        }
-      }
-    } else if (kind === "lantern") {
+    if (kind === "lantern") {
       for (let i = 0; i < 4; i++) {
         const [x, z] = R.lanternPositions[i],
           g = new T.Group();
@@ -349,10 +246,10 @@ export function carnivalScenes(H) {
       w.root.add(w.marshal);
       w.flagGroup = new T.Group();
       w.marshal.userData.arms[1].add(w.flagGroup);
-      w.flagGroup.position.set(0, -0.58, 0.12);
-      w.flag = box(w.flagGroup, 0, 0.26, 0.04, 0.85, 0.66, 0.07, colors[0]);
-      box(w.flagGroup, 0, 0.26, 0.085, 0.65, 0.47, 0.015, "#fff5d4");
-      w.cardFace = box(w.flagGroup, 0, 0.26, 0.1, 0.55, 0.37, 0.02, colors[0]);
+      w.flagGroup.position.set(0.1, -0.52, 0.15);
+      w.flag = box(w.flagGroup, 0, -0.36, 0.04, 1.05, 0.78, 0.07, colors[0]);
+      box(w.flagGroup, 0, -0.36, 0.085, 0.85, 0.59, 0.015, "#fff5d4");
+      w.cardFace = box(w.flagGroup, 0, -0.36, 0.1, 0.73, 0.49, 0.02, colors[0]);
       w.flagGroup.visible = false;
       box(
         w.marshal.userData.rig,
@@ -398,7 +295,8 @@ export function carnivalScenes(H) {
             "#9c795c",
           );
         }
-        cyl(log, 0.6, 0.44, 0, 0.08, 0.17, 0.4, "#c8a079", 8).rotation.z = -0.5;
+        // A flush knot keeps the visible silhouette inside the collision radius.
+        cyl(log, 0.6, 0.43, 0, 0.12, 0.12, 0.04, "#d2af83", 12);
       }
       for (let i = 0; i < 4; i++) {
         const x = (i - 1.5) * 6.6;
@@ -417,6 +315,18 @@ export function carnivalScenes(H) {
         const ring = torus(w.root, 0, 0.34, 0, 0.6, 0.035, "#fff0ce");
         ring.rotation.x = Math.PI / 2;
         return ring;
+      });
+      w.waves = [w.wave];
+      for (let n = 1; n < 4; n++) {
+        const next = w.wave.clone(true);
+        w.root.add(next);
+        w.waves.push(next);
+      }
+      w.wakes = w.waves.map(() => {
+        const wake = torus(w.root, 0, -0.5, -18, 1, 0.035, "#daf7ed");
+        wake.rotation.x = Math.PI / 2;
+        wake.scale.set(13, 0.65, 1);
+        return wake;
       });
     } else if (kind === "dash") {
       w.obstacles = [];
@@ -508,6 +418,12 @@ export function carnivalScenes(H) {
   }
   function update(w, s, t) {
     roster(w, s);
+    if (w.eventSession !== s?.game?.start) {
+      w.eventSession = s?.game?.start;
+      w.eventClocks = {};
+    }
+    const eventStart = (key, at) =>
+      PartyPresentation.eventStart(w.eventClocks, key, at, t * 1000);
     const kind = w.name,
       g = s?.game,
       beat = g?.cue || {
@@ -520,11 +436,21 @@ export function carnivalScenes(H) {
         values: [1, 3, -1],
       },
       dt = g ? t * 1000 - g.start - beat.at : -1000;
-    const ps = g?.progress || [],
+    const ps = (g?.progress || []).map((v, i) =>
+        ["lantern", "hop"].includes(kind)
+          ? {
+              ...v,
+              eliminatedAt: eventStart("fall" + i, v.eliminatedAt),
+              hitAt: eventStart("hit" + i, v.hitAt),
+            }
+          : v,
+      ),
       ended = s && ["round-end", "side-result"].includes(s.phase),
       playing = s?.phase === "playing";
     if (kind === "lantern") {
-      const last = g?.lanternLast,
+      const last = g?.lanternLast
+          ? { ...g.lanternLast, at: eventStart("hatch", g.lanternLast.at) }
+          : null,
         age = last ? t * 1000 - last.at : 2000;
       const layout = (age < 1100 ? last.layout : beat.layout) || [0, 1, 2, 3];
       w.tiles.forEach((tile, index) => {
@@ -547,7 +473,7 @@ export function carnivalScenes(H) {
         z = 6.5,
         y = 1,
         mode = "idle";
-      if (["cascade", "dash"].includes(kind)) {
+      if (kind === "dash") {
         const lane = v.lane,
           previous = v.fromLane ?? lane;
         const q = clamp((t * 1000 - (v.moveAt || 0)) / 250);
@@ -575,7 +501,12 @@ export function carnivalScenes(H) {
       if (kind === "hop") {
         x = (i - 1.5) * 6.6;
         z = 3.5;
-        y = 0.42 + Math.sin(jump * Math.PI) * 2.1;
+        y =
+          0.42 +
+          R.hopHeight(
+            t * 1000 - (v.jumpAt || 0),
+            v.hopAttempt?.size || beat.size,
+          );
         mode = jump > 0 && jump < 1 ? "jump" : "idle";
       }
       if (kind === "signal") {
@@ -625,74 +556,54 @@ export function carnivalScenes(H) {
         ring.position.z = z;
         ring.scale.setScalar(0.5 + clamp((age - 300) / 1300) * 1.8);
       }
-      if (kind === "cascade") {
-        if (!a.userData.stars) {
-          const stars = new T.Group();
-          a.add(stars);
-          a.userData.stars = stars;
-          for (let j = 0; j < 3; j++) {
-            const m = ball(
-              stars,
-              Math.cos(j * 2.094) * 0.6,
-              2.5,
-              Math.sin(j * 2.094) * 0.6,
-              0.12,
-              0.12,
-              0.12,
-              "#ffe085",
-            );
-          }
-        }
-        a.userData.stars.visible = t * 1000 < (v.stunUntil || 0);
-        a.userData.stars.rotation.y = t * 4;
-        if (hit) a.rotation.z = Math.sin(t * 9) * 0.12;
-      }
       a.position.set(x, y, z);
       a.rotation.y = 0.2;
       a.scale.setScalar(0.8);
+      const falling =
+        kind === "lantern" &&
+        v.eliminatedAt &&
+        t * 1000 - v.eliminatedAt < 4950;
+      if (falling) a.userData.resultMode = null;
       animateCharacter(
         a,
         t + i,
-        ended
+        ended && !falling
           ? g.winners?.includes(a.userData.playerId)
             ? "win"
             : "sad"
           : mode,
       );
+      if (falling) {
+        const age = t * 1000 - v.eliminatedAt;
+        a.userData.arms.forEach((arm, j) => {
+          arm.rotation.z = age < 650 ? (j ? 1 : -1) * 1.6 : (j ? 1 : -1) * 0.7;
+          arm.rotation.x =
+            age > 1450 && age < 4800
+              ? Math.sin(t * 7 + j * Math.PI) * 1.15
+              : -0.3;
+        });
+      }
+      if (kind === "hop" && !v.eliminatedAt) {
+        const q = clamp((t * 1000 - (v.jumpAt || 0)) / (v.jumpDuration || 820));
+        const tuck = Math.sin(q * Math.PI);
+        a.userData.rig.position.y = 0;
+        a.userData.legs.forEach((leg, j) => {
+          leg.rotation.x = tuck * (j ? -0.48 : -0.65);
+        });
+        a.userData.arms.forEach((arm, j) => {
+          arm.rotation.x = -tuck * 1.2;
+          arm.rotation.z = (j ? 1 : -1) * tuck * 0.5;
+        });
+        if (hit) {
+          const q = clamp((t * 1000 - v.hitAt) / 700);
+          a.position.z += Math.sin((q * Math.PI) / 2) * 0.9;
+          a.rotation.z = Math.sin(q * Math.PI) * 0.7;
+          a.userData.arms.forEach((arm, j) => {
+            arm.rotation.z = (j ? 1 : -1) * 1.4;
+          });
+        }
+      }
     });
-    if (kind === "cascade") {
-      const drops = g?.drops || [
-        { index: 0, at: 3000, window: 1000, values: [1, 3, -3] },
-      ];
-      w.objects.forEach((o) => {
-        const drop = drops.find((b) => b.index % 3 === o.slot),
-          due = (g?.start || 0) + (drop?.at || 0) + (drop?.window || 0),
-          age = t * 1000 - (due - 2000),
-          q = clamp(age / 2000);
-        o.g.visible =
-          !!drop &&
-          playing &&
-          !ended &&
-          age >= 0 &&
-          age < 2200 &&
-          (!g || g.active.includes(o.p));
-        const value = drop?.values[o.lane] || 0;
-        o.g.position.set(
-          (o.p - 1.5) * 7 + (o.lane - 1) * 1.9,
-          10.2 - 8.4 * q * q,
-          6,
-        );
-        if (age > 2000) {
-          o.g.position.y = 1.8 - (age - 2000) / 110;
-          o.g.scale.setScalar(1 - clamp((age - 2000) / 200));
-        } else o.g.scale.setScalar(1);
-        o.prize.visible = value > 0;
-        o.bundle.visible = value >= 3;
-        o.spike.visible = value < 0;
-        o.prize.rotation.y = t * 2.4;
-        o.spike.rotation.z = t * 3;
-      });
-    }
     if (kind === "lantern") {
       const reveal = Math.max(
           (g?.start || 0) + beat.at - 1800,
@@ -703,19 +614,41 @@ export function carnivalScenes(H) {
         ease = q * q * (3 - 2 * q);
       w.flag.material = w.cardFace.material = H.mat(colors[beat.color]);
       animateCharacter(w.marshal, t, "idle");
-      w.marshal.userData.arms[1].rotation.x = mix(-0.1, -1.55, ease);
-      w.marshal.userData.arms[1].rotation.z = mix(-0.35, 0.25, ease);
+      w.marshal.userData.arms[1].rotation.x = mix(-0.5, -0.12, ease);
+      w.marshal.userData.arms[1].rotation.z = mix(-0.35, 1.45, ease);
       w.flagGroup.visible = playing && age >= 0;
       w.flagGroup.scale.setScalar(clamp(age / 280));
-      w.flagGroup.rotation.x = 0.15;
+      // Counter-rotate the card so its face remains toward the players as the
+      // right hand extends past the body. Its top edge stays held in the hand.
+      w.flagGroup.rotation.set(0.12, 0, -w.marshal.userData.arms[1].rotation.z);
+      if (w.cardColor !== beat.color) {
+        w.cardColor = beat.color;
+        w.cardChangedAt = t;
+      }
+      w.flagGroup.rotation.y =
+        Math.sin(clamp((t - w.cardChangedAt) / 0.23) * Math.PI) * 0.65;
     }
     if (kind === "hop") {
-      const height = { small: 0.75, medium: 1, large: 1.35 }[beat.size] || 1;
-      w.wave.visible = playing && dt > -2400 && dt < 950;
-      w.wave.position.set(0, 0.32 + 0.46 * height, 3.5 + dt * 0.005);
-      w.wave.scale.set(1, height, height);
-      w.wave.children.forEach((log) => {
-        log.rotation.x = (dt * 0.005) / (0.46 * height);
+      const rollers = g?.rollers || [];
+      w.waves.forEach((wave, slot) => {
+        const b = rollers.find((b) => b.index % 4 === slot);
+        const z = b ? 3.5 + (t * 1000 - g.start - b.at) * b.speed : -30;
+        const r = R.hopRadius(b?.size);
+        wave.visible = playing && !!b && z >= -23 && z < 27;
+        // Break the surface, roll onto the beach, then sink into the far shallows.
+        const shore = clamp((z + 19) / 6),
+          exit = clamp((z - 19) / 7);
+        const ground =
+          mix(-0.85, 0.32, shore * shore * (3 - 2 * shore)) - exit * 2.6;
+        wave.position.set(0, ground + r, z);
+        wave.scale.set(1, r / 0.46, r / 0.46);
+        wave.children.forEach((log) => {
+          log.rotation.x = (z + 23) / r;
+        });
+        const wake = w.wakes[slot];
+        wake.visible = wave.visible && (shore < 1 || exit > 0);
+        wake.position.set(0, -0.52, z);
+        wake.scale.set(13.5, 0.7 + Math.sin(t * 6) * 0.2, 1);
       });
     }
     if (kind === "dash")

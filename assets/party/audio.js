@@ -331,6 +331,8 @@
     if (!f) return;
     note(f, at, 0.36, 0.14, fx, "triangle");
     note(f * 2, at, 0.2, 0.035, fx);
+    note(f * 3, at + 0.018, 0.16, 0.018, fx, "sine");
+    note(f / 2, at, 0.12, 0.035, fx, "sine");
     noise(at, 0.035, 0.025, 750);
   }
   function memory(state, stamp, pattern) {
@@ -354,6 +356,16 @@
       memoryKey = key;
       memoryNotes.clear();
     }
+    for (let j = 0; j < 2; j++) {
+      const delay = (v.showAt + j * 600 - stamp) / 1000;
+      const key = "ready" + j;
+      if (delay >= -0.08 && delay <= 0.25 && !memoryNotes.has(key)) {
+        memoryNotes.add(key);
+        const at = ctx.currentTime + Math.max(0, delay);
+        note(j ? 660 : 440, at, 0.13, 0.075, fx, "sine");
+        if (v.reverse) note(j ? 990 : 660, at, 0.22, 0.035, fx, "triangle");
+      }
+    }
     for (let j = 0; j < pattern.length; j++) {
       const delay =
         (v.showAt + R.memoryReady + j * R.memoryBeat - stamp) / 1000;
@@ -365,6 +377,15 @@
         note([98, 123.5, 146.8, 196][pattern[j]], at, 0.55, 0.2, music, "sine");
         note(196, at + 0.325, 0.15, 0.09, music, "triangle");
         noise(at, 0.07, 0.026, 500);
+        note(
+          [293.7, 370, 440, 587.3][pattern[j]],
+          at + 0.16,
+          0.18,
+          0.04,
+          music,
+          "triangle",
+        );
+        noise(at + 0.325, 0.025, 0.012, 2600);
       }
     }
   }

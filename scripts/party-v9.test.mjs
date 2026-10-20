@@ -42,8 +42,8 @@ function play(s, i, value, at = 22000, extra = {}) {
 function debug(s, op, extra = {}) {
   M.act(s, s.host, { action: "debug", op, ...extra }, 23000);
 }
-test("individual tests support all 43 games, correct seat counts, restart and held results", () => {
-  assert.equal(C.games.length, 43);
+test("individual tests support all 42 games, correct seat counts, restart and held results", () => {
+  assert.equal(C.games.length, 42);
   for (const d of C.games) {
     const s = fixture(d.id);
     assert.equal(s.players.length, d.duelOnly ? 2 : 4);

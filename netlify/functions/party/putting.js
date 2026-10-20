@@ -2,7 +2,7 @@
 const C = require("../../../assets/party/catalog"),
   P = require("../../../shared/games/mini-golf-physics");
 function setup(g) {
-  g.duration = g.active.length * 3 * 30500;
+  g.duration = g.active.length * 3 * 32500;
   g.end = g.start + g.duration;
   g.putt = { course: 0, slot: 0, turn: g.active[0], offset: 0 };
   for (const v of g.progress)
@@ -83,7 +83,10 @@ function advance(g, i, now) {
       v.ball = [frame[1], frame[2]];
     }
   }
-  if (now >= deadline || (v.holed && now >= v.shot.at + v.shot.duration + 700))
+  if (
+    (now >= deadline && !v.holed) ||
+    (v.holed && now >= v.shot.at + v.shot.duration + 1600)
+  )
     next(g, Math.min(now, deadline));
 }
 function play(g, i, b, now, fail) {
@@ -105,6 +108,21 @@ function play(g, i, b, now, fail) {
     fail("Drag back to aim and set power.", 400);
   const h = C.holes[t.course],
     shot = P.simulate(h, v.ball, b.angle, b.power, now);
+  const remaining = g.start + t.offset + 30000 - now;
+  if (shot.duration > remaining) {
+    // The visible trajectory must stop where the turn timer stops accepting
+    // movement. Do not show a later cup hit that the server cannot award.
+    const frame = shot.frames.filter((f) => f[0] <= remaining).at(-1);
+    shot.frames = shot.frames.filter((f) => f[0] <= remaining);
+    shot.frames.push([remaining, ...frame.slice(1)]);
+    shot.events = shot.events.filter(
+      (e) => e.at <= remaining && e.type !== "cup",
+    );
+    shot.duration = remaining;
+    shot.position = frame.slice(1, 3);
+    shot.holed = false;
+    shot.penalty = 0;
+  }
   v.shot = { ...shot, at: now, course: t.course };
   v.strokes++;
   v.attempts = t.course;

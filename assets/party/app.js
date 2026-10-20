@@ -1,4 +1,4 @@
-/* BOARDWALK_CARNIVAL_V10 — guest rooms, authoritative matches, local presentation. */
+/* BOARDWALK_CARNIVAL_V11 — guest rooms, authoritative matches, local presentation. */
 (() => {
   "use strict";
   const C = PartyCatalog,
@@ -43,7 +43,6 @@
     screen = "",
     panelKey = "",
     rosterKey = "",
-    offset = 0,
     polling = false,
     pollTimer,
     requestBusy = false,
@@ -73,12 +72,13 @@
     selected = "raccoon",
     overview = false,
     pendingIntent = null,
-    aim = { angle: (-65 * Math.PI) / 180, power: 0.5 },
+    aim = { angle: (-65 * Math.PI) / 180, power: 0, dragging: false },
     musicOn = storage.get("boardwalk-music") !== "off",
     lastCountdown = "",
     previewObserver;
   let robotBurst = null;
-  const now = () => Date.now() + offset;
+  const presentationClock = PartyPresentation.clock();
+  const now = () => presentationClock.now(Date.now());
   function notify(message) {
     const box = $("#notice");
     box.textContent = message;
@@ -242,8 +242,7 @@
       // A cold start or timed-out attempt is not a reliable clock sample.
       // Keep the prior clock until a prompt response can synchronize it.
       if (elapsed <= 2000) {
-        const sample = result.game.serverTime - (started + received) / 2;
-        offset = offset ? offset * 0.7 + sample * 0.3 : sample;
+        presentationClock.sample(result.game.serverTime, started, received);
       }
     }
     return result;
@@ -391,7 +390,7 @@
       game = r?.game;
     return JSON.stringify(
       {
-        build: C.version || "BOARDWALK_CARNIVAL_V10",
+        build: C.version || "BOARDWALK_CARNIVAL_V11",
         time: new Date().toISOString(),
         scene: globalThis.PartyScene?.diagnostics(),
         viewport: {
@@ -472,6 +471,14 @@
     const previous = room;
     room = next;
     if (
+      previous?.game?.start !== next.game?.start ||
+      previous?.game?.putt?.turn !== next.game?.putt?.turn ||
+      previous?.game?.putt?.course !== next.game?.putt?.course
+    ) {
+      aim.power = 0;
+      aim.dragging = false;
+    }
+    if (
       room.phase === "choice" &&
       (previous?.phase !== "choice" || previous?.turn !== room.turn)
     ) {
@@ -535,7 +542,6 @@
           "band",
           "balloon",
           "moles",
-          "cascade",
           "hop",
         ].includes(room.game.id)
       )
@@ -940,15 +946,15 @@
         "</div>"
       );
     if (id === "climb")
-      return `<div id="next-arrows" class="next-arrows" aria-label="Upcoming arrows"></div><div class="arrow-grid"><button data-direction="up" aria-label="Climb up">↑</button><button data-direction="left" aria-label="Climb left">←</button><button data-direction="down" aria-label="Climb down">↓</button><button data-direction="right" aria-label="Climb right">→</button></div>`;
+      return `<div id="next-arrows" class="next-arrows" aria-label="Upcoming arrows"></div><div class="arrow-grid">${["up", "left", "down", "right"].map((d, i) => `<button data-direction="${d}" aria-label="Climb ${d}"><svg viewBox="0 0 48 48" aria-hidden="true" style="transform:rotate(${[0, -90, 180, 90][i]}deg)"><path d="M24 7 7 25h10v16h14V25h10Z"/></svg></button>`).join("")}</div>`;
     if (id === "memory")
-      return `${v.reverse ? '<div class="reverse-cue">↶ REPEAT IN REVERSE</div>' : ""}<div class="memory-grid">${["Blue", "Pink", "Mint", "Gold"].map((x, i) => `<button class="memory-pad" data-pad="${i}">${i + 1} · ${x}</button>`).join("")}</div><p id="memory-status" class="small" style="text-align:center;margin-top:8px">Watch the pattern</p><button class="text-button full" data-replay>Watch again</button>`;
+      return `${v.reverse ? '<div class="reverse-cue">↶ REVERSE REMIX · DOUBLE POINTS</div>' : ""}<div class="memory-grid">${["Blue", "Pink", "Mint", "Gold"].map((x, i) => `<button class="memory-pad" data-pad="${i}">${i + 1} · ${x}</button>`).join("")}</div><p id="memory-status" class="small" style="text-align:center;margin-top:8px">Watch the pattern</p><button class="text-button full" data-replay>Watch again</button>`;
     if (id === "fish")
       return '<div class="action-hint" id="cue-instruction">Watch your bobber</div><button class="primary" id="reel" data-control="reel">Reel!</button>';
-    if (["cascade", "dash"].includes(id))
-      return `<div class="action-hint" id="cue-instruction">${id === "cascade" ? "Catch coins · dodge spike balls" : "Dodge barrels · jump hurdles · duck flags"}</div><div class="lane-controls"><button data-control="left" aria-label="Move left">←</button>${id === "dash" ? '<button data-control="jump">Jump</button><button data-control="duck">Duck</button>' : ""}<button data-control="right" aria-label="Move right">→</button></div>`;
+    if (id === "dash")
+      return `<div class="action-hint" id="cue-instruction">Dodge barrels · jump hurdles · duck flags</div><div class="lane-controls"><button data-control="left" aria-label="Move left">←</button>${id === "dash" ? '<button data-control="jump">Jump</button><button data-control="duck">Duck</button>' : ""}<button data-control="right" aria-label="Move right">→</button></div>`;
     if (id === "hop")
-      return '<div class="action-hint" id="cue-instruction">Jump at the gold line</div><button class="primary" data-control="jump">Jump!</button>';
+      return '<button class="primary" data-control="jump">Jump!</button>';
     if (["lantern", "signal"].includes(id))
       return `<div class="action-hint" id="cue-instruction">Watch the signal</div><div class="color-controls">${["Blue", "Pink", "Mint", "Gold"].map((c, i) => `<button data-control="${i}" style="--pad:${["#98d8f0", "#f2a5c5", "#9bdfb5", "#f7d675"][i]}">${i + 1} · ${c}</button>`).join("")}</div>`;
     return '<div class="putt-hint" id="putt-status">Drag back on the course and release to putt. Longer drag = more power.</div>';
@@ -1275,7 +1281,7 @@
   }
   function how() {
     openDialog(
-      `<span class="eyebrow">A DAY AT CORAL CARNIVAL</span><h2>Bring your favorite rival.</h2><p><strong>Party Match:</strong> 2–4 players, 10, 20, or 30 turns per player. Roll dice, choose paths, and visit item carts. Stop at the glowing trophy host and choose whether to buy one for 20 match coins. Minigames award coins, not trophies; trophy-staked 1v1 duels transfer the staked trophies. In collection games, everyone keeps their coins.</p><p><strong>Quick Duel:</strong> 1v1 minigames. First to two wins takes the match. A tied series is settled with Circuit Sprint.</p><p><strong>Winning:</strong> Most trophies wins a party. Placement points (1,000 / 650 / 400 / 250 per minigame) break a tie; if those are equal, two tied players enter Circuit Sprint; larger ties enter Rooftop Rally.</p><p><strong>Items:</strong> Buy single-use double/triple dice, a chosen roll, a position swap, a Trophy Taxi, skates or a shield. Carry up to three; replace an item when buying or receiving a new one. Use one item before rolling. Each store has different stock. Visiting a cart pauses your walk, and you always move onward after leaving.</p><p><strong>Your profile:</strong> Earn coins for cosmetic outfits. Board tokens cannot be purchased. No cash prizes, paid entries, or chip deposits are offered.</p><p><strong>Need to reconnect?</strong> Reload this page on the same browser. Board turns have a timer, so friends can keep playing during an interruption.</p>`,
+      `<span class="eyebrow">A DAY AT CORAL CARNIVAL</span><h2>Bring your favorite rival.</h2><p><strong>Party Match:</strong> 2–4 players, 10, 20, or 30 turns per player. Roll dice, choose paths, and visit item carts. Stop at the glowing trophy host and choose whether to buy one for 20 match coins. Minigames award coins, not trophies; trophy-staked 1v1 duels transfer the staked trophies. In collection games, everyone keeps their coins.</p><p><strong>Quick Duel:</strong> 1v1 minigames. First to two wins takes the match. A tied series is settled with Circuit Sprint.</p><p><strong>Winning:</strong> Most trophies wins a party. Placement points (1,000 / 650 / 400 / 250 per minigame) break a tie; if those are equal, two tied players enter Circuit Sprint; larger ties enter Mountain Climber.</p><p><strong>Items:</strong> Buy single-use double/triple dice, a chosen roll, a position swap, a Trophy Taxi, skates or a shield. Carry up to three; replace an item when buying or receiving a new one. Use one item before rolling. Each store has different stock. Visiting a cart pauses your walk, and you always move onward after leaving.</p><p><strong>Your profile:</strong> Earn coins for cosmetic outfits. Board tokens cannot be purchased. No cash prizes, paid entries, or chip deposits are offered.</p><p><strong>Need to reconnect?</strong> Reload this page on the same browser. Board turns have a timer, so friends can keep playing during an interruption.</p>`,
     );
   }
   async function copy() {
@@ -1715,7 +1721,17 @@
     requestAnimationFrame(frame);
     if (
       document.hidden ||
-      time - lastFrame < (room?.phase === "playing" ? 15 : 33)
+      time - lastFrame <
+        (room &&
+        [
+          "playing",
+          "countdown",
+          "measuring",
+          "round-end",
+          "side-result",
+        ].includes(room.phase)
+          ? 15
+          : 33)
     )
       return;
     lastFrame = time;
@@ -1921,7 +1937,6 @@
             stamp,
             r.players.findIndex((p) => p.id === r.you),
           );
-        if (id === "cascade") locked = stamp < (v.stunUntil || 0);
         if (id === "math") locked = v.locked || r.game.cue?.reveal;
         if (id === "puzzle") locked = b.classList.contains("empty");
         if (id === "safe-panel")
@@ -1942,6 +1957,7 @@
               (b.disabled =
                 requestBusy ||
                 v.actedBeat === r.game.cue?.index ||
+                (r.game.id === "hop" && v.resolved >= r.game.cue?.index) ||
                 !!v.finished),
           );
       if (gameDef().engine === "festival") {
@@ -2048,11 +2064,7 @@
                   ? "Watch the host’s card…"
                   : "LAND ON " + ["BLUE", "PINK", "MINT", "GOLD"][cue.color]
                 : r.game.id === "hop"
-                  ? Math.abs(dt + PartyExpansionRules.waveLead(cue.size)) < 140
-                    ? "JUMP NOW · " + cue.size.toUpperCase() + " LOG"
-                    : dt < 0
-                      ? cue.size.toUpperCase() + " driftwood approaching…"
-                      : "Watch the next roller"
+                  ? ""
                   : hint.textContent;
       }
     }

@@ -21,7 +21,11 @@ export function polishScenes(H) {
   const R = globalThis.PartyRules,
     TAU = Math.PI * 2;
   const colors = ["#67c9ec", "#f3a0c3", "#87d9ae", "#f6ce68"];
+  const badgeTextures = new Map();
   function arrowBadge(symbol, next) {
+    const key = symbol + ":" + next;
+    if (badgeTextures.has(key))
+      return badgeSprite(badgeTextures.get(key), next);
     const cv = document.createElement("canvas");
     cv.width = cv.height = 128;
     const c = cv.getContext("2d");
@@ -39,8 +43,16 @@ export function polishScenes(H) {
     c.fillText(symbol, 64, 66);
     const texture = new T.CanvasTexture(cv);
     texture.colorSpace = T.SRGBColorSpace;
+    badgeTextures.set(key, texture);
+    return badgeSprite(texture, next);
+  }
+  function badgeSprite(texture, next) {
     const sprite = new T.Sprite(
-      new T.SpriteMaterial({ map: texture, depthTest: false }),
+      new T.SpriteMaterial({
+        map: texture,
+        depthTest: false,
+        depthWrite: false,
+      }),
     );
     sprite.scale.setScalar(next ? 0.85 : 0.66);
     sprite.renderOrder = 12;
@@ -72,7 +84,7 @@ export function polishScenes(H) {
   }
   const ledge = (i, n) => ({
     x: (i - 1.5) * 4.7 + Math.sin(n * 1.5 + i) * 0.38,
-    y: 0.7 + n * 0.85,
+    y: 0.7 + n * 1.2,
     z: 3.6,
   });
   function mountain() {
@@ -81,81 +93,179 @@ export function polishScenes(H) {
     w.built = true;
     w.scene.background = new T.Color("#bbdde9");
     w.scene.fog.color.set("#bbdde9");
-    // A continuous rock face, framed by distant ridges rather than towers.
-    for (let i = 0; i < 9; i++)
-      rock(
-        w.root,
-        -19 + i * 4.8,
-        5 + (i % 3) * 2,
-        -15,
-        [7, 9 + (i % 3) * 3, 5],
-        i % 2 ? "#91b5c2" : "#a1c3cf",
-      );
-    rock(w.root, 0, -1, 0, [15, 2, 8], "#b7b9a0");
-    for (let i = 0; i < 4; i++) {
-      const x = (i - 1.5) * 4.7;
-      rock(w.root, x, 9, -1, [3.9, 12.5, 3.4], i % 2 ? "#b4b7b3" : "#c4bfae");
-      for (let j = 0; j < 14; j++) {
-        const y = 1 + j * 1.45;
-        rock(
-          w.root,
-          x + Math.sin(j * 2 + i) * 1.6,
-          y,
-          -0.2,
-          [1.5, 0.8, 0.7],
-          j % 3 ? "#a4aaa8" : "#cfc8b5",
+    // A connected sandstone wall with layered, chipped facets and a real summit shelf.
+    const positions = [],
+      colors = [],
+      indices = [],
+      nx = 32,
+      ny = 36;
+    const palette = ["#ad7047", "#bd8252", "#976143", "#ca9561", "#a8754c"];
+    for (let j = 0; j <= ny; j++)
+      for (let k = 0; k <= nx; k++) {
+        const y = -1 + (j * 32) / ny;
+        const x = (k / nx - 0.5) * (25.5 - Math.max(0, y - 28) * 0.7);
+        const z =
+          1.25 +
+          Math.sin(x * 0.85 + Math.floor(j / 3)) * 0.4 +
+          Math.sin(k * 3.17 + j * 1.91) * 0.23;
+        positions.push(x, y, z);
+        const c = new T.Color(
+          palette[(Math.floor(j / 3) + (k % 3)) % palette.length],
         );
-      }
-      for (let n = 0; n <= 24; n++) {
-        const p = ledge(i, n);
-        rock(
-          w.root,
-          p.x,
-          p.y - 0.16,
-          p.z - 0.48,
-          [1.25, 0.25, 0.9],
-          n % 6 ? "#c5b69c" : "#e4c47d",
-        );
-        box(
-          w.root,
-          p.x,
-          p.y,
-          p.z - 0.1,
-          1.9,
-          0.1,
-          0.9,
-          n % 6 ? "#e3d5ba" : "#f4d991",
-        );
-        if (n % 6 === 0) {
-          for (const side of [-1, 1])
-            ball(
-              w.root,
-              p.x + side * 0.8,
-              p.y + 0.12,
-              p.z,
-              0.09,
-              0.08,
-              0.09,
-              "#f2c764",
-            );
+        colors.push(c.r, c.g, c.b);
+        if (j < ny && k < nx) {
+          const n = j * (nx + 1) + k;
+          indices.push(n, n + 1, n + nx + 1, n + 1, n + nx + 2, n + nx + 1);
         }
       }
-      tube(w.root, [x - 1.6, 0.7, 1.9], [x - 1.6, 21.4, 1.9], 0.027, "#bc8465");
-      pine(w, x - 1, 21.4, -1, 0.7);
+    const faceGeo = new T.BufferGeometry();
+    faceGeo.setAttribute(
+      "position",
+      new T.Float32BufferAttribute(positions, 3),
+    );
+    faceGeo.setAttribute("color", new T.Float32BufferAttribute(colors, 3));
+    faceGeo.setIndex(indices);
+    const facets = faceGeo.toNonIndexed();
+    facets.computeVertexNormals();
+    const face = new T.Mesh(
+      facets,
+      new T.MeshStandardMaterial({
+        vertexColors: true,
+        roughness: 1,
+        flatShading: true,
+        side: T.DoubleSide,
+      }),
+    );
+    face.castShadow = face.receiveShadow = true;
+    w.root.add(face);
+    box(w.root, 0, 15, -2.2, 25, 32, 6.8, "#966648");
+    box(w.root, 0, 30.85, -1.9, 23.2, 0.3, 6.6, "#b28755");
+    for (let i = 0; i < 7; i++) {
+      const x = -19 + i * 6.4;
+      rock(
+        w.root,
+        x,
+        8 + (i % 3),
+        -18,
+        [6, 11 + (i % 3) * 2, 5],
+        i % 2 ? "#bba18a" : "#c7b19a",
+      );
     }
+    rock(w.root, 0, -1.3, 0, [15, 1.5, 8], "#ad8053");
+    const shape = new T.Shape();
+    [
+      [-1.15, -1.75],
+      [0.8, -1.85],
+      [1.18, -0.75],
+      [1, 0.68],
+      [0.38, 0.86],
+      [-0.95, 0.7],
+      [-1.2, -0.2],
+    ].forEach(([x, z], i) => (i ? shape.lineTo(x, z) : shape.moveTo(x, z)));
+    const shelfGeo = new T.ExtrudeGeometry(shape, {
+      depth: 0.22,
+      bevelEnabled: true,
+      bevelSize: 0.1,
+      bevelThickness: 0.07,
+      bevelSegments: 1,
+      steps: 1,
+    });
+    for (let i = 0; i < 4; i++) {
+      const x = (i - 1.5) * 4.7;
+      for (let n = 0; n <= 24; n++) {
+        const p = ledge(i, n);
+        const support = rock(
+          w.root,
+          p.x,
+          p.y - 0.38,
+          1.9,
+          [1.2, 0.3, 2],
+          n % 3 ? "#a97850" : "#b7865a",
+        );
+        support.rotation.set(0.02, 0.04 * Math.sin(n), 0);
+        const slab = new T.Mesh(shelfGeo, mat(n % 6 ? "#cd9b68" : "#e2b77b"));
+        slab.rotation.x = -Math.PI / 2;
+        slab.position.set(p.x, p.y - 0.29, 2.9);
+        slab.castShadow = slab.receiveShadow = true;
+        w.root.add(slab);
+        if (n % 6 === 0) {
+          const stud = cyl(
+            w.root,
+            p.x - 0.83,
+            p.y + 0.02,
+            3.52,
+            0.065,
+            0.065,
+            0.13,
+            "#655c55",
+            8,
+          );
+          tube(
+            w.root,
+            [p.x - 0.85, p.y + 0.02, 3.4],
+            [p.x - 0.85, p.y + 0.02, 3.8],
+            0.035,
+            "#efc363",
+          );
+        }
+      }
+      tube(
+        w.root,
+        [x - 1.6, 0.7, 1.85],
+        [x - 1.6, 30.95, 1.85],
+        0.025,
+        "#68503a",
+      );
+    }
+    for (const x of [-9, -5, 3, 8]) pine(w, x, 31, -2.5, 0.65);
     for (const side of [-1, 1])
       for (let j = 0; j < 4; j++)
-        pine(w, side * (11 + j * 0.6), -0.2, -2 + j * 1.5, 0.7 + j * 0.08);
-    for (let i = 0; i < 5; i++)
-      cloud(w, -22 + i * 11, 23 + (i % 2) * 2, -13, 2);
+        pine(w, side * (12 + j * 0.8), -0.3, -2 + j * 1.4, 0.7 + j * 0.08);
+    // Wispy, softly shaded clouds stay behind the mountain instead of balloon clusters.
+    const cv = document.createElement("canvas");
+    cv.width = 512;
+    cv.height = 192;
+    const ctx = cv.getContext("2d");
+    for (let j = 0; j < 9; j++) {
+      const x = 55 + j * 49,
+        y = 110 - Math.sin(j * 0.5) * 38,
+        r = 45 + Math.sin(j) * 12;
+      const gradient = ctx.createRadialGradient(x, y, 3, x, y, r);
+      gradient.addColorStop(0, "#ffffffd0");
+      gradient.addColorStop(0.6, "#f4fbff90");
+      gradient.addColorStop(1, "#ffffff00");
+      ctx.fillStyle = gradient;
+      ctx.fillRect(x - r, y - r, r * 2, r * 2);
+    }
+    const texture = new T.CanvasTexture(cv);
+    texture.colorSpace = T.SRGBColorSpace;
+    for (let i = 0; i < 4; i++) {
+      const c = new T.Sprite(
+        new T.SpriteMaterial({
+          map: texture,
+          transparent: true,
+          opacity: 0.75,
+          depthWrite: false,
+        }),
+      );
+      c.position.set(-24 + i * 16, 33 + (i % 2) * 3, -24);
+      c.scale.set(17, 6, 1);
+      w.root.add(c);
+      w.animated.push(
+        (t) => (c.position.x = -24 + i * 16 + Math.sin(t * 0.025 + i) * 2),
+      );
+    }
     const sign = label("SUMMIT TRAIL · 24 LEDGES", "#fff5db", "#527f80", 0.8);
-    sign.position.set(0, 23, 0);
+    sign.position.set(0, 31.4, 0);
     w.root.add(sign);
+    for (const symbol of ["↑", "↓", "←", "→"])
+      for (const next of [true, false])
+        arrowBadge(symbol, next).material.dispose();
     w.arrows = Array.from({ length: 4 }, () =>
       Array.from({ length: 4 }, () => {
         const l = arrowBadge("↑", true);
         w.root.add(l);
-        l.userData.symbol = "↑";
+        l.userData.symbol = "";
         return l;
       }),
     );
@@ -186,7 +296,7 @@ export function polishScenes(H) {
       a.position.set(
         mix(p.x, next.x, q),
         mix(p.y, next.y, q) + Math.sin(q * Math.PI) * 0.18,
-        3.95,
+        5.1,
       );
       a.rotation.set(0, Math.PI, 0);
       a.scale.setScalar(0.74);
@@ -202,18 +312,17 @@ export function polishScenes(H) {
         l.visible = !!symbol && step + j < 24 && s?.phase === "playing";
         if (symbol && symbol !== l.userData.symbol) {
           const nextLabel = arrowBadge(symbol, j === 0);
-          l.material.map.dispose();
           l.material.dispose();
           l.material = nextLabel.material;
           l.scale.copy(nextLabel.scale);
           l.userData.symbol = symbol;
         }
         const pos = ledge(i, step + j + 1);
-        l.position.set(pos.x, pos.y + 0.44, 4.1);
+        l.position.set(pos.x, pos.y + 0.44, 5.35);
       });
     });
     const a = w.actors[own],
-      y = clamp((a?.position.y || 1) + 1.3, 2.2, 21.2);
+      y = clamp((a?.position.y || 1) + 1.3, 2.2, 29.6);
     return {
       target: new T.Vector3(a?.position.x * 0.18 || 0, y, 1),
       extent: 15,

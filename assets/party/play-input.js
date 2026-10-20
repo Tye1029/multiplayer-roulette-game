@@ -20,6 +20,8 @@
           t.turn !== i ||
           at < r.game.start + t.offset ||
           at >= r.game.start + t.offset + 30000 ||
+          v.holed ||
+          PartyScene.diagnostics().golfBusy ||
           (v.shot && at < v.shot.at + v.shot.duration + 250)
         )
           return null;
@@ -47,7 +49,7 @@
       const dx = puttOrigin.x - p.x,
         dz = puttOrigin.z - p.z;
       aim.angle = Math.atan2(dz, dx);
-      aim.power = Math.min(1, Math.max(0.05, Math.hypot(dx, dz) / 7));
+      aim.power = Math.min(1, Math.hypot(dx, dz) / 7);
       aim.dragging = true;
     }
     canvas.addEventListener("pointerdown", (e) => {
@@ -85,11 +87,16 @@
         Math.hypot((current?.x || 0) - anchor.x, (current?.y || 0) - anchor.y) >
           8
       )
-        send({ value: "putt", angle: aim.angle, power: aim.power });
+        send({
+          value: "putt",
+          angle: aim.angle,
+          power: Math.max(0.05, aim.power),
+        });
       else if (r && r.game.id !== "putt") send({ value: "steer", x: 0, z: 0 });
       pointer = null;
       anchor = current = puttOrigin = null;
       aim.dragging = false;
+      aim.power = 0;
     }
     canvas.addEventListener("pointerup", release);
     canvas.addEventListener("pointercancel", () => {
@@ -98,6 +105,7 @@
       pointer = null;
       anchor = current = puttOrigin = null;
       aim.dragging = false;
+      aim.power = 0;
     });
     const directionKeys = [
       "ArrowLeft",

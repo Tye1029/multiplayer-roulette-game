@@ -825,6 +825,41 @@ body[data-game="putt"] .putt-hint[hidden] {
   color: #fff4dc;
 }
 
+body[data-game="climb"] #scene-controls .arrow-grid button {
+  background: linear-gradient(160deg, #fff8dc 0%, #efd19c 100%);
+  border: 2px solid #fff8e4;
+  border-bottom: 5px solid #aa7445;
+  border-radius: 16px;
+  box-shadow:
+    0 4px 0 #654c3e,
+    0 7px 12px #3d302b3b,
+    inset 0 2px 0 #fff;
+  transition:
+    transform 70ms ease-out,
+    background 70ms ease-out;
+}
+body[data-game="climb"] .arrow-grid svg {
+  width: 32px;
+  height: 32px;
+  fill: #536858;
+  stroke: #324a41;
+  stroke-width: 1.5;
+  filter: drop-shadow(0 2px 0 #fff7dc);
+}
+body[data-game="climb"] #scene-controls .arrow-grid button:active,
+body[data-game="climb"] #scene-controls .arrow-grid button.input-pulse {
+  transform: translateY(3px);
+  background: #ffe39d;
+}
+body[data-game="climb"] #scene-controls .next-arrows {
+  background: #523e31e8;
+  border: 1px solid #eac68b;
+  box-shadow: 0 3px 10px #2e251c33;
+}
+body[data-game="hop"] #cue-instruction {
+  display: none;
+}
+
 #scene-controls .small {
   color: #fff3df;
 }

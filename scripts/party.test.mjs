@@ -209,7 +209,7 @@ test("passing the trophy pauses for a purchase before spending twenty coins and 
   assert.equal(s.players[0].tokens, 10);
   M.advance(s, s.deadline);
   assert.equal(s.event.kind, "trophy-purchase");
-  s.players[0].tokens=20;
+  s.players[0].tokens = 20;
   M.act(s, "0", { action: "buy-trophy", round: 1 }, s.deadline - 1000);
   assert.equal(s.players[0].trophies, 1);
   assert.equal(s.players[0].tokens, 0);
@@ -308,19 +308,43 @@ test("memory hides other and future patterns; reverse mode changes the correct o
   v.showAt = 20000;
   for (const [i, x] of [...v.pattern].reverse().entries())
     input(s, "0", x, 29000 + i * 200);
-  assert.equal(s.game.scores[0], 550);
+  assert.equal(s.game.scores[0], 1100);
 });
-test("three putting courses use deterministic physics, sum scores and reject concurrent shots",()=>{
- const s=gameFixture("putt"),g=s.game;
- assert.throws(()=>input(s,"0","putt",21000,{angle:NaN,power:1}),/aim/);
- let at=21000;for(let course=0;course<3;course++){
-   for(let player=0;player<2;player++){
-     at=Math.max(at,g.start+g.putt.offset+1000);const before=g.scores[player];input(s,String(player),"putt",at,{angle:-1.5,power:.4,score:99999});const v=g.progress[player];assert.equal(v.shot.course,course);assert.ok(v.shot.frames.length>3);
-     assert.throws(()=>input(s,String(player),"putt",at+200,{angle:-1,power:.5}),/stop|finished/);
-     at=g.start+g.putt.offset+30000;M.advance(s,at);assert.ok(g.scores[player]>=before&&g.scores[player]<6000);
-   }
- }
- assert.ok(g.progress.every(v=>v.finished));assert.throws(()=>input(s,"0","putt",at+400,{angle:-1,power:.5}),/finished|accepting/);
+test("three putting courses use deterministic physics, sum scores and reject concurrent shots", () => {
+  const s = gameFixture("putt"),
+    g = s.game;
+  assert.throws(
+    () => input(s, "0", "putt", 21000, { angle: NaN, power: 1 }),
+    /aim/,
+  );
+  let at = 21000;
+  for (let course = 0; course < 3; course++) {
+    for (let player = 0; player < 2; player++) {
+      at = Math.max(at, g.start + g.putt.offset + 1000);
+      const before = g.scores[player];
+      input(s, String(player), "putt", at, {
+        angle: -1.5,
+        power: 0.4,
+        score: 99999,
+      });
+      const v = g.progress[player];
+      assert.equal(v.shot.course, course);
+      assert.ok(v.shot.frames.length > 3);
+      assert.throws(
+        () =>
+          input(s, String(player), "putt", at + 200, { angle: -1, power: 0.5 }),
+        /stop|finished/,
+      );
+      at = g.start + g.putt.offset + 30000;
+      M.advance(s, at);
+      assert.ok(g.scores[player] >= before && g.scores[player] < 6000);
+    }
+  }
+  assert.ok(g.progress.every((v) => v.finished));
+  assert.throws(
+    () => input(s, "0", "putt", at + 400, { angle: -1, power: 0.5 }),
+    /finished|accepting/,
+  );
 });
 test("ripple fishing keeps one timed catch, rejects early and duplicate pulls, and bounds its length", () => {
   const s = gameFixture("fish"),
@@ -614,24 +638,14 @@ test("coin and final-three-turn trophy duels escrow stakes and refund a tie once
   assert.deepEqual(trophy.game.trophyAwards, [1, -1]);
 });
 
-test("all five lane and timing games validate inputs, server scores, hidden future cues and coin awards", () => {
-  for (const id of [
-    "cascade",
-    "lantern",
-    "hop",
-    "dash",
-    "signal",
-  ]) {
+test("all four lane and timing games validate inputs, server scores, hidden future cues and coin awards", () => {
+  for (const id of ["lantern", "hop", "dash", "signal"]) {
     const s = gameFixture(id),
       g = s.game,
       v = g.progress[0],
       b = g.beats[0];
     assert.throws(() => input(s, "0", "invalid", 21000), /Choose/);
-    const value = ["cascade", "dash"].includes(id)
-      ? "left"
-      : id === "hop"
-        ? "jump"
-        : b.color;
+    const value = id === "dash" ? "left" : id === "hop" ? "jump" : b.color;
     input(s, "0", value, g.start + b.at + 200, {
       score: 999999,
       coins: 999999,
@@ -674,18 +688,40 @@ test("full four-player ten-turn festival completes with varied minigames", () =>
         (at += 500),
       );
     else if (s.phase === "playing") {
-      const g=s.game;
-      for(let tick=Math.max(at,g.start+400);tick<=g.end+1&&s.phase==="playing";tick+=400){
-        M.advance(s,tick);if(s.phase!=="playing")break;
-        for(const [i,p] of s.players.entries()){
-          const v=g.progress[i];if(v.finished||!g.participants.includes(p.id))continue;
-          const move=G.handled(g.id)?G.bot(g,i,tick):g.id==="climb"?{value:g.sequence[v.step]}:tick>v.showAt+v.pattern.length*650+300?{value:v.pattern[v.reverse?v.pattern.length-1-v.cursor:v.cursor]}:null;
-          if(move)try{input(s,p.id,move.value,tick,move);}catch(e){if(!e.status)throw e;}
+      const g = s.game;
+      for (
+        let tick = Math.max(at, g.start + 400);
+        tick <= g.end + 1 && s.phase === "playing";
+        tick += 400
+      ) {
+        M.advance(s, tick);
+        if (s.phase !== "playing") break;
+        for (const [i, p] of s.players.entries()) {
+          const v = g.progress[i];
+          if (v.finished || !g.participants.includes(p.id)) continue;
+          const move = G.handled(g.id)
+            ? G.bot(g, i, tick)
+            : g.id === "climb"
+              ? { value: g.sequence[v.step] }
+              : tick > v.showAt + v.pattern.length * 650 + 300
+                ? {
+                    value:
+                      v.pattern[
+                        v.reverse ? v.pattern.length - 1 - v.cursor : v.cursor
+                      ],
+                  }
+                : null;
+          if (move)
+            try {
+              input(s, p.id, move.value, tick, move);
+            } catch (e) {
+              if (!e.status) throw e;
+            }
         }
-        at=tick;
+        at = tick;
       }
-      at=Math.max(at,g.end+1);M.advance(s,at);
-
+      at = Math.max(at, g.end + 1);
+      M.advance(s, at);
     } else {
       at = s.deadline + 1;
       M.advance(s, at);
@@ -791,7 +827,7 @@ test("guest auth, room privacy, idempotent movement and atomic cosmetics in real
     );
     // Isolate board movement/replay from the separately tested opening roll ceremony.
     await server.pg.query(
-      "UPDATE party_rooms SET state=state || '{\"turn\":0,\"startingSeat\":0,\"turnIndex\":0,\"phase\":\"board\"}'::jsonb WHERE id=$1",
+      'UPDATE party_rooms SET state=state || \'{"turn":0,"startingSeat":0,"turnIndex":0,"phase":"board"}\'::jsonb WHERE id=$1',
       [room],
     );
     const requestId = uuid(),
@@ -899,9 +935,9 @@ test("thirty simulated festivals finish without stuck turns or negative balances
   assert.equal(seen.size, C.games.length);
 });
 
-test("a depleted showdown pool preserves the unplayed coin games", () => {
+test("a depleted showdown pool preserves unplayed party games", () => {
   const s = landing("duel");
-  s.usedGames = C.games.filter((g) => !g.coinGame).map((g) => g.id);
+  s.usedGames = C.games.filter((g) => g.id !== "fish").map((g) => g.id);
   M.act(
     s,
     "0",
@@ -910,13 +946,13 @@ test("a depleted showdown pool preserves the unplayed coin games", () => {
   );
   assert.ok(
     C.games
-      .filter((g) => !g.duelOnly && !g.coinGame)
+      .filter((g) => !g.duelOnly && g.id !== "fish")
       .every((g) => s.usedGames.includes(g.id)),
   );
   s.phase = "board-end";
   s.deadline = 12200;
   M.advance(s, 12200);
-  assert.ok(C.games.find((g) => g.id === s.game.id).coinGame);
+  assert.equal(s.game.id, "fish");
 });
 
 test("V4 lengths, exclusive picks, rematch selection and standings are authoritative", () => {

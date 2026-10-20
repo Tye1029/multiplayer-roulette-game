@@ -74,7 +74,27 @@
   function lanternTile(beat) {
     return (beat.layout || [0, 1, 2, 3]).indexOf(beat.color);
   }
+  const hopRadius = (size) =>
+    ({ small: 0.3, medium: 0.48, large: 0.68 })[size] || 0.48;
+  const hopDuration = (size) =>
+    ({ small: 600, medium: 820, large: 1040 })[size] || 820;
+  function hopHeight(age, size) {
+    const q = clamp(age / hopDuration(size));
+    const peak = { small: 1.5, medium: 1.95, large: 2.4 }[size] || 1.95;
+    return 4 * q * (1 - q) * peak;
+  }
+  function hopClear(beat, contactAt, jumpAt) {
+    const reach = (hopRadius(beat.size) + 0.22) / (beat.speed || 0.009);
+    return [contactAt - reach, contactAt + reach].every(
+      (at) =>
+        hopHeight(at - jumpAt, beat.size) >= hopRadius(beat.size) * 2 + 0.04,
+    );
+  }
   return {
+    hopRadius,
+    hopDuration,
+    hopHeight,
+    hopClear,
     memoryReady: 1200,
     memoryBeat: 650,
     memoryFlash: 460,

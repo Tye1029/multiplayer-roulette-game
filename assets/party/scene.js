@@ -2,18 +2,19 @@ import {
   surfaceMaterial,
   island,
   ovalPatch,
-} from "./surface-art.js?v=BOARDWALK_CARNIVAL_V10";
-import { polishScenes } from "./polish-scenes.js?v=BOARDWALK_CARNIVAL_V10";
-import { midwayScenes } from "./midway-scenes.js?v=BOARDWALK_CARNIVAL_V10";
-import { expansionScenes } from "./expansion-scenes.js?v=BOARDWALK_CARNIVAL_V10";
+} from "./surface-art.js?v=BOARDWALK_CARNIVAL_V11";
+import { polishScenes } from "./polish-scenes.js?v=BOARDWALK_CARNIVAL_V11";
+import { midwayScenes } from "./midway-scenes.js?v=BOARDWALK_CARNIVAL_V11";
+import { expansionScenes } from "./expansion-scenes.js?v=BOARDWALK_CARNIVAL_V11";
 import * as T from "./vendor/three.module.min.js";
-import { carnivalScenes } from "./carnival-scenes.js?v=BOARDWALK_CARNIVAL_V10";
-import { festivalScenes } from "./festival-scenes.js?v=BOARDWALK_CARNIVAL_V10";
+import { carnivalScenes } from "./carnival-scenes.js?v=BOARDWALK_CARNIVAL_V11";
+import { festivalScenes } from "./festival-scenes.js?v=BOARDWALK_CARNIVAL_V11";
 const C = globalThis.PartyCatalog,
   R = globalThis.PartyRules,
   TAU = Math.PI * 2,
   clamp = (n, a = 0, b = 1) => Math.max(a, Math.min(b, n)),
   mix = (a, b, t) => a + (b - a) * t;
+const playback = globalThis.PartyPresentation.golfPlayback();
 const mats = new Map(),
   geos = new Map(),
   worlds = new Map(),
@@ -2234,7 +2235,12 @@ function updateFish(w, s, t) {
       dt = t * 1000 - (s?.game?.start || 0) - (cue?.at || 0),
       splash = cue && dt >= 0 && dt < cue.window;
     w.ripples[i].forEach((ring, j) => {
-      const phase = (t * 1.3 + j / 3) % 1;
+      if (!ring.userData.fadeMaterial) {
+        ring.material = mat("#ddfffa").clone();
+        ring.material.transparent = true;
+        ring.material.depthWrite = false;
+        ring.userData.fadeMaterial = true;
+      }
       ring.visible =
         s?.phase === "playing" &&
         !!cue &&
@@ -2243,7 +2249,10 @@ function updateFish(w, s, t) {
         !v?.catch;
       ring.scale.setScalar((cue?.size || 0.7) * (0.65 + j * 0.32));
       ring.position.y = -0.58 + Math.sin(t * 3 + j) * 0.007;
-      ring.material = mat("#c9f0ee");
+      const fadeIn = clamp((dt + 1500 - j * 90) / 450);
+      const fadeOut = clamp((cue?.window - dt) / 240);
+      ring.material.opacity =
+        fadeIn * fadeOut * (0.62 + Math.sin(t * 3 + j) * 0.12);
     });
     w.bobbers[i].position.y = -0.5 + Math.sin(t * 3 + i) * 0.07;
     const f = w.fishes[i];
@@ -2307,7 +2316,7 @@ function puttWorld(index) {
   const h = C.holes[index],
     conv = ([x, z]) => [(x - 360) / 25, (z - 360) / 25];
   w.conv = conv;
-  const themes = ["#9abb93", "#a0c6a0", "#adbc8c"];
+  const themes = ["#87c951", "#75cc72", "#a2cf57"];
   island(T, w.root, mat("#dac39a"), 0, 0.25, 0, 22, 19, 1.2);
   island(
     T,
@@ -2333,7 +2342,7 @@ function puttWorld(index) {
   });
   const green = new T.Mesh(
     new T.ShapeGeometry(shape),
-    surfaceMaterial(T, "grass", ["#7ab48d", "#75b795", "#8fbb87"][index], 0.05),
+    surfaceMaterial(T, "grass", ["#53b545", "#52bd6b", "#7bc94b"][index], 0.05),
   );
   green.rotation.x = -Math.PI / 2;
   green.position.y = 0.52;
@@ -2420,7 +2429,7 @@ function puttWorld(index) {
     geo.computeVertexNormals();
     const m = new T.Mesh(
       geo,
-      surfaceMaterial(T, "grass", hill.height > 0 ? "#8fc49b" : "#72ab86", 2),
+      surfaceMaterial(T, "grass", hill.height > 0 ? "#84cf5c" : "#48a84f", 2),
     );
     m.rotation.x = -Math.PI / 2;
     m.position.set(x, 0.54, z);
@@ -2432,29 +2441,50 @@ function puttWorld(index) {
     p.position.set(x, 0.55, z);
     p.rotation.y = -ramp.angle;
     w.root.add(p);
+    const length = ramp.length / 25,
+      height = ramp.height / 25,
+      width = ramp.width / 25;
+    const section = new T.Shape();
+    section.moveTo(-length, 0);
+    section.lineTo(0, 0);
+    section.lineTo(0, height);
+    section.closePath();
+    const wedge = new T.Mesh(
+      new T.ExtrudeGeometry(section, { depth: width, bevelEnabled: false }),
+      mat("#b98351"),
+    );
+    wedge.position.z = -width / 2;
+    wedge.castShadow = wedge.receiveShadow = true;
+    p.add(wedge);
     const surface = box(
       p,
-      -ramp.length / 50,
-      ramp.height / 50,
+      -length / 2,
+      height / 2 + 0.035,
       0,
-      ramp.length / 25,
-      0.08,
-      ramp.width / 25,
-      "#d6ae74",
+      Math.hypot(length, height),
+      0.06,
+      width,
+      "#efd095",
     );
-    surface.rotation.z = Math.atan2(ramp.height, ramp.length);
-    for (let j = 0; j < 4; j++)
-      box(
-        p,
-        -0.6 - j * 0.7,
-        0.12 + j * 0.01,
-        0,
-        0.12,
-        0.02,
-        ramp.width / 28,
-        "#f9e4ad",
-      );
+    surface.rotation.z = Math.atan2(height, length);
+    for (let j = 1; j < 5; j++) {
+      const q = j / 5,
+        px = -length + q * length,
+        py = q * height + 0.09;
+      for (const side of [-1, 1])
+        tube(
+          p,
+          [px - 0.18, py - (0.18 * height) / length, side * 0.32],
+          [px + 0.18, py + (0.18 * height) / length, 0],
+          0.035,
+          "#fff5cf",
+        );
+    }
+    const jumpSign = label("JUMP RAMP", "#684d38", "#fff0cb", 0.25);
+    jumpSign.position.set(-length * 0.5, height + 1.1, -width * 0.65);
+    p.add(jumpSign);
   }
+
   if (h.gate) {
     const [x, z] = conv([h.gate.x, h.gate.y]);
     w.gate = box(
@@ -2481,6 +2511,19 @@ function puttWorld(index) {
         m.position.x = x - width / 2 + ((j * gap + t * 0.7) % width);
       });
     }
+    for (let j = 0; j < 3; j++) {
+      const chevron = new T.Group();
+      w.root.add(chevron);
+      for (const side of [-1, 1])
+        tube(chevron, [-0.28, 0, side * 0.26], [0.15, 0, 0], 0.035, "#fff0ba");
+      w.animated.push((t) =>
+        chevron.position.set(
+          x - width / 2 + 0.4 + (((j * width) / 3 + t * 0.7) % (width - 0.8)),
+          0.66,
+          z,
+        ),
+      );
+    }
     for (const side of [-1, 1])
       box(
         w.root,
@@ -2497,19 +2540,53 @@ function puttWorld(index) {
   if (h.portal) {
     const [x, z] = conv(h.portal.mouth),
       [ex, ez] = conv(h.portal.exit);
-    ball(w.root, x, 0.9, z - 0.65, 1.3, 0.9, 1.5, "#b4abc9");
-    ball(w.root, x, 0.83, z + 0.5, 1.05, 0.5, 0.75, "#c9bed7");
-    ball(w.root, x, 0.65, z + 0.95, 0.7, 0.3, 0.12, "#5c536e");
-    for (const dx of [-0.55, 0.55]) {
-      ball(w.root, x + dx, 1.65, z - 0.4, 0.26, 0.27, 0.26, "#d7c8de");
-      ball(w.root, x + dx, 1.7, z - 0.18, 0.08, 0.1, 0.05, "#3e435d");
+    const hippo = new T.Group();
+    hippo.position.set(x, 0, z);
+    w.root.add(hippo);
+    ball(hippo, 0, 1.18, -2.3, 1.42, 1.1, 2.5, "#ab87d0");
+    const head = new T.Group();
+    // The belt carries the ball from the left. Turn the face toward that
+    // entrance while the body covers the northbound transport chute.
+    head.rotation.y = -Math.PI / 2;
+    hippo.add(head);
+    ball(head, 0, 1.55, -0.6, 1.12, 0.7, 0.9, "#bb9bdf");
+    // The open mouth is centered on the exact physics entrance, facing the incoming conveyor.
+    ball(head, 0, 0.92, 0.08, 0.87, 0.43, 0.13, "#332c4f");
+    ball(head, 0, 0.52, 0.05, 1.08, 0.18, 0.65, "#d3b9ec");
+    for (const dx of [-0.65, 0.65]) {
+      ball(head, dx, 2.03, -0.7, 0.27, 0.32, 0.24, "#c8a5e2");
+      ball(head, dx, 2.08, -0.48, 0.14, 0.18, 0.07, "#fff9ec");
+      ball(head, dx, 2.08, -0.405, 0.075, 0.095, 0.04, "#303957");
+      cyl(head, dx, 0.67, 0.31, 0.11, 0.14, 0.34, "#fff4d7", 12);
+      ball(head, dx * 0.6, 1.65, 0.05, 0.15, 0.07, 0.1, "#79599f");
     }
-    cyl(w.root, ex, 0.58, ez, 0.65, 0.65, 0.1, "#706387");
-    for (let j = 1; j <= 12; j++) {
-      const p = globalThis.PuttPhysics.portalPoint(h, j / 12),
+    const inLabel = label("HIPPO SHORTCUT", "#fff3dc", "#735691", 0.36);
+    inLabel.position.set(x, 3.1, z - 1.1);
+    w.root.add(inLabel);
+    const mouthRing = torus(w.root, x, 0.57, z, 0.86, 0.04, "#ffe7a1");
+    mouthRing.rotation.x = Math.PI / 2;
+    cyl(w.root, ex, 0.57, ez, 0.75, 0.75, 0.12, "#76509d");
+    const outRing = torus(w.root, ex, 0.65, ez, 0.7, 0.075, "#dfc3f4");
+    outRing.rotation.x = Math.PI / 2;
+    const points = Array.from({ length: 32 }, (_, j) => {
+      const p = globalThis.PuttPhysics.portalPoint(h, j / 31),
         [px, pz] = conv(p);
-      cyl(w.root, px, 0.6, pz, 0.42, 0.42, 0.1, "#a39abb", 16);
+      return new T.Vector3(px, 0.56, pz);
+    });
+    const track = new T.Mesh(
+      new T.TubeGeometry(new T.CatmullRomCurve3(points), 48, 0.28, 10, false),
+      mat("#cfb0df"),
+    );
+    w.root.add(track);
+    for (let j = 0; j < 12; j++) {
+      const p = globalThis.PuttPhysics.portalPoint(h, j / 11),
+        [px, pz] = conv(p);
+      const rim = torus(w.root, px, 0.58, pz, 0.32, 0.035, "#f8d5f3");
+      rim.rotation.x = Math.PI / 2;
     }
+    const exitArrow = label("OUT ↗", "#fff8df", "#76509d", 0.28);
+    exitArrow.position.set(ex, 1.35, ez);
+    w.root.add(exitArrow);
   }
   const vertices = h.floor;
   for (let i = 0; i < vertices.length; i++) {
@@ -2590,12 +2667,24 @@ function puttWorld(index) {
   );
   w.animated.push((t) => (flag.rotation.y = Math.sin(t * 2) * 0.15));
   w.ball = ball(w.root, 0, 0.72, 0, 0.22, 0.22, 0.22, "#fff8e8");
+  w.waterSplash = torus(w.root, 0, 0.57, 0, 0.45, 0.04, "#d5faff");
+  w.waterSplash.rotation.x = Math.PI / 2;
+  w.waterSign = label("SPLASH · +1 STROKE", "#315a75", "#d9f3f4", 0.38);
+  w.root.add(w.waterSign);
   w.aimArrow = new T.Group();
   w.root.add(w.aimArrow);
   w.aimTrack = box(w.aimArrow, 3.8, 0, 0, 7, 0.035, 0.46, "#fff5d0");
   w.aimFill = box(w.aimArrow, 0, 0.04, 0, 1, 0.04, 0.4, "#efb245");
   w.aimHead = cyl(w.aimArrow, 0, 0.07, 0, 0, 0.5, 0.8, "#ffe095", 3);
   w.aimHead.rotation.z = -Math.PI / 2;
+  w.aimArrow.traverse((m) => {
+    if (!m.material) return;
+    m.material = m.material.clone();
+    m.material.depthTest = false;
+    m.material.depthWrite = false;
+    m.renderOrder = 80;
+    m.castShadow = m.receiveShadow = false;
+  });
   w.holeHalo = torus(w.root, cup[0], 0.59, cup[1], 0.55, 0.07, "#ffe69c");
   w.holeHalo.rotation.x = Math.PI / 2;
   w.holeSign = label("HOLE IN!", "#624a70", "#fff1bf", 0.7);
@@ -2666,22 +2755,19 @@ function updatePutt(w, s, t, extra) {
     rolling = false;
   if (w.gate) w.gate.rotation.y = -t * h.gate.speed;
   if (shot && shot.course === Number(w.name.slice(4))) {
-    const elapsed = t * 1000 - shot.at;
-    if (elapsed <= shot.duration + 450) {
-      rolling = true;
-      let a = shot.frames[0],
-        b = shot.frames.at(-1);
-      for (let j = 1; j < shot.frames.length; j++)
-        if (shot.frames[j][0] >= elapsed) {
-          a = shot.frames[j - 1];
-          b = shot.frames[j];
-          break;
-        }
-      const q = clamp((elapsed - a[0]) / (b[0] - a[0] || 1));
-      position = [mix(a[1], b[1], q), mix(a[2], b[2], q)];
-      elevation = mix(a[4] || 0, b[4] || 0, q) / 25;
-      w.ball.scale.setScalar(0.22 * mix(a[3], b[3], q));
-    }
+    const elapsed = t * 1000 - shot.at,
+      frame = PartyPresentation.shotFrame(shot, elapsed);
+    // Keep the terminal physics frame while waiting for the next room poll.
+    // Falling back to v.ball here rewound the ball to its previous stroke.
+    position = [frame[1], frame[2]];
+    elevation = (frame[4] || 0) / 25;
+    rolling = elapsed < shot.duration + (shot.holed ? 1100 : 180);
+    const sink = shot.holed ? clamp((elapsed - shot.duration + 60) / 360) : 0;
+    w.ball.scale.setScalar(
+      0.22 *
+        (shot.holed && elapsed >= shot.duration - 60 ? 1 - sink : frame[3]),
+    );
+    if (shot.holed) elevation -= sink * 0.32;
   }
   const [x, z] = w.conv(position);
   w.ball.position.set(
@@ -2694,23 +2780,34 @@ function updatePutt(w, s, t, extra) {
       ),
     z,
   );
-  if (!rolling) w.ball.scale.setScalar(0.22);
-  const aim = extra.aim || { angle: -1.2, power: 0.5 },
-    tee = w.conv(v?.ball || h.tee);
+  if (!shot) w.ball.scale.setScalar(0.22);
+  const splash = shot?.events?.find((e) => e.type === "splash"),
+    splashAge = splash ? t * 1000 - shot.at - splash.at : -1;
+  w.waterSplash.visible = w.waterSign.visible =
+    splashAge >= 0 && splashAge < 1000;
+  if (splash) {
+    const [sx, sz] = w.conv([splash.x, splash.y]);
+    w.waterSplash.position.set(sx, 0.57, sz);
+    w.waterSplash.scale.setScalar(0.4 + clamp(splashAge / 900) * 2.6);
+    w.waterSign.position.set(sx, 1.5 + clamp(splashAge / 1000), sz);
+  }
+  const aim = extra.aim || { angle: -1.2, power: 0 },
+    tee = w.conv(position);
   w.aimArrow.visible =
     s?.phase === "playing" &&
+    !!aim.dragging &&
     !rolling &&
     !v?.holed &&
     !v?.finished &&
     s.players[i].id === s.you;
   w.aimArrow.position.set(tee[0], w.ball.position.y + 0.04, tee[1]);
   w.aimArrow.rotation.y = -aim.angle;
-  const power = clamp(aim.power, 0.05, 1),
+  const power = clamp(aim.power, 0, 1),
     length = 0.6 + power * 6.6;
   w.aimFill.scale.x = length;
   w.aimFill.position.x = length / 2 + 0.3;
   w.aimHead.position.x = length + 0.55;
-  w.aimFill.material = mat(
+  w.aimFill.material.color.set(
     power > 0.8 ? "#ee8e67" : power > 0.45 ? "#efbd50" : "#85d6b1",
   );
   const hole = s?.game?.putt?.holeEvent,
@@ -2732,20 +2829,41 @@ function updatePutt(w, s, t, extra) {
     );
     m.scale.setScalar(0.09 * (1 - q));
   });
-  if (v?.holed) w.ball.scale.setScalar(0);
   w.actors.forEach((a, j) => {
-    a.visible = j === i;
-    a.position.set(tee[0] - 1.1, 0.55, tee[1] + 0.5);
-    a.rotation.y = 1;
+    a.visible = true;
+    const origin = shot?.frames?.[0],
+      standing =
+        j === i
+          ? rolling && origin
+            ? w.conv([origin[1], origin[2]])
+            : tee
+          : [-13.8, -7 + j * 2.2],
+      target = new T.Vector3(
+        standing[0] - (j === i ? 1.1 : 0),
+        0.55,
+        standing[1] + 0.5,
+      ),
+      dt = Math.min(0.05, Math.max(0, t - (a.userData.puttTime ?? t)));
+    if (a.userData.puttStart !== s?.game?.start) {
+      a.position.copy(target);
+      a.userData.puttStart = s?.game?.start;
+    } else a.position.lerp(target, 1 - Math.exp(-7 * dt));
+    a.userData.puttTime = t;
+    a.rotation.y = j === i ? Math.PI / 2 - (aim.angle || 0) : 0.3;
     a.scale.setScalar(0.75);
     animateCharacter(
       a,
       t,
-      (shot && t * 1000 - shot.at < 700) || t * 1000 - (v?.swingAt || 0) < 700
-        ? "fish"
-        : v?.finished || v?.holed
-          ? "win"
-          : "idle",
+      j !== i
+        ? "idle"
+        : a.position.distanceTo(target) > 0.1
+          ? "walk"
+          : (shot && t * 1000 - shot.at < 700) ||
+              t * 1000 - (v?.swingAt || 0) < 700
+            ? "fish"
+            : v?.finished || v?.holed
+              ? "win"
+              : "idle",
       0.6,
     );
     if (!a.userData.club) {
@@ -2755,11 +2873,19 @@ function updatePutt(w, s, t, extra) {
       a.add(club);
       a.userData.club = club;
     }
+    a.userData.club.visible = j === i;
     a.userData.club.rotation.x =
-      shot && t * 1000 - shot.at < 700
+      j === i && shot && t * 1000 - shot.at < 700
         ? -Math.sin(((t * 1000 - shot.at) / 700) * Math.PI)
         : 0;
   });
+  w.golfBusy = rolling || playback.busy(t * 1000);
+  w.golfBall = {
+    position: [x, w.ball.position.y, z],
+    scale: w.ball.scale.x,
+    shotAt: shot?.at,
+    course: Number(w.name.slice(4)),
+  };
   return { target: new T.Vector3(0, 0, 0), extent: 31, position: [0, 36, 22] };
 }
 function sceneFrame(w, t, view, canvas) {
@@ -2769,16 +2895,33 @@ function sceneFrame(w, t, view, canvas) {
     aspect = width / height,
     extent = view.extent,
     cam = w.camera;
-  cam.left = (-extent * aspect) / 2;
-  cam.right = (extent * aspect) / 2;
-  const lift =
-    canvas.id === "party-scene" && document.body.dataset.phase === "playing"
-      ? 0.1
-      : 0;
-  cam.top = extent * (0.5 - lift);
-  cam.bottom = -extent * (0.5 + lift);
-  cam.position.copy(view.target).add(new T.Vector3(...view.position));
-  cam.lookAt(view.target);
+  const cameraKey = canvas.id + ":" + w.viewSession;
+  const tick = performance.now();
+  const dt = Math.min(
+    0.05,
+    Math.max(0, (tick - (w.cameraTick || tick)) / 1000),
+  );
+  w.cameraTick = tick;
+  if (!w.cameraView || w.cameraKey !== cameraKey) {
+    w.cameraKey = cameraKey;
+    w.cameraView = {
+      target: view.target.clone(),
+      position: new T.Vector3(...view.position),
+      extent: view.extent,
+    };
+  }
+  const ease = 1 - Math.exp(-5 * dt),
+    smooth = w.cameraView;
+  smooth.target.lerp(view.target, ease);
+  smooth.position.lerp(new T.Vector3(...view.position), ease);
+  smooth.extent = mix(smooth.extent, view.extent, ease);
+  cam.left = (-smooth.extent * aspect) / 2;
+  cam.right = (smooth.extent * aspect) / 2;
+  const lift = canvas.id === "party-scene" && w.name !== "board" ? 0.1 : 0;
+  cam.top = smooth.extent * (0.5 - lift);
+  cam.bottom = -smooth.extent * (0.5 + lift);
+  cam.position.copy(smooth.target).add(smooth.position);
+  cam.lookAt(smooth.target);
   cam.updateProjectionMatrix();
   const scenicTime = w.motion === false ? 0 : t;
   for (const f of w.animated) f(scenicTime);
@@ -3253,7 +3396,7 @@ function render(canvas, kind, state, time = 0, extra = {}) {
   if (!canvas) return;
   if (kind !== "board" && state?.game) {
     if (["intro", "countdown"].includes(state.phase))
-      time = state.game.start / 1000;
+      time = Math.min(time, state.game.start / 1000);
     const input = extra.localInput;
     if (
       state.phase === "playing" &&
@@ -3341,6 +3484,7 @@ function render(canvas, kind, state, time = 0, extra = {}) {
     overlay(canvas.getContext("2d"), canvas, kind, state, time, extra);
     return;
   }
+  if (kind === "putt") state = playback.update(state, time * 1000);
   let w, view;
   if (kind === "board") {
     if (
@@ -3362,7 +3506,7 @@ function render(canvas, kind, state, time = 0, extra = {}) {
   } else if (kind === "memory") {
     w = polish.concert();
     view = polish.updateConcert(w, state, time, extra);
-  } else if (["cascade", "lantern", "hop", "dash", "signal"].includes(kind)) {
+  } else if (["lantern", "hop", "dash", "signal"].includes(kind)) {
     w = extras.build(kind);
     view = extras.update(w, state, time, extra);
   } else if (
@@ -3387,7 +3531,6 @@ function render(canvas, kind, state, time = 0, extra = {}) {
       const i = state.players.findIndex((p) => p.id === a.userData.playerId),
         v = state.game.progress[i];
       a.visible =
-        (kind !== "putt" || i === state.game.putt?.turn) &&
         state.game.participants.includes(a.userData.playerId) &&
         !(
           v?.eliminatedAt &&
@@ -3408,7 +3551,6 @@ function render(canvas, kind, state, time = 0, extra = {}) {
     width / height < 1 &&
     !(kind === "fish" && state.phase === "measuring") &&
     [
-      "cascade",
       "dash",
       "hop",
       "fish",
@@ -3519,6 +3661,7 @@ function render(canvas, kind, state, time = 0, extra = {}) {
     view.extent = Math.max(view.extent, 54 / (width / height));
   if (canvas.id === "party-scene") activeWorld = w;
   w.renderStamp = time * 1000;
+  w.viewSession = state?.id + ":" + state?.game?.preparedAt;
   w.renderPhase = state?.phase;
   w.motion = extra.motion !== false;
   const context = sceneFrame(w, time, view, canvas);
@@ -3760,12 +3903,31 @@ function diagnostics() {
       position: a.position.toArray(),
     })),
     ripples: w.ripples?.map((r) =>
-      r.map((m) => ({ visible: m.visible, size: m.scale.x })),
+      r.map((m) => ({
+        visible: m.visible,
+        size: m.scale.x,
+        opacity: m.material.opacity,
+      })),
     ),
     cardVisible: w.flagGroup?.visible,
-    rollerVisible: w.wave?.visible,
+    cardPosition: w.cardFace?.getWorldPosition(new T.Vector3()).toArray(),
+    marshalPosition: w.marshal?.position.toArray(),
+    rollerVisible: w.waves?.some((m) => m.visible),
+    rollers: w.waves
+      ?.filter((m) => m.visible)
+      .map((m) => ({
+        position: m.position.toArray(),
+        scale: m.scale.toArray(),
+      })),
     arrowVisible: w.aimArrow?.visible,
     arrowLength: w.aimFill?.scale.x,
+    arrowAngle: w.aimArrow ? -w.aimArrow.rotation.y : undefined,
+    arrowOverlays: w.aimFill?.material.depthTest === false,
+    holeCelebration: w.holeSign?.visible,
+    waterPenalty: w.waterSign?.visible,
+    golfBusy: w.golfBusy,
+    golfBall: w.golfBall,
+    cameraPosition: w.camera.position.toArray(),
   };
 }
 globalThis.PartyScene = { render, portrait, spaceAt, groundAt, diagnostics };

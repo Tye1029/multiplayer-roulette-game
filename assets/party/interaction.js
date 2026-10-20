@@ -15,10 +15,6 @@
       memory: [0, 1, 2, 3].map((v) => [v, ["Blue", "Pink", "Mint", "Gold"][v]]),
       fish: [["reel", "Reel"]],
       hop: [["jump", "Jump"]],
-      cascade: [
-        ["left", "Left"],
-        ["right", "Right"],
-      ],
       dash: [
         ["left", "Left"],
         ["jump", "Jump"],
@@ -106,13 +102,15 @@
     }
     if (value === "jump") p.fields.jumpAt = at;
     if (g.id === "hop")
+      p.fields.hopAttempt = { index: g.cue?.index, size: g.cue?.size };
+    if (g.id === "hop")
       p.fields.jumpDuration =
         globalThis.PartyExpansionRules?.waveJump(g.cue?.size) || 680;
     if (g.id === "memory" && Number.isInteger(value))
       Object.assign(p.fields, { pad: value, padAt: at });
     if (value === "duck") p.fields.duckAt = at;
     if (
-      ["cascade", "dash", "kart", "orchard"].includes(g.id) &&
+      ["dash", "kart", "orchard"].includes(g.id) &&
       ["left", "right"].includes(value)
     ) {
       const from =
@@ -150,21 +148,26 @@
       input.pending ||
       input.rejected ||
       v.last !== input.serverAt ||
-      !["fish", "memory", "cascade", "hop", "lantern"].includes(input.game)
+      !["fish", "memory", "hop", "lantern"].includes(input.game)
     )
       return v;
-    // An accepted response must not restart a jump or lane transition that is
-    // already visible locally. Preserve only pose clocks, never scores/outcomes.
+    // Preserve accepted pose clocks, never scores/outcomes. Hop's clearance
+    // must use its authoritative curve; other feedback can keep its local clock.
     const out = { ...v };
     for (const key of ["jumpAt", "duckAt", "padAt"])
-      if (input.fields[key] && v[key] === input.serverAt)
+      if (
+        input.fields[key] &&
+        v[key] === input.serverAt &&
+        input.game !== "hop"
+      )
         out[key] = input.fields[key];
+    if (input.game === "hop" && v.hopAttempt) {
+      // The accepted curve uses the same physical clearance as the server.
+      out.jumpAt = v.jumpAt;
+    }
     if (input.game === "fish" && v.catch?.at === input.serverAt)
       out.reelAt = input.at;
-    if (
-      (input.game === "cascade" && v.lane === input.fields.lane) ||
-      (input.game === "lantern" && v.chosen === input.fields.chosen)
-    )
+    if (input.game === "lantern" && v.chosen === input.fields.chosen)
       out.moveAt = input.at;
     return out;
   }

@@ -176,27 +176,6 @@ test("bonus trophies apply one at a time, ties share awards, reconnects cannot r
     [1, 1, 1, 1],
   );
 });
-test("coin showers remain visible across collection boundaries and spikes only remove collected coins", () => {
-  const s = fixture("cascade"),
-    g = s.game,
-    v = g.progress[0],
-    b = g.beats[0];
-  b.values = [1, 3, -3];
-  play(s, 0, "stay", 21000);
-  const at = g.start + b.at + b.window;
-  const before = M.view(s, "0", at - 10).game.drops;
-  G.advance(g, 0, at);
-  assert.equal(v.collected, 3);
-  const after = M.view(s, "0", at + 10).game.drops;
-  assert.ok(
-    before.some((b) => b.index === 0) && after.some((b) => b.index === 0),
-  );
-  v.lane = 2;
-  g.beats[1].values = [1, 1, -3];
-  G.advance(g, 0, g.start + g.beats[1].at + g.beats[1].window);
-  assert.equal(v.collected, 0);
-  assert.equal(v.stunnedUntil, undefined);
-});
 test("rival victories count toward bonus trophies without counting refunded stakes as earnings", () => {
   const s = fixture("fencing"),
     g = s.game;
