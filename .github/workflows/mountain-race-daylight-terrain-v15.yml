@@ -1,0 +1,84 @@
+name: Summit Sprint Daylight Terrain V15
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: summit-sprint-daylight-terrain-v15-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate-daylight-terrain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+
+      - name: Use Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build exact Netlify output
+        run: npm run build
+
+      - name: Verify daylight terrain and authoritative protections
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check scripts/patch-mountain-race-daylight-terrain-v15.mjs
+          node --check scripts/validate-mountain-race-daylight-terrain-v15.mjs
+          node --check assets/mountain-race/mountain-race-multiplayer.js
+          node scripts/validate-mountain-race-daylight-terrain-v15.mjs
+          node scripts/validate-mountain-race-visual-rebuild-v14.mjs
+          node scripts/validate-mountain-race-input-rebase-v8.mjs
+          node scripts/validate-mountain-race-terminal-poll-v10.mjs
+          node scripts/validate-mountain-race-lifecycle-guard-v11.mjs
+          grep -Fq 'MOUNTAIN_RACE_DAYLIGHT_TERRAIN_V15' index.html
+          grep -Fq 'terrain=15' index.html
+          grep -Fq 'class="mr-start-meadow"' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'mr-finish-ledge mr-summit-plateau' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'standing-on-summit' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq 'data-mr-finished=' assets/mountain-race/mountain-race-multiplayer.js
+          grep -Fq '.mr-start-meadow' assets/mountain-race/mountain-race.css
+          grep -Fq '.mr-summit-turf' assets/mountain-race/mountain-race.css
+          grep -Fq 'linear-gradient(180deg, #54b4ed' assets/mountain-race/mountain-race.css
+          grep -Fq 'linear-gradient(104deg, #916a46' assets/mountain-race/mountain-race.css
+          test -s assets/safe-cracker/safe-cracker.js
+          test -s assets/roulette/turn-animation.js
+
+      - name: Verify live Netlify Daylight Terrain V15 deployment
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          url='https://deploy-preview-20--famous-piroshki-b621da.netlify.app/'
+          for attempt in $(seq 1 48); do
+            page="$(curl -fsSL --max-time 20 "${url}?summit_daylight_terrain_v15=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            runtime="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race-multiplayer.js?visual=14&terrain=15&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            styles="$(curl -fsSL --max-time 20 "${url}assets/mountain-race/mountain-race.css?visual=14&terrain=15&commit=${GITHUB_SHA}&attempt=${attempt}" 2>/dev/null || true)"
+            if grep -Fq 'MOUNTAIN_RACE_DAYLIGHT_TERRAIN_V15' <<<"$page" && \
+               grep -Fq 'terrain=15' <<<"$page" && \
+               grep -Fq 'MOUNTAIN_RACE_DAYLIGHT_TERRAIN_V15' <<<"$runtime" && \
+               grep -Fq 'class="mr-start-meadow"' <<<"$runtime" && \
+               grep -Fq 'mr-finish-ledge mr-summit-plateau' <<<"$runtime" && \
+               grep -Fq 'standing-on-summit' <<<"$runtime" && \
+               grep -Fq 'data-mr-finished=' <<<"$runtime" && \
+               grep -Fq 'MOUNTAIN_RACE_DAYLIGHT_TERRAIN_V15' <<<"$styles" && \
+               grep -Fq '.mr-start-meadow' <<<"$styles" && \
+               grep -Fq '.mr-summit-turf' <<<"$styles"; then
+              echo 'Verified live Summit Sprint Daylight Terrain V15 deployment.'
+              exit 0
+            fi
+            echo "Waiting for Netlify Daylight Terrain V15 deployment (${attempt}/48)..."
+            sleep 10
+          done
+          echo 'Netlify did not serve Summit Sprint Daylight Terrain V15.' >&2
+          exit 1

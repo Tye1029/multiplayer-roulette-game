@@ -1,0 +1,2023 @@
+{
+  "build": "MIDNIGHT_RUN_V4_CORNER_AMBIENCE",
+  "roundsPerDifficulty": 5000000,
+  "totalRounds": 15000000,
+  "scenarios": 219,
+  "difficulties": [
+    {
+      "difficulty": "normal",
+      "label": "Low Risk",
+      "scenarios": 90,
+      "bestAdaptiveReturn": 0.9,
+      "minimumExpectedHouseEdge": 0.09999999999999998,
+      "observedReturnRange": [
+        0.65853,
+        0.9070128124200001
+      ]
+    },
+    {
+      "difficulty": "medium",
+      "label": "Medium Risk",
+      "scenarios": 72,
+      "bestAdaptiveReturn": 0.8999999992615748,
+      "minimumExpectedHouseEdge": 0.10000000073842519,
+      "observedReturnRange": [
+        0.4798,
+        0.918217482
+      ]
+    },
+    {
+      "difficulty": "high",
+      "label": "High Risk",
+      "scenarios": 57,
+      "bestAdaptiveReturn": 0.9,
+      "minimumExpectedHouseEdge": 0.09999999999999998,
+      "observedReturnRange": [
+        0.4582,
+        0.9022994570879999
+      ]
+    }
+  ],
+  "expectedReturnRange": [
+    0.4518634875335264,
+    0.9
+  ],
+  "observedReturnRange": [
+    0.4582,
+    0.918217482
+  ],
+  "sampledHouseLossScenarios": [],
+  "rows": [
+    {
+      "difficulty": "normal",
+      "stake": 50000,
+      "block": 1,
+      "payout": 56250,
+      "expectedReturn": 0.9,
+      "observedReturn": 0.89995815,
+      "escapes": 3999814
+    },
+    {
+      "difficulty": "normal",
+      "stake": 50000,
+      "block": 2,
+      "payout": 63920,
+      "expectedReturn": 0.8999936000000002,
+      "observedReturn": 0.9001137695999999,
+      "escapes": 3520470
+    },
+    {
+      "difficulty": "normal",
+      "stake": 50000,
+      "block": 3,
+      "payout": 74326,
+      "expectedReturn": 0.8999986688000001,
+      "observedReturn": 0.9002252144480001,
+      "escapes": 3027962
+    },
+    {
+      "difficulty": "normal",
+      "stake": 50000,
+      "block": 4,
+      "payout": 88483,
+      "expectedReturn": 0.899995278336,
+      "observedReturn": 0.900020407508,
+      "escapes": 2542919
+    },
+    {
+      "difficulty": "normal",
+      "stake": 50000,
+      "block": 5,
+      "payout": 107906,
+      "expectedReturn": 0.8999944646246401,
+      "observedReturn": 0.900132860544,
+      "escapes": 2085456
+    },
+    {
+      "difficulty": "normal",
+      "stake": 50000,
+      "block": 6,
+      "payout": 134883,
+      "expectedReturn": 0.8999978008412161,
+      "observedReturn": 0.9002922299280001,
+      "escapes": 1668654
+    },
+    {
+      "difficulty": "normal",
+      "stake": 50000,
+      "block": 7,
+      "payout": 172927,
+      "expectedReturn": 0.8999982011872051,
+      "observedReturn": 0.9002116175639999,
+      "escapes": 1301433
+    },
+    {
+      "difficulty": "normal",
+      "stake": 50000,
+      "block": 8,
+      "payout": 227535,
+      "expectedReturn": 0.8999961193880617,
+      "observedReturn": 0.9011860426799999,
+      "escapes": 990162
+    },
+    {
+      "difficulty": "normal",
+      "stake": 50000,
+      "block": 9,
+      "payout": 307481,
+      "expectedReturn": 0.8999998374813319,
+      "observedReturn": 0.9002096638520001,
+      "escapes": 731923
+    },
+    {
+      "difficulty": "normal",
+      "stake": 50000,
+      "block": 10,
+      "payout": 427057,
+      "expectedReturn": 0.8999999545617159,
+      "observedReturn": 0.9012815915360001,
+      "escapes": 527612
+    },
+    {
+      "difficulty": "normal",
+      "stake": 50000,
+      "block": 11,
+      "payout": 610081,
+      "expectedReturn": 0.8999993223276431,
+      "observedReturn": 0.901707038972,
+      "escapes": 369503
+    },
+    {
+      "difficulty": "normal",
+      "stake": 50000,
+      "block": 12,
+      "payout": 897178,
+      "expectedReturn": 0.8999993813361565,
+      "observedReturn": 0.901667478712,
+      "escapes": 251251
+    },
+    {
+      "difficulty": "normal",
+      "stake": 50000,
+      "block": 13,
+      "payout": 1359361,
+      "expectedReturn": 0.8999996421537861,
+      "observedReturn": 0.9018000874,
+      "escapes": 165850
+    },
+    {
+      "difficulty": "normal",
+      "stake": 50000,
+      "block": 14,
+      "payout": 2124002,
+      "expectedReturn": 0.899999827534932,
+      "observedReturn": 0.902055153392,
+      "escapes": 106174
+    },
+    {
+      "difficulty": "normal",
+      "stake": 50000,
+      "block": 15,
+      "payout": 3425810,
+      "expectedReturn": 0.8999999122805985,
+      "observedReturn": 0.9023994637199999,
+      "escapes": 65853
+    },
+    {
+      "difficulty": "normal",
+      "stake": 50000,
+      "block": 16,
+      "payout": 5709683,
+      "expectedReturn": 0.8999998597382851,
+      "observedReturn": 0.899983073192,
+      "escapes": 39406
+    },
+    {
+      "difficulty": "normal",
+      "stake": 50000,
+      "block": 17,
+      "payout": 9844282,
+      "expectedReturn": 0.8999999480093716,
+      "observedReturn": 0.907012766352,
+      "escapes": 23034
+    },
+    {
+      "difficulty": "normal",
+      "stake": 50000,
+      "block": 18,
+      "payout": 17579076,
+      "expectedReturn": 0.8999999992066017,
+      "observedReturn": 0.899767425984,
+      "escapes": 12796
+    },
+    {
+      "difficulty": "normal",
+      "stake": 50000,
+      "block": 19,
+      "payout": 32553844,
+      "expectedReturn": 0.8999999869192664,
+      "observedReturn": 0.8944494177440001,
+      "escapes": 6869
+    },
+    {
+      "difficulty": "normal",
+      "stake": 50000,
+      "block": 20,
+      "payout": 50000000,
+      "expectedReturn": 0.7188091108349886,
+      "observedReturn": 0.7008,
+      "escapes": 3504
+    },
+    {
+      "difficulty": "normal",
+      "stake": 100000,
+      "block": 1,
+      "payout": 112500,
+      "expectedReturn": 0.9,
+      "observedReturn": 0.89995815,
+      "escapes": 3999814
+    },
+    {
+      "difficulty": "normal",
+      "stake": 100000,
+      "block": 2,
+      "payout": 127840,
+      "expectedReturn": 0.8999936000000002,
+      "observedReturn": 0.9001137695999999,
+      "escapes": 3520470
+    },
+    {
+      "difficulty": "normal",
+      "stake": 100000,
+      "block": 3,
+      "payout": 148652,
+      "expectedReturn": 0.8999986688000001,
+      "observedReturn": 0.9002252144480001,
+      "escapes": 3027962
+    },
+    {
+      "difficulty": "normal",
+      "stake": 100000,
+      "block": 4,
+      "payout": 176966,
+      "expectedReturn": 0.899995278336,
+      "observedReturn": 0.900020407508,
+      "escapes": 2542919
+    },
+    {
+      "difficulty": "normal",
+      "stake": 100000,
+      "block": 5,
+      "payout": 215813,
+      "expectedReturn": 0.8999986348953601,
+      "observedReturn": 0.900137031456,
+      "escapes": 2085456
+    },
+    {
+      "difficulty": "normal",
+      "stake": 100000,
+      "block": 6,
+      "payout": 269766,
+      "expectedReturn": 0.8999978008412161,
+      "observedReturn": 0.9002922299280001,
+      "escapes": 1668654
+    },
+    {
+      "difficulty": "normal",
+      "stake": 100000,
+      "block": 7,
+      "payout": 345854,
+      "expectedReturn": 0.8999982011872051,
+      "observedReturn": 0.9002116175639999,
+      "escapes": 1301433
+    },
+    {
+      "difficulty": "normal",
+      "stake": 100000,
+      "block": 8,
+      "payout": 455071,
+      "expectedReturn": 0.8999980970972478,
+      "observedReturn": 0.901188023004,
+      "escapes": 990162
+    },
+    {
+      "difficulty": "normal",
+      "stake": 100000,
+      "block": 9,
+      "payout": 614962,
+      "expectedReturn": 0.8999998374813319,
+      "observedReturn": 0.9002096638520001,
+      "escapes": 731923
+    },
+    {
+      "difficulty": "normal",
+      "stake": 100000,
+      "block": 10,
+      "payout": 854114,
+      "expectedReturn": 0.8999999545617159,
+      "observedReturn": 0.9012815915360001,
+      "escapes": 527612
+    },
+    {
+      "difficulty": "normal",
+      "stake": 100000,
+      "block": 11,
+      "payout": 1220162,
+      "expectedReturn": 0.8999993223276431,
+      "observedReturn": 0.901707038972,
+      "escapes": 369503
+    },
+    {
+      "difficulty": "normal",
+      "stake": 100000,
+      "block": 12,
+      "payout": 1794357,
+      "expectedReturn": 0.899999882908521,
+      "observedReturn": 0.901667981214,
+      "escapes": 251251
+    },
+    {
+      "difficulty": "normal",
+      "stake": 100000,
+      "block": 13,
+      "payout": 2718723,
+      "expectedReturn": 0.8999999731915465,
+      "observedReturn": 0.9018004191,
+      "escapes": 165850
+    },
+    {
+      "difficulty": "normal",
+      "stake": 100000,
+      "block": 14,
+      "payout": 4248004,
+      "expectedReturn": 0.899999827534932,
+      "observedReturn": 0.902055153392,
+      "escapes": 106174
+    },
+    {
+      "difficulty": "normal",
+      "stake": 100000,
+      "block": 15,
+      "payout": 6851620,
+      "expectedReturn": 0.8999999122805985,
+      "observedReturn": 0.9023994637199999,
+      "escapes": 65853
+    },
+    {
+      "difficulty": "normal",
+      "stake": 100000,
+      "block": 16,
+      "payout": 11419367,
+      "expectedReturn": 0.8999999385517552,
+      "observedReturn": 0.899983152004,
+      "escapes": 39406
+    },
+    {
+      "difficulty": "normal",
+      "stake": 100000,
+      "block": 17,
+      "payout": 19688565,
+      "expectedReturn": 0.8999999937211841,
+      "observedReturn": 0.9070128124200001,
+      "escapes": 23034
+    },
+    {
+      "difficulty": "normal",
+      "stake": 100000,
+      "block": 18,
+      "payout": 35158152,
+      "expectedReturn": 0.8999999992066017,
+      "observedReturn": 0.899767425984,
+      "escapes": 12796
+    },
+    {
+      "difficulty": "normal",
+      "stake": 100000,
+      "block": 19,
+      "payout": 50000000,
+      "expectedReturn": 0.6911626065721043,
+      "observedReturn": 0.6869,
+      "escapes": 6869
+    },
+    {
+      "difficulty": "normal",
+      "stake": 500000,
+      "block": 1,
+      "payout": 562500,
+      "expectedReturn": 0.9,
+      "observedReturn": 0.89995815,
+      "escapes": 3999814
+    },
+    {
+      "difficulty": "normal",
+      "stake": 500000,
+      "block": 2,
+      "payout": 639204,
+      "expectedReturn": 0.8999992320000001,
+      "observedReturn": 0.900119402352,
+      "escapes": 3520470
+    },
+    {
+      "difficulty": "normal",
+      "stake": 500000,
+      "block": 3,
+      "payout": 743261,
+      "expectedReturn": 0.8999998796800002,
+      "observedReturn": 0.9002264256328001,
+      "escapes": 3027962
+    },
+    {
+      "difficulty": "normal",
+      "stake": 500000,
+      "block": 4,
+      "payout": 884834,
+      "expectedReturn": 0.8999993468928,
+      "observedReturn": 0.9000244761784001,
+      "escapes": 2542919
+    },
+    {
+      "difficulty": "normal",
+      "stake": 500000,
+      "block": 5,
+      "payout": 1079066,
+      "expectedReturn": 0.8999994689495041,
+      "observedReturn": 0.9001378656383999,
+      "escapes": 2085456
+    },
+    {
+      "difficulty": "normal",
+      "stake": 500000,
+      "block": 6,
+      "payout": 1348833,
+      "expectedReturn": 0.8999998025711616,
+      "observedReturn": 0.9002942323128,
+      "escapes": 1668654
+    },
+    {
+      "difficulty": "normal",
+      "stake": 500000,
+      "block": 7,
+      "payout": 1729273,
+      "expectedReturn": 0.8999997625365627,
+      "observedReturn": 0.9002131792835999,
+      "escapes": 1301433
+    },
+    {
+      "difficulty": "normal",
+      "stake": 500000,
+      "block": 8,
+      "payout": 2275359,
+      "expectedReturn": 0.8999996792645969,
+      "observedReturn": 0.9011896072632,
+      "escapes": 990162
+    },
+    {
+      "difficulty": "normal",
+      "stake": 500000,
+      "block": 9,
+      "payout": 3074810,
+      "expectedReturn": 0.8999998374813319,
+      "observedReturn": 0.9002096638520001,
+      "escapes": 731923
+    },
+    {
+      "difficulty": "normal",
+      "stake": 500000,
+      "block": 10,
+      "payout": 4270570,
+      "expectedReturn": 0.8999999545617158,
+      "observedReturn": 0.9012815915360001,
+      "escapes": 527612
+    },
+    {
+      "difficulty": "normal",
+      "stake": 500000,
+      "block": 11,
+      "payout": 6100814,
+      "expectedReturn": 0.8999999124127777,
+      "observedReturn": 0.9017076301768,
+      "escapes": 369503
+    },
+    {
+      "difficulty": "normal",
+      "stake": 500000,
+      "block": 12,
+      "payout": 8971786,
+      "expectedReturn": 0.8999999832229938,
+      "observedReturn": 0.9016680817144,
+      "escapes": 251251
+    },
+    {
+      "difficulty": "normal",
+      "stake": 500000,
+      "block": 13,
+      "payout": 13593615,
+      "expectedReturn": 0.8999999731915465,
+      "observedReturn": 0.9018004191,
+      "escapes": 165850
+    },
+    {
+      "difficulty": "normal",
+      "stake": 500000,
+      "block": 14,
+      "payout": 21240024,
+      "expectedReturn": 0.8999999970262652,
+      "observedReturn": 0.9020553232704001,
+      "escapes": 106174
+    },
+    {
+      "difficulty": "normal",
+      "stake": 500000,
+      "block": 15,
+      "payout": 34258103,
+      "expectedReturn": 0.8999999910940685,
+      "observedReturn": 0.9023995427436,
+      "escapes": 65853
+    },
+    {
+      "difficulty": "normal",
+      "stake": 500000,
+      "block": 16,
+      "payout": 50000000,
+      "expectedReturn": 0.7881347000685373,
+      "observedReturn": 0.78812,
+      "escapes": 39406
+    },
+    {
+      "difficulty": "normal",
+      "stake": 1000000,
+      "block": 1,
+      "payout": 1125000,
+      "expectedReturn": 0.9,
+      "observedReturn": 0.89995815,
+      "escapes": 3999814
+    },
+    {
+      "difficulty": "normal",
+      "stake": 1000000,
+      "block": 2,
+      "payout": 1278409,
+      "expectedReturn": 0.8999999360000001,
+      "observedReturn": 0.900120106446,
+      "escapes": 3520470
+    },
+    {
+      "difficulty": "normal",
+      "stake": 1000000,
+      "block": 3,
+      "payout": 1486522,
+      "expectedReturn": 0.8999998796800002,
+      "observedReturn": 0.9002264256328001,
+      "escapes": 3027962
+    },
+    {
+      "difficulty": "normal",
+      "stake": 1000000,
+      "block": 4,
+      "payout": 1769669,
+      "expectedReturn": 0.8999998554624001,
+      "observedReturn": 0.9000249847622,
+      "escapes": 2542919
+    },
+    {
+      "difficulty": "normal",
+      "stake": 1000000,
+      "block": 5,
+      "payout": 2158133,
+      "expectedReturn": 0.8999998859765761,
+      "observedReturn": 0.9001382827296,
+      "escapes": 2085456
+    },
+    {
+      "difficulty": "normal",
+      "stake": 1000000,
+      "block": 6,
+      "payout": 2697666,
+      "expectedReturn": 0.8999998025711616,
+      "observedReturn": 0.9002942323128,
+      "escapes": 1668654
+    },
+    {
+      "difficulty": "normal",
+      "stake": 1000000,
+      "block": 7,
+      "payout": 3458546,
+      "expectedReturn": 0.8999997625365627,
+      "observedReturn": 0.9002131792835999,
+      "escapes": 1301433
+    },
+    {
+      "difficulty": "normal",
+      "stake": 1000000,
+      "block": 8,
+      "payout": 4550719,
+      "expectedReturn": 0.8999998770355155,
+      "observedReturn": 0.9011898052956,
+      "escapes": 990162
+    },
+    {
+      "difficulty": "normal",
+      "stake": 1000000,
+      "block": 9,
+      "payout": 6149621,
+      "expectedReturn": 0.8999999838318117,
+      "observedReturn": 0.9002098102366,
+      "escapes": 731923
+    },
+    {
+      "difficulty": "normal",
+      "stake": 1000000,
+      "block": 10,
+      "payout": 8541140,
+      "expectedReturn": 0.8999999545617158,
+      "observedReturn": 0.9012815915360001,
+      "escapes": 527612
+    },
+    {
+      "difficulty": "normal",
+      "stake": 1000000,
+      "block": 11,
+      "payout": 12201629,
+      "expectedReturn": 0.8999999861734195,
+      "observedReturn": 0.9017077040773999,
+      "escapes": 369503
+    },
+    {
+      "difficulty": "normal",
+      "stake": 1000000,
+      "block": 12,
+      "payout": 17943572,
+      "expectedReturn": 0.8999999832229938,
+      "observedReturn": 0.9016680817144,
+      "escapes": 251251
+    },
+    {
+      "difficulty": "normal",
+      "stake": 1000000,
+      "block": 13,
+      "payout": 27187230,
+      "expectedReturn": 0.8999999731915465,
+      "observedReturn": 0.9018004191,
+      "escapes": 165850
+    },
+    {
+      "difficulty": "normal",
+      "stake": 1000000,
+      "block": 14,
+      "payout": 42480048,
+      "expectedReturn": 0.8999999970262652,
+      "observedReturn": 0.9020553232704001,
+      "escapes": 106174
+    },
+    {
+      "difficulty": "normal",
+      "stake": 1000000,
+      "block": 15,
+      "payout": 50000000,
+      "expectedReturn": 0.6567789167237811,
+      "observedReturn": 0.65853,
+      "escapes": 65853
+    },
+    {
+      "difficulty": "normal",
+      "stake": 5000000,
+      "block": 1,
+      "payout": 5625000,
+      "expectedReturn": 0.9,
+      "observedReturn": 0.89995815,
+      "escapes": 3999814
+    },
+    {
+      "difficulty": "normal",
+      "stake": 5000000,
+      "block": 2,
+      "payout": 6392045,
+      "expectedReturn": 0.8999999360000002,
+      "observedReturn": 0.900120106446,
+      "escapes": 3520470
+    },
+    {
+      "difficulty": "normal",
+      "stake": 5000000,
+      "block": 3,
+      "payout": 7432610,
+      "expectedReturn": 0.8999998796800001,
+      "observedReturn": 0.9002264256328,
+      "escapes": 3027962
+    },
+    {
+      "difficulty": "normal",
+      "stake": 5000000,
+      "block": 4,
+      "payout": 8848346,
+      "expectedReturn": 0.8999999571763201,
+      "observedReturn": 0.9000250864789602,
+      "escapes": 2542919
+    },
+    {
+      "difficulty": "normal",
+      "stake": 5000000,
+      "block": 5,
+      "payout": 10790666,
+      "expectedReturn": 0.8999999693819905,
+      "observedReturn": 0.90013836614784,
+      "escapes": 2085456
+    },
+    {
+      "difficulty": "normal",
+      "stake": 5000000,
+      "block": 6,
+      "payout": 13488332,
+      "expectedReturn": 0.8999999360198246,
+      "observedReturn": 0.90029436580512,
+      "escapes": 1668654
+    },
+    {
+      "difficulty": "normal",
+      "stake": 5000000,
+      "block": 7,
+      "payout": 17292734,
+      "expectedReturn": 0.899999970716477,
+      "observedReturn": 0.90021338751288,
+      "escapes": 1301433
+    },
+    {
+      "difficulty": "normal",
+      "stake": 5000000,
+      "block": 8,
+      "payout": 22753598,
+      "expectedReturn": 0.8999999956980667,
+      "observedReturn": 0.90118992411504,
+      "escapes": 990162
+    },
+    {
+      "difficulty": "normal",
+      "stake": 5000000,
+      "block": 9,
+      "payout": 30748105,
+      "expectedReturn": 0.8999999838318117,
+      "observedReturn": 0.9002098102366001,
+      "escapes": 731923
+    },
+    {
+      "difficulty": "normal",
+      "stake": 5000000,
+      "block": 10,
+      "payout": 42705702,
+      "expectedReturn": 0.899999996710654,
+      "observedReturn": 0.9012816337449601,
+      "escapes": 527612
+    },
+    {
+      "difficulty": "normal",
+      "stake": 5000000,
+      "block": 11,
+      "payout": 50000000,
+      "expectedReturn": 0.7376064181048444,
+      "observedReturn": 0.739006,
+      "escapes": 369503
+    },
+    {
+      "difficulty": "normal",
+      "stake": 10000000,
+      "block": 1,
+      "payout": 11250000,
+      "expectedReturn": 0.9,
+      "observedReturn": 0.89995815,
+      "escapes": 3999814
+    },
+    {
+      "difficulty": "normal",
+      "stake": 10000000,
+      "block": 2,
+      "payout": 12784090,
+      "expectedReturn": 0.8999999360000002,
+      "observedReturn": 0.900120106446,
+      "escapes": 3520470
+    },
+    {
+      "difficulty": "normal",
+      "stake": 10000000,
+      "block": 3,
+      "payout": 14865221,
+      "expectedReturn": 0.8999999402240001,
+      "observedReturn": 0.9002264861920399,
+      "escapes": 3027962
+    },
+    {
+      "difficulty": "normal",
+      "stake": 10000000,
+      "block": 4,
+      "payout": 17696692,
+      "expectedReturn": 0.8999999571763201,
+      "observedReturn": 0.9000250864789602,
+      "escapes": 2542919
+    },
+    {
+      "difficulty": "normal",
+      "stake": 10000000,
+      "block": 5,
+      "payout": 21581332,
+      "expectedReturn": 0.8999999693819905,
+      "observedReturn": 0.90013836614784,
+      "escapes": 2085456
+    },
+    {
+      "difficulty": "normal",
+      "stake": 10000000,
+      "block": 6,
+      "payout": 26976665,
+      "expectedReturn": 0.8999999693819905,
+      "observedReturn": 0.9002943991782,
+      "escapes": 1668654
+    },
+    {
+      "difficulty": "normal",
+      "stake": 10000000,
+      "block": 7,
+      "payout": 34585469,
+      "expectedReturn": 0.8999999967389664,
+      "observedReturn": 0.9002134135415399,
+      "escapes": 1301433
+    },
+    {
+      "difficulty": "normal",
+      "stake": 10000000,
+      "block": 8,
+      "payout": 45507196,
+      "expectedReturn": 0.8999999956980667,
+      "observedReturn": 0.90118992411504,
+      "escapes": 990162
+    },
+    {
+      "difficulty": "normal",
+      "stake": 10000000,
+      "block": 9,
+      "payout": 50000000,
+      "expectedReturn": 0.731752398913536,
+      "observedReturn": 0.731923,
+      "escapes": 731923
+    },
+    {
+      "difficulty": "medium",
+      "stake": 50000,
+      "block": 1,
+      "payout": 64285,
+      "expectedReturn": 0.89999,
+      "observedReturn": 0.90015354104,
+      "escapes": 3500636
+    },
+    {
+      "difficulty": "medium",
+      "stake": 50000,
+      "block": 2,
+      "payout": 81374,
+      "expectedReturn": 0.8999964399999999,
+      "observedReturn": 0.900357089568,
+      "escapes": 2766108
+    },
+    {
+      "difficulty": "medium",
+      "stake": 50000,
+      "block": 3,
+      "payout": 105680,
+      "expectedReturn": 0.8999920159999999,
+      "observedReturn": 0.9006641408,
+      "escapes": 2130640
+    },
+    {
+      "difficulty": "medium",
+      "stake": 50000,
+      "block": 4,
+      "payout": 140907,
+      "expectedReturn": 0.89999414505,
+      "observedReturn": 0.90091426776,
+      "escapes": 1598420
+    },
+    {
+      "difficulty": "medium",
+      "stake": 50000,
+      "block": 5,
+      "payout": 193024,
+      "expectedReturn": 0.899997466368,
+      "observedReturn": 0.901238321152,
+      "escapes": 1167262
+    },
+    {
+      "difficulty": "medium",
+      "stake": 50000,
+      "block": 6,
+      "payout": 271865,
+      "expectedReturn": 0.8999981657609251,
+      "observedReturn": 0.9011759270799999,
+      "escapes": 828698
+    },
+    {
+      "difficulty": "medium",
+      "stake": 50000,
+      "block": 7,
+      "payout": 394008,
+      "expectedReturn": 0.8999998872000443,
+      "observedReturn": 0.901572257664,
+      "escapes": 572052
+    },
+    {
+      "difficulty": "medium",
+      "stake": 50000,
+      "block": 8,
+      "payout": 588071,
+      "expectedReturn": 0.8999989049866083,
+      "observedReturn": 0.902557257096,
+      "escapes": 383694
+    },
+    {
+      "difficulty": "medium",
+      "stake": 50000,
+      "block": 9,
+      "payout": 904725,
+      "expectedReturn": 0.8999992875930048,
+      "observedReturn": 0.9020253006000001,
+      "escapes": 249254
+    },
+    {
+      "difficulty": "medium",
+      "stake": 50000,
+      "block": 10,
+      "payout": 1436072,
+      "expectedReturn": 0.8999996457125922,
+      "observedReturn": 0.9025712520000001,
+      "escapes": 157125
+    },
+    {
+      "difficulty": "medium",
+      "stake": 50000,
+      "block": 11,
+      "payout": 2354217,
+      "expectedReturn": 0.8999998775950249,
+      "observedReturn": 0.9052152702360001,
+      "escapes": 96127
+    },
+    {
+      "difficulty": "medium",
+      "stake": 50000,
+      "block": 12,
+      "payout": 3990198,
+      "expectedReturn": 0.8999998087823462,
+      "observedReturn": 0.9025349052240002,
+      "escapes": 56547
+    },
+    {
+      "difficulty": "medium",
+      "stake": 50000,
+      "block": 13,
+      "payout": 7000348,
+      "expectedReturn": 0.8999998899813071,
+      "observedReturn": 0.906853081312,
+      "escapes": 32386
+    },
+    {
+      "difficulty": "medium",
+      "stake": 50000,
+      "block": 14,
+      "payout": 12727907,
+      "expectedReturn": 0.8999999992615751,
+      "observedReturn": 0.9091798528239999,
+      "escapes": 17858
+    },
+    {
+      "difficulty": "medium",
+      "stake": 50000,
+      "block": 15,
+      "payout": 24014918,
+      "expectedReturn": 0.8999999667346248,
+      "observedReturn": 0.9064190649919999,
+      "escapes": 9436
+    },
+    {
+      "difficulty": "medium",
+      "stake": 50000,
+      "block": 16,
+      "payout": 47088076,
+      "expectedReturn": 0.8999999952169196,
+      "observedReturn": 0.918217482,
+      "escapes": 4875
+    },
+    {
+      "difficulty": "medium",
+      "stake": 50000,
+      "block": 17,
+      "payout": 50000000,
+      "expectedReturn": 0.4682714129754321,
+      "observedReturn": 0.4798,
+      "escapes": 2399
+    },
+    {
+      "difficulty": "medium",
+      "stake": 100000,
+      "block": 1,
+      "payout": 128571,
+      "expectedReturn": 0.8999969999999999,
+      "observedReturn": 0.9001605423119999,
+      "escapes": 3500636
+    },
+    {
+      "difficulty": "medium",
+      "stake": 100000,
+      "block": 2,
+      "payout": 162748,
+      "expectedReturn": 0.8999964399999999,
+      "observedReturn": 0.900357089568,
+      "escapes": 2766108
+    },
+    {
+      "difficulty": "medium",
+      "stake": 100000,
+      "block": 3,
+      "payout": 211361,
+      "expectedReturn": 0.8999962740999998,
+      "observedReturn": 0.90066840208,
+      "escapes": 2130640
+    },
+    {
+      "difficulty": "medium",
+      "stake": 100000,
+      "block": 4,
+      "payout": 281815,
+      "expectedReturn": 0.8999973386249999,
+      "observedReturn": 0.9009174646000001,
+      "escapes": 1598420
+    },
+    {
+      "difficulty": "medium",
+      "stake": 100000,
+      "block": 5,
+      "payout": 386049,
+      "expectedReturn": 0.8999997976777501,
+      "observedReturn": 0.901240655676,
+      "escapes": 1167262
+    },
+    {
+      "difficulty": "medium",
+      "stake": 100000,
+      "block": 6,
+      "payout": 543731,
+      "expectedReturn": 0.8999998209908475,
+      "observedReturn": 0.9011775844759999,
+      "escapes": 828698
+    },
+    {
+      "difficulty": "medium",
+      "stake": 100000,
+      "block": 7,
+      "payout": 788016,
+      "expectedReturn": 0.8999998872000443,
+      "observedReturn": 0.901572257664,
+      "escapes": 572052
+    },
+    {
+      "difficulty": "medium",
+      "stake": 100000,
+      "block": 8,
+      "payout": 1176143,
+      "expectedReturn": 0.8999996701994014,
+      "observedReturn": 0.9025580244839999,
+      "escapes": 383694
+    },
+    {
+      "difficulty": "medium",
+      "stake": 100000,
+      "block": 9,
+      "payout": 1809451,
+      "expectedReturn": 0.8999997849813204,
+      "observedReturn": 0.9020257991080001,
+      "escapes": 249254
+    },
+    {
+      "difficulty": "medium",
+      "stake": 100000,
+      "block": 10,
+      "payout": 2872145,
+      "expectedReturn": 0.899999959067231,
+      "observedReturn": 0.90257156625,
+      "escapes": 157125
+    },
+    {
+      "difficulty": "medium",
+      "stake": 100000,
+      "block": 11,
+      "payout": 4708434,
+      "expectedReturn": 0.8999998775950249,
+      "observedReturn": 0.9052152702360001,
+      "escapes": 96127
+    },
+    {
+      "difficulty": "medium",
+      "stake": 100000,
+      "block": 12,
+      "payout": 7980397,
+      "expectedReturn": 0.8999999215586807,
+      "observedReturn": 0.9025350183180001,
+      "escapes": 56547
+    },
+    {
+      "difficulty": "medium",
+      "stake": 100000,
+      "block": 13,
+      "payout": 14000697,
+      "expectedReturn": 0.8999999542638177,
+      "observedReturn": 0.906853146084,
+      "escapes": 32386
+    },
+    {
+      "difficulty": "medium",
+      "stake": 100000,
+      "block": 14,
+      "payout": 25455814,
+      "expectedReturn": 0.8999999992615751,
+      "observedReturn": 0.9091798528239999,
+      "escapes": 17858
+    },
+    {
+      "difficulty": "medium",
+      "stake": 100000,
+      "block": 15,
+      "payout": 48029837,
+      "expectedReturn": 0.8999999854729765,
+      "observedReturn": 0.9064190838639999,
+      "escapes": 9436
+    },
+    {
+      "difficulty": "medium",
+      "stake": 100000,
+      "block": 16,
+      "payout": 50000000,
+      "expectedReturn": 0.47782797242391023,
+      "observedReturn": 0.4875,
+      "escapes": 4875
+    },
+    {
+      "difficulty": "medium",
+      "stake": 500000,
+      "block": 1,
+      "payout": 642857,
+      "expectedReturn": 0.8999997999999999,
+      "observedReturn": 0.9001633428207999,
+      "escapes": 3500636
+    },
+    {
+      "difficulty": "medium",
+      "stake": 500000,
+      "block": 2,
+      "payout": 813743,
+      "expectedReturn": 0.8999997579999999,
+      "observedReturn": 0.9003604088976,
+      "escapes": 2766108
+    },
+    {
+      "difficulty": "medium",
+      "stake": 500000,
+      "block": 3,
+      "payout": 1056809,
+      "expectedReturn": 0.8999996805799999,
+      "observedReturn": 0.900671811104,
+      "escapes": 2130640
+    },
+    {
+      "difficulty": "medium",
+      "stake": 500000,
+      "block": 4,
+      "payout": 1409079,
+      "expectedReturn": 0.8999998934849999,
+      "observedReturn": 0.9009200220720001,
+      "escapes": 1598420
+    },
+    {
+      "difficulty": "medium",
+      "stake": 500000,
+      "block": 5,
+      "payout": 1930245,
+      "expectedReturn": 0.89999979767775,
+      "observedReturn": 0.9012406556760001,
+      "escapes": 1167262
+    },
+    {
+      "difficulty": "medium",
+      "stake": 500000,
+      "block": 6,
+      "payout": 2718655,
+      "expectedReturn": 0.8999998209908475,
+      "observedReturn": 0.9011775844759999,
+      "escapes": 828698
+    },
+    {
+      "difficulty": "medium",
+      "stake": 500000,
+      "block": 7,
+      "payout": 3940080,
+      "expectedReturn": 0.8999998872000443,
+      "observedReturn": 0.901572257664,
+      "escapes": 572052
+    },
+    {
+      "difficulty": "medium",
+      "stake": 500000,
+      "block": 8,
+      "payout": 5880717,
+      "expectedReturn": 0.8999999762845188,
+      "observedReturn": 0.9025583314392,
+      "escapes": 383694
+    },
+    {
+      "difficulty": "medium",
+      "stake": 500000,
+      "block": 9,
+      "payout": 9047257,
+      "expectedReturn": 0.8999999839366466,
+      "observedReturn": 0.9020259985111999,
+      "escapes": 249254
+    },
+    {
+      "difficulty": "medium",
+      "stake": 500000,
+      "block": 10,
+      "payout": 14360725,
+      "expectedReturn": 0.8999999590672311,
+      "observedReturn": 0.90257156625,
+      "escapes": 157125
+    },
+    {
+      "difficulty": "medium",
+      "stake": 500000,
+      "block": 11,
+      "payout": 23542173,
+      "expectedReturn": 0.8999999922828227,
+      "observedReturn": 0.9052153855884,
+      "escapes": 96127
+    },
+    {
+      "difficulty": "medium",
+      "stake": 500000,
+      "block": 12,
+      "payout": 39901988,
+      "expectedReturn": 0.8999999892244814,
+      "observedReturn": 0.9025350861744,
+      "escapes": 56547
+    },
+    {
+      "difficulty": "medium",
+      "stake": 500000,
+      "block": 13,
+      "payout": 50000000,
+      "expectedReturn": 0.6428251066813443,
+      "observedReturn": 0.64772,
+      "escapes": 32386
+    },
+    {
+      "difficulty": "medium",
+      "stake": 1000000,
+      "block": 1,
+      "payout": 1285714,
+      "expectedReturn": 0.8999997999999999,
+      "observedReturn": 0.9001633428207999,
+      "escapes": 3500636
+    },
+    {
+      "difficulty": "medium",
+      "stake": 1000000,
+      "block": 2,
+      "payout": 1627486,
+      "expectedReturn": 0.8999997579999999,
+      "observedReturn": 0.9003604088976,
+      "escapes": 2766108
+    },
+    {
+      "difficulty": "medium",
+      "stake": 1000000,
+      "block": 3,
+      "payout": 2113618,
+      "expectedReturn": 0.8999996805799999,
+      "observedReturn": 0.900671811104,
+      "escapes": 2130640
+    },
+    {
+      "difficulty": "medium",
+      "stake": 1000000,
+      "block": 4,
+      "payout": 2818158,
+      "expectedReturn": 0.8999998934849999,
+      "observedReturn": 0.9009200220720001,
+      "escapes": 1598420
+    },
+    {
+      "difficulty": "medium",
+      "stake": 1000000,
+      "block": 5,
+      "payout": 3860490,
+      "expectedReturn": 0.89999979767775,
+      "observedReturn": 0.9012406556760001,
+      "escapes": 1167262
+    },
+    {
+      "difficulty": "medium",
+      "stake": 1000000,
+      "block": 6,
+      "payout": 5437311,
+      "expectedReturn": 0.8999999865138398,
+      "observedReturn": 0.9011777502155999,
+      "escapes": 828698
+    },
+    {
+      "difficulty": "medium",
+      "stake": 1000000,
+      "block": 7,
+      "payout": 7880160,
+      "expectedReturn": 0.8999998872000443,
+      "observedReturn": 0.901572257664,
+      "escapes": 572052
+    },
+    {
+      "difficulty": "medium",
+      "stake": 1000000,
+      "block": 8,
+      "payout": 11761434,
+      "expectedReturn": 0.8999999762845188,
+      "observedReturn": 0.9025583314392,
+      "escapes": 383694
+    },
+    {
+      "difficulty": "medium",
+      "stake": 1000000,
+      "block": 9,
+      "payout": 18094514,
+      "expectedReturn": 0.8999999839366466,
+      "observedReturn": 0.9020259985111999,
+      "escapes": 249254
+    },
+    {
+      "difficulty": "medium",
+      "stake": 1000000,
+      "block": 10,
+      "payout": 28721451,
+      "expectedReturn": 0.899999990402695,
+      "observedReturn": 0.9025715976750001,
+      "escapes": 157125
+    },
+    {
+      "difficulty": "medium",
+      "stake": 1000000,
+      "block": 11,
+      "payout": 47084346,
+      "expectedReturn": 0.8999999922828227,
+      "observedReturn": 0.9052153855884,
+      "escapes": 96127
+    },
+    {
+      "difficulty": "medium",
+      "stake": 1000000,
+      "block": 12,
+      "payout": 50000000,
+      "expectedReturn": 0.563881672527495,
+      "observedReturn": 0.56547,
+      "escapes": 56547
+    },
+    {
+      "difficulty": "medium",
+      "stake": 5000000,
+      "block": 1,
+      "payout": 6428571,
+      "expectedReturn": 0.8999999399999998,
+      "observedReturn": 0.9001634828462399,
+      "escapes": 3500636
+    },
+    {
+      "difficulty": "medium",
+      "stake": 5000000,
+      "block": 2,
+      "payout": 8137432,
+      "expectedReturn": 0.8999999792,
+      "observedReturn": 0.90036063018624,
+      "escapes": 2766108
+    },
+    {
+      "difficulty": "medium",
+      "stake": 5000000,
+      "block": 3,
+      "payout": 10568093,
+      "expectedReturn": 0.8999999360659999,
+      "observedReturn": 0.9006720667808,
+      "escapes": 2130640
+    },
+    {
+      "difficulty": "medium",
+      "stake": 5000000,
+      "block": 4,
+      "payout": 14090791,
+      "expectedReturn": 0.8999999573564998,
+      "observedReturn": 0.9009200860088,
+      "escapes": 1598420
+    },
+    {
+      "difficulty": "medium",
+      "stake": 5000000,
+      "block": 5,
+      "payout": 19302454,
+      "expectedReturn": 0.8999999841825299,
+      "observedReturn": 0.90124084243792,
+      "escapes": 1167262
+    },
+    {
+      "difficulty": "medium",
+      "stake": 5000000,
+      "block": 6,
+      "payout": 27186555,
+      "expectedReturn": 0.8999999865138396,
+      "observedReturn": 0.9011777502155999,
+      "escapes": 828698
+    },
+    {
+      "difficulty": "medium",
+      "stake": 5000000,
+      "block": 7,
+      "payout": 39400804,
+      "expectedReturn": 0.899999978568736,
+      "observedReturn": 0.90157234919232,
+      "escapes": 572052
+    },
+    {
+      "difficulty": "medium",
+      "stake": 5000000,
+      "block": 8,
+      "payout": 50000000,
+      "expectedReturn": 0.76521279317175,
+      "observedReturn": 0.767388,
+      "escapes": 383694
+    },
+    {
+      "difficulty": "medium",
+      "stake": 10000000,
+      "block": 1,
+      "payout": 12857142,
+      "expectedReturn": 0.8999999399999998,
+      "observedReturn": 0.9001634828462399,
+      "escapes": 3500636
+    },
+    {
+      "difficulty": "medium",
+      "stake": 10000000,
+      "block": 2,
+      "payout": 16274864,
+      "expectedReturn": 0.8999999792,
+      "observedReturn": 0.90036063018624,
+      "escapes": 2766108
+    },
+    {
+      "difficulty": "medium",
+      "stake": 10000000,
+      "block": 3,
+      "payout": 21136187,
+      "expectedReturn": 0.899999978647,
+      "observedReturn": 0.9006721093936,
+      "escapes": 2130640
+    },
+    {
+      "difficulty": "medium",
+      "stake": 10000000,
+      "block": 4,
+      "payout": 28181583,
+      "expectedReturn": 0.8999999892922498,
+      "observedReturn": 0.9009201179772001,
+      "escapes": 1598420
+    },
+    {
+      "difficulty": "medium",
+      "stake": 10000000,
+      "block": 5,
+      "payout": 38604908,
+      "expectedReturn": 0.8999999841825299,
+      "observedReturn": 0.90124084243792,
+      "escapes": 1167262
+    },
+    {
+      "difficulty": "medium",
+      "stake": 10000000,
+      "block": 6,
+      "payout": 50000000,
+      "expectedReturn": 0.82761496125,
+      "observedReturn": 0.8286979999999999,
+      "escapes": 828698
+    },
+    {
+      "difficulty": "high",
+      "stake": 50000,
+      "block": 1,
+      "payout": 75000,
+      "expectedReturn": 0.9,
+      "observedReturn": 0.8997135,
+      "escapes": 2999045
+    },
+    {
+      "difficulty": "high",
+      "stake": 50000,
+      "block": 2,
+      "payout": 107142,
+      "expectedReturn": 0.8999928,
+      "observedReturn": 0.8998449440399999,
+      "escapes": 2099655
+    },
+    {
+      "difficulty": "high",
+      "stake": 50000,
+      "block": 3,
+      "payout": 157563,
+      "expectedReturn": 0.8999998559999999,
+      "observedReturn": 0.9004460744159999,
+      "escapes": 1428708
+    },
+    {
+      "difficulty": "high",
+      "stake": 50000,
+      "block": 4,
+      "payout": 238731,
+      "expectedReturn": 0.89999677152,
+      "observedReturn": 0.900715829292,
+      "escapes": 943233
+    },
+    {
+      "difficulty": "high",
+      "stake": 50000,
+      "block": 5,
+      "payout": 373018,
+      "expectedReturn": 0.8999987318784,
+      "observedReturn": 0.9010622808000001,
+      "escapes": 603900
+    },
+    {
+      "difficulty": "high",
+      "stake": 50000,
+      "block": 6,
+      "payout": 601642,
+      "expectedReturn": 0.899998828388352,
+      "observedReturn": 0.9011899255279999,
+      "escapes": 374471
+    },
+    {
+      "difficulty": "high",
+      "stake": 50000,
+      "block": 7,
+      "payout": 1002737,
+      "expectedReturn": 0.8999991275692031,
+      "observedReturn": 0.898729107412,
+      "escapes": 224069
+    },
+    {
+      "difficulty": "high",
+      "stake": 50000,
+      "block": 8,
+      "payout": 1728858,
+      "expectedReturn": 0.8999997019964375,
+      "observedReturn": 0.8988678513599999,
+      "escapes": 129980
+    },
+    {
+      "difficulty": "high",
+      "stake": 50000,
+      "block": 9,
+      "payout": 3087247,
+      "expectedReturn": 0.8999998685803353,
+      "observedReturn": 0.897734380636,
+      "escapes": 72697
+    },
+    {
+      "difficulty": "high",
+      "stake": 50000,
+      "block": 10,
+      "payout": 5717124,
+      "expectedReturn": 0.8999998569194624,
+      "observedReturn": 0.9022993781759999,
+      "escapes": 39456
+    },
+    {
+      "difficulty": "high",
+      "stake": 50000,
+      "block": 11,
+      "payout": 10994470,
+      "expectedReturn": 0.8999999198881757,
+      "observedReturn": 0.90128267272,
+      "escapes": 20494
+    },
+    {
+      "difficulty": "high",
+      "stake": 50000,
+      "block": 12,
+      "payout": 21988941,
+      "expectedReturn": 0.8999999608178395,
+      "observedReturn": 0.8983801734960001,
+      "escapes": 10214
+    },
+    {
+      "difficulty": "high",
+      "stake": 50000,
+      "block": 13,
+      "payout": 45810295,
+      "expectedReturn": 0.8999999853756376,
+      "observedReturn": 0.8995309526199999,
+      "escapes": 4909
+    },
+    {
+      "difficulty": "high",
+      "stake": 50000,
+      "block": 14,
+      "payout": 50000000,
+      "expectedReturn": 0.4518634875335264,
+      "observedReturn": 0.4582,
+      "escapes": 2291
+    },
+    {
+      "difficulty": "high",
+      "stake": 100000,
+      "block": 1,
+      "payout": 150000,
+      "expectedReturn": 0.9,
+      "observedReturn": 0.8997135,
+      "escapes": 2999045
+    },
+    {
+      "difficulty": "high",
+      "stake": 100000,
+      "block": 2,
+      "payout": 214285,
+      "expectedReturn": 0.8999969999999999,
+      "observedReturn": 0.89984914335,
+      "escapes": 2099655
+    },
+    {
+      "difficulty": "high",
+      "stake": 100000,
+      "block": 3,
+      "payout": 315126,
+      "expectedReturn": 0.8999998559999999,
+      "observedReturn": 0.9004460744159999,
+      "escapes": 1428708
+    },
+    {
+      "difficulty": "high",
+      "stake": 100000,
+      "block": 4,
+      "payout": 477463,
+      "expectedReturn": 0.8999986564799999,
+      "observedReturn": 0.900717715758,
+      "escapes": 943233
+    },
+    {
+      "difficulty": "high",
+      "stake": 100000,
+      "block": 5,
+      "payout": 746037,
+      "expectedReturn": 0.8999999382528,
+      "observedReturn": 0.9010634886,
+      "escapes": 603900
+    },
+    {
+      "difficulty": "high",
+      "stake": 100000,
+      "block": 6,
+      "payout": 1203285,
+      "expectedReturn": 0.89999957634048,
+      "observedReturn": 0.9011906744699999,
+      "escapes": 374471
+    },
+    {
+      "difficulty": "high",
+      "stake": 100000,
+      "block": 7,
+      "payout": 2005475,
+      "expectedReturn": 0.89999957634048,
+      "observedReturn": 0.8987295555500001,
+      "escapes": 224069
+    },
+    {
+      "difficulty": "high",
+      "stake": 100000,
+      "block": 8,
+      "payout": 3457717,
+      "expectedReturn": 0.899999962283778,
+      "observedReturn": 0.8988681113199999,
+      "escapes": 129980
+    },
+    {
+      "difficulty": "high",
+      "stake": 100000,
+      "block": 9,
+      "payout": 6174494,
+      "expectedReturn": 0.8999998685803353,
+      "observedReturn": 0.897734380636,
+      "escapes": 72697
+    },
+    {
+      "difficulty": "high",
+      "stake": 100000,
+      "block": 10,
+      "payout": 11434249,
+      "expectedReturn": 0.8999999356303542,
+      "observedReturn": 0.9022994570879999,
+      "escapes": 39456
+    },
+    {
+      "difficulty": "high",
+      "stake": 100000,
+      "block": 11,
+      "payout": 21988941,
+      "expectedReturn": 0.8999999608178395,
+      "observedReturn": 0.901282713708,
+      "escapes": 20494
+    },
+    {
+      "difficulty": "high",
+      "stake": 100000,
+      "block": 12,
+      "payout": 43977883,
+      "expectedReturn": 0.8999999812826713,
+      "observedReturn": 0.898380193924,
+      "escapes": 10214
+    },
+    {
+      "difficulty": "high",
+      "stake": 100000,
+      "block": 13,
+      "payout": 50000000,
+      "expectedReturn": 0.4911559647103547,
+      "observedReturn": 0.49089999999999995,
+      "escapes": 4909
+    },
+    {
+      "difficulty": "high",
+      "stake": 500000,
+      "block": 1,
+      "payout": 750000,
+      "expectedReturn": 0.9,
+      "observedReturn": 0.8997135,
+      "escapes": 2999045
+    },
+    {
+      "difficulty": "high",
+      "stake": 500000,
+      "block": 2,
+      "payout": 1071428,
+      "expectedReturn": 0.89999952,
+      "observedReturn": 0.899851662936,
+      "escapes": 2099655
+    },
+    {
+      "difficulty": "high",
+      "stake": 500000,
+      "block": 3,
+      "payout": 1575630,
+      "expectedReturn": 0.8999998559999999,
+      "observedReturn": 0.9004460744159999,
+      "escapes": 1428708
+    },
+    {
+      "difficulty": "high",
+      "stake": 500000,
+      "block": 4,
+      "payout": 2387318,
+      "expectedReturn": 0.899999787456,
+      "observedReturn": 0.9007188476376,
+      "escapes": 943233
+    },
+    {
+      "difficulty": "high",
+      "stake": 500000,
+      "block": 5,
+      "payout": 3730185,
+      "expectedReturn": 0.8999999382528,
+      "observedReturn": 0.9010634886000001,
+      "escapes": 603900
+    },
+    {
+      "difficulty": "high",
+      "stake": 500000,
+      "block": 6,
+      "payout": 6016427,
+      "expectedReturn": 0.8999998755213312,
+      "observedReturn": 0.9011909740467999,
+      "escapes": 374471
+    },
+    {
+      "difficulty": "high",
+      "stake": 500000,
+      "block": 7,
+      "payout": 10027379,
+      "expectedReturn": 0.8999999353575013,
+      "observedReturn": 0.8987299140604,
+      "escapes": 224069
+    },
+    {
+      "difficulty": "high",
+      "stake": 500000,
+      "block": 8,
+      "payout": 17288585,
+      "expectedReturn": 0.899999962283778,
+      "observedReturn": 0.8988681113199999,
+      "escapes": 129980
+    },
+    {
+      "difficulty": "high",
+      "stake": 500000,
+      "block": 9,
+      "payout": 30872474,
+      "expectedReturn": 0.899999985189064,
+      "observedReturn": 0.8977344969512,
+      "escapes": 72697
+    },
+    {
+      "difficulty": "high",
+      "stake": 500000,
+      "block": 10,
+      "payout": 50000000,
+      "expectedReturn": 0.7871089178050559,
+      "observedReturn": 0.7891199999999999,
+      "escapes": 39456
+    },
+    {
+      "difficulty": "high",
+      "stake": 1000000,
+      "block": 1,
+      "payout": 1500000,
+      "expectedReturn": 0.9,
+      "observedReturn": 0.8997135,
+      "escapes": 2999045
+    },
+    {
+      "difficulty": "high",
+      "stake": 1000000,
+      "block": 2,
+      "payout": 2142857,
+      "expectedReturn": 0.8999999399999999,
+      "observedReturn": 0.899852082867,
+      "escapes": 2099655
+    },
+    {
+      "difficulty": "high",
+      "stake": 1000000,
+      "block": 3,
+      "payout": 3151260,
+      "expectedReturn": 0.8999998559999999,
+      "observedReturn": 0.9004460744159999,
+      "escapes": 1428708
+    },
+    {
+      "difficulty": "high",
+      "stake": 1000000,
+      "block": 4,
+      "payout": 4774637,
+      "expectedReturn": 0.899999975952,
+      "observedReturn": 0.9007190362842,
+      "escapes": 943233
+    },
+    {
+      "difficulty": "high",
+      "stake": 1000000,
+      "block": 5,
+      "payout": 7460370,
+      "expectedReturn": 0.8999999382528,
+      "observedReturn": 0.9010634886000001,
+      "escapes": 603900
+    },
+    {
+      "difficulty": "high",
+      "stake": 1000000,
+      "block": 6,
+      "payout": 12032855,
+      "expectedReturn": 0.8999999503165439,
+      "observedReturn": 0.9011910489409999,
+      "escapes": 374471
+    },
+    {
+      "difficulty": "high",
+      "stake": 1000000,
+      "block": 7,
+      "payout": 20054759,
+      "expectedReturn": 0.899999980234629,
+      "observedReturn": 0.8987299588742,
+      "escapes": 224069
+    },
+    {
+      "difficulty": "high",
+      "stake": 1000000,
+      "block": 8,
+      "payout": 34577171,
+      "expectedReturn": 0.899999988312512,
+      "observedReturn": 0.8988681373159999,
+      "escapes": 129980
+    },
+    {
+      "difficulty": "high",
+      "stake": 1000000,
+      "block": 9,
+      "payout": 50000000,
+      "expectedReturn": 0.7288045535232,
+      "observedReturn": 0.72697,
+      "escapes": 72697
+    },
+    {
+      "difficulty": "high",
+      "stake": 5000000,
+      "block": 1,
+      "payout": 7500000,
+      "expectedReturn": 0.9,
+      "observedReturn": 0.8997135,
+      "escapes": 2999045
+    },
+    {
+      "difficulty": "high",
+      "stake": 5000000,
+      "block": 2,
+      "payout": 10714285,
+      "expectedReturn": 0.89999994,
+      "observedReturn": 0.899852082867,
+      "escapes": 2099655
+    },
+    {
+      "difficulty": "high",
+      "stake": 5000000,
+      "block": 3,
+      "payout": 15756302,
+      "expectedReturn": 0.8999999702399999,
+      "observedReturn": 0.9004461887126399,
+      "escapes": 1428708
+    },
+    {
+      "difficulty": "high",
+      "stake": 5000000,
+      "block": 4,
+      "payout": 23873185,
+      "expectedReturn": 0.899999975952,
+      "observedReturn": 0.9007190362841999,
+      "escapes": 943233
+    },
+    {
+      "difficulty": "high",
+      "stake": 5000000,
+      "block": 5,
+      "payout": 37301852,
+      "expectedReturn": 0.899999986507776,
+      "observedReturn": 0.901063536912,
+      "escapes": 603900
+    },
+    {
+      "difficulty": "high",
+      "stake": 5000000,
+      "block": 6,
+      "payout": 50000000,
+      "expectedReturn": 0.7479521279999999,
+      "observedReturn": 0.7489419999999999,
+      "escapes": 374471
+    },
+    {
+      "difficulty": "high",
+      "stake": 10000000,
+      "block": 1,
+      "payout": 15000000,
+      "expectedReturn": 0.9,
+      "observedReturn": 0.8997135,
+      "escapes": 2999045
+    },
+    {
+      "difficulty": "high",
+      "stake": 10000000,
+      "block": 2,
+      "payout": 21428571,
+      "expectedReturn": 0.899999982,
+      "observedReturn": 0.8998521248601,
+      "escapes": 2099655
+    },
+    {
+      "difficulty": "high",
+      "stake": 10000000,
+      "block": 3,
+      "payout": 31512605,
+      "expectedReturn": 0.8999999987999998,
+      "observedReturn": 0.9004462172868001,
+      "escapes": 1428708
+    },
+    {
+      "difficulty": "high",
+      "stake": 10000000,
+      "block": 4,
+      "payout": 47746371,
+      "expectedReturn": 0.8999999948015999,
+      "observedReturn": 0.9007190551488601,
+      "escapes": 943233
+    },
+    {
+      "difficulty": "high",
+      "stake": 10000000,
+      "block": 5,
+      "payout": 50000000,
+      "expectedReturn": 0.6031872,
+      "observedReturn": 0.6039,
+      "escapes": 603900
+    }
+  ]
+}

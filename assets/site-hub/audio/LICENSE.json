@@ -1,0 +1,10 @@
+{
+  "author": "Kenney",
+  "license": "CC0 1.0",
+  "sources": [
+    "https://kenney.nl/assets/casino-audio",
+    "https://kenney.nl/assets/impact-sounds"
+  ],
+  "files": "dice, card, glass OGG recordings",
+  "original": "vault-ostinato.wav: original synthesized string ostinato and percussion created for Xan Duels. laser-*.wav: PCM exported from the original two-player Redshift synthesis using scripts/build-roulette-laser-audio.mjs."
+}

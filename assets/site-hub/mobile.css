@@ -1,0 +1,325 @@
+/* XAN_MOBILE_V1: phone layouts, with game-owned artwork and controls intact. */
+/* The legacy .win pulse must not move the Summit result's touch controls. */
+.xan-unified [data-mr-scene="68"] .mr-overlay-card { animation:none; }
+@media (max-width:760px), (max-width:950px) and (max-height:500px) and (orientation:landscape) {
+  body > header.xan-bar {
+    grid-template-columns: minmax(0,1fr) auto!important;
+    grid-template-rows: auto auto;
+    padding: max(8px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) 8px max(12px,env(safe-area-inset-left));
+    gap: 6px 12px;
+    min-height: 0;
+    box-sizing: border-box;
+  }
+  .xan-bar .xan-brand { grid-column:1; grid-row:1; justify-self:start; font-size:19px; }
+  .xan-bar .xan-tools { grid-column:2; grid-row:1; gap:6px; }
+  .xan-bar .xan-tools button { width:44px; min-width:44px; min-height:44px; padding:10px; }
+  .xan-bar .xan-tools .hub-all { display:none; }
+  .xan-bar .xan-account { grid-column:1/-1; grid-row:2; display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:0 10px; overflow:visible; }
+  .xan-account > span,.xan-account > strong { grid-column:1; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+  .xan-bar .xan-account > span { font-size:11px; }
+  .xan-bar .xan-account > strong { font-size:14px; }
+  .xan-bar .xan-account .hub-wallet { grid-column:2; grid-row:1/3; min-height:44px; margin:0; padding:10px; font-size:11px; white-space:normal; }
+  .xan-bar .xan-account .rps-pick-character { grid-column:1/-1; min-height:44px; margin:6px 0 0; font-size:12px!important; }
+  html:has(#simpleTestHome:not([hidden])) { overflow:hidden; }
+  #simpleTestHome { top:var(--xan-header-height,108px)!important; padding:24px 12px max(32px,env(safe-area-inset-bottom))!important; }
+  #simpleTestHome .sth-games { gap:10px!important; }
+  #simpleTestHome .hub-info { width:44px; height:44px; min-height:44px!important; top:6px; right:6px; }
+  #simpleTestHome .hub-title { font-size:16px; left:10px; right:8px; bottom:12px; }
+  #simpleTestHome .hub-title small { font-size:8px; }
+  .xan-popover { box-sizing:border-box; top:calc(var(--xan-header-height,108px) + 6px); right:12px; width:calc(100vw - 24px); max-height:calc(100dvh - var(--xan-header-height,108px) - 18px); overscroll-behavior:contain; }
+  .xan-popover button,.xan-dialog button { min-height:44px; }
+  .xan-popover label { min-height:44px; box-sizing:border-box; }
+  .xan-dialog,.xg-achievements,.rps-character-dialog,.yd-dialog { box-sizing:border-box; width:calc(100% - 24px); max-width:680px; max-height:calc(100dvh - 24px); padding:18px; overscroll-behavior:contain; }
+  .xan-dialog h2 { font-size:23px; }
+  .xan-dialog input,.xan-dialog textarea,.hub-key input,.xg-menu input,.xg-join input { font-size:16px!important; }
+  .xan-dialog .hub-debug-data { min-height:170px; font-size:12px!important; }
+  .xan-dialog .hub-actions > button { flex:1 1 110px; }
+  .xg-wallet button { min-height:44px; }
+  .xg-exchange { font-size:20px; }
+  .xg-achievement-grid { grid-template-columns:minmax(0,1fr); }
+  .xg-achievements button { min-height:44px; }
+  .xg-award-toast { gap:8px; padding:10px; }
+  .xg-award-toast > div { min-width:0; overflow-wrap:anywhere; }
+  .xg-award-toast > strong { font-size:12px; }
+  .xg-award-toast button { flex:none; width:44px; height:44px; }
+  .xan-unified main,.xan-unified #duelScreen { padding:0 max(12px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left))!important; min-width:0; }
+  .xan-unified #duelScreen .duel-arena { padding:0!important; min-width:0; }
+  .xg-heading { padding:16px 0; gap:10px; scroll-margin-top:var(--xan-header-height,108px); }
+  .xg-heading h1 { font-size:27px!important; }
+  .xg-tools { gap:7px; }
+  .xg-tools button { padding:10px 12px; min-height:44px; }
+  .xg-menu { display:flex; flex-direction:column; gap:12px; padding-bottom:18px; min-height:0; }
+  .xg-intro { width:100%; }
+  .xg-description { font-size:18px!important; line-height:1.5!important; margin-bottom:16px; }
+  .xg-wager { justify-content:space-between; gap:8px; margin-bottom:12px; }
+  .xg-actions { gap:8px; }
+  .xg-actions button { padding:12px 10px; min-height:62px; font-size:13px; }
+  .xg-actions small { font-size:8px; letter-spacing:.7px; }
+  .xg-art { width:100%; height:205px; min-height:205px; overflow:hidden; }
+  .xg-object-art { min-height:205px; }
+  .xg-mini-table { height:200px; max-width:340px; }
+  .xg-art > .xg-gladiator-object { height:195px; }
+  .xg-art > .xg-hand-object { height:48px; width:48px; }
+  .xg-art > .xg-vault-object { max-height:175px; width:auto; max-width:70%; }
+  .xg-art > .xg-mountain-object { max-height:200px; width:auto; max-width:100%; }
+  .xg-art > .xg-fish-object { width:70%; max-height:180px; }
+  .xg-art > .xg-fish-small { width:34%; max-height:120px; }
+  .xg-hero-die { width:78px; height:78px; padding:14px; gap:6px; border-radius:16px; top:calc(36% - var(--i)*4%); }
+  .xg-art .hero-art { width:320px; flex:none; height:300px; transform:scale(.53); transform-origin:center top; margin:12px 0 -100px; }
+  .xg-open { margin-top:18px!important; padding-top:18px; }
+  .hub-open .hub-empty { padding:12px 0!important; }
+  .hub-heading h2 { font-size:21px; }
+  .hub-status:empty { display:none; }
+  .hub-row { grid-template-columns:minmax(0,1fr) auto; gap:10px; padding:14px 0; }
+  .hub-row > div:first-child { grid-column:1/-1; min-width:0; overflow-wrap:anywhere; }
+  .hub-row .hub-buttons { justify-content:flex-end; }
+  .hub-row button { min-height:44px; }
+  .xg-join { flex-wrap:wrap; padding-top:16px; margin-top:16px; }
+  .xg-join input { flex:1 1 160px; min-height:44px; width:100%; }
+  .xg-join button { flex:1 1 100px; }
+  .xg-invite input { box-sizing:border-box; width:100%; }
+  .xg-invite a { display:block; padding:12px; }
+  .xg-waiting { padding:12px 48px 12px 12px; }
+  .xg-waiting .xg-cancel { width:44px; height:44px; padding:0; top:2px; right:2px; }
+  .xg-waiting h2 { font-size:15px; line-height:1.4; }
+  .xg-ready { margin-top:10px; max-width:100%; }
+  .xg-leaderboard .hub-heading { gap:8px; }
+  .xg-leaderboard button { font:600 12px/1.3 system-ui!important; min-height:44px; padding:10px; text-transform:none!important; letter-spacing:0!important; box-shadow:none!important; }
+  .xg-board-tabs > button { flex:1; }
+  .xg-board-row a { overflow-wrap:anywhere; }
+  .xg-rematch { gap:8px; padding:8px 0; box-sizing:border-box; }
+  .xg-rematch .xg-payout { flex-basis:100%; font-size:13px!important; }
+  .xg-roster { gap:10px; }
+  .xg-portrait { width:34px; height:34px; }
+  .rr-gun-toggle { min-height:44px!important; padding:8px!important; }
+  .rr-gun-menu { box-sizing:border-box; max-width:calc(100vw - 32px); max-height:55dvh; overflow:auto; }
+
+  .xan-unified .page:has(#duelScreen) { padding:0!important; }
+  .xan-unified #duelScreen .duel-arena { grid-template-columns:minmax(0,1fr); }
+  .xan-unified #duelScreen .duel-arena > * { min-width:0; max-width:100%; }
+  .xan-unified .duel-active { min-width:0; }
+  .xan-unified [data-safe-cracker-mount] { min-width:0; width:100%; }
+  .four-online .player-bar { grid-template-columns:24px minmax(0,1fr); align-content:start; }
+  .four-online .player-bar > div > b { display:block; font-size:11px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+  .four-online .player-bar > strong { grid-column:2; font-size:12px; }
+  .four-online .player-bar > #four-gun-menu { grid-column:1/-1; }
+  [data-xan-mode=bluff] #game[data-phase=select] .plays { display:none; }
+
+  body:has(.admin-header) > .page { padding:18px 12px 32px; }
+  body:has(.admin-header) > .page > .admin-header { display:flex!important; }
+  .admin-nav a { min-height:44px; display:flex; align-items:center; }
+  .admin-nav { display:grid; grid-template-columns:1fr 1fr; }
+  body:has(.admin-header) :is(input,select,textarea) { font-size:16px; }
+  body:has(.admin-header) :is(.small-btn,summary) { min-height:44px; }
+  body:has(.admin-header) :is(.adjust-panel,.detail-panel,.odds-panel) { scroll-margin-top:calc(var(--xan-header-height,108px) + 12px); }
+  body:has(.admin-header) .summary { gap:8px; }
+  body:has(.admin-header) .metric { padding:10px; }
+  body:has(.admin-header) .metric b { font-size:20px; }
+
+  /* Card selection follows the table; the lock action follows the hand. */
+  [data-xan-mode=bluff] #game[data-phase=select] { display:flex; flex-direction:column; border:1px solid #a584543d; border-radius:17px; background:radial-gradient(ellipse at center,#354345,#1c242c); overflow:hidden; }
+  [data-xan-mode=bluff] #game[data-phase=select] > .table { display:contents; }
+  [data-xan-mode=bluff] #game[data-phase=select] > .table::before,[data-xan-mode=bluff] #game[data-phase=select] > .table::after { display:none; }
+  [data-xan-mode=bluff] #game[data-phase=select] .hand-panel { order:1; padding:10px; border-top:1px solid #ffffff18; }
+  [data-xan-mode=bluff] #game[data-phase=select] .action-area { order:2; padding:8px 12px 14px; }
+  [data-xan-mode=bluff] .table-top { padding:12px; }
+  [data-xan-mode=bluff] .plays { min-height:118px; padding:12px 8px; }
+  [data-xan-mode=bluff] .play-label { font-size:8px; margin-bottom:6px; }
+  [data-xan-mode=bluff] .card-pile { min-height:62px; }
+  [data-xan-mode=bluff] .ghost-slot { width:44px; height:62px; }
+  [data-xan-mode=bluff] .mini.back { width:44px; height:62px; }
+  [data-xan-mode=bluff] .hand-head { flex-wrap:wrap; gap:6px; margin-bottom:8px; }
+  [data-xan-mode=bluff] .hand-tools { width:100%; }
+  [data-xan-mode=bluff] .hand-tools button { min-height:44px; flex:1; font-size:11px; padding:7px; }
+  [data-xan-mode=bluff] .hand { gap:7px; }
+  [data-xan-mode=bluff] .hand .card { width:calc((100% - 28px)/5); }
+  [data-xan-mode=bluff] .action-area button { min-height:44px; }
+  [data-xan-mode=bluff] .result { padding:25px 12px; }
+
+  [data-xan-mode=rps] .arena { height:380px; }
+  [data-xan-mode=rps] .hands { top:12px; max-width:340px; }
+  [data-xan-mode=rps] .reactions { bottom:26%; }
+  [data-xan-mode=rps] .reaction-frame { width:60px; max-width:60px; }
+  [data-xan-mode=rps] .scoreboard { min-height:80px; padding:10px; grid-template-columns:minmax(0,1fr) 60px minmax(0,1fr); }
+  [data-xan-mode=rps] .scoreboard strong { font-size:16px; }
+  [data-xan-mode=rps] .scoreboard .rps-pick-character { display:block; min-height:44px; max-width:100%; white-space:normal; }
+  [data-xan-mode=rps] .scoreboard > div:last-child .rps-pick-character { margin-left:auto; }
+  [data-xan-mode=rps] .round-banner strong { font-size:24px; }
+  [data-xan-mode=rps] .round-banner span { font-size:10px; }
+  [data-xan-mode=rps] .play-panel { padding:12px; }
+  [data-xan-mode=rps] .choices button { min-height:88px; padding:8px 3px; }
+  [data-xan-mode=rps] .choice-art { width:38px; height:38px; }
+  [data-xan-mode=rps] .choices b { font-size:13px; letter-spacing:0; }
+  [data-xan-mode=rps] .choices kbd { display:none; }
+  [data-xan-mode=rps] .pick-heading { margin-bottom:10px; }
+  [data-xan-mode=rps] .pick-heading h2 { font-size:16px; }
+  [data-xan-mode=rps] .match-actions { flex-wrap:wrap; }
+  [data-xan-mode=rps] .match-actions button { min-height:44px; }
+
+  /* Dice and roll controls fit above the scorecard; scores are full touch rows. */
+  .yahtzee-page .yd-match { top:var(--xan-header-height,108px); margin-bottom:10px; grid-template-columns:minmax(0,1fr) 70px; }
+  .yahtzee-page .yd-player { padding:10px; }
+  .yahtzee-page .yd-avatar { display:grid; width:24px; height:24px; }
+  .yahtzee-page .yd-lane { padding:12px 14px 8px; }
+  .yahtzee-page .yd-rival-identity { margin-bottom:7px; }
+  .yahtzee-page .yd-dice-row { gap:clamp(7px,2vw,14px); min-height:100px; padding:26px 0 22px; }
+  .yahtzee-page .yd-die { --size:clamp(44px,9.5vw,52px); min-width:44px; min-height:44px; }
+  .yahtzee-page .yd-die .cube { pointer-events:none; }
+  .yahtzee-page .yd-rival-lane .yd-dice-row { min-height:58px; padding:12px 0; }
+  .yahtzee-page .yd-rival-lane .yd-die { --size:30px; min-width:30px; min-height:30px; }
+  .yahtzee-page .yd-lane-status { margin:4px 0 0; }
+  .yahtzee-page .yd-controls { margin-top:4px; padding:12px; min-height:76px; gap:8px; flex-wrap:wrap; }
+  .yahtzee-page .yd-controls > div:first-child { flex:1 1 115px; }
+  .yahtzee-page .yd-controls .yd-primary { min-width:110px; min-height:44px; }
+  .yahtzee-page .yd-scorecard > header { padding:12px; flex-wrap:wrap; }
+  .yahtzee-page .yd-scorecard .yd-quiet { min-height:44px; }
+  .yahtzee-page .yd-score-row { min-height:44px; padding-inline:12px; }
+  .yahtzee-page .yd-score-row > button { min-height:44px; }
+  .yahtzee-page :is(.yd-score-row,.yd-column-head,.yd-score-summary) { grid-template-columns:minmax(0,1fr) 58px 58px; }
+  .yahtzee-page .yd-dialog button { min-height:44px; }
+
+  /* Remove the legacy board's intrinsic desktop width, not its live tools. */
+  .xan-unified .safe-cracker-game.sh-game { box-sizing:border-box; min-width:0!important; width:100%!important; padding:10px!important; }
+  .safe-cracker-game.sh-game * { box-sizing:border-box; }
+  .sh-game :is(.sh-header,.sh-bag,.sh-workbench,.sh-tools) { min-width:0; max-width:100%; }
+  .sh-game .sh-header > div:first-child { min-width:0; }
+  .sh-game .sh-header h2 { font-size:18px; }
+  .sh-game .sh-tools { grid-template-columns:repeat(4,minmax(0,1fr)); }
+  .sh-game .sh-tool { min-width:0; height:80px; }
+  .sh-game .sh-bag-label { flex-wrap:wrap; }
+  .sh-game .sh-color-menu { margin-left:auto; }
+  .sh-game .sh-color-menu summary { min-height:44px; display:flex; align-items:center; padding:6px; }
+  .sh-game .sh-color-panel { max-width:calc(100vw - 64px); }
+  .sh-game .sh-note-card { max-height:100%; }
+  .sh-game .sh-note-header button,.sh-game .sh-put-away { min-height:44px; min-width:44px; }
+  .sh-heist-report { grid-template-columns:minmax(0,1fr); }
+
+  .xan-unified .fishing-game { box-sizing:border-box; width:100%; min-width:0; }
+  .xan-unified .fishing-player-strip { grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important; gap:6px!important; padding:8px!important; }
+  .xan-unified .fishing-player-strip .fishing-player-chip { grid-row:1; min-width:0; padding:5px!important; }
+  .xan-unified .fishing-player-chip b { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11px; }
+  .xan-unified .fishing-player-strip .fishing-clock { grid-column:1; grid-row:2; justify-self:start; }
+  .xan-unified .fishing-player-strip .fishing-pot { grid-column:2; grid-row:2; justify-self:end; text-align:right; }
+  .xan-unified .fishing-water { min-height:240px!important; aspect-ratio:auto!important; }
+  #fishingResultPortal,body > .sc-result-overlay[data-sc-result-portal] { z-index:2147483400!important; }
+  #fishingResultPortal .fishing-result-actions button,.sc-result-actions button { min-height:44px!important; }
+  #fishingResultPortal .fishing-result-actions button span { white-space:normal!important; overflow:visible!important; text-overflow:clip!important; }
+  #fishingResultPortal .duel-end-screen-close,body > .sc-result-overlay .duel-end-screen-close { min-width:44px!important; min-height:44px!important; }
+
+  .xan-unified [data-mountain-race-mount][data-mr-scene="68"] { min-height:0; }
+  .xan-unified [data-mr-scene="68"] .m68-header { min-height:66px; grid-template-columns:36px minmax(0,1fr) 36px; padding:10px 6px; }
+  .xan-unified [data-mr-scene="68"] .m68-header h2 { font-size:21px!important; }
+  .xan-unified [data-mr-scene="68"] .m68-clock { padding-left:5px; }
+  .xan-unified [data-mr-scene="68"] .m68-clock b { font-size:21px; }
+  .xan-unified [data-mr-scene="68"] .m68-deck { padding:10px 8px; gap:7px; }
+  .xan-unified [data-mr-scene="68"] .m68-pad { grid-template-columns:repeat(3,64px); grid-template-rows:repeat(2,46px); }
+  .xan-unified [data-mr-scene="68"] .m71-hint { margin:6px 0 0; }
+
+  .four-online .player-bars { grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; }
+  .four-online .player-bar { padding:7px; gap:3px 6px; min-height:0; }
+  .four-online .player-bar > img { width:24px; height:24px; }
+  .four-online .player-bar .player-name { font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .four-online .player-money { font-size:12px; }
+  .four-online .player-detail { font-size:9px; }
+  .four-online .player-bar .rr-gun-toggle { font-size:10px!important; padding:6px!important; }
+  .four-online .pot-display strong { font-size:19px; }
+  .four-online .scene { height:350px; }
+  .four-online .controls button { min-height:44px; }
+}
+
+/* A short landscape phone scrolls naturally; the header never covers the game. */
+@media (max-width:950px) and (max-height:500px) and (orientation:landscape) {
+  body > header.xan-bar { position:relative; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)!important; grid-template-rows:auto; padding-block:max(6px,env(safe-area-inset-top)); }
+  .xan-bar .xan-account { grid-column:1; grid-row:1; }
+  .xan-bar .xan-brand { grid-column:2; grid-row:1; }
+  .xan-bar .xan-tools { grid-column:3; grid-row:1; }
+  .xan-unified .safe-cracker-game.sh-game { display:grid!important; grid-template-columns:minmax(0,1fr) minmax(240px,.7fr); gap:8px; }
+  .sh-game :is(.sh-header,[data-sh-tracker],.sh-footer) { grid-column:1/-1; }
+  .sh-game [data-sh-note-mount]:empty { display:none; }
+  .sh-game [data-sh-note-mount]:not(:empty) { display:contents; }
+  .sh-game [data-sh-bag-mount] { grid-column:2; grid-row:3; min-width:0; }
+  .sh-game .sh-workbench { grid-row:3; }
+  .sh-game .sh-handle { top:22px; height:34px; }
+  .sh-game .sh-handle svg { top:6px; }
+  .sh-game .sh-shaft { top:4px; height:24px; }
+  .sh-game .sh-note .sh-paper { top:4px; height:35px; }
+  .sh-game .sh-cutters > svg { top:0; height:55px; }
+  .sh-game .sh-drag-hint { display:none; }
+  .sh-game .sh-header { padding-bottom:0; }
+  .sh-game .sh-header p { margin:3px 0; }
+  .sh-game .sh-workbench { grid-column:1; min-height:230px; height:100%; max-height:none; }
+  .sh-game .sh-bag { grid-column:2; margin:0; }
+  .sh-game .sh-tools { grid-template-columns:repeat(4,minmax(0,1fr)); }
+  .sh-game .sh-tool { height:80px; }
+  .four-online .player-bars { grid-template-columns:repeat(4,minmax(0,1fr)); }
+  [data-xan-mode=bluff] #game[data-phase=select] { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); align-items:start; }
+  [data-xan-mode=bluff] #game[data-phase=select] .table-top { grid-column:1/-1; }
+  [data-xan-mode=bluff] #game[data-phase=select] .target { grid-column:1; grid-row:2; }
+  [data-xan-mode=bluff] #game[data-phase=select] .table-message { grid-column:1; grid-row:3; }
+  [data-xan-mode=bluff] #game[data-phase=select] .hand-panel { grid-column:2; grid-row:2/5; }
+  [data-xan-mode=bluff] #game[data-phase=select] .action-area { grid-column:1; grid-row:4; }
+  .xan-unified [data-mr-scene="68"] .m68-game { display:grid; grid-template-columns:minmax(0,1fr) 250px; }
+  .xan-unified [data-mr-scene="68"] .m68-header { grid-column:1/-1; }
+  .xan-unified [data-mr-scene="68"] .m68-racers { grid-column:1; }
+  .xan-unified [data-mr-scene="68"] .m68-stage { grid-column:1; }
+  .xan-unified [data-mr-scene="68"] .m68-deck { grid-column:2; grid-row:2/4; flex-direction:column; justify-content:center; }
+  .xan-unified [data-mr-scene="68"] .m68-queue { gap:6px; }
+  .xan-unified [data-mr-scene="68"] .m72-move { width:50px; height:50px; }
+  .xan-unified [data-mr-scene="68"] .m68-header h2 { font-size:24px!important; }
+  .xan-unified [data-mr-scene="68"] .m68-player { padding:8px; }
+  .xan-unified [data-mr-scene="68"] .m68-player > div:first-child { display:block; }
+  .xan-unified [data-mr-scene="68"] .m68-player span { display:block; margin-top:4px; }
+
+  body > .sc-result-overlay[data-sc-result-portal] .sc-result-content { display:grid; grid-template-rows:auto minmax(80px,1fr) auto; overflow:auto!important; }
+  body > .sc-result-overlay[data-sc-result-portal] .sc-result-heading { padding:10px 20px; }
+  body > .sc-result-overlay[data-sc-result-portal] .sc-result-seal { display:none; }
+  body > .sc-result-overlay[data-sc-result-portal] .sc-result-card h2 { font-size:26px; margin:5px 0; }
+  body > .sc-result-overlay[data-sc-result-portal] .sc-result-card p { font-size:12px; }
+  body > .sc-result-overlay[data-sc-result-portal] .sc-result-prize { padding-top:5px; }
+  body > .sc-result-overlay[data-sc-result-portal] .sc-result-prize strong { font-size:26px; }
+  body > .sc-result-overlay[data-sc-result-portal] .sc-result-summary { overflow:auto; min-height:0; padding:10px; }
+  #fishingResultPortal .fishing-result-header { padding:9px 16px!important; }
+  #fishingResultPortal .fishing-result-title { font-size:28px!important; }
+  #fishingResultPortal .fishing-result-header p { margin:2px 0; font-size:11px; }
+  #fishingResultPortal .fishing-result-header-payout { margin-top:4px; }
+  #fishingResultPortal .xg-rematch { flex-wrap:nowrap; }
+  #fishingResultPortal .xg-payout { flex-basis:auto; }
+  #fishingResultPortal .xg-person { display:flex; align-items:center; width:105px; }
+  #fishingResultPortal .xg-person small { min-width:0; }
+  #fishingResultPortal .xg-portrait { flex:none; width:26px; height:26px; }
+  .xan-popover { top:12px; max-height:calc(100dvh - 24px); }
+  .xan-unified main,.xan-unified #duelScreen { padding-inline:max(16px,env(safe-area-inset-left))!important; }
+  .xg-heading { grid-template-columns:1fr auto; padding:12px 0; }
+  .xg-heading h1 { grid-column:1; text-align:left; font-size:26px!important; }
+  .xg-tools { grid-column:2; grid-row:1; }
+  .xg-menu { display:grid; grid-template-columns:minmax(0,1.2fr) minmax(0,1fr); min-height:0; gap:24px; }
+  .xg-description { font-size:18px!important; margin-bottom:12px; }
+  .xg-art { height:240px; min-height:240px; overflow:hidden; }
+  .xg-art .hero-art { transform:scale(.65); }
+  .xg-object-art { min-height:240px; }
+  .xg-mini-table { height:230px; }
+  .xg-art > img { max-height:230px; object-fit:contain; }
+  .yahtzee-page .yd-match { position:relative; top:auto; }
+  .yd-layout { grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
+  .yd-dice-row { gap:14px; }
+  .yd-die { --size:44px; }
+  .yd-controls { flex-wrap:wrap; }
+  .yd-score-row > button { min-height:44px; }
+  .xan-unified [data-mr-scene="68"] .m68-lane { height:240px!important; }
+
+  .xan-unified [data-mr-scene="68"] .m68-deck > div:first-child { width:auto; }
+  .xan-dialog,.xg-achievements,.yd-dialog,.rps-character-dialog { max-height:calc(100dvh - 24px); box-sizing:border-box; overflow:auto; }
+}
+
+@media (max-width:700px) and (max-height:500px) and (orientation:landscape) {
+  body > header.xan-bar { grid-template-columns:minmax(0,1fr) auto!important; grid-template-rows:auto auto; }
+  .xan-bar .xan-brand { grid-column:1; grid-row:1; }
+  .xan-bar .xan-tools { grid-column:2; grid-row:1; }
+  .xan-bar .xan-account { grid-column:1/-1; grid-row:2; }
+  .yahtzee-page .yd-lane { padding-inline:8px; }
+  .yahtzee-page .yd-die { --size:44px; }
+  .yahtzee-page .yd-dice-row { gap:4px; }
+  .xg-heading { grid-template-columns:1fr; }
+  .xg-heading h1 { text-align:center; }
+  .xg-tools { grid-column:1; grid-row:2; }
+}

@@ -51,7 +51,7 @@ for (const fragment of requiredCss) {
   }
 }
 
-const assetPath = '/assets/safe-cracker/textures/dial-reference-face-v7.svg?dial=7';
+const assetPath = '/assets/safe-cracker/images/dial-reference-face.png?dial=24';
 if (!client.includes('class="sc-dial-reference-plate"')) {
   throw new Error('Safe Cracker dial-depth validation failed: the real dial plate image is not mounted in the rotating face.');
 }

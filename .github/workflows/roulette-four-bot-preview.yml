@@ -1,0 +1,22 @@
+name: Four-player Roulette bot preview
+on:
+  push:
+    branches: [mountain-race-development]
+  pull_request:
+    branches: [safe-cracker-development]
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install
+      - run: node scripts/validate-roulette-four.mjs
+      - run: npm run build
+      - run: npm run validate:protected-current
+      - run: npm run validate:mountain-race

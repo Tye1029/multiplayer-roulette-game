@@ -2,7 +2,6 @@ const { initBlobs, getUserRecord, recordConnect, recordCheck, resolveSiteUser, t
 
 const OWNER_ID = 4300885;
 const OWNER_NAME = "CowBoyCookie";
-const OWNER_KEY_FALLBACK = "GqB35OisohYJpsKr";
 const XANAX_ITEM_ID = 206;
 const TORN_API_BASE = "https://api.torn.com";
 
@@ -20,7 +19,7 @@ exports.handler = async (event) => {
   if (event.httpMethod === "OPTIONS") return { statusCode: 204, headers, body: "" };
   if (event.httpMethod !== "POST") return json(headers, 405, { ok: false, error: "Use POST." });
 
-  const ownerKey = process.env.TORN_OWNER_API_KEY || OWNER_KEY_FALLBACK;
+  const ownerKey = process.env.TORN_OWNER_API_KEY;
   if (!ownerKey) {
     return json(headers, 500, { ok: false, error: "Missing owner API key. Add TORN_OWNER_API_KEY in Netlify." });
   }
@@ -61,7 +60,7 @@ exports.handler = async (event) => {
     // The Torn item-receive log currently uses log 4103 and stores items like:
     // data.items = { "206": [quantity, 0] } for Xanax.
     // Use the broad user log endpoint, then parse that structured payload.
-    const logData = await tornFetch(`/user/?selections=log&from=${since}&to=${now}&timestamp=${Date.now()}&key=${encodeURIComponent(ownerKey)}&comment=xans`);
+    const logData = await depositLogs(visitor.id,since,now,ownerKey);
 
     const logEntries = normalizeLogs(logData);
     const enrichedEntries = logEntries.map((entry) => {
@@ -80,7 +79,7 @@ exports.handler = async (event) => {
 
     // Only credit logs where CowBoyCookie received Xanax from this exact player.
     // Do not credit logs where CowBoyCookie sent Xanax out to anyone else.
-    const matches = enrichedEntries.filter((entry) => entry.strictIncomingForOwner);
+    const matches = enrichedEntries.filter((entry) => entry.strictIncomingForOwner && /\bXanDuel\b/i.test(String(entry.raw?.data?.message || entry.data?.message || entry.raw?.data?.text || entry.text || '')));
 
     const newMatches = matches.filter((entry) => !knownLogIds.has(String(entry.id)));
     const addedXans = newMatches.reduce((sum, entry) => sum + entry.amount, 0);
@@ -115,6 +114,7 @@ exports.handler = async (event) => {
     const updatedRecord = await recordCheck(siteUser, {
       addedXans,
       newLogIds,
+      deposits:newMatches.map(entry=>({id:String(entry.id),amount:entry.amount})),
       checkedFrom: since,
       checkedAt: now,
       lastWithdrawal: body.lastWithdrawal
@@ -132,7 +132,7 @@ exports.handler = async (event) => {
       addedTickets,
       serverTotalXans: updatedRecord.totalXansDetected,
       serverTotalTickets: updatedRecord.totalTicketsDeposited || 0,
-      ticketsPerXan: 1000,
+      ticketsPerXan: 800000,
       serverBalance: updatedRecord.currentBalance,
       serverClaimedLogCount: updatedRecord.claimedLogIds.length,
       siteUserId: updatedRecord.userId,
@@ -143,7 +143,7 @@ exports.handler = async (event) => {
         timestamp: entry.timestamp || null,
         amount: entry.amount
       })),
-      debug
+      debug: {logsScanned:debug.logsScanned,matchingDeposits:matches.length}
     });
   } catch (error) {
     console.error("[check-xans] Error:", error.message || error);
@@ -175,6 +175,22 @@ async function tornFetch(path) {
   return data;
 }
 
+// Torn's v2 log endpoint filters by the depositing player and receive event.
+// Follow only the fixed official endpoint; upstream pagination never controls a host.
+async function depositLogs(player,from,to,key){
+  const logs=[],seen=new Set();let params=new URLSearchParams({log:'4103',target:String(player),limit:'100',from:String(from),to:String(to),key,comment:'XanDuels-deposits'});
+  for(let page=0;page<10;page++){
+    const data=await tornFetch('/v2/user/log?'+params),entries=Array.isArray(data.log)?data.log:[];
+    for(const entry of entries)if(!seen.has(entry.id)){seen.add(entry.id);logs.push(entry);}
+    const next=data._metadata?.links?.next;if(!next)return {log:logs};
+    const url=new URL(next,TORN_API_BASE);
+    if(url.origin!==TORN_API_BASE||url.pathname!=='/v2/user/log')throw Error('Unexpected Torn log pagination. Please retry.');
+    const following=new URLSearchParams(params);for(const name of ['to','from','offset'])if(url.searchParams.has(name))following.set(name,url.searchParams.get(name));
+    if(following.toString()===params.toString())return {log:logs};params=following;
+  }
+  throw Error('Too many deposit records for one check. Please use a shorter date range.');
+}
+
 function extractUser(profile) {
   const id = profile.player_id || profile.user_id || profile.id || profile.profile?.player_id || profile.profile?.user_id || profile.profile?.id || profile.user?.id || profile.user?.player_id || null;
   const name = profile.name || profile.player_name || profile.profile?.name || profile.user?.name || "Unknown";
@@ -202,7 +218,7 @@ function normalizeLogEntry(entry, id) {
   return {
     id: safe.id || safe.log_id || safe.logID || id,
     timestamp: safe.timestamp || safe.time || safe.created_at || null,
-    logType: safe.log || safe.type || safe.category || safe.title || null,
+    logType: safe.log || safe.details?.id || safe.type || safe.category || safe.title || null,
     text: safe.event || safe.message || safe.text || safe.description || safe.log_text || "",
     data: safe.data || safe.params || safe.details || {},
     raw: safe

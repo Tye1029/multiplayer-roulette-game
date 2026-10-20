@@ -51,7 +51,7 @@ const checks = [
   ['procedural audio runtime marker is unique', occurrences(client, '// SAFE_CRACKER_AUDIO_PASS_V10_START') === 1 && occurrences(client, '// SAFE_CRACKER_AUDIO_PASS_V10_END') === 1],
   ['recorded sound runtime marker is unique', occurrences(client, '// SAFE_CRACKER_RECORDED_SOUNDS_V13_START') === 1 && occurrences(client, '// SAFE_CRACKER_RECORDED_SOUNDS_V13_END') === 1],
   ['recorded assets are mapped', client.includes('const SAFE_CRACKER_RECORDED_SOUNDS = Object.freeze({') && client.includes('/assets/safe-cracker/audio-data-v2/intro-sequence-1.b64') && client.includes('/assets/safe-cracker/audio-data-v2/intro-sequence-4.b64') && client.includes('/assets/safe-cracker/audio-data-v2/final-vault-open-3.b64') && client.includes('/assets/safe-cracker/audio-data-v2/vault-ambience-loop-4.b64')],
-  ['Android audio is explicitly unlocked on interaction', client.includes('function safeCrackerUnlockRecordedAudio()') && client.includes("document.addEventListener('pointerdown'")],
+  ['Android audio is explicitly unlocked on interaction', /function safeCrackerUnlockRecordedAudio\([^)]*\)/.test(client) && client.includes("document.addEventListener('pointerdown'")],
   ['recorded buffers preload before gameplay', client.includes('window.setTimeout(safeCrackerPrimeRecordedSounds, 0);')],
   ['chunked recordings are reconstructed before decoding', client.includes('const urls = Array.isArray(sourceLocation) ? sourceLocation : [sourceLocation];') && client.includes("parts.join('')")],
   ['dial detents use uploaded recordings', client.includes('function safeCrackerPlayRecordedDetent(digit)') && client.includes("const name = runtime.safeCrackerRecordedDetentIndex ? 'dialA' : 'dialB';")],

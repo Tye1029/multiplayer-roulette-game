@@ -23,19 +23,21 @@ function replaceSection(source, label, startMarker, endMarker, replacement) {
   return source.slice(0, start) + replacement + source.slice(end);
 }
 
-html = replaceOnce(
-  html,
-  'the lobby cache state',
-  `    let duelCachedGames = [];
+if (!html.includes('let duelLobbyLoaded = false;')) {
+  html = replaceOnce(
+    html,
+    'the lobby cache state',
+    `    let duelCachedGames = [];
     let duelLastLobbyFetchAt = 0;
     let duelLastActiveGame = null;`,
-  `    let duelCachedGames = [];
+    `    let duelCachedGames = [];
     let duelLastLobbyFetchAt = 0;
     let duelLobbyLoaded = false;
     let duelLastActiveGame = null;`
-);
+  );
+}
 
-html = replaceOnce(
+if (!html.includes('const needLobby = !focusedGameOpen && (!duelLobbyLoaded')) html = replaceOnce(
   html,
   'the lobby refresh gate',
   `        const focusedGameOpen = Boolean(duelCurrentGameId);
@@ -62,28 +64,30 @@ html = replaceOnce(
           duelLastLobbyFetchAt = Date.now();`
 );
 
-html = replaceOnce(
-  html,
-  'the idle lobby poll rate',
-  `const desired = sharedLifecycleLive ? 200 : drawPlaying ? 650 : rouletteLive ? 800 : fishingLive ? 450 : completedAwaitingRematch ? 700 : noFocusedGame ? 750 : 1800;`,
-  `const desired = sharedLifecycleLive ? 200 : drawPlaying ? 650 : rouletteLive ? 800 : fishingLive ? 450 : completedAwaitingRematch ? 700 : noFocusedGame ? 2000 : 1800;`
-);
+if (!html.includes('// MULTIPLAYER_COHESION_V6') || !html.includes('noFocusedGame ? 2000 : 1800')) {
+  html = replaceOnce(
+    html,
+    'the idle lobby poll rate',
+    `const desired = sharedLifecycleLive ? 200 : drawPlaying ? 650 : rouletteLive ? 800 : fishingLive ? 450 : completedAwaitingRematch ? 700 : noFocusedGame ? 750 : 1800;`,
+    `const desired = sharedLifecycleLive ? 200 : drawPlaying ? 650 : rouletteLive ? 800 : fishingLive ? 450 : completedAwaitingRematch ? 700 : noFocusedGame ? 2000 : 1800;`
+  );
+}
 
-html = replaceOnce(
+if (!html.includes('revisionKey=[gameRevision,stateRevision')) html = replaceOnce(
   html,
   'the Remote Bot debug revision state',
   `const logs=[],botLogs=[]; let selectedMode='roulette',lastGameId='',lastRevision=-1;`,
   `const logs=[],botLogs=[]; let selectedMode='roulette',lastGameId='',lastRevisionKey='';`
 );
 
-html = replaceOnce(
+if (!html.includes('<b>Game revision</b>')) html = replaceOnce(
   html,
   'the Remote Bot debug revision display',
   `<b>Revision</b><span>\${st?.revision??g?.revision??'—'}</span>`,
   `<b>Game revision</b><span>\${g?.revision??'—'}</span><b>State revision</b><span>\${st?.revision??'—'}</span>`
 );
 
-html = replaceOnce(
+if (!html.includes('revisionKey=[gameRevision,stateRevision')) html = replaceOnce(
   html,
   'the Remote Bot state log revision',
   `if(g){const rev=Number(st?.revision??g?.revision??0);if(g.gameId!==lastGameId||rev!==lastRevision){line(logs,'state',{mode:g.mode,status:g.status,revision:rev,turnId:st?.turnId,lastAction:st?.lastAction});lastGameId=g.gameId;lastRevision=rev}}`,
@@ -135,12 +139,14 @@ html = replaceSection(
   adoptionBlock
 );
 
-html = replaceOnce(
-  html,
-  'the Remote Bot attach response adoption',
-  `$('rnbAddBot').addEventListener('click',async()=>{const b=$('rnbAddBot');try{const gameId=String((typeof duelLastActiveGame!=='undefined'&&duelLastActiveGame?.gameId)||(typeof duelCurrentGameId!=='undefined'&&duelCurrentGameId)||'');if(!gameId)throw new Error('Create a game first.');b.disabled=true;const profile=$('rnbProfile').value;line(botLogs,'attach requested',{gameId,profile});render();const data=await duelRequest('remote-bot',{gameId,profile});if(!data?.game)throw new Error('Server did not return the updated game.');if(typeof duelRememberCurrentGame==='function')duelRememberCurrentGame(data.game.gameId);if(typeof duelLastActiveGame!=='undefined')duelLastActiveGame=data.game;if(typeof duelResetReadyUi==='function')duelResetReadyUi(data.game);if(typeof duelRenderActive==='function')duelRenderActive({...data.game,status:'ready'},true);if(typeof duelSetPollRate==='function')duelSetPollRate(data.game);line(botLogs,'attached',{profile:data.remoteNetworkProfile,bot:data.game.joiner?.name});render()}catch(err){line(botLogs,'attach failed',{error:String(err?.message||err)});if(typeof duelSetStatus==='function')duelSetStatus(err.message||'Unable to add Remote Network Bot.','bad');render()}finally{b.disabled=false}});`,
-  `$('rnbAddBot').addEventListener('click',async()=>{const b=$('rnbAddBot');try{const gameId=String((typeof duelLastActiveGame!=='undefined'&&duelLastActiveGame?.gameId)||(typeof duelCurrentGameId!=='undefined'&&duelCurrentGameId)||'');if(!gameId)throw new Error('Create a game first.');b.disabled=true;const profile=$('rnbProfile').value;line(botLogs,'attach requested',{gameId,profile});render();const data=await duelRequest('remote-bot',{gameId,profile});if(!data?.game)throw new Error('Server did not return the updated game.');const adopted=rnbAdoptGame(data.game,true);if(!adopted)throw new Error('The Remote Bot response could not be adopted.');if(typeof duelResetReadyUi==='function')duelResetReadyUi(adopted);if(typeof duelSetPollRate==='function')duelSetPollRate(adopted);line(botLogs,'attached',{profile:data.remoteNetworkProfile,bot:adopted.joiner?.name,gameRevision:Number(adopted.revision??-1),stateRevision:rnbStateRevision(adopted)});render()}catch(err){line(botLogs,'attach failed',{error:String(err?.message||err)});if(typeof duelSetStatus==='function')duelSetStatus(err.message||'Unable to add Remote Network Bot.','bad');render()}finally{b.disabled=false}});`
-);
+if (!html.includes('async function rnbAttachBotAtomically')) {
+  html = replaceOnce(
+    html,
+    'the Remote Bot attach response adoption',
+    `$('rnbAddBot').addEventListener('click',async()=>{const b=$('rnbAddBot');try{const gameId=String((typeof duelLastActiveGame!=='undefined'&&duelLastActiveGame?.gameId)||(typeof duelCurrentGameId!=='undefined'&&duelCurrentGameId)||'');if(!gameId)throw new Error('Create a game first.');b.disabled=true;const profile=$('rnbProfile').value;line(botLogs,'attach requested',{gameId,profile});render();const data=await duelRequest('remote-bot',{gameId,profile});if(!data?.game)throw new Error('Server did not return the updated game.');if(typeof duelRememberCurrentGame==='function')duelRememberCurrentGame(data.game.gameId);if(typeof duelLastActiveGame!=='undefined')duelLastActiveGame=data.game;if(typeof duelResetReadyUi==='function')duelResetReadyUi(data.game);if(typeof duelRenderActive==='function')duelRenderActive({...data.game,status:'ready'},true);if(typeof duelSetPollRate==='function')duelSetPollRate(data.game);line(botLogs,'attached',{profile:data.remoteNetworkProfile,bot:data.game.joiner?.name});render()}catch(err){line(botLogs,'attach failed',{error:String(err?.message||err)});if(typeof duelSetStatus==='function')duelSetStatus(err.message||'Unable to add Remote Network Bot.','bad');render()}finally{b.disabled=false}});`,
+    `$('rnbAddBot').addEventListener('click',async()=>{const b=$('rnbAddBot');try{const gameId=String((typeof duelLastActiveGame!=='undefined'&&duelLastActiveGame?.gameId)||(typeof duelCurrentGameId!=='undefined'&&duelCurrentGameId)||'');if(!gameId)throw new Error('Create a game first.');b.disabled=true;const profile=$('rnbProfile').value;line(botLogs,'attach requested',{gameId,profile});render();const data=await duelRequest('remote-bot',{gameId,profile});if(!data?.game)throw new Error('Server did not return the updated game.');const adopted=rnbAdoptGame(data.game,true);if(!adopted)throw new Error('The Remote Bot response could not be adopted.');if(typeof duelResetReadyUi==='function')duelResetReadyUi(adopted);if(typeof duelSetPollRate==='function')duelSetPollRate(adopted);line(botLogs,'attached',{profile:data.remoteNetworkProfile,bot:adopted.joiner?.name,gameRevision:Number(adopted.revision??-1),stateRevision:rnbStateRevision(adopted)});render()}catch(err){line(botLogs,'attach failed',{error:String(err?.message||err)});if(typeof duelSetStatus==='function')duelSetStatus(err.message||'Unable to add Remote Network Bot.','bad');render()}finally{b.disabled=false}});`
+  );
+}
 
 html = replaceOnce(
   html,
@@ -238,7 +244,7 @@ for (const required of [
 for (const forbidden of [
   'const lobbyRefreshAge = focusedGameOpen ? 15000 : 1200;',
   '!duelCachedGames.length || !focusedGameOpen',
-  "lastRevision=-1",
+  "let selectedMode='roulette',lastGameId='',lastRevision=-1",
   "if(data?.game){rnbAdoptGame(data.game,false);return data.game}"
 ]) {
   if (html.includes(forbidden)) throw new Error(`Old multiplayer client behavior remains: ${forbidden}`);

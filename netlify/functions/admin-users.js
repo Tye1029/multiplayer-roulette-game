@@ -1,4 +1,4 @@
-const { initBlobs, listUserRecords } = require("./_data");
+const { initBlobs, listUserRecords, getUserRecord } = require("./_data");
 
 // Bump this when redeploying after env variable changes so Netlify refreshes the function bundle.
 const ADMIN_FUNCTION_VERSION = "2026-07-08-admin-adjust-1";
@@ -31,6 +31,15 @@ exports.handler = async (event) => {
   }
 
   try {
+    const body=event.httpMethod==='POST'?JSON.parse(event.body||'{}'):{};
+    if(body.action==='ledger'){
+      if(!/^[0-9A-Za-z_-]{1,120}$/.test(body.userId||''))return json(headers,400,{ok:false,error:'Invalid player.'});
+      const record=await getUserRecord(body.userId);if(!record)return json(headers,404,{ok:false,error:'Player not found.'});
+      const ledger=record.financialLedger||[],end=body.before===undefined?ledger.length:Number(body.before);
+      if(!Number.isSafeInteger(end)||end<0||end>ledger.length)return json(headers,400,{ok:false,error:'Invalid ledger cursor.'});
+      const start=Math.max(0,end-100);let balance=record.balanceBaseline||0;const rows=[];for(let i=0;i<end;i++){const e=ledger[i];balance+=e.delta;if(i>=start)rows.push({...e,balanceAfter:balance});}
+      return json(headers,200,{ok:true,user:{id:record.userId,name:record.name},entries:rows.reverse(),next:start||null,balance:record.currentBalance});
+    }
     const users = await listUserRecords();
     console.log(`[admin-users] Admin loaded ${users.length} connected users.`);
     return json(headers, 200, {
@@ -46,15 +55,7 @@ exports.handler = async (event) => {
 
 function getPassword(event) {
   const headers = event.headers || {};
-  const headerValue = headers["x-admin-password"] || headers["X-Admin-Password"];
-  if (headerValue) return String(headerValue);
-
-  try {
-    const params = new URLSearchParams(event.rawQuery || "");
-    return params.get("password") || "";
-  } catch {
-    return "";
-  }
+  return String(headers['x-admin-password'] || headers['X-Admin-Password'] || '');
 }
 
 function publicRecord(record) {
@@ -77,7 +78,7 @@ function publicRecord(record) {
     withdrawalCount: record.withdrawalCount,
     totalXansDetected: record.totalXansDetected,
     totalTicketsDeposited: record.totalTicketsDeposited || 0,
-    ticketsPerXan: record.ticketsPerXan || 1000,
+    ticketsPerXan: 800000,
     balanceUnit: record.balanceUnit || "tickets",
     currentBalance: record.currentBalance,
     totalWagered: record.totalWagered,
@@ -96,7 +97,7 @@ function publicRecord(record) {
     completedTicketCount: Array.isArray(record.completedTicketIds) ? record.completedTicketIds.length : 0,
     recentBets: Array.isArray(record.recentBets) ? record.recentBets.slice(-100).reverse() : [],
     recentAdjustments: Array.isArray(record.recentAdjustments) ? record.recentAdjustments.slice(-100).reverse() : [],
-    recentWithdrawals: Array.isArray(record.recentWithdrawals) ? record.recentWithdrawals.slice(-100).reverse() : [],
+    recentWithdrawals: Array.isArray(record.recentWithdrawals) ? record.recentWithdrawals.filter((w,i,list)=>w.status==='pending'||i>=list.length-100).reverse() : [],
     recentEvents: Array.isArray(record.recentEvents) ? record.recentEvents.slice(-60).reverse() : []
   };
 }

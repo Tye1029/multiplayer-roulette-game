@@ -1,0 +1,25 @@
+name: Bluff or Bust validation
+on:
+  push:
+    branches: [mountain-race-development]
+    paths: ['assets/bluff/**', 'games/multiplayer/bluff/**', 'shared/games/bluff-model.js', 'netlify/functions/bluff/**', 'netlify/functions/bluff-action.js', 'scripts/validate-bluff.mjs', '.github/workflows/bluff-validation.yml']
+  pull_request:
+    branches: [safe-cracker-development]
+    paths: ['assets/bluff/**', 'games/multiplayer/bluff/**', 'shared/games/bluff-model.js', 'netlify/functions/bluff/**', 'netlify/functions/bluff-action.js', 'scripts/validate-bluff.mjs', '.github/workflows/bluff-validation.yml']
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install
+      - run: node scripts/validate-bluff.mjs
+      - run: node scripts/bluff-http.test.mjs
+      - run: npm run build
+      - run: npm run validate:protected-current
+      - run: npm run validate:mountain-race

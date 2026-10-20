@@ -1,0 +1,8 @@
+import {createRequire} from 'node:module';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+const require=createRequire(import.meta.url),rules=require('../shared/games/plinko'),{draw}=require('../netlify/functions/plinko/database');
+const rounds=5000000,histogram=Array(17).fill(0),start=Date.now();for(let i=0;i<rounds;i++)histogram[draw(50000,'high').bucket]++;
+const outcomes=[];for(const risk of Object.keys(rules.risks))for(const stake of rules.stakes){let returned=0n;for(let k=0;k<17;k++){const payout=rules.payout(stake,risk,k);assert.ok(payout<=rules.maxPayout);returned+=BigInt(payout)*BigInt(histogram[k]);}const wagered=BigInt(rounds)*BigInt(stake),expected=rules.expectedReturn(stake,risk);assert.ok(expected<=.9);outcomes.push({risk,stake,rounds,expectedHouseMarginPercent:100*(1-expected),observedHouseMarginPercent:100*Number(wagered-returned)/Number(wagered),wageredChips:String(wagered),returnedChips:String(returned),houseProfitChips:String(wagered-returned),maxPayout:rules.payout(stake,risk,0)});}
+const summary={build:rules.build,createdAt:new Date().toISOString(),seconds:(Date.now()-start)/1000,uniqueRandomPaths:rounds,histogram,outcomes,notes:['Production cryptographic draws evaluated offline without wallet/API calls.','All 18 stake/risk combinations share these paths; results are correlated, not independent simulations.','Exact binomial expectations verify the house advantage. No finite sample guarantees profit.','Higher wagers encounter the fixed payout cap sooner; all displayed pocket returns already include that cap.']};
+fs.writeFileSync('docs/plinko-simulation-results.json',JSON.stringify(summary,null,2)+'\n');console.log(JSON.stringify(summary,null,2));

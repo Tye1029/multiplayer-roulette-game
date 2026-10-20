@@ -1,0 +1,18 @@
+Pocket Putt recordings
+
+putt.mp3: excerpt, level adjustment and fade from "putt.wav" by 170129.
+https://freesound.org/people/170129/sounds/408260/
+CC0: https://creativecommons.org/publicdomain/zero/1.0/
+
+cup.mp3: "golf_putting.wav" by inbeeld, public HQ preview.
+https://freesound.org/people/inbeeld/sounds/21878/
+CC0: https://creativecommons.org/publicdomain/zero/1.0/
+
+cheer.mp3: shortened, faded, quieter mono adaptation of the site's existing
+RPS cheer excerpt. "Free Crowd Cheering Sounds" by Gregor Quendel.
+https://opengameart.org/content/free-crowd-cheering-sounds
+https://www.gregorquendel.com/
+CC BY 4.0: https://creativecommons.org/licenses/by/4.0/
+No endorsement implied. The RPS original remains in use by that game.
+
+Only these three final clips are shipped; the long source recording is omitted.

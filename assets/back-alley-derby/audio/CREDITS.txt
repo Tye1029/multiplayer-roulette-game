@@ -1,0 +1,23 @@
+BACK ALLEY DERBY — sound credits
+
+starter.ogg: single CZ-52 pistol report from "Gunshot Sounds" by Tabasco.
+https://opengameart.org/content/gunshot-sounds
+CC0: https://creativecommons.org/publicdomain/zero/1.0/
+Trimmed to one shot, filtered, peak-limited and faded for a quiet starting cue.
+
+crowd.ogg and cheer.ogg: "Free Crowd Cheering Sounds" by Gregor Quendel.
+https://opengameart.org/content/free-crowd-cheering-sounds
+https://www.gregorquendel.com/
+CC BY 4.0: https://creativecommons.org/licenses/by/4.0/
+Adapted from the existing licensed site excerpts of 07 (Soft cheering and
+chatter) and 04 (Strong cheering II - Short). Filtered, softened and converted
+to mono OGG for a distant alley audience. No endorsement implied.
+
+step-1.ogg, step-2.ogg, step-3.ogg: Kenney Impact Sounds, CC0.
+https://kenney.nl/assets/impact-sounds
+Full original license is in Kenney-LICENSE.txt. Runtime pitch, filtering and
+stereo variation create small paw scurries from the recorded textures.
+
+The quiet pizzicato music and tonal countdown/result cues are original
+Web Audio compositions for Xan Duels. All game audio respects shared mute,
+starts only after interaction, and stops when the page is hidden.
