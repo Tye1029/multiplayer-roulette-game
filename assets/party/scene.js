@@ -3396,7 +3396,7 @@ function render(canvas, kind, state, time = 0, extra = {}) {
   if (!canvas) return;
   if (kind !== "board" && state?.game) {
     if (["intro", "countdown"].includes(state.phase))
-      time = Math.min(time, state.game.start / 1000);
+      time = state.game.start / 1000;
     const input = extra.localInput;
     if (
       state.phase === "playing" &&
