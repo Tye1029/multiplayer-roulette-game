@@ -27,7 +27,7 @@ test("a real golf shot creates one hole celebration and cannot score twice", () 
     C = require("../assets/party/catalog"),
     g = s.game,
     v = g.progress[0],
-    cup = C.holes[0].cup;
+    cup = C.holes[C.golfIndex(g.putt)].cup;
   v.ball = [cup[0] - 20, cup[1]];
   input(s, 0, "putt", 21000, { angle: 0, power: 0.06 });
   assert.equal(v.shot.holed, true);
@@ -108,12 +108,12 @@ test("Afterglow has an authoritative preparation beat, visible current steps, an
   assert.ok(v.showAt > open);
   assert.equal(v.cursor, 0);
 });
-test("Fish have four spaced bites, honest lengths, and six landed species", () => {
+test("Fish have eight spaced bites, honest lengths, and six landed species", () => {
   for (let species = 0; species < 6; species++) {
     const s = fixture("fish"),
       g = s.game,
       b = g.fishBeats[0][0];
-    assert.equal(g.fishBeats[0].length, 4);
+    assert.equal(g.fishBeats[0].length, 8);
     assert.ok(g.fishBeats[0][1].at - b.at > 7000);
     b.size = 0.3 + species * 0.26;
     b.species = species;

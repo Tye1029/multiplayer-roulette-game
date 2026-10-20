@@ -47,6 +47,7 @@ try {
     );
     M.testStart(s, id, 1000);
     s.id = "qa-" + serial++;
+    if (id === "putt") s.game.putt.holes = [0, 1, 2];
     s.phase = "playing";
     s.players.forEach((p) => (p.bot = false));
     s.game.start = 20000;
@@ -109,7 +110,7 @@ try {
     "no camera snap at GO",
   );
   const first = await frame(fish, start + cue.at - 1490),
-    middle = await frame(fish, start + cue.at - 1280),
+    middle = await frame(fish, start + cue.at - 1420),
     full = await frame(fish, start + cue.at - 900);
   assert.ok(first.ripples[0][0].opacity < middle.ripples[0][0].opacity);
   assert.ok(middle.ripples[0][0].opacity < full.ripples[0][0].opacity);
@@ -118,7 +119,7 @@ try {
     full.ripples[0].map((r) => r.size),
     "fish size doesn't change during entrance",
   );
-  await shot("ripple-fade", fish, start + cue.at - 1280);
+  await shot("ripple-fade", fish, start + cue.at - 1420);
 
   const lantern = fixture("lantern"),
     g = lantern.game,

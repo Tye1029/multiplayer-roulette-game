@@ -1,13 +1,25 @@
 "use strict";
+const { randomInt } = require("node:crypto");
 const C = require("../../../assets/party/catalog"),
   P = require("../../../shared/games/mini-golf-physics");
 function setup(g) {
   g.duration = g.active.length * 3 * 32500;
   g.end = g.start + g.duration;
-  g.putt = { course: 0, slot: 0, turn: g.active[0], offset: 0 };
+  const pool = C.holes.map((_, i) => i);
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = randomInt(i + 1);
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  g.putt = {
+    course: 0,
+    holes: pool.slice(0, 3),
+    slot: 0,
+    turn: g.active[0],
+    offset: 0,
+  };
   for (const v of g.progress)
     Object.assign(v, {
-      ball: [...C.holes[0].tee],
+      ball: [...C.holes[C.golfIndex(g.putt)].tee],
       strokes: 0,
       courseScores: [],
       shot: null,
@@ -17,7 +29,7 @@ function setup(g) {
 function next(g, now) {
   const turn = g.putt,
     v = g.progress[turn.turn],
-    hole = C.holes[turn.course];
+    hole = C.holes[C.golfIndex(g.putt)];
   const distance = Math.hypot(v.ball[0] - hole.cup[0], v.ball[1] - hole.cup[1]);
   const points = v.holed
     ? Math.max(
@@ -49,7 +61,7 @@ function next(g, now) {
   turn.turn = g.active[turn.slot];
   turn.offset = now - g.start + 500;
   const n = g.progress[turn.turn];
-  n.ball = [...C.holes[turn.course].tee];
+  n.ball = [...C.holes[C.golfIndex(g.putt)].tee];
   n.strokes = 0;
   n.shot = null;
   n.holed = false;
@@ -106,7 +118,7 @@ function play(g, i, b, now, fail) {
     b.power > 1
   )
     fail("Drag back to aim and set power.", 400);
-  const h = C.holes[t.course],
+  const h = C.holes[C.golfIndex(g.putt)],
     shot = P.simulate(h, v.ball, b.angle, b.power, now);
   const remaining = g.start + t.offset + 30000 - now;
   if (shot.duration > remaining) {
@@ -131,7 +143,7 @@ function play(g, i, b, now, fail) {
 function bot(g, i, now) {
   if (i !== g.putt.turn) return null;
   const v = g.progress[i],
-    h = C.holes[g.putt.course];
+    h = C.holes[C.golfIndex(g.putt)];
   if (
     (v.shot && now < v.shot.at + v.shot.duration + 350) ||
     now < g.start + g.putt.offset ||

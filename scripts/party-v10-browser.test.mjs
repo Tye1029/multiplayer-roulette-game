@@ -120,6 +120,22 @@ try {
         "play",
       );
       assert.equal(latest.game.progress[own].step, 1);
+      if (process.env.PARTY_FINISH_CLIMB) {
+        for (let step = 1; step < 24; step++) {
+          await page.waitForTimeout(155);
+          await click(
+            `[data-direction=${latest.game.progress[own].next[0]}]`,
+            "play",
+          );
+        }
+        assert.equal(latest.game.progress[own].step, 24);
+        assert.ok(latest.game.progress[own].finished);
+        await page.waitForFunction(
+          (own) => PartyScene.diagnostics().actors[own].position[1] > 30.99,
+          own,
+        );
+        await shot("live-summit", 390);
+      }
     }
     if (id === "fish") {
       const cue = latest.game.cues[own];
@@ -224,7 +240,7 @@ try {
       report.scene.triangles,
       "triangles",
     );
-    assert.equal(report.build, "BOARDWALK_CARNIVAL_V11");
+    assert.equal(report.build, "BOARDWALK_CARNIVAL_V12");
     assert.equal(report.game.id, id);
     assert.ok(report.scene.renderer);
     assert.equal(report.game.sequence, undefined);
@@ -263,6 +279,7 @@ try {
     }
     for (let course = 0; course < 3; course++) {
       await fixture("putt", (g) => {
+        g.putt.holes = [0, 1, 2];
         g.putt.course = course;
         g.progress[0].ball = [...C.holes[course].tee];
       });
@@ -270,6 +287,7 @@ try {
       await shot("golf-course-" + course, 390);
     }
     await fixture("putt", (g) => {
+      g.putt.holes = [0, 1, 2];
       const at = Date.now(),
         cup = C.holes[0].cup;
       g.progress[0].holed = true;

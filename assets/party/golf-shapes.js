@@ -20,7 +20,12 @@
   }
   function decorate(source, index) {
     const h = structuredClone(source),
-      r = 42 + index * 13;
+      r = 42 + (index % 3) * 13;
+    if (h.portal) {
+      h.name = "Harbor Express";
+      h.tip =
+        "Roll onto the gold IN pad. The open ball chute carries you to the OUT pad.";
+    }
     h.floor = [];
     for (const [x, y, start] of [
       [650 - r, 70 + r, -Math.PI / 2],

@@ -780,14 +780,6 @@ input[type="text"] {
   transform: translateY(2px);
   border-bottom-width: 2px;
 }
-.next-arrows {
-  text-align: center;
-  letter-spacing: 0.25em;
-  font-size: 24px;
-  margin: 14px 0;
-  color: var(--purple);
-  font-weight: 800;
-}
 .memory-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1390,10 +1382,6 @@ input[type="range"] {
     margin: 5px 0 0;
     font-size: 11px;
   }
-  body[data-phase="playing"] .next-arrows {
-    margin: 4px 0 8px;
-    font-size: 21px;
-  }
   body[data-phase="playing"] .arrow-grid button {
     height: 47px;
   }
@@ -1832,12 +1820,6 @@ body {
 .game-art {
   background: #b4dcd8;
 }
-.next-arrows {
-  background: #eee4f6;
-  border-radius: 12px;
-  padding: 8px;
-  font-size: 26px;
-}
 @media (min-width: 1100px) {
   .match-scene {
     max-height: 650px;
@@ -2029,11 +2011,6 @@ body {
   }
   body[data-phase="playing"] .risk-picker {
     margin-bottom: 10px;
-  }
-  body[data-phase="playing"] .next-arrows {
-    margin: 6px 0 8px;
-    padding: 4px;
-    font-size: 23px;
   }
   body[data-phase="playing"] .arrow-grid button {
     height: 46px;

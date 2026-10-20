@@ -1,4 +1,4 @@
-/* BOARDWALK_CARNIVAL_V11 — guest rooms, authoritative matches, local presentation. */
+/* BOARDWALK_CARNIVAL_V12 — guest rooms, authoritative matches, local presentation. */
 (() => {
   "use strict";
   const C = PartyCatalog,
@@ -390,7 +390,7 @@
       game = r?.game;
     return JSON.stringify(
       {
-        build: C.version || "BOARDWALK_CARNIVAL_V11",
+        build: C.version || "BOARDWALK_CARNIVAL_V12",
         time: new Date().toISOString(),
         scene: globalThis.PartyScene?.diagnostics(),
         viewport: {
@@ -900,7 +900,6 @@
       portraits(overlay);
     }
     if ($("#feedback")) $("#feedback").textContent = v?.feedback || "";
-    showArrows(v?.next || []);
     $("#timer-label").textContent =
       r.phase === "waiting"
         ? "Room stays open"
@@ -916,17 +915,6 @@
       PartyExpansionUI.tick(r, now());
     PartyMidwayUI.tick(r, now());
     pendingControls();
-  }
-  function showArrows(next) {
-    const el = $("#next-arrows");
-    if (!el || el.dataset.sequence === next.join(",")) return;
-    el.dataset.sequence = next.join(",");
-    el.innerHTML = next
-      .map(
-        (x, i) =>
-          `<span style="animation-delay:${i * 35}ms" aria-label="${x}">${{ up: "↑", down: "↓", left: "←", right: "→" }[x]}</span>`,
-      )
-      .join("");
   }
   function controls(id, v) {
     const def = C.games.find((g) => g.id === id);
@@ -946,7 +934,7 @@
         "</div>"
       );
     if (id === "climb")
-      return `<div id="next-arrows" class="next-arrows" aria-label="Upcoming arrows"></div><div class="arrow-grid">${["up", "left", "down", "right"].map((d, i) => `<button data-direction="${d}" aria-label="Climb ${d}"><svg viewBox="0 0 48 48" aria-hidden="true" style="transform:rotate(${[0, -90, 180, 90][i]}deg)"><path d="M24 7 7 25h10v16h14V25h10Z"/></svg></button>`).join("")}</div>`;
+      return `<div class="arrow-grid">${["up", "left", "down", "right"].map((d, i) => `<button data-direction="${d}" aria-label="Climb ${d}"><svg viewBox="0 0 48 48" aria-hidden="true" style="transform:rotate(${[0, -90, 180, 90][i]}deg)"><path d="M24 7 7 25h10v16h14V25h10Z"/></svg></button>`).join("")}</div>`;
     if (id === "memory")
       return `${v.reverse ? '<div class="reverse-cue">↶ REVERSE REMIX · DOUBLE POINTS</div>' : ""}<div class="memory-grid">${["Blue", "Pink", "Mint", "Gold"].map((x, i) => `<button class="memory-pad" data-pad="${i}">${i + 1} · ${x}</button>`).join("")}</div><p id="memory-status" class="small" style="text-align:center;margin-top:8px">Watch the pattern</p><button class="text-button full" data-replay>Watch again</button>`;
     if (id === "fish")
@@ -1879,15 +1867,6 @@
         return;
       }
       const v = r.game.progress[r.players.findIndex((p) => p.id === r.you)];
-      if (
-        r.game.id === "climb" &&
-        $("#next-arrows") &&
-        localInput?.pending &&
-        !localInput.rejected &&
-        localInput.start === r.game.start &&
-        localInput.fields.next
-      )
-        showArrows(localInput.fields.next);
       if (r.game.id === "memory") {
         const a = Math.floor(
             (stamp - v.showAt - PartyRules.memoryReady) / PartyRules.memoryBeat,
@@ -1957,7 +1936,9 @@
               (b.disabled =
                 requestBusy ||
                 v.actedBeat === r.game.cue?.index ||
-                (r.game.id === "hop" && v.resolved >= r.game.cue?.index) ||
+                (r.game.id === "hop" &&
+                  (v.resolved >= r.game.cue?.index ||
+                    stamp < (v.stunUntil || 0))) ||
                 !!v.finished),
           );
       if (gameDef().engine === "festival") {
@@ -2050,7 +2031,7 @@
               : "GO · " + ["Blue", "Pink", "Mint", "Gold"][cue.color]
             : r.game.id === "fish"
               ? dt < -100
-                ? "Watch the ripples…"
+                ? "Watch your bobber… reel when it dips"
                 : dt < cue.window
                   ? "SPLASH! REEL NOW"
                   : "Next bite…"
@@ -2062,7 +2043,7 @@
                   ) +
                     280
                   ? "Watch the host’s card…"
-                  : "LAND ON " + ["BLUE", "PINK", "MINT", "GOLD"][cue.color]
+                  : "JUMP TO " + ["BLUE", "PINK", "MINT", "GOLD"][cue.color]
                 : r.game.id === "hop"
                   ? ""
                   : hint.textContent;

@@ -2,13 +2,13 @@ import {
   surfaceMaterial,
   island,
   ovalPatch,
-} from "./surface-art.js?v=BOARDWALK_CARNIVAL_V11";
-import { polishScenes } from "./polish-scenes.js?v=BOARDWALK_CARNIVAL_V11";
-import { midwayScenes } from "./midway-scenes.js?v=BOARDWALK_CARNIVAL_V11";
-import { expansionScenes } from "./expansion-scenes.js?v=BOARDWALK_CARNIVAL_V11";
+} from "./surface-art.js?v=BOARDWALK_CARNIVAL_V12";
+import { polishScenes } from "./polish-scenes.js?v=BOARDWALK_CARNIVAL_V12";
+import { midwayScenes } from "./midway-scenes.js?v=BOARDWALK_CARNIVAL_V12";
+import { expansionScenes } from "./expansion-scenes.js?v=BOARDWALK_CARNIVAL_V12";
 import * as T from "./vendor/three.module.min.js";
-import { carnivalScenes } from "./carnival-scenes.js?v=BOARDWALK_CARNIVAL_V11";
-import { festivalScenes } from "./festival-scenes.js?v=BOARDWALK_CARNIVAL_V11";
+import { carnivalScenes } from "./carnival-scenes.js?v=BOARDWALK_CARNIVAL_V12";
+import { festivalScenes } from "./festival-scenes.js?v=BOARDWALK_CARNIVAL_V12";
 const C = globalThis.PartyCatalog,
   R = globalThis.PartyRules,
   TAU = Math.PI * 2,
@@ -2249,12 +2249,15 @@ function updateFish(w, s, t) {
         !v?.catch;
       ring.scale.setScalar((cue?.size || 0.7) * (0.65 + j * 0.32));
       ring.position.y = -0.58 + Math.sin(t * 3 + j) * 0.007;
-      const fadeIn = clamp((dt + 1500 - j * 90) / 450);
+      const fadeIn = clamp((dt + 1500 - j * 25) / 180);
       const fadeOut = clamp((cue?.window - dt) / 240);
       ring.material.opacity =
-        fadeIn * fadeOut * (0.62 + Math.sin(t * 3 + j) * 0.12);
+        fadeIn * fadeOut * (splash ? 0.96 : 0.58 + Math.sin(t * 3 + j) * 0.08);
     });
-    w.bobbers[i].position.y = -0.5 + Math.sin(t * 3 + i) * 0.07;
+    w.bobbers[i].position.y =
+      -0.5 +
+      Math.sin(t * 3 + i) * 0.07 -
+      (splash ? Math.sin((clamp(dt / 220) * Math.PI) / 2) * 0.22 : 0);
     const f = w.fishes[i];
     w.bobbers[i].visible = !v?.catch;
     w.rods[i].visible = !v?.catch || age < 1.8;
@@ -2278,7 +2281,7 @@ function updateFish(w, s, t) {
     if (f.visible) {
       const q = clamp(age / 1.6),
         ease = q * q * (3 - 2 * q),
-        size = ((v.catch.length || v.catch.score) / 120) * 2.8;
+        size = (((v.catch.length || v.catch.score) / 120) * 2.8) / 0.95;
       f.scale.setScalar(size);
       f.position.set(
         mix(a.position.x + 0.3, a.position.x - 1.4 + size * 0.55, ease),
@@ -2304,8 +2307,8 @@ function updateFish(w, s, t) {
   });
   return {
     target: new T.Vector3(0, 0.4, 0),
-    extent: s?.phase === "measuring" ? 26 : 18,
-    position: s?.phase === "measuring" ? [0, 26, 22] : [13, 17, 29],
+    extent: 20,
+    position: [4, 22, 29],
   };
 }
 function puttWorld(index) {
@@ -2321,7 +2324,7 @@ function puttWorld(index) {
   island(
     T,
     w.root,
-    surfaceMaterial(T, "grass", themes[index], 8),
+    surfaceMaterial(T, "grass", themes[index % themes.length], 8),
     0,
     0.4,
     0,
@@ -2342,7 +2345,12 @@ function puttWorld(index) {
   });
   const green = new T.Mesh(
     new T.ShapeGeometry(shape),
-    surfaceMaterial(T, "grass", ["#53b545", "#52bd6b", "#7bc94b"][index], 0.05),
+    surfaceMaterial(
+      T,
+      "grass",
+      ["#53b545", "#52bd6b", "#7bc94b"][index % 3],
+      0.05,
+    ),
   );
   green.rotation.x = -Math.PI / 2;
   green.position.y = 0.52;
@@ -2540,29 +2548,32 @@ function puttWorld(index) {
   if (h.portal) {
     const [x, z] = conv(h.portal.mouth),
       [ex, ez] = conv(h.portal.exit);
-    const hippo = new T.Group();
-    hippo.position.set(x, 0, z);
-    w.root.add(hippo);
-    ball(hippo, 0, 1.18, -2.3, 1.42, 1.1, 2.5, "#ab87d0");
-    const head = new T.Group();
-    // The belt carries the ball from the left. Turn the face toward that
-    // entrance while the body covers the northbound transport chute.
-    head.rotation.y = -Math.PI / 2;
-    hippo.add(head);
-    ball(head, 0, 1.55, -0.6, 1.12, 0.7, 0.9, "#bb9bdf");
-    // The open mouth is centered on the exact physics entrance, facing the incoming conveyor.
-    ball(head, 0, 0.92, 0.08, 0.87, 0.43, 0.13, "#332c4f");
-    ball(head, 0, 0.52, 0.05, 1.08, 0.18, 0.65, "#d3b9ec");
-    for (const dx of [-0.65, 0.65]) {
-      ball(head, dx, 2.03, -0.7, 0.27, 0.32, 0.24, "#c8a5e2");
-      ball(head, dx, 2.08, -0.48, 0.14, 0.18, 0.07, "#fff9ec");
-      ball(head, dx, 2.08, -0.405, 0.075, 0.095, 0.04, "#303957");
-      cyl(head, dx, 0.67, 0.31, 0.11, 0.14, 0.34, "#fff4d7", 12);
-      ball(head, dx * 0.6, 1.65, 0.05, 0.15, 0.07, 0.1, "#79599f");
+    // An open loading pad makes the entrance and the ball's route unambiguous.
+    cyl(w.root, x, 0.56, z, 0.92, 1.02, 0.15, "#d3a747", 32);
+    for (const dx of [-1.05, 1.05]) {
+      cyl(w.root, x + dx, 1.12, z - 0.6, 0.09, 0.12, 1.25, "#3c8e95", 12);
+      ball(w.root, x + dx, 1.78, z - 0.6, 0.16, 0.16, 0.16, "#ffe6a2");
     }
-    const inLabel = label("HIPPO SHORTCUT", "#fff3dc", "#735691", 0.36);
-    inLabel.position.set(x, 3.1, z - 1.1);
+    box(w.root, x, 1.8, z - 0.6, 2.3, 0.2, 0.28, "#4ca7aa");
+    const inLabel = label("IN • BALL CHUTE", "#fff8df", "#327d84", 0.34);
+    inLabel.position.set(x, 2.27, z - 0.6);
     w.root.add(inLabel);
+    // The legacy transport hides the first 125 course units for 300 ms.
+    // Cover that exact section, then expose the remainder as a clear chute.
+    const loadingTunnel = cyl(
+      w.root,
+      x,
+      0.75,
+      z - 2.5,
+      0.48,
+      0.48,
+      5,
+      "#429ba1",
+      24,
+    );
+    loadingTunnel.rotation.x = Math.PI / 2;
+    for (let k = 0; k < 5; k++)
+      box(w.root, x, 1.22, z - 0.5 - k, 0.38, 0.06, 0.1, "#b2e2d4");
     const mouthRing = torus(w.root, x, 0.57, z, 0.86, 0.04, "#ffe7a1");
     mouthRing.rotation.x = Math.PI / 2;
     cyl(w.root, ex, 0.57, ez, 0.75, 0.75, 0.12, "#76509d");
@@ -2571,11 +2582,16 @@ function puttWorld(index) {
     const points = Array.from({ length: 32 }, (_, j) => {
       const p = globalThis.PuttPhysics.portalPoint(h, j / 31),
         [px, pz] = conv(p);
-      return new T.Vector3(px, 0.56, pz);
+      return new T.Vector3(px, 0.78, pz);
     });
     const track = new T.Mesh(
       new T.TubeGeometry(new T.CatmullRomCurve3(points), 48, 0.28, 10, false),
-      mat("#cfb0df"),
+      new T.MeshStandardMaterial({
+        color: "#a9e3de",
+        transparent: true,
+        opacity: 0.42,
+        depthWrite: false,
+      }),
     );
     w.root.add(track);
     for (let j = 0; j < 12; j++) {
@@ -2754,7 +2770,7 @@ function updatePutt(w, s, t, extra) {
     elevation = 0,
     rolling = false;
   if (w.gate) w.gate.rotation.y = -t * h.gate.speed;
-  if (shot && shot.course === Number(w.name.slice(4))) {
+  if (shot && shot.course === s?.game?.putt?.course) {
     const elapsed = t * 1000 - shot.at,
       frame = PartyPresentation.shotFrame(shot, elapsed);
     // Keep the terminal physics frame while waiting for the next room poll.
@@ -2813,12 +2829,11 @@ function updatePutt(w, s, t, extra) {
   const hole = s?.game?.putt?.holeEvent,
     age = hole ? (t * 1000 - hole.at) / 1000 : 99;
   w.holeHalo.visible = w.holeSign.visible =
-    hole?.course === Number(w.name.slice(4)) && age >= 0 && age < 1.8;
+    hole?.course === s?.game?.putt?.course && age >= 0 && age < 1.8;
   w.holeHalo.scale.setScalar(1 + Math.max(0, age) * 1.4);
   w.holeSign.position.y = 1.2 + clamp(age) * 0.9;
   w.holeBurst.forEach((m, j) => {
-    m.visible =
-      hole?.course === Number(w.name.slice(4)) && age >= 0 && age < 1.8;
+    m.visible = hole?.course === s?.game?.putt?.course && age >= 0 && age < 1.8;
     const [cx, cz] = w.conv(h.cup),
       q = clamp(age / 1.8),
       a = j * 2.399;
@@ -3410,8 +3425,15 @@ function render(canvas, kind, state, time = 0, extra = {}) {
     ) {
       const i = state.players.findIndex((p) => p.id === state.you),
         progress = [...state.game.progress];
-      if (input.pending) progress[i] = { ...progress[i], ...input.fields };
-      else
+      if (input.pending) {
+        const authority = progress[i];
+        progress[i] = { ...authority, ...input.fields };
+        if (kind === "climb")
+          progress[i].next = PartyInteraction.climbNext(
+            authority,
+            input.fields,
+          );
+      } else
         progress[i] = globalThis.PartyInteraction.presentation(
           progress[i],
           input,
@@ -3522,7 +3544,7 @@ function render(canvas, kind, state, time = 0, extra = {}) {
     w = festival.build(kind);
     view = festival.update(w, state, time, extra);
   } else {
-    const index = Math.min(2, state?.game?.putt?.course || 0);
+    const index = C.golfIndex(state?.game?.putt);
     w = puttWorld(index || 0);
     view = updatePutt(w, state, time, extra);
   }
@@ -3549,7 +3571,6 @@ function render(canvas, kind, state, time = 0, extra = {}) {
   if (
     state &&
     width / height < 1 &&
-    !(kind === "fish" && state.phase === "measuring") &&
     [
       "dash",
       "hop",
@@ -3645,10 +3666,6 @@ function render(canvas, kind, state, time = 0, extra = {}) {
       view.position = [0, 27, 34];
     }
   }
-  if (kind === "fish" && state?.phase === "measuring") {
-    view.extent = Math.max(14, 22 / (width / height));
-    view.target.set(0, 0.5, 1);
-  }
   if (kind === "fencing" && state?.game) {
     view.extent = Math.max(12, 15 / (width / height));
     view.target.set(0, 1, 1);
@@ -3723,6 +3740,7 @@ function portrait(canvas, id, skin = "classic") {
   portraits.set(key, copy);
 }
 const polish = polishScenes({
+  prepareTexture: (texture) => engine()?.initTexture(texture),
   T,
   C,
   world,
@@ -3901,7 +3919,19 @@ function diagnostics() {
       character: a.userData.id,
       visible: a.visible,
       position: a.position.toArray(),
+      rotation: a.rotation.toArray().slice(0, 3),
+      arms: a.userData.arms.map((m) => m.rotation.toArray().slice(0, 3)),
     })),
+    ledgeArrows: w.arrows
+      ?.flat()
+      .filter((m) => m.visible)
+      .map((m) => ({
+        symbol: m.userData.symbol,
+        position: m.position.toArray(),
+      })),
+    dizzy: w.dizzyStars?.map((m) => m.visible),
+    golfCourse: w.name.startsWith("putt") ? Number(w.name.slice(4)) : undefined,
+    fishSizes: w.fishes?.map((m) => m.scale.x),
     ripples: w.ripples?.map((r) =>
       r.map((m) => ({
         visible: m.visible,

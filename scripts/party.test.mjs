@@ -346,7 +346,7 @@ test("three putting courses use deterministic physics, sum scores and reject con
     /finished|accepting/,
   );
 });
-test("ripple fishing keeps one timed catch, rejects early and duplicate pulls, and bounds its length", () => {
+test("ripple fishing keeps one timed catch, prevents early scores and duplicate catches, and bounds its length", () => {
   const s = gameFixture("fish"),
     v = s.game.progress[0];
   for (const beat of s.game.fishBeats[0].slice(0, 1)) {
@@ -362,7 +362,15 @@ test("ripple fishing keeps one timed catch, rejects early and duplicate pulls, a
   const early = gameFixture("fish");
   input(early, "0", "reel", early.game.start + 200);
   assert.equal(early.game.scores[0], 0);
-  assert.equal(early.game.progress[0].misses, 1);
+  assert.equal(early.game.progress[0].misses, 0);
+  assert.ok(early.game.progress[0].actedBeat < 0);
+  input(
+    early,
+    "0",
+    "reel",
+    early.game.start + early.game.fishBeats[0][0].at + 200,
+  );
+  assert.ok(early.game.progress[0].catch);
 });
 
 test("timeouts cannot fast-forward phases or manufacture active participation", () => {

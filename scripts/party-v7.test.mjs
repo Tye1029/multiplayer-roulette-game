@@ -309,7 +309,7 @@ test("spotlight runs continuously after one tap, freeze stays still, red catches
   assert.equal(R.spotlight(g, 21700).color, "amber");
   assert.equal(R.spotlight(g, 22600).color, "red");
 });
-test("lantern has ten clearly spaced bells, positional color shuffles and real landing deadlines", () => {
+test("lantern has ten clearly spaced bells, positional color shuffles and jump-before-bell deadlines", () => {
   const g = fixture("lantern").game;
   assert.equal(g.beats.length, 10);
   assert.ok(g.beats.slice(1).every((b, i) => b.at - g.beats[i].at >= 3200));
@@ -318,12 +318,15 @@ test("lantern has ten clearly spaced bells, positional color shuffles and real l
   const b = g.beats[0],
     due = g.start + b.at + b.window;
   play(g, 0, R.lanternTile(b), due - 420);
-  play(g, 1, R.lanternTile(b), due - 419);
+  play(g, 1, R.lanternTile(b), due - 81);
+  play(g, 2, (R.lanternTile(b) + 1) % 4, due - 500);
   G.advance(g, 0, due);
   assert.ok(!g.progress[0].eliminatedAt);
   assert.equal(g.lanternLast.safeTile, R.lanternTile(b));
   G.advance(g, 1, due);
-  assert.ok(g.progress[1].eliminatedAt);
+  assert.ok(!g.progress[1].eliminatedAt);
+  G.advance(g, 2, due);
+  assert.ok(g.progress[2].eliminatedAt);
   assert.throws(() => play(g, 0, 2, due + 500), /hatches/);
 });
 test("fishing ripple sizes retain a bounded visible range", () => {

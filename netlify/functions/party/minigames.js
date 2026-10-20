@@ -24,16 +24,13 @@ function setup(g) {
   }
   g.survival = g.id === "lantern";
   if (!handled(g.id)) return;
-  const count =
-    g.id === "lantern" ? 10 : g.id === "dash" ? 14 : g.id === "fish" ? 4 : 8;
+  const count = g.id === "lantern" ? 10 : g.id === "dash" ? 14 : 8;
   const interval = (g.duration - 2500) / count;
   g.beats = Array.from({ length: count }, (_, i) => ({
     index: i,
     at:
       2000 +
-      (g.id === "hop"
-        ? (g.duration - 4500) * (1 - Math.pow(1 - i / (count - 1), 1.35))
-        : i * interval),
+      (g.id === "hop" ? ((g.duration - 4500) * i) / (count - 1) : i * interval),
     window: g.id === "fish" ? 1100 : g.id === "hop" ? 900 : 1000,
     color: rnd(4),
     lane: rnd(3),
@@ -126,6 +123,7 @@ function miss(g, i, now, label) {
   const v = g.progress[i];
   v.misses++;
   v.hitAt = now;
+  if (g.id === "hop") v.stunUntil = now + 2500;
   v.combo = 0;
   v.feedback = label;
   v.popup = { at: now, value: 0, label };
@@ -143,7 +141,7 @@ function advance(g, i, now) {
   if (v.finished) return;
   const beats = g.id === "fish" ? g.fishBeats[i] : g.beats;
   for (const b of beats) {
-    const due = g.start + b.at + (g.id === "hop" ? 180 : b.window);
+    const due = g.start + b.at + (g.id === "hop" ? 0 : b.window);
     if (now < due || b.index <= v.resolved) continue;
     const active = v.inputs > 0 && due - v.last < 6500;
     if (g.id === "lantern") {
@@ -153,10 +151,7 @@ function advance(g, i, now) {
         layout: b.layout,
         safeTile: R.lanternTile(b),
       };
-      if (
-        (v.chosen ?? i) === R.lanternTile(b) &&
-        (!v.moveAt || v.moveAt + 420 <= due)
-      ) {
+      if ((v.chosen ?? i) === R.lanternTile(b)) {
         if (v.inputs === 0) {
           v.resolved = b.index;
           continue;
@@ -170,24 +165,14 @@ function advance(g, i, now) {
           "Safe landing! +" + (150 + v.combo * 25),
         );
       } else {
-        v.fallTile =
-          v.moveAt && v.moveAt + 420 > due ? v.fromLane : (v.chosen ?? i);
+        v.fallTile = v.chosen ?? i;
         miss(g, i, due, "Wrong platform!");
       }
     } else if (g.id === "hop") {
       const contact = g.start + b.at;
       if (v.hopAttempt?.index === b.index && R.hopClear(b, contact, v.jumpAt)) {
         v.combo++;
-        const accuracy = Math.abs(
-          v.jumpAt - (contact - R.hopDuration(b.size) / 2),
-        );
-        award(
-          g,
-          i,
-          Math.max(180, Math.round(400 - accuracy * 0.7)),
-          contact,
-          "Clean hop!",
-        );
+        award(g, i, 300, contact, "Clean hop!");
       } else miss(g, i, contact, "Bumped by the driftwood!");
     } else if (g.id === "dash") {
       const action = b.kind === "hurdle" ? v.jumpAt : v.duckAt;
@@ -255,6 +240,8 @@ function play(g, i, b, now, fail) {
   } else {
     if (v.actedBeat === beat.index) fail("Wait for the next signal.");
     if (g.id === "hop") {
+      if (now < (v.stunUntil || 0))
+        fail("Dizzy! Recover before jumping again.");
       if (beat.index <= v.resolved) fail("Wait for the next log.");
       if (b.value !== "jump") fail("Choose Jump.", 400);
       if (now - v.jumpAt < (v.jumpDuration || 600))
@@ -276,6 +263,12 @@ function play(g, i, b, now, fail) {
     if (g.id !== "signal" && b.value !== (g.id === "fish" ? "reel" : "jump"))
       fail("Choose the highlighted action.", 400);
     const dt = now - (g.start + beat.at);
+    // A premature reel gives feedback without consuming the upcoming bite.
+    if (g.id === "fish" && dt < -100) {
+      v.feedback = "Not yet — reel when your bobber dips!";
+      v.reelAt = now;
+      return;
+    }
     v.actedBeat = beat.index;
     v.attempts++;
     if (

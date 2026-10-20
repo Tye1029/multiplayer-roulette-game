@@ -21,7 +21,8 @@ export function polishScenes(H) {
   const R = globalThis.PartyRules,
     TAU = Math.PI * 2;
   const colors = ["#67c9ec", "#f3a0c3", "#87d9ae", "#f6ce68"];
-  const badgeTextures = new Map();
+  const badgeTextures = new Map(),
+    badgeMaterials = new Map();
   function arrowBadge(symbol, next) {
     const key = symbol + ":" + next;
     if (badgeTextures.has(key))
@@ -44,16 +45,20 @@ export function polishScenes(H) {
     const texture = new T.CanvasTexture(cv);
     texture.colorSpace = T.SRGBColorSpace;
     badgeTextures.set(key, texture);
+    H.prepareTexture?.(texture);
     return badgeSprite(texture, next);
   }
   function badgeSprite(texture, next) {
-    const sprite = new T.Sprite(
-      new T.SpriteMaterial({
-        map: texture,
-        depthTest: false,
-        depthWrite: false,
-      }),
-    );
+    if (!badgeMaterials.has(texture))
+      badgeMaterials.set(
+        texture,
+        new T.SpriteMaterial({
+          map: texture,
+          depthTest: false,
+          depthWrite: false,
+        }),
+      );
+    const sprite = new T.Sprite(badgeMaterials.get(texture));
     sprite.scale.setScalar(next ? 0.85 : 0.66);
     sprite.renderOrder = 12;
     return sprite;
@@ -84,7 +89,7 @@ export function polishScenes(H) {
   }
   const ledge = (i, n) => ({
     x: (i - 1.5) * 4.7 + Math.sin(n * 1.5 + i) * 0.38,
-    y: 0.7 + n * 1.2,
+    y: n >= 24 ? 31 : 0.7 + n * 1.2,
     z: 3.6,
   });
   function mountain() {
@@ -139,7 +144,13 @@ export function polishScenes(H) {
     face.castShadow = face.receiveShadow = true;
     w.root.add(face);
     box(w.root, 0, 15, -2.2, 25, 32, 6.8, "#966648");
-    box(w.root, 0, 30.85, -1.9, 23.2, 0.3, 6.6, "#b28755");
+    box(w.root, 0, 30.85, 0.6, 23.2, 0.3, 11.6, "#b28755");
+    cyl(w.root, 0, -0.35, 5, 43, 45, 1, "#81b85d", 64);
+    for (let i = 0; i < 24; i++) {
+      const x = Math.sin(i * 2.4) * (15 + (i % 9)),
+        z = 6 + Math.cos(i * 1.7) * 12;
+      rock(w.root, x, 0.05, z, [1.2, 0.12, 0.7], i % 2 ? "#96c86b" : "#73a957");
+    }
     for (let i = 0; i < 7; i++) {
       const x = -19 + i * 6.4;
       rock(
@@ -259,8 +270,7 @@ export function polishScenes(H) {
     sign.position.set(0, 31.4, 0);
     w.root.add(sign);
     for (const symbol of ["↑", "↓", "←", "→"])
-      for (const next of [true, false])
-        arrowBadge(symbol, next).material.dispose();
+      for (const next of [true, false]) arrowBadge(symbol, next);
     w.arrows = Array.from({ length: 4 }, () =>
       Array.from({ length: 4 }, () => {
         const l = arrowBadge("↑", true);
@@ -296,11 +306,11 @@ export function polishScenes(H) {
       a.position.set(
         mix(p.x, next.x, q),
         mix(p.y, next.y, q) + Math.sin(q * Math.PI) * 0.18,
-        5.1,
+        mix(5.1, 3.4, clamp(n - 23)),
       );
-      a.rotation.set(0, Math.PI, 0);
+      a.rotation.set(0, Math.PI * (1 - clamp(n - 23)), 0);
       a.scale.setScalar(0.74);
-      a.userData.nameLabel.rotation.y = Math.PI;
+      a.userData.nameLabel.rotation.y = a.rotation.y;
       animateCharacter(
         a,
         t,
@@ -310,12 +320,11 @@ export function polishScenes(H) {
         const direction = i === own ? v?.next?.[j] : null,
           symbol = { up: "↑", down: "↓", left: "←", right: "→" }[direction];
         l.visible = !!symbol && step + j < 24 && s?.phase === "playing";
-        if (symbol && symbol !== l.userData.symbol) {
+        if (symbol && symbol + ":" + (j === 0) !== l.userData.symbol) {
           const nextLabel = arrowBadge(symbol, j === 0);
-          l.material.dispose();
           l.material = nextLabel.material;
           l.scale.copy(nextLabel.scale);
-          l.userData.symbol = symbol;
+          l.userData.symbol = symbol + ":" + (j === 0);
         }
         const pos = ledge(i, step + j + 1);
         l.position.set(pos.x, pos.y + 0.44, 5.35);
@@ -511,12 +520,25 @@ export function polishScenes(H) {
         0.9 + bounce * 0.18,
         z + a.userData.danceZ,
       );
-      a.rotation.set(0, 0, 0);
+      a.rotation.set(
+        0,
+        pad !== null ? Math.atan2(target[0], target[1]) * 0.25 : 0,
+        bounce * -target[0] * 0.05,
+      );
       a.scale.setScalar(0.85);
       animateCharacter(a, t, pad !== null ? "walk" : "idle", 0.8);
       w.pads[slot].forEach((m, j) => {
-        m.material.emissiveIntensity = pad === j ? 1.1 : 0.04;
-        m.position.y = pad === j ? 0.73 : 0.8;
+        const glow = pad === j ? Math.sin(Math.PI * Math.min(1, age)) : 0;
+        m.material.emissiveIntensity = mix(
+          m.material.emissiveIntensity,
+          0.04 + glow * 1.4,
+          1 - Math.exp(-24 * dt),
+        );
+        m.position.y = mix(
+          m.position.y,
+          0.8 - glow * 0.09,
+          1 - Math.exp(-24 * dt),
+        );
       });
     });
     w.beams.forEach((m, j) => {

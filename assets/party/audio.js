@@ -334,6 +334,8 @@
     note(f * 3, at + 0.018, 0.16, 0.018, fx, "sine");
     note(f / 2, at, 0.12, 0.035, fx, "sine");
     noise(at, 0.035, 0.025, 750);
+    note(f * 1.5, at + 0.045, 0.18, 0.018, fx, "triangle");
+    noise(at + 0.04, 0.05, 0.018, 1400 + n * 500);
   }
   function memory(state, stamp, pattern) {
     memoryActive =
@@ -355,6 +357,12 @@
     if (key !== memoryKey) {
       memoryKey = key;
       memoryNotes.clear();
+      if (v.patternRound > 0 && stamp - v.showAt < 500) {
+        [523.25, 659.25, 783.99].forEach((hz, n) =>
+          note(hz, ctx.currentTime + n * 0.055, 0.24, 0.045, fx, "triangle"),
+        );
+        noise(ctx.currentTime + 0.12, 0.075, 0.035, 2200);
+      }
     }
     for (let j = 0; j < 2; j++) {
       const delay = (v.showAt + j * 600 - stamp) / 1000;

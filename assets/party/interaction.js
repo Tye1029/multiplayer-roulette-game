@@ -69,6 +69,13 @@
       Object.assign(map, { w: "up", a: "left", s: "down", d: "right" });
     return map;
   }
+  function climbNext(authority, prediction) {
+    const start = prediction.step ?? authority.step;
+    return Array.from({ length: 4 }, (_, i) => {
+      const offset = start + i - authority.step;
+      return authority.next?.[offset] ?? prediction.next?.[i];
+    }).filter(Boolean);
+  }
   function predict(state, value, at, previous) {
     const i = state.players.findIndex((p) => p.id === state.you),
       g = state.game,
@@ -84,7 +91,7 @@
     if (g.id === "climb") {
       const base =
         previous?.pending && previous.start === g.start
-          ? { ...v, ...previous.fields }
+          ? { ...v, ...previous.fields, next: climbNext(v, previous.fields) }
           : v;
       const good = value === base.next?.[0];
       p.fields.step = good
@@ -171,5 +178,5 @@
       out.moveAt = input.at;
     return out;
   }
-  return { controls, bindings, predict, presentation };
+  return { controls, bindings, predict, presentation, climbNext };
 });

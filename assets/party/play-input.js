@@ -43,7 +43,7 @@
         canvas,
         e.clientX,
         e.clientY,
-        "putt" + r.game.putt.course,
+        "putt" + PartyCatalog.golfIndex(r.game.putt),
       );
       if (!p) return;
       const dx = puttOrigin.x - p.x,
@@ -67,7 +67,7 @@
           canvas,
           e.clientX,
           e.clientY,
-          "putt" + r.game.putt.course,
+          "putt" + PartyCatalog.golfIndex(r.game.putt),
         );
         updateAim(e);
       }

@@ -433,10 +433,12 @@ async function playRound(pages, code, seen) {
       continue;
     }
     if (game === "climb") {
-      await wait(p, "#next-arrows");
+      await wait(p, "[data-direction]");
+      assert.equal(await p.locator("#next-arrows").count(), 0);
       for (let n = 0; n < (i === 0 ? 5 : 2); n++) {
-        const arrow = (await p.locator("#next-arrows").innerText()).trim()[0],
-          dir = { "↑": "up", "↓": "down", "←": "left", "→": "right" }[arrow];
+        const current = await roomState(code),
+          dir = M.view(current, current.players[i].id, Date.now()).game
+            .progress[i].next[0];
         await action(p, "[data-direction=" + dir + "]", "play");
         await p.waitForTimeout(150);
       }

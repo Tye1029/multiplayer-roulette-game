@@ -1,7 +1,7 @@
 import {
   surfaceMaterial,
   island,
-} from "./surface-art.js?v=BOARDWALK_CARNIVAL_V11";
+} from "./surface-art.js?v=BOARDWALK_CARNIVAL_V12";
 export function carnivalScenes(H) {
   const {
     T,
@@ -316,6 +316,15 @@ export function carnivalScenes(H) {
         ring.rotation.x = Math.PI / 2;
         return ring;
       });
+      w.dizzyStars = Array.from({ length: 4 }, () => {
+        const group = new T.Group();
+        for (let j = 0; j < 3; j++) {
+          const star = label("★", "#e8ae2f", null, 0.45);
+          group.add(star);
+        }
+        w.root.add(group);
+        return group;
+      });
       w.waves = [w.wave];
       for (let n = 1; n < 4; n++) {
         const next = w.wave.clone(true);
@@ -436,15 +445,36 @@ export function carnivalScenes(H) {
         values: [1, 3, -1],
       },
       dt = g ? t * 1000 - g.start - beat.at : -1000;
-    const ps = (g?.progress || []).map((v, i) =>
-        ["lantern", "hop"].includes(kind)
+    const ps = (g?.progress || []).map((v, i) => {
+        if (kind === "hop" && s?.phase === "playing" && !v.finished) {
+          const contact = (g.rollers || []).find(
+            (b) =>
+              b.index > v.resolved &&
+              t * 1000 >= g.start + b.at &&
+              t * 1000 < g.start + b.at + 2500,
+          );
+          if (
+            contact &&
+            !(
+              v.hopAttempt?.index === contact.index &&
+              R.hopClear(contact, g.start + contact.at, v.jumpAt)
+            )
+          ) {
+            v = {
+              ...v,
+              hitAt: g.start + contact.at,
+              stunUntil: g.start + contact.at + 2500,
+            };
+          }
+        }
+        return ["lantern", "hop"].includes(kind)
           ? {
               ...v,
               eliminatedAt: eventStart("fall" + i, v.eliminatedAt),
               hitAt: eventStart("hit" + i, v.hitAt),
             }
-          : v,
-      ),
+          : v;
+      }),
       ended = s && ["round-end", "side-result"].includes(s.phase),
       playing = s?.phase === "playing";
     if (kind === "lantern") {
@@ -557,7 +587,13 @@ export function carnivalScenes(H) {
         ring.scale.setScalar(0.5 + clamp((age - 300) / 1300) * 1.8);
       }
       a.position.set(x, y, z);
-      a.rotation.y = 0.2;
+      if (kind === "lantern" && !v.eliminatedAt && v.moveAt) {
+        const from = R.lanternPositions[v.fromLane ?? i],
+          to = R.lanternPositions[v.chosen ?? i];
+        const q = clamp((t * 1000 - v.moveAt) / 420);
+        const facing = Math.atan2(to[0] - from[0], to[1] - from[1]);
+        a.rotation.y = mix(facing, 0.2, clamp((q - 0.82) / 0.18));
+      } else a.rotation.y = 0.2;
       a.scale.setScalar(0.8);
       const falling =
         kind === "lantern" &&
@@ -573,6 +609,19 @@ export function carnivalScenes(H) {
             : "sad"
           : mode,
       );
+      if (kind === "lantern" && !v.eliminatedAt) {
+        const q = clamp((t * 1000 - (v.moveAt || 0)) / 420);
+        const tuck = Math.sin(q * Math.PI);
+        a.userData.rig.position.y = 0;
+        a.userData.rig.rotation.x = -tuck * 0.2;
+        a.userData.legs.forEach((leg, j) => {
+          leg.rotation.x = -tuck * (j ? 0.55 : 0.8);
+        });
+        a.userData.arms.forEach((arm, j) => {
+          arm.rotation.x = -tuck * 1.3;
+          arm.rotation.z = (j ? 1 : -1) * tuck * 0.4;
+        });
+      }
       if (falling) {
         const age = t * 1000 - v.eliminatedAt;
         a.userData.arms.forEach((arm, j) => {
@@ -595,15 +644,34 @@ export function carnivalScenes(H) {
           arm.rotation.z = (j ? 1 : -1) * tuck * 0.5;
         });
         if (hit) {
-          const q = clamp((t * 1000 - v.hitAt) / 700);
-          a.position.z += Math.sin((q * Math.PI) / 2) * 0.9;
-          a.rotation.z = Math.sin(q * Math.PI) * 0.7;
+          const age = t * 1000 - v.hitAt;
+          const knock = Math.sin(clamp(age / 500) * Math.PI);
+          const recover = 1 - clamp((age - 1950) / 550);
+          a.position.y = 0.42 + knock * 0.3;
+          a.position.z += Math.sin(clamp(age / 2500) * Math.PI) * 0.8;
+          a.rotation.z = knock * 0.7 + Math.sin(t * 11) * 0.1 * recover;
+          a.userData.rig.rotation.x = recover * 0.18;
           a.userData.arms.forEach((arm, j) => {
             arm.rotation.z = (j ? 1 : -1) * 1.4;
           });
         }
       }
     });
+    if (kind === "hop")
+      w.dizzyStars.forEach((group, i) => {
+        const v = ps[i],
+          a = w.actors[i];
+        group.visible = !!v && !v.eliminatedAt && t * 1000 < (v.stunUntil || 0);
+        group.position.copy(a.position).add(new T.Vector3(0, 2.1, 0));
+        group.children.forEach((star, j) => {
+          const angle = t * 4 + (j * Math.PI * 2) / 3;
+          star.position.set(
+            Math.cos(angle) * 0.65,
+            Math.sin(angle * 2) * 0.12,
+            Math.sin(angle) * 0.4,
+          );
+        });
+      });
     if (kind === "lantern") {
       const reveal = Math.max(
           (g?.start || 0) + beat.at - 1800,

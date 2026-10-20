@@ -145,15 +145,6 @@
   background: #fff4df;
   color: #33466c;
 }
-#scene-controls .next-arrows {
-  color: #fff6da;
-  background: #293e5dbb;
-  border-radius: 14px;
-  margin: 0 auto 10px;
-  padding: 4px 12px;
-  width: max-content;
-  font-size: 25px;
-}
 #scene-controls .memory-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -528,9 +519,6 @@ body[data-phase="playing"] .game-tip {
   #scene-controls .memory-pad {
     font-size: 10px;
   }
-  #scene-controls .next-arrows {
-    font-size: 22px;
-  }
 }
 @media (orientation: landscape) and (max-height: 500px) and (min-width: 650px) {
   .match-scene,
@@ -552,9 +540,6 @@ body[data-phase="playing"] .game-tip {
   }
   #scene-controls button {
     min-height: 40px;
-  }
-  #scene-controls .next-arrows {
-    font-size: 21px;
   }
   .start-count {
     font-size: 60px;

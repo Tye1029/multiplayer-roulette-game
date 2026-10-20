@@ -294,43 +294,6 @@
   color: #283b50;
   font-weight: 850;
 }
-.next-arrows {
-  display: flex;
-  justify-content: center;
-  gap: 7px;
-  overflow: hidden;
-  padding: 5px;
-}
-.next-arrows span {
-  display: grid;
-  place-items: center;
-  width: 43px;
-  height: 43px;
-  border-radius: 12px;
-  background: #ddd2f5;
-  color: #58477a;
-  font-size: 27px;
-  box-shadow: 0 3px #b4a0d2;
-  animation: arrow-arrive 0.22s ease-out;
-}
-.next-arrows span:first-child {
-  background: #faf1be;
-  color: #4f406d;
-  box-shadow: 0 3px #d5b85f;
-}
-.next-arrows span:not(:first-child) {
-  transform: scale(0.88);
-}
-@keyframes arrow-arrive {
-  from {
-    opacity: 0;
-    translate: 16px 0;
-  }
-  to {
-    opacity: 1;
-    translate: 0 0;
-  }
-}
 body[data-game="bumper"] #party-scene,
 body[data-game="volcano"] #party-scene,
 body[data-game="putt"] #party-scene {
@@ -404,11 +367,6 @@ body[data-game="putt"] #party-scene {
   }
   .wire-board button {
     min-height: 21px;
-  }
-  .next-arrows span {
-    width: 35px;
-    height: 35px;
-    font-size: 23px;
   }
   .quiz-answers button {
     padding: 7px;

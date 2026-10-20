@@ -66,7 +66,7 @@
       color: "#82d9ef",
       description: "Watch the ripples. Strike at the splash.",
       rules:
-        "You have one minute. Watch the ripples by your bobber: larger rings mean larger fish. Reel at the splash. Early pulls scare it away, but another bite will come. Each player keeps one fish. When everyone finishes, the measuring boards reveal whose fish is longest.",
+        "You have one minute. Watch the ripples by your bobber: larger rings mean larger fish. Reel at the splash. Reel when your bobber dips and the rings flash. An early tug lets you try again on the same bite. Each player keeps one fish. When everyone finishes, the measuring boards reveal whose fish is longest.",
       unit: "cm",
     },
     {
@@ -98,7 +98,7 @@
       color: "#8bd9dc",
       description: "Hop the driftwood. Find your beach rhythm.",
       rules:
-        "Hop over driftwood washing up from the sea. Watch its size and speed and jump before it crosses your gold ring. Clear the whole log for points. Three bumps end your run.",
+        "Hop over driftwood washing up from the sea. Watch its size and speed and jump before it crosses your gold ring. Each clean jump earns 300 points. A bump makes you dizzy for 2.5 seconds. Three bumps end your run.",
       unit: "points",
     },
     {
@@ -525,6 +525,12 @@
     golf.get("skybridge").holes[0],
     golf.get("harbor").holes[1],
     golf.get("fair").holes[0],
+    golf.get("pebble").holes[1],
+    golf.get("willow").holes[1],
+    golf.get("dunes").holes[0],
+    golf.get("tide").holes[1],
+    golf.get("fair").holes[1],
+    golf.get("clover").holes[2],
   ].map((h, i) =>
     (typeof module === "object" && module.exports
       ? require("./golf-shapes")
@@ -599,6 +605,9 @@
     spaces,
     spaceInfo,
     holes,
+    golfIndex: (putt) =>
+      putt?.holes?.[Math.min(2, putt.course || 0)] ??
+      Math.min(2, putt?.course || 0),
     hole: holes[0],
     outerCount: types.length,
     trophyStops: spaces.filter((n) => n.type === "trophy").map((n) => n.id),
@@ -623,6 +632,6 @@
         ]),
       );
     },
-    version: "BOARDWALK_CARNIVAL_V11",
+    version: "BOARDWALK_CARNIVAL_V12",
   };
 });
